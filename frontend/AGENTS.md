@@ -1,6 +1,6 @@
 # AGENTS.md — Frontend
 
-本サブディレクトリは React + Vite + GrapesJS + ReactFlow によるフロントエンド。プロジェクト全般のルールは上位の [../AGENTS.md](../AGENTS.md) を参照。
+本サブディレクトリは React + Vite + ReactFlow によるフロントエンド。プロジェクト全般のルールは上位の [../AGENTS.md](../AGENTS.md) を参照。
 
 ## Commands
 
@@ -18,8 +18,8 @@ npm run lint       # ESLint
 ## Key Directories
 
 - `src/components/flow/` — Flow diagram editor (ReactFlow-based)
-- `src/grapes/blocks.ts` — 60+ pre-built block definitions
-- `src/store/` — Persistence layer (flowStore, customBlockStore)
+- `src/components/screen-layout/` — 業務部品デザイナ (画面デザイン / プロジェクト独自部品の登録・管理・編集)
+- `src/store/` — Persistence layer (flowStore, screenStore, layoutComponentStore)
 - `src/mcp/mcpBridge.ts` — Browser-side WebSocket client
 
 ### `<feature>/` vs `components/<feature>/` 二重配置の規約 (ISSUE #1147 N-5)
@@ -27,10 +27,9 @@ npm run lint       # ESLint
 特定 feature の SDK / 環境連携と、その UI ダイアログを別ディレクトリに分離するパターン:
 
 - **`src/<feature>/`** — 外部 SDK ラッパー / 環境連携 / hooks / 純粋ロジック (UI 非依存)。
-  - 例: `src/codex/` (Codex CLI client + hooks)、`src/puck/` (Puck buildConfig + primitives 等)
+  - 例: `src/codex/` (Codex CLI client + hooks)
 - **`src/components/<feature>/`** — その feature 専用の UI ダイアログ / view / panel コンポーネント。
-  - 例: `src/components/codex/` (CodexIndicator / CodexSettingsView)、
-    `src/components/puck/` (RegisterComponentDialog)
+  - 例: `src/components/codex/` (CodexIndicator / CodexSettingsView)
 
 判定基準:
 - ロジック / hook / API client / 型 → `<feature>/`
@@ -42,8 +41,8 @@ npm run lint       # ESLint
 
 ## Data Flow
 
-- **Save:** GrapesJS autosave → remoteStorage → mcpBridge (WS) → wsBridge → active workspace の `<workspace>/<dataDir>/screens/{id}.json` (例: `workspaces/my-app/harmony/screens/{id}.json`、path は `harmony.json` の `dataDir` 設定に依存、#856 で `data/` 直書きから移行済)
-- **Fallback:** If WS disconnected → localStorage (`gjs-screen-{id}`)
+- **Save:** 画面デザイナの保存 (編集セッション `screen-item`) → mcpBridge (WS) → wsBridge → active workspace の `<workspace>/<dataDir>/screens/{id}.json` (例: `workspaces/my-app/harmony/screens/{id}.json`、path は `harmony.json` の `dataDir` 設定に依存、#856 で `data/` 直書きから移行済)
+- **独自部品:** プロジェクト共通の `<workspace>/<dataDir>/layout-components.json` (1 件ずつ保存、`layoutComponentStore`)
 - **Sync:** wsBridge broadcasts changes to all connected browser tabs
 
 workspace / dataDir 構造の詳細は [`../docs/spec/workspace.md`](../docs/spec/workspace.md) を参照。
@@ -78,10 +77,10 @@ multi browser context の e2e で **Vite dev server (port 5173) が間欠 crash*
 - 検査: `npm run verify:colors` (repo root)。既存の直書きは `bash scripts/dev/apply-color-tokens.sh` で機械変換できる
 - ライト / ダークは `src/theme/appTheme.ts` が `<html data-theme>` を切り替える。上部ヘッダーのみ両テーマ共通の暗色 (`--hm-chrome-*`)
 
-## Themes & Custom Blocks (設計キャンバス内)
+## 画面デザインのキャンバス
 
-- Themes: standard (default Bootstrap), card, compact, dark — CSS injected into GrapesJS canvas iframe
-- Custom blocks persist to active workspace の `<workspace>/<dataDir>/custom-blocks.json` via customBlockStore (例: `workspaces/my-app/harmony/custom-blocks.json`)
+- 紙面は設計対象アプリの見本で、アプリのテーマに関係なく明色 (`styles/screenLayout.css` の `--pv-*`)。描画方式 (CSS フレームワーク等) は原本に持たない
+- 旧エディタ (GrapesJS / Puck) は廃止済み。旧形式の画面は業務部品デザイナの開始画面から自動変換する
 
 ## Routing / Tab Policy
 

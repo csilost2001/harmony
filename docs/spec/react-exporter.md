@@ -1,5 +1,8 @@
 # reactExporter — designer__export_screen 用 HTML→JSX 変換器 (ISSUE #1147 N-8)
 
+> **廃止 (2026-10)**: 旧エディタ (GrapesJS / Puck) は廃止し、画面デザインは「業務部品デザイナ」に一本化しました。
+> この文書は旧エディタ時代の記録として残しています。現行の仕様は [screen-layout.md](screen-layout.md) / [layout-components.md](layout-components.md) を参照してください。
+
 ## 位置付け
 
 `backend/src/reactExporter.ts` は **MCP tool `designer__export_screen` の実装** で、Designer (GrapesJS) が出力した HTML スニペットを React TSX コンポーネントの **構文骨格** に変換する低レベルユーティリティ。

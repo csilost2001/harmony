@@ -6,14 +6,12 @@
  * - designer__add_screen
  * - designer__update_screen
  * - designer__remove_screen
- * - designer__export_screen
  *
  * harmony.json `entities.screens[]` の参照 + ブラウザ WS への CRUD 委譲。
  */
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { readProject } from "../projectStorage.js";
 import { wsBridge } from "../wsBridge.js";
-import { htmlToReact, toPascalCase } from "../reactExporter.js";
 import { assertEntityIdMcp, type ToolHandler } from "../mcpHelpers.js";
 
 export const handleScreenTool: ToolHandler = async (name, args, root) => {
@@ -80,8 +78,6 @@ export const handleScreenTool: ToolHandler = async (name, args, root) => {
         type: typeof a.type === "string" ? a.type : undefined,
         path: typeof a.path === "string" ? a.path : undefined,
         position: a.position,
-        editorKind: typeof a.editorKind === "string" ? a.editorKind : undefined,
-        cssFramework: typeof a.cssFramework === "string" ? a.cssFramework : undefined,
         purpose: typeof a.purpose === "string" ? a.purpose : "page",
       })) as { screenId: string };
       return {
@@ -137,42 +133,6 @@ export const handleScreenTool: ToolHandler = async (name, args, root) => {
       return {
         content: [
           { type: "text", text: `画面 ${a.screenId} を削除しました。` },
-        ],
-      };
-    }
-
-    case "designer__export_screen": {
-      if (typeof a.screenId !== "string") {
-        throw new McpError(ErrorCode.InvalidParams, "screenId は必須です");
-      }
-      // S-002: ID validation
-      assertEntityIdMcp(a.screenId, "screenId");
-
-      // ブラウザ側から HTML + 画面名を取得
-      const result = (await wsBridge.sendCommand("exportScreen", {
-        screenId: a.screenId,
-      })) as { html: string; css: string; screenName: string };
-
-      // コンポーネント名を決定
-      const rawName =
-        typeof a.componentName === "string" && a.componentName.trim()
-          ? a.componentName.trim()
-          : toPascalCase(result.screenName);
-
-      // JSX 変換
-      const { code, warnings } = htmlToReact(result.html, rawName);
-
-      const warningText =
-        warnings.length > 0
-          ? `\n\n> **変換警告:**\n${warnings.map((w) => `> - ${w}`).join("\n")}`
-          : "";
-
-      return {
-        content: [
-          {
-            type: "text",
-            text: `## ${rawName}.tsx\n\n\`\`\`tsx\n${code}\n\`\`\`${warningText}`,
-          },
         ],
       };
     }

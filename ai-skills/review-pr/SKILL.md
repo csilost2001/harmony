@@ -107,20 +107,16 @@ gh pr diff <PR番号> --name-only | grep -E "^schemas/"
 
 紐付かない schema 変更は **必ず Must-fix** で指摘し、revert もしくは別 ISSUE 起票を推奨。memory `feedback_schema_governance_strict.md` 参照。
 
-### Step 5.5: マルチエディタ対応レビュー (#806)
+### Step 5.5: 画面デザイン (業務部品デザイナ) レビュー
 
-PR diff に画面関連ファイル (`screens/` / `Designer.tsx` / `PuckBackend` / `CssFrameworkContext` 等) が含まれる場合:
+PR diff に画面関連ファイル (`screens/` / `frontend/src/components/screen-layout/` / `shared/src/screenLayout.ts` / `shared/src/layoutComponents.ts` 等) が含まれる場合:
 
-1. **editorKind / cssFramework 解決順序の一貫性**: screen → project → default の 3 段解決が正しく実装されているか
-   - `screen.design.editorKind` → `project.techStack.designer.editorKind` → `"grapesjs"` の 3 段フォールバック (#826 で `project.design` から移行)
-   - `screen.design.cssFramework` → `project.techStack.designer.cssFramework` → `"bootstrap"` の 3 段フォールバック (#826 で `project.design` から移行)
-   - 解決ロジックが 1 か所に集中しているか (複数箇所に分散して解決順序がズレていないか)
-2. **動的コンポーネント定義の primitive 妥当性**: 登録される `primitive` フィールドが `BUILTIN_PRIMITIVE_NAMES` に含まれる既知の名前であるか
-   - `BUILTIN_PRIMITIVE_NAMES` は `frontend/src/puck/buildConfig.ts` でエクスポートされている
-   - 未知の primitive 名を登録すると Puck Config 構築時に silent fail する
-3. **Puck 画面の Thymeleaf 出力スキップ**: Thymeleaf HTML を生成するコードパスで `editorKind === "puck"` 画面を明示除外しているか
+1. **layout の整合**: `validateLayoutWithComponents` で error が出ないか (存在しない項目 / 独自部品 / 遷移先、置けない位置、循環)。項目の定義は `items[]` にだけあり、部品は `itemRef` で参照しているか
+2. **独自部品の定義と参照**: `layout-components.json` の定義が `validateComponentDefs` で error なし。保存済みの差し込み口の ID・種類を変えていないか (使っている画面の `args` が参照する)
+3. **開いただけで原本を書き換えない**: 画面を開く・閲覧するだけで保存されないか (明示保存モデル)
+4. **旧エディタ (GrapesJS / Puck) への逆戻りがないか**: `design` 参照を新規に書く・旧エディタの型や依存を足す変更は Must-fix
 
-詳細仕様: `docs/spec/multi-editor-puck.md` § 2.3 / § 4.1 / § 4.2
+詳細仕様: `docs/spec/screen-layout.md` / `docs/spec/layout-components.md`
 
 ### Step 5.6: 協調編集 e2e 手動 smoke (#894 で導入)
 

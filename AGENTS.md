@@ -16,7 +16,7 @@ Claude Code 固有の補足は `CLAUDE.md`、Codex 固有の設定は `.codex/co
 
 **Harnize Harmony** (社内呼称: Harmony) — 日本の Web システム開発の設計書 (画面 / 処理フロー / テーブル / 規約 等) を Web 上で WYSIWYG に編集・閲覧するツール。設計書の原本は AI が読みやすい JSON / Markdown で保持し、プログラムはその時点の AI が設計書から推論して生成する。
 
-- **frontend/** — React + Vite + GrapesJS / Puck + ReactFlow による設計 UI
+- **frontend/** — React + Vite + ReactFlow による設計 UI (画面デザインは業務部品デザイナ。旧エディタ GrapesJS / Puck は廃止)
 - **backend/** — MCP server + WebSocket bridge + ファイル永続化 + lock / draft 管理 (port 5179)
 - **shared/** — frontend / backend 共通の型・定数 (`@harmony/shared`)
 - **schemas/v3/** — 設計書の JSON Schema (一次成果物)
@@ -100,7 +100,7 @@ URL は `/category/feature[/:id]`。HeaderMenu から到達する画面と個別
 
 - `frontend/src/styles/tokens.css` — アプリ UI の唯一の色定義 (ライト / ダーク)。画面の CSS に色を直書きしない (`npm run verify:colors` で検査)
 - `frontend/src/components/` — 各画面。一覧系 UI は [docs/spec/list-common.md](docs/spec/list-common.md) を先に読む
-- `frontend/src/editor/` — 画面エディタの backend 境界 (GrapesJS / Puck)
+- `frontend/src/components/screen-layout/` — 業務部品デザイナ (画面デザイン・プロジェクト独自部品の登録 / 編集)。仕様: [docs/spec/screen-layout.md](docs/spec/screen-layout.md) / [docs/spec/layout-components.md](docs/spec/layout-components.md)
 - `frontend/src/mcp/mcpBridge.ts` / `backend/src/wsBridge.ts` — ブラウザ ⇄ backend の WebSocket
 - `backend/src/tools.ts` — MCP tool 定義
 - `shared/src/` — 共通型・定数。変更後は consumer の build が shared を先に build する

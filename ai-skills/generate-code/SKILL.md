@@ -114,7 +114,7 @@ base 候補 (CLI 指定有無で分岐):
 
 ```
 project.techStack:
-  designer.editorKind, designer.cssFramework
+  designer.cssFramework
   backend.language, backend.framework
   database.type, database.version
   frontend.library, frontend.framework
@@ -173,16 +173,7 @@ screen.purpose (解決順序):
 `frontend/src/utils/techStackConstraints.ts` の `validateTechStackConstraints()` 相当チェックを実施する。
 以下の制約をすべて確認し、違反があれば「techStack 制約違反: <詳細>」と報告して中止する。
 
-### 制約 1: editorKind=puck → frontend.library="react" 必須
-
-```
-if (techStack.designer?.editorKind === "puck"):
-  lib = techStack.frontend?.library
-  if (lib !== undefined AND lib !== "react"):
-    VIOLATION: 'Puck エディタは React 専用です。frontend.library を "react" に変更してください (現在: "{lib}")。'
-```
-
-### 制約 2: バックエンド言語 × フレームワーク matrix
+### 制約 1: バックエンド言語 × フレームワーク matrix
 
 ```
 許容組合せ:
@@ -198,37 +189,22 @@ if (lang !== undefined AND framework !== undefined):
     VIOLATION: '言語 "{lang}" に対して "{framework}" は未対応です。使用可能: {allowed}'
 ```
 
-### 制約 3: thymeleaf / blade → editorKind=grapesjs 必須
-
-```
-if (frontendLib IN ["thymeleaf", "blade"] AND editorKind === "puck"):
-  VIOLATION: 'frontend.library "{frontendLib}" は Puck エディタと共存できません。editorKind を "grapesjs" に変更してください。'
-```
-
-### 制約 4: vue → frontend.framework ∈ {nuxt, vite, none}
+### 制約 2: vue → frontend.framework ∈ {nuxt, vite, none}
 
 ```
 if (frontendLib === "vue" AND fw !== undefined AND fw NOT IN ["nuxt", "vite", "none"]):
   VIOLATION: 'Vue.js には frontend.framework "{fw}" は使用できません。"nuxt", "vite", "none" から選択してください。'
 ```
 
-### 制約 5: react → frontend.framework ∈ {next, vite, none}
+### 制約 3: react → frontend.framework ∈ {next, vite, none}
 
 ```
 if (frontendLib === "react" AND fw !== undefined AND fw NOT IN ["next", "vite", "none"]):
   VIOLATION: 'React には frontend.framework "{fw}" は使用できません。"next", "vite", "none" から選択してください。'
 ```
 
-### editorKind 解決順序 (multi-editor-puck.md § 2.3)
-
-```
-1. screen.design.editorKind (Screen JSON 個別指定)
-2. project.techStack.designer.editorKind (project default)
-3. デフォルト: "grapesjs"
-```
-
-Thymeleaf テンプレート出力を行う場合、解決後の editorKind が "puck" であれば
-「**この画面は Puck エディタ (React) です。Thymeleaf 出力はスキップします。**」と報告してスキップする。
+画面デザインは業務部品の木 (`screen.layout`) に一本化されており、旧エディタ (GrapesJS / Puck) の種別による制約・出力スキップは無い。
+`techStack.designer` は `cssFramework` (生成する画面コードで使う CSS フレームワーク) だけを持つ。
 
 ## Step 2.4: PageLayout 解決 (Screen.purpose=page かつ pageLayoutId あり)
 
@@ -242,12 +218,11 @@ Step 1.5 で `purpose === "page"` にルーティングされ、かつ Screen JS
    - id, name
    - regions[]: { id, name, order }
    - assignments: { [regionId]: gadgetScreenId }  (region → Gadget の対応)
-   - design.editorKind, design.cssFramework
 
 3. assignments の各 gadgetScreenId を解決:
    各 gadgetScreenId について `screens/<gadgetScreenId>.json` を Read し、
-   Gadget の name / design / path 等を取得する。
-   map 化: { "<regionId>": { gadgetId, gadgetName, gadgetDesign } }
+   Gadget の name / layout (業務部品の木) / items / path 等を取得する。
+   map 化: { "<regionId>": { gadgetId, gadgetName, gadgetLayout } }
 
 4. 収集した PageLayout + gadget 情報を Step 3-B (layout decorate モード) に渡す。
 ```
@@ -256,26 +231,10 @@ pageLayouts が active workspace に存在しない (JSON が見つからない)
 → 「警告: pageLayoutId `<id>` が見つかりません。レイアウトなしで Page を生成します。」と報告し、
    通常の Step 3-B (layout なしモード) で続行する。
 
-## Step 2.5: cssFramework ミスマッチ検出
+## Step 2.5: CSS フレームワークの決定
 
-Step 2.4 で PageLayout と Gadget 群を解決した後、以下の整合性チェックを行う。
-
-```
-収集する cssFramework:
-  - PageLayout の design.cssFramework (例: "bootstrap")
-  - 各 Gadget Screen の design.cssFramework (例: "tailwind")
-  - 対象 Page Screen の design.cssFramework (省略時は project.techStack.designer.cssFramework)
-
-チェック:
-  if 上記のうち 2 種以上の異なる cssFramework が混在する場合:
-    「⚠️ 警告: cssFramework の混在が検出されました。
-     PageLayout: <framework> / Gadget(<id>): <framework> / Page: <framework>
-     Thymeleaf 系では Bootstrap と Tailwind の HTML クラスが混在します。
-     生成は続行しますが、CSS を統一することを推奨します (multi-editor-puck.md § 2.3 参照)。」
-    と報告して続行 (生成は中止しない)
-```
-
-cssFramework が全て同一の場合、またはフィールドが存在しない場合はスキップ。
+生成する画面コードの CSS フレームワークは `techStack.designer.cssFramework` (省略時 `bootstrap`) だけで決める。
+画面・ページレイアウト・ガジェットごとの `cssFramework` 指定は廃止済みなので、混在の検出は不要。
 
 ## Step 3-A: ProcessFlow → backend code 生成
 
@@ -1139,13 +1098,11 @@ generated code に `@this/@self` の文字列を **残さない**。展開ルー
 
 ### テンプレート選択
 
-| techStack.frontend | techStack.designer.editorKind | 参照テンプレート |
-|---|---|---|
-| thymeleaf | grapesjs | `ai-skills/generate-code/templates/frontend/thymeleaf-bootstrap/PAGE.md` |
-| react + next | puck | `ai-skills/generate-code/templates/frontend/react-tailwind-next/PAGE.md` |
-| その他 | — | 「未対応の techStack 組合せです。」と報告して中止 |
-
-**Puck 画面での Thymeleaf 出力スキップ**: editorKind が解決後 "puck" で `frontend.library=thymeleaf` の場合は制約違反 (Step 2 で検出)。
+| techStack.frontend | 参照テンプレート |
+|---|---|
+| thymeleaf | `ai-skills/generate-code/templates/frontend/thymeleaf-bootstrap/PAGE.md` |
+| react + next | `ai-skills/generate-code/templates/frontend/react-tailwind-next/PAGE.md` |
+| その他 | 「未対応の techStack 組合せです。」と報告して中止 |
 
 ### screen.kind ごとのテンプレート分岐 (§9 — Screen → frontend mapping)
 
@@ -1162,8 +1119,10 @@ generated code に `@this/@self` の文字列を **残さない**。展開ルー
 ### layout (業務部品の木) → 画面構造 (layout がある画面ではこちらが一次情報)
 
 Screen JSON に `layout` がある場合、画面の構造はこれに従う。仕様: [docs/spec/screen-layout.md](../../docs/spec/screen-layout.md)。
-`layout` がある画面では `design` (GrapesJS HTML / Puck Data) を参照しない。テンプレートは `techStack.frontend` だけで選び、
-`editorKind` / `cssFramework` の制約 (Step 2 制約 1・3、Step 2.5) は layout の無い旧形式の画面にだけ適用する。
+`design` (旧エディタ GrapesJS / Puck の参照) は読まない。テンプレートは `techStack.frontend` だけで選ぶ。
+`layout` が無い画面 (旧形式で未移行) は、Harmony の業務部品デザイナで「旧デザインから自動変換」してから生成する。
+`type: "component"` の部品はプロジェクト独自部品の参照: `layout-components.json` の定義を `args` で展開した部品の木として扱い、
+同じ定義を使う箇所は再利用可能なコンポーネントとして 1 回だけ生成する ([docs/spec/layout-components.md](../../docs/spec/layout-components.md))。
 
 `layout.nodes` を上から順に、入れ子のまま次のように出力する。部品が参照する項目 (`itemRef`) の定義は `items[]` から取る。
 
@@ -1547,7 +1506,6 @@ PageLayout JSON:
   id, name
   regions[]: { id, name, order }         — header / sidebar / main / footer 等
   assignments: { [regionId]: gadgetScreenId }  — region → Gadget 対応
-  design.editorKind, design.cssFramework
 ```
 
 ### Thymeleaf 系 PageLayout 生成
@@ -1873,7 +1831,7 @@ Step 0 で `--all` / `--workspace <wsId>` が指定された場合、Step 1〜6 
 | nestjs × thymeleaf | `mcr.microsoft.com/devcontainers/typescript-node:20` | `github-cli:1` のみ (NestJS が SSR するため Maven 不要、最小構成) | 同上 | SQLite (Prisma file:./prisma/dev.db、Postgres section はコメントアウトで保持) |
 | nestjs × nextjs | `mcr.microsoft.com/devcontainers/typescript-node:20` | `github-cli:1` | 同上 | 同上 |
 
-> nestjs × thymeleaf 組合せは SKILL.md § 2 constraint 3 (thymeleaf は editorKind=grapesjs 必須) と合わせて稀。当面は最小テンプレ提供で、需要が顕在化したら拡充。
+> nestjs × thymeleaf 組合せは稀。当面は最小テンプレ提供で、需要が顕在化したら拡充。
 
 ### AI CLI 3 種同梱 + 永続化 4 種方針 (#1111 / #1114)
 
@@ -1995,7 +1953,7 @@ ai-skills/generate-code/templates/devcontainer/
 
    | backend.framework | frontend.library | 選択テンプレ |
    |---|---|---|
-   | `spring-boot` | `thymeleaf` (or grapesjs editorKind) | `templates/devcontainer/spring-boot-thymeleaf/` |
+   | `spring-boot` | `thymeleaf` | `templates/devcontainer/spring-boot-thymeleaf/` |
    | `spring-boot` | `react` | `templates/devcontainer/spring-boot-nextjs/` |
    | `nestjs` | `thymeleaf` | `templates/devcontainer/nestjs-thymeleaf/` |
    | `nestjs` | `react` | `templates/devcontainer/nestjs-nextjs/` |
@@ -2188,11 +2146,9 @@ tsc が利用不可またはプロジェクト設定が不整合の場合はス�
 - (既存 .devcontainer/ ありで skip した場合は「scaffold 既存のため skip」と明記)
 
 ### techStack 制約検証
-- 制約 1 (puck→react): ✓ / 違反なし
-- 制約 2 (backend matrix): ✓ / 違反なし
-- 制約 3 (thymeleaf→grapesjs): ✓ / 違反なし
-- 制約 4 (vue→framework): ✓ / 違反なし
-- 制約 5 (react→framework): ✓ / 違反なし
+- 制約 1 (backend matrix): ✓ / 違反なし
+- 制約 2 (vue→framework): ✓ / 違反なし
+- 制約 3 (react→framework): ✓ / 違反なし
 
 ### smoke 検証
 - Java 構文: ✓ / スキップ (javac 利用不可) / ❌ (エラー内容)

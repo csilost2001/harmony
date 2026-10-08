@@ -35,9 +35,7 @@ Next.js App Router には 2 種類の layout 方式がある:
 | `assignments["sidebar"]` | `import SidebarGadget from '@/app/components/gadgets/<gadgetId>'` + `<aside>` 内 mount |
 | `assignments["footer"]` | `import FooterGadget from '@/app/components/gadgets/<gadgetId>'` + `<footer>` 内 mount |
 | `assignments["main"]` | main region は assignment 不要。`{children}` を inject する slot |
-| `design.cssFramework="tailwind"` | Tailwind class 規約適用 (下記 Tailwind region 規約参照) |
-| `design.editorKind="puck"` | Region primitive と互換 (本テンプレでは静的 import を選択、Puck Render は別 issue) |
-| `design.designFileRef` | コード生成時は構造のみ採用 (wireframe ヒントとして参照するが出力に含めない) |
+| `techStack.designer.cssFramework="tailwind"` | Tailwind class 規約適用 (下記 Tailwind region 規約参照) |
 
 ### assignments が未指定の region の扱い
 

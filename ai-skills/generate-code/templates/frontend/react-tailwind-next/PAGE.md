@@ -1,7 +1,7 @@
 # React + Tailwind CSS + Next.js App Router — Page テンプレート
 
 Screen JSON の `kind` と `items[]` から Next.js App Router (Server Components 優先) のページコンポーネントを生成する。
-`techStack.designer.editorKind = "puck"` + `cssFramework = "tailwind"` の前提。
+`techStack.frontend` が react + next、`techStack.designer.cssFramework = "tailwind"` の前提。画面の構造は Screen JSON の `layout` (業務部品の木) から取る。
 `screen.pageLayoutId` 指定時は下記「Layout Wrap モード」に自動切替し、生成ページを `<AppLayout>` でラップする。
 
 ## フィールドマッピング

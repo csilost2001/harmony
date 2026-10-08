@@ -1,7 +1,7 @@
 # Harnize Harmony
 
-GrapesJS + React + Vite による業務システム向け WYSIWYG デザインツール。  
-画面フロー図エディタ（ReactFlow）で画面遷移を管理し、各画面のデザインを GrapesJS で編集する。
+React + Vite による業務システム向けの設計書 WYSIWYG ツール。  
+画面フロー図エディタ（ReactFlow）で画面遷移を管理し、各画面は「業務部品デザイナ」で部品を組み立てて設計する。
 
 ## 起動方法
 
@@ -63,24 +63,21 @@ harmony/
 ├── frontend/                # フロントエンド（Vite + React）
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── Designer.tsx       # GrapesJS エディタ画面
-│   │   │   ├── Topbar.tsx         # ツールバー（Undo/Redo/保存/テーマ）
-│   │   │   ├── BlocksPanel.tsx    # 左パネル（ブロック一覧・検索）
-│   │   │   ├── RightPanel.tsx     # 右パネル（スタイル/属性/レイヤー）
-│   │   │   └── flow/
-│   │   │       ├── FlowEditor.tsx    # 画面フロー図エディタ（ReactFlow）
-│   │   │       └── EdgeEditModal.tsx # 遷移エッジ編集モーダル
-│   │   ├── grapes/
-│   │   │   ├── blocks.ts          # GrapesJS ブロック定義（60+ブロック）
-│   │   │   └── remoteStorage.ts   # サーバーサイドストレージ連携
+│   │   │   ├── screen-layout/     # 業務部品デザイナ（画面デザイン・独自部品の登録 / 管理 / 編集）
+│   │   │   ├── flow/
+│   │   │   │   ├── FlowEditor.tsx    # 画面フロー図エディタ（ReactFlow）
+│   │   │   │   └── EdgeEditModal.tsx # 遷移エッジ編集モーダル
+│   │   │   ├── process-flow/      # 処理フロー（カード / 図 / 表）
+│   │   │   └── document/          # 設計書ビュー
 │   │   ├── store/
 │   │   │   ├── flowStore.ts       # フロープロジェクト永続化
-│   │   │   └── customBlockStore.ts
+│   │   │   ├── screenStore.ts     # 画面 entity（項目・レイアウト）
+│   │   │   └── layoutComponentStore.ts # プロジェクト独自部品
 │   │   ├── mcp/
 │   │   │   └── mcpBridge.ts       # WebSocket ブリッジ
 │   │   └── styles/
-│   │       ├── app.css            # デザイナー UI（ダークテーマ）
-│   │       ├── common.css         # キャンバス内注入用（業務システム共通CSS）
+│   │       ├── tokens.css         # 配色トークン（ライト / ダーク）
+│   │       ├── screenLayout.css   # 業務部品デザイナ
 │   │       └── flow.css           # フロー図エディタ用
 │   └── index.html
 ├── backend/             # MCP サーバー（Express + WebSocket）
@@ -91,7 +88,8 @@ harmony/
 │   └── <id>/
 │       ├── harmony.json      # プロジェクト定義（schemas/v3/harmony.v3.schema.json）
 │       └── <dataDir>/        # harmony.json の dataDir フィールドで指定
-│           └── screens/      # 各画面の GrapesJS データ
+│           ├── screens/      # 各画面（項目 + 業務部品レイアウト）
+│           └── layout-components.json # プロジェクト独自部品
 ├── data/
 │   └── extensions/           # デザイナー本体組み込み拡張定義（git tracked）
 ├── docs/

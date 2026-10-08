@@ -65,3 +65,18 @@ describe("layout-components.json", () => {
     expect((await deleteLayoutComponent("par-1", ROOT)).deleted).toBe(true);
   });
 });
+
+describe("レイアウト保存と一覧の「デザイン済」(hasDesign)", () => {
+  it("見出しだけのレイアウトは未デザイン、部品を置くとデザイン済になり、戻すと未デザインに戻る", async () => {
+    const { writeScreenItems, readProject } = await import("./projectStorage.js");
+    const has = async () => ((await readProject(ROOT)) as { entities: { screens: Array<{ id: string; hasDesign?: boolean }> } }).entities.screens.find((s) => s.id === "cart")?.hasDesign;
+    const save = (nodes: unknown[]) => writeScreenItems("cart", { screenId: "cart", items: [], layout: { version: 1, nodes } }, ROOT);
+
+    await save([{ id: "t", type: "heading", props: { text: "カート", level: 1 } }]);
+    expect(Boolean(await has())).toBe(false);
+    await save([{ id: "t", type: "heading", props: { text: "カート", level: 1 } }, { id: "x", type: "text", props: { text: "本文" } }]);
+    expect(await has()).toBe(true);
+    await save([{ id: "t", type: "heading", props: { text: "カート", level: 1 } }]);
+    expect(Boolean(await has())).toBe(false);
+  });
+});

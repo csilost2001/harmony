@@ -33,8 +33,7 @@ import {
   writeSequence,
   readView,
   writeView,
-  readCustomBlocks,
-  writeCustomBlocks,
+  upsertLayoutComponent,
   readErLayout,
   writeErLayout,
   // #1294 I-2 / RFC #1284: kebab-case EntityId + uuid 構造の helper
@@ -264,9 +263,9 @@ describe("dataDir = 'design/spec' (multi-segment path)", () => {
     await fs.access(path.join(root, "design", "spec", "views", "view-spec.json"));
   });
 
-  it("writeCustomBlocks → 物理ファイルが <root>/design/spec/custom-blocks.json に作成される", async () => {
-    await writeCustomBlocks([{ id: "block-1" }], root);
-    await fs.access(path.join(root, "design", "spec", "custom-blocks.json"));
+  it("upsertLayoutComponent → 物理ファイルが <root>/design/spec/layout-components.json に作成される", async () => {
+    await upsertLayoutComponent({ id: "part-1", label: "部品", params: [], nodes: [] }, root);
+    await fs.access(path.join(root, "design", "spec", "layout-components.json"));
   });
 });
 

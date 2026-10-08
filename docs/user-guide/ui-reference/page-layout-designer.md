@@ -1,5 +1,8 @@
 # ページレイアウト Designer (互換 URL)
 
+> **廃止 (2026-10)**: 旧エディタ (GrapesJS / Puck) は廃止し、画面デザインは「業務部品デザイナ」に一本化しました。
+> この文書は旧エディタ時代の記録として残しています。現行の仕様は [screen-layout.md](../../spec/screen-layout.md) / [layout-components.md](../../spec/layout-components.md) を参照してください。
+
 > **対象ルート**: `/w/:wsId/page-layout/design/:pageLayoutId`
 > **現在の扱い**: `/w/:wsId/page-layout/edit/:pageLayoutId` へ redirect
 

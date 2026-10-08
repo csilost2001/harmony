@@ -105,8 +105,6 @@ const viewDefsDir      = (dataRoot: string) => path.join(dataRoot, "view-definit
 const pageLayoutsDir   = (dataRoot: string) => path.join(dataRoot, "page-layouts");
 const genericDefinitionsDir = (dataRoot: string, kind: string) => path.join(dataRoot, "generic-definitions", kind);
 export const extensionsDir      = (dataRoot: string) => path.join(dataRoot, "extensions");
-export const customBlocksFile   = (dataRoot: string) => path.join(dataRoot, "custom-blocks.json");
-export const puckComponentsFile = (dataRoot: string) => path.join(dataRoot, "puck-components.json");
 export const layoutComponentsFile = (dataRoot: string) => path.join(dataRoot, "layout-components.json");
 export const erLayoutFile       = (dataRoot: string) => path.join(dataRoot, "er-layout.json");
 export const screenFlowPositionsFile = (dataRoot: string) => path.join(dataRoot, "screen-flow-positions.json");
@@ -722,7 +720,6 @@ function resolveDataFile(kind: string, dataRoot: string, id?: string): string | 
   let filePath: string | null = null;
   switch (kind) {
     case "erLayout": filePath = erLayoutFile(dataRoot); break;
-    case "customBlocks": filePath = customBlocksFile(dataRoot); break;
     case "layoutComponents": filePath = layoutComponentsFile(dataRoot); break;
     case "conventions": filePath = conventionsFile(dataRoot); break;
     case "screen": filePath = id ? path.join(screensDir(dataRoot), `${id}.design.json`) : null; break;
@@ -734,7 +731,6 @@ function resolveDataFile(kind: string, dataRoot: string, id?: string): string | 
     case "view": filePath = id ? path.join(viewsDir(dataRoot), `${id}.json`) : null; break;
     case "viewDefinition": filePath = id ? path.join(viewDefsDir(dataRoot), `${id}.json`) : null; break;
     case "pageLayout": filePath = id ? path.join(pageLayoutsDir(dataRoot), `${id}.json`) : null; break;
-    case "pageLayoutDesign": filePath = id ? path.join(pageLayoutsDir(dataRoot), `${id}.design.json`) : null; break;
     default: return null;
   }
   // S-002: path containment check (defense-in-depth)
@@ -825,7 +821,6 @@ function buildDefaultScreenEntity(
     path: typeof entry?.path === "string" ? entry.path : "",
     ...(typeof entry?.groupId === "string" ? { groupId: entry.groupId } : {}),
     items,
-    design: { designFileRef: `${screenId}.design.json` },
   };
 }
 
@@ -1013,27 +1008,21 @@ export async function writeScreenEntity(screenId: string, data: unknown, root: s
   const current = isRecord(data) ? data : {};
   const project = await readProject(r);
   const entry = getScreenEntry(project, screenId);
-  // Phase I round 3+4 Must-fix F (Codex round 4 M-5): editorKind に応じて
-  // designFileRef (grapesjs) と puckDataRef (puck) の **排他**を保証する。
-  // schema (`screen.v3.schema.json:146-155` allOf if/then) は両方を同時に持つことを禁止しているが、
-  // 旧 writeScreenEntity は常に designFileRef を付加しており、Puck screen で schema violation を
-  // 引き起こしていた (#1185 提案 D 違反)。
-  //
-  // Phase J Must-fix D (#1298 round 5 Codex M-4): editorKind 解決を 3 段 fallback 化。
-  // screen.design.editorKind 省略時は project.techStack.designer.editorKind を見る。
-  // 旧実装は (1) のみで判定し、project-default Puck screen を grapesjs として metadata に
-  // 書き直して puck payload を失っていた。
-  const currentDesign = isRecord(current.design) ? current.design : {};
-  const editorKind = await resolveScreenEditorKind(currentDesign, r);
-  const designOut: Record<string, unknown> = { ...currentDesign };
-  if (editorKind === "puck") {
-    // puck: puckDataRef のみ。designFileRef を明示的に除去 (上書きから残らないように)。
-    delete designOut.designFileRef;
-    designOut.puckDataRef = "puck-data.json";
-  } else {
-    // grapesjs (default) or 未指定: designFileRef のみ。puckDataRef を明示的に除去。
-    delete designOut.puckDataRef;
-    designOut.designFileRef = `${screenId}.design.json`;
+  // 旧エディタ (GrapesJS / Puck) の廃止後、画面は業務部品の木 (layout) を持ち、旧形式の design 参照は
+  // 持たない。既に design 参照を持つ画面 (未移行の画面) では、editorKind と対応する参照の排他だけを保ち、
+  // 参照の無い画面に design を足さない (保存のたびに旧形式の参照が生えるのを防ぐ)。
+  const currentDesign = isRecord(current.design) ? current.design : null;
+  let designOut: Record<string, unknown> | null = null;
+  if (currentDesign) {
+    const editorKind = await resolveScreenEditorKind(currentDesign, r);
+    designOut = { ...currentDesign };
+    if (editorKind === "puck") {
+      delete designOut.designFileRef;
+      designOut.puckDataRef = "puck-data.json";
+    } else {
+      delete designOut.puckDataRef;
+      designOut.designFileRef = `${screenId}.design.json`;
+    }
   }
   const toSave: Record<string, unknown> = {
     ...buildDefaultScreenEntity(screenId, entry, [], dataRoot),
@@ -1043,7 +1032,7 @@ export async function writeScreenEntity(screenId: string, data: unknown, root: s
     kind: typeof current.kind === "string" ? current.kind : (typeof entry?.kind === "string" ? entry.kind : "other"),
     path: typeof current.path === "string" ? current.path : (typeof entry?.path === "string" ? entry.path : ""),
     updatedAt: new Date().toISOString(),
-    design: designOut,
+    ...(designOut ? { design: designOut } : {}),
   };
   // #1294 I-2: uuid preserve / 採番 (entity meta)
   await preserveOrAssignUuid("screen", toSave, path.join(screensDir(dataRoot), `${screenId}.json`));
@@ -1067,20 +1056,6 @@ export async function deleteScreen(screenId: string, root: string): Promise<void
   try {
     await fs.unlink(path.join(siDir, `${screenId}.json`));
   } catch { /* file not found is OK */ }
-}
-
-/** custom-blocks.json を読み込み */
-export async function readCustomBlocks(root: string): Promise<unknown[]> {
-  const r = root;
-  const dataRoot = await resolveDataRoot(r);
-  return (await readJSON<unknown[]>(customBlocksFile(dataRoot))) ?? [];
-}
-
-/** custom-blocks.json を書き込み */
-export async function writeCustomBlocks(blocks: unknown[], root: string): Promise<void> {
-  const r = root;
-  const dataRoot = await ensureDataDirFromRoot(r);
-  await writeJSON(customBlocksFile(dataRoot), blocks);
 }
 
 // ── プロジェクト独自部品 (layout-components.json、docs/spec/layout-components.md) ──────
@@ -1147,39 +1122,6 @@ export async function deleteLayoutComponent(componentId: string, root: string, f
     await writeJSON(file, { $schema: LAYOUT_COMPONENTS_SCHEMA, version: 1, components: doc.components.filter((c) => c.id !== componentId) });
   });
   return { deleted: true, usages };
-}
-
-/** screens/{screenId}/puck-data.json を読み込み (#806) */
-export async function readPuckData(screenId: string, root: string): Promise<unknown | null> {
-  const r = root;
-  const dataRoot = await resolveDataRoot(r);
-  const filePath = path.join(screensDir(dataRoot), screenId, "puck-data.json");
-  assertPathContained(filePath, dataRoot); // defense-in-depth
-  return readJSON<unknown>(filePath);
-}
-
-/** screens/{screenId}/puck-data.json を書き込み (#806) */
-export async function writePuckData(screenId: string, data: unknown, root: string): Promise<void> {
-  const r = root;
-  const dataRoot = await ensureDataDirFromRoot(r);
-  const puckDir = path.join(screensDir(dataRoot), screenId);
-  assertPathContained(puckDir, dataRoot); // defense-in-depth
-  await fs.mkdir(puckDir, { recursive: true });
-  await writeJSON(path.join(puckDir, "puck-data.json"), data);
-}
-
-/** puck-components.json を読み込み */
-export async function readPuckComponents(root: string): Promise<unknown[]> {
-  const r = root;
-  const dataRoot = await resolveDataRoot(r);
-  return (await readJSON<unknown[]>(puckComponentsFile(dataRoot))) ?? [];
-}
-
-/** puck-components.json を書き込み */
-export async function writePuckComponents(components: unknown[], root: string): Promise<void> {
-  const r = root;
-  const dataRoot = await ensureDataDirFromRoot(r);
-  await writeJSON(puckComponentsFile(dataRoot), components);
 }
 
 /** er-layout.json を読み込み */
@@ -1398,6 +1340,27 @@ export async function writeScreenItems(screenId: string, data: unknown, root: st
   };
   await writeScreenEntity(screenId, next, r);
   try { await fs.unlink(path.join(screenItemsDir(dataRoot), `${screenId}.json`)); } catch { /* ignore */ }
+  if (layout && typeof layout === "object") await syncScreenHasDesign(screenId, layoutHasContent(layout), r);
+}
+
+/** 業務部品の木に中身があるか。画面名の見出しだけの画面は「未デザイン」 */
+function layoutHasContent(layout: unknown): boolean {
+  const nodes = isRecord(layout) && Array.isArray(layout.nodes) ? layout.nodes : [];
+  return nodes.length > 1 || nodes.some((n) => isRecord(n) && n.type !== "heading");
+}
+
+/** harmony.json の画面エントリの hasDesign (一覧の「デザイン済」) を、レイアウトの中身に合わせる */
+async function syncScreenHasDesign(screenId: string, hasDesign: boolean, root: string): Promise<void> {
+  try {
+    const project = await readProject(root);
+    const entry = getScreenEntry(project, screenId);
+    if (!entry || Boolean(entry.hasDesign) === hasDesign) return;
+    entry.hasDesign = hasDesign;
+    entry.updatedAt = new Date().toISOString();
+    await writeProject(project, root);
+  } catch (e) {
+    console.error("[projectStorage] hasDesign の更新に失敗:", e);
+  }
 }
 
 /** screen-items/{screenId}.json を削除 (#318) */
@@ -1660,34 +1623,6 @@ export async function writePageLayout(pageLayoutId: string, data: unknown, root:
     await preserveOrAssignUuid("pageLayout", data, filePath);
   }
   await writeJSON(filePath, data);
-}
-
-/**
- * RFC #1021 pl-6 (Codex A-2): PageLayout の design payload (GrapesJS / Puck data) を
- * `<dataDir>/page-layouts/<id>.design.json` に保存する。
- * 旧実装は Screen の synthetic id `page-layout:<id>` で `screens/page-layout:<id>.design.json` に
- * 保存していたが、これは Windows で無効なファイル名 + first-class artifact の永続化境界違反。
- */
-export async function readPageLayoutDesign(pageLayoutId: string, root: string): Promise<unknown | null> {
-  const dataRoot = await resolveDataRoot(root);
-  const filePath = path.join(pageLayoutsDir(dataRoot), `${pageLayoutId}.design.json`);
-  assertPathContained(filePath, dataRoot); // defense-in-depth
-  const data = await readJSON<unknown>(filePath);
-  if (data === null) return null;
-  return inflateDesignComponents(data, pageLayoutsDir(dataRoot));
-}
-
-export async function writePageLayoutDesign(pageLayoutId: string, data: unknown, root: string): Promise<void> {
-  const dataRoot = await ensureDataDirFromRoot(root);
-  const filePath = path.join(pageLayoutsDir(dataRoot), `${pageLayoutId}.design.json`);
-  assertPathContained(filePath, dataRoot); // defense-in-depth
-  await fs.mkdir(pageLayoutsDir(dataRoot), { recursive: true });
-  const designPayload = await deflateDesignComponents({
-    data,
-    baseDir: pageLayoutsDir(dataRoot),
-    baseName: pageLayoutId,
-  });
-  await writeJSON(filePath, designPayload);
 }
 
 export async function deletePageLayoutFile(pageLayoutId: string, root: string): Promise<void> {

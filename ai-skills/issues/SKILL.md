@@ -130,17 +130,15 @@ self-check (委譲直前):
 - [ ] `<progressLogPath>` 等 path placeholder が **main repo の絶対パス** に置換されている (相対パス / worktree path は NG)
 - [ ] `<progressLogPath>` (絶対パス) が pre-create されている
 
-## Step 4.5: マルチエディタ対応確認 (#806)
+## Step 4.5: 画面デザイン (業務部品デザイナ) 確認
 
-PR diff に画面関連ファイル (`screens/` / `Designer.tsx` / `PuckBackend` 等) が含まれる場合:
+PR diff に画面関連ファイル (`screens/` / `frontend/src/components/screen-layout/` / `shared/src/screenLayout.ts` / `shared/src/layoutComponents.ts` 等) が含まれる場合:
 
-1. **editorKind / cssFramework 解決順序の確認**: screen → project → default の 3 段解決が一貫しているか
-   - `screen.design.editorKind` → `project.techStack.designer.editorKind` → `"grapesjs"` のフォールバック (#826 で `project.design` から移行)
-   - `screen.design.cssFramework` → `project.techStack.designer.cssFramework` → `"bootstrap"` のフォールバック (#826 で `project.design` から移行)
-2. **Thymeleaf 出力スクリプトが Puck 画面をスキップしているか**: `editorKind === "puck"` 画面を Thymeleaf 出力対象から除外し、スキップした画面名をレポートに記録しているか確認
-3. **動的コンポーネント primitive の確認**: 登録されるカスタムコンポーネントの `primitive` フィールドが `BUILTIN_PRIMITIVE_NAMES` に含まれる既知の名前かどうか
+1. **layout の整合**: `validateLayoutWithComponents` で error が出ないか。項目の定義は `items[]` にだけあり、部品は `itemRef` で参照しているか
+2. **独自部品**: `layout-components.json` の定義が `validateComponentDefs` で error なし。保存済みの差し込み口の ID・種類を変えていないか
+3. **旧エディタ (GrapesJS / Puck) への逆戻りがないか**: `design` 参照を新規に書く変更は不可
 
-詳細仕様: `docs/spec/multi-editor-puck.md` § 2.3 / § 4.1
+詳細仕様: `docs/spec/screen-layout.md` / `docs/spec/layout-components.md`
 
 ## Step 5.0: schema 変更チェック (最優先、#511 で導入)
 

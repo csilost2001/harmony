@@ -2,7 +2,7 @@
 
 業務アプリ向け WYSIWYG 設計ツール。画面・テーブル・処理フローを JSON 成果物として設計し、AI コーディングエージェントと連携して業務アプリの実装まで往復できる。
 
-- **frontend/** — React + Vite + GrapesJS + ReactFlow による設計 UI
+- **frontend/** — React + Vite + ReactFlow による設計 UI
 - **backend/** — MCP server + WebSocket bridge + ファイル永続化 (port 5179)
 - **`/generate-code` skill** — 設計成果物から Spring Boot / NestJS / Next.js / Thymeleaf 系の業務アプリコードを生成
 
@@ -174,7 +174,7 @@ CONTAINER_ENGINE=podman bash scripts/smoke-harmony-compose.sh local
 
 | パス | 内容 |
 |---|---|
-| `frontend/` | React + Vite + GrapesJS による設計 UI |
+| `frontend/` | React + Vite による設計 UI |
 | `backend/` | MCP server + WebSocket bridge (port 5179) |
 | `schemas/` | JSON Schema 一次成果物 (process-flow / extensions / conventions 等) |
 | `examples/<project-id>/` | 業界別サンプル (retail / english-learning 等) |

@@ -1,5 +1,8 @@
 # dogfood レポート — マルチエディタ / Puck × cssFramework 検証 (2026-05-05)
 
+> **廃止 (2026-10)**: 旧エディタ (GrapesJS / Puck) は廃止し、画面デザインは「業務部品デザイナ」に一本化しました。
+> この文書は旧エディタ時代の記録として残しています。現行の仕様は [screen-layout.md](screen-layout.md) / [layout-components.md](layout-components.md) を参照してください。
+
 > **📝 ステータス**: 完了済 **historical record** (マルチエディタ / Puck × cssFramework 検証 dogfood、#806 関連、2026-05-05 実施)。本書は当時の検証結果記録として保持、削除不可 (他 spec から参照ある場合あり)。最新の状況・運用は現行 spec を参照。
 
 ## 概要

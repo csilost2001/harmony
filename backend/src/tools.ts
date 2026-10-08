@@ -6,143 +6,6 @@
 import { DRAFT_RESOURCE_TYPES } from "./editSessionStore.js";
 
 export const tools = [
-  {
-    name: "designer__get_html",
-    description: "現在のデザイナーキャンバスのHTMLとCSSを取得します。デザイン内容の確認・分析に使います。",
-    inputSchema: {
-      type: "object" as const,
-      properties: {},
-      required: [],
-    },
-  },
-  {
-    name: "designer__set_components",
-    description:
-      "デザイナーキャンバスのコンテンツを指定HTMLで完全に置換します。新しいデザインをデザイナーに適用する際に使います。",
-    inputSchema: {
-      type: "object" as const,
-      properties: {
-        html: {
-          type: "string",
-          description: "置換するHTML文字列。GrapesJSのコンポーネントとして解釈されます。",
-        },
-      },
-      required: ["html"],
-    },
-  },
-  {
-    name: "designer__screenshot",
-    description:
-      "デザイナーキャンバスのスクリーンショットをPNG画像で取得します。現在のビジュアルを確認する際に使います。",
-    inputSchema: {
-      type: "object" as const,
-      properties: {},
-      required: [],
-    },
-  },
-  {
-    name: "designer__list_blocks",
-    description:
-      "デザイナーで利用可能なブロック（ブロックカタログ）の一覧を取得します。各ブロックの id / label / category を返します。add_block の blockId 指定に使います。",
-    inputSchema: {
-      type: "object" as const,
-      properties: {},
-      required: [],
-    },
-  },
-  {
-    name: "designer__add_block",
-    description:
-      "指定ブロックをキャンバスに追加します。targetId を省略するとキャンバス末尾に追加、指定すると position に従って挿入します。",
-    inputSchema: {
-      type: "object" as const,
-      properties: {
-        blockId: {
-          type: "string",
-          description: "追加するブロックのID（list_blocks で取得）",
-        },
-        targetId: {
-          type: "string",
-          description:
-            "基準となる既存要素のID（GrapesJSの内部ID）。省略時はキャンバス末尾に追加。",
-        },
-        position: {
-          type: "string",
-          enum: ["before", "after", "inside", "append"],
-          description:
-            "挿入位置。before/after は targetId の兄弟として、inside/append は子として追加。デフォルトは after（targetId あり）または append（なし）。",
-        },
-      },
-      required: ["blockId"],
-    },
-  },
-  {
-    name: "designer__remove_element",
-    description:
-      "指定IDの要素をキャンバスから削除します。要素IDは get_html の結果に含まれる id 属性から取得します。",
-    inputSchema: {
-      type: "object" as const,
-      properties: {
-        id: {
-          type: "string",
-          description: "削除する要素のID（GrapesJSの内部ID）",
-        },
-      },
-      required: ["id"],
-    },
-  },
-  {
-    name: "designer__update_element",
-    description:
-      "指定要素の属性・スタイル・テキスト・クラスを部分更新します。渡したプロパティのみ反映されます。",
-    inputSchema: {
-      type: "object" as const,
-      properties: {
-        id: {
-          type: "string",
-          description: "更新対象の要素ID（GrapesJSの内部ID）",
-        },
-        attributes: {
-          type: "object",
-          description: "HTML属性のパッチ（キー値ペア）。既存属性にマージされます。",
-          additionalProperties: { type: "string" },
-        },
-        style: {
-          type: "object",
-          description: "CSSスタイルのパッチ（キー値ペア）。既存スタイルにマージされます。",
-          additionalProperties: { type: "string" },
-        },
-        text: {
-          type: "string",
-          description:
-            "要素内の最初のテキストノードの内容を更新します。構造（子要素）は保持されるため、section-header のように装飾付きの見出しでもタイトル文字だけ安全に差し替え可能。対象にテキストノードが無い場合はエラーになります。",
-        },
-        classes: {
-          type: "array",
-          items: { type: "string" },
-          description: "クラスリストを完全置換します。",
-        },
-      },
-      required: ["id"],
-    },
-  },
-  {
-    name: "designer__set_theme",
-    description:
-      "デザイナーのテーマを切り替えます。standard / card / compact / dark のいずれかを指定します。",
-    inputSchema: {
-      type: "object" as const,
-      properties: {
-        theme: {
-          type: "string",
-          enum: ["standard", "card", "compact", "dark"],
-          description: "適用するテーマID",
-        },
-      },
-      required: ["theme"],
-    },
-  },
-
   // ── フロー図操作ツール ──
 
   {
@@ -166,8 +29,8 @@ export const tools = [
     name: "designer__add_screen",
     description:
       "フロー図に新しい画面ノードを追加します。追加後、ブラウザのフロー図に即時反映されます。" +
-      " editorKind / cssFramework は省略時に project.techStack.designer のデフォルトを参照します。値は画面作成時に固定され以降変更不可です。" +
-      " screen.design に editorKind / cssFramework を常時明示書き込みします。",
+      " 新しい画面は、画面名の見出しだけを置いた業務部品レイアウト (layout) を持ちます。" +
+      " 画面の中身は designer__set_screen_layout で設定してください。",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -191,16 +54,6 @@ export const tools = [
             y: { type: "number" },
           },
           description: "フロー図上の配置座標。省略時は自動配置。",
-        },
-        editorKind: {
-          type: "string",
-          enum: ["grapesjs", "puck"],
-          description: "エディタ種別。省略時は project.techStack.designer.editorKind → 'grapesjs' の順にフォールバック。画面作成時に固定、以降変更不可。",
-        },
-        cssFramework: {
-          type: "string",
-          enum: ["bootstrap", "tailwind"],
-          description: "CSS フレームワーク。省略時は project.techStack.designer.cssFramework → 'bootstrap' の順にフォールバック。画面作成時に固定、以降変更不可。",
         },
         purpose: {
           type: "string",
@@ -327,99 +180,6 @@ export const tools = [
     },
   },
 
-  // ── React エクスポート ──
-
-  {
-    name: "designer__export_screen",
-    description:
-      "現在デザイナーで開いている画面を React TSX コンポーネントとして出力します。" +
-      "事前に designer__navigate_screen で対象画面を開いてから呼んでください（2〜3秒待機）。" +
-      "出力されたコードを Claude Code が .tsx ファイルに書き込みます。",
-    inputSchema: {
-      type: "object" as const,
-      properties: {
-        screenId: {
-          type: "string",
-          description: "エクスポート対象の画面ID（list_screens で取得）",
-        },
-        componentName: {
-          type: "string",
-          description:
-            "生成するコンポーネント名（PascalCase）。省略時は画面名から自動生成（例: 顧客一覧 → ScreenComponent）",
-        },
-      },
-      required: ["screenId"],
-    },
-  },
-
-  // ── カスタムブロック管理 ──
-
-  {
-    name: "designer__define_block",
-    description:
-      "カスタムブロックを定義してデザイナーのブロックカタログに登録します。" +
-      "同じ id で再呼び出しすると定義を上書きします。" +
-      "ビルトインブロックの id と衝突する場合はエラーになります。" +
-      "ブラウザリロード後も保持されます（localStorage 永続化）。",
-    inputSchema: {
-      type: "object" as const,
-      properties: {
-        id: {
-          type: "string",
-          description: "ブロックID（一意）。ビルトインブロックのIDとの衝突を避けてください",
-        },
-        label: {
-          type: "string",
-          description: "カタログ表示名",
-        },
-        category: {
-          type: "string",
-          description: "カテゴリ名。省略時は \"カスタム\"",
-        },
-        content: {
-          type: "string",
-          description: "ブロックの HTML コンテンツ",
-        },
-        styles: {
-          type: "string",
-          description: "ブロック用 CSS（キャンバス iframe に注入される）。省略可",
-        },
-        media: {
-          type: "string",
-          description: "サムネイル SVG/HTML（カタログに表示されるアイコン）。省略可",
-        },
-      },
-      required: ["id", "label", "content"],
-    },
-  },
-  {
-    name: "designer__remove_custom_block",
-    description:
-      "カスタムブロックをカタログと永続化ストアから削除します。" +
-      "キャンバス上の既存インスタンスは削除されません。",
-    inputSchema: {
-      type: "object" as const,
-      properties: {
-        id: {
-          type: "string",
-          description: "削除するカスタムブロックの ID",
-        },
-      },
-      required: ["id"],
-    },
-  },
-  {
-    name: "designer__list_custom_blocks",
-    description:
-      "定義済みカスタムブロックの一覧を取得します。" +
-      "ビルトイン含む全ブロックは designer__list_blocks で取得できます。",
-    inputSchema: {
-      type: "object" as const,
-      properties: {},
-      required: [],
-    },
-  },
-
   // ── 画面レイアウト (業務部品の木) とプロジェクト独自部品 ──
 
   {
@@ -480,95 +240,6 @@ export const tools = [
         force: { type: "boolean", description: "使用中でも削除する (使っている部品は「定義が見つかりません」になる)" },
       },
       required: ["componentId"],
-    },
-  },
-
-  // ── Puck カスタムコンポーネント管理 ──
-
-  {
-    name: "designer__add_custom_puck_component",
-    description:
-      "Puck エディタ用のカスタムコンポーネント定義を workspace に追加します。" +
-      "ビルトイン primitive (Container / Heading 等) をベースに個別 propsSchema を持つコンポーネントを登録します。" +
-      "登録後、Puck パレットに即時反映されます。",
-    inputSchema: {
-      type: "object" as const,
-      properties: {
-        id: {
-          type: "string",
-          description: "コンポーネントの一意 ID (英数字・ハイフン)",
-        },
-        label: {
-          type: "string",
-          description: "Puck パレットでの表示名",
-        },
-        primitive: {
-          type: "string",
-          enum: [
-            "container", "row", "col", "section",
-            "heading", "paragraph", "link",
-            "input", "select", "textarea", "checkbox", "radio", "button",
-            "table", "image", "icon",
-            "input-group", "card", "data-list", "pagination",
-          ],
-          description: "ベースとなるビルトイン primitive 名",
-        },
-        propsSchema: {
-          type: "object",
-          description:
-            "個別プロパティのスキーマ定義。キーがプロパティ名、値が PropSchemaField オブジェクト。" +
-            "例: { \"placeholder\": { \"type\": \"string\", \"default\": \"検索\" } }",
-          additionalProperties: {
-            type: "object",
-            properties: {
-              type: {
-                type: "string",
-                enum: ["string", "number", "boolean", "enum"],
-              },
-              default: {},
-              label: { type: "string" },
-              enum: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    label: { type: "string" },
-                    value: { type: "string" },
-                  },
-                },
-              },
-            },
-            required: ["type"],
-          },
-        },
-      },
-      required: ["id", "label", "primitive"],
-    },
-  },
-  {
-    name: "designer__list_custom_puck_components",
-    description:
-      "workspace に登録済みの Puck カスタムコンポーネント定義一覧を取得します。",
-    inputSchema: {
-      type: "object" as const,
-      properties: {},
-      required: [],
-    },
-  },
-  {
-    name: "designer__remove_custom_puck_component",
-    description:
-      "指定 ID の Puck カスタムコンポーネント定義を workspace から削除します。" +
-      "既存の Puck Data 上のインスタンスは削除されません。",
-    inputSchema: {
-      type: "object" as const,
-      properties: {
-        id: {
-          type: "string",
-          description: "削除するカスタムコンポーネントの ID",
-        },
-      },
-      required: ["id"],
     },
   },
 
@@ -683,18 +354,8 @@ export const tools = [
           type: "string",
           description: "用途説明（省略可）",
         },
-        editorKind: {
-          type: "string",
-          enum: ["grapesjs", "puck"],
-          description: "エディタ種別",
-        },
-        cssFramework: {
-          type: "string",
-          enum: ["bootstrap", "tailwind"],
-          description: "CSS フレームワーク",
-        },
       },
-      required: ["name", "editorKind", "cssFramework"],
+      required: ["name"],
     },
   },
   {

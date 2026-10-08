@@ -394,27 +394,11 @@ Step 0.5 をスキップした場合は `validator 検出済` 列を全行 `未�
 
 複数プロジェクト検証の場合: 全件サマリ表 (フロー ID × Must-fix 件数) を最後に追加。
 
-## マルチエディタ対応 (#806)
+## 画面デザインの参照
 
-フローレビュー開始前に **関連する画面の `editorKind` / `cssFramework`** を確認する。
-
-### 画面ロード時の解決順序
-
-1. `screen.design.editorKind` / `screen.design.cssFramework` (画面個別指定)
-2. `project.techStack.designer.editorKind` / `project.techStack.designer.cssFramework` (project default、#826 で `project.design` から移行)
-3. 最終 default (`"grapesjs"` / `"bootstrap"`)
-
-### editorKind 別のデザインファイル参照
-
-- `editorKind: "grapesjs"` → `screens/<id>/design.json` を読む (GrapesJS 形式)
-- `editorKind: "puck"` → `screens/<id>/puck-data.json` を読む (Puck Data tree)
-
-### Thymeleaf / React 出力スクリプトの注意
-
-- **Thymeleaf 出力スクリプトは Puck 画面 (`editorKind: "puck"`) を明示スキップしてレポートに記録すること**
-- スキップ判定: `screen.design.editorKind === "puck"` または解決後の editorKind が "puck" であること
-
-詳細仕様: `docs/spec/multi-editor-puck.md` § 2.3
+画面の構造は `screens/<id>.json#layout` (業務部品の木) を読む。`type: "component"` の部品は
+プロジェクト独自部品の参照で、`layout-components.json` の定義を `args` で展開して扱う。
+旧エディタ (GrapesJS / Puck) の `design` 参照は読まない。CSS フレームワークは `project.techStack.designer.cssFramework` (省略時 `bootstrap`) だけを見る。
 
 ## 制約 (必守)
 
