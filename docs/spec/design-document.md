@@ -30,8 +30,14 @@
 | 4 処理一覧 / 処理設計 (フローごと) | 基本情報、アクションごとの入出力・フロー図 (SVG)・処理記述表 | process-flows |
 | 5 テーブル一覧 / テーブル定義 | 列定義、インデックス、利用箇所 (CRUD) | tables |
 | 6 CRUD 図 | 処理フロー × テーブルのマトリクスと所見 | process-flows の dbAccess |
-| 7 メッセージ一覧 | `@conv.msg.*` | conventions catalog |
-| 8 要確認事項 | レイアウト検証結果、未作成のレイアウト、未配置項目、CRUD の所見 | 上記の自動検出 |
+| 7 バッチ・定期処理一覧 | flowType が batch / scheduled の処理と起動 | process-flows |
+| 8 外部インタフェース一覧 | externalSystem ステップから導出した外部システムと呼び出し | process-flows |
+| 9 イベント一覧 | 発行 / 購読する処理とカタログの説明 | process-flows / catalogs.events |
+| 10 独自部品 (定義があるときだけ) | 独自部品ごとの差し込み口・見た目・使っている画面 ([layout-components.md](layout-components.md)) | layout-components.json |
+| 10 or 11 メッセージ一覧 | `@conv.msg.*` | conventions catalog |
+| 11 or 12 要確認事項 | レイアウト検証結果、未作成のレイアウト、未配置項目、CRUD の所見、使われていない独自部品 | 上記の自動検出 |
+
+画面設計の画面レイアウトは、独自部品の参照部品を定義で展開して描く (点線の枠と名前付き)。独自部品の中で `args` 経由で使われている画面項目は「配置済み」に数える。
 
 ## 4. CRUD の導出規則
 

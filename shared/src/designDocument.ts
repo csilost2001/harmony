@@ -9,7 +9,8 @@
  * 仕様: docs/spec/design-document.md
  */
 import { buildOutline, layoutFlow, deriveTestViewpoints, stepText, type FlowStep, type FlowActionLike, type DiagramLayout, type FlowContext } from "./flowStructure.js";
-import { validateLayout, walkLayout, collectItemRefs, type LayoutNode, type ScreenLayout } from "./screenLayout.js";
+import { walkLayout, collectItemRefs, type LayoutNode, type ScreenLayout } from "./screenLayout.js";
+import { expandComponentNode, expandLayout, validateLayoutWithComponents, type LayoutComponentDef } from "./layoutComponents.js";
 
 // ── 入力 (原本 JSON の必要部分だけを構造的に受け取る) ─────────────────────
 
@@ -74,6 +75,8 @@ export interface DesignDocInput {
   tables: DocTable[];
   transitions?: Array<{ sourceScreenId: string; targetScreenId: string; label?: string; trigger?: string }>;
   messages?: Record<string, { template?: string; description?: string; params?: string[] }>;
+  /** プロジェクト独自部品の定義 (画面レイアウトの展開と「独自部品」の章に使う) */
+  layoutComponents?: LayoutComponentDef[];
   /** 表紙に出す版 (例: git の短縮 SHA) */
   version?: string;
   /** 作成日時 (ISO)。省略時は呼び出し時刻 */
@@ -138,7 +141,7 @@ function infoGrid(pairs: Array<[string, string]>): string {
 
 // ── 画面レイアウトの静的描画 ──────────────────────────────────────────────
 
-export function layoutToHtml(layout: ScreenLayout | undefined, items: readonly DocScreenItem[]): string {
+export function layoutToHtml(layout: ScreenLayout | undefined, items: readonly DocScreenItem[], defs: readonly LayoutComponentDef[] = []): string {
   if (!layout || layout.nodes.length === 0) return `<p class="hd-empty">（レイアウト未作成）</p>`;
   const byId = new Map(items.map((i) => [i.id, i]));
   const field = (n: LayoutNode): string => {
@@ -186,6 +189,11 @@ export function layoutToHtml(layout: ScreenLayout | undefined, items: readonly D
       case "column": return `<div class="lv-stack" style="flex:${p.span ?? 6} 1 0">${kids}</div>`;
       case "tabs": return `<div class="lv-tabs"><div class="lv-tab-strip">${(n.children ?? []).map((t, i) => `<span class="${i === 0 ? "active" : ""}">${esc(t.props?.title ?? `タブ ${i + 1}`)}</span>`).join("")}</div>${n.children?.[0] ? render(n.children[0]) : ""}</div>`;
       case "tab": return `<div class="lv-stack">${kids}</div>`;
+      case "component": {
+        const def = defs.find((c) => c.id === n.componentRef);
+        if (!def) return `<div class="lv-missing">独自部品「${esc(n.componentRef ?? "")}」の定義が見つかりません</div>`;
+        return `<div class="lv-component"><div class="lv-component-tag">独自部品 ${esc(def.label)}</div>${expandComponentNode(n, defs).nodes.map((x) => render(x as LayoutNode)).join("")}</div>`;
+      }
       case "button-bar": return `<div class="lv-bar lv-align-${p.align ?? "left"}">${kids}</div>`;
       default: return "";
     }
@@ -332,20 +340,22 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
   input.screens.forEach((s, i) => {
     const items = s.items ?? [];
     const relFlows = input.flows.filter((f) => f.meta.screenId === s.id || items.some((it) => (it.events ?? []).some((e) => e.handlerFlowId === f.meta.id)));
-    const layoutIssues = validateLayout(s.layout, items);
+    const defs = input.layoutComponents ?? [];
+    const expandedNodes = s.layout ? (expandLayout(s.layout.nodes, defs).nodes as LayoutNode[]) : [];
+    const layoutIssues = validateLayoutWithComponents(s.layout, items, defs);
     for (const li of layoutIssues.filter((x) => x.severity !== "info")) issues.push({ severity: li.severity, section: `画面 ${s.name ?? s.id}`, message: li.message });
     const unplaced = layoutIssues.filter((x) => x.code === "unplaced-item").length;
     if (s.layout && unplaced) issues.push({ severity: "info", section: `画面 ${s.name ?? s.id}`, message: `画面に配置されていない項目が ${unplaced} 件あります` });
     if (!s.layout) issues.push({ severity: "warning", section: `画面 ${s.name ?? s.id}`, message: "画面レイアウト (業務部品) が未作成です" });
-    const placed = s.layout ? collectItemRefs(s.layout.nodes) : new Set<string>();
+    const placed = s.layout ? collectItemRefs(expandedNodes) : new Set<string>();
     const events = items.flatMap((it) => (it.events ?? []).map((e) => [esc(it.label ?? it.id), esc(e.id ?? ""), e.handlerFlowId ? `<a href="#${anchor("flow", e.handlerFlowId)}">${esc(input.flows.find((f) => f.meta.id === e.handlerFlowId)?.meta.name ?? e.handlerFlowId)}</a>${e.handlerActionId ? ` / ${esc(e.handlerActionId)}` : ""}` : "", esc(e.description ?? "")]));
     let partsCount = 0;
-    if (s.layout) walkLayout(s.layout.nodes, () => { partsCount++; });
+    if (s.layout) walkLayout(expandedNodes, () => { partsCount++; });
     sec(anchor("screen", s.id), `${s.name ?? s.id}`, 2, `
       ${infoGrid([["画面 ID", `<code>${esc(s.id)}</code>`], ["種別", esc(s.purpose === "gadget" ? "部品画面" : s.kind ?? "")], ["URL", `<code>${esc(s.path ?? "")}</code>`], ["認証", esc(s.auth ?? "")], ["成熟度", esc(MATURITY[s.maturity ?? ""] ?? s.maturity ?? "")], ["関連処理", relFlows.map((f) => `<a href="#${anchor("flow", f.meta.id)}">${esc(f.meta.name ?? f.meta.id)}</a>`).join("、")]])}
       ${s.description ? `<p class="hd-desc">${prose(s.description)}</p>` : ""}
       <h4 class="hd-sub">画面レイアウト${s.layout ? `<small>部品 ${partsCount}</small>` : ""}</h4>
-      ${layoutToHtml(s.layout, items)}
+      ${layoutToHtml(s.layout, items, defs)}
       <h4 class="hd-sub">項目定義<small>${items.length} 件</small></h4>
       ${table(["No", "項目名", "項目 ID", "型", "桁 / 範囲", "必須", "入出力", "書式・選択肢", "説明"], items.map((it, k) => [
         String(k + 1),
@@ -480,18 +490,49 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
     if (!pub.has(t) && eventDesc.has(t)) issues.push({ severity: "info", section: `イベント ${t}`, message: "カタログに定義されていますが、発行する処理フローがありません" });
   }
 
-  // 10. メッセージ一覧
+  // 10. 独自部品 (定義があるときだけ。以降の章番号は 1 つ繰り下がる)
+  const compDefs = input.layoutComponents ?? [];
+  let chap = 10;
+  if (compDefs.length) {
+    toc.push({ id: "components", title: "独自部品", level: 1 });
+    out.push(`<section class="hd-section hd-level-1" id="components"><h2 class="hd-title"><span class="hd-chapter">${chap}</span>独自部品</h2>
+      <p class="hd-desc">このプロジェクト専用の再利用部品です。画面では参照部品として置き、差し込み口に値を入れて使います。</p></section>`);
+    const usedBy = (id: string) => input.screens.filter((sc) => {
+      let hit = false;
+      walkLayout(sc.layout?.nodes ?? [], (n) => { if (n.type === "component" && n.componentRef === id) hit = true; });
+      return hit;
+    });
+    const KIND: Record<string, string> = { text: "文言", item: "画面項目", screen: "遷移先画面" };
+    compDefs.forEach((c) => {
+      const previewItems = c.params.filter((q) => q.kind === "item").map((q) => ({ id: q.id, label: q.label, type: "string", direction: "in" }) as DocScreenItem);
+      const previewArgs = Object.fromEntries(c.params.filter((q) => q.kind === "item").map((q) => [q.id, q.id]));
+      const preview = layoutToHtml({ version: 1, nodes: [{ id: "preview", type: "component", componentRef: c.id, args: previewArgs }] }, previewItems, compDefs);
+      const users = usedBy(c.id);
+      sec(anchor("component", c.id), `${c.label}（${c.id}）`, 2, `
+        ${c.description ? `<p class="hd-desc">${prose(c.description)}</p>` : ""}
+        <h4 class="hd-sub">差し込み口<small>${c.params.length} 件</small></h4>
+        ${table(["差し込み口", "ID", "種類", "既定値"], c.params.map((q) => [esc(q.label), `<code>${esc(q.id)}</code>`, KIND[q.kind] ?? q.kind, esc(q.default ?? "")]))}
+        <h4 class="hd-sub">見た目</h4>
+        ${preview}
+        <h4 class="hd-sub">使っている画面<small>${users.length} 画面</small></h4>
+        ${users.length ? `<p>${users.map((sc) => `<a href="#${anchor("screen", sc.id)}">${esc(sc.name ?? sc.id)}</a>`).join("、")}</p>` : `<p class="hd-empty">どの画面でも使われていません。</p>`}`);
+      if (!users.length) issues.push({ severity: "info", section: `独自部品 ${c.label}`, message: "どの画面でも使われていません" });
+    });
+    chap = 11;
+  }
+
+  // メッセージ一覧
   const msgs = Object.entries(input.messages ?? {});
   sec("messages", "メッセージ一覧", 1, table(
     ["No", "メッセージ ID", "文面", "説明"],
     msgs.map(([k, m], i) => [String(i + 1), `<code>@conv.msg.${esc(k)}</code>`, esc(m.template ?? ""), esc(m.description ?? "")]),
-  ), "10");
+  ), String(chap));
 
-  // 8. 要確認事項
+  // 要確認事項
   const sevLabel = { error: "エラー", warning: "警告", info: "情報" } as const;
   sec("issues", "要確認事項", 1, issues.length
     ? table(["区分", "対象", "内容"], issues.map((x) => [`<span class="hd-sev hd-sev-${x.severity}">${sevLabel[x.severity]}</span>`, esc(x.section), esc(x.message)]))
-    : `<p class="hd-empty">要確認事項はありません。</p>`, "11");
+    : `<p class="hd-empty">要確認事項はありません。</p>`, String(chap + 1));
 
   return { html: `<article class="hd-doc">${out.join("\n")}</article>`, toc, css: DESIGN_DOC_CSS, issues };
 }
@@ -606,6 +647,8 @@ export const DESIGN_DOC_CSS = `
 .lv-table-wrap{display:flex;flex-direction:column;gap:3px;overflow-x:auto}
 .lv-table-title{font-weight:700;display:flex;gap:6px;align-items:baseline}
 .lv-table{border-collapse:collapse;width:100%;background:#fff}.lv-table th,.lv-table td{border:1px solid var(--d-line);padding:3px 6px;text-align:left;font-size:.92em}.lv-table th{background:var(--d-fill)}
+.lv-component{border:1px dashed var(--d-accent,#2b5bd7);border-radius:6px;padding:6px;display:flex;flex-direction:column;gap:6px;background:rgba(43,91,215,.04)}
+.lv-component-tag{font-size:11px;font-weight:700;color:var(--d-accent,#2b5bd7)}
 .lv-table-empty,.lv-image,.lv-html,.lv-missing{border:1px dashed #b9c1cd;padding:6px;color:var(--d-muted);text-align:center;background:#fff}
 .lv-bar{display:flex;gap:6px;flex-wrap:wrap}.lv-align-right{justify-content:flex-end}.lv-align-center{justify-content:center}.lv-align-between{justify-content:space-between}
 .lv-btn{display:inline-block;padding:2px 12px;border:1px solid #b9c1cd;border-radius:4px;background:#fff;font-weight:600}.lv-btn-primary{background:#2f5bd3;border-color:#2f5bd3;color:#fff}.lv-btn-danger{border-color:var(--d-err);color:var(--d-err)}

@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  designToLayout, detachComponentNode, findNode, updateNode, validateLayoutWithComponents, walkLayout,
+  designToLayout, detachComponentNode, findNode, removeNode, updateNode, validateLayoutWithComponents, walkLayout,
   type LayoutComponentDef,
 } from "@harmony/shared";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
@@ -171,9 +171,8 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true, on
     await saveLayoutComponent(def);
     // 登録した部品の位置に、参照部品を置く (元の部品の ID を引き継ぐので選択も保たれる)
     apply((d) => {
-      const nodesNow = d.layout?.nodes ?? [];
       const ref = { id: selectedId, type: "component" as const, componentRef: def.id, ...(Object.keys(args).length ? { args } : {}) };
-      return docReplaceNode({ ...d, layout: { version: 1, nodes: nodesNow } }, selectedId, [ref]);
+      return docReplaceNode(d, selectedId, [ref]);
     });
     setRegistering(false);
     setConvertMessage(`独自部品「${def.label}」を登録し、この部品を置き換えました。他の画面でも左の「独自部品」から使えます。`);
@@ -182,9 +181,8 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true, on
   const detachSelected = useCallback(() => {
     if (!selected || selected.type !== "component") return;
     apply((d) => {
-      const all = d.layout?.nodes ?? [];
-      const rest = docReplaceNode({ ...d, layout: { version: 1, nodes: all } }, selected.id, []).layout?.nodes ?? [];
-      return docReplaceNode({ ...d, layout: { version: 1, nodes: all } }, selected.id, detachComponentNode(selected, components, rest));
+      const rest = removeNode(d.layout?.nodes ?? [], selected.id).nodes;
+      return docReplaceNode(d, selected.id, detachComponentNode(selected, components, rest));
     });
     setSelectedId(null);
   }, [selected, components, apply]);

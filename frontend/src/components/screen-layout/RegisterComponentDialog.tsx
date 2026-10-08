@@ -40,7 +40,8 @@ export function RegisterComponentDialog({ node, items, existing, onRegister, onC
     candidate: c,
     on: c.suggested,
     paramId: c.kind === "item" ? (toCamel(c.itemRef ?? "") || "item") : (toCamel(`${c.nodeId}-${c.prop}`) || "text"),
-    label: c.kind === "item" ? c.label : c.label.replace(/:.*$/, ""),
+    // 文言・遷移先は「表示文言「クリア」」のように現在の値を添えて、同じ種類の差し込み口を見分けられるようにする
+    label: c.kind === "item" ? c.label : c.label.replace(/^(.+?): (.+)$/, "$1「$2」"),
   })));
 
   const picked = rows.filter((r) => r.on);
@@ -78,7 +79,7 @@ export function RegisterComponentDialog({ node, items, existing, onRegister, onC
 
   return (
     <div className="sld-modal-backdrop" role="presentation" onClick={onCancel}>
-      <div className="sld-modal" role="dialog" aria-modal="true" aria-labelledby="sld-reg-title" onClick={(e) => e.stopPropagation()} data-testid="register-component-dialog">
+      <div className="sld-modal sld-modal-lg" role="dialog" aria-modal="true" aria-labelledby="sld-reg-title" onClick={(e) => e.stopPropagation()} data-testid="register-component-dialog">
         <header className="sld-modal-head">
           <h3 id="sld-reg-title"><i className="bi bi-puzzle" /> 独自部品として登録</h3>
           <button type="button" className="sld-icon-btn" onClick={onCancel} aria-label="閉じる"><i className="bi bi-x-lg" /></button>
@@ -111,7 +112,8 @@ export function RegisterComponentDialog({ node, items, existing, onRegister, onC
 
           <h4 className="sld-group-title">画面ごとに変えたい箇所 (差し込み口)</h4>
           {rows.length === 0 ? <p className="sld-hint">差し込み口にできる箇所がありません。そのまま登録すると、どの画面でも同じ内容になります。</p> : (
-            <table className="sld-cols-table" data-testid="register-params">
+            <table className="sld-cols-table sld-register-table" data-testid="register-params">
+              <colgroup><col style={{ width: 36 }} /><col style={{ width: 96 }} /><col /><col style={{ width: 210 }} /><col style={{ width: 200 }} /></colgroup>
               <thead><tr><th aria-label="選ぶ" /><th>種類</th><th>現在の値</th><th>差し込み口 ID</th><th>表示名</th></tr></thead>
               <tbody>
                 {rows.map((r, k) => {

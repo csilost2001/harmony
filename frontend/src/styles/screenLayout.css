@@ -581,3 +581,7 @@ textarea.sld-input { resize: vertical; line-height: 1.5; }
 .pv-component-head { font-size: 11px; color: var(--pv-accent); font-weight: 600; display: flex; align-items: center; gap: 4px; }
 .sld-node.is-frozen { pointer-events: none; }
 .sld-node.is-frozen .pv-tab { pointer-events: auto; }
+.sld-modal-lg { width: min(1000px, 100%); }
+.sld-register-table { table-layout: fixed; width: 100%; }
+.sld-register-table td { vertical-align: top; overflow-wrap: anywhere; }
+.sld-register-table td:nth-child(2) { white-space: nowrap; }

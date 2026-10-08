@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { findNode, type LayoutNode } from "@harmony/shared";
-import { createNode, dataTypeToFieldType, docDuplicate, docRemove, itemFromColumn, nextItemId, nodeTypeForItem, toCamel } from "./layoutModel";
+import { createNode, dataTypeToFieldType, docDuplicate, docRemove, docReplaceNode, itemFromColumn, nextItemId, nodeTypeForItem, setComponentArg, toCamel, type LayoutDoc } from "./layoutModel";
 import { insertionIndex } from "./layoutDnd";
 import type { ScreenItem } from "../../types/v3/screen-item";
 import type { Table, Column } from "../../types/v3/table";
@@ -87,5 +87,33 @@ describe("insertionIndex", () => {
     expect(insertionIndex(rects, 10, 20)).toBe(0);
     expect(insertionIndex(rects, 150, 20)).toBe(1);
     expect(insertionIndex(rects, 200, 20)).toBe(2);
+  });
+});
+
+describe("docReplaceNode / setComponentArg", () => {
+  const doc = (): LayoutDoc => ({ items: [], layout: { version: 1, nodes: [
+    { id: "a", type: "heading" },
+    { id: "box", type: "section", children: [{ id: "p", type: "search-panel", children: [{ id: "f", type: "field", itemRef: "x" }] }, { id: "after", type: "text" }] },
+  ] } });
+
+  it("同じ ID の部品に置き換えても、その位置に残る", () => {
+    const next = docReplaceNode(doc(), "p", [{ id: "p", type: "component", componentRef: "c", args: { k: "x" } }]);
+    const box = next.layout!.nodes[1];
+    expect(box.children!.map((n) => n.id)).toEqual(["p", "after"]);
+    expect(box.children![0]).toMatchObject({ type: "component", componentRef: "c" });
+  });
+
+  it("複数の部品への置き換えは順序を保ち、空への置き換えは取り除く", () => {
+    const many = docReplaceNode(doc(), "p", [{ id: "x1", type: "text" }, { id: "x2", type: "text" }]);
+    expect(many.layout!.nodes[1].children!.map((n) => n.id)).toEqual(["x1", "x2", "after"]);
+    const none = docReplaceNode(doc(), "a", []);
+    expect(none.layout!.nodes.map((n) => n.id)).toEqual(["box"]);
+  });
+
+  it("差し込み値は設定でき、空にすると取り除かれる (最後の 1 つを消すと args ごと無くなる)", () => {
+    const nodes: LayoutNode[] = [{ id: "c1", type: "component", componentRef: "c" }];
+    const set = setComponentArg(nodes, "c1", "k", "v");
+    expect(set[0].args).toEqual({ k: "v" });
+    expect(setComponentArg(set, "c1", "k", "")[0].args).toBeUndefined();
   });
 });

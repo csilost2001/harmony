@@ -112,3 +112,51 @@ describe("説明文の描画 (prose)", () => {
     expect(prose("**リリース時** の `id` <b>x</b>")).toBe("<strong>リリース時</strong> の <code>id</code> &lt;b&gt;x&lt;/b&gt;");
   });
 });
+
+describe("独自部品 (layout components)", () => {
+  const def = {
+    id: "keyword-search", label: "キーワード検索", description: "**キーワード**で絞り込む",
+    params: [{ id: "keyword", label: "キーワード項目", kind: "item" as const }, { id: "title", label: "表題", kind: "text" as const, default: "検索条件" }],
+    nodes: [{ id: "panel", type: "search-panel" as const, props: { title: "{{title}}" }, children: [{ id: "kw", type: "field" as const, itemRef: "{{keyword}}" }] }],
+  };
+  const withComponent: DesignDocInput = {
+    ...input,
+    screens: [{
+      id: "s1", name: "検索画面", items: [{ id: "q", label: "検索語", type: "string", direction: "in" }, { id: "unused", label: "未使用", type: "string" }],
+      layout: { version: 1, nodes: [{ id: "box", type: "component", componentRef: "keyword-search", args: { keyword: "q", title: "商品を探す" } }] },
+    }],
+    flows: [], tables: [], layoutComponents: [def],
+  };
+
+  it("画面レイアウトは展開して描き、独自部品の中で使われている項目は未配置にならない", () => {
+    const doc = buildDesignDocument(withComponent);
+    expect(doc.html).toContain("lv-component");
+    expect(doc.html).toContain("商品を探す");
+    expect(doc.html).toContain("検索語");
+    const section = doc.html.slice(doc.html.indexOf('id="screen-s1"'), doc.html.indexOf('id="components"'));
+    expect(section).toContain("未使用");
+    expect(section.match(/未配置/g)?.length).toBe(1); // 「未使用」だけ。「検索語」は独自部品の中で配置済み
+  });
+
+  it("「独自部品」の章に定義・差し込み口・見た目・使っている画面を出し、以降の章番号が繰り下がる", () => {
+    const doc = buildDesignDocument(withComponent);
+    expect(doc.toc.some((t) => t.id === "components")).toBe(true);
+    expect(doc.html).toContain("キーワード項目");
+    expect(doc.html).toContain('<a href="#screen-s1">検索画面</a>');
+    expect(doc.html).toContain("<strong>キーワード</strong>");
+    expect(doc.html).toMatch(/hd-chapter">12<\/span>要確認事項/);
+  });
+
+  it("定義が無いときは章を出さず、章番号は従来どおり", () => {
+    const doc = buildDesignDocument({ ...withComponent, layoutComponents: [] });
+    expect(doc.toc.some((t) => t.id === "components")).toBe(false);
+    expect(doc.html).toMatch(/hd-chapter">11<\/span>要確認事項/);
+    expect(doc.html).toContain("定義が見つかりません");
+    expect(doc.issues.some((i) => i.message.includes("keyword-search"))).toBe(true);
+  });
+
+  it("どの画面でも使われていない独自部品は要確認事項 (情報) にする", () => {
+    const doc = buildDesignDocument({ ...withComponent, screens: [{ ...withComponent.screens[0], layout: { version: 1, nodes: [] } }] });
+    expect(doc.issues.some((i) => i.section.includes("キーワード検索") && i.message.includes("使われていません"))).toBe(true);
+  });
+});

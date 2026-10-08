@@ -212,9 +212,9 @@ export function docReplaceNode(doc: LayoutDoc, nodeId: string, replacement: Layo
   if (!doc.layout) return doc;
   const pos = findParent(doc.layout.nodes, nodeId);
   if (!pos) return doc;
-  let nodes = doc.layout.nodes;
-  replacement.forEach((n, k) => { nodes = insertNode(nodes, pos.parent?.id ?? null, n, pos.index + 1 + k); });
-  nodes = removeNode(nodes, nodeId).nodes;
+  // 先に取り除いてから同じ位置へ入れる (置き換え後の部品が元と同じ ID でも消えない)
+  let nodes = removeNode(doc.layout.nodes, nodeId).nodes;
+  replacement.forEach((n, k) => { nodes = insertNode(nodes, pos.parent?.id ?? null, n, pos.index + k); });
   return { ...doc, layout: { ...doc.layout, nodes } };
 }
 
