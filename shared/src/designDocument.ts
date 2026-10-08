@@ -10,6 +10,7 @@
  */
 import { buildOutline, layoutFlow, deriveTestViewpoints, stepText, type FlowStep, type FlowActionLike, type DiagramLayout, type FlowContext } from "./flowStructure.js";
 import { walkLayout, collectItemRefs, type LayoutNode, type ScreenLayout } from "./screenLayout.js";
+import { deriveAccessMatrix, type AccessPermission, type AccessRole } from "./accessMatrix.js";
 import { expandComponentNode, expandLayout, validateLayoutWithComponents, type LayoutComponentDef } from "./layoutComponents.js";
 
 // ── 入力 (原本 JSON の必要部分だけを構造的に受け取る) ─────────────────────
@@ -42,6 +43,8 @@ export interface DocScreen {
   purpose?: string;
   path?: string;
   auth?: string;
+  /** 表示に必要な権限 (すべて必要) */
+  permissions?: string[];
   maturity?: string;
   items?: DocScreenItem[];
   layout?: ScreenLayout;
@@ -53,6 +56,7 @@ export interface DocFlow {
   actions: Array<FlowActionLike & {
     id?: string;
     description?: string;
+    requiredPermissions?: string[];
     httpRoute?: { method?: string; path?: string };
     inputs?: Array<{ name: string; type?: unknown; required?: boolean; description?: string }>;
     outputs?: Array<{ name: string; type?: unknown; description?: string }>;
@@ -76,6 +80,9 @@ export interface DesignDocInput {
   tables: DocTable[];
   transitions?: Array<{ sourceScreenId: string; targetScreenId: string; label?: string; trigger?: string }>;
   messages?: Record<string, { template?: string; description?: string; params?: string[] }>;
+  /** 規約の役割 (@conv.role.*) と権限 (@conv.permission.*)。あれば「権限」の章を出す */
+  roles?: Record<string, AccessRole>;
+  permissions?: Record<string, AccessPermission>;
   /** プロジェクト独自部品の定義 (画面レイアウトの展開と「独自部品」の章に使う) */
   layoutComponents?: LayoutComponentDef[];
   /** 表紙に出す版 (例: git の短縮 SHA) */
@@ -523,6 +530,36 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
     chap = 11;
   }
 
+  // 権限 (役割・権限の定義、または画面・処理の権限指定があるときだけ)
+  const roles = input.roles ?? {};
+  const permDefs = input.permissions ?? {};
+  const screenSubjects = pages.filter((s) => (s.permissions ?? []).length).map((s) => ({ id: s.id, name: s.name ?? s.id, permissions: s.permissions ?? [] }));
+  const actionSubjects = input.flows.flatMap((f) => f.actions.filter((a) => (a.requiredPermissions ?? []).length).map((a) => ({ id: `${f.meta.id}/${a.id ?? ""}`, flowId: f.meta.id, name: `${f.meta.name ?? f.meta.id}${a.id ? ` / ${a.id}` : ""}`, permissions: a.requiredPermissions ?? [] })));
+  if (Object.keys(roles).length || Object.keys(permDefs).length || screenSubjects.length || actionSubjects.length) {
+    const am = deriveAccessMatrix({ roles, permissions: permDefs, screens: screenSubjects, flows: actionSubjects });
+    for (const x of am.issues) issues.push({ severity: x.severity, section: x.target, message: x.message });
+    const roleLabel = (id: string) => esc(roles[id]?.name ?? id);
+    const mark = (ok: boolean) => (ok ? `<span class="hd-ok">○</span>` : "");
+    const matrix = (rows: typeof am.screens, linkOf: (id: string) => string, head: string) => rows.length ? `<div class="hd-scroll"><table class="hd-table hd-crud"><thead><tr><th>${head}</th><th>必要な権限</th>${am.roleIds.map((r) => `<th>${roleLabel(r)}</th>`).join("")}</tr></thead><tbody>
+      ${rows.map((r) => `<tr><th>${linkOf(r.id)}</th><td>${r.permissions.map((p) => `<code>${esc(p)}</code>`).join("、")}</td>${am.roleIds.map((rid) => `<td class="hd-crud-cell">${mark(r.roles.includes(rid))}</td>`).join("")}</tr>`).join("")}
+      </tbody></table></div>` : `<p class="hd-empty">権限を指定した項目はありません。</p>`;
+    const openScreens = pages.length - screenSubjects.length;
+    toc.push({ id: "access", title: "権限", level: 1 });
+    out.push(`<section class="hd-section hd-level-1" id="access"><h2 class="hd-title"><span class="hd-chapter">${chap}</span>権限</h2>
+      <p class="hd-desc">規約の役割・権限と、画面の「必要な権限」・処理の「必要な権限」から導いた一覧です。必要な権限は<b>すべて</b>持つ役割だけが使えます。</p>
+      <h4 class="hd-sub">役割<small>${am.roleIds.length} 件</small></h4>
+      ${table(["役割", "名称", "継承", "使える権限 (継承を含む)", "説明"], am.roleIds.map((r) => [`<code>${esc(r)}</code>`, esc(roles[r].name ?? ""), (roles[r].inherits ?? []).map((x) => `<code>${esc(x)}</code>`).join("、"), am.effective[r].map((p) => `<code>${esc(p)}</code>`).join("、"), esc(roles[r].description ?? "")]))}
+      <h4 class="hd-sub">権限<small>${Object.keys(permDefs).length} 件</small></h4>
+      ${table(["権限", "対象", "操作", "範囲", "付与する役割", "説明"], Object.entries(permDefs).map(([k, p]) => [`<code>${esc(k)}</code>`, esc(p.resource ?? ""), esc(p.action ?? ""), esc(p.scope ?? ""), am.roleIds.filter((r) => am.effective[r].includes(k)).map(roleLabel).join("、"), esc(p.description ?? "")]))}
+      <h4 class="hd-sub">画面 × 役割<small>${screenSubjects.length} 画面</small></h4>
+      ${matrix(am.screens, (id) => `<a href="#${anchor("screen", id)}">${esc(screenName.get(id) ?? id)}</a>`, "画面")}
+      ${openScreens > 0 ? `<p class="hd-note">権限を指定していない画面 ${openScreens} 件は、誰でも開けます (認証の要否は各画面の「認証」)。</p>` : ""}
+      <h4 class="hd-sub">処理 × 役割<small>${actionSubjects.length} 件</small></h4>
+      ${matrix(am.flows, (id) => { const a = actionSubjects.find((x) => x.id === id); return a ? `<a href="#${anchor("flow", a.flowId)}">${esc(a.name)}</a>` : esc(id); }, "処理")}
+      <p class="hd-note">権限を指定していない処理は省略しています (誰でも呼び出せる扱い)。</p></section>`);
+    chap += 1;
+  }
+
   // メッセージ一覧
   const msgs = Object.entries(input.messages ?? {});
   sec("messages", "メッセージ一覧", 1, table(
@@ -603,6 +640,7 @@ export const DESIGN_DOC_CSS = `
 .hd-crud th,.hd-crud td{text-align:center}
 .hd-crud tbody th{text-align:left;white-space:nowrap}
 .hd-crud-cell span{font-family:ui-monospace,Menlo,monospace;font-weight:700;margin:0 1px}
+.hd-ok{font-weight:700;color:var(--d-accent)}
 .hd-crud-C{color:var(--d-ok)}.hd-crud-R{color:var(--d-accent)}.hd-crud-U{color:#a8650b}.hd-crud-D{color:var(--d-err)}
 .hd-findings{margin:0;padding-left:1.2em}
 .hd-sev{font-size:11px;font-weight:700;padding:0 6px;border-radius:3px;white-space:nowrap}

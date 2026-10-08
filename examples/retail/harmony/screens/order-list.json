@@ -278,5 +278,8 @@
         ]
       }
     ]
-  }
+  },
+  "permissions": [
+    "order:view"
+  ]
 }

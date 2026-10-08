@@ -240,5 +240,8 @@
         ]
       }
     ]
-  }
+  },
+  "permissions": [
+    "product:edit"
+  ]
 }

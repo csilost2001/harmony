@@ -63,6 +63,8 @@ const html = renderStandaloneDesignDoc({
   transitions: harmony.entities?.screenTransitions ?? [],
   messages: conventions?.msg ?? {},
   layoutComponents,
+  roles: conventions?.role ?? {},
+  permissions: conventions?.permission ?? {},
   version,
 });
 const out = opt("--out") ?? path.join(dir, "design-document.html");

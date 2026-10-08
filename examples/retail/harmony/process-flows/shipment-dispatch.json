@@ -390,6 +390,9 @@
           "responseId": "200-ok",
           "bodyExpression": "{ orderId: @order.id, orderNumber: @order.orderNumber, trackingNumber: @dispatchResult.trackingNumber, carrierId: @inputs.carrierId, estimatedDelivery: @dispatchResult.estimatedDelivery }"
         }
+      ],
+      "requiredPermissions": [
+        "shipment:dispatch"
       ]
     }
   ],

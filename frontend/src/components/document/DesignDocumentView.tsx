@@ -37,6 +37,8 @@ async function loadInput(): Promise<DesignDocInput> {
     transitions: entities.screenTransitions ?? [],
     messages: ((conventions as { msg?: DesignDocInput["messages"] } | null)?.msg) ?? {},
     layoutComponents,
+    roles: ((conventions as { role?: DesignDocInput["roles"] } | null)?.role) ?? {},
+    permissions: ((conventions as { permission?: DesignDocInput["permissions"] } | null)?.permission) ?? {},
   };
 }
 

@@ -476,6 +476,9 @@
           "responseId": "200-ok",
           "bodyExpression": "{ cartId: @cart.id, cartItemId: @upsertedCartItem.id, productName: @product.name, storeName: @store.name, message: @product.name + ' (' + @store.name + ') をカートに追加しました。' }"
         }
+      ],
+      "requiredPermissions": [
+        "order:create"
       ]
     }
   ],

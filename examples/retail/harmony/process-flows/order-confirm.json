@@ -587,6 +587,9 @@
           "responseId": "200-ok",
           "bodyExpression": "{ orderId: @persistedOrder.id, orderNumber: @persistedOrder.orderNumber, totalAmount: @persistedOrder.totalAmount, orderedAt: @persistedOrder.orderedAt, message: '注文が確定しました。注文番号: ' + @persistedOrder.orderNumber }"
         }
+      ],
+      "requiredPermissions": [
+        "order:create"
       ]
     }
   ],

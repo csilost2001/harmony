@@ -72,3 +72,4 @@
 
 - サンプルの `*.design.json` (49 件) と画面 / ページレイアウトの `design` 参照 (48 件) を削除。旧デザインの有無を調べる検証 (`MISSING_DESIGN_FILE` / `EXTERNAL_DESIGN_REF`) も廃止。自動変換の E2E は旧形式データをテストの中で作る
 - 画面項目に `nonVisual` (画面に表示しない) を追加 (screen-item スキーマ。仕様: `docs/spec/screen-items.md`)。未配置の警告・自動配置の対象外。説明文の文言での判定は廃止
+- 段階 4「権限」は新しいスキーマを足さず、既存の規約 (role / permission)・画面の `permissions`・処理の `requiredPermissions` から導出する設計書の章として実装 (`shared/src/accessMatrix.ts`、仕様 `docs/spec/design-document.md` §3.1)。retail に役割 3 / 権限 8 を追加。業務フロー・帳票は別途スキーマが要る

@@ -244,5 +244,8 @@
         }
       }
     ]
-  }
+  },
+  "permissions": [
+    "product:view"
+  ]
 }
