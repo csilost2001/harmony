@@ -44,6 +44,15 @@ test.describe("業務部品デザイナ", () => {
   test.beforeAll(async () => {
     test.skip(!(await isMcpRunning()), "backend 未起動");
     ws = await setupTestWorkspace({ key: KEY, fromExample: "retail" });
+    // 未配置の項目を再現するため、出荷指示の「追跡番号」の部品を画面から外す (項目の定義は残す)
+    {
+      const p = path.join(ws.workspacePath, "harmony", "screens", "shipment-dispatch.json");
+      const s = JSON.parse(await fs.readFile(p, "utf-8"));
+      const strip = (ns: Array<{ itemRef?: string; children?: unknown[] }>): Array<{ itemRef?: string; children?: unknown[] }> =>
+        ns.filter((n) => n.itemRef !== "trackingNumber").map((n) => (n.children ? { ...n, children: strip(n.children as typeof ns) } : n));
+      s.layout.nodes = strip(s.layout.nodes);
+      await fs.writeFile(p, JSON.stringify(s, null, 2));
+    }
     // 未移行 (旧デザインのみ) の画面を再現するため、一部の画面から layout を外す
     for (const id of ["cart", "order-complete", "store-master"]) {
       const p = path.join(ws.workspacePath, "harmony", "screens", `${id}.json`);

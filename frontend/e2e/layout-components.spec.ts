@@ -127,7 +127,7 @@ test.describe("プロジェクト独自部品", () => {
     await expect(page.getByTestId("component-param-param4")).toBeVisible();
     await page.getByTestId("component-save").click();
     await expect.poll(async () => (await readComponents()).components.find((c) => c.id === "product-search-panel")?.label, { timeout: 10000 }).toBe("商品検索パネル (改)");
-    expect((await readComponents()).components[0].params.map((p) => p.id)).toContain("param4");
+    expect((await readComponents()).components.find((c) => c.id === "product-search-panel")!.params.map((p) => p.id)).toContain("param4");
 
     // 保存済みの差し込み口の ID は変えられない。追加したばかりのものは保存後に固定される
     await expect(page.getByTestId("component-param-productCode").locator("input.sld-mono")).toBeDisabled();
@@ -191,6 +191,7 @@ test.describe("プロジェクト独自部品", () => {
     // 使われていない部品は確認なしで削除できる
     await page.getByTestId("component-delete-notice-box").click();
     await expect(page.getByTestId("component-row-notice-box")).toBeHidden();
-    await expect(page.getByTestId("component-empty")).toBeVisible();
+    // サンプル (retail) の独自部品は残っている
+    await expect(page.getByTestId("component-row-master-search-panel")).toBeVisible();
   });
 });
