@@ -99,6 +99,13 @@ export function esc(s: unknown): string {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 }
 
+/** 説明文: エスケープした上で Markdown の **強調** と `コード` だけを描画する (設計データの説明は Markdown で書かれることがある) */
+export function prose(s: unknown): string {
+  return esc(s)
+    .replace(/\*\*([^*]+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/`([^`]+?)`/g, "<code>$1</code>");
+}
+
 const anchor = (kind: string, id: string) => `${kind}-${id.replace(/[^A-Za-z0-9_-]/g, "_")}`;
 
 function typeText(t: unknown): string {
@@ -300,7 +307,7 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
     <div class="hd-cover-meta"><span>文書 <b>基本設計書・処理設計書</b></span><span>版 <b>${esc(input.version ?? "-")}</b></span><span>作成日 <b>${esc(date)}</b></span></div>
     <h1 class="hd-cover-title">${esc(input.project.name)}</h1>
     <p class="hd-cover-sub">基本設計書・処理設計書（Harmony 設計データから生成）</p>
-    ${input.project.description ? `<p class="hd-cover-desc">${esc(input.project.description)}</p>` : ""}
+    ${input.project.description ? `<p class="hd-cover-desc">${prose(input.project.description)}</p>` : ""}
     <div class="hd-counts">${counts.map(([k, v]) => `<div><b>${v}</b><span>${k}</span></div>`).join("")}</div>
     <table class="hd-stamps"><tr><th>承認</th><th>審査</th><th>作成</th></tr><tr><td></td><td></td><td></td></tr></table>
     <p class="hd-note">本書は設計データ (JSON) から自動生成した閲覧用の資料です。修正は Harmony 上で行ってください。</p>
@@ -336,7 +343,7 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
     if (s.layout) walkLayout(s.layout.nodes, () => { partsCount++; });
     sec(anchor("screen", s.id), `${s.name ?? s.id}`, 2, `
       ${infoGrid([["画面 ID", `<code>${esc(s.id)}</code>`], ["種別", esc(s.purpose === "gadget" ? "部品画面" : s.kind ?? "")], ["URL", `<code>${esc(s.path ?? "")}</code>`], ["認証", esc(s.auth ?? "")], ["成熟度", esc(MATURITY[s.maturity ?? ""] ?? s.maturity ?? "")], ["関連処理", relFlows.map((f) => `<a href="#${anchor("flow", f.meta.id)}">${esc(f.meta.name ?? f.meta.id)}</a>`).join("、")]])}
-      ${s.description ? `<p class="hd-desc">${esc(s.description)}</p>` : ""}
+      ${s.description ? `<p class="hd-desc">${prose(s.description)}</p>` : ""}
       <h4 class="hd-sub">画面レイアウト${s.layout ? `<small>部品 ${partsCount}</small>` : ""}</h4>
       ${layoutToHtml(s.layout, items)}
       <h4 class="hd-sub">項目定義<small>${items.length} 件</small></h4>
@@ -349,7 +356,7 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
         it.required ? "○" : "",
         esc(DIRECTION[it.direction ?? ""] ?? it.direction ?? ""),
         esc([it.pattern ?? "", (it.options ?? []).map((o) => o.label).join(" / ")].filter(Boolean).join(" ")),
-        esc(it.description ?? ""),
+        prose(it.description ?? ""),
       ]), "hd-items")}
       ${events.length ? `<h4 class="hd-sub">イベント</h4>${table(["項目", "イベント", "処理", "説明"], events)}` : ""}
     `, `3-${i + 1}`);
@@ -373,7 +380,7 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
       ];
       return `<div class="hd-action">
         <h4 class="hd-sub">アクション: ${esc(a.name ?? a.id ?? "")}${a.httpRoute ? `<small><code>${esc(a.httpRoute.method)} ${esc(a.httpRoute.path)}</code></small>` : ""}</h4>
-        ${a.description ? `<p class="hd-desc">${esc(a.description)}</p>` : ""}
+        ${a.description ? `<p class="hd-desc">${prose(a.description)}</p>` : ""}
         ${io.length ? table(["区分", "名前", "型", "必須", "説明"], io) : ""}
         <div class="hd-diagram-wrap">${diagramToSvg(layoutFlow(a, ctx), `${f.meta.name ?? f.meta.id} ${a.name ?? ""} の処理フロー図`)}</div>
         ${outline}
@@ -386,7 +393,7 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
     }).join("");
     sec(anchor("flow", f.meta.id), f.meta.name ?? f.meta.id, 2, `
       ${infoGrid([["処理 ID", `<code>${esc(f.meta.id)}</code>`], ["種別", esc(f.meta.flowType ?? "")], ["画面", f.meta.screenId ? `<a href="#${anchor("screen", f.meta.screenId)}">${esc(screenName.get(f.meta.screenId) ?? f.meta.screenId)}</a>` : ""], ["成熟度", esc(MATURITY[f.meta.maturity ?? ""] ?? f.meta.maturity ?? "")]])}
-      ${f.meta.description ? `<p class="hd-desc">${esc(f.meta.description)}</p>` : ""}
+      ${f.meta.description ? `<p class="hd-desc">${prose(f.meta.description)}</p>` : ""}
       ${actionsHtml}
     `, `4-${i + 1}`);
   });
@@ -406,10 +413,10 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
       .map((it) => [`<a href="#${anchor("screen", sc.id)}">${esc(sc.name ?? sc.id)}</a>`, `${esc(it.label ?? "")} <code>${esc(it.id)}</code>`, esc(colLabel.get(it.binding?.ref?.columnId ?? "") ?? it.binding?.ref?.columnId ?? "")]));
     const colName = new Map((t.columns ?? []).map((c) => [c.id ?? c.physicalName, c.physicalName]));
     sec(anchor("table", t.id), `${t.name ?? t.id}（${t.physicalName ?? ""}）`, 2, `
-      ${t.description ? `<p class="hd-desc">${esc(t.description)}</p>` : ""}
+      ${t.description ? `<p class="hd-desc">${prose(t.description)}</p>` : ""}
       ${table(["No", "論理名", "物理名", "型", "長さ", "NN", "PK", "UK", "既定値", "説明"], (t.columns ?? []).map((c, k) => [
         String(k + 1), esc(c.name), `<code>${esc(c.physicalName)}</code>`, esc(c.dataType), esc(c.length !== undefined ? `${c.length}${c.scale !== undefined ? `,${c.scale}` : ""}` : ""),
-        c.notNull ? "○" : "", c.primaryKey ? "○" : "", c.unique ? "○" : "", `<code>${esc(c.defaultValue ?? "")}</code>`, esc(c.comment ?? c.description ?? ""),
+        c.notNull ? "○" : "", c.primaryKey ? "○" : "", c.unique ? "○" : "", `<code>${esc(c.defaultValue ?? "")}</code>`, prose(c.comment ?? c.description ?? ""),
       ]), "hd-columns")}
       ${t.indexes?.length ? `<h4 class="hd-sub">インデックス</h4>${table(["名前", "列", "一意"], t.indexes.map((x) => [`<code>${esc(x.physicalName)}</code>`, esc((x.columns ?? []).map((c) => colName.get(c.columnId) ?? c.columnId).join(", ")), x.unique ? "○" : ""]))}` : ""}
       <h4 class="hd-sub">利用箇所 (CRUD)</h4>

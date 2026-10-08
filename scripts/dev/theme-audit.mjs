@@ -43,7 +43,7 @@ const routes = [
   ["page-layout-list", "/page-layout/list"], ["page-layout-edit", `/page-layout/edit/${firstId("page-layouts")}`],
   ["gadget-list", "/gadget/list"], ["generic-definition", "/generic-definition"],
   ["generic-definition-list", "/generic-definition/message"], ["conventions", "/conventions/catalog"],
-  ["extensions", "/extensions"], ["tech-stack", "/project/tech-stack"],
+  ["extensions", "/extensions"], ["tech-stack", "/project/tech-stack"], ["document", "/document"],
 ].filter(([n]) => !only || only.has(n));
 
 const auditFn = (theme) => {

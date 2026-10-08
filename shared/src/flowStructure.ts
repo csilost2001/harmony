@@ -116,6 +116,11 @@ export function stepTarget(step: FlowStep, ctx: FlowContext = NO_CTX): string {
   }
 }
 
+/** 説明文が「422 …」「HTTP 422 …」のようにステータスで始まる場合、併記するステータスと重ならないよう除く */
+function stripStatus(text: string, status: number | undefined): string {
+  return status ? text.replace(new RegExp(`^(HTTP\\s*)?${status}\\s*`), "") : text;
+}
+
 /** HTTP ステータス (return ステップが参照する応答定義から) */
 export function returnStatus(step: FlowStep, action: Pick<FlowActionLike, "responses"> | null): number | undefined {
   if (step.kind !== "return") return undefined;
@@ -313,7 +318,7 @@ export function layoutFlow(action: FlowActionLike, ctx: FlowContext = NO_CTX): D
         w: NODE_W, h: PILL_H, cx: NODE_W / 2, terminates: true,
         place: (ox, oy, out) => out.nodes.push({
           id: uid("n"), stepId: step.id, shape: "pill", x: ox, y: oy, w: NODE_W, h: PILL_H,
-          caption: st ? `HTTP ${st}` : "終了", text: truncate(stepText(step), 14), tone: isErr ? "error" : "ok", kind: step.kind,
+          caption: st ? `HTTP ${st}` : "終了", text: truncate(stripStatus(stepText(step), st), 14), tone: isErr ? "error" : "ok", kind: step.kind,
         }),
       };
     }
@@ -502,8 +507,7 @@ export function deriveTestViewpoints(action: FlowActionLike): TestViewpoint[] {
         out.push({
           category: st !== undefined && st >= 400 ? "異常系" : inRollback ? "異常系" : "正常系",
           conditions: here.length ? here : ["すべての入力が正しい"],
-          // 説明文が「422 …」のようにステータスで始まる場合は重ねて書かない
-          expected: st ? `HTTP ${st} ${stepText(step).replace(new RegExp(`^(HTTP\\s*)?${st}\\s*`), "")}`.trim() : stepText(step),
+          expected: st ? `HTTP ${st} ${stripStatus(stepText(step), st)}`.trim() : stepText(step),
           status: st,
           stepNo: no,
         });

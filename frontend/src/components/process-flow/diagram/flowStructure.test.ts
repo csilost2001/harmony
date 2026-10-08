@@ -74,6 +74,12 @@ describe("フローチャート (layoutFlow)", () => {
     }
   });
 
+  it("終了ノードの本文にステータスを重ねて書かない", () => {
+    for (const n of lay.nodes.filter((x) => x.caption.startsWith("HTTP "))) {
+      expect(n.text.startsWith(n.caption.slice(5))).toBe(false);
+    }
+  });
+
   it("ステップが空なら開始のみ", () => {
     const l = layoutFlow({ name: "空", trigger: "submit", steps: [] } as unknown as ActionDefinition);
     expect(l.nodes.map((n) => n.id)).toEqual(["start"]);

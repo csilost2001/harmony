@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
-import { buildDesignDocument, deriveCrud, esc, renderStandaloneDesignDoc, type DesignDocInput } from "@harmony/shared";
+import { buildDesignDocument, deriveCrud, esc, prose, renderStandaloneDesignDoc, type DesignDocInput } from "@harmony/shared";
 
 const root = path.resolve(__dirname, "../../../../examples/retail");
 const readDir = (d: string, f = (n: string) => n.endsWith(".json")) =>
@@ -104,5 +104,11 @@ describe("導出した章 (バッチ / 外部 IF / イベント / テスト観�
     const sec = doc.html.slice(doc.html.indexOf('id="batches"'), doc.html.indexOf('id="interfaces"'));
     expect(sec).toContain("連続学習日数リセット");
     expect(sec).toContain("定期");
+  });
+});
+
+describe("説明文の描画 (prose)", () => {
+  it("**強調** と `コード` だけを描画し、HTML はエスケープする", () => {
+    expect(prose("**リリース時** の `id` <b>x</b>")).toBe("<strong>リリース時</strong> の <code>id</code> &lt;b&gt;x&lt;/b&gt;");
   });
 });

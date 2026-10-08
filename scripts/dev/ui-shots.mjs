@@ -67,6 +67,7 @@ const routes = [
   ["conventions", "/conventions/catalog"],
   ["extensions", "/extensions"],
   ["tech-stack", "/project/tech-stack"],
+  ["document", "/document"],
   ...(args.extra ? args.extra.split(",").map((p) => [p.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, ""), p]) : []),
 ].filter(([name]) => !only || only.has(name));
 
