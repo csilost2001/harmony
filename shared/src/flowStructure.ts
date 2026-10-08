@@ -502,7 +502,8 @@ export function deriveTestViewpoints(action: FlowActionLike): TestViewpoint[] {
         out.push({
           category: st !== undefined && st >= 400 ? "異常系" : inRollback ? "異常系" : "正常系",
           conditions: here.length ? here : ["すべての入力が正しい"],
-          expected: `${st ? `HTTP ${st} ` : ""}${stepText(step)}`,
+          // 説明文が「422 …」のようにステータスで始まる場合は重ねて書かない
+          expected: st ? `HTTP ${st} ${stepText(step).replace(new RegExp(`^(HTTP\\s*)?${st}\\s*`), "")}`.trim() : stepText(step),
           status: st,
           stepNo: no,
         });

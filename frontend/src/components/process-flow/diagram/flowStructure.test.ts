@@ -103,6 +103,8 @@ describe("テスト観点 (deriveTestViewpoints)", () => {
     expect(errors.some((v) => v.conditions.some((c) => c.includes("在庫不足")))).toBe(true);
     // 終了ステップの No は処理記述表と同じ番号体系
     expect(errors.find((v) => v.conditions.some((c) => c.includes("カート空")))?.stepNo).toBe("4-A-1");
+    // 期待結果にステータスを重ねて書かない (「HTTP 422 422 …」にしない)
+    expect(vs.every((v) => !/HTTP (\d{3}) \1/.test(v.expected))).toBe(true);
   });
 
   it("return の無いフローは最後まで到達して正常終了", async () => {
