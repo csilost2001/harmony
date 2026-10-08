@@ -6,7 +6,7 @@
  * - 構成: 部品の木 (クリックで選択)
  */
 import { useMemo, useState, type DragEvent } from "react";
-import { LAYOUT_NODE_LABELS, collectItemRefs, type LayoutNode, type LayoutNodeType } from "@harmony/shared";
+import { LAYOUT_NODE_LABELS, collectExpandedItemRefs, type LayoutComponentDef, type LayoutNode, type LayoutNodeType } from "@harmony/shared";
 import type { ScreenItem } from "../../types/v3/screen-item";
 import type { Table } from "../../types/v3/table";
 import { DND_MIME, setDragPayload, type DragPayload } from "./layoutDnd";
@@ -58,12 +58,18 @@ export interface LayoutPaletteProps {
   onPlaceItem: (itemId: string) => void;
   onAddColumn: (tableId: string, columnId: string) => void;
   onSelect: (id: string) => void;
+  /** プロジェクト独自部品 (パレットに並べる) */
+  components?: LayoutComponentDef[];
+  onAddComponent?: (componentId: string) => void;
+  /** 独自部品の管理 (一覧・新規作成・編集・削除) を開く */
+  onManageComponents?: () => void;
 }
 
-export function LayoutPalette({ editable, nodes, items, tables, selectedId, onAdd, onPlaceItem, onAddColumn, onSelect }: LayoutPaletteProps) {
+export function LayoutPalette({ editable, nodes, items, tables, selectedId, onAdd, onPlaceItem, onAddColumn, onSelect, components = [], onAddComponent, onManageComponents }: LayoutPaletteProps) {
   const [tab, setTab] = useState<Tab>("parts");
   const [tableId, setTableId] = useState<string>("");
-  const placed = useMemo(() => collectItemRefs(nodes), [nodes]);
+  // 独自部品の中 (args 経由) で使われている項目も「配置済み」に数える
+  const placed = useMemo(() => collectExpandedItemRefs(nodes, components), [nodes, components]);
   const unplaced = items.filter((i) => !placed.has(i.id as string));
   const table = tables.find((t) => t.id === tableId) ?? tables[0];
 
@@ -102,6 +108,36 @@ export function LayoutPalette({ editable, nodes, items, tables, selectedId, onAd
               </div>
             </section>
           ))}
+          {(components.length > 0 || onManageComponents) && (
+            <section data-testid="layout-components-section">
+              <h4 className="sld-group-title">独自部品</h4>
+              {components.length === 0 && <p className="sld-hint">このプロジェクト専用の部品はまだありません。画面の部品を選んで「独自部品として登録」すると、ここに並びます。</p>}
+              <div className="sld-parts">
+                {components.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className="sld-part sld-part-component"
+                    draggable={editable}
+                    disabled={!editable}
+                    onDragStart={(e) => startDrag(e, { kind: "new-component", componentId: c.id, nodeType: "component" })}
+                    onDragEnd={() => setDragPayload(null)}
+                    onClick={() => onAddComponent?.(c.id)}
+                    title={`${c.description ?? c.label}（ドラッグで配置 / クリックで選択中の部品の後ろに追加）`}
+                    data-testid={`layout-component-${c.id}`}
+                  >
+                    <i className="bi bi-puzzle" />
+                    <span>{c.label}</span>
+                  </button>
+                ))}
+              </div>
+              {onManageComponents && (
+                <button type="button" className="sld-btn sld-manage-components" onClick={onManageComponents} data-testid="layout-manage-components">
+                  <i className="bi bi-gear" /> 独自部品の管理…
+                </button>
+              )}
+            </section>
+          )}
         </div>
       )}
 
@@ -171,7 +207,7 @@ export function LayoutPalette({ editable, nodes, items, tables, selectedId, onAd
 
       {tab === "outline" && (
         <div className="sld-left-body">
-          <Outline nodes={nodes} depth={0} selectedId={selectedId} onSelect={onSelect} items={items} />
+          <Outline nodes={nodes} depth={0} selectedId={selectedId} onSelect={onSelect} items={items} components={components} />
           {nodes.length === 0 && <p className="sld-hint">部品がまだありません。</p>}
         </div>
       )}
@@ -179,19 +215,21 @@ export function LayoutPalette({ editable, nodes, items, tables, selectedId, onAd
   );
 }
 
-function Outline({ nodes, depth, selectedId, onSelect, items }: { nodes: LayoutNode[]; depth: number; selectedId: string | null; onSelect: (id: string) => void; items: ScreenItem[] }) {
+function Outline({ nodes, depth, selectedId, onSelect, items, components }: { nodes: LayoutNode[]; depth: number; selectedId: string | null; onSelect: (id: string) => void; items: ScreenItem[]; components: LayoutComponentDef[] }) {
   return (
     <ul className="sld-outline" style={{ paddingLeft: depth ? 12 : 0 }}>
       {nodes.map((n) => {
         const item = n.itemRef ? items.find((i) => i.id === n.itemRef) : undefined;
-        const caption = item?.label ?? n.props?.title ?? n.props?.text ?? n.props?.label ?? "";
+        const caption = n.type === "component"
+          ? (components.find((c) => c.id === n.componentRef)?.label ?? n.componentRef ?? "")
+          : (item?.label ?? n.props?.title ?? n.props?.text ?? n.props?.label ?? "");
         return (
           <li key={n.id}>
             <button type="button" className={`sld-outline-row${selectedId === n.id ? " active" : ""}`} onClick={() => onSelect(n.id)} data-testid={`layout-outline-${n.id}`}>
               <span className="sld-outline-type">{LAYOUT_NODE_LABELS[n.type]}</span>
               <span className="sld-outline-caption">{caption}</span>
             </button>
-            {n.children && n.children.length > 0 && <Outline nodes={n.children} depth={depth + 1} selectedId={selectedId} onSelect={onSelect} items={items} />}
+            {n.children && n.children.length > 0 && <Outline nodes={n.children} depth={depth + 1} selectedId={selectedId} onSelect={onSelect} items={items} components={components} />}
           </li>
         );
       })}

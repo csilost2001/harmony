@@ -7,7 +7,7 @@
  */
 import { createContext, useContext, useMemo, useState, type DragEvent, type ReactNode } from "react";
 import DOMPurify from "dompurify";
-import { CONTAINER_TYPES, LAYOUT_NODE_LABELS, type LayoutNode, type LayoutNodeType } from "@harmony/shared";
+import { CONTAINER_TYPES, LAYOUT_NODE_LABELS, expandComponentNode, type LayoutComponentDef, type LayoutNode, type LayoutNodeType } from "@harmony/shared";
 import type { ScreenItem } from "../../types/v3/screen-item";
 import { ROOT_ID, computeDropTarget, getDragPayload, setDragPayload, DND_MIME, type DropTarget, type DragPayload } from "./layoutDnd";
 
@@ -18,6 +18,8 @@ export interface CanvasContextValue {
   editable: boolean;
   showNotes: boolean;
   issuesByNode: Map<string, "error" | "warning">;
+  /** プロジェクト独自部品の定義 (参照部品を展開して描くため) */
+  components: LayoutComponentDef[];
   onSelect: (id: string | null) => void;
 }
 
@@ -194,7 +196,26 @@ function containerClass(node: LayoutNode): string {
   }
 }
 
-function NodeView({ node, parentType }: { node: LayoutNode; parentType: LayoutNodeType | null }) {
+/** 独自部品の参照部品: 定義を展開して見せる。中の部品は選択・移動できず、参照部品ごと 1 つとして扱う */
+function ComponentBody({ node, parentType }: { node: LayoutNode; parentType: LayoutNodeType | null }) {
+  const { components } = useCanvas();
+  const def = components.find((c) => c.id === node.componentRef);
+  const expanded = useMemo(() => expandComponentNode(node, components).nodes as LayoutNode[], [node, components]);
+  if (!def) {
+    return <div className="pv-missing"><i className="bi bi-exclamation-triangle" /> 独自部品「{node.componentRef ?? "?"}」の定義が見つかりません</div>;
+  }
+  return (
+    <div className="pv-component">
+      <div className="pv-component-head"><i className="bi bi-puzzle" /> {def.label}</div>
+      <div className="pv-stack">
+        {expanded.map((n) => <NodeView key={n.id} node={n} parentType={parentType} frozen />)}
+        {expanded.length === 0 && <div className="pv-empty-slot">（この独自部品は空です）</div>}
+      </div>
+    </div>
+  );
+}
+
+function NodeView({ node, parentType, frozen = false }: { node: LayoutNode; parentType: LayoutNodeType | null; frozen?: boolean }) {
   const { selectedId, editable, onSelect, issuesByNode } = useCanvas();
   const [activeTab, setActiveTab] = useState(0);
   const selected = selectedId === node.id;
@@ -215,8 +236,13 @@ function NodeView({ node, parentType }: { node: LayoutNode; parentType: LayoutNo
   const span = parentType === "form" || parentType === "search-panel"
     ? (node.type === "field" || node.type === "html" ? undefined : { gridColumn: "1 / -1" }) : undefined;
 
+  // 展開表示の中の部品 (frozen) は選択・移動・ドロップの対象にしない。クリックは参照部品へ伝わる
+  const dropAttrs = (parentId: string, type: LayoutNodeType) => (frozen ? {} : { "data-drop-parent": parentId, "data-drop-parent-type": type });
+
   let body: ReactNode;
-  if (!isContainer) {
+  if (node.type === "component") {
+    body = <ComponentBody node={node} parentType={parentType} />;
+  } else if (!isContainer) {
     body = <NodeContent node={node} />;
   } else if (node.type === "tabs") {
     const tabs = node.children ?? [];
@@ -225,14 +251,14 @@ function NodeView({ node, parentType }: { node: LayoutNode; parentType: LayoutNo
       <div className="pv-tabs">
         <div className="pv-tab-strip">
           {tabs.map((t, i) => (
-            <button key={t.id} type="button" className={`pv-tab${i === idx ? " active" : ""}`} onClick={(e) => { e.stopPropagation(); setActiveTab(i); onSelect(t.id); }}>
+            <button key={t.id} type="button" className={`pv-tab${i === idx ? " active" : ""}`} onClick={(e) => { e.stopPropagation(); setActiveTab(i); if (!frozen) onSelect(t.id); }}>
               {t.props?.title || `タブ ${i + 1}`}
             </button>
           ))}
         </div>
         {tabs[idx] && (
-          <div data-drop-parent={node.id} data-drop-parent-type="tabs" className="pv-stack">
-            <NodeView node={tabs[idx]} parentType="tabs" />
+          <div {...dropAttrs(node.id, "tabs")} className="pv-stack">
+            <NodeView node={tabs[idx]} parentType="tabs" frozen={frozen} />
           </div>
         )}
       </div>
@@ -240,9 +266,9 @@ function NodeView({ node, parentType }: { node: LayoutNode; parentType: LayoutNo
   } else {
     const kids = node.children ?? [];
     const list = (
-      <div data-drop-parent={node.id} data-drop-parent-type={node.type} className={containerClass(node)}>
-        {kids.map((c) => <NodeView key={c.id} node={c} parentType={node.type} />)}
-        {kids.length === 0 && <div className="pv-empty-slot">{editable ? "ここに部品をドラッグ" : "（空）"}</div>}
+      <div {...dropAttrs(node.id, node.type)} className={containerClass(node)}>
+        {kids.map((c) => <NodeView key={c.id} node={c} parentType={node.type} frozen={frozen} />)}
+        {kids.length === 0 && <div className="pv-empty-slot">{editable && !frozen ? "ここに部品をドラッグ" : "（空）"}</div>}
       </div>
     );
     body = (
@@ -253,6 +279,10 @@ function NodeView({ node, parentType }: { node: LayoutNode; parentType: LayoutNo
         {list}
       </div>
     );
+  }
+
+  if (frozen) {
+    return <div className="sld-node is-frozen" style={{ ...style, ...span }}>{body}</div>;
   }
 
   return (

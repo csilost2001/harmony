@@ -13,6 +13,7 @@ export const DND_MIME = "application/x-harmony-layout";
 /** ドラッグで運ぶもの */
 export type DragPayload =
   | { kind: "new-node"; nodeType: LayoutNodeType }
+  | { kind: "new-component"; componentId: string; nodeType: "component" }
   | { kind: "move-node"; nodeId: string; nodeType: LayoutNodeType }
   | { kind: "place-item"; itemId: string; nodeType: LayoutNodeType }
   | { kind: "table-column"; tableId: string; columnId: string; nodeType: "field" };

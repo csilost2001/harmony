@@ -105,13 +105,13 @@
     },
 
     "LayoutNodeType": {
-      "description": "業務部品の種別。容器 (子を持つ): section=区画, form=入力フォーム, search-panel=検索条件, columns=段組, column=段, tabs=タブ群, tab=タブ, button-bar=ボタン群。要素: heading=見出し, text=文章, field=入力/表示項目, table=一覧表, button=ボタン, link=リンク, message-area=メッセージ領域, image=画像, divider=区切り線, html=自由 HTML (旧形式からの移行用)。",
+      "description": "業務部品の種別。容器 (子を持つ): section=区画, form=入力フォーム, search-panel=検索条件, columns=段組, column=段, tabs=タブ群, tab=タブ, button-bar=ボタン群。要素: heading=見出し, text=文章, field=入力/表示項目, table=一覧表, button=ボタン, link=リンク, message-area=メッセージ領域, image=画像, divider=区切り線, html=自由 HTML (旧形式からの移行用), component=プロジェクト独自部品の参照 (componentRef で layout-components.json の定義を指す)。",
       "type": "string",
-      "enum": ["section", "form", "search-panel", "columns", "column", "tabs", "tab", "button-bar", "heading", "text", "field", "table", "button", "link", "message-area", "image", "divider", "html"]
+      "enum": ["section", "form", "search-panel", "columns", "column", "tabs", "tab", "button-bar", "heading", "text", "field", "table", "button", "link", "message-area", "image", "divider", "html", "component"]
     },
 
     "LayoutNode": {
-      "description": "業務部品 1 つ。field / table は itemRef で画面項目を参照する。button は itemRef (click イベントを持つ項目) を参照するか、props.label のみを持つ。",
+      "description": "業務部品 1 つ。field / table は itemRef で画面項目を参照する。button は itemRef (click イベントを持つ項目) を参照するか、props.label のみを持つ。type=component の部品は componentRef と args を持ち、描画・検証時に独自部品の定義を展開する。",
       "type": "object",
       "additionalProperties": false,
       "required": ["id", "type"],
@@ -121,7 +121,9 @@
         "itemRef": { "$ref": "common.v3.schema.json#/$defs/Identifier", "description": "参照する画面項目の id (items[].id)。" },
         "props": { "$ref": "#/$defs/LayoutNodeProps" },
         "children": { "type": "array", "items": { "$ref": "#/$defs/LayoutNode" }, "description": "子部品 (容器のみ)。" },
-        "note": { "type": "string", "description": "設計メモ (AI / 開発者への補足)。" }
+        "note": { "type": "string", "description": "設計メモ (AI / 開発者への補足)。" },
+        "componentRef": { "$ref": "common.v3.schema.json#/$defs/EntityId", "description": "type=component のとき、参照する独自部品の id (layout-components.json の components[].id)。" },
+        "args": { "type": "object", "additionalProperties": { "type": "string" }, "description": "type=component のとき、独自部品の差し込み口 (params[].id) に入れる値。kind=text は文言、item は画面項目 id (items[].id)、screen は画面 id。" }
       }
     },
 

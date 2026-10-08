@@ -3,7 +3,7 @@
  * 何も選択していないときは、画面全体の検証結果 (要確認事項) を表示する。
  */
 import { useState, type ReactNode } from "react";
-import { LAYOUT_NODE_LABELS, type LayoutIssue, type LayoutNode, type LayoutNodeProps } from "@harmony/shared";
+import { LAYOUT_NODE_LABELS, type LayoutComponentDef, type LayoutComponentParam, type LayoutIssue, type LayoutNode, type LayoutNodeProps } from "@harmony/shared";
 import type { ScreenItem, ScreenItemPresentationColumn } from "../../types/v3/screen-item";
 import { isValidNodeId } from "./layoutModel";
 
@@ -24,6 +24,20 @@ export interface LayoutInspectorProps {
   onAddChild: (type: "column" | "tab") => void;
   onSelect: (id: string | null) => void;
   onCommit: () => void;
+  /** プロジェクト独自部品の定義 (参照部品の差し込み口の表示に使う) */
+  components?: LayoutComponentDef[];
+  /** 参照部品の差し込み値を変更する (空文字で取り除く) */
+  onSetArg?: (nodeId: string, paramId: string, value: string, commit: boolean) => void;
+  /** 参照している独自部品の定義を編集する */
+  onEditComponent?: (componentId: string) => void;
+  /** 参照部品を展開して通常の部品に戻す */
+  onDetachComponent?: () => void;
+  /** 選択中の部品を独自部品として登録する */
+  onRegisterComponent?: () => void;
+  /** 独自部品の定義を編集しているとき: 文言に差し込める差し込み口 */
+  paramChips?: LayoutComponentParam[];
+  /** 画面項目の定義欄 (型・桁数等) を出さない (独自部品の定義編集では項目は差し込み口のため) */
+  hideItemEditor?: boolean;
 }
 
 const PRIMITIVES: Array<[string, string]> = [
@@ -100,7 +114,7 @@ function ScreenPanel({ issues, onSelect, items, nodes }: LayoutInspectorProps) {
 }
 
 function NodePanel(props: LayoutInspectorProps & { node: LayoutNode }) {
-  const { node, nodes, items, editable, onNodeChange, onItemChange, onRenameNode, onMove, onDuplicate, onDelete, onAddChild, onCommit, screens, onSelect } = props;
+  const { node, nodes, items, editable, onNodeChange, onItemChange, onRenameNode, onMove, onDuplicate, onDelete, onAddChild, onCommit, screens, onSelect, components = [], paramChips } = props;
   const p = node.props ?? {};
   const item = node.itemRef ? items.find((i) => i.id === node.itemRef) : undefined;
   // 部品が切り替わると NodePanel は key で作り直されるため、下書き状態の同期は不要
@@ -115,6 +129,20 @@ function NodePanel(props: LayoutInspectorProps & { node: LayoutNode }) {
     }, commit);
 
   const nodeIssues = props.issues.filter((i) => i.nodeId === node.id);
+
+  /** 独自部品の定義編集中: 文言の入力欄の下に、差し込み口を {{id}} として入れるボタンを出す */
+  const textParams = (paramChips ?? []).filter((q) => q.kind === "text");
+  const chips = (prop: "title" | "text" | "label" | "alt") => (textParams.length > 0 && editable ? (
+    <div className="sld-chips sld-param-chips" aria-label="差し込み口を使う">
+      {textParams.map((q) => (
+        <button key={q.id} type="button" className="sld-chip" title={`「${q.label}」を差し込む`} data-testid={`layout-param-chip-${prop}-${q.id}`}
+          onClick={() => setProp(prop, `${(p[prop] as string | undefined) ?? ""}{{${q.id}}}`)}>
+          <i className="bi bi-braces" /> {q.label}
+        </button>
+      ))}
+    </div>
+  ) : null);
+  const componentDef = node.type === "component" ? components.find((c) => c.id === node.componentRef) : undefined;
 
   return (
     <div className="sld-right-body" data-testid="layout-inspector">
@@ -138,10 +166,14 @@ function NodePanel(props: LayoutInspectorProps & { node: LayoutNode }) {
         {idError && <div className="sld-error-text">{idError}</div>}
       </Row>
 
+      {node.type === "component" && (
+        <ComponentArgsPanel node={node} def={componentDef} items={items} screens={screens} editable={editable} onSetArg={props.onSetArg} onEditComponent={props.onEditComponent} onDetachComponent={props.onDetachComponent} onCommit={onCommit} />
+      )}
+
       {/* ── 種別ごとの属性 ── */}
       {node.type === "heading" && (
         <>
-          <Row label="見出し" htmlFor="sld-text"><TextInput id="sld-text" value={p.text ?? ""} disabled={!editable} onLive={(v) => setProp("text", v, false)} onDone={onCommit} /></Row>
+          <Row label="見出し" htmlFor="sld-text"><TextInput id="sld-text" value={p.text ?? ""} disabled={!editable} onLive={(v) => setProp("text", v, false)} onDone={onCommit} />{chips("text")}</Row>
           <Row label="階層" htmlFor="sld-level">
             <select id="sld-level" className="sld-input" value={p.level ?? 2} disabled={!editable} onChange={(e) => setProp("level", Number(e.target.value) as 1 | 2 | 3)}>
               <option value={1}>1 (画面見出し)</option><option value={2}>2 (区画見出し)</option><option value={3}>3 (小見出し)</option>
@@ -151,7 +183,7 @@ function NodePanel(props: LayoutInspectorProps & { node: LayoutNode }) {
       )}
       {node.type === "text" && (
         <>
-          <Row label="文章" htmlFor="sld-text"><TextInput id="sld-text" multiline value={p.text ?? ""} disabled={!editable} onLive={(v) => setProp("text", v, false)} onDone={onCommit} /></Row>
+          <Row label="文章" htmlFor="sld-text"><TextInput id="sld-text" multiline value={p.text ?? ""} disabled={!editable} onLive={(v) => setProp("text", v, false)} onDone={onCommit} />{chips("text")}</Row>
           <Row label="調子" htmlFor="sld-tone">
             <select id="sld-tone" className="sld-input" value={p.tone ?? "normal"} disabled={!editable} onChange={(e) => setProp("tone", e.target.value as LayoutNodeProps["tone"])}>
               <option value="normal">通常</option><option value="muted">補足 (淡色)</option><option value="note">注記</option><option value="warning">注意</option>
@@ -160,7 +192,7 @@ function NodePanel(props: LayoutInspectorProps & { node: LayoutNode }) {
         </>
       )}
       {(node.type === "section" || node.type === "form" || node.type === "search-panel" || node.type === "tab") && (
-        <Row label="表題" htmlFor="sld-title"><TextInput id="sld-title" value={p.title ?? ""} disabled={!editable} onLive={(v) => setProp("title", v, false)} onDone={onCommit} placeholder={node.type === "search-panel" ? "検索条件" : ""} /></Row>
+        <Row label="表題" htmlFor="sld-title"><TextInput id="sld-title" value={p.title ?? ""} disabled={!editable} onLive={(v) => setProp("title", v, false)} onDone={onCommit} placeholder={node.type === "search-panel" ? "検索条件" : ""} />{chips("title")}</Row>
       )}
       {node.type === "section" && (
         <Row label="外枠" htmlFor="sld-variant">
@@ -204,7 +236,7 @@ function NodePanel(props: LayoutInspectorProps & { node: LayoutNode }) {
       )}
       {(node.type === "button" || node.type === "link") && (
         <>
-          <Row label="表示文言" htmlFor="sld-label"><TextInput id="sld-label" value={p.label ?? ""} disabled={!editable} onLive={(v) => setProp("label", v, false)} onDone={onCommit} placeholder={item?.label as string | undefined} /></Row>
+          <Row label="表示文言" htmlFor="sld-label"><TextInput id="sld-label" value={p.label ?? ""} disabled={!editable} onLive={(v) => setProp("label", v, false)} onDone={onCommit} placeholder={item?.label as string | undefined} />{chips("label")}</Row>
           {node.type === "button" && (
             <Row label="強調" htmlFor="sld-bvariant">
               <select id="sld-bvariant" className="sld-input" value={p.variant ?? "secondary"} disabled={!editable} onChange={(e) => setProp("variant", e.target.value as LayoutNodeProps["variant"])}>
@@ -215,6 +247,7 @@ function NodePanel(props: LayoutInspectorProps & { node: LayoutNode }) {
           <Row label="遷移先画面" htmlFor="sld-screen">
             <select id="sld-screen" className="sld-input" value={p.screenRef ?? ""} disabled={!editable} onChange={(e) => setProp("screenRef", e.target.value || undefined)}>
               <option value="">（なし）</option>
+              {(paramChips ?? []).filter((q) => q.kind === "screen").map((q) => <option key={`{{${q.id}}}`} value={`{{${q.id}}}`}>差し込み口: {q.label}</option>)}
               {props.screens.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </Row>
@@ -223,7 +256,7 @@ function NodePanel(props: LayoutInspectorProps & { node: LayoutNode }) {
       {node.type === "image" && (
         <>
           <Row label="画像の参照先" htmlFor="sld-src"><TextInput id="sld-src" value={p.src ?? ""} disabled={!editable} onLive={(v) => setProp("src", v, false)} onDone={onCommit} mono /></Row>
-          <Row label="代替テキスト" htmlFor="sld-alt"><TextInput id="sld-alt" value={p.alt ?? ""} disabled={!editable} onLive={(v) => setProp("alt", v, false)} onDone={onCommit} /></Row>
+          <Row label="代替テキスト" htmlFor="sld-alt"><TextInput id="sld-alt" value={p.alt ?? ""} disabled={!editable} onLive={(v) => setProp("alt", v, false)} onDone={onCommit} />{chips("alt")}</Row>
         </>
       )}
       {node.type === "html" && (
@@ -243,13 +276,64 @@ function NodePanel(props: LayoutInspectorProps & { node: LayoutNode }) {
         </Row>
       )}
 
-      {item && <ItemEditor key={item.id as string} item={item} editable={editable} onItemChange={onItemChange} onCommit={onCommit} isTable={node.type === "table"} />}
+      {item && !props.hideItemEditor && <ItemEditor key={item.id as string} item={item} editable={editable} onItemChange={onItemChange} onCommit={onCommit} isTable={node.type === "table"} />}
+
+      {props.onRegisterComponent && node.type !== "component" && node.type !== "column" && node.type !== "tab" && (
+        <div className="sld-row">
+          <button type="button" className="sld-btn" disabled={!editable} onClick={props.onRegisterComponent} data-testid="layout-register-component"
+            title="この部品 (と中の部品) を、他の画面でも使えるプロジェクト独自部品として登録します">
+            <i className="bi bi-puzzle" /> 独自部品として登録…
+          </button>
+        </div>
+      )}
 
       <Row label="設計メモ" htmlFor="sld-note">
         <TextInput id="sld-note" multiline value={node.note ?? ""} disabled={!editable} placeholder="AI・開発者への補足 (任意)"
           onLive={(v) => onNodeChange(node.id, (n) => { const next = { ...n }; if (v) next.note = v; else delete next.note; return next; }, false)} onDone={onCommit} />
       </Row>
       {screens.length === 0 && null}
+    </div>
+  );
+}
+
+function ComponentArgsPanel({ node, def, items, screens, editable, onSetArg, onEditComponent, onDetachComponent, onCommit }: {
+  node: LayoutNode; def: LayoutComponentDef | undefined; items: ScreenItem[]; screens: Array<{ id: string; name: string }>; editable: boolean;
+  onSetArg: LayoutInspectorProps["onSetArg"]; onEditComponent: LayoutInspectorProps["onEditComponent"];
+  onDetachComponent: LayoutInspectorProps["onDetachComponent"]; onCommit: () => void;
+}) {
+  if (!def) {
+    return <div className="sld-inline-issue sld-issue-error">独自部品「{node.componentRef ?? "?"}」の定義が見つかりません。削除された可能性があります。</div>;
+  }
+  return (
+    <div className="sld-component-panel" data-testid="layout-component-panel">
+      <h4 className="sld-group-title"><i className="bi bi-puzzle" /> 独自部品「{def.label}」</h4>
+      {def.description && <p className="sld-hint">{def.description}</p>}
+      {def.params.length === 0 && <p className="sld-hint">この独自部品には差し込み口がありません。</p>}
+      {def.params.map((q) => {
+        const value = node.args?.[q.id] ?? "";
+        const id = `sld-arg-${q.id}`;
+        return (
+          <Row key={q.id} label={q.label} htmlFor={id}>
+            {q.kind === "item" ? (
+              <select id={id} className="sld-input" value={value} disabled={!editable} onChange={(e) => onSetArg?.(node.id, q.id, e.target.value, true)} data-testid={`layout-arg-${q.id}`}>
+                <option value="">（未割当）</option>
+                {items.map((i) => <option key={i.id} value={i.id}>{i.label || i.id}（{i.id}）</option>)}
+              </select>
+            ) : q.kind === "screen" ? (
+              <select id={id} className="sld-input" value={value} disabled={!editable} onChange={(e) => onSetArg?.(node.id, q.id, e.target.value, true)} data-testid={`layout-arg-${q.id}`}>
+                <option value="">{q.default ? `（既定: ${screens.find((s) => s.id === q.default)?.name ?? q.default}）` : "（なし）"}</option>
+                {screens.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            ) : (
+              <TextInput id={id} value={value} disabled={!editable} placeholder={q.default} onLive={(v) => onSetArg?.(node.id, q.id, v, false)} onDone={onCommit} />
+            )}
+          </Row>
+        );
+      })}
+      <div className="sld-btn-row">
+        {onEditComponent && <button type="button" className="sld-btn" onClick={() => onEditComponent(def.id)} data-testid="layout-edit-component"><i className="bi bi-pencil-square" /> 定義を編集</button>}
+        {onDetachComponent && <button type="button" className="sld-btn" disabled={!editable} onClick={onDetachComponent} data-testid="layout-detach-component" title="定義とのつながりを切って、通常の部品として個別に編集できるようにします"><i className="bi bi-box-arrow-up-right" /> 展開して通常の部品にする</button>}
+      </div>
     </div>
   );
 }

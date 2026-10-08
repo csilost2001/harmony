@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/layout-components.v3.schema.json",
+  "title": "LayoutComponents (v3 プロジェクト独自部品)",
+  "description": "プロジェクト共通の独自部品の集合。画面デザイナで組んだ部品の木の断片に名前と差し込み口 (params) を付けて登録したもの。<dataDir>/layout-components.json に対応。画面からは screen.v3 の LayoutNode (type=component, componentRef, args) で参照する。2026-10 再設計で導入 (docs/spec/layout-components.md)。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "components"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": { "const": 1, "description": "ファイル形式の版。" },
+    "components": { "type": "array", "items": { "$ref": "#/$defs/LayoutComponent" }, "description": "独自部品の定義 (id は一意)。" }
+  },
+  "$defs": {
+    "LayoutComponentParamKind": {
+      "description": "差し込み口の種別。text=文言 (部品の title / text / label に差し込む), item=画面項目 (itemRef に差し込む。値は使う画面の items[].id), screen=画面 (props.screenRef に差し込む。値は画面 id)。",
+      "type": "string",
+      "enum": ["text", "item", "screen"]
+    },
+    "LayoutComponentParam": {
+      "description": "差し込み口。テンプレート内の `{{id}}` が、画面側の args[id] (無ければ default) で置き換わる。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "kind"],
+      "properties": {
+        "id": { "$ref": "common.v3.schema.json#/$defs/Identifier", "description": "差し込み口 ID (定義内で一意)。" },
+        "label": { "$ref": "common.v3.schema.json#/$defs/DisplayName" },
+        "kind": { "$ref": "#/$defs/LayoutComponentParamKind" },
+        "default": { "type": "string", "description": "args が無いときに使う値。" },
+        "description": { "type": "string" }
+      }
+    },
+    "LayoutComponent": {
+      "description": "独自部品 1 つ。nodes は screen.v3 の LayoutNode と同じ形の部品の木で、文字列値 (props の title / text / label / screenRef / html / src / alt) と itemRef に `{{paramId}}` を書ける。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "params", "nodes"],
+      "properties": {
+        "id": { "$ref": "common.v3.schema.json#/$defs/EntityId", "description": "独自部品 ID (kebab-case、プロジェクト内で一意)。" },
+        "label": { "$ref": "common.v3.schema.json#/$defs/DisplayName" },
+        "description": { "type": "string", "description": "何のための部品か、どこで使うか。" },
+        "category": { "type": "string", "description": "パレット上の分類名。" },
+        "params": { "type": "array", "items": { "$ref": "#/$defs/LayoutComponentParam" } },
+        "nodes": { "type": "array", "items": { "$ref": "screen.v3.schema.json#/$defs/LayoutNode" }, "description": "テンプレートの部品の木 (上から順)。独自部品を入れ子にできる (循環は不可)。" }
+      }
+    }
+  }
+}

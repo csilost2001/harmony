@@ -6,8 +6,8 @@
  * - 部品と項目をまとめて扱う操作 (追加・削除・複製)
  */
 import {
-  findNode, insertNode, nextNodeId, removeNode, cloneNode, findParent, collectItemRefs, walkLayout,
-  type LayoutNode, type LayoutNodeType, type ScreenLayout,
+  findNode, insertNode, nextNodeId, removeNode, cloneNode, findParent, collectItemRefs, collectExpandedItemRefs, walkLayout, updateNode,
+  type LayoutComponentDef, type LayoutNode, type LayoutNodeType, type ScreenLayout,
 } from "@harmony/shared";
 import type { Column, DataType, Table } from "../../types/v3/table";
 import type { ScreenItem } from "../../types/v3/screen-item";
@@ -59,6 +59,8 @@ export function createNode(type: LayoutNodeType, existing: readonly LayoutNode[]
     case "html": return { id: id("html"), type, props: { html: "<p>自由 HTML</p>" } };
     case "field": return { id: id("field"), type };
     case "table": return { id: id("table"), type };
+    // 参照部品は定義 (createComponentNode) から作る。パレットの汎用の部品としては置かない
+    case "component": return { id: id("component"), type };
   }
 }
 
@@ -119,7 +121,8 @@ export function nodeTypeForItem(item: ScreenItem): LayoutNodeType {
 /** 画面項目を参照する部品を作る */
 export function nodeForItem(item: ScreenItem, existing: readonly LayoutNode[]): LayoutNode {
   const type = nodeTypeForItem(item);
-  return { id: nextNodeId(existing, item.id as string), type, itemRef: item.id as string };
+  // 独自部品の定義編集では項目 ID が {{差し込み口}} 形式なので、部品 ID には記号を除いた名前を使う
+  return { id: nextNodeId(existing, (item.id as string).replace(/[{}\s]/g, "")), type, itemRef: item.id as string };
 }
 
 /** 新規の入力項目 (string) と、それを置く部品 */
@@ -156,14 +159,15 @@ export function docInsert(doc: LayoutDoc, parentId: string | null, node: LayoutN
  * 部品を削除する。removeItems が true なら、削除した部品だけが参照していた画面項目も削除する
  * (他の部品からも参照されている項目は残す)。
  */
-export function docRemove(doc: LayoutDoc, nodeId: string, removeItems: boolean): { doc: LayoutDoc; removedItemIds: string[] } {
+export function docRemove(doc: LayoutDoc, nodeId: string, removeItems: boolean, defs: readonly LayoutComponentDef[] = []): { doc: LayoutDoc; removedItemIds: string[] } {
   if (!doc.layout) return { doc, removedItemIds: [] };
   const { nodes, removed } = removeNode(doc.layout.nodes, nodeId);
   if (!removed) return { doc, removedItemIds: [] };
   let items = doc.items;
   const removedItemIds: string[] = [];
   if (removeItems) {
-    const stillUsed = collectItemRefs(nodes);
+    // 独自部品の中 (args 経由) で使われている項目も「まだ使われている」とみなす
+    const stillUsed = collectExpandedItemRefs(nodes, defs);
     const refs = collectItemRefs([removed]);
     for (const r of refs) if (!stillUsed.has(r)) removedItemIds.push(r);
     items = items.filter((i) => !removedItemIds.includes(i.id as string));
@@ -201,4 +205,26 @@ export function isValidNodeId(id: string, nodes: readonly LayoutNode[], currentI
   if (!/^[a-z][a-zA-Z0-9]*$/.test(id)) return "英小文字で始まる英数字 (lowerCamelCase) で入力してください";
   if (id !== currentId && findNode(nodes, id)) return `「${id}」は既に使われています`;
   return null;
+}
+
+/** id の部品を別の部品の並び (0 個以上) に置き換える。独自部品の登録・展開に使う */
+export function docReplaceNode(doc: LayoutDoc, nodeId: string, replacement: LayoutNode[]): LayoutDoc {
+  if (!doc.layout) return doc;
+  const pos = findParent(doc.layout.nodes, nodeId);
+  if (!pos) return doc;
+  let nodes = doc.layout.nodes;
+  replacement.forEach((n, k) => { nodes = insertNode(nodes, pos.parent?.id ?? null, n, pos.index + 1 + k); });
+  nodes = removeNode(nodes, nodeId).nodes;
+  return { ...doc, layout: { ...doc.layout, nodes } };
+}
+
+/** 参照部品の差し込み値を 1 つ更新する (空にすると取り除く) */
+export function setComponentArg(nodes: readonly LayoutNode[], nodeId: string, paramId: string, value: string): LayoutNode[] {
+  return updateNode(nodes, nodeId, (n) => {
+    const args = { ...(n.args ?? {}) };
+    if (value === "") delete args[paramId]; else args[paramId] = value;
+    const next: LayoutNode = { ...n, args };
+    if (Object.keys(args).length === 0) delete next.args;
+    return next;
+  });
 }

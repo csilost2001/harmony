@@ -45,5 +45,6 @@ export {
   designToLayout,
   toIdentifier,
 } from "./designToLayout.js";
+export * from "./layoutComponents.js";
 export * from "./flowStructure.js";
 export * from "./designDocument.js";

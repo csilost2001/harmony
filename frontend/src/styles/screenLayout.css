@@ -523,3 +523,61 @@ textarea.sld-input { resize: vertical; line-height: 1.5; }
   padding: 2px 10px;
   cursor: pointer;
 }
+
+/* ── プロジェクト独自部品 ─────────────────────────────────────────────── */
+.sld-part-component i { color: var(--hm-accent); }
+.sld-manage-components { margin-top: 8px; }
+.sld-btn-primary { border-style: solid; border-color: var(--hm-accent-solid); background: var(--hm-accent-solid); color: var(--hm-on-solid); }
+.sld-btn-primary:hover:not(:disabled) { background: var(--hm-accent-solid-hover); }
+.sld-btn-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.sld-chip-static { display: inline-block; margin-left: 8px; padding: 0 8px; border-radius: 999px; font-size: 11px; background: var(--hm-surface-3); color: var(--hm-fg-2); }
+.sld-param-chips { margin-top: 4px; }
+.sld-param-chips .sld-chip { color: var(--hm-accent); border-color: var(--hm-accent); background: var(--hm-accent-soft); }
+.sld-component-panel { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid var(--hm-accent); border-radius: 6px; background: var(--hm-accent-soft); }
+.sld-component-panel .sld-group-title { margin: 0; }
+.sld-param-card { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 8px; border: 1px solid var(--hm-border); border-radius: 6px; background: var(--hm-surface-2); }
+.sld-param-card > .sld-icon-btn { position: absolute; top: 4px; right: 4px; }
+.sld-row-actions { display: flex; gap: 6px; align-items: center; white-space: nowrap; }
+
+/* モーダル (独自部品の登録・管理・編集) */
+.sld-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: color-mix(in srgb, var(--hm-inverse-bg) 55%, transparent);
+}
+.sld-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(760px, 100%);
+  max-height: calc(100vh - 32px);
+  background: var(--hm-surface);
+  color: var(--hm-fg);
+  border: 1px solid var(--hm-border-strong);
+  border-radius: 10px;
+  box-shadow: 0 12px 40px color-mix(in srgb, var(--hm-inverse-bg) 40%, transparent);
+}
+.sld-modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--hm-border); }
+.sld-modal-head h3 { margin: 0; font-size: 15px; }
+.sld-modal-body { display: flex; flex-direction: column; gap: 10px; padding: 14px; overflow: auto; min-height: 0; }
+.sld-modal-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--hm-border); }
+.sld-modal-foot .sld-btn, .sld-editor-actions .sld-btn { align-self: center; border-style: solid; border-color: var(--hm-border-strong); color: var(--hm-fg-2); padding: 5px 14px; }
+.sld-modal-foot .sld-btn-primary, .sld-editor-actions .sld-btn-primary { border-color: var(--hm-accent-solid); color: var(--hm-on-solid); }
+.sld-modal-wide { padding: 12px; }
+.sld-editor-modal { width: min(1500px, 100%); height: calc(100vh - 24px); }
+.sld-editor-head { gap: 16px; }
+.sld-editor-title { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
+.sld-editor-title .sld-input { max-width: 320px; font-weight: 600; }
+.sld-editor-actions { display: flex; align-items: center; gap: 6px; }
+.sld-editor-body { border-top: 0; overflow: hidden; }
+.sld-editor-body .sld-center, .sld-editor-body .sld-left, .sld-editor-body .sld-right { min-height: 0; }
+
+/* キャンバス上の参照部品 (定義を展開して表示。中の部品は触れない) */
+.pv-component { display: flex; flex-direction: column; gap: 6px; padding: 6px; border: 1px dashed var(--pv-accent); border-radius: 6px; background: var(--pv-accent-soft); }
+.pv-component-head { font-size: 11px; color: var(--pv-accent); font-weight: 600; display: flex; align-items: center; gap: 4px; }
+.sld-node.is-frozen { pointer-events: none; }
+.sld-node.is-frozen .pv-tab { pointer-events: auto; }

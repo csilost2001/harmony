@@ -10,7 +10,8 @@
 
 export type LayoutNodeType =
   | "section" | "form" | "search-panel" | "columns" | "column" | "tabs" | "tab" | "button-bar"
-  | "heading" | "text" | "field" | "table" | "button" | "link" | "message-area" | "image" | "divider" | "html";
+  | "heading" | "text" | "field" | "table" | "button" | "link" | "message-area" | "image" | "divider" | "html"
+  | "component";
 
 export interface LayoutNodeProps {
   title?: string;
@@ -36,6 +37,10 @@ export interface LayoutNode {
   props?: LayoutNodeProps;
   children?: LayoutNode[];
   note?: string;
+  /** type=component: 参照するプロジェクト独自部品の ID (docs/spec/layout-components.md) */
+  componentRef?: string;
+  /** type=component: 差し込み口 (独自部品の params) に入れる値 */
+  args?: Record<string, string>;
 }
 
 export interface ScreenLayout {
@@ -63,6 +68,7 @@ export const LAYOUT_NODE_LABELS: Record<LayoutNodeType, string> = {
   image: "画像",
   divider: "区切り線",
   html: "自由 HTML",
+  component: "独自部品",
 };
 
 export const LAYOUT_NODE_TYPES = Object.keys(LAYOUT_NODE_LABELS) as LayoutNodeType[];
@@ -83,7 +89,8 @@ export const ITEM_REQUIRED_TYPES: ReadonlySet<LayoutNodeType> = new Set(["field"
  * - columns の子は column のみ、tabs の子は tab のみ
  * - column / tab は columns / tabs の直下のみ
  * - button-bar の子は button / link のみ
- * - form / search-panel には field / button / text / divider / html / columns / message-area / table 等を置ける
+ * - form / search-panel には field / button / text / divider / html / columns / message-area / table / component 等を置ける
+ * - component (独自部品の参照) は最上位と section / form / search-panel / column / tab に置ける
  * - parent が null (最上位) には column / tab 以外を置ける
  */
 export function canContain(parentType: LayoutNodeType | null, childType: LayoutNodeType): boolean {
@@ -97,7 +104,7 @@ export function canContain(parentType: LayoutNodeType | null, childType: LayoutN
     case "button-bar": return childType === "button" || childType === "link";
     case "form":
     case "search-panel":
-      return ["field", "button", "text", "divider", "html", "columns", "button-bar", "heading", "message-area", "table", "section"].includes(childType);
+      return ["field", "button", "text", "divider", "html", "columns", "button-bar", "heading", "message-area", "table", "section", "component"].includes(childType);
     default:
       return true;
   }
@@ -225,7 +232,8 @@ export function cloneNode(nodes: readonly LayoutNode[], node: LayoutNode): Layou
 
 export interface LayoutIssue {
   severity: "error" | "warning" | "info";
-  code: "duplicate-id" | "missing-item" | "item-required" | "invalid-child" | "unplaced-item" | "empty-container" | "html-node";
+  code: "duplicate-id" | "missing-item" | "item-required" | "invalid-child" | "unplaced-item" | "empty-container" | "html-node"
+    | "unknown-component" | "component-cycle" | "component-depth" | "missing-arg";
   message: string;
   nodeId?: string;
   itemId?: string;

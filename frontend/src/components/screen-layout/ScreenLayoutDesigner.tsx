@@ -10,8 +10,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  designToLayout, findNode, findParent, moveNode, updateNode, validateLayout, walkLayout,
-  type LayoutNodeType,
+  designToLayout, detachComponentNode, findNode, updateNode, validateLayoutWithComponents, walkLayout,
+  type LayoutComponentDef,
 } from "@harmony/shared";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
 import { useResourceEditor } from "../../hooks/useResourceEditor";
@@ -21,6 +21,7 @@ import { useSaveShortcut } from "../../hooks/useSaveShortcut";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { loadScreenItems, saveScreenItems, type ScreenItemsDocument } from "../../store/screenItemsStore";
 import { loadProject } from "../../store/flowStore";
+import { saveLayoutComponent, useLayoutComponents } from "../../store/layoutComponentStore";
 import { listTables, loadTable } from "../../store/tableStore";
 import { setDirty as setTabDirty, makeTabId } from "../../store/tabStore";
 import { extractGrapesHtml } from "../../utils/pageLayoutCompositionPreview";
@@ -37,11 +38,10 @@ import { htmlToSimple } from "../../screen-layout/domToSimple";
 import { LayoutCanvas } from "./LayoutCanvas";
 import { LayoutPalette } from "./LayoutPalette";
 import { LayoutInspector } from "./LayoutInspector";
-import type { DragPayload } from "./layoutDnd";
-import {
-  createNode, docDuplicate, docInsert, docRemove, docUpdateItem, emptyLayout, itemFromColumn,
-  newFieldWithItem, nodeForItem, type LayoutDoc,
-} from "./layoutModel";
+import { RegisterComponentDialog } from "./RegisterComponentDialog";
+import { ComponentManager } from "./ComponentManager";
+import { useLayoutOps } from "./useLayoutOps";
+import { docReplaceNode, docUpdateItem, emptyLayout, setComponentArg, type LayoutDoc } from "./layoutModel";
 import "../../styles/editMode.css";
 import "../../styles/screenLayout.css";
 
@@ -102,6 +102,7 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true, on
   // ── 周辺データ ─────────────────────────────────────────────────────────
   const [screens, setScreens] = useState<Array<{ id: string; name: string; path?: string }>>([]);
   const [tables, setTables] = useState<Table[]>([]);
+  const { components } = useLayoutComponents();
   useEffect(() => {
     let alive = true;
     loadProject().then((p) => { if (alive) setScreens(p.screens.map((s) => ({ id: s.id as string, name: s.name as string, path: (s as { path?: string }).path }))); }).catch(() => undefined);
@@ -148,114 +149,45 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true, on
   const items = useMemo(() => docItems ?? [], [docItems]);
   // 削除・取り消しで消えた部品の選択は自動的に外れる
   const selected = selectedId ? findNode(nodes, selectedId) : null;
-  const issues = useMemo(() => validateLayout(doc?.layout, items), [doc?.layout, items]);
+  const issues = useMemo(() => validateLayoutWithComponents(doc?.layout, items, components), [doc?.layout, items, components]);
   const issuesByNode = useMemo(() => {
     const m = new Map<string, "error" | "warning">();
     for (const i of issues) if (i.nodeId && i.severity !== "info" && m.get(i.nodeId) !== "error") m.set(i.nodeId, i.severity as "error" | "warning");
     return m;
   }, [issues]);
 
-  /** 新しい部品を置く場所: 選択中の容器の末尾、または選択中の部品の直後 */
-  const insertionPoint = useCallback((type: LayoutNodeType): { parentId: string | null; index?: number } => {
-    if (!selected) return { parentId: null };
-    const sel = selected;
-    if (sel.children !== undefined && type !== "column" && type !== "tab") return { parentId: sel.id };
-    const pos = findParent(nodes, sel.id);
-    return { parentId: pos?.parent?.id ?? null, index: (pos?.index ?? -1) + 1 };
-  }, [selected, nodes]);
+  const {
+    insertionPoint, addNode, addComponent, placeItem, addColumnItem, handleDrop,
+    deleteSelected, duplicateSelected, moveSelected, renameNode, addChild,
+  } = useLayoutOps({ apply, nodes, items, tables, components, selectedId, setSelectedId });
+  void insertionPoint;
 
-  const addNode = useCallback((type: LayoutNodeType, at?: { parentId: string | null; index?: number }) => {
-    const place = at ?? insertionPoint(type);
-    let newId = "";
-    apply((d) => {
-      if (type === "field" || type === "table") {
-        const { item, node } = newFieldWithItem(d, type);
-        newId = node.id;
-        return docInsert(d, place.parentId, node, place.index, [item]);
-      }
-      const node = createNode(type, d.layout?.nodes ?? []);
-      newId = node.id;
-      return docInsert(d, place.parentId, node, place.index);
-    });
-    if (newId) setSelectedId(newId);
-  }, [apply, insertionPoint]);
+  // ── 独自部品 ───────────────────────────────────────────────────────────
+  const [registering, setRegistering] = useState(false);
+  const [managing, setManaging] = useState<{ editId?: string } | null>(null);
 
-  const placeItem = useCallback((itemId: string, at?: { parentId: string | null; index?: number }) => {
-    const item = items.find((i) => i.id === itemId);
-    if (!item) return;
-    let newId = "";
-    apply((d) => {
-      const node = nodeForItem(item, d.layout?.nodes ?? []);
-      newId = node.id;
-      const place = at ?? insertionPoint(node.type);
-      return docInsert(d, place.parentId, node, place.index);
-    });
-    if (newId) setSelectedId(newId);
-  }, [apply, items, insertionPoint]);
-
-  const addColumnItem = useCallback((tableId: string, columnId: string, at?: { parentId: string | null; index?: number }) => {
-    const table = tables.find((t) => t.id === tableId);
-    const col = table?.columns.find((c) => c.id === columnId);
-    if (!table || !col) return;
-    let newId = "";
-    apply((d) => {
-      const item = itemFromColumn(table, col, d.items);
-      const node = nodeForItem(item, d.layout?.nodes ?? []);
-      newId = node.id;
-      const place = at ?? insertionPoint("field");
-      return docInsert(d, place.parentId, node, place.index, [item]);
-    });
-    if (newId) setSelectedId(newId);
-  }, [apply, tables, insertionPoint]);
-
-  const handleDrop = useCallback((payload: DragPayload, at: { parentId: string | null; index: number }) => {
-    switch (payload.kind) {
-      case "new-node": addNode(payload.nodeType, at); break;
-      case "place-item": placeItem(payload.itemId, at); break;
-      case "table-column": addColumnItem(payload.tableId, payload.columnId, at); break;
-      case "move-node":
-        apply((d) => ({ ...d, layout: { version: 1, nodes: moveNode(d.layout?.nodes ?? [], payload.nodeId, at.parentId, at.index) } }));
-        setSelectedId(payload.nodeId);
-        break;
-    }
-  }, [addNode, placeItem, addColumnItem, apply]);
-
-  const deleteSelected = useCallback(() => {
+  const registerSelected = useCallback(async (def: LayoutComponentDef, args: Record<string, string>) => {
     if (!selectedId) return;
-    const pos = findParent(nodes, selectedId);
-    apply((d) => docRemove(d, selectedId, true).doc);
-    // 削除後は同じ親の近くの部品を選ぶ
-    const siblings = pos?.parent ? pos.parent.children ?? [] : nodes;
-    const near = siblings[pos ? pos.index + 1 : -1] ?? siblings[pos ? pos.index - 1 : -1];
-    setSelectedId(near && near.id !== selectedId ? near.id : pos?.parent?.id ?? null);
-  }, [selectedId, nodes, apply]);
-
-  const duplicateSelected = useCallback(() => {
-    if (!selectedId) return;
-    let newId: string | null = null;
-    apply((d) => { const r = docDuplicate(d, selectedId); newId = r.newId; return r.doc; });
-    if (newId) setSelectedId(newId);
+    await saveLayoutComponent(def);
+    // 登録した部品の位置に、参照部品を置く (元の部品の ID を引き継ぐので選択も保たれる)
+    apply((d) => {
+      const nodesNow = d.layout?.nodes ?? [];
+      const ref = { id: selectedId, type: "component" as const, componentRef: def.id, ...(Object.keys(args).length ? { args } : {}) };
+      return docReplaceNode({ ...d, layout: { version: 1, nodes: nodesNow } }, selectedId, [ref]);
+    });
+    setRegistering(false);
+    setConvertMessage(`独自部品「${def.label}」を登録し、この部品を置き換えました。他の画面でも左の「独自部品」から使えます。`);
   }, [selectedId, apply]);
 
-  const moveSelected = useCallback((dir: -1 | 1) => {
-    if (!selectedId) return;
-    const pos = findParent(nodes, selectedId);
-    if (!pos) return;
-    const siblings = pos.parent ? pos.parent.children ?? [] : nodes;
-    const to = pos.index + dir;
-    if (to < 0 || to >= siblings.length) return;
-    apply((d) => ({ ...d, layout: { version: 1, nodes: moveNode(d.layout?.nodes ?? [], selectedId, pos.parent?.id ?? null, dir > 0 ? to + 1 : to) } }));
-  }, [selectedId, nodes, apply]);
-
-  const renameNode = useCallback((oldId: string, newId: string) => {
-    apply((d) => ({ ...d, layout: { version: 1, nodes: updateNode(d.layout?.nodes ?? [], oldId, (n) => ({ ...n, id: newId })) } }));
-    setSelectedId(newId);
-  }, [apply]);
-
-  const addChild = useCallback((type: "column" | "tab") => {
-    if (!selectedId) return;
-    addNode(type, { parentId: selectedId });
-  }, [selectedId, addNode]);
+  const detachSelected = useCallback(() => {
+    if (!selected || selected.type !== "component") return;
+    apply((d) => {
+      const all = d.layout?.nodes ?? [];
+      const rest = docReplaceNode({ ...d, layout: { version: 1, nodes: all } }, selected.id, []).layout?.nodes ?? [];
+      return docReplaceNode({ ...d, layout: { version: 1, nodes: all } }, selected.id, detachComponentNode(selected, components, rest));
+    });
+    setSelectedId(null);
+  }, [selected, components, apply]);
 
   // ── 保存 / 破棄 ───────────────────────────────────────────────────────
   const [showDiscard, setShowDiscard] = useState(false);
@@ -471,6 +403,9 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true, on
             onPlaceItem={(id) => placeItem(id)}
             onAddColumn={(t, c) => addColumnItem(t, c)}
             onSelect={setSelectedId}
+            components={components}
+            onAddComponent={(id) => addComponent(id)}
+            onManageComponents={() => setManaging({})}
           />
           <main className="sld-center" aria-label={`${title} の画面 (${counts} 部品)`}>
             <LayoutCanvas
@@ -483,6 +418,7 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true, on
               editable={editable}
               screenNameById={screenNameById}
               issuesByNode={issuesByNode}
+              components={components}
               onSelect={setSelectedId}
               onDrop={handleDrop}
             />
@@ -503,8 +439,20 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true, on
             onAddChild={addChild}
             onSelect={setSelectedId}
             onCommit={commit}
+            components={components}
+            onSetArg={(id, paramId, value, c) => apply((d) => ({ ...d, layout: { version: 1, nodes: setComponentArg(d.layout?.nodes ?? [], id, paramId, value) } }), c)}
+            onEditComponent={(id) => setManaging({ editId: id })}
+            onDetachComponent={detachSelected}
+            onRegisterComponent={() => setRegistering(true)}
           />
         </div>
+      )}
+
+      {registering && selected && (
+        <RegisterComponentDialog node={selected} items={items} existing={components} onRegister={registerSelected} onCancel={() => setRegistering(false)} />
+      )}
+      {managing && (
+        <ComponentManager initialEditId={managing.editId} screens={screens} onClose={() => setManaging(null)} />
       )}
     </div>
   );

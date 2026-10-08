@@ -61,6 +61,7 @@
 | `image` | 画像 | — | `src`, `alt` |
 | `divider` | 区切り線 | — | — |
 | `html` | 自由 HTML | — | `html` (旧形式から変換できなかった部分。置き換え候補) |
+| `component` | プロジェクト独自部品の参照 | — | `componentRef`, `args` ([layout-components.md](layout-components.md)) |
 
 配置可否は `canContain()` (shared/src/screenLayout.ts) が唯一の定義。
 

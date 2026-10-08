@@ -107,6 +107,7 @@ const genericDefinitionsDir = (dataRoot: string, kind: string) => path.join(data
 export const extensionsDir      = (dataRoot: string) => path.join(dataRoot, "extensions");
 export const customBlocksFile   = (dataRoot: string) => path.join(dataRoot, "custom-blocks.json");
 export const puckComponentsFile = (dataRoot: string) => path.join(dataRoot, "puck-components.json");
+export const layoutComponentsFile = (dataRoot: string) => path.join(dataRoot, "layout-components.json");
 export const erLayoutFile       = (dataRoot: string) => path.join(dataRoot, "er-layout.json");
 export const screenFlowPositionsFile = (dataRoot: string) => path.join(dataRoot, "screen-flow-positions.json");
 export const externalCatalogsFile = (dataRoot: string) => path.join(catalogsDir(dataRoot), "external.json");
@@ -722,6 +723,7 @@ function resolveDataFile(kind: string, dataRoot: string, id?: string): string | 
   switch (kind) {
     case "erLayout": filePath = erLayoutFile(dataRoot); break;
     case "customBlocks": filePath = customBlocksFile(dataRoot); break;
+    case "layoutComponents": filePath = layoutComponentsFile(dataRoot); break;
     case "conventions": filePath = conventionsFile(dataRoot); break;
     case "screen": filePath = id ? path.join(screensDir(dataRoot), `${id}.design.json`) : null; break;
     case "screenEntity": filePath = id ? path.join(screensDir(dataRoot), `${id}.json`) : null; break;
@@ -1079,6 +1081,72 @@ export async function writeCustomBlocks(blocks: unknown[], root: string): Promis
   const r = root;
   const dataRoot = await ensureDataDirFromRoot(r);
   await writeJSON(customBlocksFile(dataRoot), blocks);
+}
+
+// ── プロジェクト独自部品 (layout-components.json、docs/spec/layout-components.md) ──────
+
+interface LayoutComponentRecord { id: string; [key: string]: unknown }
+interface LayoutComponentsDoc { $schema?: string; version: 1; components: LayoutComponentRecord[] }
+
+const LAYOUT_COMPONENTS_SCHEMA = "../schemas/v3/layout-components.v3.schema.json";
+
+/** 同じファイルへの更新が並行しても、読んで・差し替えて・書く を 1 本ずつ行う */
+const layoutComponentsLock = new Map<string, Promise<unknown>>();
+function withLayoutComponentsLock<T>(file: string, run: () => Promise<T>): Promise<T> {
+  const prev = layoutComponentsLock.get(file) ?? Promise.resolve();
+  const next = prev.catch(() => undefined).then(run);
+  layoutComponentsLock.set(file, next);
+  return next.finally(() => { if (layoutComponentsLock.get(file) === next) layoutComponentsLock.delete(file); });
+}
+
+/** layout-components.json を読み込み。無ければ空の定義集合 */
+export async function readLayoutComponents(root: string): Promise<LayoutComponentsDoc> {
+  const dataRoot = await resolveDataRoot(root);
+  const doc = await readJSON<Partial<LayoutComponentsDoc>>(layoutComponentsFile(dataRoot));
+  return { version: 1, components: Array.isArray(doc?.components) ? doc!.components : [] };
+}
+
+/** 独自部品を 1 件追加 / 置き換える (id で照合)。他の部品には触れない */
+export async function upsertLayoutComponent(component: LayoutComponentRecord, root: string): Promise<LayoutComponentsDoc> {
+  const dataRoot = await ensureDataDirFromRoot(root);
+  const file = layoutComponentsFile(dataRoot);
+  return withLayoutComponentsLock(file, async () => {
+    const doc = await readLayoutComponents(root);
+    const at = doc.components.findIndex((c) => c.id === component.id);
+    if (at >= 0) doc.components[at] = component; else doc.components.push(component);
+    await writeJSON(file, { $schema: LAYOUT_COMPONENTS_SCHEMA, version: 1, components: doc.components });
+    return doc;
+  });
+}
+
+/** 独自部品を使っている画面の id 一覧 (画面の部品の木と、他の独自部品の定義の中の参照を辿る) */
+export async function findLayoutComponentUsages(componentId: string, root: string): Promise<{ screens: string[]; components: string[] }> {
+  const dataRoot = await resolveDataRoot(root);
+  const refers = (nodes: unknown): boolean => Array.isArray(nodes) && nodes.some((n: any) =>
+    (n?.type === "component" && n?.componentRef === componentId) || refers(n?.children));
+  const screens: string[] = [];
+  let files: string[] = [];
+  try { files = await fs.readdir(screensDir(dataRoot)); } catch { /* 画面が無い */ }
+  for (const f of files.filter((n) => n.endsWith(".json") && !n.includes(".design.") && !n.includes("puck-data"))) {
+    const sc = await readJSON<any>(path.join(screensDir(dataRoot), f));
+    if (refers(sc?.layout?.nodes)) screens.push(f.replace(/\.json$/, ""));
+  }
+  const doc = await readLayoutComponents(root);
+  const components = doc.components.filter((c) => c.id !== componentId && refers(c.nodes)).map((c) => c.id);
+  return { screens, components };
+}
+
+/** 独自部品を削除する。使われている場合は force でない限り削除せず、使用箇所を返す */
+export async function deleteLayoutComponent(componentId: string, root: string, force = false): Promise<{ deleted: boolean; usages: { screens: string[]; components: string[] } }> {
+  const usages = await findLayoutComponentUsages(componentId, root);
+  if (!force && (usages.screens.length || usages.components.length)) return { deleted: false, usages };
+  const dataRoot = await ensureDataDirFromRoot(root);
+  const file = layoutComponentsFile(dataRoot);
+  await withLayoutComponentsLock(file, async () => {
+    const doc = await readLayoutComponents(root);
+    await writeJSON(file, { $schema: LAYOUT_COMPONENTS_SCHEMA, version: 1, components: doc.components.filter((c) => c.id !== componentId) });
+  });
+  return { deleted: true, usages };
 }
 
 /** screens/{screenId}/puck-data.json を読み込み (#806) */

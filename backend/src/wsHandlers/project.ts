@@ -21,6 +21,10 @@ import {
   deleteScreen as deleteScreenFile,
   readCustomBlocks,
   writeCustomBlocks,
+  readLayoutComponents,
+  upsertLayoutComponent,
+  deleteLayoutComponent,
+  findLayoutComponentUsages,
   readPuckComponents,
   writePuckComponents,
   readPuckData,
@@ -141,6 +145,33 @@ export const projectHandlers: RpcHandlerMap = {
     await writeCustomBlocks(blocks, root());
     respond({ success: true });
     bridge.broadcast({ wsId: wsId(), event: "customBlocksChanged", data: {}, excludeClientId: clientId });
+  },
+
+  loadLayoutComponents: async ({ root, respond }) => {
+    respond(await readLayoutComponents(root()));
+  },
+
+  saveLayoutComponent: async ({ params, root, wsId, clientId, respond, bridge }) => {
+    const { component } = (params ?? {}) as { component?: { id?: unknown } };
+    if (!component || typeof component !== "object") throw new Error("component が指定されていません");
+    assertEntityId(component.id, "component.id");
+    await upsertLayoutComponent(component as { id: string }, root());
+    respond({ success: true });
+    bridge.broadcast({ wsId: wsId(), event: "layoutComponentsChanged", data: { componentId: component.id }, excludeClientId: clientId });
+  },
+
+  deleteLayoutComponent: async ({ params, root, wsId, clientId, respond, bridge }) => {
+    const { componentId, force } = (params ?? {}) as { componentId: string; force?: boolean };
+    assertEntityId(componentId, "componentId");
+    const result = await deleteLayoutComponent(componentId, root(), force === true);
+    respond(result);
+    if (result.deleted) bridge.broadcast({ wsId: wsId(), event: "layoutComponentsChanged", data: { componentId, deleted: true }, excludeClientId: clientId });
+  },
+
+  findLayoutComponentUsages: async ({ params, root, respond }) => {
+    const { componentId } = (params ?? {}) as { componentId: string };
+    assertEntityId(componentId, "componentId");
+    respond(await findLayoutComponentUsages(componentId, root()));
   },
 
   loadPuckComponents: async ({ root, respond }) => {
