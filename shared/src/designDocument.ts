@@ -8,7 +8,7 @@
  *
  * 仕様: docs/spec/design-document.md
  */
-import { buildOutline, layoutFlow, type FlowStep, type FlowActionLike, type DiagramLayout, type FlowContext } from "./flowStructure.js";
+import { buildOutline, layoutFlow, deriveTestViewpoints, stepText, type FlowStep, type FlowActionLike, type DiagramLayout, type FlowContext } from "./flowStructure.js";
 import { validateLayout, walkLayout, collectItemRefs, type LayoutNode, type ScreenLayout } from "./screenLayout.js";
 
 // ── 入力 (原本 JSON の必要部分だけを構造的に受け取る) ─────────────────────
@@ -29,6 +29,7 @@ export interface DocScreenItem {
   description?: string;
   presentation?: { kind?: string; viewDefinitionId?: string; columns?: Array<{ id: string; label: string; path: string; type?: unknown }> };
   events?: Array<{ id?: string; handlerFlowId?: string; handlerActionId?: string; description?: string }>;
+  binding?: { kind?: string; path?: string; ref?: { tableId?: string; columnId?: string } };
 }
 
 export interface DocScreen {
@@ -46,6 +47,7 @@ export interface DocScreen {
 
 export interface DocFlow {
   meta: { id: string; name?: string; description?: string; flowType?: string; screenId?: string; maturity?: string };
+  context?: { catalogs?: { events?: Record<string, { description?: string }> } };
   actions: Array<FlowActionLike & {
     id?: string;
     description?: string;
@@ -375,6 +377,11 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
         ${io.length ? table(["区分", "名前", "型", "必須", "説明"], io) : ""}
         <div class="hd-diagram-wrap">${diagramToSvg(layoutFlow(a, ctx), `${f.meta.name ?? f.meta.id} ${a.name ?? ""} の処理フロー図`)}</div>
         ${outline}
+        <h4 class="hd-sub">テスト観点<small>分岐と終了から自動導出</small></h4>
+        ${table(["No", "区分", "条件", "期待結果", "終了ステップ"], deriveTestViewpoints(a).map((v) => [
+          String(v.no), `<span class="hd-sev ${v.category === "正常系" ? "hd-sev-ok" : "hd-sev-error"}">${v.category}</span>`,
+          v.conditions.map((c) => esc(c)).join("<br>"), esc(v.expected), `<code>${esc(v.stepNo)}</code>`,
+        ]), "hd-tests")}
       </div>`;
     }).join("");
     sec(anchor("flow", f.meta.id), f.meta.name ?? f.meta.id, 2, `
@@ -392,6 +399,11 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
   ), "5");
   input.tables.forEach((t, i) => {
     const usage = crud.rows.filter((r) => r.cells[t.id]?.length).map((r) => [`<a href="#${anchor("flow", r.flowId)}">${esc(r.flowName)}</a>`, (r.cells[t.id] ?? []).join("")]);
+    // 影響範囲: この表の列に結び付いた画面項目 (binding.kind=tableColumn)
+    const colLabel = new Map((t.columns ?? []).map((c) => [c.id ?? c.physicalName, `${c.name ?? ""} (${c.physicalName})`]));
+    const boundItems = input.screens.flatMap((sc) => (sc.items ?? [])
+      .filter((it) => it.binding?.kind === "tableColumn" && it.binding.ref?.tableId === t.id)
+      .map((it) => [`<a href="#${anchor("screen", sc.id)}">${esc(sc.name ?? sc.id)}</a>`, `${esc(it.label ?? "")} <code>${esc(it.id)}</code>`, esc(colLabel.get(it.binding?.ref?.columnId ?? "") ?? it.binding?.ref?.columnId ?? "")]));
     const colName = new Map((t.columns ?? []).map((c) => [c.id ?? c.physicalName, c.physicalName]));
     sec(anchor("table", t.id), `${t.name ?? t.id}（${t.physicalName ?? ""}）`, 2, `
       ${t.description ? `<p class="hd-desc">${esc(t.description)}</p>` : ""}
@@ -402,6 +414,8 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
       ${t.indexes?.length ? `<h4 class="hd-sub">インデックス</h4>${table(["名前", "列", "一意"], t.indexes.map((x) => [`<code>${esc(x.physicalName)}</code>`, esc((x.columns ?? []).map((c) => colName.get(c.columnId) ?? c.columnId).join(", ")), x.unique ? "○" : ""]))}` : ""}
       <h4 class="hd-sub">利用箇所 (CRUD)</h4>
       ${table(["処理フロー", "操作"], usage)}
+      <h4 class="hd-sub">列を参照している画面項目<small>テーブル変更時の影響範囲</small></h4>
+      ${table(["画面", "画面項目", "列"], boundItems)}
     `, `5-${i + 1}`);
   });
 
@@ -415,18 +429,62 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
     <p class="hd-note">処理フローの DB アクセスから自動導出。UPSERT は C+U、在庫減算等の更新系独自操作は U として扱う。</p>
   `, "6");
 
-  // 7. メッセージ一覧
+  // 7. バッチ・定期処理一覧
+  const batches = input.flows.filter((f) => f.meta.flowType === "batch" || f.meta.flowType === "scheduled");
+  sec("batches", "バッチ・定期処理一覧", 1, table(
+    ["No", "処理", "種別", "起動", "説明"],
+    batches.flatMap((f) => f.actions.map((a) => [f, a] as const)).map(([f, a], i) => [
+      String(i + 1), `<a href="#${anchor("flow", f.meta.id)}">${esc(f.meta.name ?? f.meta.id)}</a> / ${esc(a.name ?? "")}`,
+      f.meta.flowType === "scheduled" ? "定期" : "バッチ", esc(a.trigger ?? ""), esc((a.description ?? f.meta.description ?? "").slice(0, 160)),
+    ]),
+  ), "7");
+
+  // 8. 外部インタフェース一覧 / 9. イベント一覧 (処理フローのステップから導出)
+  const ext: string[][] = [];
+  const pub = new Map<string, Set<string>>();
+  const subs = new Map<string, Set<string>>();
+  for (const f of input.flows) {
+    const visit = (steps: readonly FlowStep[]) => steps.forEach((st) => {
+      const x = st as Record<string, unknown>;
+      if (st.kind === "externalSystem") {
+        const http = (x.httpCall ?? {}) as { method?: string; url?: string; path?: string };
+        ext.push([`<a href="#${anchor("flow", f.meta.id)}">${esc(f.meta.name ?? f.meta.id)}</a>`, `<code>${esc(String(x.systemRef ?? ""))}</code>`, esc([http.method, http.url ?? http.path].filter(Boolean).join(" ")), esc(stepText(st))]);
+      }
+      const topic = String(x.topic ?? x.eventRef ?? x.event ?? "");
+      if (st.kind === "eventPublish" && topic) (pub.get(topic) ?? pub.set(topic, new Set()).get(topic)!).add(f.meta.id);
+      if (st.kind === "eventSubscribe" && topic) (subs.get(topic) ?? subs.set(topic, new Set()).get(topic)!).add(f.meta.id);
+      visit((x.steps as FlowStep[]) ?? []);
+      for (const b of (x.branches as Array<{ steps: FlowStep[] }>) ?? []) visit(b.steps ?? []);
+      visit(((x.elseBranch as { steps?: FlowStep[] }) ?? {}).steps ?? []);
+      visit((x.onCommit as FlowStep[]) ?? []);
+      visit((x.onRollback as FlowStep[]) ?? []);
+    });
+    for (const a of f.actions) visit(a.steps ?? []);
+  }
+  sec("interfaces", "外部インタフェース一覧", 1, table(["処理", "外部システム", "呼び出し", "内容"], ext), "8");
+  const eventDesc = new Map<string, string>();
+  for (const f of input.flows) for (const [k, v] of Object.entries(f.context?.catalogs?.events ?? {})) if (v?.description) eventDesc.set(k, v.description);
+  const flowLink = (id: string) => `<a href="#${anchor("flow", id)}">${esc(input.flows.find((f) => f.meta.id === id)?.meta.name ?? id)}</a>`;
+  const topics = [...new Set([...pub.keys(), ...subs.keys(), ...eventDesc.keys()])].sort();
+  sec("events", "イベント一覧", 1, table(["イベント", "発行する処理", "購読する処理", "説明"], topics.map((t) => [
+    `<code>${esc(t)}</code>`, [...(pub.get(t) ?? [])].map(flowLink).join("、"), [...(subs.get(t) ?? [])].map(flowLink).join("、"), esc(eventDesc.get(t) ?? ""),
+  ])), "9");
+  for (const t of topics) {
+    if (!pub.has(t) && eventDesc.has(t)) issues.push({ severity: "info", section: `イベント ${t}`, message: "カタログに定義されていますが、発行する処理フローがありません" });
+  }
+
+  // 10. メッセージ一覧
   const msgs = Object.entries(input.messages ?? {});
   sec("messages", "メッセージ一覧", 1, table(
     ["No", "メッセージ ID", "文面", "説明"],
     msgs.map(([k, m], i) => [String(i + 1), `<code>@conv.msg.${esc(k)}</code>`, esc(m.template ?? ""), esc(m.description ?? "")]),
-  ), "7");
+  ), "10");
 
   // 8. 要確認事項
   const sevLabel = { error: "エラー", warning: "警告", info: "情報" } as const;
   sec("issues", "要確認事項", 1, issues.length
     ? table(["区分", "対象", "内容"], issues.map((x) => [`<span class="hd-sev hd-sev-${x.severity}">${sevLabel[x.severity]}</span>`, esc(x.section), esc(x.message)]))
-    : `<p class="hd-empty">要確認事項はありません。</p>`, "8");
+    : `<p class="hd-empty">要確認事項はありません。</p>`, "11");
 
   return { html: `<article class="hd-doc">${out.join("\n")}</article>`, toc, css: DESIGN_DOC_CSS, issues };
 }
@@ -498,7 +556,7 @@ export const DESIGN_DOC_CSS = `
 .hd-crud-C{color:var(--d-ok)}.hd-crud-R{color:var(--d-accent)}.hd-crud-U{color:#a8650b}.hd-crud-D{color:var(--d-err)}
 .hd-findings{margin:0;padding-left:1.2em}
 .hd-sev{font-size:11px;font-weight:700;padding:0 6px;border-radius:3px}
-.hd-sev-error{background:#fbe3e3;color:var(--d-err)}.hd-sev-warning{background:#fff1d6;color:#8a5a00}.hd-sev-info{background:var(--d-fill);color:var(--d-muted)}
+.hd-sev-error{background:#fbe3e3;color:var(--d-err)}.hd-sev-ok{background:#e5f4ea;color:var(--d-ok)}.hd-sev-warning{background:#fff1d6;color:#8a5a00}.hd-sev-info{background:var(--d-fill);color:var(--d-muted)}
 .hd-action{display:flex;flex-direction:column;gap:10px;padding-top:6px;border-top:1px dashed var(--d-line)}
 .hd-diagram-wrap{overflow-x:auto;border:1px solid var(--d-line);background:#fafbfc;padding:8px}
 .hd-diagram{display:block;margin:0 auto;max-width:100%;height:auto;font-family:inherit}

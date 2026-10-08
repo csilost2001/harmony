@@ -58,9 +58,11 @@ export interface ScreenLayoutDesignerProps {
   /** 旧デザイナで開く (旧デザインを持つ画面のみ) */
   onOpenLegacy?: () => void;
   hasLegacyDesign?: boolean;
+  /** 旧デザインの種類。自動変換は GrapesJS (HTML) のみ対応 */
+  legacyKind?: "grapesjs" | "puck";
 }
 
-export function ScreenLayoutDesigner({ screenId, screenName, isActive = true, onOpenLegacy, hasLegacyDesign }: ScreenLayoutDesignerProps) {
+export function ScreenLayoutDesigner({ screenId, screenName, isActive = true, onOpenLegacy, hasLegacyDesign, legacyKind = "grapesjs" }: ScreenLayoutDesignerProps) {
   const navigate = useNavigate();
   const { wsPath } = useWorkspacePath();
   const sessionId = mcpBridge.getSessionId();
@@ -435,14 +437,14 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true, on
             <h2>この画面はまだ業務部品形式になっていません</h2>
             <p>画面を「入力フォーム」「一覧表」「ボタン群」などの業務部品で組み立てる形式に切り替えます。画面項目 ({items.length} 件) はそのまま引き継がれ、保存するまで原本は変わりません。</p>
             <div className="sld-start-actions">
-              {hasLegacyDesign && (
+              {hasLegacyDesign && legacyKind === "grapesjs" && (
                 <button type="button" className="sld-start-btn primary" onClick={() => { startConvert().catch(console.error); }} disabled={converting || mode.kind === "locked-by-other"} data-testid="layout-start-convert">
                   <i className="bi bi-magic" />
                   <b>旧デザインから自動変換</b>
                   <span>見出し・入力欄・一覧・ボタンを業務部品に置き換えます。変換できない部分は自由 HTML として残します。</span>
                 </button>
               )}
-              <button type="button" className={`sld-start-btn${hasLegacyDesign ? "" : " primary"}`} onClick={() => { startEmpty().catch(console.error); }} disabled={mode.kind === "locked-by-other"} data-testid="layout-start-empty">
+              <button type="button" className={`sld-start-btn${hasLegacyDesign && legacyKind === "grapesjs" ? "" : " primary"}`} onClick={() => { startEmpty().catch(console.error); }} disabled={mode.kind === "locked-by-other"} data-testid="layout-start-empty">
                 <i className="bi bi-file-earmark-plus" />
                 <b>空の画面から作る</b>
                 <span>見出しだけの画面から、部品をドラッグして組み立てます。</span>

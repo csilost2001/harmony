@@ -57,8 +57,8 @@ test.describe("AddWorkspaceDialog — WSL2 / OS-aware UX (#858)", { tag: ["@regr
     // host info から取得した homeDir 配下の例が placeholder に入る
     const placeholder = await input.getAttribute("placeholder");
     expect(placeholder).toMatch(/\/home\/[^/]+\/projects\/my-app/);
-    // 既存 #755 e2e と同様 workspaces/ 形式も placeholder に含まれること
-    expect(placeholder).toContain("workspaces/my-app");
+    // #1474: repo 内 workspaces/ の例は出さない (repo 外の project を推奨)
+    expect(placeholder).not.toContain("workspaces/my-app");
 
     // 旧 WSL 検出ヒント文 (#858 / #919) は #1056 で削除 — negative assert
     // (新 BackendFolderPicker は WSL でも普通に動くので専用ヒントが不要になった)

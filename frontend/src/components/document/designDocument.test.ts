@@ -69,3 +69,40 @@ describe("buildDesignDocument", () => {
     expect(html).toContain(".hd-doc{");
   });
 });
+
+describe("影響範囲 (列を参照している画面項目)", () => {
+  it("binding.kind=tableColumn の画面項目をテーブル定義に列挙する", () => {
+    const doc = buildDesignDocument({
+      project: { name: "t" },
+      screens: [{ id: "store-edit", name: "店舗編集", items: [{ id: "storeName", label: "店舗名", binding: { kind: "tableColumn", ref: { tableId: "store-master", columnId: "c-name" } } }] }],
+      flows: [],
+      tables: [{ id: "store-master", name: "店舗マスタ", physicalName: "stores", columns: [{ id: "c-name", physicalName: "name", name: "店舗名" }] }],
+    });
+    const section = doc.html.slice(doc.html.indexOf('id="table-store-master"'));
+    expect(section).toContain("列を参照している画面項目");
+    expect(section).toContain("storeName");
+    expect(section).toContain("店舗名 (name)");
+  });
+});
+
+describe("導出した章 (バッチ / 外部 IF / イベント / テスト観点)", () => {
+  it("retail: イベント一覧に発行元の処理、各アクションにテスト観点を出す", () => {
+    const doc = buildDesignDocument(input);
+    const ids = doc.toc.map((t) => t.id);
+    expect(ids).toEqual(expect.arrayContaining(["batches", "interfaces", "events"]));
+    const events = doc.html.slice(doc.html.indexOf('id="events"'), doc.html.indexOf('id="messages"'));
+    expect(events).toContain("retail.order.confirmed");
+    expect(events).toContain("注文確定");
+    expect(doc.html).toContain("hd-tests");
+  });
+
+  it("定期処理はバッチ一覧に載る", () => {
+    const doc = buildDesignDocument({
+      project: { name: "t" }, screens: [], tables: [],
+      flows: [{ meta: { id: "streak-reset", name: "連続学習日数リセット", flowType: "scheduled" }, actions: [{ name: "実行", trigger: "timer", description: "毎日 0 時", steps: [] }] }],
+    });
+    const sec = doc.html.slice(doc.html.indexOf('id="batches"'), doc.html.indexOf('id="interfaces"'));
+    expect(sec).toContain("連続学習日数リセット");
+    expect(sec).toContain("定期");
+  });
+});

@@ -38,6 +38,7 @@ export function DesignerTabHost(props: DesignerTabHostProps) {
   const { screenId, screenName, isActive } = props;
   const [view, setView] = useState<"loading" | "layout" | "legacy">("loading");
   const [hasLegacy, setHasLegacy] = useState(false);
+  const [legacyKind, setLegacyKind] = useState<"grapesjs" | "puck">("grapesjs");
   useEffect(() => {
     let alive = true;
     setView("loading");
@@ -57,6 +58,7 @@ export function DesignerTabHost(props: DesignerTabHostProps) {
           }
         }
         if (!alive) return;
+        setLegacyKind(s.design?.editorKind === "puck" ? "puck" : "grapesjs");
         setHasLegacy(legacy);
         setView(legacy ? "legacy" : "layout");
       } catch {
@@ -74,6 +76,7 @@ export function DesignerTabHost(props: DesignerTabHostProps) {
         screenName={screenName}
         isActive={isActive}
         hasLegacyDesign={hasLegacy}
+        legacyKind={legacyKind}
         onOpenLegacy={() => setView("legacy")}
       />
     );
@@ -82,7 +85,11 @@ export function DesignerTabHost(props: DesignerTabHostProps) {
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <div className="legacy-designer-banner" data-testid="legacy-designer-banner">
         <i className="bi bi-clock-history" />
-        <span>この画面は旧形式 (HTML) のデザインです。業務部品形式に移行すると、部品の配置と画面項目の定義を 1 つの画面で編集できます。</span>
+        <span>
+          {legacyKind === "puck"
+            ? "この画面は Puck で作成されています。業務部品形式へは「空の画面から作る」で作り直して移行できます (Puck からの自動変換は未対応)。"
+            : "この画面は旧形式 (HTML) のデザインです。業務部品形式に移行すると、部品の配置と画面項目の定義を 1 つの画面で編集できます。"}
+        </span>
         <button type="button" onClick={() => setView("layout")} data-testid="legacy-back-to-layout">業務部品形式へ移行</button>
       </div>
       <div style={{ flex: 1, minHeight: 0 }}>

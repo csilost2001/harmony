@@ -90,3 +90,24 @@ describe("補助関数", () => {
     expect(stepTarget({ id: "s", kind: "screenTransition", description: "", targetScreenId: "cart" } as never, { tableName: () => undefined, screenName: () => "カート" })).toBe("カート");
   });
 });
+
+describe("テスト観点 (deriveTestViewpoints)", () => {
+  // shared の関数を直接使う (v3 型ラッパーは不要)
+  it("注文確定: 正常系 1 件を先頭に、入力チェック・カート空・TX 失敗の異常系を列挙する", async () => {
+    const { deriveTestViewpoints } = await import("@harmony/shared");
+    const vs = deriveTestViewpoints(action as never);
+    expect(vs[0]).toMatchObject({ no: 1, category: "正常系", status: 200 });
+    const errors = vs.filter((v) => v.category === "異常系");
+    expect(errors.some((v) => v.status === 400)).toBe(true);
+    expect(errors.some((v) => v.conditions.some((c) => c.includes("カート空")) && v.status === 422)).toBe(true);
+    expect(errors.some((v) => v.conditions.some((c) => c.includes("在庫不足")))).toBe(true);
+    // 終了ステップの No は処理記述表と同じ番号体系
+    expect(errors.find((v) => v.conditions.some((c) => c.includes("カート空")))?.stepNo).toBe("4-A-1");
+  });
+
+  it("return の無いフローは最後まで到達して正常終了", async () => {
+    const { deriveTestViewpoints } = await import("@harmony/shared");
+    const vs = deriveTestViewpoints({ steps: [{ id: "a", kind: "compute", description: "計算" }] });
+    expect(vs).toEqual([expect.objectContaining({ category: "正常系", expected: "最後まで処理して正常終了" })]);
+  });
+});

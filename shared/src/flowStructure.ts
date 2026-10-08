@@ -467,3 +467,84 @@ export function layoutFlow(action: FlowActionLike, ctx: FlowContext = NO_CTX): D
   out.height = bottom + MARGIN;
   return out;
 }
+
+// ── テスト観点 (分岐と終了から導出) ─────────────────────────────────────────
+
+export interface TestViewpoint {
+  no: number;
+  /** 正常系 / 異常系 */
+  category: "正常系" | "異常系";
+  /** 到達条件 (分岐の枝の条件・実行条件・TX 失敗など) */
+  conditions: string[];
+  /** 期待結果 (HTTP ステータスと説明) */
+  expected: string;
+  status?: number;
+  /** 終了するステップの階層番号 (処理記述表の No) */
+  stepNo: string;
+}
+
+/**
+ * アクションの処理フローから、終了 (return) ごとに 1 つのテスト観点を導出する。
+ * 到達条件は、その終了を囲む分岐の枝の条件と実行条件 (runIf) を外側から順に並べたもの。
+ * return を持たない最後まで到達する経路は「正常終了」とする。
+ */
+export function deriveTestViewpoints(action: FlowActionLike): TestViewpoint[] {
+  const out: Omit<TestViewpoint, "no">[] = [];
+  const walk = (steps: readonly FlowStep[], prefix: string, conds: string[], inRollback: boolean): boolean => {
+    let terminated = false;
+    steps.forEach((step, i) => {
+      if (terminated) return;
+      const no = prefix ? `${prefix}-${i + 1}` : String(i + 1);
+      const s = step as Record<string, unknown>;
+      const here = s.runIf ? [...conds, `実行条件: ${String(s.runIf)}`] : conds;
+      if (step.kind === "return") {
+        const st = returnStatus(step, action);
+        out.push({
+          category: st !== undefined && st >= 400 ? "異常系" : inRollback ? "異常系" : "正常系",
+          conditions: here.length ? here : ["すべての入力が正しい"],
+          expected: `${st ? `HTTP ${st} ` : ""}${stepText(step)}`,
+          status: st,
+          stepNo: no,
+        });
+        if (!s.runIf) terminated = true;
+        return;
+      }
+      if (step.kind === "branch") {
+        const arms = (s.branches as Array<{ code: string; label?: string; condition: unknown; steps: FlowStep[] }>) ?? [];
+        const allEnd: boolean[] = [];
+        for (const b of arms) {
+          const label = b.label ?? b.code;
+          const c = branchConditionText(b.condition);
+          allEnd.push(walk(b.steps ?? [], `${no}-${b.code}`, [...here, c ? `${label} (${c})` : label], inRollback));
+        }
+        const els = s.elseBranch as { code: string; label?: string; steps: FlowStep[] } | undefined;
+        if (els) allEnd.push(walk(els.steps ?? [], `${no}-${els.code}`, [...here, els.label ?? "上記以外"], inRollback));
+        if (els && allEnd.length > 0 && allEnd.every(Boolean)) terminated = true;
+        return;
+      }
+      if (step.kind === "loop") {
+        walk((s.steps as FlowStep[]) ?? [], no, [...here, `繰り返し中: ${stepText(step)}`], inRollback);
+        return;
+      }
+      if (step.kind === "transactionScope") {
+        walk((s.steps as FlowStep[]) ?? [], no, here, inRollback);
+        const rb = (s.onRollback as FlowStep[] | undefined) ?? [];
+        if (rb.length) walk(rb, `${no}-R`, [...here, "トランザクションが失敗しロールバック"], true);
+        const cm = (s.onCommit as FlowStep[] | undefined) ?? [];
+        if (cm.length) walk(cm, `${no}-C`, here, inRollback);
+        return;
+      }
+      if (step.kind === "validation") {
+        out.push({ category: "異常系", conditions: [...here, `入力チェックに違反 (${stepText(step)})`], expected: "入力チェックエラー (HTTP 400 想定)", status: 400, stepNo: no });
+      }
+    });
+    return terminated;
+  };
+  const ended = walk(action.steps ?? [], "", [], false);
+  if (!ended && (action.steps ?? []).length > 0) {
+    out.push({ category: "正常系", conditions: ["すべての入力が正しい"], expected: "最後まで処理して正常終了", stepNo: "-" });
+  }
+  // 正常系を先頭に、異常系は出現順
+  const sorted = [...out.filter((v) => v.category === "正常系"), ...out.filter((v) => v.category === "異常系")];
+  return sorted.map((v, i) => ({ no: i + 1, ...v }));
+}

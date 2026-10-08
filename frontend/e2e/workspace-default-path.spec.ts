@@ -23,7 +23,8 @@ async function setupWithNoWorkspace(page: Page) {
 }
 
 test.describe("AddWorkspaceDialog — デフォルトパスのヒント (#755)", { tag: ["@regression"] }, () => {
-  test("WorkspaceListView の「追加」ボタンでダイアログが開き workspaces/ ヒントが表示される", async ({ page }) => {
+  // #1474 で「Harmony 本体 repo の外の project を開く」方針に変更。例示は repo 外の絶対パス
+  test("WorkspaceListView の「追加」ボタンでダイアログが開き repo 外の project パス例が表示される", async ({ page }) => {
     await setupWithNoWorkspace(page);
     await page.goto("/workspace/list");
     await expect(page).toHaveURL("/workspace/list");
@@ -35,15 +36,16 @@ test.describe("AddWorkspaceDialog — デフォルトパスのヒント (#755)",
     // ダイアログが表示されること
     await expect(page.locator(".tbl-modal")).toBeVisible();
 
-    // フォルダパス入力欄のプレースホルダに workspaces/ が含まれること
+    // フォルダパス入力欄のプレースホルダは repo 外の project 例 (…/projects/my-app/harmony-design)
     const input = page.locator(".tbl-modal input[type='text']").first();
     await expect(input).toBeVisible();
     const placeholder = await input.getAttribute("placeholder");
-    expect(placeholder).toContain("workspaces/");
+    expect(placeholder).toContain("projects/my-app/harmony-design");
+    expect(placeholder).not.toContain("workspaces/my-app");
 
-    // ヒントテキストに workspaces が含まれること
+    // ヒントテキストで repo 外の project を推奨していること
     const hintText = page.locator(".tbl-modal p").first();
-    await expect(hintText).toContainText("workspaces/");
+    await expect(hintText).toContainText("Harmony 本体 repo の外");
   });
 
   test("AddWorkspaceDialog をキャンセルで閉じられる (regression なし)", async ({ page }) => {
@@ -89,21 +91,21 @@ test.describe("AddWorkspaceDialog — デフォルトパスのヒント (#755)",
 });
 
 test.describe("WorkspaceSelectView — 新規作成ボタン (#755)", { tag: ["@regression"] }, () => {
-  test("「新しくワークスペースを追加」ボタンで AddWorkspaceDialog が開く", async ({ page }) => {
+  test("「プロジェクトを開く / 作成」ボタンで AddWorkspaceDialog が開く", async ({ page }) => {
     await setupWithNoWorkspace(page);
     await page.goto("/workspace/select");
     await expect(page).toHaveURL("/workspace/select");
 
-    // 「新しくワークスペースを追加」ボタンが表示されること (lockdown でない場合)
-    const addBtn = page.locator("button", { hasText: "新しくワークスペースを追加" }).first();
+    // 「プロジェクトを開く / 作成」ボタンが表示されること (lockdown でない場合、#1474 で文言変更)
+    const addBtn = page.getByTestId("workspace-open-or-create");
     await expect(addBtn).toBeVisible();
     await addBtn.click();
 
     // ダイアログが表示されること
     await expect(page.locator(".tbl-modal")).toBeVisible();
 
-    // workspaces/ のヒントが表示されること
+    // repo 外の project を推奨するヒントが表示されること
     const hintText = page.locator(".tbl-modal p").first();
-    await expect(hintText).toContainText("workspaces/");
+    await expect(hintText).toContainText("Harmony 本体 repo の外");
   });
 });
