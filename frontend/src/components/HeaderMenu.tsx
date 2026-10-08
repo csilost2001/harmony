@@ -38,6 +38,10 @@ const MENU_ITEMS: MenuItem[] = [
     activePaths: ["/process-flow/list"], activePrefixes: ["/process-flow/edit/"],
   },
   {
+    id: "design-document", label: "設計書", icon: "bi-journal-text", route: "/document",
+    activePaths: ["/document"],
+  },
+  {
     id: "extensions", label: "拡張管理", icon: "bi-puzzle", route: "/extensions",
     activePaths: ["/extensions"],
   },

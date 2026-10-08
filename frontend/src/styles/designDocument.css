@@ -1,0 +1,62 @@
+/* 設計書ビュー (DesignDocumentView) の枠。本文 (.hd-doc) の紙面スタイルは @harmony/shared の DESIGN_DOC_CSS */
+.ddv-root { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--hm-bg); color: var(--hm-fg); }
+.ddv-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--hm-border);
+  background: var(--hm-surface);
+  flex-wrap: wrap;
+}
+.ddv-title { margin: 0; font-size: 15px; font-weight: 700; display: inline-flex; gap: 6px; align-items: center; }
+.ddv-sub { font-size: 12px; color: var(--hm-fg-muted); }
+.ddv-spacer { flex: 1; }
+.ddv-btn, .ddv-issues {
+  border: 1px solid var(--hm-border-strong);
+  background: var(--hm-surface);
+  color: var(--hm-fg-2);
+  border-radius: 6px;
+  font-size: 12.5px;
+  padding: 4px 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.ddv-btn:hover:not(:disabled), .ddv-issues:hover { border-color: var(--hm-accent); color: var(--hm-accent); }
+.ddv-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.ddv-btn.primary { background: var(--hm-accent-solid); border-color: var(--hm-accent-solid); color: var(--hm-on-solid); }
+.ddv-btn.primary:hover:not(:disabled) { background: var(--hm-accent-solid-hover); color: var(--hm-on-solid); }
+.ddv-issues.has-warning { border-color: var(--hm-warning); color: var(--hm-warning); }
+.ddv-issues.has-error { border-color: var(--hm-danger); color: var(--hm-danger); }
+.ddv-message { padding: 32px; color: var(--hm-fg-muted); }
+.ddv-body { flex: 1; min-height: 0; display: grid; grid-template-columns: 240px minmax(0, 1fr); }
+.ddv-toc {
+  overflow-y: auto;
+  border-right: 1px solid var(--hm-border);
+  background: var(--hm-surface);
+  padding: 10px 8px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.ddv-toc button {
+  border: 0;
+  background: transparent;
+  text-align: left;
+  padding: 3px 8px;
+  border-radius: 4px;
+  color: var(--hm-fg-2);
+  font-size: 12.5px;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ddv-toc button:hover { background: var(--hm-hover); color: var(--hm-fg); }
+.ddv-toc-1 { font-weight: 700; margin-top: 6px; }
+.ddv-toc-2 { padding-left: 20px !important; color: var(--hm-fg-muted) !important; font-size: 12px !important; }
+/* 紙面は設計書の体裁のためテーマに関係なく明色 */
+.ddv-page { overflow-y: auto; padding: 20px; background: #e9ecf0; }
+@media (max-width: 900px) { .ddv-body { grid-template-columns: minmax(0, 1fr); } .ddv-toc { display: none; } }

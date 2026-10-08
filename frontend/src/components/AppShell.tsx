@@ -9,6 +9,7 @@ import { ProcessFlowListView } from "./process-flow/ProcessFlowListView";
 import { ProcessFlowEditor } from "./process-flow/ProcessFlowEditor";
 import { ExtensionsPanel } from "./extensions/ExtensionsPanel";
 import { ConventionsCatalogView } from "./conventions/ConventionsCatalogView";
+import { DesignDocumentView } from "./document/DesignDocumentView";
 import { ScreenItemsView } from "./screen-items/ScreenItemsView";
 import { SequenceListView } from "./sequence/SequenceListView";
 import { SequenceEditor } from "./sequence/SequenceEditor";
@@ -352,6 +353,7 @@ export function AppShell() {
         <Route path="process-flow/edit/:processFlowId" element={<ProcessFlowEditor />} />
         <Route path="extensions" element={<ExtensionsPanel />} />
         <Route path="conventions/catalog" element={<ConventionsCatalogView />} />
+        <Route path="document" element={<DesignDocumentView />} />
         <Route path="screen/items/:screenId" element={<ScreenItemsView />} />
         <Route path="sequence/list" element={<SequenceListView />} />
         <Route path="sequence/edit/:sequenceId" element={<SequenceEditor />} />
@@ -895,6 +897,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       { path: `${wsPrefix}/process-flow/list`,  type: "process-flow-list",  label: "処理フロー一覧" },
       { path: `${wsPrefix}/extensions`,         type: "extensions",         label: "拡張管理" },
       { path: `${wsPrefix}/conventions/catalog`, type: "conventions-catalog", label: "規約カタログ" },
+      { path: `${wsPrefix}/document`,           type: "design-document",    label: "設計書" },
       { path: `${wsPrefix}/sequence/list`,      type: "sequence-list",      label: "シーケンス一覧" },
       { path: `${wsPrefix}/view/list`,          type: "view-list",           label: "ビュー一覧" },
       { path: `${wsPrefix}/view-definition/list`, type: "view-definition-list", label: "ビュー定義一覧" },
@@ -961,6 +964,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       : activeTab.type === "process-flow-list" ? `${wp}/process-flow/list`
       : activeTab.type === "extensions"       ? `${wp}/extensions`
       : activeTab.type === "conventions-catalog" ? `${wp}/conventions/catalog`
+      : activeTab.type === "design-document"  ? `${wp}/document`
       : activeTab.type === "screen-items"     ? `${wp}/screen/items/${activeTab.resourceId}`
       : activeTab.type === "sequence-list"    ? `${wp}/sequence/list`
       : activeTab.type === "view-list"              ? `${wp}/view/list`

@@ -6,6 +6,7 @@
 
 | ファイル | 対象 | 関連 issue |
 |---|---|---|
+| [design-document.md](design-document.md) | 設計書ビュー (/document) と HTML 出力、CRUD 図の導出規則 | 再設計 2026-10 |
 | [screen-layout.md](screen-layout.md) | 画面レイアウト (業務部品の木)・業務部品デザイナ・旧デザインからの自動変換 | 再設計 2026-10 |
 | [list-common.md](list-common.md) | 一覧系画面の操作・見た目・内部 API (選択・キーボード・D&D・コピペ・ソート・フィルタ・Read-only モード・No 列永続フィールド) | #133 / #148 |
 | [process-flow-maturity.md](process-flow-maturity.md) | 成熟度・付箋・上流/下流モード (Phase 1 基盤) | #151 / #152 |

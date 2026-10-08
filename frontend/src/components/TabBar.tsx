@@ -72,6 +72,17 @@ function TabItem({
     : tab.type === "er" ? "bi-share"
     : tab.type === "process-flow-list" ? "bi-list-task"
     : tab.type === "dashboard" ? "bi-speedometer2"
+    : tab.type === "design-document" ? "bi-journal-text"
+    : tab.type === "screen-list" ? "bi-list-ul"
+    : tab.type === "screen-items" ? "bi-ui-checks-grid"
+    : tab.type === "conventions-catalog" ? "bi-file-text"
+    : tab.type === "sequence" || tab.type === "sequence-list" ? "bi-arrow-repeat"
+    : tab.type === "view" || tab.type === "view-list" ? "bi-eye"
+    : tab.type === "view-definition" || tab.type === "view-definition-list" ? "bi-layout-text-window"
+    : tab.type === "page-layout" || tab.type === "page-layout-list" ? "bi-layout-wtf"
+    : tab.type === "generic-definition" || tab.type === "generic-definition-list" || tab.type === "generic-definition-catalog" ? "bi-collection"
+    : tab.type === "extensions" ? "bi-puzzle"
+    : tab.type === "tech-stack" ? "bi-gear"
     : "bi-file-earmark";
 
   const handleClick = () => setActiveTab(tab.id);
