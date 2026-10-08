@@ -4,6 +4,7 @@ import {
   getState,
   subscribe as subscribeStore,
   loadWorkspaces,
+  isWorkspaceRequestInFlight,
   openWorkspace,
 } from "../../store/workspaceStore";
 import { mcpBridge } from "../../mcp/mcpBridge";
@@ -36,9 +37,11 @@ export function WorkspaceSelectView() {
       prevStatus = s;
       if (s !== "connected") return;
       if (!isReconnect) {
-        // 初回即時発火: AppShell が既に load 完了している場合は skip して 2 重 load を防ぐ
+        // 初回即時発火: AppShell が既に load 完了している場合は skip して 2 重 load を防ぐ。
+        // 一覧取得 / open が実行中なら、その完了で state が更新されるので重ねて取得しない
+        // (open 中の splash で本画面が再マウントされるたびに取得が重なっていた)
         const { loading } = getState();
-        if (!loading) return;
+        if (!loading || isWorkspaceRequestInFlight()) return;
       }
       loadWorkspaces().catch(console.error);
     });

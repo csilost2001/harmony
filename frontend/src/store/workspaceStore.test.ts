@@ -155,3 +155,27 @@ describe("loadWorkspaces 直列化 (A)", () => {
     });
   });
 });
+
+describe("isWorkspaceRequestInFlight", () => {
+  it("一覧取得・open の実行中だけ true になり、完了 (失敗含む) で false に戻る", async () => {
+    const { isWorkspaceRequestInFlight, openWorkspace } = storeModule;
+    let release: () => void = () => {};
+    (mcpBridge.request as ReturnType<typeof vi.fn>).mockImplementation(
+      () => new Promise((resolve) => { release = () => resolve({ workspaces: [], lastActiveId: null, active: { id: "w1", path: "/w1", name: "W1" }, lockdown: false, lockdownPath: null }); }),
+    );
+    expect(isWorkspaceRequestInFlight()).toBe(false);
+    const p = loadWorkspaces();
+    expect(isWorkspaceRequestInFlight()).toBe(true);
+    // 直列化チェーンの後で request が呼ばれるのを待ってから応答を返す
+    await vi.waitFor(() => expect(mcpBridge.request).toHaveBeenCalled());
+    release();
+    await p;
+    expect(isWorkspaceRequestInFlight()).toBe(false);
+
+    (mcpBridge.request as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("open failed"));
+    const o = openWorkspace("w1", true);
+    expect(isWorkspaceRequestInFlight()).toBe(true);
+    await expect(o).rejects.toThrow("open failed");
+    expect(isWorkspaceRequestInFlight()).toBe(false);
+  });
+});
