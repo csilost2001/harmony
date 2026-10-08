@@ -136,59 +136,15 @@
       },
       {
         "id": "searchPanel",
-        "type": "search-panel",
-        "props": {
-          "columns": 3
-        },
-        "children": [
-          {
-            "id": "emailSearch",
-            "type": "field",
-            "itemRef": "emailSearch"
-          },
-          {
-            "id": "customerNameSearch",
-            "type": "field",
-            "itemRef": "customerNameSearch"
-          },
-          {
-            "id": "isActiveFilter",
-            "type": "field",
-            "itemRef": "isActiveFilter"
-          },
-          {
-            "id": "registeredFrom",
-            "type": "field",
-            "itemRef": "registeredFrom"
-          },
-          {
-            "id": "activeOnlyFilter",
-            "type": "field",
-            "itemRef": "activeOnlyFilter"
-          },
-          {
-            "id": "buttons",
-            "type": "button-bar",
-            "children": [
-              {
-                "id": "clearButton",
-                "type": "button",
-                "props": {
-                  "label": "クリア",
-                  "variant": "secondary"
-                }
-              },
-              {
-                "id": "searchButton",
-                "type": "button",
-                "props": {
-                  "label": "検索",
-                  "variant": "primary"
-                }
-              }
-            ]
-          }
-        ]
+        "type": "component",
+        "componentRef": "master-search-panel",
+        "args": {
+          "condition1": "emailSearch",
+          "condition2": "customerNameSearch",
+          "condition3": "isActiveFilter",
+          "condition4": "registeredFrom",
+          "condition5": "activeOnlyFilter"
+        }
       },
       {
         "id": "section",

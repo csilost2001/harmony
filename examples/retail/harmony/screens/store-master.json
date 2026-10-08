@@ -159,59 +159,15 @@
       },
       {
         "id": "searchPanel",
-        "type": "search-panel",
-        "props": {
-          "columns": 3
-        },
-        "children": [
-          {
-            "id": "storeCodeSearch",
-            "type": "field",
-            "itemRef": "storeCodeSearch"
-          },
-          {
-            "id": "storeNameSearch",
-            "type": "field",
-            "itemRef": "storeNameSearch"
-          },
-          {
-            "id": "regionSearch",
-            "type": "field",
-            "itemRef": "regionSearch"
-          },
-          {
-            "id": "isOpenSearch",
-            "type": "field",
-            "itemRef": "isOpenSearch"
-          },
-          {
-            "id": "activeOnlyFilter",
-            "type": "field",
-            "itemRef": "activeOnlyFilter"
-          },
-          {
-            "id": "buttons",
-            "type": "button-bar",
-            "children": [
-              {
-                "id": "clearButton",
-                "type": "button",
-                "props": {
-                  "label": "クリア",
-                  "variant": "secondary"
-                }
-              },
-              {
-                "id": "searchButton",
-                "type": "button",
-                "props": {
-                  "label": "検索",
-                  "variant": "primary"
-                }
-              }
-            ]
-          }
-        ]
+        "type": "component",
+        "componentRef": "master-search-panel",
+        "args": {
+          "condition1": "storeCodeSearch",
+          "condition2": "storeNameSearch",
+          "condition3": "regionSearch",
+          "condition4": "isOpenSearch",
+          "condition5": "activeOnlyFilter"
+        }
       },
       {
         "id": "section",

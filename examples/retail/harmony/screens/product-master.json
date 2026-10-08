@@ -161,59 +161,15 @@
       },
       {
         "id": "searchPanel",
-        "type": "search-panel",
-        "props": {
-          "columns": 3
-        },
-        "children": [
-          {
-            "id": "productCodeSearch",
-            "type": "field",
-            "itemRef": "productCodeSearch"
-          },
-          {
-            "id": "productNameSearch",
-            "type": "field",
-            "itemRef": "productNameSearch"
-          },
-          {
-            "id": "categorySearch",
-            "type": "field",
-            "itemRef": "categorySearch"
-          },
-          {
-            "id": "isActiveSearch",
-            "type": "field",
-            "itemRef": "isActiveSearch"
-          },
-          {
-            "id": "activeOnlyFilter",
-            "type": "field",
-            "itemRef": "activeOnlyFilter"
-          },
-          {
-            "id": "buttons",
-            "type": "button-bar",
-            "children": [
-              {
-                "id": "clearButton",
-                "type": "button",
-                "props": {
-                  "label": "クリア",
-                  "variant": "secondary"
-                }
-              },
-              {
-                "id": "searchButton",
-                "type": "button",
-                "props": {
-                  "label": "検索",
-                  "variant": "primary"
-                }
-              }
-            ]
-          }
-        ]
+        "type": "component",
+        "componentRef": "master-search-panel",
+        "args": {
+          "condition1": "productCodeSearch",
+          "condition2": "productNameSearch",
+          "condition3": "categorySearch",
+          "condition4": "isActiveSearch",
+          "condition5": "activeOnlyFilter"
+        }
       },
       {
         "id": "section",

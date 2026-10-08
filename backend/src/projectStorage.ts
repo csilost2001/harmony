@@ -1063,7 +1063,10 @@ export async function deleteScreen(screenId: string, root: string): Promise<void
 interface LayoutComponentRecord { id: string; [key: string]: unknown }
 interface LayoutComponentsDoc { $schema?: string; version: 1; components: LayoutComponentRecord[] }
 
-const LAYOUT_COMPONENTS_SCHEMA = "../schemas/v3/layout-components.v3.schema.json";
+/** layout-components.json (dataDir 直下) から schemas/v3/layout-components.v3.schema.json への相対 path */
+function layoutComponentsSchemaRef(dataRoot: string): string {
+  return path.relative(dataRoot, path.join(SCHEMAS_DIR, "v3", "layout-components.v3.schema.json")).replace(/\\/g, "/");
+}
 
 /** 同じファイルへの更新が並行しても、読んで・差し替えて・書く を 1 本ずつ行う */
 const layoutComponentsLock = new Map<string, Promise<unknown>>();
@@ -1089,7 +1092,7 @@ export async function upsertLayoutComponent(component: LayoutComponentRecord, ro
     const doc = await readLayoutComponents(root);
     const at = doc.components.findIndex((c) => c.id === component.id);
     if (at >= 0) doc.components[at] = component; else doc.components.push(component);
-    await writeJSON(file, { $schema: LAYOUT_COMPONENTS_SCHEMA, version: 1, components: doc.components });
+    await writeJSON(file, { $schema: layoutComponentsSchemaRef(dataRoot), version: 1, components: doc.components });
     return doc;
   });
 }
@@ -1119,7 +1122,7 @@ export async function deleteLayoutComponent(componentId: string, root: string, f
   const file = layoutComponentsFile(dataRoot);
   await withLayoutComponentsLock(file, async () => {
     const doc = await readLayoutComponents(root);
-    await writeJSON(file, { $schema: LAYOUT_COMPONENTS_SCHEMA, version: 1, components: doc.components.filter((c) => c.id !== componentId) });
+    await writeJSON(file, { $schema: layoutComponentsSchemaRef(dataRoot), version: 1, components: doc.components.filter((c) => c.id !== componentId) });
   });
   return { deleted: true, usages };
 }

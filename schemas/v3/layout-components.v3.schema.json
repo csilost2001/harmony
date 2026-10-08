@@ -41,7 +41,55 @@
         "description": { "type": "string", "description": "何のための部品か、どこで使うか。" },
         "category": { "type": "string", "description": "パレット上の分類名。" },
         "params": { "type": "array", "items": { "$ref": "#/$defs/LayoutComponentParam" } },
-        "nodes": { "type": "array", "items": { "$ref": "screen.v3.schema.json#/$defs/LayoutNode" }, "description": "テンプレートの部品の木 (上から順)。独自部品を入れ子にできる (循環は不可)。" }
+        "nodes": { "type": "array", "items": { "$ref": "#/$defs/LayoutTemplateNode" }, "description": "テンプレートの部品の木 (上から順)。独自部品を入れ子にできる (循環は不可)。" }
+      }
+    },
+    "TemplatePlaceholder": {
+      "description": "差し込み口の参照 `{{paramId}}`。",
+      "type": "string",
+      "pattern": "^\\{\\{\\s*[A-Za-z][A-Za-z0-9_]*\\s*\\}\\}$"
+    },
+    "LayoutTemplateNode": {
+      "description": "テンプレートの部品 1 つ。screen.v3 の LayoutNode と同じ形だが、itemRef と props の文字列値に `{{paramId}}` (差し込み口) を書ける (画面側の識別子パターンの代わりに、識別子または差し込み口を許す)。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type"],
+      "properties": {
+        "id": { "$ref": "common.v3.schema.json#/$defs/Identifier", "description": "定義内で一意な部品 ID。画面に展開するときは `<参照部品の ID>__<この ID>` になる。" },
+        "type": { "$ref": "screen.v3.schema.json#/$defs/LayoutNodeType" },
+        "itemRef": {
+          "description": "参照する画面項目。差し込み口 (`{{paramId}}`) か、画面項目の id (画面側にその項目がある前提)。",
+          "oneOf": [{ "$ref": "#/$defs/TemplatePlaceholder" }, { "$ref": "common.v3.schema.json#/$defs/Identifier" }]
+        },
+        "props": { "$ref": "#/$defs/LayoutTemplateNodeProps" },
+        "children": { "type": "array", "items": { "$ref": "#/$defs/LayoutTemplateNode" }, "description": "子部品 (容器のみ)。" },
+        "note": { "type": "string", "description": "設計メモ。" },
+        "componentRef": { "$ref": "common.v3.schema.json#/$defs/EntityId", "description": "type=component のとき、入れ子で使う独自部品の id。" },
+        "args": { "type": "object", "additionalProperties": { "type": "string" }, "description": "type=component のとき、入れ子の独自部品の差し込み口に入れる値 (`{{paramId}}` で、この定義の差し込み口を渡せる)。" }
+      }
+    },
+    "LayoutTemplateNodeProps": {
+      "description": "テンプレート部品の表示属性。screen.v3 の LayoutNodeProps と同じ項目で、文字列値に `{{paramId}}` を書ける。",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": { "type": "string" },
+        "text": { "type": "string" },
+        "label": { "type": "string" },
+        "level": { "type": "integer", "minimum": 1, "maximum": 3 },
+        "columns": { "type": "integer", "minimum": 1, "maximum": 4 },
+        "span": { "type": "integer", "minimum": 1, "maximum": 12 },
+        "align": { "type": "string", "enum": ["left", "center", "right", "between"] },
+        "variant": { "type": "string", "enum": ["primary", "secondary", "danger", "link", "plain", "card", "panel"] },
+        "tone": { "type": "string", "enum": ["normal", "muted", "note", "warning"] },
+        "collapsible": { "type": "boolean" },
+        "screenRef": {
+          "description": "link / button の遷移先画面 id。差し込み口 (`{{paramId}}`) も書ける。",
+          "oneOf": [{ "$ref": "#/$defs/TemplatePlaceholder" }, { "$ref": "common.v3.schema.json#/$defs/EntityId" }]
+        },
+        "html": { "type": "string" },
+        "src": { "type": "string" },
+        "alt": { "type": "string" }
       }
     }
   }
