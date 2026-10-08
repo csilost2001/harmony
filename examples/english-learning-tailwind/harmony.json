@@ -52,7 +52,8 @@
         "path": "/",
         "groupId": "learner",
         "maturity": "draft",
-        "updatedAt": "2026-05-04T00:00:00.000Z"
+        "updatedAt": "2026-05-04T00:00:00.000Z",
+        "hasDesign": true
       },
       {
         "id": "story-list",
@@ -62,7 +63,8 @@
         "path": "/stories",
         "groupId": "learner",
         "maturity": "draft",
-        "updatedAt": "2026-05-04T00:00:00.000Z"
+        "updatedAt": "2026-05-04T00:00:00.000Z",
+        "hasDesign": true
       },
       {
         "id": "story-detail",
@@ -72,7 +74,8 @@
         "path": "/stories/:storyId",
         "groupId": "learner",
         "maturity": "draft",
-        "updatedAt": "2026-05-04T00:00:00.000Z"
+        "updatedAt": "2026-05-04T00:00:00.000Z",
+        "hasDesign": true
       },
       {
         "id": "conversation-play",
@@ -82,7 +85,8 @@
         "path": "/learn/:sessionId",
         "groupId": "learner",
         "maturity": "draft",
-        "updatedAt": "2026-05-04T00:00:00.000Z"
+        "updatedAt": "2026-05-04T00:00:00.000Z",
+        "hasDesign": true
       },
       {
         "id": "session-result",
@@ -92,7 +96,8 @@
         "path": "/learn/:sessionId/result",
         "groupId": "learner",
         "maturity": "draft",
-        "updatedAt": "2026-05-04T00:00:00.000Z"
+        "updatedAt": "2026-05-04T00:00:00.000Z",
+        "hasDesign": true
       },
       {
         "id": "study-history-list",
@@ -102,7 +107,8 @@
         "path": "/history",
         "groupId": "learner",
         "maturity": "draft",
-        "updatedAt": "2026-05-04T00:00:00.000Z"
+        "updatedAt": "2026-05-04T00:00:00.000Z",
+        "hasDesign": true
       },
       {
         "id": "study-history-detail",
@@ -112,7 +118,8 @@
         "path": "/history/:sessionId",
         "groupId": "learner",
         "maturity": "draft",
-        "updatedAt": "2026-05-04T00:00:00.000Z"
+        "updatedAt": "2026-05-04T00:00:00.000Z",
+        "hasDesign": true
       },
       {
         "id": "word-book",
@@ -122,7 +129,8 @@
         "path": "/vocabulary",
         "groupId": "learner",
         "maturity": "draft",
-        "updatedAt": "2026-05-04T00:00:00.000Z"
+        "updatedAt": "2026-05-04T00:00:00.000Z",
+        "hasDesign": true
       },
       {
         "id": "word-detail",
@@ -132,7 +140,8 @@
         "path": "/vocabulary/:wordId",
         "groupId": "learner",
         "maturity": "draft",
-        "updatedAt": "2026-05-04T00:00:00.000Z"
+        "updatedAt": "2026-05-04T00:00:00.000Z",
+        "hasDesign": true
       },
       {
         "id": "content-pack-list",
@@ -142,7 +151,8 @@
         "path": "/packs",
         "groupId": "content-management",
         "maturity": "draft",
-        "updatedAt": "2026-05-04T00:00:00.000Z"
+        "updatedAt": "2026-05-04T00:00:00.000Z",
+        "hasDesign": true
       },
       {
         "id": "profile-settings",
@@ -152,7 +162,8 @@
         "path": "/profile",
         "groupId": "learner",
         "maturity": "draft",
-        "updatedAt": "2026-05-04T00:00:00.000Z"
+        "updatedAt": "2026-05-04T00:00:00.000Z",
+        "hasDesign": true
       }
     ],
     "screenGroups": [

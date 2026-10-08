@@ -46,7 +46,8 @@
         "kind": "list",
         "path": "/",
         "maturity": "draft",
-        "updatedAt": "2026-05-06T14:30:00.000Z"
+        "updatedAt": "2026-05-06T14:30:00.000Z",
+        "hasDesign": true
       },
       {
         "id": "post-detail",
@@ -55,7 +56,8 @@
         "kind": "detail",
         "path": "/post/:id",
         "maturity": "draft",
-        "updatedAt": "2026-05-06T14:30:00.000Z"
+        "updatedAt": "2026-05-06T14:30:00.000Z",
+        "hasDesign": true
       },
       {
         "id": "post-edit",
@@ -64,7 +66,8 @@
         "kind": "form",
         "path": "/post/edit/:id?",
         "maturity": "draft",
-        "updatedAt": "2026-05-06T14:30:00.000Z"
+        "updatedAt": "2026-05-06T14:30:00.000Z",
+        "hasDesign": true
       },
       {
         "id": "tag-management",
@@ -73,7 +76,8 @@
         "kind": "list",
         "path": "/tags",
         "maturity": "draft",
-        "updatedAt": "2026-05-06T14:30:00.000Z"
+        "updatedAt": "2026-05-06T14:30:00.000Z",
+        "hasDesign": true
       },
       {
         "id": "login",
@@ -82,7 +86,8 @@
         "kind": "login",
         "path": "/login",
         "maturity": "draft",
-        "updatedAt": "2026-05-06T14:30:00.000Z"
+        "updatedAt": "2026-05-06T14:30:00.000Z",
+        "hasDesign": true
       }
     ],
     "tables": [

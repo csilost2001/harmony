@@ -53,7 +53,8 @@
         "pageLayoutId": "main-layout",
         "groupId": "back-office",
         "maturity": "committed",
-        "updatedAt": "2026-05-12T00:00:00.000Z"
+        "updatedAt": "2026-05-12T00:00:00.000Z",
+        "hasDesign": true
       },
       {
         "id": "product-search",
@@ -63,7 +64,8 @@
         "path": "/products/search",
         "groupId": "customer-facing",
         "maturity": "committed",
-        "updatedAt": "2026-05-02T00:00:00.000Z"
+        "updatedAt": "2026-05-02T00:00:00.000Z",
+        "hasDesign": true
       },
       {
         "id": "inventory-list",
@@ -73,7 +75,8 @@
         "path": "/inventory",
         "groupId": "back-office",
         "maturity": "committed",
-        "updatedAt": "2026-05-02T00:00:00.000Z"
+        "updatedAt": "2026-05-02T00:00:00.000Z",
+        "hasDesign": true
       },
       {
         "id": "cart",
@@ -83,7 +86,8 @@
         "path": "/cart",
         "groupId": "customer-facing",
         "maturity": "committed",
-        "updatedAt": "2026-05-02T00:00:00.000Z"
+        "updatedAt": "2026-05-02T00:00:00.000Z",
+        "hasDesign": true
       },
       {
         "id": "cart-confirm",
@@ -93,7 +97,8 @@
         "path": "/cart/confirm",
         "groupId": "customer-facing",
         "maturity": "committed",
-        "updatedAt": "2026-05-02T00:00:00.000Z"
+        "updatedAt": "2026-05-02T00:00:00.000Z",
+        "hasDesign": true
       },
       {
         "id": "order-complete",
@@ -103,7 +108,8 @@
         "path": "/order/complete",
         "groupId": "customer-facing",
         "maturity": "committed",
-        "updatedAt": "2026-05-02T00:00:00.000Z"
+        "updatedAt": "2026-05-02T00:00:00.000Z",
+        "hasDesign": true
       },
       {
         "id": "order-list",
@@ -113,7 +119,8 @@
         "path": "/orders",
         "groupId": "back-office",
         "maturity": "committed",
-        "updatedAt": "2026-05-02T00:00:00.000Z"
+        "updatedAt": "2026-05-02T00:00:00.000Z",
+        "hasDesign": true
       },
       {
         "id": "shipment-dispatch",
@@ -123,7 +130,8 @@
         "path": "/orders/:id/dispatch",
         "groupId": "back-office",
         "maturity": "committed",
-        "updatedAt": "2026-05-02T00:00:00.000Z"
+        "updatedAt": "2026-05-02T00:00:00.000Z",
+        "hasDesign": true
       },
       {
         "id": "product-master",
@@ -133,7 +141,8 @@
         "path": "/master/products",
         "groupId": "master-management",
         "maturity": "committed",
-        "updatedAt": "2026-05-02T00:00:00.000Z"
+        "updatedAt": "2026-05-02T00:00:00.000Z",
+        "hasDesign": true
       },
       {
         "id": "customer-master",
@@ -143,7 +152,8 @@
         "path": "/master/customers",
         "groupId": "master-management",
         "maturity": "committed",
-        "updatedAt": "2026-05-02T00:00:00.000Z"
+        "updatedAt": "2026-05-02T00:00:00.000Z",
+        "hasDesign": true
       },
       {
         "id": "store-master",
@@ -153,7 +163,8 @@
         "path": "/master/stores",
         "groupId": "master-management",
         "maturity": "committed",
-        "updatedAt": "2026-05-02T00:00:00.000Z"
+        "updatedAt": "2026-05-02T00:00:00.000Z",
+        "hasDesign": true
       },
       {
         "id": "global-header",

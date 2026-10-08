@@ -688,7 +688,7 @@ export function PageLayoutEditor() {
                         <>
                           <div className="plm-readonly-tag">page: {selectedSamplePage?.name ?? samplePageId}</div>
                           <div
-                            className="plm-design-body hd-doc"
+                            className="plm-design-body hd-doc" data-theme-audit-skip
                             dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(samplePageHtml) }}
                           />
                         </>
@@ -706,7 +706,7 @@ export function PageLayoutEditor() {
                         <>
                           <div className="plm-readonly-tag">gadget: {assignedName}</div>
                           <div
-                            className="plm-design-body hd-doc"
+                            className="plm-design-body hd-doc" data-theme-audit-skip
                             dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(assignedHtml) }}
                           />
                         </>
