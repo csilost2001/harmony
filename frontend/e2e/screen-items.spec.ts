@@ -171,17 +171,6 @@ test.describe("画面項目定義プロトタイプ (#318)", { tag: ["@regressio
     await expect(page.locator(".screen-items-empty-row")).toBeVisible();
   });
 
-  test("画面デザインから追加モーダルを開ける", async ({ page }) => {
-    await setup(page);
-    const btn = page.locator(".screen-items-view button:has-text('画面デザインから追加')");
-    await expect(btn).toBeVisible();
-    await btn.click();
-    await expect(page.locator(".screen-item-candidates")).toBeVisible();
-    // キャンセルで閉じる
-    await page.locator(".screen-item-candidates-footer button:has-text('キャンセル')").click();
-    await expect(page.locator(".screen-item-candidates")).toHaveCount(0);
-  });
-
   test("削除ボタンで項目が消える", async ({ page }) => {
     await setup(page);
     await page.locator(".screen-items-view button:has-text('項目追加')").click();

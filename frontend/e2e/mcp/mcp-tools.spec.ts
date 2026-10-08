@@ -23,7 +23,7 @@ import {
   observeBroadcastDuring,
 } from "./_helpers";
 import { setupTestWorkspace, cleanupRealWorkspaces } from "../helpers/realWorkspace";
-import { buildProject } from "../__fixtures__/builders";
+import { buildProject, buildScreen } from "../__fixtures__/builders";
 
 const WS_KEY = "issue-958-mcp-tools";
 
@@ -59,26 +59,26 @@ test.describe("wsBridge ファイル操作 (#958)", { tag: ["@regression"] }, ()
     expect(result === null || typeof result === "object").toBe(true);
   });
 
-  test("saveScreen / loadScreen でデータが往復する", async () => {
+  test("saveScreenEntity / loadScreenEntity で画面 (項目とレイアウト) が往復する", async () => {
     const screenId = "e2e-test-screen-001";
-    const testData = {
-      pages: [{ frames: [{ component: { type: "wrapper", components: [] } }] }],
-      styles: [],
-      assets: [],
+    const entity = {
+      ...buildScreen({ id: screenId, name: "往復テスト画面", kind: "form" }),
+      items: [{ id: "qty", label: "数量", type: "integer", direction: "in" }],
+      layout: { version: 1, nodes: [{ id: "qtyField", type: "field", itemRef: "qty" }] },
     };
 
-    // 保存
-    const saveResult = await sendBrowserRequest("saveScreen", { screenId, data: testData });
+    const saveResult = await sendBrowserRequest("saveScreenEntity", { screenId, data: entity });
     expect((saveResult as { success: boolean }).success).toBe(true);
 
-    // 読み込み
-    const loadResult = await sendBrowserRequest("loadScreen", { screenId });
-    expect(loadResult).toMatchObject(testData);
+    const loadResult = await sendBrowserRequest("loadScreenEntity", { screenId });
+    expect(loadResult).toMatchObject({
+      id: screenId, name: "往復テスト画面",
+      items: [{ id: "qty" }], layout: { nodes: [{ id: "qtyField", itemRef: "qty" }] },
+    });
+    // 旧形式の design 参照を勝手に足さない
+    expect((loadResult as { design?: unknown }).design).toBeUndefined();
 
-    // 後片付け: テスト用ファイルを削除
-    const dataDir = path.resolve("../data/screens");
-    const filePath = path.join(dataDir, `${screenId}.json`);
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    await sendBrowserRequest("deleteScreen", { screenId });
   });
 
   test("saveProject / loadProject でデータが往復する", async () => {
@@ -108,17 +108,17 @@ test.describe("wsBridge ファイル操作 (#958)", { tag: ["@regression"] }, ()
 
   test("deleteScreen でファイルが削除される", async () => {
     const screenId = "e2e-test-screen-del-001";
+    const entityFile = path.join(workspacePath!, "harmony", "screens", `${screenId}.json`);
 
-    // まず保存
-    await sendBrowserRequest("saveScreen", { screenId, data: { pages: [] } });
+    await sendBrowserRequest("saveScreenEntity", { screenId, data: buildScreen({ id: screenId, name: "削除テスト画面" }) });
+    expect(fs.existsSync(entityFile)).toBe(true);
 
-    // 削除
     const deleteResult = await sendBrowserRequest("deleteScreen", { screenId });
     expect((deleteResult as { success: boolean }).success).toBe(true);
 
-    // 存在しない場合は null が返る
-    const loadResult = await sendBrowserRequest("loadScreen", { screenId });
-    expect(loadResult).toBeNull();
+    expect(fs.existsSync(entityFile)).toBe(false);
+    // 旧形式のデザイン (読み取り専用) も存在しない場合は null が返る
+    expect(await sendBrowserRequest("loadScreen", { screenId })).toBeNull();
   });
 
   /**
@@ -144,10 +144,10 @@ test.describe("wsBridge ファイル操作 (#958)", { tag: ["@regression"] }, ()
 
     test("既存スクリーンの mtime が取得できる", async () => {
       const screenId = "e2e-test-mtime-001";
-      await sendBrowserRequest("saveScreen", { screenId, data: { pages: [] } });
+      await sendBrowserRequest("saveScreenEntity", { screenId, data: buildScreen({ id: screenId, name: "mtime 画面" }) });
 
       const result = (await sendBrowserRequest("getFileMtime", {
-        kind: "screen",
+        kind: "screenEntity",
         id: screenId,
       })) as { mtime: number | null };
       expect(result.mtime).not.toBeNull();
@@ -158,7 +158,7 @@ test.describe("wsBridge ファイル操作 (#958)", { tag: ["@regression"] }, ()
 
     test("存在しないファイルは null が返る", async () => {
       const result = (await sendBrowserRequest("getFileMtime", {
-        kind: "screen",
+        kind: "screenEntity",
         id: "nonexistent-screen-xyz",
       })) as { mtime: number | null };
       expect(result.mtime).toBeNull();
@@ -171,21 +171,21 @@ test.describe("wsBridge ファイル操作 (#958)", { tag: ["@regression"] }, ()
       expect(result.mtime).toBeNull();
     });
 
-    test("saveScreen 後の mtime は以前の mtime 以上", async () => {
+    test("saveScreenEntity 後の mtime は以前の mtime 以上", async () => {
       const screenId = "e2e-test-mtime-increment-001";
-      await sendBrowserRequest("saveScreen", { screenId, data: { pages: [] } });
+      await sendBrowserRequest("saveScreenEntity", { screenId, data: buildScreen({ id: screenId, name: "mtime 画面" }) });
       const r1 = (await sendBrowserRequest("getFileMtime", {
-        kind: "screen",
+        kind: "screenEntity",
         id: screenId,
       })) as { mtime: number };
 
       await new Promise((resolve) => setTimeout(resolve, 50));
-      await sendBrowserRequest("saveScreen", {
+      await sendBrowserRequest("saveScreenEntity", {
         screenId,
-        data: { pages: [{ frames: [] }] },
+        data: buildScreen({ id: screenId, name: "mtime 画面 (更新)" }),
       });
       const r2 = (await sendBrowserRequest("getFileMtime", {
-        kind: "screen",
+        kind: "screenEntity",
         id: screenId,
       })) as { mtime: number };
 
