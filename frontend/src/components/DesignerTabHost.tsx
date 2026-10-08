@@ -19,6 +19,7 @@ import { mcpBridge } from "../mcp/mcpBridge";
 import { extractGrapesHtml, extractGrapesCss } from "../utils/pageLayoutCompositionPreview";
 import { loadScreenEntity } from "../store/screenStore";
 import { ScreenLayoutDesigner } from "./screen-layout/ScreenLayoutDesigner";
+import { hasLegacyDesignContent } from "../utils/legacyDesign";
 
 export interface DesignerTabHostProps {
   screenId: string;
@@ -40,14 +41,28 @@ export function DesignerTabHost(props: DesignerTabHostProps) {
   useEffect(() => {
     let alive = true;
     setView("loading");
-    loadScreenEntity(screenId)
-      .then((s) => {
+    (async () => {
+      try {
+        const s = await loadScreenEntity(screenId);
+        // design 参照があっても中身 (HTML / Puck Data) が空なら旧形式とはみなさない
+        // (新規作成した画面は design 参照だけを持つ)
+        let legacy = false;
+        if (!s.layout && s.design) {
+          if (s.design.editorKind === "puck") {
+            // Puck を明示的に選んだ画面は Puck のまま (外部 React 部品等、業務部品デザイナに無い機能を使うため)
+            legacy = true;
+          } else {
+            const d = await mcpBridge.request("loadScreen", { screenId }).catch(() => null);
+            legacy = hasLegacyDesignContent(d);
+          }
+        }
         if (!alive) return;
-        const legacy = !!s.design && !s.layout;
         setHasLegacy(legacy);
         setView(legacy ? "legacy" : "layout");
-      })
-      .catch(() => { if (alive) setView("layout"); });
+      } catch {
+        if (alive) setView("layout");
+      }
+    })();
     return () => { alive = false; };
   }, [screenId]);
 

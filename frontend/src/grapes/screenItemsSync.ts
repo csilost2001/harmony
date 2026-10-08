@@ -111,21 +111,32 @@ export function attachScreenItemsSync(
   editor: GEditor,
   screenId: string,
   isInternalLoadRef: { current: boolean },
+  isReadonlyRef?: { current: boolean },
 ): () => void {
+  // 原本を書き換えてよいのは、利用者が編集中にブロックを追加・削除した時だけ。
+  // - ロード / 再読込中 (isInternalLoadRef) は無視
+  // - 閲覧中 (isReadonlyRef) は無視 (開いただけで原本を変えない)
+  // - エディタ破棄中 (タブを閉じる・旧デザイナから切り替える) は全部品の除去イベントが出るため無視
+  let destroying = false;
+  const blocked = () => destroying || isInternalLoadRef.current || !!isReadonlyRef?.current;
   const onAdd = (cmp: Component) => {
-    if (isInternalLoadRef.current) return;
+    if (blocked()) return;
     syncAddComponent(screenId, cmp);
   };
   const onRemove = (cmp: Component) => {
-    if (isInternalLoadRef.current) return;
+    if (blocked()) return;
     syncRemoveComponent(screenId, cmp);
   };
+  const onDestroy = () => { destroying = true; };
 
   editor.on("component:add", onAdd);
   editor.on("component:remove", onRemove);
+  editor.on("destroy", onDestroy);
 
   return () => {
+    destroying = true;
     editor.off("component:add", onAdd);
     editor.off("component:remove", onRemove);
+    editor.off("destroy", onDestroy);
   };
 }

@@ -457,7 +457,7 @@ function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
 
       // #358: canvas ↔ screen-items 双方向同期
       const unsubScreenItemsSync = isScreenResource
-        ? attachScreenItemsSync(editor, screenId, isInternalLoadRef)
+        ? attachScreenItemsSync(editor, screenId, isInternalLoadRef, isReadonlyRef)
         : (() => undefined);
 
       // mcpBridge 起動
