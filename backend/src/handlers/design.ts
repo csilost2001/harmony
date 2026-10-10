@@ -11,13 +11,18 @@ import { loadDesignInputFromRoot } from "../designInput.js";
 import { findReferences } from "../references.js";
 import { assertEntityIdMcp } from "../mcpHelpers.js";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
-import type { RenameEntityType } from "../renameEntity.js";
+import { undoEntityRename, findUndoOperationWorkspaceRoot, type RenameEntityType } from "../renameEntity.js";
+import { runEntityRename, runEntityRenamePreview } from "../wsHandlers/refactor.js";
+import { wsBridge } from "../wsBridge.js";
+import { workspaceContextManager } from "../workspaceState.js";
 import type { ToolHandler } from "../mcpHelpers.js";
 
 const json = (v: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(v, null, 2) }] });
 const asIds = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : typeof v === "string" ? [v] : []);
 
-export const handleDesignTool: ToolHandler = async (name, args, root) => {
+const RENAMEABLE: RenameEntityType[] = ["screen", "table", "processFlow", "sequence", "view", "viewDefinition", "pageLayout"];
+
+export const handleDesignTool: ToolHandler = async (name, args, root, sessionId) => {
   const a = args ?? {};
   switch (name) {
     case "designer__check_design": {
@@ -59,6 +64,49 @@ export const handleDesignTool: ToolHandler = async (name, args, root) => {
       }
       assertEntityIdMcp(a.id, "id");
       return json(await findReferences(a.entityType as RenameEntityType, a.id as string, root));
+    }
+
+    case "designer__rename_entity": {
+      const et = a.entityType as RenameEntityType;
+      if (!RENAMEABLE.includes(et)) throw new McpError(ErrorCode.InvalidParams, `entityType は ${RENAMEABLE.join(" / ")} のどれかです`);
+      assertEntityIdMcp(a.oldId, "oldId");
+      assertEntityIdMcp(a.newId, "newId");
+      const wsId = workspaceContextManager.getActivePath(sessionId);
+      const preview = await runEntityRenamePreview(wsBridge, wsId, et, a.oldId as string, a.newId as string, root, sessionId);
+      const blockers = [
+        ...(!preview.oldExists ? [`${a.oldId} が見つかりません`] : []),
+        ...(!preview.uniqueOk ? [`${a.newId} は既に使われています`] : []),
+        ...(preview.lockedByOther ? ["ほかの人・AI がこの設計を編集中です"] : []),
+        ...(preview.concurrentEditRefs.length ? [`参照している設計を編集中のセッションがあります: ${preview.concurrentEditRefs.map((c) => `${c.entityKind}:${c.entityId}`).join(", ")}`] : []),
+        ...(preview.ambiguousDependencies.length ? ["同名の別の設計が参照されていて、どちらを指すか決められません"] : []),
+        ...(preview.positionsCollisions.length ? [`図の座標に旧 ID と新 ID が両方あります: ${preview.positionsCollisions.join(", ")}`] : []),
+      ];
+      const summary = {
+        entityType: et, oldId: a.oldId, newId: a.newId,
+        fileRenames: preview.fileRenames, totalRefs: preview.totalRefs,
+        // 参照している設計 (業務フロー・帳票・画面フローを含む)
+        references: (await findReferences(et, a.oldId as string, root)).referrers.map((r) => `${r.kind}:${r.id}`),
+        warnings: preview.warnings, blockers,
+      };
+      if (a.apply !== true) return json({ applied: false, ...summary, note: "予行です。実行するには apply: true を付けて、もう一度呼んでください" });
+      if (blockers.length) return json({ applied: false, ...summary, note: "止める理由があるため実行しませんでした" });
+      const { result, broadcastReload } = await runEntityRename(wsBridge, wsId, et, a.oldId as string, a.newId as string, root, sessionId);
+      broadcastReload();
+      return json({
+        applied: true, ...summary,
+        operation: { operationId: result.operation.operationId, undoTtlMs: result.operation.undoTtlMs },
+        undo: "戻す場合は designer__undo_rename に operation.operationId を渡す (一定時間のみ)",
+      });
+    }
+
+    case "designer__undo_rename": {
+      if (typeof a.operationId !== "string" || !a.operationId) throw new McpError(ErrorCode.InvalidParams, "operationId を指定してください");
+      const opRoot = findUndoOperationWorkspaceRoot(a.operationId) ?? root;
+      const result = await undoEntityRename(a.operationId, opRoot, { sessionId });
+      for (const ev of ["screenChanged", "tableChanged", "processFlowChanged", "viewChanged", "sequenceChanged", "viewDefinitionChanged", "pageLayoutChanged", "genericDefinitionChanged", "businessFlowChanged", "reportChanged", "layoutComponentsChanged"]) {
+        wsBridge.broadcast({ wsId: workspaceContextManager.getActivePath(sessionId), event: ev, data: { reload: true } });
+      }
+      return json({ undone: true, ...result });
     }
 
     default:

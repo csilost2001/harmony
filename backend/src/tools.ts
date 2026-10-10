@@ -271,6 +271,31 @@ export const tools = [
     },
   },
   {
+    name: "designer__rename_entity",
+    description:
+      "設計の ID を改名します (画面・テーブル・処理フロー・シーケンス・ビュー・ビュー定義・ページレイアウト)。ファイル名と、業務フロー・帳票・画面フロー・他の設計からの参照を、まとめて書き換えます。" +
+      "既定は予行 (apply を付けない) で、影響するファイル・参照元と、止める理由 (ID の重複・編集中のセッション等) を返します。内容を確かめてから apply: true で実行してください。実行結果の operation.operationId で、一定時間は designer__undo_rename で戻せます。",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        entityType: { type: "string", enum: ["screen", "table", "processFlow", "sequence", "view", "viewDefinition", "pageLayout"], description: "改名する設計の種類" },
+        oldId: { type: "string", description: "いまの ID" },
+        newId: { type: "string", description: "新しい ID (kebab-case)" },
+        apply: { type: "boolean", description: "true で実行。省略時は予行だけ" },
+      },
+      required: ["entityType", "oldId", "newId"],
+    },
+  },
+  {
+    name: "designer__undo_rename",
+    description: "designer__rename_entity で実行した改名を元に戻します (実行結果の operation.operationId を指定。時間が経つと戻せません)。",
+    inputSchema: {
+      type: "object" as const,
+      properties: { operationId: { type: "string", description: "designer__rename_entity の実行結果にある operation.operationId" } },
+      required: ["operationId"],
+    },
+  },
+  {
     name: "designer__get_test_viewpoints",
     description:
       "テスト観点表を返します。画面入力 (必須・桁数・範囲・形式の正常 / 異常 / 境界値) と処理 (分岐と終了) を、決まった ID つきで導出します。" +

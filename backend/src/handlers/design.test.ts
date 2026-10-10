@@ -87,3 +87,40 @@ describe("designer__find_references", () => {
     await expect(call("designer__find_references", { entityType: "bogus", id: "x" })).rejects.toThrow();
   });
 });
+
+describe("designer__rename_entity / designer__undo_rename", () => {
+  beforeAll(async () => {
+    await writeBusinessFlow("ship", { name: "出荷", lanes: [{ id: "a", name: "店員" }], steps: [{ id: "s1", lane: "a", kind: "task", name: "カートを見る", screenRef: "cart" }] }, ROOT);
+  });
+  const rename = async (args: Record<string, unknown>) => JSON.parse(await call("designer__rename_entity", args));
+
+  it("既定は予行: 影響を返すだけで、何も書き換えない", async () => {
+    const r = await rename({ entityType: "screen", oldId: "cart", newId: "cart-view" });
+    expect(r.applied).toBe(false);
+    expect(r.blockers).toEqual([]);
+    expect(r.references).toEqual(expect.arrayContaining(["businessFlow:ship"]));
+    expect(await fs.stat(path.join(ROOT, "harmony", "screens", "cart.json"))).toBeTruthy();
+    await expect(fs.stat(path.join(ROOT, "harmony", "screens", "cart-view.json"))).rejects.toThrow();
+  });
+
+  it("止める理由 (存在しない・ID の重複) があれば、apply でも実行しない", async () => {
+    const missing = await rename({ entityType: "screen", oldId: "nowhere", newId: "x-y", apply: true });
+    expect(missing.applied).toBe(false);
+    expect(missing.blockers.join("")).toContain("見つかりません");
+  });
+
+  it("apply: true で改名し (参照も追従)、undo で戻せる", async () => {
+    const done = await rename({ entityType: "screen", oldId: "cart", newId: "cart-view", apply: true });
+    expect(done.applied).toBe(true);
+    expect(done.operation.operationId).toBeTruthy();
+    await fs.stat(path.join(ROOT, "harmony", "screens", "cart-view.json"));
+    const flow = JSON.parse(await fs.readFile(path.join(ROOT, "harmony", "business-flows", "ship.json"), "utf-8"));
+    expect(flow.steps[0].screenRef).toBe("cart-view");
+
+    const undone = JSON.parse(await call("designer__undo_rename", { operationId: done.operation.operationId }));
+    expect(undone.undone).toBe(true);
+    await fs.stat(path.join(ROOT, "harmony", "screens", "cart.json"));
+    const flow2 = JSON.parse(await fs.readFile(path.join(ROOT, "harmony", "business-flows", "ship.json"), "utf-8"));
+    expect(flow2.steps[0].screenRef).toBe("cart");
+  });
+});

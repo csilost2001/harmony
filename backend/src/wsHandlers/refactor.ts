@@ -201,6 +201,54 @@ function makeMigrateEditSessions(
   };
 }
 
+/** 参照側の画面・設計が古い参照のまま残らないよう、改名のあとに reload を知らせる設計の種類 */
+const RENAME_RELOAD_EVENTS = [
+  "screenChanged", "tableChanged", "processFlowChanged", "viewChanged",
+  "sequenceChanged", "viewDefinitionChanged", "pageLayoutChanged",
+  "genericDefinitionChanged",
+  // 業務フロー / 帳票は、工程・出力契機の参照が書き換わることがある。開いている編集画面が古い参照のまま
+  // 「上書きして保存」して参照切れを再導入しないよう、これらにも reload を通知する
+  "businessFlowChanged", "reportChanged",
+  // 画面の改名は、独自部品の定義 (layout-components.json) の差し込み口・定義内の遷移先も書き換える
+  "layoutComponentsChanged",
+];
+
+/**
+ * 改名の影響範囲を調べる (状態を変えない)。編集中のセッションがあるかの確認つき。
+ * WebSocket (画面) と MCP (AI) の両方から使う。
+ */
+export async function runEntityRenamePreview(
+  bridge: WsBridge, wsId: string | null, et: RenameEntityType, oldId: string, newId: string, root: string, sessionId: string,
+) {
+  const editSessions = fetchEditSessions(bridge, wsId, et, oldId);
+  const fetchEditSessionsForRef = makeFetchEditSessionsForRef(bridge, wsId);
+  return previewEntityRename(et, oldId, newId, root, { sessionId, editSessions, fetchEditSessionsForRef });
+}
+
+/**
+ * ID の改名を実行する (主ファイル + 参照側を atomic に書き換え)。結果と、応答のあとで呼ぶ reload 通知を返す。
+ * WebSocket (画面) と MCP (AI) の両方から使う。
+ */
+export async function runEntityRename(
+  bridge: WsBridge, wsId: string | null, et: RenameEntityType, oldId: string, newId: string, root: string, sessionId: string,
+) {
+  const editSessions = fetchEditSessions(bridge, wsId, et, oldId);
+  const fetchEditSessionsForRef = makeFetchEditSessionsForRef(bridge, wsId);
+  // 編集セッションの対象 ID の移行 (ライブ + 永続化)
+  const migrateEditSessions = makeMigrateEditSessions(bridge, wsId);
+  const result = await renameEntityId(et, oldId, newId, root, { sessionId, editSessions, fetchEditSessionsForRef, migrateEditSessions });
+  const broadcastReload = () => {
+    // 改名した設計の changed (reload: true つき。別タブの編集画面が古い ID のまま保存して壊さないよう、
+    // 起点のクライアントにも届ける) と、参照側の設計の reload
+    bridge.broadcast({ wsId, event: `${et}Changed`, data: { oldId, newId, renamed: true, reload: true } });
+    for (const ev of RENAME_RELOAD_EVENTS) {
+      if (ev === `${et}Changed`) continue;
+      bridge.broadcast({ wsId, event: ev, data: { reload: true } });
+    }
+  };
+  return { result, broadcastReload };
+}
+
 export const refactorHandlers: RpcHandlerMap = {
   listRecentUndoOperations: async ({ root, respond, respondError }) => {
     try {
@@ -230,14 +278,7 @@ export const refactorHandlers: RpcHandlerMap = {
       const et = assertEntityType(entityType, "entityType");
       assertEntityId(oldId, "oldId");
       assertEntityId(newId, "newId");
-      const sessionId = clientId;
-      const wid = wsId();
-      const editSessions = fetchEditSessions(bridge, wid, et, oldId as string);
-      const fetchEditSessionsForRef = makeFetchEditSessionsForRef(bridge, wid);
-      const result = await previewEntityRename(et, oldId as string, newId as string, root(), {
-        sessionId, editSessions, fetchEditSessionsForRef,
-      });
-      respond(result);
+      respond(await runEntityRenamePreview(bridge, wsId(), et, oldId as string, newId as string, root(), clientId));
     } catch (e) {
       respondError(e instanceof Error ? e.message : String(e));
     }
@@ -251,66 +292,10 @@ export const refactorHandlers: RpcHandlerMap = {
       const et = assertEntityType(entityType, "entityType");
       assertEntityId(oldId, "oldId");
       assertEntityId(newId, "newId");
-      const sessionId = clientId;
-      const wid = wsId();
-      const editSessions = fetchEditSessions(bridge, wid, et, oldId as string);
-      const fetchEditSessionsForRef = makeFetchEditSessionsForRef(bridge, wid);
-      // Phase J Must-fix C: live + persisted migration callback を inject
-      const migrateEditSessions = makeMigrateEditSessions(bridge, wid);
-      const result = await renameEntityId(et, oldId as string, newId as string, root(), {
-        sessionId, editSessions, fetchEditSessionsForRef, migrateEditSessions,
-      });
+      const { result, broadcastReload } = await runEntityRename(bridge, wsId(), et, oldId as string, newId as string, root(), clientId);
       respond(result);
-
-      // broadcast: entityType 別 changed + 7 種 reload (UI cache 無効化)
-      // S-2 (Opus 独立レビュー): rename / undo で同じ 7 種を broadcast (cache 不整合防止)
-      //
-      // Phase I round 3+4 Must-fix A (Opus M-1 / Codex M-7 / Antigravity M-1):
-      // primary entity changed event の payload に `reload: true` を追加する。
-      // 旧実装は `{oldId, newId, renamed: true}` のみで、useResourceEditor 側の
-      // id filter (`d[broadcastIdField] !== id` で reject) を通過できず、別 tab
-      // で primary entity (oldId 含む同名) を開いている editor が stale cache のまま
-      // 残り、後続 save で silent data corruption する経路があった。
-      // `reload: true` 付与により id filter より前の早期分岐で hit するため、
-      // 全 receiver が確実に invalidation を受ける。
-      //
-      // Phase I round 3+4 Must-fix A (Opus M-1 / Codex M-2 / Antigravity M-2):
-      // primary broadcast から `excludeClientId` を外す。
-      // 理由: 同一 browser 内の別 tab で参照側 editor を開いていると、rename を
-      // 実行した origin client にも invalidation を届ける必要がある。origin の
-      // 主 entity tab は handleRenameSuccess (closeTab + navigate) で URL/tab を
-      // 差し替えるが、参照側 (ProcessFlow が Table を参照、等) は別 tab で開いて
-      // いるため自前の cache 更新経路を持たない。excludeClientId を外して
-      // origin/non-origin 双方の参照側 editor が確実に reload するようにする。
-      // 主 entity 側 tab は handleRenameSuccess の navigate で旧 tab が close され
-      // 新 tab の reload event は新 id を持つ store cache が拾うため副作用なし。
-      bridge.broadcast({
-        wsId: wid,
-        event: `${et}Changed`,
-        data: { oldId, newId, renamed: true, reload: true },
-      });
-      // 参照側 entity の cache を全 broadcast で reload させる (7 種全件 + generic-definition)
-      // Phase J Must-fix B (#1298 round 5 Codex M-2): generic-definition の path 形式 ref も
-      // I 期で rewrite 対象に追加したため、開いている GenericDefinitionEditor の stale state
-      // overwrite を緩和するため `genericDefinitionChanged` も broadcast する。
-      // 業務フロー / 帳票は、工程・出力契機の参照が書き換わることがある。開いている編集画面が古い参照のまま
-      // 「上書きして保存」して参照切れを再導入しないよう、これらにも reload を通知する
-      const RELOAD_EVENTS = [
-        "screenChanged", "tableChanged", "processFlowChanged", "viewChanged",
-        "sequenceChanged", "viewDefinitionChanged", "pageLayoutChanged",
-        "genericDefinitionChanged", "businessFlowChanged", "reportChanged",
-        // 画面の改名は、独自部品の定義 (layout-components.json) の差し込み口・定義内の遷移先も書き換える
-        "layoutComponentsChanged",
-      ];
-      for (const ev of RELOAD_EVENTS) {
-        if (ev === `${et}Changed`) continue; // 自身の event は上で発行済
-        bridge.broadcast({
-          wsId: wid, event: ev, data: { reload: true },
-          // Phase I round 3+4 Must-fix A: origin client にも参照側 reload を届ける
-          // (excludeClientId を外す。primary broadcast と同じ理由)
-        });
-      }
-
+      // 応答のあとで通知する (応答を受ける前に、先に reload の通知が届かないように)
+      broadcastReload();
     } catch (e) {
       respondError(e instanceof Error ? e.message : String(e));
     }
