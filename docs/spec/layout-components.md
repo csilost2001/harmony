@@ -117,7 +117,7 @@ schemas/v3/layout-components.v3.schema.json。
 | 改名するもの | 画面の `layout` | 独自部品の `args` |
 |---|---|---|
 | 画面項目 ID (`designer__rename_screen_item` / UI の ID 変更) | 通常の部品の `itemRef` を更新 | 差し込み口の種類が `item` のものだけ更新 (文言の `args` は触れない) |
-| 画面 ID (entity rename) | button / link の `props.screenRef` を更新 | **更新しない** (画面項目 ID・文言と区別できず、誤って書き換えるおそれがあるため)。存在しない遷移先は検証で警告 (`missing-screen`) |
+| 画面 ID (entity rename) | button / link の `props.screenRef` を更新 | 差し込み口の種類が `screen` のものだけ更新 (種類が `text` / `item` の値は、同じ文字でも触れない)。独自部品の定義 (`layout-components.json`) の、種類 `screen` の既定値と、定義の中で他の独自部品を使う `args` も更新する。種類が分からない (定義が無い) 値は触れず、存在しない遷移先は検証で警告 (`missing-screen`)。元に戻すと定義も戻る |
 | 独自部品 ID | 未対応 (登録後は変えられない) | — |
 
 定義の中の項目参照は常に `{{差し込み口}}` なので、画面項目の改名は定義に影響しない。

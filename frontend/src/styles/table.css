@@ -77,7 +77,7 @@
 }
 
 .table-list-title i {
-  color: color-mix(in srgb, #260aff 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
 }
 
 .table-list-count {
@@ -203,7 +203,7 @@
 
 .tables-data-list .data-list-th-sortable:hover,
 .tables-data-list .data-list-th-sorted {
-  background: color-mix(in srgb, #260aff 12%, transparent);
+  background: color-mix(in srgb, var(--hm-hue-blue) 12%, transparent);
 }
 
 .tables-data-list .data-list-row {
@@ -215,7 +215,7 @@
 }
 
 .tables-data-list .data-list-row.selected {
-  background: color-mix(in srgb, #260aff 12%, transparent);
+  background: color-mix(in srgb, var(--hm-hue-blue) 12%, transparent);
 }
 
 .tables-data-list .data-list-td-num {
@@ -252,8 +252,8 @@
   font-size: 11px;
   padding: 2px 8px;
   border-radius: 4px;
-  background: color-mix(in srgb, #260aff 15%, transparent);
-  color: color-mix(in srgb, #2c0aff 70%, var(--hm-fg));
+  background: color-mix(in srgb, var(--hm-hue-blue) 15%, transparent);
+  color: color-mix(in srgb, var(--hm-hue-blue) 70%, var(--hm-fg));
   flex-shrink: 0;
 }
 
@@ -306,12 +306,12 @@
 
 /* ── danger ghost (削除ボタン) ───────────────────────────────────── */
 .tbl-btn-ghost.danger {
-  color: color-mix(in srgb, #ff0a0a 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg));
 }
 
 .tbl-btn-ghost.danger:hover {
-  background: color-mix(in srgb, #ff0a0a 12%, transparent);
-  color: color-mix(in srgb, #ff0a0a 70%, var(--hm-fg));
+  background: color-mix(in srgb, var(--hm-hue-red) 12%, transparent);
+  color: color-mix(in srgb, var(--hm-hue-red) 70%, var(--hm-fg));
 }
 
 /* ── 共通ボタン ────────────────────────────────────────────────────────── */
@@ -396,8 +396,8 @@
 }
 
 .tbl-btn-icon.danger:hover {
-  background: color-mix(in srgb, #ff0a0a 12%, transparent);
-  color: color-mix(in srgb, #ff0a0a 80%, var(--hm-fg));
+  background: color-mix(in srgb, var(--hm-hue-red) 12%, transparent);
+  color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg));
 }
 
 /* ── モーダル ──────────────────────────────────────────────────────────── */
@@ -526,8 +526,8 @@
   font-size: 11px;
   padding: 2px 8px;
   border-radius: 4px;
-  background: color-mix(in srgb, #260aff 15%, transparent);
-  color: color-mix(in srgb, #2c0aff 70%, var(--hm-fg));
+  background: color-mix(in srgb, var(--hm-hue-blue) 15%, transparent);
+  color: color-mix(in srgb, var(--hm-hue-blue) 70%, var(--hm-fg));
 }
 
 .table-edit-icon {
@@ -616,8 +616,8 @@
 }
 
 .table-editor-tabs button.active .tab-count {
-  background: color-mix(in srgb, #260aff 20%, transparent);
-  color: color-mix(in srgb, #2c0aff 70%, var(--hm-fg));
+  background: color-mix(in srgb, var(--hm-hue-blue) 20%, transparent);
+  color: color-mix(in srgb, var(--hm-hue-blue) 70%, var(--hm-fg));
 }
 
 /* ── エディタ本体 ──────────────────────────────────────────────────────── */
@@ -662,7 +662,7 @@
 
 .columns-data-list .data-list-th-sortable:hover,
 .columns-data-list .data-list-th-sorted {
-  background: color-mix(in srgb, #260aff 12%, transparent);
+  background: color-mix(in srgb, var(--hm-hue-blue) 12%, transparent);
 }
 
 .columns-data-list .data-list-row {
@@ -674,11 +674,11 @@
 }
 
 .columns-data-list .data-list-row.selected {
-  background: color-mix(in srgb, #260aff 12%, transparent);
+  background: color-mix(in srgb, var(--hm-hue-blue) 12%, transparent);
 }
 
 .columns-data-list .data-list-row.selected:hover {
-  background: color-mix(in srgb, #260aff 18%, transparent);
+  background: color-mix(in srgb, var(--hm-hue-blue) 18%, transparent);
 }
 
 .columns-data-list .data-list-td-num {
@@ -698,13 +698,13 @@
 }
 
 .col-fk-icon {
-  color: color-mix(in srgb, #260aff 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   margin-left: 4px;
   font-size: 12px;
 }
 
 .col-pk-icon {
-  color: color-mix(in srgb, #ffd90a 70%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-amber) 70%, var(--hm-fg));
 }
 
 .col-type-badge {
@@ -724,7 +724,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 6px 12px;
-  background: color-mix(in srgb, #260aff 6%, transparent);
+  background: color-mix(in srgb, var(--hm-hue-blue) 6%, transparent);
   border: 1px solid rgba(124,107,255,0.2);
   border-radius: 6px;
   font-size: 12px;
@@ -746,7 +746,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 8px 16px;
-  background: color-mix(in srgb, #260aff 8%, transparent);
+  background: color-mix(in srgb, var(--hm-hue-blue) 8%, transparent);
   border-top: 1px solid rgba(124,107,255,0.15);
   border-bottom: 1px solid rgba(124,107,255,0.15);
   font-size: 13px;
@@ -760,7 +760,7 @@
 }
 
 .column-detail-title code {
-  color: color-mix(in srgb, #260aff 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   font-weight: 600;
 }
 
@@ -772,7 +772,7 @@
 
 .column-detail {
   padding: 16px 20px;
-  background: color-mix(in srgb, #260aff 4%, transparent);
+  background: color-mix(in srgb, var(--hm-hue-blue) 4%, transparent);
   border-top: 1px solid rgba(124,107,255,0.1);
 }
 
@@ -900,12 +900,12 @@
 
 .template-item:hover {
   border-color: #7c6bff;
-  background: color-mix(in srgb, #260aff 8%, transparent);
+  background: color-mix(in srgb, var(--hm-hue-blue) 8%, transparent);
   color: var(--hm-fg);
 }
 
 .template-item i {
-  color: color-mix(in srgb, #260aff 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   font-size: 14px;
 }
 
@@ -987,7 +987,7 @@
 
 .index-col-chip.selected {
   border-color: #7c6bff;
-  background: color-mix(in srgb, #260aff 12%, transparent);
+  background: color-mix(in srgb, var(--hm-hue-blue) 12%, transparent);
   color: var(--hm-fg);
 }
 
@@ -1282,26 +1282,26 @@
 }
 
 .td-kind-badge--literal {
-  background: color-mix(in srgb, #adc841 15%, transparent);
-  color: color-mix(in srgb, #adc841 70%, var(--hm-fg));
+  background: color-mix(in srgb, var(--hm-hue-lime) 15%, transparent);
+  color: color-mix(in srgb, var(--hm-hue-lime) 70%, var(--hm-fg));
   border: 1px solid rgba(180, 200, 100, 0.3);
 }
 
 .td-kind-badge--function {
-  background: color-mix(in srgb, #37b8d2 15%, transparent);
-  color: color-mix(in srgb, #37b8d2 70%, var(--hm-fg));
+  background: color-mix(in srgb, var(--hm-hue-cyan) 15%, transparent);
+  color: color-mix(in srgb, var(--hm-hue-cyan) 70%, var(--hm-fg));
   border: 1px solid rgba(100, 200, 220, 0.3);
 }
 
 .td-kind-badge--sequence {
-  background: color-mix(in srgb, #930aff 15%, transparent);
-  color: color-mix(in srgb, #930aff 70%, var(--hm-fg));
+  background: color-mix(in srgb, var(--hm-hue-purple) 15%, transparent);
+  color: color-mix(in srgb, var(--hm-hue-purple) 70%, var(--hm-fg));
   border: 1px solid rgba(200, 130, 255, 0.3);
 }
 
 .td-kind-badge--conventionRef {
-  background: color-mix(in srgb, #ff7a0a 18%, transparent);
-  color: color-mix(in srgb, #ff7a0a 70%, var(--hm-fg));
+  background: color-mix(in srgb, var(--hm-hue-orange) 18%, transparent);
+  color: color-mix(in srgb, var(--hm-hue-orange) 70%, var(--hm-fg));
   border: 1px solid rgba(255, 160, 80, 0.35);
 }
 
@@ -1311,8 +1311,8 @@
   border-radius: 4px;
   font-size: 11px;
   font-weight: 700;
-  background: color-mix(in srgb, #260aff 18%, transparent);
-  color: color-mix(in srgb, #2c0aff 70%, var(--hm-fg));
+  background: color-mix(in srgb, var(--hm-hue-blue) 18%, transparent);
+  color: color-mix(in srgb, var(--hm-hue-blue) 70%, var(--hm-fg));
   border: 1px solid rgba(124, 107, 255, 0.35);
 }
 
@@ -1322,8 +1322,8 @@
   border-radius: 4px;
   font-size: 11px;
   font-weight: 600;
-  background: color-mix(in srgb, #41c8ad 12%, transparent);
-  color: color-mix(in srgb, #41c8ad 70%, var(--hm-fg));
+  background: color-mix(in srgb, var(--hm-hue-cyan) 12%, transparent);
+  color: color-mix(in srgb, var(--hm-hue-cyan) 70%, var(--hm-fg));
   border: 1px solid rgba(100, 200, 180, 0.3);
 }
 
@@ -1378,7 +1378,7 @@
 .td-editor-title {
   font-size: 13px;
   font-weight: 600;
-  color: color-mix(in srgb, #2c0aff 70%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 70%, var(--hm-fg));
 }
 
 .td-editor-body {
@@ -1579,8 +1579,8 @@
   border-radius: 4px;
   font-size: 11px;
   font-weight: 700;
-  background: color-mix(in srgb, #0a89ff 15%, transparent);
-  color: color-mix(in srgb, #0a89ff 70%, var(--hm-fg));
+  background: color-mix(in srgb, var(--hm-hue-blue) 15%, transparent);
+  color: color-mix(in srgb, var(--hm-hue-blue) 70%, var(--hm-fg));
   border: 1px solid rgba(100, 180, 255, 0.3);
   white-space: nowrap;
 }
@@ -1591,8 +1591,8 @@
   border-radius: 4px;
   font-size: 11px;
   font-weight: 700;
-  background: color-mix(in srgb, #710aff 15%, transparent);
-  color: color-mix(in srgb, #710aff 70%, var(--hm-fg));
+  background: color-mix(in srgb, var(--hm-hue-purple) 15%, transparent);
+  color: color-mix(in srgb, var(--hm-hue-purple) 70%, var(--hm-fg));
   border: 1px solid rgba(200, 160, 255, 0.3);
 }
 
@@ -1621,7 +1621,7 @@
 }
 
 .index-row-where {
-  color: color-mix(in srgb, #ffb20a 70%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-amber) 70%, var(--hm-fg));
 }
 
 .index-row-actions {
@@ -1922,20 +1922,20 @@
 }
 
 .constraint-kind-badge--unique {
-  background: color-mix(in srgb, #0a89ff 15%, transparent);
-  color: color-mix(in srgb, #0a89ff 70%, var(--hm-fg));
+  background: color-mix(in srgb, var(--hm-hue-blue) 15%, transparent);
+  color: color-mix(in srgb, var(--hm-hue-blue) 70%, var(--hm-fg));
   border: 1px solid rgba(100, 180, 255, 0.3);
 }
 
 .constraint-kind-badge--check {
-  background: color-mix(in srgb, #ffb20a 15%, transparent);
-  color: color-mix(in srgb, #ffb20a 70%, var(--hm-fg));
+  background: color-mix(in srgb, var(--hm-hue-amber) 15%, transparent);
+  color: color-mix(in srgb, var(--hm-hue-amber) 70%, var(--hm-fg));
   border: 1px solid rgba(255, 200, 80, 0.3);
 }
 
 .constraint-kind-badge--foreignKey {
-  background: color-mix(in srgb, #40c96e 15%, transparent);
-  color: color-mix(in srgb, #40c96c 70%, var(--hm-fg));
+  background: color-mix(in srgb, var(--hm-hue-green) 15%, transparent);
+  color: color-mix(in srgb, var(--hm-hue-green) 70%, var(--hm-fg));
   border: 1px solid rgba(130, 220, 160, 0.3);
 }
 
@@ -2085,9 +2085,9 @@
 }
 
 .constraint-col-chip.selected {
-  background: color-mix(in srgb, #260aff 20%, transparent);
+  background: color-mix(in srgb, var(--hm-hue-blue) 20%, transparent);
   border-color: #7c6bff;
-  color: color-mix(in srgb, #2d0aff 70%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 70%, var(--hm-fg));
 }
 
 .constraint-col-chip:hover:not(.selected) {
@@ -2172,7 +2172,7 @@
 .seq-list-name-code {
   font-family: "Consolas", monospace;
   font-size: 13px;
-  color: color-mix(in srgb, #1a0aff 70%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 70%, var(--hm-fg));
 }
 .seq-card-content {
   display: flex;
@@ -2186,12 +2186,12 @@
   flex-shrink: 0;
 }
 .view-validation-ok {
-  color: color-mix(in srgb, #1eeca7 70%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-green) 70%, var(--hm-fg));
 }
 .seq-card-name {
   font-family: "Consolas", monospace;
   font-size: 13px;
-  color: color-mix(in srgb, #1a0aff 70%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 70%, var(--hm-fg));
   font-weight: 600;
 }
 .seq-card-description {
@@ -2200,7 +2200,7 @@
 }
 .seq-card-conv-ref {
   font-size: 12px;
-  color: color-mix(in srgb, #41c85a 70%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-green) 70%, var(--hm-fg));
 }
 .seq-card-meta {
   display: flex;
@@ -2211,7 +2211,7 @@
 }
 .seq-list-conv-ref {
   font-size: 12px;
-  color: color-mix(in srgb, #41c85a 70%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-green) 70%, var(--hm-fg));
   font-family: "Consolas", monospace;
 }
 .seq-list-description {
@@ -2279,7 +2279,7 @@
 }
 .seq-conv-preview-key {
   font-family: "Consolas", monospace;
-  color: color-mix(in srgb, #41c85a 70%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-green) 70%, var(--hm-fg));
   font-weight: 600;
   margin-bottom: 6px;
 }
@@ -2327,7 +2327,7 @@
   border-radius: 4px;
 }
 .seq-used-by-del:hover {
-  color: color-mix(in srgb, #ff0a0a 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg));
   background: var(--hm-surface);
 }
 .seq-used-by-add-form {
@@ -2350,7 +2350,7 @@
 .seq-ddl-toggle {
   background: none;
   border: none;
-  color: color-mix(in srgb, #41c85a 70%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-green) 70%, var(--hm-fg));
   cursor: pointer;
   font-size: 13px;
   display: flex;
@@ -2453,7 +2453,7 @@
   font-size: 11px;
   font-weight: 400;
   text-transform: none;
-  color: color-mix(in srgb, #0a6fff 70%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 70%, var(--hm-fg));
   margin-left: 8px;
   letter-spacing: 0;
 }
@@ -2473,7 +2473,7 @@
 .vd-query-label {
   font-size: 12px;
   font-weight: 600;
-  color: color-mix(in srgb, #0a6fff 70%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 70%, var(--hm-fg));
   min-width: 60px;
 }
 .vd-query-as {
@@ -2493,7 +2493,7 @@
 .vd-query-block-title {
   font-size: 11px;
   font-weight: 600;
-  color: color-mix(in srgb, #0a6fff 70%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 70%, var(--hm-fg));
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-bottom: 4px;

@@ -22,9 +22,9 @@ interface RecentItem {
 }
 
 const KIND_META: Record<RecentItem["kind"], { label: string; icon: string; color: string; route: (id: string) => string }> = {
-  screen: { label: "画面", icon: "bi-window", color: "color-mix(in srgb, #1e23eb 80%, var(--hm-fg))", route: (id) => `/screen/design/${id}` },
-  table: { label: "テーブル", icon: "bi-table", color: "color-mix(in srgb, #0dabfd 80%, var(--hm-fg))", route: (id) => `/table/edit/${id}` },
-  processFlow: { label: "処理フロー", icon: "bi-lightning-charge", color: "color-mix(in srgb, #f5a214 80%, var(--hm-fg))", route: (id) => `/process-flow/edit/${id}` },
+  screen: { label: "画面", icon: "bi-window", color: "color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg))", route: (id) => `/screen/design/${id}` },
+  table: { label: "テーブル", icon: "bi-table", color: "color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg))", route: (id) => `/table/edit/${id}` },
+  processFlow: { label: "処理フロー", icon: "bi-lightning-charge", color: "color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg))", route: (id) => `/process-flow/edit/${id}` },
 };
 
 function formatRelative(mtime: number, now: number): string {

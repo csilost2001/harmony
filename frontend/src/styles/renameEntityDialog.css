@@ -62,7 +62,7 @@
   margin-top: 10px;
   padding: 8px 10px;
   background: var(--hm-surface-4);
-  color: color-mix(in srgb, #cf3a47 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg));
   border-radius: 4px;
   font-size: 0.85rem;
 }
@@ -82,8 +82,8 @@
 .rename-entity-preview-warning {
   margin-bottom: 12px;
   padding: 8px 10px;
-  background: color-mix(in srgb, #ffc40a 9%, var(--hm-surface));
-  color: color-mix(in srgb, #f8bd11 80%, var(--hm-fg));
+  background: color-mix(in srgb, var(--hm-hue-amber) 9%, var(--hm-surface));
+  color: color-mix(in srgb, var(--hm-hue-amber) 80%, var(--hm-fg));
   border-radius: 4px;
   font-size: 0.85rem;
 }
@@ -138,7 +138,7 @@
 }
 
 .rename-entity-ref-group summary:hover {
-  color: color-mix(in srgb, #0c6efd 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
 }
 
 .rename-entity-ref-group ul {

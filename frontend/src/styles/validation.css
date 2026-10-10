@@ -10,14 +10,14 @@
 
 .validation-badge.error {
   background: var(--hm-surface-2);
-  color: color-mix(in srgb, #dd2c2c 80%, var(--hm-fg));
-  border: 1px solid color-mix(in srgb, #fa0f0f 38%, var(--hm-surface));
+  color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg));
+  border: 1px solid color-mix(in srgb, var(--hm-hue-red) 38%, var(--hm-surface));
 }
 
 .validation-badge.warning {
   background: var(--hm-surface-2);
-  color: color-mix(in srgb, #f88d11 80%, var(--hm-fg));
-  border: 1px solid color-mix(in srgb, #fbcc0e 38%, var(--hm-surface));
+  color: color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg));
+  border: 1px solid color-mix(in srgb, var(--hm-hue-amber) 38%, var(--hm-surface));
 }
 
 .validation-badge.clickable {
@@ -26,14 +26,14 @@
 }
 
 .validation-badge.clickable:hover {
-  background: color-mix(in srgb, #fbcb0e 9%, var(--hm-surface));
+  background: color-mix(in srgb, var(--hm-hue-amber) 9%, var(--hm-surface));
 }
 
 .process-flow-data-list .data-list-card:has(.process-flow-card-content.has-error),
 .views-data-list .data-list-card:has(.seq-card-content.has-error),
 .tables-data-list .data-list-card:has(.table-card-content.has-error) {
   background: var(--hm-surface-2);
-  border-color: color-mix(in srgb, #fa0f0f 38%, var(--hm-surface));
+  border-color: color-mix(in srgb, var(--hm-hue-red) 38%, var(--hm-surface));
 }
 
 .process-flow-data-list .data-list-card:has(.process-flow-card-content.has-error):hover,
@@ -46,13 +46,13 @@
 .views-data-list .data-list-card:has(.seq-card-content.has-warning:not(.has-error)),
 .tables-data-list .data-list-card:has(.table-card-content.has-warning:not(.has-error)) {
   background: var(--hm-surface-2);
-  border-color: color-mix(in srgb, #fbcc0e 38%, var(--hm-surface));
+  border-color: color-mix(in srgb, var(--hm-hue-amber) 38%, var(--hm-surface));
 }
 
 .process-flow-data-list .data-list-card:has(.process-flow-card-content.has-warning:not(.has-error)):hover,
 .views-data-list .data-list-card:has(.seq-card-content.has-warning:not(.has-error)):hover,
 .tables-data-list .data-list-card:has(.table-card-content.has-warning:not(.has-error)):hover {
-  border-color: color-mix(in srgb, #fbb90f 38%, var(--hm-surface));
+  border-color: color-mix(in srgb, var(--hm-hue-amber) 38%, var(--hm-surface));
 }
 
 .step-card.has-error {

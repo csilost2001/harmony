@@ -105,7 +105,8 @@ function snapshotPreview(snapshot: unknown, resourceType: string): string {
       const columns = Array.isArray(obj.columns) ? obj.columns.length : "?";
       return name ? `「${name}」 columns: ${columns} 件` : `columns: ${columns} 件`;
     }
-    case "screen":
+    case "business-flow":
+    case "report":
     case "view-definition": {
       const name = typeof obj.name === "string" ? obj.name : "";
       const id = typeof obj.id === "string" ? obj.id : "";

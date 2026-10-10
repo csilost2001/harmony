@@ -62,6 +62,8 @@ export function BusinessFlowListView() {
       await saveBusinessFlow(buildDefaultBusinessFlow(addId, addName.trim()), { createOnly: true });
     } catch (e) { setMessage(`作成できませんでした: ${errorText(e)}`); setShowAdd(false); reload().catch(console.error); return; }
     setShowAdd(false); setAddId(""); setAddName("");
+    // 作成した直後は、自動で編集を始める (編集画面が受け取る)
+    try { sessionStorage.setItem(`harmony-auto-edit:business-flow:${addId}`, "1"); } catch { /* 使えなくても開くだけ */ }
     navigate(wsPath(`/business-flow/edit/${encodeURIComponent(addId)}`));
   };
 

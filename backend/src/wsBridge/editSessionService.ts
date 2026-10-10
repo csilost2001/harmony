@@ -38,6 +38,10 @@ import {
   writePageLayout,
   writeScreenItems,
   writeSequence,
+  writeBusinessFlow,
+  writeReport,
+  assertBusinessFlowShape,
+  assertReportShape,
   writeGenericDefinition,
   resolveRoot,
 } from "../projectStorage.js";
@@ -369,6 +373,12 @@ export class EditSessionService {
       assertSafeName(resId.slice(sep + 2), "decoded generic-definition name");
     }
 
+    // 業務フロー・帳票は、保存が失敗したのに成功扱いになると、利用者が気づかないまま下書きを失う。
+    // 履歴を記録する前に、書ける形かを確認して失敗を知らせる (形が違う payload は保存しない)
+    const preSession = store.getById(editSessionId);
+    if (preSession?.resourceType === "business-flow" && preSession.payload != null) assertBusinessFlowShape(preSession.payload);
+    if (preSession?.resourceType === "report" && preSession.payload != null) assertReportShape(preSession.payload);
+
     const saveEvent = await store.save(editSessionId, sessionId);
 
     // 本体 resource file へ atomic write (P1-1, #907 regression 解消)
@@ -381,12 +391,6 @@ export class EditSessionService {
       const payload = session.payload;
       try {
         switch (type) {
-          // 旧エディタ (GrapesJS / Puck) の廃止後、旧デザイン本体 (screen / page-layout-design / puck-data)
-          // を書く編集セッションは無い (種別は旧データ・履歴のために残してある)。
-          case "screen":
-          case "page-layout-design":
-          case "puck-data":
-            break;
           case "table":
             await writeTable(resId, payload, root);
             resourceChange = { event: "tableChanged", data: { tableId: resId } };
@@ -416,6 +420,14 @@ export class EditSessionService {
             resourceChange = { event: "screenItemsChanged", data: { screenId: siScreenId } };
             break;
           }
+          case "business-flow":
+            await writeBusinessFlow(resId, payload, root);
+            resourceChange = { event: "businessFlowChanged", data: { flowId: resId } };
+            break;
+          case "report":
+            await writeReport(resId, payload, root);
+            resourceChange = { event: "reportChanged", data: { reportId: resId } };
+            break;
           case "sequence":
             await writeSequence(resId, payload, root);
             resourceChange = { event: "sequenceChanged", data: { sequenceId: resId } };
@@ -444,7 +456,9 @@ export class EditSessionService {
         }
       } catch (writeErr) {
         console.error(`[editSession.save] resource file 書き込み失敗 (type=${type}, id=${resId}):`, writeErr);
-        // 書き込み失敗でも saveHistory / broadcast は続行 (可用性優先)
+        // 業務フロー・帳票は、書き込みの失敗を保存の失敗として呼び出し元へ返す (成功扱いにしない)。
+        // 他の種別は従来どおり、書き込み失敗でも saveHistory / broadcast は続行 (可用性優先)
+        if (type === "business-flow" || type === "report") throw writeErr;
       }
     }
 

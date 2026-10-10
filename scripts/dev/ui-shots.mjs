@@ -8,11 +8,13 @@
  *   node scripts/dev/ui-shots.mjs --ws ... --out ... --theme dark --only process-flow-edit,screen-design
  *   node scripts/dev/ui-shots.mjs ... --ls harmony.processFlow.view=diagram   (localStorage の初期値)
  *
- * 前提: `npm run backend` と `npm run frontend` が起動済であること。
+ * dev server (5173 / 5179) が起動していなければ自動で起動し、終了時に止める (起動済みならそのまま使う)。
+ * --ws のワークスペースがなければ examples/retail の複製を使う。
  */
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
+import { ensureDevServers, resolveWorkspace } from "./lib/dev-servers.mjs";
 
 const require = createRequire(path.resolve("frontend/package.json"));
 const { chromium } = require("@playwright/test");
@@ -24,7 +26,7 @@ const args = Object.fromEntries(
   }, []),
 );
 const BASE = args.base ?? "http://localhost:5173";
-const wsPath = path.resolve(args.ws ?? "workspaces/dogfood-redesign-20261008");
+const wsPath = resolveWorkspace(args.ws ?? "workspaces/dogfood-redesign-20261008");
 const outDir = path.resolve(args.out ?? ".tmp/screenshots/ui-shots");
 const theme = args.theme; // "light" | "dark" | undefined
 const only = args.only ? new Set(args.only.split(",")) : null;
@@ -75,6 +77,7 @@ const routes = [
   ...(args.extra ? args.extra.split(",").map((p) => [p.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, ""), p]) : []),
 ].filter(([name]) => !only || only.has(name));
 
+const servers = await ensureDevServers();
 const browser = await chromium.launch();
 const context = await browser.newContext({ viewport: { width, height }, colorScheme: theme === "dark" ? "dark" : "light" });
 const page = await context.newPage();
@@ -116,3 +119,4 @@ if (errors.length) {
   console.log(`${errors.length} console errors → ${path.relative(process.cwd(), path.join(outDir, "_errors.txt"))}`);
 }
 await browser.close();
+servers.stop();

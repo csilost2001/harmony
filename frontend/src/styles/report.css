@@ -45,3 +45,8 @@
 .rpe-source { display: flex; flex-direction: column; gap: 4px; }
 .rpe-source select, .rpe-source input { border: 1px solid var(--hm-border-strong); background: var(--hm-surface); color: var(--hm-fg); border-radius: 4px; padding: 4px 6px; font: inherit; font-size: 13px; min-width: 0; }
 .rpe .bfe-body { grid-template-columns: 270px minmax(0, 1fr) 320px; }
+
+/* 用紙の見本で項目をドラッグ中の、落とす位置の目印 */
+.rpe-paper-wrap [data-field][draggable="true"] { cursor: grab; }
+.rpe-paper-wrap .rpe-drop-before { box-shadow: inset 3px 0 0 var(--hm-accent-solid); }
+.rpe-paper-wrap .rpe-drop-after { box-shadow: inset -3px 0 0 var(--hm-accent-solid); }

@@ -86,18 +86,46 @@ describe("EditSessionService.save resource change broadcast", () => {
     expect(deliveredClientIds).not.toContain("client-other-workspace");
   });
 
-  it("旧エディタ (GrapesJS / Puck) 廃止後、page-layout-design の編集セッションは旧デザイン本体を書かない", async () => {
-    const { editSession } = service.create("client-editor", "page-layout-design", "main-layout", "レイアウト");
+  it("業務フローの編集セッションを保存すると、business-flows/<id>.json に書かれて businessFlowChanged が配信される", async () => {
+    const { editSession } = service.create("client-editor", "business-flow", "order-flow", "業務フロー");
     const editSessionId = (editSession as { id: string }).id;
     service.update("client-editor", editSessionId, {
-      pages: [{ frames: [{ component: { type: "wrapper", components: "<main data-region-name=\"main\"></main>" } }] }],
+      id: "order-flow", name: "注文フロー", lanes: [{ id: "l1", name: "顧客" }], steps: [{ id: "s1", lane: "l1", kind: "start", name: "開始" }],
     });
 
     const result = await service.save("client-editor", editSessionId);
     expect(result.ok).toBe(true);
 
-    await expect(fs.access(path.join(tmpDir, "data", "page-layouts", "main-layout.design.json"))).rejects.toThrow();
-    expect(broadcasts.find((call) => call.event === "pageLayoutChanged")).toBeUndefined();
+    const written = JSON.parse(await fs.readFile(path.join(tmpDir, "data", "business-flows", "order-flow.json"), "utf-8"));
+    expect(written.name).toBe("注文フロー");
+    expect(broadcasts.find((call) => call.event === "businessFlowChanged")?.data).toEqual({ flowId: "order-flow" });
+  });
+
+  it("帳票の編集セッションを保存すると、reports/<id>.json に書かれて reportChanged が配信される", async () => {
+    const { editSession } = service.create("client-editor", "report", "delivery", "帳票");
+    const editSessionId = (editSession as { id: string }).id;
+    service.update("client-editor", editSessionId, { id: "delivery", name: "納品書", sections: [{ id: "s1", kind: "detail", fields: [] }] });
+
+    const result = await service.save("client-editor", editSessionId);
+    expect(result.ok).toBe(true);
+
+    const written = JSON.parse(await fs.readFile(path.join(tmpDir, "data", "reports", "delivery.json"), "utf-8"));
+    expect(written.name).toBe("納品書");
+    expect(broadcasts.find((call) => call.event === "reportChanged")?.data).toEqual({ reportId: "delivery" });
+  });
+
+  it("業務フロー・帳票の編集セッションは、書けない形の payload を保存すると失敗し、ファイルも作らず、変更の通知も出さない", async () => {
+    for (const [type, id, bad, dir] of [
+      ["business-flow", "bad-flow", { id: "bad-flow", name: "x", lanes: [] }, "business-flows"], // steps が無い
+      ["report", "bad-report", { id: "bad-report", name: "x" }, "reports"], // sections が無い
+    ] as const) {
+      const { editSession } = service.create("client-editor", type, id, "x");
+      const editSessionId = (editSession as { id: string }).id;
+      service.update("client-editor", editSessionId, bad);
+      await expect(service.save("client-editor", editSessionId)).rejects.toThrow(/の形で指定してください/);
+      await expect(fs.access(path.join(tmpDir, "data", dir, `${id}.json`))).rejects.toThrow();
+      expect(broadcasts.find((c) => c.event === (type === "report" ? "reportChanged" : "businessFlowChanged"))).toBeUndefined();
+    }
   });
 
   it("#1368 Codex Round 3 Must-fix: long composite generic-definition resourceId (>64 chars) も WS handler が accept する", async () => {

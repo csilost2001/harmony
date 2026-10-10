@@ -23,7 +23,7 @@
 .tab-error-fallback-panel h2 {
   margin: 0 0 0.75rem;
   font-size: 1.25rem;
-  color: color-mix(in srgb, #d03948 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg));
 }
 
 .app-error-fallback-panel h1 i,
@@ -149,7 +149,7 @@
 .error-dialog-header h2 {
   margin: 0;
   font-size: 1.05rem;
-  color: color-mix(in srgb, #d03948 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg));
 }
 
 .error-dialog-header h2 i {

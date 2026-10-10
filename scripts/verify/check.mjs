@@ -1,21 +1,28 @@
 #!/usr/bin/env node
 /**
  * check — コミット前の一括検証。各工程を順に実行し、最後に結果を一覧表示する。
- *   1. shared build  2. frontend 型検査  3. backend 型検査  4. 直書き色検査
- *   5. frontend 単体テスト  6. backend 単体テスト
+ *   1. shared build  2. frontend 型検査  3. backend 型検査  4. 直書き色検査  4b. CSS 未定義クラス検査 (Bootstrap 風のクラス)
+ *   5. サンプル設計の要確認 (examples/ 全件が警告なし)  6. frontend 単体テスト  7. backend 単体テスト
  * 使い方: npm run check   (--skip-tests でテスト工程を省略)
  */
+import fs from "node:fs";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const skipTests = process.argv.includes("--skip-tests");
+// examples/ の各サンプルが、設計書の「要確認事項」を警告以上で持っていないこと (サンプルは見本なので常にきれいに保つ)
+const sampleDirs = fs.readdirSync(path.join(root, "examples"), { withFileTypes: true })
+  .filter((d) => d.isDirectory() && fs.existsSync(path.join(root, "examples", d.name, "harmony.json")))
+  .map((d) => path.join("examples", d.name));
 const steps = [
   ["shared build", "npm", ["run", "build", "--workspace=@harmony/shared"], root],
   ["frontend 型検査", "npx", ["tsc", "-b"], path.join(root, "frontend")],
   ["backend 型検査", "npx", ["tsc", "--noEmit"], path.join(root, "backend")],
   ["直書き色検査", "node", ["scripts/verify/no-raw-colors.mjs"], root],
+  ["CSS 未定義クラス検査", "node", ["scripts/verify/no-undefined-bootstrap-classes.mjs"], root],
+  ["サンプル設計の要確認", "node", ["scripts/check-design.mjs", ...sampleDirs, "--strict"], root],
   ...(skipTests ? [] : [
     ["frontend 単体テスト", "npx", ["vitest", "run", "--reporter=dot"], path.join(root, "frontend")],
     ["backend 単体テスト", "npx", ["vitest", "run", "--reporter=dot"], path.join(root, "backend")],

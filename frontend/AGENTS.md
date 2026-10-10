@@ -74,6 +74,7 @@ multi browser context の e2e で **Vite dev server (port 5173) が間欠 crash*
 ## 配色 (アプリ UI)
 
 - アプリ UI の色は `src/styles/tokens.css` のトークン (`var(--hm-*)`) だけを使う。CSS / inline style に色を直書きしない
+- Bootstrap の CSS 本体は読み込んでいない。`btn` / `form-control` / `row` / `mb-2` などの Bootstrap 風のクラスは `src/styles/bootstrapCompat.css` が配色トークンで定義している。使うクラスの定義が無いとブラウザの既定の見た目 (太い灰色の枠など) になるため、`npm run verify:classes` (`npm run check` に含まれる) が検出する。新しい画面は画面ごとの CSS を書く
 - 検査: `npm run verify:colors` (repo root)。既存の直書きは `bash scripts/dev/apply-color-tokens.sh` で機械変換できる
 - ライト / ダークは `src/theme/appTheme.ts` が `<html data-theme>` を切り替える。上部ヘッダーのみ両テーマ共通の暗色 (`--hm-chrome-*`)
 

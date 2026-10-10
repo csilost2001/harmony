@@ -122,7 +122,7 @@
 }
 
 .esd-dot-viewer {
-  background: color-mix(in srgb, #ffc20a 32%, var(--hm-surface));
+  background: color-mix(in srgb, var(--hm-hue-amber) 32%, var(--hm-surface));
 }
 
 .esd-dot-self {
@@ -182,11 +182,11 @@
 .esd-new-draft-btn {
   font-size: 12px;
   padding: 5px 12px;
-  color: color-mix(in srgb, #0c6efd 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   text-decoration: none;
 }
 
 .esd-new-draft-btn:hover {
   background: var(--hm-surface-2);
-  color: color-mix(in srgb, #1670f3 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
 }

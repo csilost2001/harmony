@@ -445,11 +445,11 @@ export function GenericDefinitionEditor() {
   }, [kind, decodedName, navigate, wsPath]);
 
   if (!kind) {
-    return <div style={{ padding: "24px", color: "color-mix(in srgb, #ff0a0a 80%, var(--hm-fg))" }}>不正な kind です</div>;
+    return <div style={{ padding: "24px", color: "color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg))" }}>不正な kind です</div>;
   }
 
   if (!decodedName) {
-    return <div style={{ padding: "24px", color: "color-mix(in srgb, #ff0a0a 80%, var(--hm-fg))" }}>不正な kind または name です</div>;
+    return <div style={{ padding: "24px", color: "color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg))" }}>不正な kind または name です</div>;
   }
 
   if (loading) {
@@ -457,7 +457,7 @@ export function GenericDefinitionEditor() {
   }
 
   if (error) {
-    return <div style={{ padding: "24px", color: "color-mix(in srgb, #ff0a0a 80%, var(--hm-fg))" }}>{error}</div>;
+    return <div style={{ padding: "24px", color: "color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg))" }}>{error}</div>;
   }
 
   if (!def) return null;
@@ -520,9 +520,9 @@ export function GenericDefinitionEditor() {
           data-testid="generic-definition-reload-banner"
           style={{
             padding: "8px 16px",
-            background: "color-mix(in srgb, #fbcb0e 9%, var(--hm-surface))",
-            borderBottom: "1px solid color-mix(in srgb, #fbcc0e 38%, var(--hm-surface))",
-            color: "color-mix(in srgb, #ea6c20 80%, var(--hm-fg))",
+            background: "color-mix(in srgb, var(--hm-hue-amber) 9%, var(--hm-surface))",
+            borderBottom: "1px solid color-mix(in srgb, var(--hm-hue-amber) 38%, var(--hm-surface))",
+            color: "color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg))",
             fontSize: "0.85rem",
             display: "flex",
             alignItems: "center",
@@ -549,7 +549,7 @@ export function GenericDefinitionEditor() {
         <h2 style={{ margin: 0, fontSize: "1.1rem" }}>
           {GENERIC_DEFINITION_KIND_LABELS[kind]}編集
         </h2>
-        <span style={{ fontFamily: "monospace", fontWeight: 600, color: "color-mix(in srgb, #0c6efd 80%, var(--hm-fg))" }}>{def.name}</span>
+        <span style={{ fontFamily: "monospace", fontWeight: 600, color: "color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg))" }}>{def.name}</span>
         <div style={{ marginLeft: "auto", display: "flex", gap: "8px", alignItems: "center" }}>
           {issues.length > 0 && (
             <span style={{ display: "inline-flex", gap: "4px", marginRight: "4px" }}>
@@ -580,13 +580,13 @@ export function GenericDefinitionEditor() {
       </div>
 
       {saveError && (
-        <div style={{ padding: "8px 24px", background: "var(--hm-surface-2)", color: "color-mix(in srgb, #ff0a0a 80%, var(--hm-fg))", fontSize: "0.88rem" }}>
+        <div style={{ padding: "8px 24px", background: "var(--hm-surface-2)", color: "color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg))", fontSize: "0.88rem" }}>
           {saveError}
         </div>
       )}
 
       {saveSuccess && (
-        <div style={{ padding: "8px 24px", background: "var(--hm-surface-2)", color: "color-mix(in srgb, #3ad05b 80%, var(--hm-fg))", fontSize: "0.88rem" }}>
+        <div style={{ padding: "8px 24px", background: "var(--hm-surface-2)", color: "color-mix(in srgb, var(--hm-hue-green) 80%, var(--hm-fg))", fontSize: "0.88rem" }}>
           保存しました
         </div>
       )}
@@ -606,7 +606,7 @@ export function GenericDefinitionEditor() {
 
             <label style={labelStyle}>種別</label>
             <span style={{ padding: "6px 0", fontSize: "0.88rem" }}>
-              <span style={{ background: "var(--hm-surface-3)", color: "color-mix(in srgb, #0c6efd 80%, var(--hm-fg))", padding: "2px 8px", borderRadius: "4px", fontFamily: "monospace" }}>
+              <span style={{ background: "var(--hm-surface-3)", color: "color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg))", padding: "2px 8px", borderRadius: "4px", fontFamily: "monospace" }}>
                 {def.kind}
               </span>
               <span style={{ marginLeft: "8px", color: "var(--hm-fg-2)" }}>{GENERIC_DEFINITION_KIND_LABELS[def.kind]}</span>
@@ -614,7 +614,7 @@ export function GenericDefinitionEditor() {
 
             <label style={labelStyle}>
               目的
-              <span style={{ color: "color-mix(in srgb, #ff0a0a 80%, var(--hm-fg))" }}> *</span>
+              <span style={{ color: "color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg))" }}> *</span>
             </label>
             <div>
               <textarea
@@ -634,7 +634,7 @@ export function GenericDefinitionEditor() {
         <section style={{ marginBottom: "24px" }}>
           <h3 style={{ fontSize: "1rem", marginBottom: "4px" }}>
             責務
-            <span style={{ color: "color-mix(in srgb, #ff0a0a 80%, var(--hm-fg))" }}> *</span>
+            <span style={{ color: "color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg))" }}> *</span>
             <span style={{ fontSize: "0.8rem", color: "var(--hm-fg-muted)", fontWeight: "normal", marginLeft: "8px" }}>最低 1 件</span>
           </h3>
           {renderSectionIssues(["responsibilities"])}
@@ -671,7 +671,7 @@ export function GenericDefinitionEditor() {
         <section style={{ marginBottom: "24px" }}>
           <h3 style={{ fontSize: "1rem", marginBottom: "4px" }}>
             適用領域
-            <span style={{ color: "color-mix(in srgb, #ff0a0a 80%, var(--hm-fg))" }}> *</span>
+            <span style={{ color: "color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg))" }}> *</span>
           </h3>
           {renderSectionIssues(["targets"])}
           <div style={{ display: "flex", gap: "16px" }}>

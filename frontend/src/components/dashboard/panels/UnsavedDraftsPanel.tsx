@@ -18,6 +18,8 @@ const KIND_META: Record<string, { label: string; rawRoute: (id: string) => strin
   table: { label: "テーブル", rawRoute: (id) => `/table/edit/${id}` },
   action: { label: "処理フロー", rawRoute: (id) => `/process-flow/edit/${id}` },
   flow: { label: "画面フロー", rawRoute: () => "/screen/flow" },
+  businessFlow: { label: "業務フロー", rawRoute: (id) => `/business-flow/edit/${id}` },
+  report: { label: "帳票", rawRoute: (id) => `/report/edit/${id}` },
 };
 
 function enrich(draft: DraftMeta, wsPath: (s: string) => string): DraftView {

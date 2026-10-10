@@ -315,8 +315,8 @@ const PROCESS_FLOW_LEGACY_DIR = "actions";
  */
 const SCALAR_REF_FIELDS: Record<RenameEntityType, string[]> = {
   // screenRef: 業務部品の木 (screen.layout) の button / link の遷移先 (props.screenRef)。
-  // 独自部品の差し込み値 (layout 内 args) は画面項目 ID・文言と区別できないため自動更新せず、
-  // 存在しない遷移先は validateLayoutWithComponents が警告する (docs/spec/layout-components.md)
+  // 独自部品の差し込み値 (layout 内 args) のうち、種類が「画面」の差し込み口の値は専用の処理
+  // (rewriteComponentScreenArgs) で更新する。文言・項目の差し込み値は区別できないため触れない
   screen: ["screenId", "sourceScreenId", "targetScreenId", "screenRef"],
   table: ["tableId", "sourceTableId", "targetTableId", "referencedTableId"],
   processFlow: ["processFlowId", "handlerFlowId", "refId"],
@@ -1122,6 +1122,7 @@ async function assertReferenceSourcesReadable(
     path.join(root, "harmony.json"),
     path.join(dataRoot, "screen-flow-positions.json"),
     path.join(dataRoot, "er-layout.json"),
+    path.join(dataRoot, "layout-components.json"),
   );
   const genericDir = path.join(dataRoot, "generic-definitions");
   let kinds: import("node:fs").Dirent[];
@@ -1318,6 +1319,16 @@ async function scanAllRefs(
     });
   }
 
+  // 10b. layout-components.json (独自部品の定義): 画面 rename で、差し込み口 (種類 = 画面) の既定値・
+  //     定義の中の遷移先 (screenRef) ・他の独自部品の使い方の差し込み値に画面 ID が入る
+  if (entityType === "screen") {
+    const lcAbs = path.join(dataRoot, "layout-components.json");
+    const lcRaw = await readFileContentOrNull(lcAbs);
+    if (lcRaw !== null) {
+      sources.push({ entityKind: "layoutComponents", entityId: "layout-components.json", absPath: lcAbs, data: JSON.parse(lcRaw) });
+    }
+  }
+
   // 11. generic-definitions/<kind>/*.json (Phase I round 3+4 Must-fix E、Antigravity M-6)
   //     `relations[].ref` に top-level entity への path 形式 ref が記述される (例:
   //     "tables/transactions", "screens/dashboard", "process-flows/createTransaction" 等)。
@@ -1369,6 +1380,8 @@ async function scanAllRefs(
   // Phase I round 3+4 Must-fix D: positions oldId+newId 同時存在は blocker として別 channel に分離。
   const positionsCollisions: string[] = [];
   const onCollision = (msg: string) => positionsCollisions.push(msg);
+
+  const componentParamKinds = entityType === "screen" ? await loadComponentParamKinds(dataRoot) : new Map<string, Map<string, string>>();
 
   for (const src of sources) {
     // Phase F M-4 (Codex 独立レビュー): 旧実装は rename 対象 entity 自身を ref scan から常に
@@ -1425,6 +1438,12 @@ async function scanAllRefs(
         src.data, oldId, newId, onSpecialMatch, onCollision,
       );
     }
+    // 独自部品の差し込み口 (種類 = 画面) に入れた画面 ID
+    if (entityType === "screen" && src.entityKind === "screen") {
+      specializedUpdated = rewriteComponentScreenArgs(specializedUpdated, componentParamKinds, oldId, newId, onSpecialMatch);
+    } else if (entityType === "screen" && src.entityKind === "layoutComponents") {
+      specializedUpdated = rewriteLayoutComponentsScreenRefs(specializedUpdated, componentParamKinds, oldId, newId, onSpecialMatch);
+    }
     // Phase I round 3+4 Must-fix E (Antigravity M-6): generic-definitions の path 形式 ref も走査
     if (src.entityKind === "genericDefinition") {
       specializedUpdated = rewriteGenericDefinitionPathRefs(
@@ -1465,6 +1484,105 @@ async function scanAllRefs(
   }
 
   return { locations, perFileUpdate, warnings, positionsCollisions };
+}
+
+/**
+ * 独自部品の差し込み口のうち、種類が「画面」(`kind: "screen"`) のものに入れた画面 ID を、画面の改名に追従させる。
+ *
+ * - 画面の部品の木 (`layout.nodes`) の component ノードの `args[<差し込み口 ID>]`
+ * - 独自部品の定義 (`layout-components.json`) の、差し込み口の既定値と、定義の中の component ノードの `args`
+ *   (定義の部品の木にある `screenRef` の文字そのものは、汎用の走査が更新する)
+ * 差し込み口の種類は、独自部品の定義が宣言している。種類が「文言」「項目」の差し込み値は触れない。
+ */
+type ComponentParamKinds = Map<string, Map<string, string>>; // 部品 ID → (差し込み口 ID → 種類)
+
+function paramKindsOf(components: unknown): ComponentParamKinds {
+  const out: ComponentParamKinds = new Map();
+  for (const c of Array.isArray(components) ? components : []) {
+    if (!isPlainObject(c) || typeof c.id !== "string") continue;
+    const kinds = new Map<string, string>();
+    for (const p of Array.isArray(c.params) ? c.params : []) if (isPlainObject(p) && typeof p.id === "string" && typeof p.kind === "string") kinds.set(p.id, p.kind);
+    out.set(c.id, kinds);
+  }
+  return out;
+}
+
+function rewriteNodesScreenArgs(
+  nodes: unknown, pointer: string, kinds: ComponentParamKinds, oldId: string, newId: string, onMatch: (jsonPointer: string) => void,
+): unknown {
+  if (!Array.isArray(nodes)) return nodes;
+  return nodes.map((n, i) => {
+    if (!isPlainObject(n)) return n;
+    const here = `${pointer}/${i}`;
+    let next: Record<string, unknown> = n;
+    if (n.type === "component" && typeof n.componentRef === "string" && isPlainObject(n.args)) {
+      const paramKinds = kinds.get(n.componentRef);
+      let args: Record<string, unknown> | null = null;
+      for (const [k, v] of Object.entries(n.args)) {
+        if (v === oldId && paramKinds?.get(k) === "screen") {
+          args = args ?? { ...n.args };
+          args[k] = newId;
+          onMatch(`${here}/args/${escapeJsonPointerToken(k)}`);
+        }
+      }
+      if (args) next = { ...next, args };
+    }
+    if (Array.isArray(n.children)) {
+      const children = rewriteNodesScreenArgs(n.children, `${here}/children`, kinds, oldId, newId, onMatch);
+      if (children !== n.children) next = { ...next, children };
+    }
+    return next;
+  });
+}
+
+/** 独自部品の定義 (layout-components.json) から、差し込み口の種類を読む。ファイルが無ければ空 */
+async function loadComponentParamKinds(dataRoot: string): Promise<ComponentParamKinds> {
+  const raw = await readFileContentOrNull(path.join(dataRoot, "layout-components.json"));
+  if (raw === null) return new Map();
+  try {
+    const doc = JSON.parse(raw) as unknown;
+    return paramKindsOf(isPlainObject(doc) ? doc.components : undefined);
+  } catch {
+    return new Map(); // 壊れていれば、事前確認 (assertReferenceSourcesReadable) が止める
+  }
+}
+
+/** 画面ファイルの layout.nodes を処理する (独自部品の定義は kinds で渡す) */
+function rewriteComponentScreenArgs(
+  screen: unknown, kinds: ComponentParamKinds, oldId: string, newId: string, onMatch: (jsonPointer: string) => void,
+): unknown {
+  if (!isPlainObject(screen) || !isPlainObject(screen.layout)) return screen;
+  const nodes = rewriteNodesScreenArgs(screen.layout.nodes, "/layout/nodes", kinds, oldId, newId, onMatch);
+  return nodes === screen.layout.nodes ? screen : { ...screen, layout: { ...screen.layout, nodes } };
+}
+
+/** layout-components.json (独自部品の定義) を処理する */
+function rewriteLayoutComponentsScreenRefs(
+  doc: unknown, kinds: ComponentParamKinds, oldId: string, newId: string, onMatch: (jsonPointer: string) => void,
+): unknown {
+  if (!isPlainObject(doc) || !Array.isArray(doc.components)) return doc;
+  const components = doc.components.map((c, ci) => {
+    if (!isPlainObject(c)) return c;
+    let next: Record<string, unknown> = c;
+    // 差し込み口の既定値
+    if (Array.isArray(c.params)) {
+      let changed = false;
+      const params = c.params.map((p, pi) => {
+        if (isPlainObject(p) && p.kind === "screen" && p.default === oldId) {
+          changed = true;
+          onMatch(`/components/${ci}/params/${pi}/default`);
+          return { ...p, default: newId };
+        }
+        return p;
+      });
+      if (changed) next = { ...next, params };
+    }
+    // 定義の中の、他の独自部品の使い方 (component ノードの args)
+    const nodes = rewriteNodesScreenArgs(c.nodes, `/components/${ci}/nodes`, kinds, oldId, newId, onMatch);
+    if (nodes !== c.nodes) next = { ...next, nodes };
+    return next;
+  });
+  return { ...doc, components };
 }
 
 // ── specialized handlers (M-4): KEY / entry self-id ─────────────────────────
@@ -1712,7 +1830,8 @@ function detectLockedByOther(
 /** entityType → editSessionStore で使う resourceType への mapping */
 export function entityTypeToResourceType(entityType: RenameEntityType): string {
   switch (entityType) {
-    case "screen":         return "screen";
+    // 画面は画面項目 + レイアウトの編集セッション (screen-item) が `screens/<id>.json` を書く
+    case "screen":         return "screen-item";
     case "table":          return "table";
     case "processFlow":    return "process-flow";
     case "sequence":       return "sequence";
@@ -1740,6 +1859,7 @@ async function detectConcurrentEditRefs(
   entityType: RenameEntityType,
   oldId: string,
   opts: RenameOpts | undefined,
+  root: string,
 ): Promise<Array<{ entityKind: string; entityId: string; sessionId: string }>> {
   const fetcher = opts?.fetchEditSessionsForRef;
   if (!fetcher) return [];
@@ -1767,6 +1887,14 @@ async function detectConcurrentEditRefs(
     if (seenKeys.has(key)) continue;
     seenKeys.add(key);
     candidates.push({ entityKind: loc.entityKind, entityId: loc.entityId });
+  }
+
+  // 改名で参照が書き換わる業務フロー・帳票 (編集セッションを持つ) も対象にする
+  if (entityType === "screen" || entityType === "processFlow") {
+    for (const id of (await renameBusinessFlowRefsInProject(entityType, oldId, "", root, true)).changed) candidates.push({ entityKind: "businessFlow", entityId: id });
+  }
+  if (entityType === "screen" || entityType === "processFlow" || entityType === "table") {
+    for (const id of (await renameReportRefsInProject(entityType, oldId, "", root, true)).changed) candidates.push({ entityKind: "report", entityId: id });
   }
 
   for (const c of candidates) {
@@ -2051,7 +2179,7 @@ async function _previewEntityRenameImpl(
   const ambiguousDependencies = await detectAmbiguousDependencies(entityType, oldId, root, dataRoot);
 
   // Phase G M-4 (Codex round 2): 参照側 entity の active EditSession 検出
-  const concurrentEditRefs = await detectConcurrentEditRefs(refScan, entityType, oldId, opts);
+  const concurrentEditRefs = await detectConcurrentEditRefs(refScan, entityType, oldId, opts, root);
 
   return {
     entityType, oldId, newId,
@@ -2175,7 +2303,7 @@ async function _renameEntityIdImpl(
   // Phase G M-4 (Codex round 2): 参照側 entity に active Edit session があれば block
   // (rename は committed file を直接 write するため、別 session の draft 保持 → 後続 save で
   // rename 済 ref を旧 id に巻き戻して orphan 再生成するリスクを回避)
-  const concurrentEditRefs = await detectConcurrentEditRefs(refScan, entityType, oldId, opts);
+  const concurrentEditRefs = await detectConcurrentEditRefs(refScan, entityType, oldId, opts, root);
   if (concurrentEditRefs.length > 0) {
     const refs = concurrentEditRefs
       .map((r) => `${r.entityKind}/${r.entityId} (session=${r.sessionId})`)
@@ -2237,9 +2365,13 @@ async function _renameEntityIdImpl(
     // scanAllRefs は既に主ファイルの自己 ref location を locations に含めている (M-4 skip 解除済)
     // ため、ここでは write する content の整合だけ取れば良い。
     const identityRewritten = withRewrittenId(entityType, primaryData, newId);
-    const { rewritten: rewrittenPrimary } = rewriteSelfRefsInPrimary(
+    const { rewritten: selfRewritten } = rewriteSelfRefsInPrimary(
       entityType, identityRewritten, oldId, newId,
     );
+    // 自分自身を、独自部品の「画面」の差し込み口に入れている場合も追従する
+    const rewrittenPrimary = entityType === "screen"
+      ? rewriteComponentScreenArgs(selfRewritten, await loadComponentParamKinds(dataRoot), oldId, newId, () => undefined)
+      : selfRewritten;
 
     // 主ファイル new write は writeX 関数経由で行う (uuid preserve + schema annotate + path containment)
     await writeEntityById(entityType, newId, rewrittenPrimary, root);
@@ -2342,14 +2474,10 @@ async function _renameEntityIdImpl(
   // migration。失敗しても rename 自体は成功扱いとし、operation snapshot に書込状況を
   // 記録して undo で reversible に扱う。
   //
-  // Phase J Should-fix SF-ε (#1298 round 5 Codex S-1): Screen rename は primary + aux
-  // (screen-item / puck-data) の 3 resource type すべてで history dir migration を行う。
-  // 旧実装は primary 1 種のみで auxiliary history (ScreenItemsView / Puck Designer の編集
-  // 履歴) を rename 後に新 id から不可視化していた。
+  // Phase J Should-fix SF-ε (#1298 round 5 Codex S-1): 編集履歴の dir も新 id へ移す
+  // (旧エディタ廃止後、画面の編集セッション種別は screen-item のみ)。
   const kebabResourceType = entityTypeToResourceType(entityType);
-  const historyResourceTypes = entityType === "screen"
-    ? ["screen", "screen-item", "puck-data"]
-    : [kebabResourceType];
+  const historyResourceTypes = [kebabResourceType];
   const migrationWarnings: string[] = [];
   const historyMigrations: Array<{ resourceType: string; oldId: string; newId: string }> = [];
   for (const rt of historyResourceTypes) {
@@ -2370,11 +2498,8 @@ async function _renameEntityIdImpl(
   }
 
   // Phase J Must-fix C (#1298 round 5 Codex M-3): live store + persisted file の resourceId
-  // 移行を bridge API 経由で行う (旧 raw fs 操作を廃止)。Screen rename は 3 resource type
-  // すべてで migrate する (screen + screen-item + puck-data の auxiliary session も対象)。
-  const sessionResourceTypes = entityType === "screen"
-    ? (["screen", "screen-item", "puck-data"] as const)
-    : [kebabResourceType as string] as const;
+  // 移行を bridge API 経由で行う (旧 raw fs 操作を廃止)。
+  const sessionResourceTypes = [kebabResourceType as string] as const;
   let editSessionMigrations: Array<{ editSessionId: string; oldResourceId: string; newResourceId: string; resourceType: string }> = [];
   for (const rt of sessionResourceTypes) {
     try {

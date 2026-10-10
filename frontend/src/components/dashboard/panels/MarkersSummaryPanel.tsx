@@ -138,7 +138,7 @@ export function MarkersSummaryPanel() {
               >
                 {g.name}
               </button>
-              <span style={{ color: "color-mix(in srgb, #f97010 80%, var(--hm-fg))", fontWeight: 600, marginLeft: 8 }}>{g.count}</span>
+              <span style={{ color: "color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg))", fontWeight: 600, marginLeft: 8 }}>{g.count}</span>
             </li>
           ))}
           {summary.perGroup.length > 5 && (

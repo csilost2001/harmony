@@ -91,13 +91,13 @@ export function ProcessFlowMaturityPanel() {
         <div style={{ background: "#22c55e", width: `${progressPct}%`, height: "100%", transition: "width 0.3s" }} />
       </div>
       <div style={{ display: "flex", gap: 12, marginTop: 10, fontSize: "0.85rem", flexWrap: "wrap" }}>
-        <button type="button" className="btn btn-sm btn-link p-0" onClick={go} style={{ color: "color-mix(in srgb, #2edb6e 80%, var(--hm-fg))", textDecoration: "none" }} title="一覧へ">
+        <button type="button" className="btn btn-sm btn-link p-0" onClick={go} style={{ color: "color-mix(in srgb, var(--hm-hue-green) 80%, var(--hm-fg))", textDecoration: "none" }} title="一覧へ">
           <i className="bi bi-circle-fill me-1" />確定 {summary.committed}
         </button>
-        <button type="button" className="btn btn-sm btn-link p-0" onClick={go} style={{ color: "color-mix(in srgb, #f97010 80%, var(--hm-fg))", textDecoration: "none" }} title="一覧へ">
+        <button type="button" className="btn btn-sm btn-link p-0" onClick={go} style={{ color: "color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg))", textDecoration: "none" }} title="一覧へ">
           <i className="bi bi-circle-fill me-1" />暫定 {summary.provisional}
         </button>
-        <button type="button" className="btn btn-sm btn-link p-0" onClick={go} style={{ color: "color-mix(in srgb, #f5a214 80%, var(--hm-fg))", textDecoration: "none" }} title="一覧へ">
+        <button type="button" className="btn btn-sm btn-link p-0" onClick={go} style={{ color: "color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg))", textDecoration: "none" }} title="一覧へ">
           <i className="bi bi-circle-fill me-1" />下書き {summary.draft}
         </button>
         {summary.notes > 0 && (
@@ -107,7 +107,7 @@ export function ProcessFlowMaturityPanel() {
         )}
       </div>
       {unfinished > 0 && (
-        <div style={{ marginTop: 8, fontSize: "0.8rem", color: "color-mix(in srgb, #f97010 80%, var(--hm-fg))" }}>
+        <div style={{ marginTop: 8, fontSize: "0.8rem", color: "color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg))" }}>
           <i className="bi bi-exclamation-triangle me-1" />
           未確定: {unfinished} フロー (AI 実装前に committed へ昇格推奨)
         </div>
