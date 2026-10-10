@@ -92,7 +92,52 @@
 
 
 
-<table><thead><tr><th>章</th><th>内容</th><th>出典</th></tr></thead><tbody><tr><td>表紙</td><td>システム名・版・作成日・件数・承認欄</td><td>harmony.json meta</td></tr><tr><td>1 画面一覧</td><td>画面 ID / 画面名 / 種別 / URL / 成熟度</td><td>screens</td></tr><tr><td>2 画面遷移</td><td>遷移元 → 遷移先 / 契機</td><td>harmony.json screenTransitions</td></tr><tr><td>3 画面設計 (画面ごと)</td><td>基本情報、概要、画面レイアウト (業務部品の木の静的描画)、項目定義表、イベント、関連処理</td><td>screen.layout / items</td></tr><tr><td>4 処理一覧 / 処理設計 (フローごと)</td><td>基本情報、アクションごとの入出力・フロー図 (SVG)・処理記述表</td><td>process-flows</td></tr><tr><td>5 テーブル一覧 / テーブル定義</td><td>列定義、インデックス、利用箇所 (CRUD)</td><td>tables</td></tr><tr><td>6 CRUD 図</td><td>処理フロー × テーブルのマトリクスと所見</td><td>process-flows の dbAccess</td></tr><tr><td>7 メッセージ一覧</td><td><code>@conv.msg.*</code></td><td>conventions catalog</td></tr><tr><td>8 要確認事項</td><td>レイアウト検証結果、未作成のレイアウト、未配置項目、CRUD の所見</td><td>上記の自動検出</td></tr></tbody></table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>章</th><th>内容</th><th>出典</th></tr></thead><tbody><tr><td>表紙</td><td>システム名・版・作成日・件数・承認欄</td><td>harmony.json meta</td></tr><tr><td>1 画面一覧</td><td>画面 ID / 画面名 / 種別 / URL / 成熟度</td><td>screens</td></tr><tr><td>2 画面遷移</td><td>遷移元 → 遷移先 / 契機</td><td>harmony.json screenTransitions</td></tr><tr><td>3 画面設計 (画面ごと)</td><td>基本情報、概要、画面レイアウト (業務部品の木の静的描画)、項目定義表、イベント、関連処理</td><td>screen.layout / items</td></tr><tr><td>4 処理一覧 / 処理設計 (フローごと)</td><td>基本情報、アクションごとの入出力・フロー図 (SVG)・処理記述表</td><td>process-flows</td></tr><tr><td>5 テーブル一覧 / テーブル定義</td><td>列定義、インデックス、利用箇所 (CRUD)</td><td>tables</td></tr><tr><td>6 CRUD 図</td><td>処理フロー × テーブルのマトリクスと所見</td><td>process-flows の dbAccess</td></tr><tr><td>7 バッチ・定期処理一覧</td><td>flowType が batch / scheduled の処理と起動</td><td>process-flows</td></tr><tr><td>8 外部インタフェース一覧</td><td>externalSystem ステップから導出した外部システムと呼び出し</td><td>process-flows</td></tr><tr><td>9 イベント一覧</td><td>発行 / 購読する処理とカタログの説明</td><td>process-flows / catalogs.events</td></tr><tr><td>10 独自部品 (定義があるときだけ)</td><td>独自部品ごとの差し込み口・見た目・使っている画面 (<a href="../../spec/layout-components/">layout-components.md</a>)</td><td>layout-components.json</td></tr><tr><td>10〜 業務フロー (定義があるときだけ)</td><td>フローごとの図 (スイムレーン SVG) と工程表。工程から画面・処理へリンク (<a href="../../spec/business-flow/">business-flow.md</a>)</td><td>business-flows/*.json</td></tr><tr><td>(業務フローの次) 帳票 (定義があるときだけ)</td><td>帳票ごとの基本情報・出力条件・用紙の見本図・項目定義表。出力契機から画面・処理へリンク (<a href="../../spec/report/">report.md</a>)</td><td>reports/*.json</td></tr><tr><td>(帳票の次) 権限 (定義か権限の指定があるときだけ)</td><td>役割 / 権限 / 画面 × 役割 / 処理 × 役割 (<a href="#31-%E6%A8%A9%E9%99%90%E3%81%AE%E7%AB%A0%E3%81%AE%E5%B0%8E%E5%87%BA%E8%A6%8F%E5%89%87">§3.1</a>)</td><td>conventions catalog の role / permission、画面の permissions、処理の requiredPermissions</td></tr><tr><td>(権限の次) メッセージ一覧</td><td><code>@conv.msg.*</code></td><td>conventions catalog</td></tr><tr><td>(最後) 要確認事項</td><td>レイアウト検証結果、未作成のレイアウト、未配置項目、CRUD の所見、使われていない独自部品</td><td>上記の自動検出</td></tr></tbody></table>
+<p>画面設計の画面レイアウトは、独自部品の参照部品を定義で展開して描く (点線の枠と名前付き)。独自部品の中で <code>args</code> 経由で使われている画面項目は「配置済み」に数える。</p>
+<h3 id="31-権限の章の導出規則">3.1 権限の章の導出規則</h3>
+<p>新しいスキーマは使わず、既存の定義から導く (<code>shared/src/accessMatrix.ts</code>)。</p>
+<ul>
+<li><strong>役割の有効な権限</strong> = 役割自身の <code>permissions</code> + <code>inherits</code> で継承した役割の有効な権限 (未定義の継承元・循環は無視して要確認に出す)</li>
+<li><strong>画面 × 役割</strong>: 画面の <code>permissions</code> を<strong>すべて</strong>持つ役割に ○。権限を指定していない画面は「誰でも開ける」として表には載せず、件数だけ注記する</li>
+<li><strong>処理 × 役割</strong>: 処理 (アクション) の <code>requiredPermissions</code> を同様に扱う。権限を指定していない処理は省略する</li>
+<li>権限キーは <code>@conv.permission.&#x3C;key></code> でもキーだけでもよい</li>
+<li>要確認事項に出す: 規約に無い権限を参照 (画面・処理・役割) / どの役割にも付与されていない権限を要求する画面・処理 (誰も使えない) / 役割の継承の不整合 / どこでも必要とされていない権限 (情報)</li>
+</ul>
 <h2 id="4-crud-の導出規則">4. CRUD の導出規則</h2>
 <p>処理フロー内 (分岐・ループ・TX・ロールバック時・コミット後を含む) の <code>dbAccess</code> を集計する。<code>SELECT</code>=R、<code>INSERT</code>=C、<code>UPDATE</code>=U、<code>DELETE</code>=D、<code>UPSERT</code>/<code>MERGE</code>=C+U、名前に <code>DECREMENT</code>/<code>INCREMENT</code> を含む独自操作=U、<code>CLEAR</code> を含む独自操作=D、それ以外=R。</p>
 <p>所見: どの処理フローからも使われないテーブル / 登録 (C) する処理が無いテーブル / 参照 (R) する処理が無いテーブル。</p>

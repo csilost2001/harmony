@@ -4,10 +4,9 @@
  * #696: per-screen タブ化。useParams<{ screenId }> で画面 ID を取得し、
  * 1 画面 = 1 タブ = 1 draft モデルに統一。
  *
- * 項目追加経路 3 つ:
+ * 項目追加経路 2 つ:
  * 1. 空欄追加 (従来)
- * 2. 画面デザインから選択 (#323 — モーダルで候補リスト + チェックボックス)
- * 3. (将来) GrapesJS サイドバーからの直接追加 (#322)
+ * 2. 業務部品デザイナで部品を置くときに作る / 未配置の項目を置く (docs/spec/screen-layout.md)
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";

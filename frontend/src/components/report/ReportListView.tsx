@@ -24,7 +24,7 @@ const MATURITY: Record<string, string> = { draft: "作成中", provisional: "レ
 export function ReportListView() {
   const navigate = useNavigate();
   const { wsPath } = useWorkspacePath();
-  const { reports: flows, loaded, reload } = useReports();
+  const { reports: flows, unreadable, loaded, reload } = useReports();
   const [query, setQuery] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [addId, setAddId] = useState("");
@@ -115,6 +115,11 @@ export function ReportListView() {
         </div>
       </div>
       {message && <p className="bfl-message" role="status">{message}</p>}
+      {unreadable.length > 0 && (
+        <p className="bfl-unreadable" role="alert" data-testid="unreadable-files">
+          <i className="bi bi-exclamation-triangle" /> 読めない帳票のファイルがあります (JSON が壊れています): {unreadable.map((f) => <code key={f}>{f}</code>)}。ファイルを直すか、同じ ID で保存し直すと退避して置き換えます。
+        </p>
+      )}
       <DataList
         items={sort.sorted}
         columns={columns}

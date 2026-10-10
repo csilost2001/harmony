@@ -85,6 +85,7 @@ AI Agent ──(http://localhost:5179/mcp)──┐
 | Path | 画面 |
 |---|---|
 | `/` | ダッシュボード |
+| `/document` | 設計書 (読み取り専用の紙面。HTML 保存・印刷) |
 | `/screen/flow` `/screen/list` | 画面フロー / 画面一覧 |
 | `/screen/design/:screenId` `/screen/items/:screenId` | 画面デザイナ / 画面項目 |
 | `/table/list` `/table/edit/:tableId` `/table/er` | テーブル一覧 / 編集 / ER 図 |

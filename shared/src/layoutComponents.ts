@@ -157,8 +157,8 @@ export function collectExpandedItemRefs(nodes: readonly LayoutNode[], defs: read
 
 /** 差し込み口の ID を変える。定義の中の `{{旧}}` も新しい ID に書き換える (args のキーは呼び出し側が扱う) */
 export function renameComponentParam(def: LayoutComponentDef, oldId: string, newId: string): LayoutComponentDef {
-  const re = new RegExp(`\\{\\{\\s*${oldId}\\s*\\}\\}`, "g");
-  const sub = (v: string) => v.replace(re, `{{${newId}}}`);
+  const re = new RegExp(`\\{\\{\\s*${oldId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\}\\}`, "g");
+  const sub = (v: string) => v.replace(re, () => `{{${newId}}}`);
   const mapNode = (n: LayoutNode): LayoutNode => {
     const out: LayoutNode = { ...n };
     if (n.itemRef) out.itemRef = sub(n.itemRef);
@@ -190,11 +190,12 @@ export function renameLayoutItemRefs(
     if (n.type === "component" && n.args) {
       const def = findComponent(defs, n.componentRef);
       const args = { ...n.args };
+      let changed = false;
       for (const q of def?.params ?? []) {
         const v = args[q.id];
-        if (q.kind === "item" && v !== undefined && Object.prototype.hasOwnProperty.call(mapping, v)) { args[q.id] = mapping[v]; count++; }
+        if (q.kind === "item" && v !== undefined && Object.prototype.hasOwnProperty.call(mapping, v)) { args[q.id] = mapping[v]; count++; changed = true; }
       }
-      if (args !== n.args) out = { ...out, args };
+      if (changed) out = { ...out, args };
     }
     if (n.children) out = { ...out, children: n.children.map(walk) };
     return out;

@@ -19,6 +19,7 @@ import fsSync from "fs";
 import path from "path";
 import crypto from "node:crypto";
 import type { ValidateFunction } from "ajv";
+import { logWarn } from "./serverLog.js";
 import { buildHarmonyAjv } from "@harmony/shared";
 import { workspaceContextManager } from "./workspaceState.js";
 import { assertPathContained } from "./security/idValidator.js";
@@ -1129,162 +1130,157 @@ export async function deleteLayoutComponent(componentId: string, root: string, f
   return { deleted: true, usages };
 }
 
-// ── 業務フロー (business-flows/<id>.json、docs/spec/business-flow.md) ──────────────
+// ── 業務フロー・帳票 (business-flows/<id>.json / reports/<id>.json) ─────────────────
+// どちらも「ディレクトリの中の 1 ファイル = 1 件」で、保存・一覧・改名追従を同じ仕組みで行う。
+// 仕様: docs/spec/business-flow.md / docs/spec/report.md
 
-/** business-flows/<id>.json から schemas/v3/business-flow.v3.schema.json への相対 path */
-function businessFlowSchemaRef(dataRoot: string): string {
-  return path.relative(businessFlowsDir(dataRoot), path.join(SCHEMAS_DIR, "v3", "business-flow.v3.schema.json")).replace(/\\/g, "/");
+/** 他で更新されていたため保存しなかった (楽観ロック)。`code` で見分ける */
+export class DocConflictError extends Error {
+  readonly code = "DOC_CONFLICT";
+  constructor(label: string, id: string) {
+    super(`${label}「${id}」は、開いたあとに他で更新されています。読み直すか、上書きして保存してください`);
+  }
 }
 
-/** 業務フローを 1 件読む。無ければ null */
-export async function readBusinessFlow(flowId: string, root: string): Promise<Record<string, unknown> | null> {
+interface DocStore {
+  label: string;
+  dir: (dataRoot: string) => string;
+  schemaFile: string;
+  /** 構造として最低限必要な配列 (これが無いものは保存しない) */
+  arrays: string[];
+}
+const BUSINESS_FLOW_STORE: DocStore = { label: "業務フロー", dir: businessFlowsDir, schemaFile: "business-flow.v3.schema.json", arrays: ["lanes", "steps"] };
+const REPORT_STORE: DocStore = { label: "帳票", dir: reportsDir, schemaFile: "report.v3.schema.json", arrays: ["sections"] };
+
+interface DocFile { file: string; id: string; data: Record<string, unknown> }
+interface DocList { docs: DocFile[]; unreadable: string[] }
+
+/** JSON を読む。無ければ null、あるのに読めない (壊れている) ときは例外 */
+async function readJsonStrict(filePath: string): Promise<unknown | null> {
+  let raw: string;
+  try { raw = await fs.readFile(filePath, "utf-8"); } catch (e) {
+    if ((e as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw e;
+  }
+  try { return JSON.parse(raw); } catch { throw new Error(`${path.basename(filePath)} を読めません (JSON が壊れています)`); }
+}
+
+async function readDoc(store: DocStore, id: string, root: string): Promise<Record<string, unknown> | null> {
   const dataRoot = await resolveDataRoot(root);
-  const filePath = path.join(businessFlowsDir(dataRoot), `${flowId}.json`);
+  const filePath = path.join(store.dir(dataRoot), `${id}.json`);
   assertPathContained(filePath, dataRoot);
-  const data = await readJSON<unknown>(filePath);
+  const data = await readJsonStrict(filePath).catch((e) => { throw new Error(`${store.label}「${id}」: ${(e as Error).message}`); });
   return isRecord(data) ? data : null;
 }
 
-/** 業務フローを全件読む (id 順) */
-export async function listBusinessFlows(root: string): Promise<Array<Record<string, unknown>>> {
+/** 全件を読む (ファイル名順)。読めないファイルは黙って捨てず、unreadable として返して警告ログに出す */
+async function listDocs(store: DocStore, root: string): Promise<DocList> {
+  const out: DocList = { docs: [], unreadable: [] };
+  let dir: string;
+  let files: string[];
   try {
-    const dataRoot = await resolveDataRoot(root);
-    const dir = businessFlowsDir(dataRoot);
-    const files = (await fs.readdir(dir)).filter((f) => f.endsWith(".json")).sort();
-    const out: Array<Record<string, unknown>> = [];
-    for (const f of files) {
-      const d = await readJSON<unknown>(path.join(dir, f));
-      if (isRecord(d)) out.push(d);
+    dir = store.dir(await resolveDataRoot(root));
+    files = (await fs.readdir(dir)).filter((f) => f.endsWith(".json")).sort();
+  } catch { return out; }
+  for (const f of files) {
+    try {
+      const d = await readJsonStrict(path.join(dir, f));
+      if (isRecord(d)) out.docs.push({ file: f, id: f.replace(/\.json$/, ""), data: d });
+      else out.unreadable.push(f);
+    } catch {
+      out.unreadable.push(f);
     }
-    return out;
-  } catch {
-    return [];
   }
+  if (out.unreadable.length) logWarn("storage", "doc.list.unreadable", { label: store.label, files: out.unreadable });
+  return out;
+}
+
+/** 1 件を書く。id はファイル名と一致させ、作成日時は初回を保ち、更新日時を付ける。expectedUpdatedAt があり、保存済みの更新日時と違えば保存しない */
+async function writeDoc(store: DocStore, id: string, data: unknown, root: string, expectedUpdatedAt?: string): Promise<Record<string, unknown>> {
+  if (!isRecord(data) || store.arrays.some((k) => !Array.isArray(data[k]))) {
+    throw new Error(`${store.label}は { id, name, ${store.arrays.map((k) => `${k}: []`).join(", ")} } の形で指定してください`);
+  }
+  const dataRoot = await ensureDataDirFromRoot(root);
+  const dir = store.dir(dataRoot);
+  const filePath = path.join(dir, `${id}.json`);
+  assertPathContained(filePath, dataRoot);
+  let prev: unknown = null;
+  try { prev = await readJsonStrict(filePath); } catch {
+    // 壊れているファイルは消さずに退避してから、新しい内容を書く
+    await fs.rename(filePath, `${filePath}.broken-${Date.now()}`);
+  }
+  if (expectedUpdatedAt !== undefined && isRecord(prev) && prev.updatedAt !== expectedUpdatedAt) throw new DocConflictError(store.label, id);
+  const now = new Date().toISOString();
+  const { $schema: _ignored, ...rest } = data;
+  void _ignored;
+  const doc = {
+    $schema: path.relative(dir, path.join(SCHEMAS_DIR, "v3", store.schemaFile)).replace(/\\/g, "/"),
+    version: 1,
+    ...rest,
+    id,
+    createdAt: isRecord(prev) && typeof prev.createdAt === "string" ? prev.createdAt : (typeof rest.createdAt === "string" ? rest.createdAt : now),
+    updatedAt: now,
+  };
+  await writeJSON(filePath, doc);
+  return doc;
+}
+
+async function deleteDoc(store: DocStore, id: string, root: string): Promise<boolean> {
+  const dataRoot = await resolveDataRoot(root);
+  const filePath = path.join(store.dir(dataRoot), `${id}.json`);
+  assertPathContained(filePath, dataRoot);
+  try { await fs.unlink(filePath); return true; } catch { return false; }
 }
 
 /**
- * 業務フローを 1 件書く。id はファイル名と一致させ、作成日時は初回を保ち、更新日時を付ける。
- * 構造 (lanes / steps が配列) 以外の問題は保存を妨げない (検証結果として別に返す)。
+ * 全件の文書に変換を当て、変わったものだけ書き戻す。書き戻し先は、読んだファイルそのもの
+ * (中の id ではなくファイル名)。1 件の失敗で残りを止めず、失敗は warnings として返す。
  */
-export async function writeBusinessFlow(flowId: string, data: unknown, root: string): Promise<Record<string, unknown>> {
-  if (!isRecord(data) || !Array.isArray(data.lanes) || !Array.isArray(data.steps)) {
-    throw new Error("業務フローは { id, name, lanes: [], steps: [] } の形で指定してください");
-  }
-  const dataRoot = await ensureDataDirFromRoot(root);
-  const filePath = path.join(businessFlowsDir(dataRoot), `${flowId}.json`);
-  assertPathContained(filePath, dataRoot);
-  const prev = await readJSON<unknown>(filePath);
-  const now = new Date().toISOString();
-  const { $schema: _ignored, ...rest } = data as Record<string, unknown>;
-  void _ignored;
-  const doc = {
-    $schema: businessFlowSchemaRef(dataRoot),
-    version: 1,
-    ...rest,
-    id: flowId,
-    createdAt: isRecord(prev) && typeof prev.createdAt === "string" ? prev.createdAt : (typeof rest.createdAt === "string" ? rest.createdAt : now),
-    updatedAt: now,
-  };
-  await writeJSON(filePath, doc);
-  return doc;
-}
-
-/** 業務フローを削除 (無ければ false) */
-export async function deleteBusinessFlow(flowId: string, root: string): Promise<boolean> {
+async function updateAllDocs(store: DocStore, root: string, change: (doc: Record<string, unknown>) => boolean): Promise<{ changed: string[]; warnings: string[] }> {
+  const res = { changed: [] as string[], warnings: [] as string[] };
   const dataRoot = await resolveDataRoot(root);
-  const filePath = path.join(businessFlowsDir(dataRoot), `${flowId}.json`);
-  assertPathContained(filePath, dataRoot);
-  try { await fs.unlink(filePath); return true; } catch { return false; }
+  const { docs, unreadable } = await listDocs(store, root);
+  for (const f of unreadable) res.warnings.push(`${store.label}のファイル「${f}」が読めないため、参照を更新できませんでした`);
+  for (const d of docs) {
+    try {
+      if (!change(d.data)) continue;
+      const filePath = path.join(store.dir(dataRoot), d.file);
+      assertPathContained(filePath, dataRoot);
+      await writeJSON(filePath, { ...d.data, updatedAt: new Date().toISOString() });
+      res.changed.push(d.id);
+    } catch (e) {
+      res.warnings.push(`${store.label}「${d.id}」の参照を更新できませんでした: ${(e as Error).message}`);
+    }
+  }
+  return res;
 }
 
-/** 画面 ID / 処理フロー ID の改名を、全業務フローの工程の参照へ反映する。書き換えた業務フローの id を返す */
-export async function renameBusinessFlowRefsInProject(kind: "screen" | "processFlow", from: string, to: string, root: string): Promise<string[]> {
-  const changed: string[] = [];
+export const readBusinessFlow = (flowId: string, root: string) => readDoc(BUSINESS_FLOW_STORE, flowId, root);
+export const listBusinessFlowsDetailed = async (root: string) => { const l = await listDocs(BUSINESS_FLOW_STORE, root); return { flows: l.docs.map((d) => d.data), unreadable: l.unreadable }; };
+export const listBusinessFlows = async (root: string) => (await listBusinessFlowsDetailed(root)).flows;
+export const writeBusinessFlow = (flowId: string, data: unknown, root: string, expectedUpdatedAt?: string) => writeDoc(BUSINESS_FLOW_STORE, flowId, data, root, expectedUpdatedAt);
+export const deleteBusinessFlow = (flowId: string, root: string) => deleteDoc(BUSINESS_FLOW_STORE, flowId, root);
+
+export const readReport = (reportId: string, root: string) => readDoc(REPORT_STORE, reportId, root);
+export const listReportsDetailed = async (root: string) => { const l = await listDocs(REPORT_STORE, root); return { reports: l.docs.map((d) => d.data), unreadable: l.unreadable }; };
+export const listReports = async (root: string) => (await listReportsDetailed(root)).reports;
+export const writeReport = (reportId: string, data: unknown, root: string, expectedUpdatedAt?: string) => writeDoc(REPORT_STORE, reportId, data, root, expectedUpdatedAt);
+export const deleteReport = (reportId: string, root: string) => deleteDoc(REPORT_STORE, reportId, root);
+
+/** 画面 ID / 処理フロー ID の改名を、全業務フローの工程の参照へ反映する */
+export function renameBusinessFlowRefsInProject(kind: "screen" | "processFlow", from: string, to: string, root: string) {
   const field = kind === "screen" ? "screenRef" : "processFlowRef";
-  for (const flow of await listBusinessFlows(root)) {
+  return updateAllDocs(BUSINESS_FLOW_STORE, root, (flow) => {
     let hit = false;
-    for (const s of Array.isArray(flow.steps) ? flow.steps : []) {
-      if (isRecord(s) && s[field] === from) { s[field] = to; hit = true; }
-    }
-    if (hit && typeof flow.id === "string") {
-      const dataRoot = await resolveDataRoot(root);
-      await writeJSON(path.join(businessFlowsDir(dataRoot), `${flow.id}.json`), { ...flow, updatedAt: new Date().toISOString() });
-      changed.push(flow.id);
-    }
-  }
-  return changed;
+    for (const s of Array.isArray(flow.steps) ? flow.steps : []) if (isRecord(s) && s[field] === from) { s[field] = to; hit = true; }
+    return hit;
+  });
 }
 
-// ── 帳票 (reports/<id>.json、docs/spec/report.md) ───────────────────────────────
-
-function reportSchemaRef(dataRoot: string): string {
-  return path.relative(reportsDir(dataRoot), path.join(SCHEMAS_DIR, "v3", "report.v3.schema.json")).replace(/\\/g, "/");
-}
-
-/** 帳票を 1 件読む。無ければ null */
-export async function readReport(reportId: string, root: string): Promise<Record<string, unknown> | null> {
-  const dataRoot = await resolveDataRoot(root);
-  const filePath = path.join(reportsDir(dataRoot), `${reportId}.json`);
-  assertPathContained(filePath, dataRoot);
-  const data = await readJSON<unknown>(filePath);
-  return isRecord(data) ? data : null;
-}
-
-/** 帳票を全件読む (id 順) */
-export async function listReports(root: string): Promise<Array<Record<string, unknown>>> {
-  try {
-    const dataRoot = await resolveDataRoot(root);
-    const dir = reportsDir(dataRoot);
-    const files = (await fs.readdir(dir)).filter((f) => f.endsWith(".json")).sort();
-    const out: Array<Record<string, unknown>> = [];
-    for (const f of files) {
-      const d = await readJSON<unknown>(path.join(dir, f));
-      if (isRecord(d)) out.push(d);
-    }
-    return out;
-  } catch {
-    return [];
-  }
-}
-
-/** 帳票を 1 件書く。id はファイル名と一致させ、作成日時は初回を保ち、更新日時を付ける (構造以外の問題は妨げない) */
-export async function writeReport(reportId: string, data: unknown, root: string): Promise<Record<string, unknown>> {
-  if (!isRecord(data) || !Array.isArray(data.sections)) {
-    throw new Error("帳票は { id, name, sections: [] } の形で指定してください");
-  }
-  const dataRoot = await ensureDataDirFromRoot(root);
-  const filePath = path.join(reportsDir(dataRoot), `${reportId}.json`);
-  assertPathContained(filePath, dataRoot);
-  const prev = await readJSON<unknown>(filePath);
-  const now = new Date().toISOString();
-  const { $schema: _ignored, ...rest } = data as Record<string, unknown>;
-  void _ignored;
-  const doc = {
-    $schema: reportSchemaRef(dataRoot),
-    version: 1,
-    ...rest,
-    id: reportId,
-    createdAt: isRecord(prev) && typeof prev.createdAt === "string" ? prev.createdAt : (typeof rest.createdAt === "string" ? rest.createdAt : now),
-    updatedAt: now,
-  };
-  await writeJSON(filePath, doc);
-  return doc;
-}
-
-/** 帳票を削除 (無ければ false) */
-export async function deleteReport(reportId: string, root: string): Promise<boolean> {
-  const dataRoot = await resolveDataRoot(root);
-  const filePath = path.join(reportsDir(dataRoot), `${reportId}.json`);
-  assertPathContained(filePath, dataRoot);
-  try { await fs.unlink(filePath); return true; } catch { return false; }
-}
-
-/** 画面 / 処理フロー / テーブルの ID 改名を、全帳票の出力契機・項目の出どころへ反映する。書き換えた帳票の id を返す */
-export async function renameReportRefsInProject(kind: "screen" | "processFlow" | "table", from: string, to: string, root: string): Promise<string[]> {
-  const changed: string[] = [];
-  const dataRoot = await resolveDataRoot(root);
+/** 画面 / 処理フロー / テーブルの ID 改名を、全帳票の出力契機・項目の出どころへ反映する */
+export function renameReportRefsInProject(kind: "screen" | "processFlow" | "table", from: string, to: string, root: string) {
   const tableRe = (s: unknown) => (typeof s === "string" && s.startsWith(`${from}.`) ? `${to}.${s.slice(from.length + 1)}` : s);
-  for (const rp of await listReports(root)) {
+  return updateAllDocs(REPORT_STORE, root, (rp) => {
     let hit = false;
     const trig = isRecord(rp.trigger) ? rp.trigger : null;
     if (kind === "screen" && trig?.screenRef === from) { trig.screenRef = to; hit = true; }
@@ -1301,12 +1297,8 @@ export async function renameReportRefsInProject(kind: "screen" | "processFlow" |
         if (isRecord(o)) { const v = tableRe(o.field); if (v !== o.field) { o.field = v; hit = true; } }
       }
     }
-    if (hit && typeof rp.id === "string") {
-      await writeJSON(path.join(reportsDir(dataRoot), `${rp.id}.json`), { ...rp, updatedAt: new Date().toISOString() });
-      changed.push(rp.id);
-    }
-  }
-  return changed;
+    return hit;
+  });
 }
 
 /** er-layout.json を読み込み */

@@ -18,7 +18,7 @@ import { mcpBridge } from "../../mcp/mcpBridge";
 import { loadProject } from "../../store/flowStore";
 import { listProcessFlows } from "../../store/processFlowStore";
 import { listTables, loadTable } from "../../store/tableStore";
-import { loadReport, saveReport } from "../../store/reportStore";
+import { isSaveConflict, loadReport, saveReport } from "../../store/reportStore";
 import { makeTabId, setDirty as setTabDirty } from "../../store/tabStore";
 import "../../styles/businessFlow.css";
 import "../../styles/report.css";
@@ -40,6 +40,8 @@ export function ReportEditor() {
   const [selection, setSelection] = useState<Selection>(null);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  // 他 (AI・別タブ) が保存した / 保存が競合した状態
+  const [outdated, setOutdated] = useState<null | "updated" | "conflict" | "deleted">(null);
   const [screens, setScreens] = useState<Array<{ id: string; name: string }>>([]);
   const [flows, setFlows] = useState<Array<{ id: string; name: string }>>([]);
   const [tables, setTables] = useState<TableOpt[]>([]);
@@ -47,6 +49,8 @@ export function ReportEditor() {
   const redoStack = useRef<Report[]>([]);
   const reportRef = useRef<Report | null>(null);
   reportRef.current = report;
+  const savedJsonRef = useRef("");
+  savedJsonRef.current = savedJson;
 
   // ── 読み込み ──
   useEffect(() => {
@@ -110,18 +114,43 @@ export function ReportEditor() {
     reportRef.current = nxt; setReport(nxt);
   }, []);
 
-  const save = useCallback(async () => {
+  const save = useCallback(async (force = false) => {
     const cur = reportRef.current;
     if (!cur) return;
     setSaving(true);
     try {
-      const saved = await saveReport(cur);
+      const saved = await saveReport(cur, { force });
       reportRef.current = saved; setReport(saved); setSavedJson(JSON.stringify(saved));
+      setOutdated(null);
       setNotice("保存しました");
     } catch (e) {
-      setNotice(`保存できませんでした: ${(e as Error).message}`);
+      if (isSaveConflict(e)) setOutdated("conflict");
+      else setNotice(`保存できませんでした: ${(e as Error).message}`);
     } finally { setSaving(false); }
   }, []);
+
+  /** サーバの最新を読み直す (編集中の変更は捨てる) */
+  const reloadFromServer = useCallback(async () => {
+    if (!reportId) return;
+    const r = await loadReport(reportId);
+    if (!r) { setOutdated("deleted"); return; }
+    reportRef.current = r; setReport(r); setSavedJson(JSON.stringify(r));
+    undoStack.current = []; redoStack.current = [];
+    setOutdated(null);
+  }, [reportId]);
+
+  // 他が保存・削除したときの通知。未保存の変更が無ければ黙って読み直し、あれば知らせる
+  useEffect(() => {
+    if (!reportId) return;
+    return mcpBridge.onBroadcast("reportChanged", (data: unknown) => {
+      const d = data as { reportId?: string; deleted?: boolean } | undefined;
+      if (d?.reportId !== reportId) return;
+      if (d.deleted) { setOutdated("deleted"); return; }
+      const cur = reportRef.current;
+      if (cur && JSON.stringify(cur) === savedJsonRef.current) reloadFromServer().then(() => setNotice("他で更新されたため、読み直しました")).catch(console.error);
+      else setOutdated("updated");
+    });
+  }, [reportId, reloadFromServer]);
 
   const discard = useCallback(async () => {
     if (!reportId) return;
@@ -251,8 +280,17 @@ export function ReportEditor() {
         <button type="button" className="bfe-btn" onClick={undo} disabled={!undoStack.current.length} title="元に戻す (Ctrl+Z)" aria-label="元に戻す"><i className="bi bi-arrow-counterclockwise" /></button>
         <button type="button" className="bfe-btn" onClick={redo} disabled={!redoStack.current.length} title="やり直す (Ctrl+Y)" aria-label="やり直す"><i className="bi bi-arrow-clockwise" /></button>
         <button type="button" className="bfe-btn" onClick={discard} disabled={!dirty} data-testid="rp-discard">破棄</button>
-        <button type="button" className="bfe-btn bfe-btn-primary" onClick={save} disabled={!dirty || saving} data-testid="rp-save"><i className="bi bi-check-lg" /> 保存</button>
+        <button type="button" className="bfe-btn bfe-btn-primary" onClick={() => save()} disabled={!dirty || saving} data-testid="rp-save"><i className="bi bi-check-lg" /> 保存</button>
       </div>
+      {outdated && (
+        <p className="bfe-notice bfe-notice-warn" role="alert" data-testid="rp-outdated">
+          {outdated === "deleted" ? "この帳票は他で削除されました。保存すると作り直します。"
+            : outdated === "conflict" ? "開いたあとに他で更新されていたため、保存しませんでした。"
+            : "他で更新されました。このまま保存すると、他の変更を上書きします。"}
+          {outdated !== "deleted" && <button type="button" className="bfe-link" onClick={() => reloadFromServer().catch(console.error)} data-testid="rp-reload">読み直す (自分の変更は破棄)</button>}
+          <button type="button" className="bfe-link" onClick={() => save(true)} data-testid="rp-force-save">上書きして保存</button>
+        </p>
+      )}
       {notice && <p className="bfe-notice" role="status" data-testid="rp-notice">{notice} <button type="button" className="bfe-link" onClick={() => setNotice(null)}>閉じる</button></p>}
 
       <div className="bfe-body">

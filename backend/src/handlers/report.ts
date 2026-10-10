@@ -10,7 +10,7 @@
  */
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { validateReport, type Report } from "@harmony/shared";
-import { readReport, listReports, writeReport, deleteReport, listExistingEntityIds, listAllTables } from "../projectStorage.js";
+import { readReport, listReportsDetailed, writeReport, deleteReport, listExistingEntityIds, listAllTables } from "../projectStorage.js";
 import { wsBridge } from "../wsBridge.js";
 import { workspaceContextManager } from "../workspaceState.js";
 import { assertEntityIdMcp, type ToolHandler } from "../mcpHelpers.js";
@@ -35,8 +35,10 @@ export const handleReportTool: ToolHandler = async (name, args, root, sessionId)
   switch (name) {
     case "designer__list_reports": {
       const refs = await reportRefs(root);
-      const reports = (await listReports(root)) as unknown as Report[];
+      const listed = await listReportsDetailed(root);
+      const reports = listed.reports as unknown as Report[];
       return json({
+        unreadable: listed.unreadable,
         reports: reports.map((r) => ({
           id: r.id, name: r.name, maturity: r.maturity, format: r.output?.format ?? "pdf",
           sections: r.sections?.length ?? 0, fields: (r.sections ?? []).reduce((n, s) => n + (s.fields?.length ?? 0), 0),

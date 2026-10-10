@@ -11,7 +11,7 @@
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { validateBusinessFlow, type BusinessFlow } from "@harmony/shared";
 import {
-  readBusinessFlow, listBusinessFlows, writeBusinessFlow, deleteBusinessFlow,
+  readBusinessFlow, listBusinessFlowsDetailed, writeBusinessFlow, deleteBusinessFlow,
   listExistingEntityIds, readConventions,
 } from "../projectStorage.js";
 import { wsBridge } from "../wsBridge.js";
@@ -41,8 +41,10 @@ export const handleBusinessFlowTool: ToolHandler = async (name, args, root, sess
   switch (name) {
     case "designer__list_business_flows": {
       const refs = await businessFlowRefs(root);
-      const flows = (await listBusinessFlows(root)) as unknown as BusinessFlow[];
+      const listed = await listBusinessFlowsDetailed(root);
+      const flows = listed.flows as unknown as BusinessFlow[];
       return json({
+        unreadable: listed.unreadable,
         flows: flows.map((f) => ({
           id: f.id, name: f.name, maturity: f.maturity, lanes: f.lanes?.length ?? 0, steps: f.steps?.length ?? 0,
           issues: validateBusinessFlow(f, refs).filter((i) => i.severity !== "info").length,

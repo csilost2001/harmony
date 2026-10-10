@@ -8,6 +8,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { test, expect, type Page } from "@playwright/test";
+import { openBrowserSessionWorkspace, closeBrowserSession, sendBrowserRequest } from "./mcp/_helpers";
 import { setupTestWorkspace, cleanupRealWorkspaces, isMcpRunning, type OpenedWorkspace } from "./helpers/realWorkspace";
 
 test.describe.configure({ mode: "serial" });
@@ -27,7 +28,7 @@ test.describe("帳票", () => {
     test.skip(!(await isMcpRunning()), "backend 未起動");
     ws = await setupTestWorkspace({ key: KEY, fromExample: "retail" });
   });
-  test.afterAll(async () => { await cleanupRealWorkspaces([KEY]); });
+  test.afterAll(async () => { await closeBrowserSession(); await cleanupRealWorkspaces([KEY]); });
   test.afterEach(async () => { await ws?.resetRuntimeState(); });
 
   test("サンプルの帳票を開いても原本が変わらず、用紙の見本に部と項目が出る @regression", async ({ page }) => {
@@ -109,6 +110,28 @@ test.describe("帳票", () => {
     await page.getByTestId("rp-discard").click();
     await expect(page.getByTestId("rp-dirty")).toHaveCount(0);
     expect((await read("product-list")).sections.length).toBe(n);
+  });
+
+  test("他 (AI・別タブ) が保存したら、未編集なら読み直し、編集中なら知らせて保存の競合を防ぐ @regression", async ({ page }) => {
+    await openBrowserSessionWorkspace(ws.workspacePath);
+    const external = async (name: string) => {
+      const r = await read("product-list");
+      await sendBrowserRequest("saveReport", { reportId: "product-list", data: { ...r, name } });
+    };
+    await openEditor(page, "product-list");
+    await external("外部で変更 1");
+    await expect(page.getByTestId("rp-name")).toHaveValue("外部で変更 1");
+    await expect(page.getByTestId("rp-outdated")).toHaveCount(0);
+    await page.getByTestId("rp-add-section").selectOption("pageFooter");
+    await expect(page.getByTestId("rp-dirty")).toBeVisible();
+    await external("外部で変更 2");
+    await expect(page.getByTestId("rp-outdated")).toBeVisible();
+    await page.getByTestId("rp-save").click();
+    await expect(page.getByTestId("rp-outdated")).toContainText("保存しませんでした");
+    expect((await read("product-list")).name).toBe("外部で変更 2");
+    await page.getByTestId("rp-force-save").click();
+    await expect.poll(async () => (await read("product-list")).name, { timeout: 10000 }).toBe("外部で変更 1");
+    await expect(page.getByTestId("rp-dirty")).toHaveCount(0);
   });
 
   test("設計書に「帳票」の章 (用紙の見本と項目定義) が出る @regression", async ({ page }) => {

@@ -8,6 +8,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { test, expect, type Page } from "@playwright/test";
+import { openBrowserSessionWorkspace, closeBrowserSession, sendBrowserRequest } from "./mcp/_helpers";
 import { setupTestWorkspace, cleanupRealWorkspaces, isMcpRunning, type OpenedWorkspace } from "./helpers/realWorkspace";
 
 test.describe.configure({ mode: "serial" });
@@ -27,7 +28,7 @@ test.describe("業務フロー", () => {
     test.skip(!(await isMcpRunning()), "backend 未起動");
     ws = await setupTestWorkspace({ key: KEY, fromExample: "retail" });
   });
-  test.afterAll(async () => { await cleanupRealWorkspaces([KEY]); });
+  test.afterAll(async () => { await closeBrowserSession(); await cleanupRealWorkspaces([KEY]); });
   test.afterEach(async () => { await ws?.resetRuntimeState(); });
 
   test("サンプルの業務フローを開いても原本が変わらず、図に工程が出る @regression", async ({ page }) => {
@@ -40,6 +41,41 @@ test.describe("業務フロー", () => {
     await expect(page.getByTestId("bf-step-inspector")).toBeVisible();
     await expect(page.getByTestId("bf-step-name")).toHaveValue("商品を検索する");
     expect(await fs.readFile(flowFile("order-to-shipment"), "utf-8")).toBe(before);
+  });
+
+  test("他 (AI・別タブ) が保存したら、未編集なら読み直し、編集中なら知らせて保存の競合を防ぐ @regression", async ({ page }) => {
+    await openBrowserSessionWorkspace(ws.workspacePath);
+    const external = async (name: string) => {
+      const f = await readFlow("order-to-shipment");
+      await sendBrowserRequest("saveBusinessFlow", { flowId: "order-to-shipment", data: { ...f, name } });
+    };
+    await openEditor(page, "order-to-shipment");
+    // 未編集: 他の保存は黙って読み直す
+    await external("外部で変更 1");
+    await expect(page.getByTestId("bf-name")).toHaveValue("外部で変更 1");
+    await expect(page.getByTestId("bf-outdated")).toHaveCount(0);
+    // 編集中: 他の保存は知らせるだけで、自分の変更は消さない
+    await page.getByTestId("bf-add-task").click();
+    await expect(page.getByTestId("bf-dirty")).toBeVisible();
+    await external("外部で変更 2");
+    await expect(page.getByTestId("bf-outdated")).toBeVisible();
+    await expect(page.getByTestId("bf-name")).toHaveValue("外部で変更 1");
+    // そのまま保存すると、競合として保存されない
+    await page.getByTestId("bf-save").click();
+    await expect(page.getByTestId("bf-outdated")).toContainText("保存しませんでした");
+    expect((await readFlow("order-to-shipment")).name).toBe("外部で変更 2");
+    // 上書きして保存
+    await page.getByTestId("bf-force-save").click();
+    await expect.poll(async () => (await readFlow("order-to-shipment")).name, { timeout: 10000 }).toBe("外部で変更 1");
+    await expect(page.getByTestId("bf-outdated")).toHaveCount(0);
+    await expect(page.getByTestId("bf-dirty")).toHaveCount(0);
+  });
+
+  test("壊れた JSON のファイルは一覧に警告として出る @regression", async ({ page }) => {
+    await fs.writeFile(path.join(ws.workspacePath, "harmony", "business-flows", "broken.json"), "{ not json");
+    await ws.gotoActive(page, "/business-flow/list");
+    await expect(page.getByTestId("unreadable-files")).toContainText("broken.json", { timeout: 15000 });
+    await fs.rm(path.join(ws.workspacePath, "harmony", "business-flows", "broken.json"));
   });
 
   test("図を縮小・全体表示できる @regression", async ({ page }) => {

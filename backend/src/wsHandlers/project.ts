@@ -22,11 +22,11 @@ import {
   deleteLayoutComponent,
   findLayoutComponentUsages,
   readBusinessFlow,
-  listBusinessFlows,
+  listBusinessFlowsDetailed,
   writeBusinessFlow,
   deleteBusinessFlow,
   readReport,
-  listReports,
+  listReportsDetailed,
   writeReport,
   deleteReport,
 } from "../projectStorage.js";
@@ -106,7 +106,7 @@ export const projectHandlers: RpcHandlerMap = {
   },
 
   listBusinessFlows: async ({ root, respond }) => {
-    respond(await listBusinessFlows(root()));
+    respond(await listBusinessFlowsDetailed(root()));
   },
 
   loadBusinessFlow: async ({ params, root, respond }) => {
@@ -116,9 +116,9 @@ export const projectHandlers: RpcHandlerMap = {
   },
 
   saveBusinessFlow: async ({ params, root, wsId, clientId, respond, bridge }) => {
-    const { flowId, data } = (params ?? {}) as { flowId: string; data: unknown };
+    const { flowId, data, expectedUpdatedAt } = (params ?? {}) as { flowId: string; data: unknown; expectedUpdatedAt?: string };
     assertEntityId(flowId, "flowId");
-    const saved = await writeBusinessFlow(flowId, data, root());
+    const saved = await writeBusinessFlow(flowId, data, root(), expectedUpdatedAt);
     respond(saved);
     bridge.broadcast({ wsId: wsId(), event: "businessFlowChanged", data: { flowId }, excludeClientId: clientId });
   },
@@ -132,7 +132,7 @@ export const projectHandlers: RpcHandlerMap = {
   },
 
   listReports: async ({ root, respond }) => {
-    respond(await listReports(root()));
+    respond(await listReportsDetailed(root()));
   },
 
   loadReport: async ({ params, root, respond }) => {
@@ -142,9 +142,9 @@ export const projectHandlers: RpcHandlerMap = {
   },
 
   saveReport: async ({ params, root, wsId, clientId, respond, bridge }) => {
-    const { reportId, data } = (params ?? {}) as { reportId: string; data: unknown };
+    const { reportId, data, expectedUpdatedAt } = (params ?? {}) as { reportId: string; data: unknown; expectedUpdatedAt?: string };
     assertEntityId(reportId, "reportId");
-    const saved = await writeReport(reportId, data, root());
+    const saved = await writeReport(reportId, data, root(), expectedUpdatedAt);
     respond(saved);
     bridge.broadcast({ wsId: wsId(), event: "reportChanged", data: { reportId }, excludeClientId: clientId });
   },

@@ -12,16 +12,26 @@ import { mcpBridge } from "../mcp/mcpBridge";
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((l) => l());
 
+/** 一覧と、読めなかったファイル名 (JSON が壊れているもの) */
+export async function listBusinessFlowsDetailed(): Promise<{ flows: BusinessFlow[]; unreadable: string[] }> {
+  const res = (await mcpBridge.request("listBusinessFlows")) as { flows?: BusinessFlow[]; unreadable?: string[] } | null;
+  return { flows: res?.flows ?? [], unreadable: res?.unreadable ?? [] };
+}
+
 export async function listBusinessFlows(): Promise<BusinessFlow[]> {
-  return ((await mcpBridge.request("listBusinessFlows")) as BusinessFlow[] | null) ?? [];
+  return (await listBusinessFlowsDetailed()).flows;
 }
 
 export async function loadBusinessFlow(flowId: string): Promise<BusinessFlow | null> {
   return ((await mcpBridge.request("loadBusinessFlow", { flowId })) as BusinessFlow | null) ?? null;
 }
 
-export async function saveBusinessFlow(flow: BusinessFlow): Promise<BusinessFlow> {
-  const saved = (await mcpBridge.request("saveBusinessFlow", { flowId: flow.id, data: flow })) as BusinessFlow;
+/** 開いたあとに他で更新されていて、保存を断られたときのエラーかどうか */
+export const isSaveConflict = (e: unknown): boolean => e instanceof Error && e.message.includes("他で更新されています");
+
+/** 保存する。既定では「開いたときの更新日時」と照合し、他で更新されていたら保存しない (force で上書き) */
+export async function saveBusinessFlow(flow: BusinessFlow, opts: { force?: boolean } = {}): Promise<BusinessFlow> {
+  const saved = (await mcpBridge.request("saveBusinessFlow", { flowId: flow.id, data: flow, expectedUpdatedAt: opts.force ? undefined : flow.updatedAt })) as BusinessFlow;
   notify();
   return saved;
 }
@@ -44,12 +54,15 @@ export function buildDefaultBusinessFlow(id: string, name: string): BusinessFlow
 }
 
 /** 業務フローの一覧。保存・削除 (自分 / 他のブラウザ) のたびに読み直す */
-export function useBusinessFlows(): { flows: BusinessFlow[]; loaded: boolean; reload: () => Promise<void> } {
+export function useBusinessFlows(): { flows: BusinessFlow[]; unreadable: string[]; loaded: boolean; reload: () => Promise<void> } {
   const [flows, setFlows] = useState<BusinessFlow[]>([]);
+  const [unreadable, setUnreadable] = useState<string[]>([]);
   const [loaded, setLoaded] = useState(false);
   const reload = useCallback(async () => {
     try {
-      setFlows(await listBusinessFlows());
+      const res = await listBusinessFlowsDetailed();
+      setFlows(res.flows);
+      setUnreadable(res.unreadable);
     } finally {
       setLoaded(true);
     }
@@ -61,5 +74,5 @@ export function useBusinessFlows(): { flows: BusinessFlow[]; loaded: boolean; re
     const off = mcpBridge.onBroadcast("businessFlowChanged", onLocal);
     return () => { listeners.delete(onLocal); off(); };
   }, [reload]);
-  return { flows, loaded, reload };
+  return { flows, unreadable, loaded, reload };
 }

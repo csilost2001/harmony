@@ -54,6 +54,7 @@
 .bfe-dirty { font-size: 11.5px; color: var(--hm-warning); border: 1px solid var(--hm-warning); border-radius: 999px; padding: 0 8px; }
 .bfe-spacer { flex: 1; }
 .bfe-notice { margin: 0; padding: 6px 12px; font-size: 12.5px; background: var(--hm-accent-soft); color: var(--hm-fg); border-bottom: 1px solid var(--hm-border); }
+.bfe-notice-warn { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; background: var(--hm-surface-2); border-left: 3px solid var(--hm-warning); }
 .bfe-body { flex: 1; min-height: 0; display: grid; grid-template-columns: 250px minmax(0, 1fr) 320px; }
 .bfe-left, .bfe-right { overflow: auto; padding: 10px; background: var(--hm-surface); display: flex; flex-direction: column; gap: 14px; }
 .bfe-left { border-right: 1px solid var(--hm-border); }
@@ -105,6 +106,8 @@
 .bfl-head h2 { margin: 0; font-size: 17px; display: flex; gap: 8px; align-items: center; }
 .bfl-search { width: 240px; }
 .bfl-actions { display: flex; gap: 6px; margin-left: auto; }
+.bfl-unreadable { margin: 0; padding: 8px 10px; font-size: 12.5px; color: var(--hm-fg); background: var(--hm-surface-2); border: 1px solid var(--hm-warning); border-radius: 6px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.bfl-unreadable i { color: var(--hm-warning); }
 .bfl-message { margin: 0; font-size: 12.5px; color: var(--hm-fg-2); }
 .bfl-name { font-weight: 600; }
 .bfl-issues { color: var(--hm-warning); font-weight: 700; }
