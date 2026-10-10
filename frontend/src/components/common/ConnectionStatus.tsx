@@ -3,9 +3,14 @@
  * 切れている間の保存・読み込みは失敗するため、黙っていると「保存したつもり」になる。
  * 最初の接続の失敗は AppShell の接続エラー画面が受け持つので、ここでは出さない。
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { mcpBridge, type McpStatus } from "../../mcp/mcpBridge";
+import { useErrorDialog } from "./ErrorDialogProvider";
+import { isConnectionError } from "../../utils/connectionError";
 import "../../styles/connectionStatus.css";
+
+/** 同じ知らせを続けて出さない間隔 */
+const NOTIFY_INTERVAL_MS = 15_000;
 
 /** 切断の表示を出すまでの猶予 (一瞬の切断・再接続では出さない) */
 const SHOW_DELAY_MS = 1500;
@@ -13,6 +18,28 @@ const SHOW_DELAY_MS = 1500;
 const RESTORED_MS = 3000;
 
 export function ConnectionStatus() {
+  const { showError } = useErrorDialog();
+  const lastNotified = useRef(0);
+
+  // 保存などの操作がサーバに届かず失敗したとき、黙って何も起きない状態にしない
+  useEffect(() => {
+    const onRejection = (ev: PromiseRejectionEvent) => {
+      if (!isConnectionError(ev.reason)) return;
+      const now = Date.now();
+      if (now - lastNotified.current < NOTIFY_INTERVAL_MS) return;
+      lastNotified.current = now;
+      showError({
+        title: "サーバに接続できないため、操作できませんでした",
+        message: "接続が戻るまで、保存・読み込みなどはできません。編集中の内容はこの画面に残っています。接続が復旧したら、もう一度操作してください。",
+        error: ev.reason,
+        logSource: "unhandledrejection",
+        skipLogRecord: true,
+      });
+    };
+    window.addEventListener("unhandledrejection", onRejection);
+    return () => window.removeEventListener("unhandledrejection", onRejection);
+  }, [showError]);
+
   const [phase, setPhase] = useState<"ok" | "lost" | "restored">("ok");
 
   useEffect(() => {

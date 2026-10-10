@@ -10,7 +10,10 @@ vi.mock("../../mcp/mcpBridge", () => ({
     onStatusChange: (cb: Cb) => { cbs.add(cb); cb(status); return () => cbs.delete(cb); },
   },
 }));
+const showError = vi.fn();
+vi.mock("./ErrorDialogProvider", () => ({ useErrorDialog: () => ({ showError }) }));
 import { ConnectionStatus } from "./ConnectionStatus";
+import { isConnectionError } from "../../utils/connectionError";
 
 const emit = (s: string) => { status = s; act(() => { cbs.forEach((cb) => cb(s)); }); };
 
@@ -51,5 +54,31 @@ describe("ConnectionStatus", () => {
     render(<ConnectionStatus />);
     act(() => { vi.advanceTimersByTime(5000); });
     expect(screen.queryByTestId("connection-status")).toBeNull();
+  });
+});
+
+describe("接続できないために失敗した操作の知らせ", () => {
+  beforeEach(() => { status = "connected"; cbs.clear(); showError.mockClear(); });
+
+  it("接続に関する失敗かどうかを判定する", () => {
+    expect(isConnectionError(new Error("wsBridge に接続されていません"))).toBe(true);
+    expect(isConnectionError(new Error("WebSocket が切断されました"))).toBe(true);
+    expect(isConnectionError(new Error("別のエラー"))).toBe(false);
+    expect(isConnectionError(undefined)).toBe(false);
+  });
+
+  it("接続の失敗は 1 度だけ知らせる (続けて起きても出し続けない)。別の失敗は知らせない", () => {
+    render(<ConnectionStatus />);
+    const fire = (reason: unknown) => {
+      const ev = new Event("unhandledrejection") as Event & { reason: unknown };
+      ev.reason = reason;
+      act(() => { window.dispatchEvent(ev); });
+    };
+    fire(new Error("関係のない失敗"));
+    expect(showError).not.toHaveBeenCalled();
+    fire(new Error("wsBridge に接続されていません"));
+    fire(new Error("wsBridge に接続されていません"));
+    expect(showError).toHaveBeenCalledTimes(1);
+    expect(showError.mock.calls[0][0].title).toContain("サーバに接続できない");
   });
 });
