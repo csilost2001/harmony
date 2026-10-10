@@ -105,6 +105,7 @@ disable-model-invocation: true
 npm run export:tests -- <workspace-dir> --format json [--screen <screenId>] [--flow <flowId>]
 ```
 
+- MCP が使えるときは、同じ表を `designer__get_test_viewpoints` (引数 `screenIds` / `flowIds` / `format`) で直接取得できる
 - 画面入力 (`screens[].cases[]`): `id` (`<画面 ID>.<項目 ID>.<規則>`)・`category`・`input`・`value` (そのまま入力に使える値)・`expected`・`expectedMessage`
 - 処理 (`flows[].cases[]`): `id` (`<処理 ID>.<アクション ID>.TV-<連番>`)・`conditions`・`expected`・`status`・`stepNo`
 - テストの名前 (`test(...)` / `it(...)`) に観点表の `id` を含め、設計とテストを対応づける。観点にないケースを足すときは、`id` の形式に合わない名前にして区別する

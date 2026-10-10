@@ -18,6 +18,7 @@
 | CLI: `node scripts/export-design-doc.mjs <workspace> [--out file.html] [--version v]` | 単体の HTML ファイル (CSS・目次同梱) を書き出す。版は省略時 git の短縮 SHA |
 | CLI: `npm run check:design -- <workspace>... [--strict] [--info] [--json]` | 「要確認事項」だけを検査して一覧する (終了コード 0 = 問題なし / 1 = エラー (`--strict` なら警告も) あり / 2 = 読み込み失敗)。読めない (壊れた) JSON はエラー扱い。AI が設計を直したあと・コミット前の点検用。`npm run check` が `examples/` 全件を `--strict` で検査する |
 | CLI: `npm run export:tests -- <workspace> [--format csv\|json\|md]` | テスト観点表を書き出す ([test-viewpoints.md](test-viewpoints.md))。設計書の付録「テスト観点 (画面入力)」と同じ導出 |
+| MCP: `designer__check_design` | 要確認事項 (エラー・警告・情報の件数と一覧、`ok` = エラー・警告なし) を返す。AI が設計を直したあと、完了を報告する前に呼び、`ok: true` になるまで直す。CLI と同じ検査 |
 | ダッシュボード「設計の要確認」パネル | 要確認事項の件数 (エラー・警告・情報) と上位 6 件。クリックで設計書へ。保存・改名のたびに自動で更新する |
 
 どちらも `@harmony/shared` の `buildDesignDocument` / `renderStandaloneDesignDoc` で生成する (同じ内容になる)。対象の処理フロー・テーブルは `harmony.json` に登録されたもの。

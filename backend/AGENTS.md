@@ -23,7 +23,7 @@ npm run build      # shared rebuild → Compile to dist/
 
 ## Key Files
 
-- `src/tools.ts` — 89 MCP tool definitions (実カウント: `grep -cE 'name:\s*"designer__' src/tools.ts`、2026-05-17 時点)
+- `src/tools.ts` — MCP tool definitions (件数: `grep -cE 'name:\s*"designer__' src/tools.ts`)
 - `src/wsBridge.ts` — WebSocket server + broadcast
 
 ## MCP / WebSocket

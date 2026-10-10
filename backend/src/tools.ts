@@ -246,6 +246,32 @@ export const tools = [
   // ── 業務フロー (スイムレーン) ──
 
   {
+    name: "designer__check_design",
+    description:
+      "設計全体の「要確認事項」(画面の部品・項目、処理フロー、業務フロー、帳票、権限、CRUD などの抜け・矛盾) を検査して返します。設計書ビュー・`npm run check:design` と同じ検査です。" +
+      "設計を直したあと、完了を報告する前に呼び、error / warning が 0 件 (ok: true) になるまで直してください。仕様: docs/spec/design-document.md",
+    inputSchema: {
+      type: "object" as const,
+      properties: { includeInfo: { type: "boolean", description: "情報 (info) の項目も含める (既定は含めない)" } },
+      required: [],
+    },
+  },
+  {
+    name: "designer__get_test_viewpoints",
+    description:
+      "テスト観点表を返します。画面入力 (必須・桁数・範囲・形式の正常 / 異常 / 境界値) と処理 (分岐と終了) を、決まった ID つきで導出します。" +
+      "テストコード (Playwright 等) を書くときの入力にします。同じ設計からは同じ ID が出ます。仕様: docs/spec/test-viewpoints.md",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        screenIds: { type: "array", items: { type: "string" }, description: "この画面だけに絞る (省略時は全画面)" },
+        flowIds: { type: "array", items: { type: "string" }, description: "この処理フローだけに絞る (省略時は全処理)" },
+        format: { type: "string", enum: ["json", "csv"], description: "既定は json (入力値つき)" },
+      },
+      required: [],
+    },
+  },
+  {
     name: "designer__list_business_flows",
     description: "業務フロー (business-flows/) の一覧を取得します。各業務フローの ID・名前・レーン数・工程数・要確認の件数を返します。仕様: docs/spec/business-flow.md",
     inputSchema: { type: "object" as const, properties: {}, required: [] },

@@ -583,6 +583,8 @@ npx vitest run src/schemas/validateDogfood.test.ts -t "<flowId の一部>"
 
 `/review-flow` 検出 Must-fix が 0 件になるまで自己修正してから出力 / PR 作成へ進む。
 
+MCP が使えるときは `designer__check_design` (設計全体の要確認事項) も呼び、error / warning が自分の追加分から出ていないことを確認する (CLI: `npm run check:design -- <workspace-dir>`)。
+
 ## Step 6: 出力フォーマット
 
 ユーザーに渡すもの:
