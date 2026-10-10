@@ -26,6 +26,7 @@ import { useDraftRegistry } from "../../hooks/useDraftRegistry";
 import "../../styles/table.css";
 import "../../styles/editMode.css";
 import { confirmDeletionImpact } from "../../utils/confirmDeletion";
+import { useQuickCreate } from "../../hooks/useQuickCreate";
 
 const STORAGE_KEY = "list-view-mode:sequence-list";
 const TAB_ID = makeTabId("sequence-list", "main");
@@ -45,6 +46,8 @@ export function SequenceListView() {
   const [query, setQuery] = useState("");
   const [viewMode, setViewMode] = usePersistentState<ViewMode>(STORAGE_KEY, "card");
   const [showAdd, setShowAdd] = useState(false);
+  // クイックオープン (Ctrl+K) の「新しく作る」から来たときは、追加ダイアログを開く
+  useQuickCreate("sequence", () => setShowAdd(true));
   const [addPhysicalName, setAddPhysicalName] = useState("");
   const [addName, setAddName] = useState("");
   const [addPhysicalNameError, setAddPhysicalNameError] = useState("");

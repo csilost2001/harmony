@@ -51,6 +51,7 @@ import { DraftHistoryModal } from "../editing/DraftHistoryModal";
 import "../../styles/processFlow.css";
 import "../../styles/editMode.css";
 import { confirmDeletionImpact } from "../../utils/confirmDeletion";
+import { useQuickCreate } from "../../hooks/useQuickCreate";
 
 const ALL_TYPES: ProcessFlowType[] = ["screen", "batch", "scheduled", "system", "common", "other"];
 const STORAGE_KEY = "list-view-mode:process-flow-list";
@@ -87,6 +88,8 @@ export function ProcessFlowListView() {
   const [validationMap, setValidationMap] = useState<Map<string, ValidationSummary>>(new Map());
   const [markerMap, setMarkerMap] = useState<Map<string, MarkerSummary>>(new Map());
   const [showAdd, setShowAdd] = useState(false);
+  // クイックオープン (Ctrl+K) の「新しく作る」から来たときは、追加ダイアログを開く
+  useQuickCreate("process-flow", () => setShowAdd(true));
   const [addName, setAddName] = useState("");
   const [addType, setAddType] = useState<ProcessFlowType>("screen");
   const [addScreenId, setAddScreenId] = useState("");

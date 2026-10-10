@@ -43,6 +43,7 @@ import type { PageLayout } from "../../types/v3/page-layout";
 import "../../styles/table.css";
 import "../../styles/editMode.css";
 import { confirmDeletionImpact } from "../../utils/confirmDeletion";
+import { useQuickCreate } from "../../hooks/useQuickCreate";
 
 const STORAGE_KEY = "list-view-mode:page-layout-list";
 const TAB_ID = makeTabId("page-layout-list", "main");
@@ -62,6 +63,8 @@ export function PageLayoutListView() {
   const [query, setQuery] = useState("");
   const [viewMode, setViewMode] = usePersistentState<ViewMode>(STORAGE_KEY, "card");
   const [showAdd, setShowAdd] = useState(false);
+  // クイックオープン (Ctrl+K) の「新しく作る」から来たときは、追加ダイアログを開く
+  useQuickCreate("page-layout", () => setShowAdd(true));
   const [addName, setAddName] = useState("");
   const [addDescription, setAddDescription] = useState("");
   const [addNameError, setAddNameError] = useState("");

@@ -11,6 +11,7 @@ import { listBusinessFlows } from "../../store/businessFlowStore";
 import { listReports } from "../../store/reportStore";
 import { clearActiveTab, getActiveTabId, getTabs } from "../../store/tabStore";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
+import { requestQuickCreate } from "../../hooks/useQuickCreate";
 import { DASHBOARD_ITEM, MENU_ITEMS } from "../menuItems";
 import {
   QUICK_OPEN_KIND_ICONS,
@@ -106,7 +107,9 @@ export function QuickOpen() {
     // デザインタブがアクティブなままだと、遷移先が表示されない (HeaderMenu と同じ処理)
     const activeId = getActiveTabId();
     if (getTabs().some((t) => t.id === activeId && t.type === "design")) clearActiveTab();
-    rememberQuickOpen(entry.key);
+    // 作成は「最近開いた」には載せない。一覧を開いて、追加ダイアログを出す
+    if (entry.kind === "create") requestQuickCreate(entry.id);
+    else rememberQuickOpen(entry.key);
     navigate(isWorkspaceScoped(entry.route) ? wsPath(entry.route) : entry.route);
     setOpen(false);
   }, [navigate, wsPath]);
@@ -165,7 +168,7 @@ export function QuickOpen() {
               >
                 <i className={`bi ${QUICK_OPEN_KIND_ICONS[entry.kind]}`} />
                 <span className="quick-open-label">{entry.label}</span>
-                {entry.kind !== "page" && <span className="quick-open-id">{entry.id}</span>}
+                {entry.kind !== "page" && entry.kind !== "create" && <span className="quick-open-id">{entry.id}</span>}
                 {query.trim() === "" && recent.includes(entry.key) && <span className="quick-open-recent" title="最近開いた"><i className="bi bi-clock-history" /></span>}
                 <span className="quick-open-kind">{QUICK_OPEN_KIND_LABELS[entry.kind]}</span>
               </li>

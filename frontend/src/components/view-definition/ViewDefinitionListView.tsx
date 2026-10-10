@@ -47,6 +47,7 @@ import { DraftHistoryModal } from "../editing/DraftHistoryModal";
 import "../../styles/table.css";
 import "../../styles/editMode.css";
 import { confirmDeletionImpact } from "../../utils/confirmDeletion";
+import { useQuickCreate } from "../../hooks/useQuickCreate";
 
 const STORAGE_KEY = "list-view-mode:view-definition-list";
 const TAB_ID = makeTabId("view-definition-list", "main");
@@ -78,6 +79,8 @@ export function ViewDefinitionListView() {
   const [query, setQuery] = useState("");
   const [viewMode, setViewMode] = usePersistentState<ViewMode>(STORAGE_KEY, "card");
   const [showAdd, setShowAdd] = useState(false);
+  // クイックオープン (Ctrl+K) の「新しく作る」から来たときは、追加ダイアログを開く
+  useQuickCreate("view-definition", () => setShowAdd(true));
   const [addName, setAddName] = useState("");
   const [addKind, setAddKind] = useState<ViewDefinitionKind>("list");
   const [addSourceTableId, setAddSourceTableId] = useState("");

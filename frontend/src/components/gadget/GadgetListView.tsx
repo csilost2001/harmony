@@ -35,6 +35,7 @@ import { usePersistentState } from "../../hooks/usePersistentState";
 import "../../styles/flow.css";
 import "../../styles/screenList.css";
 import "../../styles/editMode.css";
+import { useQuickCreate } from "../../hooks/useQuickCreate";
 
 const STORAGE_KEY = "list-view-mode:gadget-list";
 const TAB_ID = makeTabId("gadget-list", "main");
@@ -240,6 +241,9 @@ export function GadgetListView() {
     setAddNameError("");
     setShowAdd(true);
   };
+
+  // クイックオープン (Ctrl+K) の「新しく作る」から来たときは、追加ダイアログを開く
+  useQuickCreate("gadget", handleAddNew);
 
   const handleAddSave = async () => {
     const name = addName.trim();

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildQuickOpenEntries, loadRecentQuickOpen, normalizeQuery, rememberQuickOpen, searchQuickOpen } from "./quickOpen";
+import { QUICK_CREATE_ACTIONS, buildQuickOpenEntries, loadRecentQuickOpen, normalizeQuery, rememberQuickOpen, searchQuickOpen } from "./quickOpen";
 
 const entries = buildQuickOpenEntries({
   screens: [
@@ -72,5 +72,31 @@ describe("quickOpen", () => {
     expect(r[0]).toBe("table:t5");
     expect(r).toHaveLength(10);
     expect(new Set(r).size).toBe(10);
+  });
+});
+
+describe("新しく作る", () => {
+  const entries = buildQuickOpenEntries({
+    tables: [{ id: "order", name: "注文", physicalName: "orders" }],
+    pages: [{ id: "tables", label: "テーブル一覧", route: "/table/list" }],
+  });
+
+  it("検索語がないとき、新規作成の候補は最後に回る (一覧を埋めない)", () => {
+    const hits = searchQuickOpen(entries, "", 50);
+    const firstCreate = hits.findIndex((h) => h.entry.kind === "create");
+    expect(firstCreate).toBeGreaterThan(hits.findIndex((h) => h.entry.kind === "table"));
+    expect(hits.slice(0, firstCreate).every((h) => h.entry.kind !== "create")).toBe(true);
+  });
+
+  it("「新規 テーブル」「table new」「作成 帳票」で見つかり、先頭になる", () => {
+    expect(searchQuickOpen(entries, "新規 テーブル")[0].entry).toMatchObject({ kind: "create", id: "table", route: "/table/list" });
+    expect(searchQuickOpen(entries, "table new")[0].entry).toMatchObject({ kind: "create", id: "table" });
+    expect(searchQuickOpen(entries, "作成 帳票")[0].entry).toMatchObject({ kind: "create", id: "report" });
+  });
+
+  it("すべての種類に、一覧の route と名前がある", () => {
+    const creates = entries.filter((e) => e.kind === "create");
+    expect(creates).toHaveLength(QUICK_CREATE_ACTIONS.length);
+    for (const c of creates) { expect(c.route.startsWith("/")).toBe(true); expect(c.label).toContain("新しく作る"); }
   });
 });

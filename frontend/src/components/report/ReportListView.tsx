@@ -18,6 +18,7 @@ import { useListSort } from "../../hooks/useListSort";
 import { makeDuplicatedEntityId } from "../../utils/entityIdSuggestion";
 import "../../styles/businessFlow.css";
 import "../../styles/report.css";
+import { useQuickCreate } from "../../hooks/useQuickCreate";
 
 const MATURITY: Record<string, string> = { draft: "作成中", provisional: "レビュー中", committed: "確定" };
 
@@ -27,6 +28,8 @@ export function ReportListView() {
   const { reports: flows, unreadable, loaded, reload } = useReports();
   const [query, setQuery] = useState("");
   const [showAdd, setShowAdd] = useState(false);
+  // クイックオープン (Ctrl+K) の「新しく作る」から来たときは、追加ダイアログを開く
+  useQuickCreate("report", () => setShowAdd(true));
   const [addId, setAddId] = useState("");
   const [addName, setAddName] = useState("");
   const [addValidation, setAddValidation] = useState<EntityIdValidationState>({ isFormatValid: false, isUnique: true, isInvalid: true });

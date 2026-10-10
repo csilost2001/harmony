@@ -5,7 +5,7 @@
 
 export type QuickOpenKind =
   | "screen" | "screen-items" | "table" | "process-flow" | "business-flow" | "report"
-  | "sequence" | "view" | "view-definition" | "page";
+  | "sequence" | "view" | "view-definition" | "page" | "create";
 
 export const QUICK_OPEN_KIND_LABELS: Record<QuickOpenKind, string> = {
   "screen": "画面",
@@ -18,6 +18,7 @@ export const QUICK_OPEN_KIND_LABELS: Record<QuickOpenKind, string> = {
   "view": "ビュー",
   "view-definition": "ビュー定義",
   "page": "ページ",
+  "create": "新規作成",
 };
 
 export const QUICK_OPEN_KIND_ICONS: Record<QuickOpenKind, string> = {
@@ -31,6 +32,7 @@ export const QUICK_OPEN_KIND_ICONS: Record<QuickOpenKind, string> = {
   "view": "bi-eye",
   "view-definition": "bi-layout-text-window",
   "page": "bi-compass",
+  "create": "bi-plus-circle",
 };
 
 export interface QuickOpenEntry {
@@ -68,6 +70,20 @@ export function normalizeQuery(s: string): string {
     .replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
 }
 
+/** 「新しく作る」: 一覧画面を開き、追加ダイアログを出す (id は useQuickCreate の kind) */
+export const QUICK_CREATE_ACTIONS: Array<{ id: string; label: string; route: string }> = [
+  { id: "screen", label: "画面", route: "/screen/list" },
+  { id: "table", label: "テーブル", route: "/table/list" },
+  { id: "process-flow", label: "処理フロー", route: "/process-flow/list" },
+  { id: "business-flow", label: "業務フロー", route: "/business-flow/list" },
+  { id: "report", label: "帳票", route: "/report/list" },
+  { id: "sequence", label: "シーケンス", route: "/sequence/list" },
+  { id: "view", label: "DB ビュー", route: "/view/list" },
+  { id: "view-definition", label: "ビュー定義", route: "/view-definition/list" },
+  { id: "page-layout", label: "ページレイアウト", route: "/page-layout/list" },
+  { id: "gadget", label: "ガジェット", route: "/gadget/list" },
+];
+
 export function buildQuickOpenEntries(src: QuickOpenSources): QuickOpenEntry[] {
   const out: QuickOpenEntry[] = [];
   let order = 0;
@@ -88,6 +104,8 @@ export function buildQuickOpenEntries(src: QuickOpenSources): QuickOpenEntry[] {
   // 画面項目は画面と対になるが、検索語がないときの一覧が画面で埋まらないよう後ろにまとめる
   for (const s of src.screens ?? []) add("screen-items", s.id, `${s.name} (項目定義)`, [s.name], `/screen/items/${enc(s.id)}`);
   for (const p of src.pages ?? []) add("page", p.id, p.label, [], p.route);
+  // 検索語がないときの一覧が埋まらないよう、いちばん後ろ。「新規」「作成」「追加」「new」で見つかる
+  for (const c of QUICK_CREATE_ACTIONS) add("create", c.id, `${c.label}を新しく作る`, [c.label, "新規", "新規作成", "作成", "追加", "new", "create"], c.route);
   return out;
 }
 

@@ -37,6 +37,7 @@ import "../../styles/flow.css";
 import "../../styles/screenList.css";
 import "../../styles/editMode.css";
 import { confirmDeletionImpact } from "../../utils/confirmDeletion";
+import { useQuickCreate } from "../../hooks/useQuickCreate";
 
 const STORAGE_KEY = "list-view-mode:screen-list";
 const TAB_ID = makeTabId("screen-list", "main");
@@ -325,6 +326,9 @@ export function ScreenListView() {
   const handleAddNew = () => {
     setScreenModal({ open: true });
   };
+
+  // クイックオープン (Ctrl+K) の「新しく作る」から来たときは、追加ダイアログを開く
+  useQuickCreate("screen", handleAddNew);
 
   // docs/spec/list-common.md §3.11: 右クリックメニュー項目を構築
   const buildMenuItems = (target: ScreenNode | null): ContextMenuItem[] => {
