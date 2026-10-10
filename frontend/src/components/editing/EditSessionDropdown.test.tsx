@@ -234,22 +234,17 @@ describe("EditSessionDropdown", () => {
     expect(screen.queryByTestId("esd-others-editing")).toBeNull();
   });
 
-  it("一覧の取得に失敗しても、直前の一覧 (他 N 件) は消えず、やり直しで取れる", async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    try {
-      mockRequest.mockRejectedValueOnce(new Error("WorkspaceUnset"));
-      mockRequest.mockResolvedValue({ sessions: [makeEditSession({ id: "es-001" })] });
+  it("一覧の取得に失敗しても、やり直しで取れる (直前の一覧は消さない)", async () => {
+    // 実時間の timer で最初のやり直し (1 秒後) を待つ。fake timer は full run で flake するため使わない
+    mockRequest.mockRejectedValueOnce(new Error("WorkspaceUnset"));
+    mockRequest.mockResolvedValue({ sessions: [makeEditSession({ id: "es-001" })] });
 
-      render(<EditSessionDropdown {...defaultProps} />);
-      expect(screen.queryByTestId("esd-others-editing")).toBeNull();
+    render(<EditSessionDropdown {...defaultProps} />);
+    expect(screen.queryByTestId("esd-others-editing")).toBeNull();
 
-      await vi.advanceTimersByTimeAsync(1100);
-      await waitFor(() => {
-        expect(screen.getByTestId("esd-others-editing").textContent).toBe("他 1 件が編集中");
-      });
-    } finally {
-      vi.useRealTimers();
-    }
+    await waitFor(() => {
+      expect(screen.getByTestId("esd-others-editing").textContent).toBe("他 1 件が編集中");
+    }, { timeout: 3000 });
   });
 
   it("未参加の EditSession には [👁 観察] ボタンが表示される", async () => {
