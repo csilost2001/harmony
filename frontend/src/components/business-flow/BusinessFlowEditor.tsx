@@ -18,6 +18,8 @@ import { listProcessFlows } from "../../store/processFlowStore";
 import { loadConventions } from "../../store/conventionsStore";
 import { isSaveConflict, loadBusinessFlow, saveBusinessFlow } from "../../store/businessFlowStore";
 import { makeTabId, setDirty as setTabDirty } from "../../store/tabStore";
+import { SortableList, SortableRow } from "../common/SortableList";
+import { moveById } from "../../utils/reorder";
 import "../../styles/businessFlow.css";
 
 type Selection = { kind: "step" | "lane"; id: string } | null;
@@ -246,6 +248,8 @@ export function BusinessFlowEditor() {
     if (i >= 0 && j >= 0 && j < f.lanes.length) [f.lanes[i], f.lanes[j]] = [f.lanes[j], f.lanes[i]];
     return f;
   });
+  const reorderLanes = (activeId: string, overId: string) => apply((f) => { moveById(f.lanes, activeId, overId); return f; });
+  const reorderSteps = (activeId: string, overId: string) => apply((f) => { moveById(f.steps, activeId, overId); return f; });
   const deleteLane = (id: string) => {
     if (!flow) return;
     const used = flow.steps.filter((s) => s.lane === id);
@@ -314,9 +318,9 @@ export function BusinessFlowEditor() {
         <aside className="bfe-left" aria-label="レーンと工程">
           <section>
             <h4>レーン</h4>
-            <ul className="bfe-list">
+            <SortableList className="bfe-list" testId="bf-lane-list" ids={flow.lanes.map((l) => l.id)} onReorder={reorderLanes}>
               {flow.lanes.map((l, i) => (
-                <li key={l.id} className={selection?.kind === "lane" && selection.id === l.id ? "bfe-sel" : ""}>
+                <SortableRow key={l.id} id={l.id} label={l.name} className={selection?.kind === "lane" && selection.id === l.id ? "bfe-sel" : ""}>
                   <button type="button" className="bfe-row" onClick={() => setSelection({ kind: "lane", id: l.id })} data-testid={`bf-lane-${l.id}`}>
                     <i className={`bi ${l.kind === "system" ? "bi-cpu" : l.kind === "external" ? "bi-box-arrow-in-right" : "bi-person"}`} />
                     <span>{l.name}</span>
@@ -325,25 +329,25 @@ export function BusinessFlowEditor() {
                     <button type="button" onClick={() => moveLane(l.id, -1)} disabled={i === 0} aria-label={`${l.name}を上へ`}><i className="bi bi-chevron-up" /></button>
                     <button type="button" onClick={() => moveLane(l.id, 1)} disabled={i === flow.lanes.length - 1} aria-label={`${l.name}を下へ`}><i className="bi bi-chevron-down" /></button>
                   </span>
-                </li>
+                </SortableRow>
               ))}
-            </ul>
+            </SortableList>
             <button type="button" className="bfe-btn bfe-btn-dashed" onClick={addLane} data-testid="bf-add-lane"><i className="bi bi-plus-lg" /> レーンを追加</button>
           </section>
           <section>
             <h4>工程 <small>{flow.steps.length}</small></h4>
-            <ul className="bfe-list bfe-steps">
+            <SortableList className="bfe-list bfe-steps" testId="bf-step-list" ids={flow.steps.map((s) => s.id)} onReorder={reorderSteps}>
               {flow.steps.map((s) => (
-                <li key={s.id} className={selection?.kind === "step" && selection.id === s.id ? "bfe-sel" : ""}>
+                <SortableRow key={s.id} id={s.id} label={s.name} className={selection?.kind === "step" && selection.id === s.id ? "bfe-sel" : ""}>
                   <button type="button" className="bfe-row" onClick={() => setSelection({ kind: "step", id: s.id })} data-testid={`bf-list-step-${s.id}`}>
                     <i className={`bi ${STEP_ICON[s.kind]}`} />
                     <span>{s.name}</span>
                     <small>{laneName(s.lane)}</small>
                     {problemIds.has(s.id) && <i className="bi bi-exclamation-triangle bfe-warn" title="要確認があります" />}
                   </button>
-                </li>
+                </SortableRow>
               ))}
-            </ul>
+            </SortableList>
             <div className="bfe-add-row">
               {(["task", "decision", "start", "end"] as StepKind[]).map((k) => (
                 <button key={k} type="button" className="bfe-btn bfe-btn-dashed" onClick={() => addStep(k)} data-testid={`bf-add-${k}`}><i className={`bi ${STEP_ICON[k]}`} /> {BUSINESS_STEP_KIND_LABELS[k]}</button>

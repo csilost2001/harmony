@@ -171,6 +171,41 @@ test.describe("業務フロー", () => {
     expect((await readFlow("return-flow")).steps.length).toBe(count);
   });
 
+  test("レーンと工程の一覧は、持ち手をドラッグして並べ替えられる (保存で原本に反映、元に戻せる) @regression", async ({ page }) => {
+    await openEditor(page, "order-to-shipment");
+    const before = (await readFlow("order-to-shipment")).lanes.map((l: { id: string }) => l.id);
+    const grip = (id: string) => page.getByTestId(`sortable-grip-${id}`);
+    const dragTo = async (from: string, to: string) => {
+      const a = await grip(from).boundingBox(), b = await grip(to).boundingBox();
+      if (!a || !b) throw new Error("持ち手が見つかりません");
+      await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2 + 6, { steps: 3 });
+      await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2 + (b.y > a.y ? 4 : -4), { steps: 8 });
+      await page.mouse.up();
+      await page.waitForTimeout(150); // ドロップ直後の 1 回のクリックは、つかんだ操作の一部として無視される
+    };
+    const laneIds = async () => page.getByTestId("bf-lane-list").locator("[data-testid^=sortable-grip-]").evaluateAll((els) => els.map((e) => (e.getAttribute("data-testid") ?? "").replace("sortable-grip-", "")));
+    expect(await laneIds()).toEqual(before);
+    await dragTo(before[0], before[2]);
+    await expect(page.getByTestId("bf-dirty")).toBeVisible();
+    expect(await laneIds()).toEqual([before[1], before[2], before[0], ...before.slice(3)]);
+    await page.getByRole("button", { name: "元に戻す" }).click();
+    expect(await laneIds()).toEqual(before);
+    await dragTo(before[2], before[0]);
+    expect(await laneIds()).toEqual([before[2], before[0], before[1], ...before.slice(3)]);
+    await page.getByTestId("bf-save").click();
+    await expect(page.getByTestId("bf-dirty")).toHaveCount(0);
+    expect((await readFlow("order-to-shipment")).lanes.map((l: { id: string }) => l.id)).toEqual([before[2], before[0], before[1], ...before.slice(3)]);
+
+    // 工程の一覧も同じ操作で並べ替えられ、行のクリック (選択) は妨げない
+    const steps = (await readFlow("order-to-shipment")).steps.map((x: { id: string }) => x.id);
+    await dragTo(steps[0], steps[2]);
+    await expect(page.getByTestId("bf-dirty")).toBeVisible();
+    await page.getByTestId(`bf-list-step-${steps[1]}`).click();
+    await expect(page.getByTestId("bf-step-screen")).toBeVisible();
+  });
+
   test("設計書に「業務フロー」の章 (図と工程表) が出る @regression", async ({ page }) => {
     await ws.gotoActive(page, "/document");
     await expect(page.locator("#business-flows")).toBeVisible({ timeout: 30000 });

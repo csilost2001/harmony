@@ -117,3 +117,9 @@
   .bfe-body { grid-template-columns: 200px minmax(0, 1fr); }
   .bfe-right { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--hm-border); }
 }
+
+/* ドラッグで並べ替える一覧の持ち手 */
+.bfe-grip { flex: 0 0 auto; display: flex; align-items: center; padding: 4px 2px; color: var(--hm-fg-faint); cursor: grab; touch-action: none; border-radius: 3px; }
+.bfe-grip:hover { color: var(--hm-fg-2); background: var(--hm-hover); }
+.bfe-grip:active { cursor: grabbing; }
+.bfe-dragging { position: relative; z-index: 2; background: var(--hm-surface); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25); opacity: 0.95; }

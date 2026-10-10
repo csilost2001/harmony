@@ -149,6 +149,39 @@ test.describe("帳票", () => {
     await expect(page.getByTestId("rp-dirty")).toHaveCount(0);
   });
 
+  test("部の一覧は持ち手で、用紙の見本の項目は同じ部の中でドラッグして並べ替えられる @regression", async ({ page }) => {
+    await openEditor(page, "delivery-note");
+    const before = await read("delivery-note");
+    const secIds: string[] = before.sections.map((s: { id: string }) => s.id);
+    const grip = (id: string) => page.getByTestId(`sortable-grip-${id}`);
+    // 画面の端に近いと、ドラッグ中に一覧が自動でスクロールしてしまうため、一覧を中央に出してからつかむ
+    await page.getByTestId("rp-section-list").evaluate((el) => el.scrollIntoView({ block: "center" }));
+    const a = await grip(secIds[0]).boundingBox(), b = await grip(secIds[2]).boundingBox();
+    if (!a || !b) throw new Error("持ち手が見つかりません");
+    await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2 + 6, { steps: 3 });
+    await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2 + 4, { steps: 8 });
+    await page.mouse.up();
+    await page.waitForTimeout(150); // ドロップ直後の 1 回のクリックは、つかんだ操作の一部として無視される
+    await expect(page.getByTestId("rp-dirty")).toBeVisible();
+    await page.getByTestId("rp-save").click();
+    await expect(page.getByTestId("rp-dirty")).toHaveCount(0);
+    expect((await read("delivery-note")).sections.map((s: { id: string }) => s.id)).toEqual([secIds[1], secIds[2], secIds[0], ...secIds.slice(3)]);
+
+    // 用紙の見本: 明細の「商品名」を「金額」の右へ動かす
+    const detail = (await read("delivery-note")).sections.find((s: { kind: string }) => s.kind === "detail");
+    const ids: string[] = detail.fields.map((f: { id: string }) => f.id);
+    await page.getByTestId(`rp-field-${ids[0]}`).first().dragTo(page.getByTestId(`rp-field-${ids[ids.length - 1]}`).first(), { targetPosition: { x: 4, y: 4 } });
+    await expect(page.getByTestId("rp-dirty")).toBeVisible();
+    await page.getByTestId("rp-save").click();
+    await expect(page.getByTestId("rp-dirty")).toHaveCount(0);
+    const after = (await read("delivery-note")).sections.find((s: { kind: string }) => s.kind === "detail").fields.map((f: { id: string }) => f.id);
+    expect(after).not.toEqual(ids);
+    expect([...after].sort()).toEqual([...ids].sort());
+    expect(after.indexOf(ids[0])).toBe(ids.length - 1);
+  });
+
   test("設計書に「帳票」の章 (用紙の見本と項目定義) が出る @regression", async ({ page }) => {
     await ws.gotoActive(page, "/document");
     await expect(page.locator("#reports")).toBeVisible({ timeout: 30000 });

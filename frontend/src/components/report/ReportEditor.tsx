@@ -20,6 +20,8 @@ import { listProcessFlows } from "../../store/processFlowStore";
 import { listTables, loadTable } from "../../store/tableStore";
 import { isSaveConflict, loadReport, saveReport } from "../../store/reportStore";
 import { makeTabId, setDirty as setTabDirty } from "../../store/tabStore";
+import { SortableList, SortableRow } from "../common/SortableList";
+import { moveById } from "../../utils/reorder";
 import "../../styles/businessFlow.css";
 import "../../styles/report.css";
 
@@ -207,6 +209,12 @@ export function ReportEditor() {
     if (i >= 0 && j >= 0 && j < r.sections.length) [r.sections[i], r.sections[j]] = [r.sections[j], r.sections[i]];
     return r;
   });
+  const reorderSections = (activeId: string, overId: string) => apply((r) => { moveById(r.sections, activeId, overId); return r; });
+  const reorderFields = (sid: string, activeId: string, overId: string) => apply((r) => {
+    const fs = r.sections.find((s) => s.id === sid)?.fields;
+    if (fs) moveById(fs, activeId, overId);
+    return r;
+  });
   const deleteSection = (id: string) => { apply((r) => { r.sections = r.sections.filter((s) => s.id !== id); return r; }); setSelection(null); };
   const addField = (sid: string, kind?: ReportFieldKind) => {
     if (!report) return;
@@ -250,6 +258,42 @@ export function ReportEditor() {
     else if (s) setSelection({ sectionId: s.getAttribute("data-section") as string });
     else setSelection(null);
   };
+  // 用紙の見本の項目は、同じ部の中でドラッグして並べ替えられる (項目の draggable は見本の HTML 側で付く)
+  const paperRef = useRef<HTMLDivElement | null>(null);
+  const dragRef = useRef<{ sid: string; fid: string } | null>(null);
+  const clearDropMarks = () => paperRef.current?.querySelectorAll(".rpe-drop-before, .rpe-drop-after").forEach((el) => el.classList.remove("rpe-drop-before", "rpe-drop-after"));
+  const dropTarget = (e: React.DragEvent) => {
+    const el = (e.target as Element).closest?.("[data-field][data-section]");
+    const drag = dragRef.current;
+    if (!el || !drag || el.getAttribute("data-section") !== drag.sid || el.getAttribute("data-field") === drag.fid) return null;
+    return el;
+  };
+  const onPaperDragStart = (e: React.DragEvent) => {
+    const el = (e.target as Element).closest?.("[data-field][data-section]");
+    if (!el) return;
+    dragRef.current = { sid: el.getAttribute("data-section") as string, fid: el.getAttribute("data-field") as string };
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", dragRef.current.fid);
+  };
+  const onPaperDragOver = (e: React.DragEvent) => {
+    const el = dropTarget(e);
+    clearDropMarks();
+    if (!el) return;
+    e.preventDefault();
+    const rect = el.getBoundingClientRect();
+    el.classList.add(e.clientX < rect.left + rect.width / 2 ? "rpe-drop-before" : "rpe-drop-after");
+  };
+  const onPaperDrop = (e: React.DragEvent) => {
+    const el = dropTarget(e);
+    const drag = dragRef.current;
+    clearDropMarks();
+    dragRef.current = null;
+    if (!el || !drag) return;
+    e.preventDefault();
+    reorderFields(drag.sid, drag.fid, el.getAttribute("data-field") as string);
+    setSelection({ sectionId: drag.sid, fieldId: drag.fid });
+  };
+  const onPaperDragEnd = () => { clearDropMarks(); dragRef.current = null; };
   const onPaperKey = (e: React.KeyboardEvent) => {
     const el = e.target as Element;
     const f = el.closest("[data-field]"), s = el.closest("[data-section]");
@@ -361,9 +405,9 @@ export function ReportEditor() {
           </section>
           <section>
             <h4>部 <small>{report.sections.length}</small></h4>
-            <ul className="bfe-list">
+            <SortableList className="bfe-list" testId="rp-section-list" ids={report.sections.map((s) => s.id)} onReorder={reorderSections}>
               {report.sections.map((s, i) => (
-                <li key={s.id} className={selection?.sectionId === s.id && !selection.fieldId ? "bfe-sel" : ""}>
+                <SortableRow key={s.id} id={s.id} label={REPORT_SECTION_LABELS[s.kind]} className={selection?.sectionId === s.id && !selection.fieldId ? "bfe-sel" : ""}>
                   <button type="button" className="bfe-row" onClick={() => setSelection({ sectionId: s.id })} data-testid={`rp-list-section-${s.id}`}>
                     <span>{REPORT_SECTION_LABELS[s.kind]}{s.name && s.name !== REPORT_SECTION_LABELS[s.kind] ? `: ${s.name}` : ""}</span>
                     <small>{s.fields.length}</small>
@@ -372,9 +416,9 @@ export function ReportEditor() {
                     <button type="button" onClick={() => moveSection(s.id, -1)} disabled={i === 0} aria-label="上へ"><i className="bi bi-chevron-up" /></button>
                     <button type="button" onClick={() => moveSection(s.id, 1)} disabled={i === report.sections.length - 1} aria-label="下へ"><i className="bi bi-chevron-down" /></button>
                   </span>
-                </li>
+                </SortableRow>
               ))}
-            </ul>
+            </SortableList>
             <label className="bfe-field"><span>部を追加</span>
               <select value="" onChange={(e) => { if (e.target.value) addSection(e.target.value as ReportSectionKind); }} data-testid="rp-add-section">
                 <option value="">種類を選ぶ…</option>
@@ -387,7 +431,7 @@ export function ReportEditor() {
         {/* 中央: 用紙の見本 */}
         <main className="bfe-center">
           <div className="rpe-stage">
-            <div className="rpe-paper-wrap" onClick={onPaperClick} onKeyDown={onPaperKey} data-testid="rp-paper-view" data-theme-audit-skip dangerouslySetInnerHTML={{ __html: html }} />
+            <div ref={paperRef} className="rpe-paper-wrap" onClick={onPaperClick} onKeyDown={onPaperKey} onDragStart={onPaperDragStart} onDragOver={onPaperDragOver} onDrop={onPaperDrop} onDragEnd={onPaperDragEnd} data-testid="rp-paper-view" data-theme-audit-skip dangerouslySetInnerHTML={{ __html: html }} />
           </div>
           <p className="bfe-hint">用紙の図は、項目の並びと幅から描いた見本です (実際の出力ではありません)。</p>
           <section className="bfe-issues" aria-label="要確認">
