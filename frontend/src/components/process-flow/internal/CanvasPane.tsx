@@ -332,7 +332,7 @@ export function CanvasPane({
           <div className="step-empty process-flow-empty-drop">
             <i className="bi bi-lightning" />
             <strong>アクションがありません</strong>
-            <span>上部の + ボタンからアクションを追加してください。</span>
+            <span>{isReadonly ? "「編集開始」を押すと、上部の + ボタンからアクションを追加できます。" : "上部の + ボタンからアクションを追加してください。"}</span>
           </div>
         )}
       </div>

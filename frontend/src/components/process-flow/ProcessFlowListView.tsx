@@ -458,6 +458,8 @@ export function ProcessFlowListView() {
     setAddScreenId("");
     setAddDescription("");
     setAddId("");
+    // 作成した処理フローは、編集を始めた状態で開く
+    try { sessionStorage.setItem(`harmony-auto-edit:process-flow:${group.meta.id}`, "1"); } catch { /* 使えなくても開くだけ */ }
     navigate(wsPath(`/process-flow/edit/${group.meta.id}`));
   };
 

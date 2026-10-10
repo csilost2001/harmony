@@ -226,6 +226,20 @@ export function ProcessFlowEditor() {
 
   const isReadonly = mode.kind !== "editing";
 
+  // 「作成して編集」経由で sessionStorage に flag があれば、編集を始めた状態で開く。
+  const autoEditFiredRef = useRef(false);
+  useEffect(() => {
+    if (autoEditFiredRef.current) return;
+    if (!processFlowId) return;
+    if (mode.kind !== "readonly") return;
+    if (sessionLoading) return;
+    const key = `harmony-auto-edit:process-flow:${processFlowId}`;
+    if (sessionStorage.getItem(key) !== "1") return;
+    autoEditFiredRef.current = true;
+    sessionStorage.removeItem(key);
+    void editActions.startEditing();
+  }, [processFlowId, mode.kind, sessionLoading, editActions]);
+
   // #1258 workspace 参照情報 (componentRef / modelRef 補完用)
   const workspace = useWorkspaceReferences();
 
