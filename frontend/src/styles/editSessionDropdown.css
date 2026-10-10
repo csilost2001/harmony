@@ -50,7 +50,7 @@
   top: calc(100% + 4px);
   right: 0;
   z-index: 1040;
-  min-width: 280px;
+  min-width: 340px;
   max-width: 400px;
   background: var(--hm-surface);
   border: 1px solid var(--hm-border);
@@ -155,11 +155,6 @@
   max-width: 120px;
 }
 
-.esd-row-time {
-  font-size: 11px;
-  flex-shrink: 0;
-}
-
 /* ── アクションボタン群 ──────────────────────────────────────────────────────── */
 .esd-actions {
   display: flex;
@@ -168,6 +163,7 @@
 }
 
 .esd-action-btn {
+  white-space: nowrap;
   font-size: 11px;
   padding: 1px 6px;
   line-height: 1.4;
@@ -209,8 +205,6 @@
 .esd-ai-tag { flex: 0 0 auto; padding: 0 5px; border-radius: 3px; background: var(--hm-accent-soft); color: var(--hm-accent); font-size: 10px; font-weight: 700; }
 .esd-session-meta { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px; font-size: 11px; color: var(--hm-fg-muted); }
 .esd-session-id { margin-left: auto; background: transparent; color: var(--hm-fg-faint); font-size: 10px; padding: 0; }
-.esd-action-btn { white-space: nowrap; }
-.esd-dropdown { min-width: 340px; }
 .esd-loading { padding: 8px 12px; color: var(--hm-fg-muted); font-size: 12px; }
 .esd-session-title-rest { white-space: nowrap; }
 

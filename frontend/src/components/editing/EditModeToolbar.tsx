@@ -1,5 +1,6 @@
 import type { EditMode } from "../../hooks/useEditSession";
 import "../../styles/editMode.css";
+import { friendlyLabel } from "../../utils/participantLabel";
 
 interface Props {
   mode: EditMode;
@@ -81,7 +82,7 @@ export function EditModeToolbar({
   }
 
   if (mode.kind === "locked-by-other") {
-    const label = ownerLabel ?? mode.ownerSessionId;
+    const label = friendlyLabel(ownerLabel ?? mode.ownerSessionId);
     return (
       <div className="edit-mode-toolbar edit-mode-toolbar--locked">
         <span className="edit-mode-lock-info" data-testid="edit-mode-lock-info">

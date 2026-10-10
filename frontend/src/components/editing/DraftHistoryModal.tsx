@@ -18,6 +18,7 @@ import { DRAFT_HISTORY_RETENTION_DAYS } from "@harmony/shared";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import type { DraftResourceType } from "../../types/draft";
 import "../../styles/editMode.css";
+import { friendlyLabel } from "../../utils/participantLabel";
 
 // ── 型 ──────────────────────────────────────────────────────────────────────
 
@@ -279,8 +280,8 @@ export function DraftHistoryModal({
                     {/* メイン情報 */}
                     <div className="flex-grow-1 min-w-0">
                       <div className="d-flex align-items-center gap-2 flex-wrap">
-                        <span className="fw-semibold small text-truncate" title={entry.ownerLabel}>
-                          {entry.ownerLabel}
+                        <span className="fw-semibold small text-truncate" title={friendlyLabel(entry.ownerLabel)}>
+                          {friendlyLabel(entry.ownerLabel)}
                         </span>
                         <span className="text-muted small">
                           {relativeTime(entry.timestamp)}

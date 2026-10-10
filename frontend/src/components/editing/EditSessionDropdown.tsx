@@ -218,38 +218,60 @@ export function EditSessionDropdown({
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // ── editSession.list を取得 ──────────────────────────────────────────────────
-  const fetchSessions = useCallback(async () => {
-    setListLoading(true);
-    try {
-      const result = await mcpBridge.request("editSession.list", {
-        resourceType,
-        resourceId,
-      }) as { sessions: EditSessionData[] };
-      setSessions(result.sessions ?? []);
-    } catch (e) {
-      console.warn("[EditSessionDropdown] editSession.list failed:", e);
-      setSessions([]);
-    } finally {
-      setListLoading(false);
-    }
+  // 失敗しても直前の一覧は消さない (バッジの「他 N 件」が一瞬で消えないように)。
+  // ワークスペースの準備前などで失敗しうるので、少し間をおいて数回やり直す。
+  const sessionIdsRef = useRef<Set<string>>(new Set());
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fetchSessions = useCallback(async (): Promise<void> => {
+    const run = async (attempt: number): Promise<void> => {
+      if (retryTimerRef.current) { clearTimeout(retryTimerRef.current); retryTimerRef.current = null; }
+      setListLoading(true);
+      try {
+        const result = await mcpBridge.request("editSession.list", {
+          resourceType,
+          resourceId,
+        }) as { sessions: EditSessionData[] };
+        const list = result.sessions ?? [];
+        sessionIdsRef.current = new Set(list.map((x) => x.id));
+        setSessions(list);
+      } catch (e) {
+        console.warn("[EditSessionDropdown] editSession.list failed:", e);
+        if (attempt < 4) {
+          retryTimerRef.current = setTimeout(() => { void run(attempt + 1); }, 1000 * (attempt + 1));
+        }
+      } finally {
+        setListLoading(false);
+      }
+    };
+    await run(0);
   }, [resourceType, resourceId]);
 
   // ── 表示中 (閉じていても) と展開時に editSession.list を取得 ─────────────────
   // 閉じた状態のバッジに「他の人が編集中」を出すため、開く前にも取得しておく。
   useEffect(() => {
-    // async IIFE で await を挟んで effect body 内同期 setState を回避する
-    // (react-hooks/set-state-in-effect #1385)。
-    let cancelled = false;
-    void (async () => {
-      await fetchSessions();
-      if (cancelled) return;
-    })();
-    return () => { cancelled = true; };
+    void fetchSessions();
+    return () => {
+      if (retryTimerRef.current) { clearTimeout(retryTimerRef.current); retryTimerRef.current = null; }
+    };
   }, [open, fetchSessions]);
 
-  // ── broadcast 受信時に list を更新 ──────────────────────────────────────────
+  // ── 接続が (再) 確立したら取り直す ──────────────────────────────────────────
   useEffect(() => {
-    const refresh = () => {
+    let prev: string | null = null;
+    return mcpBridge.onStatusChange((status) => {
+      if (prev !== null && prev !== "connected" && status === "connected") void fetchSessions();
+      prev = status;
+    });
+  }, [fetchSessions]);
+
+  // ── broadcast 受信時に list を更新 ──────────────────────────────────────────
+  // 同時に開いている他の編集画面の編集セッションについては取り直さない
+  // (created は editSession、それ以外は editSessionId を持つ。一覧に無い ID は対象外)。
+  useEffect(() => {
+    const refresh = (data: unknown) => {
+      const d = (data ?? {}) as { editSession?: EditSessionData; editSessionId?: string };
+      if (d.editSession && (d.editSession.resourceType !== resourceType || d.editSession.resourceId !== resourceId)) return;
+      if (!d.editSession && d.editSessionId && !sessionIdsRef.current.has(d.editSessionId)) return;
       void fetchSessions();
     };
     const unsubs = [
@@ -261,7 +283,7 @@ export function EditSessionDropdown({
       mcpBridge.onBroadcast("editSession.discarded", refresh),
     ];
     return () => unsubs.forEach((u) => u());
-  }, [fetchSessions]);
+  }, [fetchSessions, resourceType, resourceId]);
 
   // 他の人 (または AI) が編集中の編集セッション数。閉じたバッジに出す
   const othersEditingCount = sessions.filter((s) => {
