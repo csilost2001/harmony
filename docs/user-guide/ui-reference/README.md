@@ -11,7 +11,11 @@ Harmony の各 UI 画面の操作マニュアル。**エンドユーザー (業�
 
 仕様書 (`docs/spec/`) は設計者・実装者向けで、本ディレクトリは **画面の使い方** にフォーカス。両者で重複する内容 (例: ProcessFlow の variable lifecycle) は spec を canonical とし、本書からはリンクのみ張る。
 
-## 全 28 画面 (PR #1403 で全画面完備)
+## 共通の操作
+
+- [`common-operations`](./common-operations.md) — 開く・探す (`Ctrl+K`)、編集開始 → 保存、タブの「●」、ID の入力、共同編集、並べ替え
+
+## 画面一覧 (全 32 画面)
 
 ルーティングは AGENTS.md の "Routing" 表 が canonical。
 
@@ -22,6 +26,7 @@ Harmony の各 UI 画面の操作マニュアル。**エンドユーザー (業�
 - [`dashboard`](./dashboard.md) — Dashboard (`/`): プロジェクト全体俯瞰
 - [`screen-flow`](./screen-flow.md) — 画面フロー図 (`/screen/flow`): ReactFlow キャンバスで画面遷移を表示
 - [`er-diagram`](./er-diagram.md) — ER 図 (`/table/er`): テーブル関連を Mermaid で可視化
+- [`document`](./document.md) — 設計書ビュー (`/document`): 紙面で読む・HTML 保存・印刷
 - [`generic-definition-catalog`](./generic-definition-catalog.md) — 汎用定義カタログ (`/generic-definition`)
 - [`conventions-catalog`](./conventions-catalog.md) — 横断規約カタログ (`/conventions/catalog`)
 
@@ -37,12 +42,14 @@ Harmony の各 UI 画面の操作マニュアル。**エンドユーザー (業�
 - [`view-definition-list`](./view-definition-list.md) — ViewDefinition 一覧 (`/view-definition/list`)
 - [`page-layout-list`](./page-layout-list.md) — ページレイアウト一覧 (`/page-layout/list`)
 - [`gadget-list`](./gadget-list.md) — ガジェット一覧 (`/gadget/list`)
+- [`business-flow`](./business-flow.md) — 業務フロー一覧・編集 (`/business-flow/list`, `/business-flow/edit/:id`): スイムレーン図
+- [`report`](./report.md) — 帳票一覧・編集 (`/report/list`, `/report/edit/:id`): 部と項目で設計
 
 ### C. リソース個別エディタ
 
 各リソースを編集する画面。リソース ID 単位でタブが開く (per-resource)。
 
-- [`screen-designer`](./screen-designer.md) — 画面デザイナー (GrapesJS) (`/screen/design/:id`)
+- [`screen-designer`](./screen-designer.md) — 画面デザイナー (業務部品デザイナ) (`/screen/design/:id`)
 - [`screen-items`](./screen-items.md) — 画面項目編集 (`/screen/items/:id`)
 - [`table-editor`](./table-editor.md) — テーブル定義編集 (`/table/edit/:id`)
 - [`process-flow-editor`](./process-flow-editor.md) — 処理フロー編集 (`/process-flow/edit/:id`)
@@ -86,12 +93,12 @@ Harmony の各 UI 画面の操作マニュアル。**エンドユーザー (業�
 /document-ui
 ```
 
-(全 28 画面を順次撮影 + md 再生成、所要時間: 1-2 時間目安。実機 dev server 起動 + dogfood-uidoc-* workspace 前提)
+(全画面を順次撮影 + md 再生成、所要時間: 1-2 時間目安。実機 dev server 起動 + dogfood-uidoc-* workspace 前提)
 
 ## 関連
 
 - 生成スキル: [`ai-skills/document-ui/SKILL.md`](../../../ai-skills/document-ui/SKILL.md)
 - ルーティング正本: [AGENTS.md](../../../AGENTS.md) の "Routing" セクション
 - 一覧 UI 共通仕様: [`docs/spec/list-common.md`](../../spec/list-common.md)
-- 画面デザイナー仕様: [`docs/spec/multi-editor-puck.md`](../../spec/multi-editor-puck.md)
+- 画面デザイナー仕様: [`docs/spec/screen-layout.md`](../../spec/screen-layout.md)
 - ページレイアウト仕様: [`docs/spec/page-layout.md`](../../spec/page-layout.md)
