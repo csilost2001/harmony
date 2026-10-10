@@ -94,7 +94,7 @@ test.describe("ビュー定義 E2E", { tag: ["@regression"] }, () => {
     await page.getByRole("button", { name: /ビュー定義追加/ }).click();
     await expect(page.getByText("ビュー定義追加").first()).toBeVisible();
     // モーダル内のフィールドは label 内に <span> が入る複合構造のため、placeholder + select で指定
-    await page.locator('.tbl-modal input[placeholder="顧客一覧"]').fill(CREATED_NAME);
+    await page.locator('.tbl-modal input[placeholder="例: 顧客一覧"]').fill(CREATED_NAME);
     await page.locator('.tbl-modal select').nth(0).selectOption("list");
     await page.locator('.tbl-modal select').nth(1).selectOption(TABLE_NORM);
     // Round 6 Phase A: RFC #1284 / #1297 I-5 で EntityIdInput が必須化、kebab-case id を明示入力

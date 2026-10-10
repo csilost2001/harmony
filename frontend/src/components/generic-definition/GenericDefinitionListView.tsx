@@ -489,7 +489,7 @@ export function GenericDefinitionListView() {
                 value={addName}
                 onChange={(e) => setAddName(e.target.value)}
                 style={{ width: "100%", border: "1px solid var(--hm-border-strong)", borderRadius: "4px", padding: "6px 10px" }}
-                placeholder="OrderForm"
+                placeholder="例: OrderForm"
               />
             </div>
             <div style={{ marginBottom: "12px" }}>

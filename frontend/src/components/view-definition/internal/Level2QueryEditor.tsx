@@ -148,7 +148,7 @@ export function Level2QueryEditor({
                       d.query = { ...cur, joins };
                     })}
                     onBlur={() => { if (!isReadonly) commit(); }}
-                    placeholder="o.customer_id = c.id"
+                    placeholder="例: o.customer_id = c.id"
                     className="vd-query-fragment-input"
                     disabled={isReadonly}
                   />

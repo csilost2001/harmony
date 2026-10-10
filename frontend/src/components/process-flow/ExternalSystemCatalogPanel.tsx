@@ -100,7 +100,7 @@ export function ExternalSystemCatalogPanel({ group, onChange, expanded: expanded
                       className="form-control form-control-sm"
                       value={e.name}
                       onChange={(ev) => updateEntry(k, { name: ev.target.value })}
-                      placeholder="Stripe Japan"
+                      placeholder="例: Stripe Japan"
                     />
                   </label>
                   <label className="catalog-wide">
@@ -109,7 +109,7 @@ export function ExternalSystemCatalogPanel({ group, onChange, expanded: expanded
                       className="form-control form-control-sm"
                       value={e.baseUrl ?? ""}
                       onChange={(ev) => updateEntry(k, { baseUrl: ev.target.value || undefined })}
-                      placeholder="https://api.stripe.com"
+                      placeholder="例: https://api.stripe.com"
                     />
                   </label>
                   <label className="catalog-wide" data-field-path="openApiSpec">
@@ -119,7 +119,7 @@ export function ExternalSystemCatalogPanel({ group, onChange, expanded: expanded
                       data-field-path="openApiSpec"
                       value={e.openApiSpec ?? ""}
                       onChange={(ev) => updateEntry(k, { openApiSpec: trimToUndefined(ev.target.value) })}
-                      placeholder="https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json"
+                      placeholder="例: https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json"
                     />
                   </label>
                   <label>
@@ -148,7 +148,7 @@ export function ExternalSystemCatalogPanel({ group, onChange, expanded: expanded
                         className="form-control form-control-sm"
                         value={auth.tokenRef ?? ""}
                         onChange={(ev) => updateEntry(k, { auth: { ...auth, tokenRef: ev.target.value || undefined } })}
-                        placeholder="ENV:STRIPE_SECRET_KEY or @secret.X"
+                        placeholder="例: ENV:STRIPE_SECRET_KEY or @secret.X"
                       />
                     )}
                   </label>

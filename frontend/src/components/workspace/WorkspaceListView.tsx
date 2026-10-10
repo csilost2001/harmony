@@ -223,7 +223,7 @@ export function AddWorkspaceDialog({ onClose, onAdded, initialPath = "" }: AddWo
     // 入力欄に値が入った瞬間に既存の debounced auto-inspect が走るので明示再 inspect は不要
   };
 
-  const placeholder = buildPlaceholder(host);
+  const placeholder = `例: ${buildPlaceholder(host)}`;
   const exampleAbs = buildOsAwareExamplePath(host);
 
   // recent dropdown: 入力中の文字列で path / name を絞り込み
@@ -571,7 +571,7 @@ function WorkspaceRootPanel({ lockdown, onOpenProject }: WorkspaceRootPanelProps
     }
   };
 
-  const rootPlaceholder = buildWorkspaceRootExamplePath(host);
+  const rootPlaceholder = `例: ${buildWorkspaceRootExamplePath(host)}`;
 
   return (
     <section

@@ -55,7 +55,7 @@ export function DbPanel({
                   value={entry.engine ?? ""}
                   onChange={(e) => onUpdate(key, { engine: e.target.value || undefined })}
                   onBlur={onCommit}
-                  placeholder="postgresql@14"
+                  placeholder="例: postgresql@14"
                 />
               </td>
               <td>
@@ -64,7 +64,7 @@ export function DbPanel({
                   value={entry.namingConvention ?? ""}
                   onChange={(e) => onUpdate(key, { namingConvention: e.target.value || undefined })}
                   onBlur={onCommit}
-                  placeholder="snake_case"
+                  placeholder="例: snake_case"
                 />
               </td>
               <td>
@@ -76,7 +76,7 @@ export function DbPanel({
                     onUpdate(key, { timestampColumns: cols.length > 0 ? cols : undefined });
                   }}
                   onBlur={onCommit}
-                  placeholder="created_at, updated_at"
+                  placeholder="例: created_at, updated_at"
                 />
               </td>
               <td>
@@ -85,7 +85,7 @@ export function DbPanel({
                   value={entry.logicalDeleteColumn ?? ""}
                   onChange={(e) => onUpdate(key, { logicalDeleteColumn: e.target.value || undefined })}
                   onBlur={onCommit}
-                  placeholder="is_deleted"
+                  placeholder="例: is_deleted"
                 />
               </td>
               <td>

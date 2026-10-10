@@ -607,7 +607,7 @@ export function PageLayoutListView() {
                   type="text"
                   value={addName}
                   onChange={(e) => { setAddName(e.target.value); setAddNameError(""); }}
-                  placeholder="Main Layout"
+                  placeholder="例: Main Layout"
                   autoFocus
                   className={addNameError ? "input-error" : undefined}
                   onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}

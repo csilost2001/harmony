@@ -229,7 +229,8 @@ function defaultForSchema(schema: DynamicFormSchema): unknown {
 }
 
 function placeholderFor(schema: DynamicFormSchema): string | undefined {
-  return Object.prototype.hasOwnProperty.call(schema, "default") ? String(schema.default) : undefined;
+  // 既定値は、入力済みの値と区別できるよう「既定: 」を付けて薄く出す
+  return Object.prototype.hasOwnProperty.call(schema, "default") ? `既定: ${String(schema.default)}` : undefined;
 }
 
 function valueToInputValue(value: unknown): string {

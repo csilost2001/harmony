@@ -54,7 +54,7 @@ export function CurrencyPanel({
                   value={entry.code}
                   onChange={(e) => onUpdate(key, { code: e.target.value })}
                   onBlur={onCommit}
-                  placeholder="JPY"
+                  placeholder="例: JPY"
                 />
               </td>
               <td>
@@ -64,7 +64,7 @@ export function CurrencyPanel({
                   value={entry.subunit ?? ""}
                   onChange={(e) => onUpdate(key, { subunit: e.target.value === "" ? undefined : Number(e.target.value) })}
                   onBlur={onCommit}
-                  placeholder="0"
+                  placeholder="例: 0"
                   min={0}
                 />
               </td>

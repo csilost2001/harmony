@@ -165,7 +165,7 @@ function IndexEditorCard({
             className="index-name-input2"
             value={idx.physicalName}
             onChange={(e) => onUpdate({ physicalName: e.target.value as PhysicalName })}
-            placeholder="idx_tablename_column"
+            placeholder="例: idx_tablename_column"
           />
         </div>
         <button className="tbl-btn-icon" onClick={onClose} title="閉じる">
@@ -246,7 +246,7 @@ function IndexEditorCard({
             type="text"
             value={idx.where ?? ""}
             onChange={(e) => onUpdate({ where: e.target.value || undefined })}
-            placeholder="status = 'active'"
+            placeholder="例: status = 'active'"
             className="index-where-input"
           />
         </label>

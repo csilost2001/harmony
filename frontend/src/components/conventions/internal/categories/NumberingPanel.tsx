@@ -49,7 +49,7 @@ export function NumberingPanel({
                   value={entry.format}
                   onChange={(e) => onUpdate(key, { format: e.target.value })}
                   onBlur={onCommit}
-                  placeholder="C-NNNN"
+                  placeholder="例: C-NNNN"
                 />
               </td>
               <td>
@@ -58,7 +58,7 @@ export function NumberingPanel({
                   value={entry.implementation ?? ""}
                   onChange={(e) => onUpdate(key, { implementation: e.target.value || undefined })}
                   onBlur={onCommit}
-                  placeholder="PG sequence + DEFAULT"
+                  placeholder="例: PG sequence + DEFAULT"
                 />
               </td>
               <td>

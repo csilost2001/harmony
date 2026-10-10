@@ -416,7 +416,7 @@ export function ViewEditor() {
                   type="text"
                   value={view.name}
                   onChange={(e) => updateWithDraft((prev) => { prev.name = e.target.value; })}
-                  placeholder="顧客最終購入日ビュー"
+                  placeholder="例: 顧客最終購入日ビュー"
                   disabled={isReadonly}
                 />
               </label>
@@ -426,7 +426,7 @@ export function ViewEditor() {
                   type="text"
                   value={view.description ?? ""}
                   onChange={(e) => updateWithDraft((prev) => { prev.description = e.target.value || undefined; })}
-                  placeholder="顧客に最終購入日を結合した表示用ビュー"
+                  placeholder="例: 顧客に最終購入日を結合した表示用ビュー"
                   disabled={isReadonly}
                 />
               </label>
@@ -454,7 +454,7 @@ export function ViewEditor() {
                   onChange={(e) =>
                     updateWithDraft((prev) => { prev.version = (e.target.value || undefined) as SemVer | undefined; })
                   }
-                  placeholder="1.0.0"
+                  placeholder="例: 1.0.0"
                   pattern="^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$"
                   disabled={isReadonly}
                 />
@@ -490,7 +490,7 @@ export function ViewEditor() {
               onChange={(e) => { if (!isReadonly) updateSilent((prev) => { prev.selectStatement = e.target.value; }); }}
               onBlur={() => { if (!isReadonly) commit(); }}
               rows={10}
-              placeholder={`SELECT\n  c.customer_id,\n  c.customer_name,\n  MAX(o.created_at) AS last_order_at\nFROM customers c\nLEFT JOIN orders o ON c.customer_id = o.customer_id\nGROUP BY c.customer_id, c.customer_name`}
+              placeholder={`例:\nSELECT\n  c.customer_id,\n  c.customer_name,\n  MAX(o.created_at) AS last_order_at\nFROM customers c\nLEFT JOIN orders o ON c.customer_id = o.customer_id\nGROUP BY c.customer_id, c.customer_name`}
               spellCheck={false}
               disabled={isReadonly}
             />

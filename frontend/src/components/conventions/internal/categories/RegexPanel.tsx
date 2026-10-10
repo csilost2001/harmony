@@ -49,7 +49,7 @@ export function RegexPanel({
                   value={entry.pattern}
                   onChange={(e) => onUpdate(key, { pattern: e.target.value })}
                   onBlur={onCommit}
-                  placeholder="^[A-Za-z0-9]+$"
+                  placeholder="例: ^[A-Za-z0-9]+$"
                 />
               </td>
               <td>
@@ -58,7 +58,7 @@ export function RegexPanel({
                   value={entry.flags ?? ""}
                   onChange={(e) => onUpdate(key, { flags: e.target.value || undefined })}
                   onBlur={onCommit}
-                  placeholder="i"
+                  placeholder="例: i"
                 />
               </td>
               <td>

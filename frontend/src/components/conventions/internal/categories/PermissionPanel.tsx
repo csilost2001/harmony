@@ -52,7 +52,7 @@ export function PermissionPanel({
                   value={entry.resource}
                   onChange={(e) => onUpdate(key, { resource: e.target.value })}
                   onBlur={onCommit}
-                  placeholder="Order"
+                  placeholder="例: Order"
                 />
               </td>
               <td>
@@ -61,7 +61,7 @@ export function PermissionPanel({
                   value={entry.action}
                   onChange={(e) => onUpdate(key, { action: e.target.value })}
                   onBlur={onCommit}
-                  placeholder="create"
+                  placeholder="例: create"
                 />
               </td>
               <td>

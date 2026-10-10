@@ -63,7 +63,7 @@ export function BasicInfoSection({
             value={viewDefinition.name}
             onChange={(e) => updateSilentWithDraft((d) => { d.name = e.target.value as ViewDefinition["name"]; })}
             onBlur={() => { if (!isReadonly) commit(); }}
-            placeholder="顧客一覧"
+            placeholder="例: 顧客一覧"
             disabled={isReadonly}
           />
         </label>

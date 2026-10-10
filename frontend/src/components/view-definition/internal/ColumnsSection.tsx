@@ -124,7 +124,7 @@ export function ColumnsSection({
                         d.columns[ci] = { ...d.columns[ci], name: e.target.value as Identifier };
                       })}
                       onBlur={() => { if (!isReadonly) commit(); }}
-                      placeholder="columnName"
+                      placeholder="例: columnName"
                       className="vd-col-input-sm"
                       title="camelCase 識別子"
                       disabled={isReadonly}
@@ -207,7 +207,7 @@ export function ColumnsSection({
                         d.columns[ci] = { ...d.columns[ci], displayFormat: e.target.value || undefined };
                       })}
                       onBlur={() => { if (!isReadonly) commit(); }}
-                      placeholder="#,##0"
+                      placeholder="例: #,##0"
                       className="vd-col-input-xs"
                       disabled={isReadonly}
                     />
@@ -221,7 +221,7 @@ export function ColumnsSection({
                         d.columns[ci] = { ...d.columns[ci], width: e.target.value || undefined };
                       })}
                       onBlur={() => { if (!isReadonly) commit(); }}
-                      placeholder="120px"
+                      placeholder="例: 120px"
                       className="vd-col-input-xs"
                       disabled={isReadonly}
                     />
@@ -276,7 +276,7 @@ export function ColumnsSection({
                         d.columns[ci] = { ...d.columns[ci], linkTo: e.target.value || undefined };
                       })}
                       onBlur={() => { if (!isReadonly) commit(); }}
-                      placeholder="/orders/:id"
+                      placeholder="例: /orders/:id"
                       className="vd-col-input-sm"
                       disabled={isReadonly}
                     />

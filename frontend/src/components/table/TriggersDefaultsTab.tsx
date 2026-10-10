@@ -305,7 +305,7 @@ function DefaultEditorCard({
                 list="conv-numbering-list"
                 value={def.value}
                 onChange={(e) => onUpdate({ value: e.target.value })}
-                placeholder="@conv.numbering.orderNumber"
+                placeholder="例: @conv.numbering.orderNumber"
                 className="td-value-input"
               />
               <datalist id="conv-numbering-list">
@@ -324,7 +324,7 @@ function DefaultEditorCard({
                 list={def.kind === "sequence" ? "td-sequence-list" : undefined}
                 value={def.value}
                 onChange={(e) => onUpdate({ value: e.target.value })}
-                placeholder={def.kind === "literal" ? "0 または 'active'" : def.kind === "sequence" ? "seq_name" : "NOW()"}
+                placeholder={def.kind === "literal" ? "例: 0 または 'active'" : def.kind === "sequence" ? "例: seq_name" : "例: NOW()"}
                 className="td-value-input"
               />
               {def.kind === "sequence" && (
@@ -430,7 +430,7 @@ function TriggerEditorCard({
             type="text"
             value={trg.physicalName}
             onChange={(e) => onUpdate({ physicalName: e.target.value as PhysicalName })}
-            placeholder="trg_tablename_action"
+            placeholder="例: trg_tablename_action"
             className="td-trigger-name-input"
           />
         </label>
@@ -475,7 +475,7 @@ function TriggerEditorCard({
             type="text"
             value={trg.whenCondition ?? ""}
             onChange={(e) => onUpdate({ whenCondition: e.target.value || undefined })}
-            placeholder="NEW.status = 'active'"
+            placeholder="例: NEW.status = 'active'"
             className="td-value-input"
           />
         </label>
@@ -486,7 +486,7 @@ function TriggerEditorCard({
             className="td-body-textarea"
             value={trg.body}
             onChange={(e) => onUpdate({ body: e.target.value })}
-            placeholder={"NEW.po_number := 'ORD-' || TO_CHAR(NOW(), 'YYYY') || '-' ||\n  LPAD(nextval('po_number_seq')::text, 4, '0');"}
+            placeholder={"例:\nNEW.po_number := 'ORD-' || TO_CHAR(NOW(), 'YYYY') || '-' ||\n  LPAD(nextval('po_number_seq')::text, 4, '0');"}
             rows={6}
           />
         </label>

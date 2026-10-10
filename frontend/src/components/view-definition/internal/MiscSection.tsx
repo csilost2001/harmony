@@ -43,7 +43,7 @@ export function MiscSection({
               const v = e.target.value ? Number(e.target.value) : undefined;
               updateWithDraft((d) => { d.pageSize = v; });
             }}
-            placeholder="20"
+            placeholder="例: 20"
             className="vd-editor-number-input"
             disabled={isReadonly}
           />

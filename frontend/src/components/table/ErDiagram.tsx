@@ -755,7 +755,7 @@ function AddTableFromErModal({
             type="text"
             value={physicalName}
             onChange={(e) => setPhysicalName(e.target.value)}
-            placeholder="customers"
+            placeholder="例: customers"
             autoFocus
             onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
           />
@@ -766,7 +766,7 @@ function AddTableFromErModal({
             type="text"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="顧客マスタ"
+            placeholder="例: 顧客マスタ"
             onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
           />
         </label>

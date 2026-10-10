@@ -55,7 +55,7 @@ export function ResponseTypesTab({ bundle, saving, onSave, isReadonly }: Extensi
       {rows.map((row, index) => (
         <div className="extensions-entry-card" key={index}>
           <div className="extensions-response-grid">
-            <input className="form-control form-control-sm extensions-mono-input" placeholder="ApiError" value={row.key} onChange={(e) => setRows(rows.map((r, i) => i === index ? { ...r, key: e.target.value } : r))} disabled={isReadonly} />
+            <input className="form-control form-control-sm extensions-mono-input" placeholder="例: ApiError" value={row.key} onChange={(e) => setRows(rows.map((r, i) => i === index ? { ...r, key: e.target.value } : r))} disabled={isReadonly} />
             <input className="form-control form-control-sm" placeholder="説明" value={row.description} onChange={(e) => setRows(rows.map((r, i) => i === index ? { ...r, description: e.target.value } : r))} disabled={isReadonly} />
             <button className="btn btn-outline-danger btn-sm extensions-delete-button" onClick={() => setRows(rows.filter((_, i) => i !== index))} disabled={isReadonly}>削除</button>
             <textarea className="form-control form-control-sm font-monospace response-type-schema extensions-json-editor" rows={5} value={row.schemaText} onChange={(e) => setRows(rows.map((r, i) => i === index ? { ...r, schemaText: e.target.value } : r))} disabled={isReadonly} />

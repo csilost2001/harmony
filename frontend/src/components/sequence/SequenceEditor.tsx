@@ -412,7 +412,7 @@ export function SequenceEditor() {
                 type="text"
                 value={seq.name}
                 onChange={(e) => updateWithDraft((prev) => { prev.name = e.target.value; })}
-                placeholder="発注番号採番"
+                placeholder="例: 発注番号採番"
                 disabled={isReadonly}
               />
             </label>
@@ -449,7 +449,7 @@ export function SequenceEditor() {
                 onChange={(e) =>
                   updateWithDraft((prev) => { prev.version = (e.target.value || undefined) as SemVer | undefined; })
                 }
-                placeholder="1.0.0"
+                placeholder="例: 1.0.0"
                 pattern="^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$"
                 disabled={isReadonly}
               />
@@ -538,7 +538,7 @@ export function SequenceEditor() {
               list="numbering-keys"
               value={seq.conventionRef ?? ""}
               onChange={(e) => updateWithDraft((prev) => { prev.conventionRef = e.target.value || undefined; })}
-              placeholder="@conv.numbering.orderNumber"
+              placeholder="例: @conv.numbering.orderNumber"
               disabled={isReadonly}
             />
             <datalist id="numbering-keys">

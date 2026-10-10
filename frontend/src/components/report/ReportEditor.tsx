@@ -498,7 +498,7 @@ function FieldInspector(props: {
         </label>
       )}
       <div className="bfe-row2">
-        <label className="bfe-field"><span>書式</span><input value={field.format ?? ""} onChange={(e) => props.onPatch({ format: e.target.value })} placeholder="#,##0 / ¥#,##0 / YYYY/MM/DD" data-testid="rp-field-format" /></label>
+        <label className="bfe-field"><span>書式</span><input value={field.format ?? ""} onChange={(e) => props.onPatch({ format: e.target.value })} placeholder="例: #,##0 / ¥#,##0 / YYYY/MM/DD" data-testid="rp-field-format" /></label>
         <label className="bfe-field"><span>揃え</span>
           <select value={field.align ?? "left"} onChange={(e) => props.onPatch({ align: e.target.value === "left" ? undefined : (e.target.value as ReportField["align"]) })} data-testid="rp-field-align">
             <option value="left">左</option><option value="center">中央</option><option value="right">右</option>

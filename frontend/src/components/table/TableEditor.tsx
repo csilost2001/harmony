@@ -1109,7 +1109,7 @@ function ColumnDetailEditor({
             type="text"
             value={col.physicalName}
             onChange={(e) => onUpdate({ physicalName: e.target.value as PhysicalName })}
-            placeholder="column_name"
+            placeholder="例: column_name"
           />
         </label>
         <label className="tbl-field">
@@ -1118,7 +1118,7 @@ function ColumnDetailEditor({
             type="text"
             value={col.name}
             onChange={(e) => onUpdate({ name: e.target.value as DisplayName })}
-            placeholder="カラムの日本語名"
+            placeholder="例: カラムの日本語名"
           />
         </label>
         <label className="tbl-field">
@@ -1139,7 +1139,7 @@ function ColumnDetailEditor({
               type="number"
               value={col.length ?? ""}
               onChange={(e) => onUpdate({ length: e.target.value ? Number(e.target.value) : undefined })}
-              placeholder="255"
+              placeholder="例: 255"
               min={1}
             />
           </label>
@@ -1151,7 +1151,7 @@ function ColumnDetailEditor({
               type="number"
               value={col.scale ?? ""}
               onChange={(e) => onUpdate({ scale: e.target.value ? Number(e.target.value) : undefined })}
-              placeholder="2"
+              placeholder="例: 2"
               min={0}
             />
           </label>
@@ -1162,7 +1162,7 @@ function ColumnDetailEditor({
             type="text"
             value={col.defaultValue ?? ""}
             onChange={(e) => onUpdate({ defaultValue: e.target.value || undefined })}
-            placeholder="NULL"
+            placeholder="例: NULL"
           />
         </label>
       </div>

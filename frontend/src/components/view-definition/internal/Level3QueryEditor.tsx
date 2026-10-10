@@ -64,7 +64,7 @@ export function Level3QueryEditor({
                 d.query = { ...cur, parameterRefs: params };
               })}
               onBlur={() => { if (!isReadonly) commit(); }}
-              placeholder="paramName"
+              placeholder="例: paramName"
               className="vd-query-fragment-input"
               disabled={isReadonly}
             />

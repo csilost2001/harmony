@@ -718,7 +718,7 @@ export function GenericDefinitionEditor() {
                           updateDef((p) => ({ ...p, fields: next }));
                         }}
                         style={inputStyle}
-                        placeholder="fieldName"
+                        placeholder="例: fieldName"
                       />
                     </td>
                     <td style={tdStyle}>
@@ -729,7 +729,7 @@ export function GenericDefinitionEditor() {
                           updateDef((p) => ({ ...p, fields: next }));
                         }}
                         style={inputStyle}
-                        placeholder="string"
+                        placeholder="例: string"
                       />
                     </td>
                     <td style={tdStyle}>
@@ -803,7 +803,7 @@ export function GenericDefinitionEditor() {
                           updateDef((p) => ({ ...p, operations: next }));
                         }}
                         style={inputStyle}
-                        placeholder="operationName"
+                        placeholder="例: operationName"
                       />
                     </td>
                     <td style={tdStyle}>
@@ -879,7 +879,7 @@ export function GenericDefinitionEditor() {
                           updateDef((p) => ({ ...p, relations: next }));
                         }}
                         style={inputStyle}
-                        placeholder="generic-definitions/data-contract/OrderForm"
+                        placeholder="例: generic-definitions/data-contract/OrderForm"
                       />
                     </td>
                     <td style={tdStyle}>
@@ -977,7 +977,7 @@ export function GenericDefinitionEditor() {
             }}
             rows={5}
             style={{ ...inputStyle, width: "100%", maxWidth: "600px", resize: "vertical", fontFamily: "monospace", fontSize: "0.82rem" }}
-            placeholder={'{\n  "backend.spring": "...",\n  "frontend.next": "..."\n}'}
+            placeholder={'例:\n{\n  "backend.spring": "...",\n  "frontend.next": "..."\n}'}
           />
         </section>
       </div>

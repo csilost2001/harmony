@@ -455,7 +455,7 @@ export function ConventionsCatalogView() {
           value={catalog.version ?? ""}
           onChange={(e) => updateSilentWithDraft((c) => { c.version = e.target.value as SemVer; })}
           onBlur={commit}
-          placeholder="1.0.0"
+          placeholder="例: 1.0.0"
           disabled={isReadonly}
         />
         <label className="small text-muted">description</label>

@@ -61,7 +61,7 @@ export function MsgPanel({
                     onUpdate(key, { params: params.length > 0 ? params : undefined });
                   }}
                   onBlur={onCommit}
-                  placeholder="label, max"
+                  placeholder="例: label, max"
                 />
               </td>
               <td>

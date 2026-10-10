@@ -729,7 +729,7 @@ export function TableListView() {
                   type="text"
                   value={addName}
                   onChange={(e) => setAddName(e.target.value)}
-                  placeholder="customers"
+                  placeholder="例: customers"
                   autoFocus
                   onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
                 />
@@ -740,7 +740,7 @@ export function TableListView() {
                   type="text"
                   value={addLogical}
                   onChange={(e) => setAddLogical(e.target.value)}
-                  placeholder="顧客マスタ"
+                  placeholder="例: 顧客マスタ"
                   onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
                 />
               </label>

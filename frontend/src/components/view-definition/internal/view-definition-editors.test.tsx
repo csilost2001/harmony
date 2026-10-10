@@ -112,7 +112,7 @@ describe("BasicInfoSection", () => {
       />,
     );
     // 表示名 input
-    const nameInput = container.querySelector('input[placeholder="顧客一覧"]') as HTMLInputElement;
+    const nameInput = container.querySelector('input[placeholder="例: 顧客一覧"]') as HTMLInputElement;
     expect(nameInput).not.toBeNull();
     expect(nameInput.value).toBe("顧客一覧");
     // kind select (builtin mode)

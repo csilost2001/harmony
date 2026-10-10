@@ -308,7 +308,7 @@ test.describe("@conv.* lint + 補完 + errorMessages 永続化 (#351 #352)", { t
     const errorRow = page.locator(".screen-items-error-row").last();
     await expect(errorRow).toBeVisible({ timeout: 3000 });
     // required フィールドに入力
-    const requiredInput = errorRow.locator('input[placeholder="@conv.msg.required"]');
+    const requiredInput = errorRow.locator('input[placeholder="例: @conv.msg.required"]');
     await requiredInput.fill("@conv.msg.required");
     await requiredInput.blur();
     // 保存
@@ -336,7 +336,7 @@ test.describe("@conv.* lint + 補完 + errorMessages 永続化 (#351 #352)", { t
     const row = page.locator(".screen-items-table tbody tr:last-child");
     await row.locator('button[aria-label="エラーメッセージ展開"]').click();
     const errorRow = page.locator(".screen-items-error-row").last();
-    await expect(errorRow.locator('input[placeholder="@conv.msg.required"]')).toHaveValue("@conv.msg.required", { timeout: 3000 });
+    await expect(errorRow.locator('input[placeholder="例: @conv.msg.required"]')).toHaveValue("@conv.msg.required", { timeout: 3000 });
   });
 
   test("別画面の URL に移動すると errorMessages 展開状態がリセットされる", async ({ page }) => {

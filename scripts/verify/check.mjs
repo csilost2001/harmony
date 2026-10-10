@@ -21,6 +21,7 @@ const steps = [
   ["frontend 型検査", "npx", ["tsc", "-b"], path.join(root, "frontend")],
   ["backend 型検査", "npx", ["tsc", "--noEmit"], path.join(root, "backend")],
   ["直書き色検査", "node", ["scripts/verify/no-raw-colors.mjs"], root],
+  ["入力例の表記検査", "node", ["scripts/dev/prefix-placeholders.mjs", "--check"], root],
   ["CSS 未定義クラス検査", "node", ["scripts/verify/no-undefined-bootstrap-classes.mjs"], root],
   ["サンプル設計の要確認", "node", ["scripts/check-design.mjs", ...sampleDirs, "--strict"], root],
   ...(skipTests ? [] : [

@@ -121,7 +121,7 @@ function ValuesEditor({
               type={type === "number" ? "text" : "text"}
               value={primitiveToInput(value)}
               data-field-path={`${fieldPathPrefix}.values.${envKey}`}
-              placeholder={type === "number" ? "0" : type === "string" ? "値 or @env.OTHER 参照" : ""}
+              placeholder={type === "number" ? "例: 0" : type === "string" ? "値 or @env.OTHER 参照" : ""}
               onChange={(ev) => setEnvValue(envKey, ev.target.value)}
             />
           )}
@@ -303,7 +303,7 @@ export function EnvVarsCatalogPanel({
                         className="form-control form-control-sm"
                         value={primitiveToInput(e.default as Primitive | undefined)}
                         data-field-path={`context.catalogs.envVars.${k}.default`}
-                        placeholder={e.type === "number" ? "0" : "https://api.example.com 等"}
+                        placeholder={e.type === "number" ? "例: 0" : "例: https://api.example.com"}
                         onChange={(ev) => {
                           const parsed = parsePrimitive(ev.target.value, e.type);
                           updateEntry(k, { default: parsed });

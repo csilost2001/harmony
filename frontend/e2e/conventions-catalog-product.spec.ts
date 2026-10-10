@@ -49,7 +49,7 @@ test.describe("プロダクト規約タブ (#347)", { tag: ["@regression"] }, ()
     await page.locator(".conventions-new-key-input").fill("customerRegion");
     await page.locator(".conventions-entries button:has-text('追加')").click();
     await expect(page.locator(".conventions-key-badge", { hasText: "customerRegion" })).toBeVisible();
-    const valueInput = page.locator('.conventions-table input[placeholder="domestic"]').first();
+    const valueInput = page.locator('.conventions-table input[placeholder="例: domestic"]').first();
     await valueInput.fill("domestic");
     await expect(valueInput).toHaveValue("domestic");
   });
@@ -59,7 +59,7 @@ test.describe("プロダクト規約タブ (#347)", { tag: ["@regression"] }, ()
     await page.locator(".conventions-new-key-input").fill("jpy");
     await page.locator(".conventions-entries button:has-text('追加')").click();
     await expect(page.locator(".conventions-key-badge", { hasText: "jpy" })).toBeVisible();
-    const codeInput = page.locator('.conventions-table input[placeholder="JPY"]').first();
+    const codeInput = page.locator('.conventions-table input[placeholder="例: JPY"]').first();
     await codeInput.fill("JPY");
     await expect(codeInput).toHaveValue("JPY");
   });
@@ -80,7 +80,7 @@ test.describe("プロダクト規約タブ (#347)", { tag: ["@regression"] }, ()
     await expect(page.locator(".conventions-key-badge", { hasText: "standard" })).toBeVisible();
     const kindSelect = page.locator(".conventions-table select").first();
     await expect(kindSelect).toHaveValue("exclusive");
-    const rateInput = page.locator('.conventions-table input[placeholder="0.10"]').first();
+    const rateInput = page.locator('.conventions-table input[placeholder="例: 0.10"]').first();
     await rateInput.fill("0.1");
     await expect(rateInput).toHaveValue("0.1");
   });
@@ -90,7 +90,7 @@ test.describe("プロダクト規約タブ (#347)", { tag: ["@regression"] }, ()
     await page.locator(".conventions-new-key-input").fill("default");
     await page.locator(".conventions-entries button:has-text('追加')").click();
     await expect(page.locator(".conventions-key-badge", { hasText: "default" })).toBeVisible();
-    const schemeInput = page.locator('.conventions-table input[placeholder="session-cookie"]').first();
+    const schemeInput = page.locator('.conventions-table input[placeholder="例: session-cookie"]').first();
     await schemeInput.fill("session-cookie");
     await expect(schemeInput).toHaveValue("session-cookie");
   });
@@ -100,7 +100,7 @@ test.describe("プロダクト規約タブ (#347)", { tag: ["@regression"] }, ()
     await page.locator(".conventions-new-key-input").fill("default");
     await page.locator(".conventions-entries button:has-text('追加')").click();
     await expect(page.locator(".conventions-key-badge", { hasText: "default" })).toBeVisible();
-    const engineInput = page.locator('.conventions-table input[placeholder="postgresql@14"]').first();
+    const engineInput = page.locator('.conventions-table input[placeholder="例: postgresql@14"]').first();
     await engineInput.fill("postgresql@14");
     await expect(engineInput).toHaveValue("postgresql@14");
   });
@@ -110,7 +110,7 @@ test.describe("プロダクト規約タブ (#347)", { tag: ["@regression"] }, ()
     await page.locator(".conventions-new-key-input").fill("customerCode");
     await page.locator(".conventions-entries button:has-text('追加')").click();
     await expect(page.locator(".conventions-key-badge", { hasText: "customerCode" })).toBeVisible();
-    const formatInput = page.locator('.conventions-table input[placeholder="C-NNNN"]').first();
+    const formatInput = page.locator('.conventions-table input[placeholder="例: C-NNNN"]').first();
     await formatInput.fill("C-NNNN");
     await expect(formatInput).toHaveValue("C-NNNN");
   });
@@ -161,7 +161,7 @@ test.describe("プロダクト規約タブ (#347)", { tag: ["@regression"] }, ()
     await page.locator(".conventions-new-key-input").fill("persistTest");
     await page.locator(".conventions-entries button:has-text('追加')").click();
     await expect(page.locator(".conventions-key-badge", { hasText: "persistTest" })).toBeVisible();
-    const valueInput = page.locator('.conventions-table input[placeholder="domestic"]').first();
+    const valueInput = page.locator('.conventions-table input[placeholder="例: domestic"]').first();
     await valueInput.fill("overseas");
     await expect(valueInput).toHaveValue("overseas");
 
@@ -184,6 +184,6 @@ test.describe("プロダクト規約タブ (#347)", { tag: ["@regression"] }, ()
     // スコープタブを開いてエントリが残っていることを確認 (backend persist)
     await page.locator(".conventions-category-tab", { hasText: "スコープ" }).click();
     await expect(page.locator(".conventions-key-badge", { hasText: "persistTest" })).toBeVisible();
-    await expect(page.locator('.conventions-table input[placeholder="domestic"]').first()).toHaveValue("overseas");
+    await expect(page.locator('.conventions-table input[placeholder="例: domestic"]').first()).toHaveValue("overseas");
   });
 });

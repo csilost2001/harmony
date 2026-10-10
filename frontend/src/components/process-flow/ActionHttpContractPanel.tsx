@@ -75,7 +75,7 @@ export function ActionHttpContractPanel({ action, onChange }: Props) {
                 className="form-control form-control-sm"
                 value={route?.path ?? ""}
                 onChange={(e) => setRoute({ path: e.target.value })}
-                placeholder="/api/customers"
+                placeholder="例: /api/customers"
               />
             </div>
             <div className="col-auto">
@@ -141,7 +141,7 @@ export function ActionHttpContractPanel({ action, onChange }: Props) {
                   className="form-control form-control-sm"
                   value={typeof r.bodySchema === "string" ? r.bodySchema : ""}
                   onChange={(e) => updateResponse(i, { bodySchema: (e.target.value || undefined) as BodySchema | undefined })}
-                  placeholder="bodySchema"
+                  placeholder="例: bodySchema"
                   style={{ fontSize: "0.8rem" }}
                 />
               </div>
