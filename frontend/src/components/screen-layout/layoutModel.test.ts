@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { findNode, type LayoutNode } from "@harmony/shared";
-import { createNode, dataTypeToFieldType, docDuplicate, docRemove, docReplaceNode, itemFromColumn, nextItemId, nodeTypeForItem, setComponentArg, toCamel, type LayoutDoc } from "./layoutModel";
+import { createNode, dataTypeToFieldType, docDuplicate, docRemove, docReplaceNode, insertionPlace, itemFromColumn, nextItemId, nodeTypeForItem, setComponentArg, toCamel, type LayoutDoc } from "./layoutModel";
 import { insertionIndex } from "./layoutDnd";
 import type { ScreenItem } from "../../types/v3/screen-item";
 import type { Table, Column } from "../../types/v3/table";
@@ -115,5 +115,34 @@ describe("docReplaceNode / setComponentArg", () => {
     const set = setComponentArg(nodes, "c1", "k", "v");
     expect(set[0].args).toEqual({ k: "v" });
     expect(setComponentArg(set, "c1", "k", "")[0].args).toBeUndefined();
+  });
+});
+
+describe("新しい部品を置く場所 (パレットのクリック)", () => {
+  const nodes: LayoutNode[] = [
+    { id: "form", type: "form", children: [{ id: "name", type: "field", itemRef: "name" }] },
+    { id: "bar", type: "button-bar", children: [] },
+    { id: "sec", type: "section", children: [] },
+    { id: "h", type: "heading" },
+  ] as LayoutNode[];
+  const at = (id: string | null) => (id ? findNode(nodes, id) : null);
+
+  it("何も選んでいなければ最上位の末尾", () => {
+    expect(insertionPlace(nodes, null, "table")).toEqual({ parentId: null });
+  });
+  it("容器を選んでいれば、その末尾に入る", () => {
+    expect(insertionPlace(nodes, at("form"), "field")).toEqual({ parentId: "form" });
+    expect(insertionPlace(nodes, at("form"), "table")).toEqual({ parentId: "form" });
+    expect(insertionPlace(nodes, at("bar"), "button")).toEqual({ parentId: "bar" });
+    expect(insertionPlace(nodes, at("sec"), "form")).toEqual({ parentId: "sec" });
+  });
+  it("入力フォーム・ボタン群の中には、画面の構成を作る部品 (区画・フォーム等) を入れず、容器の直後に置く", () => {
+    expect(insertionPlace(nodes, at("form"), "section")).toEqual({ parentId: null, index: 1 });
+    expect(insertionPlace(nodes, at("form"), "form")).toEqual({ parentId: null, index: 1 });
+    expect(insertionPlace(nodes, at("bar"), "columns")).toEqual({ parentId: null, index: 2 });
+  });
+  it("容器でない部品を選んでいれば、その直後", () => {
+    expect(insertionPlace(nodes, at("name"), "field")).toEqual({ parentId: "form", index: 1 });
+    expect(insertionPlace(nodes, at("h"), "text")).toEqual({ parentId: null, index: 4 });
   });
 });
