@@ -25,6 +25,8 @@ import { useListKeyboard } from "../../hooks/useListKeyboard";
 import { useListSort } from "../../hooks/useListSort";
 import { EditorHeader } from "../common/EditorHeader";
 import { RenameEntityDialog } from "../common/RenameEntityDialog";
+import { PasteColumnsDialog } from "./PasteColumnsDialog";
+import type { ParsedColumn } from "../../utils/columnPaste";
 import { ReferencesButton } from "../common/ReferencesButton";
 import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
 import { useRenameEntityUndoToast } from "../common/useRenameEntityUndoToast";
@@ -587,6 +589,7 @@ function ColumnsTab({
   update: (fn: (t: Table) => void) => void;
 }) {
   const [showTemplates, setShowTemplates] = useState(false);
+  const [showPaste, setShowPaste] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
   const [activeColId, setActiveColId] = useState<string | null>(null);
 
@@ -632,6 +635,22 @@ function ColumnsTab({
     update((t) => { newColId = addColumn(t).id; });
     selection.setSelectedIds(new Set<string>([newColId]));
     setActiveColId(newColId);
+  };
+
+  const handlePasteColumns = (cols: ParsedColumn[]) => {
+    const newIds: string[] = [];
+    update((t) => {
+      for (const c of cols) {
+        // 既存のカラム ID と重ならない ID を付ける
+        let n = t.columns.length + 1;
+        while (t.columns.some((x) => x.id === `col-${String(n).padStart(2, "0")}`)) n++;
+        newIds.push(addColumn(t, { ...c, id: `col-${String(n).padStart(2, "0")}` as Column["id"], physicalName: c.physicalName as PhysicalName, name: c.name as DisplayName }).id);
+      }
+    });
+    if (newIds.length > 0) {
+      selection.setSelectedIds(new Set<string>(newIds));
+      setActiveColId(newIds[newIds.length - 1]);
+    }
   };
 
   const handleAddFromTemplate = (tpl: ColumnTemplate) => {
@@ -753,6 +772,11 @@ function ColumnsTab({
           key: "addTpl", label: "テンプレートから追加", icon: "bi-collection",
           disabled: sortActive, disabledReason: sortReason,
           onClick: () => setShowTemplates(true),
+        },
+        {
+          key: "pasteTable", label: "表から貼り付け", icon: "bi-clipboard-data",
+          disabled: sortActive, disabledReason: sortReason,
+          onClick: () => setShowPaste(true),
         },
       ];
     }
@@ -1043,7 +1067,19 @@ function ColumnsTab({
         >
           <i className="bi bi-collection" /> テンプレートから追加
         </button>
+        <button
+          className="tbl-btn tbl-btn-secondary"
+          onClick={() => setShowPaste(true)}
+          disabled={sortActive}
+          title={sortActive ? "ソート中は無効 (ソート解除で利用可能)" : "Excel などの表を貼り付けて、カラムをまとめて追加"}
+          data-testid="paste-columns-open"
+        >
+          <i className="bi bi-clipboard-data" /> 表から貼り付け
+        </button>
       </div>
+      {showPaste && (
+        <PasteColumnsDialog existing={table.columns} onAdd={handlePasteColumns} onClose={() => setShowPaste(false)} />
+      )}
 
       {contextMenu && (
         <ListContextMenu

@@ -215,4 +215,21 @@ test.describe("テーブルエディタ：保存/リセットボタン", { tag: 
     await page.keyboard.press("Control+s");
     await expect(page.locator(".srb-btn-save")).toBeDisabled();
   });
+
+  test("Excel の表を貼り付けて、カラムをまとめて追加し、保存できる", async ({ page }) => {
+    await setupTableEditor(page);
+    await page.getByTestId("paste-columns-open").click();
+    await page.getByTestId("paste-columns-text").fill(
+      "物理名\t表示名\tデータ型\t長さ\tNOT NULL\tPK\nuser_code\tユーザーコード\tvarchar(20)\t\t○\t\nid\t重複する列\tint\t\t\t\ncreated_on\t作成日\tdate\t\t\t",
+    );
+    await expect(page.getByTestId("paste-columns-preview")).toContainText("user_code");
+    await expect(page.getByTestId("paste-columns-dup")).toContainText("id");
+    await page.getByTestId("paste-columns-add").click();
+    await expect(page.getByTestId("paste-columns-dialog")).toHaveCount(0);
+    await expect(page.locator(".srb-btn-save")).toBeEnabled();
+    await expect(page.locator(".columns-tab").getByText("user_code").first()).toBeVisible();
+    await expect(page.locator(".columns-tab").getByText("created_on").first()).toBeVisible();
+    await page.keyboard.press("Control+s");
+    await expect(page.locator(".srb-btn-save")).toBeDisabled();
+  });
 });
