@@ -188,7 +188,7 @@ export function ProcessFlowEditor() {
 
   // P2-2 fix (#907): URL ?session= から復元した initialEditSessionId を渡す (URL 招待 attach 復活)
   // #891 fix: useResourceEditor より前に呼び出し、viewerMode / viewerEditSessionId を渡せるようにする
-  const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions: editActions, attach: editAttach, takeOver: editTakeOver, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
+  const { editSession, mode, loading: sessionLoading, actions: editActions, attach: editAttach, takeOver: editTakeOver, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
     resourceType: "process-flow",
     resourceId: processFlowId ?? "",
     sessionId,
@@ -366,8 +366,8 @@ export function ProcessFlowEditor() {
   useEffect(() => {
     if (!processFlowId) return;
     const tabId = makeTabId("process-flow", processFlowId);
-    setTabDirty(tabId, isDirtyForTab || isDirty);
-  }, [processFlowId, isDirtyForTab, isDirty]);
+    setTabDirty(tabId, isDirty);
+  }, [processFlowId, isDirty]);
 
   useEffect(() => {
     if (!processFlowId || sessionLoading) return;

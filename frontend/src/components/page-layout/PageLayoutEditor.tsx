@@ -120,7 +120,7 @@ export function PageLayoutEditor() {
 
   const {
     editSession, mode, loading: sessionLoading,
-    isDirtyForTab, actions, attach, takeOver,
+    actions, attach, takeOver,
     saveConflict, onSaveConflictOverwrite, onSaveConflictCancel,
   } = useEditSession({
     resourceType: "page-layout",
@@ -233,8 +233,8 @@ export function PageLayoutEditor() {
   useEffect(() => {
     if (!pageLayoutId) return;
     const tabId = makeTabId("page-layout", pageLayoutId);
-    setTabDirty(tabId, isDirtyForTab || isDirty);
-  }, [pageLayoutId, isDirtyForTab, isDirty]);
+    setTabDirty(tabId, isDirty);
+  }, [pageLayoutId, isDirty]);
 
   useEffect(() => {
     if (!pageLayoutId || sessionLoading) return;

@@ -81,7 +81,7 @@ export function SequenceEditor() {
 
   // P2-2 fix (#907): URL ?session= から復元した initialEditSessionId を渡す (URL 招待 attach 復活)
   // #891 fix: useResourceEditor より前に呼び出し、viewerMode / viewerEditSessionId を渡せるようにする
-  const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions, attach, takeOver, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
+  const { editSession, mode, loading: sessionLoading, actions, attach, takeOver, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
     resourceType: "sequence",
     resourceId: sequenceId ?? "",
     sessionId,
@@ -192,8 +192,8 @@ export function SequenceEditor() {
   useEffect(() => {
     if (!sequenceId) return;
     const tabId = makeTabId("sequence", sequenceId);
-    setTabDirty(tabId, isDirtyForTab || isDirty);
-  }, [sequenceId, isDirtyForTab, isDirty]);
+    setTabDirty(tabId, isDirty);
+  }, [sequenceId, isDirty]);
 
   useEffect(() => {
     if (!sequenceId || sessionLoading) return;

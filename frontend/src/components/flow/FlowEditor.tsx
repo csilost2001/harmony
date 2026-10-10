@@ -217,7 +217,7 @@ function FlowEditorInner() {
   });
 
   // P2-2 fix (#907): URL ?session= から復元した initialEditSessionId を渡す (URL 招待 attach 復活)
-  const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions, attach, takeOver, saveCheckConflict, saveCommit, saveConflict, onSaveConflictCancel } = useEditSession({
+  const { editSession, mode, loading: sessionLoading, actions, attach, takeOver, saveCheckConflict, saveCommit, saveConflict, onSaveConflictCancel } = useEditSession({
     resourceType: "flow",
     resourceId: "singleton",
     sessionId,
@@ -339,8 +339,8 @@ function FlowEditorInner() {
   // タブ dirty マーク
   useEffect(() => {
     const tabId = makeTabId("screen-flow", "main");
-    setTabDirty(tabId, isDirtyForTab || isDirty);
-  }, [isDirtyForTab, isDirty]);
+    setTabDirty(tabId, isDirty);
+  }, [isDirty]);
 
   // 復元ダイアログ (readonly + draft 存在時)
   useEffect(() => {

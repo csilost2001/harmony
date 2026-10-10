@@ -269,7 +269,7 @@ export function ScreenItemsView() {
 
   // P2-2 fix (#907): URL ?session= から復元した initialEditSessionId を渡す (URL 招待 attach 復活)
   // #891 fix: useResourceEditor より前に呼び出し、viewerMode / viewerEditSessionId を渡せるようにする
-  const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions, attach, takeOver, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
+  const { editSession, mode, loading: sessionLoading, actions, attach, takeOver, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
     resourceType: "screen-item",
     resourceId: screenId ?? "",
     sessionId,
@@ -373,8 +373,8 @@ export function ScreenItemsView() {
   useEffect(() => {
     if (!screenId) return;
     const tabId = makeTabId("screen-items", screenId);
-    setTabDirty(tabId, isDirtyForTab || isDirty);
-  }, [screenId, isDirtyForTab, isDirty]);
+    setTabDirty(tabId, isDirty);
+  }, [screenId, isDirty]);
 
   // 復元ダイアログ (readonly + draft 存在時)
   useEffect(() => {

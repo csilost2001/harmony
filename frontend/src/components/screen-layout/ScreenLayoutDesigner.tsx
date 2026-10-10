@@ -87,7 +87,7 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
   const sessionId = mcpBridge.getSessionId();
 
   const { syncSessionToUrl, initialEditSessionId } = useSessionUrlSync({ resourceType: "screen-item", resourceId: screenId });
-  const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions, attach, takeOver, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
+  const { editSession, mode, loading: sessionLoading, actions, attach, takeOver, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
     resourceType: "screen-item",
     resourceId: screenId,
     sessionId,
@@ -234,8 +234,8 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
   useSaveShortcut(() => { handleSave().catch(console.error); }, isActive && editable);
 
   useEffect(() => {
-    setTabDirty(makeTabId("design", screenId), isDirtyForTab || isDirty);
-  }, [screenId, isDirtyForTab, isDirty]);
+    setTabDirty(makeTabId("design", screenId), isDirty);
+  }, [screenId, isDirty]);
 
   useEffect(() => {
     if (sessionLoading || mode.kind !== "readonly") return;

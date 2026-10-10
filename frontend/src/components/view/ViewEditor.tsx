@@ -78,7 +78,7 @@ export function ViewEditor() {
 
   // P2-2 fix (#907): URL ?session= から復元した initialEditSessionId を渡す (URL 招待 attach 復活)
   // #891 fix: useResourceEditor より前に呼び出し、viewerMode / viewerEditSessionId を渡せるようにする
-  const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions, attach, takeOver, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
+  const { editSession, mode, loading: sessionLoading, actions, attach, takeOver, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
     resourceType: "view",
     resourceId: viewId ?? "",
     sessionId,
@@ -187,8 +187,8 @@ export function ViewEditor() {
   useEffect(() => {
     if (!viewId) return;
     const tabId = makeTabId("view", viewId);
-    setTabDirty(tabId, isDirtyForTab || isDirty);
-  }, [viewId, isDirtyForTab, isDirty]);
+    setTabDirty(tabId, isDirty);
+  }, [viewId, isDirty]);
 
   useEffect(() => {
     if (!viewId || sessionLoading) return;
