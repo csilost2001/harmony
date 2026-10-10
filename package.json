@@ -27,6 +27,7 @@
     "lint": "npm --prefix frontend run lint",
     "test:backend": "npm --prefix backend test",
     "verify:colors": "node scripts/verify/no-raw-colors.mjs",
+    "verify:classes": "node scripts/verify/no-undefined-bootstrap-classes.mjs",
     "check": "node scripts/verify/check.mjs",
     "ui:shots": "node scripts/dev/ui-shots.mjs",
     "ui:audit": "node scripts/dev/theme-audit.mjs",

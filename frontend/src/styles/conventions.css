@@ -238,3 +238,8 @@
   color: color-mix(in srgb, #dd2c2c 80%, var(--hm-fg));
   font-size: 0.85rem;
 }
+
+/* 拡張カテゴリ (読み取り専用の一覧) */
+.conventions-extension-categories { padding: 16px 14px 24px; }
+.conventions-section-title { display: flex; align-items: baseline; gap: 6px; margin: 0 0 10px; font-size: 0.95rem; font-weight: 700; color: var(--hm-fg); }
+.conventions-section-title small { font-weight: 400; font-size: 0.78rem; }

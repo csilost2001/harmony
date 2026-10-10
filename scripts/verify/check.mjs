@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * check — コミット前の一括検証。各工程を順に実行し、最後に結果を一覧表示する。
- *   1. shared build  2. frontend 型検査  3. backend 型検査  4. 直書き色検査
+ *   1. shared build  2. frontend 型検査  3. backend 型検査  4. 直書き色検査  4b. CSS 未定義クラス検査 (Bootstrap 風のクラス)
  *   5. サンプル設計の要確認 (examples/ 全件が警告なし)  6. frontend 単体テスト  7. backend 単体テスト
  * 使い方: npm run check   (--skip-tests でテスト工程を省略)
  */
@@ -21,6 +21,7 @@ const steps = [
   ["frontend 型検査", "npx", ["tsc", "-b"], path.join(root, "frontend")],
   ["backend 型検査", "npx", ["tsc", "--noEmit"], path.join(root, "backend")],
   ["直書き色検査", "node", ["scripts/verify/no-raw-colors.mjs"], root],
+  ["CSS 未定義クラス検査", "node", ["scripts/verify/no-undefined-bootstrap-classes.mjs"], root],
   ["サンプル設計の要確認", "node", ["scripts/check-design.mjs", ...sampleDirs, "--strict"], root],
   ...(skipTests ? [] : [
     ["frontend 単体テスト", "npx", ["vitest", "run", "--reporter=dot"], path.join(root, "frontend")],
