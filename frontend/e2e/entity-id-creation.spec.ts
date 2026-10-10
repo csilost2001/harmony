@@ -94,11 +94,22 @@ test.describe("EntityIdInput — 創成ダイアログ kebab-case id 入力 (#12
   });
 
   test("ID 未入力時は submit ボタン disabled", async ({ page }) => {
-    // 物理名 + 表示名は入れる、ID は空のまま
+    // 物理名 + 表示名は入れる。ID は物理名から自動で入るので、利用者が空にした状態にする
     await page.locator(".tbl-modal input").nth(0).fill("test_table");
     await page.locator(".tbl-modal input").nth(1).fill("テストテーブル");
+    await page.getByTestId("entity-id-input").fill("");
     const submitBtn = page.getByRole("button", { name: /作成して編集/ });
     await expect(submitBtn).toBeDisabled();
+  });
+
+  test("物理名を入れると ID が自動で入り、そのまま作成できる (ID を触ったら追従しない)", async ({ page }) => {
+    await page.locator(".tbl-modal input").nth(0).fill("order_items_1297");
+    await expect(page.getByTestId("entity-id-input")).toHaveValue("order-items-1297");
+    await page.locator(".tbl-modal input").nth(0).fill("order_lines_1297");
+    await expect(page.getByTestId("entity-id-input")).toHaveValue("order-lines-1297");
+    await page.getByTestId("entity-id-input").fill("my-own-id-1297");
+    await page.locator(".tbl-modal input").nth(0).fill("order_rows_1297");
+    await expect(page.getByTestId("entity-id-input")).toHaveValue("my-own-id-1297");
   });
 
   test("全 field 有効値で submit 成功、新規 entity が edit ページに遷移", async ({ page }) => {

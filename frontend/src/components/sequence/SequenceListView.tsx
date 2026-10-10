@@ -574,6 +574,7 @@ export function SequenceListView() {
                   value={addId}
                   onChange={setAddId}
                   name={addName}
+                  slugSource={addPhysicalName}
                   existingIds={existingIds}
                   entityLabel="シーケンス"
                   inputId="seq-id-input"

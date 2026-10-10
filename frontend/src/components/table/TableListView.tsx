@@ -762,6 +762,7 @@ export function TableListView() {
                   value={addId}
                   onChange={setAddId}
                   name={addLogical}
+                  slugSource={addName}
                   existingIds={existingIds}
                   entityLabel="テーブル"
                   inputId="tbl-id-input"

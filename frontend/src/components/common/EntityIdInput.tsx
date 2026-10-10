@@ -11,10 +11,12 @@
  * 親 (modal) は本 component の `isInvalid` prop で submit ボタンの enable/disable を判定する。
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isValidEntityId } from "../../utils/entityIdValidation";
 import {
+  generateFallbackEntityId,
   requestAiSuggestedEntityId,
+  slugifyToEntityId,
   suggestUniqueIdSuffix,
 } from "../../utils/entityIdSuggestion";
 import "../../styles/entityIdInput.css";
@@ -38,8 +40,37 @@ export interface EntityIdInputProps {
   placeholder?: string;
   /** Enter キー押下時のコールバック (modal submit 用) */
   onEnter?: () => void;
+  /**
+   * ID の自動入力に使う英数字の名前 (物理名など)。省略時は name を使う。
+   * 英数字が含まれていれば、ID が未入力のあいだ (利用者がまだ ID を触っていないあいだ) は、
+   * そこから作った ID を自動で入れる。
+   */
+  slugSource?: string;
   /** validation 状態変化通知 — 親 modal の submit ボタン制御に使う */
   onValidationChange?: (state: EntityIdValidationState) => void;
+}
+
+/** 仮の ID に付ける接頭辞 (entityLabel から決める。分からないものは item) */
+function fallbackPrefixFor(entityLabel: string): string {
+  if (entityLabel.includes("画面")) return "screen";
+  if (entityLabel.includes("テーブル")) return "table";
+  if (entityLabel.includes("処理フロー")) return "flow";
+  if (entityLabel.includes("業務フロー")) return "business-flow";
+  if (entityLabel.includes("帳票")) return "report";
+  if (entityLabel.includes("シーケンス")) return "sequence";
+  if (entityLabel.includes("ビュー定義") || entityLabel.includes("ViewDefinition")) return "view-definition";
+  if (entityLabel.includes("ビュー")) return "view";
+  if (entityLabel.includes("レイアウト")) return "layout";
+  if (entityLabel.includes("ガジェット")) return "gadget";
+  return "item";
+}
+
+/** 名前が英数字を含むときだけ、そこから作れる ID の候補 (日本語だけの名前からは作れない) */
+function asciiSlugCandidate(name: string, existing: ReadonlySet<string>, existingIds: readonly string[]): string | null {
+  if (!/[a-zA-Z]/.test(name)) return null;
+  const slug = slugifyToEntityId(name);
+  if (!isValidEntityId(slug)) return null;
+  return existing.has(slug) ? suggestUniqueIdSuffix(slug, existingIds) : slug;
 }
 
 export interface EntityIdValidationState {
@@ -59,12 +90,21 @@ export function EntityIdInput({
   inputId,
   placeholder = "例: today-sales",
   onEnter,
+  slugSource,
   onValidationChange,
 }: EntityIdInputProps) {
   const [aiBusy, setAiBusy] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
   const existingSet = useMemo(() => new Set(existingIds), [existingIds]);
+
+  // 利用者が ID を自分で触ったら、以後は自動入力しない。最初から値がある (改名など) ときも自動入力しない
+  const touchedRef = useRef(value.trim().length > 0);
+  const lastAutoRef = useRef<string | null>(null);
+  const changeByUser = useCallback((id: string) => {
+    touchedRef.current = true;
+    onChange(id);
+  }, [onChange]);
 
   // validation 計算 (空も isInvalid=true)
   const trimmed = value.trim();
@@ -87,6 +127,7 @@ export function EntityIdInput({
         entityLabel,
         existingIds,
       });
+      touchedRef.current = true;
       onChange(suggested);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -99,8 +140,33 @@ export function EntityIdInput({
   const handleApplySuggestion = useCallback(() => {
     if (!trimmed) return;
     const suggested = suggestUniqueIdSuffix(trimmed, existingIds);
-    if (suggested !== trimmed) onChange(suggested);
+    if (suggested !== trimmed) changeByUser(suggested);
   }, [trimmed, existingIds, onChange]);
+
+  // 未入力のとき: 保存できない理由と、すぐ進められる手段を出す
+  const emptyAndNamed = trimmed.length === 0 && (name.trim().length > 0 || (slugSource ?? "").trim().length > 0);
+  const candidateSource = (slugSource ?? "").trim() ? (slugSource as string) : name;
+  const asciiCandidate = asciiSlugCandidate(candidateSource, existingSet, existingIds);
+  const autoId = touchedRef.current ? null : asciiCandidate;
+
+  useEffect(() => {
+    if (touchedRef.current) return;
+    if (value.trim().length === 0 && name.trim().length === 0 && (slugSource ?? "").trim().length === 0) {
+      lastAutoRef.current = null;
+      return;
+    }
+    // 自動入力した値のままか、まだ空のときだけ追従する
+    if (value === (lastAutoRef.current ?? "")) {
+      const next = autoId ?? "";
+      if (next !== value) {
+        lastAutoRef.current = next || null;
+        onChange(next);
+      }
+    }
+  }, [autoId, value, name, slugSource, onChange]);
+  const handleUseTemporaryId = useCallback(() => {
+    changeByUser(generateFallbackEntityId(fallbackPrefixFor(entityLabel)));
+  }, [entityLabel, changeByUser]);
 
   const showFormatError = trimmed.length > 0 && !isFormatValid;
   const showUniqueError = trimmed.length > 0 && isFormatValid && !isUnique;
@@ -116,7 +182,7 @@ export function EntityIdInput({
           type="text"
           className={`form-control form-control-sm entity-id-input__field${isInvalid && trimmed.length > 0 ? " is-invalid" : ""}`}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => changeByUser(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && onEnter && !isInvalid) {
               e.preventDefault();
@@ -146,6 +212,37 @@ export function EntityIdInput({
       <div className="entity-id-input__hint form-text">
         kebab-case 英単語 (例: <code>today-sales</code>)。ファイル名 / URL / 参照値に使われます。
       </div>
+
+      {emptyAndNamed && (
+        <div className="entity-id-input__empty-hint form-text" data-testid="entity-id-empty-hint">
+          ID を入力すると保存できます。
+          {asciiCandidate ? (
+            <button
+              type="button"
+              className="btn btn-link btn-sm entity-id-input__apply-btn p-0 ms-1"
+              onClick={() => changeByUser(asciiCandidate)}
+              disabled={disabled}
+              data-testid="entity-id-use-candidate"
+            >
+              <code>{asciiCandidate}</code> を使う
+            </button>
+          ) : (
+            <>
+              日本語の名前からは ID を作れないため、英語で入力するか、
+              <button
+                type="button"
+                className="btn btn-link btn-sm entity-id-input__apply-btn p-0"
+                onClick={handleUseTemporaryId}
+                disabled={disabled}
+                data-testid="entity-id-use-temporary"
+              >
+                仮の ID を付ける
+              </button>
+              (あとから「ID 変更」で直せます)。
+            </>
+          )}
+        </div>
+      )}
 
       {showFormatError && (
         <div className="entity-id-input__error invalid-feedback d-block" data-testid="entity-id-format-error">
