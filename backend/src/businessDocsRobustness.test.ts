@@ -10,7 +10,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import {
-  writeBusinessFlow, readBusinessFlow, listBusinessFlowsDetailed, renameBusinessFlowRefsInProject,
+  DocExistsError, writeBusinessFlow, readBusinessFlow, listBusinessFlowsDetailed, renameBusinessFlowRefsInProject,
   writeReport, listReportsDetailed, readReport, DocConflictError,
 } from "./projectStorage.js";
 
@@ -79,9 +79,9 @@ describe("楽観ロック (他で更新されていたら保存しない)", () =
     const first = await writeBusinessFlow("lock-flow", flow(), ROOT);
     await new Promise((r) => setTimeout(r, 5));
     const other = await writeBusinessFlow("lock-flow", { ...flow(), name: "他の人の変更" }, ROOT); // 他で更新
-    await expect(writeBusinessFlow("lock-flow", { ...flow(), name: "自分の変更" }, ROOT, first.updatedAt as string)).rejects.toBeInstanceOf(DocConflictError);
+    await expect(writeBusinessFlow("lock-flow", { ...flow(), name: "自分の変更" }, ROOT, { expectedUpdatedAt: first.updatedAt as string })).rejects.toBeInstanceOf(DocConflictError);
     expect((await readBusinessFlow("lock-flow", ROOT))!.name).toBe("他の人の変更");
-    const mine = await writeBusinessFlow("lock-flow", { ...flow(), name: "読み直したあとの変更" }, ROOT, other.updatedAt as string);
+    const mine = await writeBusinessFlow("lock-flow", { ...flow(), name: "読み直したあとの変更" }, ROOT, { expectedUpdatedAt: other.updatedAt as string });
     expect(mine.name).toBe("読み直したあとの変更");
     await new Promise((r) => setTimeout(r, 5));
     await writeBusinessFlow("lock-flow", { ...flow(), name: "強制" }, ROOT);
@@ -89,10 +89,35 @@ describe("楽観ロック (他で更新されていたら保存しない)", () =
   });
 
   it("新規作成 (まだ無い) のときは確認しない。帳票も同じ", async () => {
-    await expect(writeBusinessFlow("brand-new", flow(), ROOT, "2020-01-01T00:00:00.000Z")).resolves.toBeTruthy();
+    await expect(writeBusinessFlow("brand-new", flow(), ROOT, { expectedUpdatedAt: "2020-01-01T00:00:00.000Z" })).resolves.toBeTruthy();
     const r = await writeReport("lock-report", { name: "帳票", sections: [] }, ROOT);
     await new Promise((x) => setTimeout(x, 5));
     await writeReport("lock-report", { name: "他", sections: [] }, ROOT);
-    await expect(writeReport("lock-report", { name: "自分", sections: [] }, ROOT, r.updatedAt as string)).rejects.toThrow(/他で更新されています/);
+    await expect(writeReport("lock-report", { name: "自分", sections: [] }, ROOT, { expectedUpdatedAt: r.updatedAt as string })).rejects.toThrow(/\[DOC_CONFLICT\]/);
+  });
+});
+
+describe("作成専用の保存 (すでにあれば失敗)", () => {
+  it("同じ ID がすでにあれば保存せず、なければ作れる。壊れたファイルがある ID も上書きしない", async () => {
+    await writeBusinessFlow("create-only", flow(), ROOT, { createOnly: true });
+    await expect(writeBusinessFlow("create-only", { ...flow(), name: "後から" }, ROOT, { createOnly: true })).rejects.toBeInstanceOf(DocExistsError);
+    expect((await readBusinessFlow("create-only", ROOT))!.name).toBe("フロー");
+    await fs.writeFile(path.join(dir("business-flows"), "create-broken.json"), "{ x");
+    await expect(writeBusinessFlow("create-broken", flow(), ROOT, { createOnly: true })).rejects.toThrow(/\[DOC_EXISTS\]/);
+    await writeReport("rp-create", { name: "帳票", sections: [] }, ROOT, { createOnly: true });
+    await expect(writeReport("rp-create", { name: "帳票", sections: [] }, ROOT, { createOnly: true })).rejects.toThrow(/\[DOC_EXISTS\]/);
+  });
+});
+
+describe("同じ文書への保存は 1 本ずつ行う", () => {
+  it("同じ更新日時を持つ 2 つの保存が同時に来ても、競合として片方だけが勝つ", async () => {
+    const base = await writeBusinessFlow("race", flow(), ROOT);
+    await new Promise((r) => setTimeout(r, 5));
+    const results = await Promise.allSettled([
+      writeBusinessFlow("race", { ...flow(), name: "A" }, ROOT, { expectedUpdatedAt: base.updatedAt as string }),
+      writeBusinessFlow("race", { ...flow(), name: "B" }, ROOT, { expectedUpdatedAt: base.updatedAt as string }),
+    ]);
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    expect(results.filter((r) => r.status === "rejected")).toHaveLength(1);
   });
 });

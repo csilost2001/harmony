@@ -141,12 +141,18 @@ export function BusinessFlowEditor() {
   useEffect(() => {
     if (!businessFlowId) return;
     return mcpBridge.onBroadcast("businessFlowChanged", (data: unknown) => {
-      const d = data as { flowId?: string; deleted?: boolean } | undefined;
-      if (d?.flowId !== businessFlowId) return;
+      const d = data as { flowId?: string; deleted?: boolean; reload?: boolean } | undefined;
+      // reload: 画面・処理フローの ID 改名などで、参照が書き換わったかもしれない (どの業務フローかは不明)
+      if (!d?.reload && d?.flowId !== businessFlowId) return;
       if (d.deleted) { setOutdated("deleted"); return; }
-      const cur = flowRef.current;
-      if (cur && JSON.stringify(cur) === savedJsonRef.current) reloadFromServer().then(() => setNotice("他で更新されたため、読み直しました")).catch(console.error);
-      else setOutdated("updated");
+      // サーバの内容が、いま開いている保存済みの内容と違うときだけ扱う (無関係な改名の通知では何もしない)
+      loadBusinessFlow(businessFlowId).then((latest) => {
+        if (!latest) { setOutdated("deleted"); return; }
+        if (JSON.stringify(latest) === savedJsonRef.current) return;
+        const cur = flowRef.current;
+        if (cur && JSON.stringify(cur) === savedJsonRef.current) reloadFromServer().then(() => setNotice("他で更新されたため、読み直しました")).catch(console.error);
+        else setOutdated("updated");
+      }).catch(console.error);
     });
   }, [businessFlowId, reloadFromServer]);
 

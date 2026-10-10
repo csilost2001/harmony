@@ -61,6 +61,8 @@ export function RenameEntityUndoToast({
 }: RenameEntityUndoToastProps) {
   const [undoing, setUndoing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [warnings, setWarnings] = useState<string[]>([]);
+  const [done, setDone] = useState(false);
   // setTimeout のラフ型 (ブラウザは number、テスト環境では NodeJS.Timeout の可能性あり)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -78,13 +80,15 @@ export function RenameEntityUndoToast({
     setUndoing(true);
     setError(null);
     try {
-      await mcpBridge.request("undoEntityRename", { operationId });
+      const res = (await mcpBridge.request("undoEntityRename", { operationId })) as { warnings?: string[] } | null;
       // Phase F S-1: backend handler が originating client にも reload broadcast を送るよう変更
       // (`wsHandlers/refactor.ts undoEntityRename` excludeClientId 廃止) されたため、
       // hard delay は default 0。test や特殊ケースで postUndoDelayMs を明示指定したい場合は適用。
       if (postUndoDelayMs > 0) {
         await new Promise<void>((resolve) => setTimeout(resolve, postUndoDelayMs));
       }
+      // 業務フロー・帳票の参照を戻せなかったときは、閉じずに知らせる (戻した本体は元に戻っている)
+      if (res?.warnings?.length) { setWarnings(res.warnings); setUndoing(false); setDone(true); return; }
       onUndo();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -96,6 +100,14 @@ export function RenameEntityUndoToast({
     <div className="rename-entity-undo-toast" role="status" aria-live="polite" data-testid="rename-entity-undo-toast">
       <div className="rename-entity-undo-toast__message">
         {entityLabel} の id を <code>{oldId}</code> → <code>{newId}</code> に変更しました。
+        {warnings.length > 0 && (
+          <>
+            <br />
+            <span className="text-warning small" data-testid="rename-entity-undo-warnings">
+              <i className="bi bi-exclamation-triangle" /> 元に戻しましたが、一部の参照は戻せませんでした: {warnings.join(" / ")}
+            </span>
+          </>
+        )}
         {error && (
           <>
             <br />
@@ -110,7 +122,7 @@ export function RenameEntityUndoToast({
           type="button"
           className="rename-entity-undo-toast__undo"
           onClick={() => { void handleUndo(); }}
-          disabled={undoing}
+          disabled={undoing || done}
           data-testid="rename-entity-undo-btn"
         >
           {undoing ? (

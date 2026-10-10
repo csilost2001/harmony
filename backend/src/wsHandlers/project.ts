@@ -116,9 +116,9 @@ export const projectHandlers: RpcHandlerMap = {
   },
 
   saveBusinessFlow: async ({ params, root, wsId, clientId, respond, bridge }) => {
-    const { flowId, data, expectedUpdatedAt } = (params ?? {}) as { flowId: string; data: unknown; expectedUpdatedAt?: string };
+    const { flowId, data, expectedUpdatedAt, createOnly } = (params ?? {}) as { flowId: string; data: unknown; expectedUpdatedAt?: string; createOnly?: boolean };
     assertEntityId(flowId, "flowId");
-    const saved = await writeBusinessFlow(flowId, data, root(), expectedUpdatedAt);
+    const saved = await writeBusinessFlow(flowId, data, root(), { expectedUpdatedAt, createOnly });
     respond(saved);
     bridge.broadcast({ wsId: wsId(), event: "businessFlowChanged", data: { flowId }, excludeClientId: clientId });
   },
@@ -142,9 +142,9 @@ export const projectHandlers: RpcHandlerMap = {
   },
 
   saveReport: async ({ params, root, wsId, clientId, respond, bridge }) => {
-    const { reportId, data, expectedUpdatedAt } = (params ?? {}) as { reportId: string; data: unknown; expectedUpdatedAt?: string };
+    const { reportId, data, expectedUpdatedAt, createOnly } = (params ?? {}) as { reportId: string; data: unknown; expectedUpdatedAt?: string; createOnly?: boolean };
     assertEntityId(reportId, "reportId");
-    const saved = await writeReport(reportId, data, root(), expectedUpdatedAt);
+    const saved = await writeReport(reportId, data, root(), { expectedUpdatedAt, createOnly });
     respond(saved);
     bridge.broadcast({ wsId: wsId(), event: "reportChanged", data: { reportId }, excludeClientId: clientId });
   },

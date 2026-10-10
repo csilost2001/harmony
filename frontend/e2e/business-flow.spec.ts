@@ -71,11 +71,31 @@ test.describe("業務フロー", () => {
     await expect(page.getByTestId("bf-dirty")).toHaveCount(0);
   });
 
+  test("画面 ID の改名で工程の参照が変わったら、開いている編集画面にも反映され、古い参照を上書きで戻さない @regression", async ({ page }) => {
+    await openBrowserSessionWorkspace(ws.workspacePath);
+    await openEditor(page, "order-to-shipment");
+    await page.getByTestId("bf-step-addCart").click();
+    await expect(page.getByTestId("bf-step-screen")).toHaveValue("cart");
+    await sendBrowserRequest("renameEntityId", { entityType: "screen", oldId: "cart", newId: "cart-renamed" });
+    // 未編集なので読み直され、画面の選択肢も新しい ID を指す (参照切れの「存在しない」表示にならない)
+    await expect.poll(async () => (await readFlow("order-to-shipment")).steps.find((s: { id: string }) => s.id === "addCart").screenRef).toBe("cart-renamed");
+    await expect(page.getByTestId("bf-step-screen")).toHaveValue("cart-renamed", { timeout: 10000 });
+    await expect(page.getByTestId("bf-outdated")).toHaveCount(0);
+    await expect(page.getByTestId("bf-dirty")).toHaveCount(0);
+  });
+
   test("壊れた JSON のファイルは一覧に警告として出る @regression", async ({ page }) => {
-    await fs.writeFile(path.join(ws.workspacePath, "harmony", "business-flows", "broken.json"), "{ not json");
-    await ws.gotoActive(page, "/business-flow/list");
-    await expect(page.getByTestId("unreadable-files")).toContainText("broken.json", { timeout: 15000 });
-    await fs.rm(path.join(ws.workspacePath, "harmony", "business-flows", "broken.json"));
+    const broken = path.join(ws.workspacePath, "harmony", "business-flows", "broken.json");
+    await fs.writeFile(broken, "{ not json");
+    try {
+      await ws.gotoActive(page, "/business-flow/list");
+      await expect(page.getByTestId("unreadable-files")).toContainText("broken.json", { timeout: 15000 });
+      // 設計書には載らないので、理由が分かる警告が出る
+      await ws.gotoActive(page, "/document");
+      await expect(page.getByTestId("ddv-skipped")).toContainText("business-flows/broken.json", { timeout: 30000 });
+    } finally {
+      await fs.rm(broken, { force: true });
+    }
   });
 
   test("図を縮小・全体表示できる @regression", async ({ page }) => {

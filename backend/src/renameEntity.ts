@@ -2465,7 +2465,7 @@ async function _renameEntityIdImpl(
  */
 export async function undoEntityRename(
   operationId: string, root: string, opts?: RenameOpts,
-): Promise<{ restoredFiles: number }> {
+): Promise<{ restoredFiles: number; warnings: string[] }> {
   // Phase I round 3+4 Should-fix SF-3: workspace mutex で直列化
   const release = await acquireWorkspaceLock(root);
   try {
@@ -2477,7 +2477,7 @@ export async function undoEntityRename(
 
 async function _undoEntityRenameImpl(
   operationId: string, root: string, opts?: RenameOpts,
-): Promise<{ restoredFiles: number }> {
+): Promise<{ restoredFiles: number; warnings: string[] }> {
   const op = popUndo(root, operationId);
   if (!op) {
     try {
@@ -2725,7 +2725,7 @@ async function _undoEntityRenameImpl(
     });
   } catch { /* ignore */ }
 
-  return { restoredFiles: restored };
+  return { restoredFiles: restored, warnings: refRevertWarnings };
 }
 
 // ── internal: entity 種別ごとの write ───────────────────────────────────────

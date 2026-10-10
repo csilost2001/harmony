@@ -6,7 +6,7 @@
  * 仕様: docs/spec/report.md
  */
 import { useCallback, useEffect, useState } from "react";
-import type { Report } from "@harmony/shared";
+import { DOC_CONFLICT_MARK, DOC_EXISTS_MARK, type Report } from "@harmony/shared";
 import { mcpBridge } from "../mcp/mcpBridge";
 
 const listeners = new Set<() => void>();
@@ -27,11 +27,17 @@ export async function loadReport(reportId: string): Promise<Report | null> {
 }
 
 /** 開いたあとに他で更新されていて、保存を断られたときのエラーかどうか */
-export const isSaveConflict = (e: unknown): boolean => e instanceof Error && e.message.includes("他で更新されています");
+export const isSaveConflict = (e: unknown): boolean => e instanceof Error && e.message.includes(DOC_CONFLICT_MARK);
 
-/** 保存する。既定では「開いたときの更新日時」と照合し、他で更新されていたら保存しない (force で上書き) */
-export async function saveReport(report: Report, opts: { force?: boolean } = {}): Promise<Report> {
-  const saved = (await mcpBridge.request("saveReport", { reportId: report.id, data: report, expectedUpdatedAt: opts.force ? undefined : report.updatedAt })) as Report;
+/** 作成専用の保存で、同じ ID がすでにあったときのエラーかどうか */
+export const isAlreadyExists = (e: unknown): boolean => e instanceof Error && e.message.includes(DOC_EXISTS_MARK);
+
+/** エラーメッセージから先頭の印を取り除く (画面に出す文) */
+export const errorText = (e: unknown): string => (e instanceof Error ? e.message : String(e)).replace(/^\[[A-Z_]+\]\s*/, "");
+
+/** 保存する。既定では「開いたときの更新日時」と照合し、他で更新されていたら保存しない (force で上書き)。createOnly はすでにあれば失敗 (新規作成・複製用) */
+export async function saveReport(report: Report, opts: { force?: boolean; createOnly?: boolean } = {}): Promise<Report> {
+  const saved = (await mcpBridge.request("saveReport", { reportId: report.id, data: report, expectedUpdatedAt: opts.force || opts.createOnly ? undefined : report.updatedAt, createOnly: opts.createOnly })) as Report;
   notify();
   return saved;
 }

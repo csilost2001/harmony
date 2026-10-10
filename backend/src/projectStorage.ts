@@ -20,7 +20,7 @@ import path from "path";
 import crypto from "node:crypto";
 import type { ValidateFunction } from "ajv";
 import { logWarn } from "./serverLog.js";
-import { buildHarmonyAjv } from "@harmony/shared";
+import { buildHarmonyAjv, DOC_CONFLICT_MARK, DOC_EXISTS_MARK } from "@harmony/shared";
 import { workspaceContextManager } from "./workspaceState.js";
 import { assertPathContained } from "./security/idValidator.js";
 import {
@@ -1138,7 +1138,15 @@ export async function deleteLayoutComponent(componentId: string, root: string, f
 export class DocConflictError extends Error {
   readonly code = "DOC_CONFLICT";
   constructor(label: string, id: string) {
-    super(`${label}「${id}」は、開いたあとに他で更新されています。読み直すか、上書きして保存してください`);
+    super(`${DOC_CONFLICT_MARK} ${label}「${id}」は、開いたあとに他で更新されています。読み直すか、上書きして保存してください`);
+  }
+}
+
+/** 作成専用の保存で、同じ ID がすでにあった */
+export class DocExistsError extends Error {
+  readonly code = "DOC_EXISTS";
+  constructor(label: string, id: string) {
+    super(`${DOC_EXISTS_MARK} ${label}「${id}」はすでにあります (別の場所で先に作られた可能性があります)`);
   }
 }
 
@@ -1151,6 +1159,9 @@ interface DocStore {
 }
 const BUSINESS_FLOW_STORE: DocStore = { label: "業務フロー", dir: businessFlowsDir, schemaFile: "business-flow.v3.schema.json", arrays: ["lanes", "steps"] };
 const REPORT_STORE: DocStore = { label: "帳票", dir: reportsDir, schemaFile: "report.v3.schema.json", arrays: ["sections"] };
+
+/** 保存の条件。expectedUpdatedAt = 開いたときの更新日時 (違えば競合)、createOnly = すでにあれば失敗 (新規作成・複製用) */
+export interface DocWriteOpts { expectedUpdatedAt?: string; createOnly?: boolean }
 
 interface DocFile { file: string; id: string; data: Record<string, unknown> }
 interface DocList { docs: DocFile[]; unreadable: string[] }
@@ -1196,7 +1207,7 @@ async function listDocs(store: DocStore, root: string): Promise<DocList> {
 }
 
 /** 1 件を書く。id はファイル名と一致させ、作成日時は初回を保ち、更新日時を付ける。expectedUpdatedAt があり、保存済みの更新日時と違えば保存しない */
-async function writeDoc(store: DocStore, id: string, data: unknown, root: string, expectedUpdatedAt?: string): Promise<Record<string, unknown>> {
+async function writeDoc(store: DocStore, id: string, data: unknown, root: string, opts: DocWriteOpts = {}): Promise<Record<string, unknown>> {
   if (!isRecord(data) || store.arrays.some((k) => !Array.isArray(data[k]))) {
     throw new Error(`${store.label}は { id, name, ${store.arrays.map((k) => `${k}: []`).join(", ")} } の形で指定してください`);
   }
@@ -1204,12 +1215,17 @@ async function writeDoc(store: DocStore, id: string, data: unknown, root: string
   const dir = store.dir(dataRoot);
   const filePath = path.join(dir, `${id}.json`);
   assertPathContained(filePath, dataRoot);
+  // 確認 → 書き込みの間に別の保存が入らないよう、同じファイルへの保存は 1 本ずつ行う
+  return withLayoutComponentsLock(filePath, async () => {
   let prev: unknown = null;
+  let broken = false;
   try { prev = await readJsonStrict(filePath); } catch {
     // 壊れているファイルは消さずに退避してから、新しい内容を書く
     await fs.rename(filePath, `${filePath}.broken-${Date.now()}`);
+    broken = true;
   }
-  if (expectedUpdatedAt !== undefined && isRecord(prev) && prev.updatedAt !== expectedUpdatedAt) throw new DocConflictError(store.label, id);
+  if (opts.createOnly && (prev !== null || broken)) throw new DocExistsError(store.label, id);
+  if (opts.expectedUpdatedAt !== undefined && isRecord(prev) && prev.updatedAt !== opts.expectedUpdatedAt) throw new DocConflictError(store.label, id);
   const now = new Date().toISOString();
   const { $schema: _ignored, ...rest } = data;
   void _ignored;
@@ -1223,6 +1239,7 @@ async function writeDoc(store: DocStore, id: string, data: unknown, root: string
   };
   await writeJSON(filePath, doc);
   return doc;
+  });
 }
 
 async function deleteDoc(store: DocStore, id: string, root: string): Promise<boolean> {
@@ -1246,7 +1263,7 @@ async function updateAllDocs(store: DocStore, root: string, change: (doc: Record
       if (!change(d.data)) continue;
       const filePath = path.join(store.dir(dataRoot), d.file);
       assertPathContained(filePath, dataRoot);
-      await writeJSON(filePath, { ...d.data, updatedAt: new Date().toISOString() });
+      await withLayoutComponentsLock(filePath, () => writeJSON(filePath, { ...d.data, updatedAt: new Date().toISOString() }));
       res.changed.push(d.id);
     } catch (e) {
       res.warnings.push(`${store.label}「${d.id}」の参照を更新できませんでした: ${(e as Error).message}`);
@@ -1258,13 +1275,13 @@ async function updateAllDocs(store: DocStore, root: string, change: (doc: Record
 export const readBusinessFlow = (flowId: string, root: string) => readDoc(BUSINESS_FLOW_STORE, flowId, root);
 export const listBusinessFlowsDetailed = async (root: string) => { const l = await listDocs(BUSINESS_FLOW_STORE, root); return { flows: l.docs.map((d) => d.data), unreadable: l.unreadable }; };
 export const listBusinessFlows = async (root: string) => (await listBusinessFlowsDetailed(root)).flows;
-export const writeBusinessFlow = (flowId: string, data: unknown, root: string, expectedUpdatedAt?: string) => writeDoc(BUSINESS_FLOW_STORE, flowId, data, root, expectedUpdatedAt);
+export const writeBusinessFlow = (flowId: string, data: unknown, root: string, opts?: DocWriteOpts) => writeDoc(BUSINESS_FLOW_STORE, flowId, data, root, opts);
 export const deleteBusinessFlow = (flowId: string, root: string) => deleteDoc(BUSINESS_FLOW_STORE, flowId, root);
 
 export const readReport = (reportId: string, root: string) => readDoc(REPORT_STORE, reportId, root);
 export const listReportsDetailed = async (root: string) => { const l = await listDocs(REPORT_STORE, root); return { reports: l.docs.map((d) => d.data), unreadable: l.unreadable }; };
 export const listReports = async (root: string) => (await listReportsDetailed(root)).reports;
-export const writeReport = (reportId: string, data: unknown, root: string, expectedUpdatedAt?: string) => writeDoc(REPORT_STORE, reportId, data, root, expectedUpdatedAt);
+export const writeReport = (reportId: string, data: unknown, root: string, opts?: DocWriteOpts) => writeDoc(REPORT_STORE, reportId, data, root, opts);
 export const deleteReport = (reportId: string, root: string) => deleteDoc(REPORT_STORE, reportId, root);
 
 /** 画面 ID / 処理フロー ID の改名を、全業務フローの工程の参照へ反映する */

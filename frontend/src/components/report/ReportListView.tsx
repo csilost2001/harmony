@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { REPORT_FORMAT_LABELS, validateReport, type Report } from "@harmony/shared";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
 import { mcpBridge } from "../../mcp/mcpBridge";
-import { buildDefaultReport, deleteReport, saveReport, useReports } from "../../store/reportStore";
+import { buildDefaultReport, deleteReport, errorText, saveReport, useReports } from "../../store/reportStore";
 import { DataList, type DataListColumn } from "../common/DataList";
 import { EntityIdInput, type EntityIdValidationState } from "../common/EntityIdInput";
 import { useListSelection } from "../../hooks/useListSelection";
@@ -59,7 +59,9 @@ export function ReportListView() {
 
   const create = async () => {
     if (addValidation.isInvalid || !addName.trim()) return;
-    await saveReport(buildDefaultReport(addId, addName.trim()));
+    try {
+      await saveReport(buildDefaultReport(addId, addName.trim()), { createOnly: true });
+    } catch (e) { setMessage(`作成できませんでした: ${errorText(e)}`); setShowAdd(false); reload().catch(console.error); return; }
     setShowAdd(false); setAddId(""); setAddName("");
     navigate(wsPath(`/report/edit/${encodeURIComponent(addId)}`));
   };
@@ -71,7 +73,9 @@ export function ReportListView() {
       taken.add(id);
       const { createdAt: _c, updatedAt: _u, ...rest } = f;
       void _c; void _u;
-      await saveReport({ ...rest, id, name: `${f.name} (コピー)` });
+      try {
+        await saveReport({ ...rest, id, name: `${f.name} (コピー)` }, { createOnly: true });
+      } catch (e) { setMessage(`複製できませんでした: ${errorText(e)}`); reload().catch(console.error); return; }
     }
     setMessage(`${items.length} 件を複製しました`);
   };

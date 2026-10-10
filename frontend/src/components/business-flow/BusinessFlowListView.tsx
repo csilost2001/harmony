@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { validateBusinessFlow, type BusinessFlow } from "@harmony/shared";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
 import { mcpBridge } from "../../mcp/mcpBridge";
-import { buildDefaultBusinessFlow, deleteBusinessFlow, saveBusinessFlow, useBusinessFlows } from "../../store/businessFlowStore";
+import { buildDefaultBusinessFlow, deleteBusinessFlow, errorText, saveBusinessFlow, useBusinessFlows } from "../../store/businessFlowStore";
 import { DataList, type DataListColumn } from "../common/DataList";
 import { EntityIdInput, type EntityIdValidationState } from "../common/EntityIdInput";
 import { useListSelection } from "../../hooks/useListSelection";
@@ -58,7 +58,9 @@ export function BusinessFlowListView() {
 
   const create = async () => {
     if (addValidation.isInvalid || !addName.trim()) return;
-    await saveBusinessFlow(buildDefaultBusinessFlow(addId, addName.trim()));
+    try {
+      await saveBusinessFlow(buildDefaultBusinessFlow(addId, addName.trim()), { createOnly: true });
+    } catch (e) { setMessage(`作成できませんでした: ${errorText(e)}`); setShowAdd(false); reload().catch(console.error); return; }
     setShowAdd(false); setAddId(""); setAddName("");
     navigate(wsPath(`/business-flow/edit/${encodeURIComponent(addId)}`));
   };
@@ -70,7 +72,9 @@ export function BusinessFlowListView() {
       taken.add(id);
       const { createdAt: _c, updatedAt: _u, ...rest } = f;
       void _c; void _u;
-      await saveBusinessFlow({ ...rest, id, name: `${f.name} (コピー)` });
+      try {
+        await saveBusinessFlow({ ...rest, id, name: `${f.name} (コピー)` }, { createOnly: true });
+      } catch (e) { setMessage(`複製できませんでした: ${errorText(e)}`); reload().catch(console.error); return; }
     }
     setMessage(`${items.length} 件を複製しました`);
   };

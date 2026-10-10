@@ -35,6 +35,10 @@ export interface BusinessFlow {
   updatedAt?: string;
 }
 
+/** 保存の競合 / 作成時の重複を、エラーメッセージの先頭の印で見分ける (文言を直しても判定が変わらないように、backend と frontend で共有する) */
+export const DOC_CONFLICT_MARK = "[DOC_CONFLICT]";
+export const DOC_EXISTS_MARK = "[DOC_EXISTS]";
+
 export const BUSINESS_STEP_KIND_LABELS: Record<StepKind, string> = { start: "開始", task: "作業", decision: "判断", end: "終了" };
 export const BUSINESS_LANE_KIND_LABELS: Record<LaneKind, string> = { person: "人・部門", system: "システム", external: "外部" };
 

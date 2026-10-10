@@ -143,12 +143,18 @@ export function ReportEditor() {
   useEffect(() => {
     if (!reportId) return;
     return mcpBridge.onBroadcast("reportChanged", (data: unknown) => {
-      const d = data as { reportId?: string; deleted?: boolean } | undefined;
-      if (d?.reportId !== reportId) return;
+      const d = data as { reportId?: string; deleted?: boolean; reload?: boolean } | undefined;
+      // reload: 画面・処理フロー・テーブルの ID 改名などで、参照が書き換わったかもしれない (どの帳票かは不明)
+      if (!d?.reload && d?.reportId !== reportId) return;
       if (d.deleted) { setOutdated("deleted"); return; }
-      const cur = reportRef.current;
-      if (cur && JSON.stringify(cur) === savedJsonRef.current) reloadFromServer().then(() => setNotice("他で更新されたため、読み直しました")).catch(console.error);
-      else setOutdated("updated");
+      // サーバの内容が、いま開いている保存済みの内容と違うときだけ扱う (無関係な改名の通知では何もしない)
+      loadReport(reportId).then((latest) => {
+        if (!latest) { setOutdated("deleted"); return; }
+        if (JSON.stringify(latest) === savedJsonRef.current) return;
+        const cur = reportRef.current;
+        if (cur && JSON.stringify(cur) === savedJsonRef.current) reloadFromServer().then(() => setNotice("他で更新されたため、読み直しました")).catch(console.error);
+        else setOutdated("updated");
+      }).catch(console.error);
     });
   }, [reportId, reloadFromServer]);
 

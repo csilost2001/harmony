@@ -11,12 +11,13 @@ import { listProcessFlows, loadProcessFlow } from "../../store/processFlowStore"
 import { listTables, loadTable } from "../../store/tableStore";
 import { loadConventions } from "../../store/conventionsStore";
 import { loadLayoutComponents } from "../../store/layoutComponentStore";
-import { listBusinessFlows } from "../../store/businessFlowStore";
-import { listReports } from "../../store/reportStore";
+import { listBusinessFlowsDetailed } from "../../store/businessFlowStore";
+import { listReportsDetailed } from "../../store/reportStore";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import "../../styles/designDocument.css";
 
-async function loadInput(): Promise<DesignDocInput> {
+/** 設計書の入力と、読めなかったために載らないファイル (JSON が壊れている業務フロー・帳票) */
+async function loadInput(): Promise<{ input: DesignDocInput; skipped: string[] }> {
   const raw = await loadRawProject();
   const entities = (raw as { entities?: { screens?: Array<{ id: string }>; screenTransitions?: DesignDocInput["transitions"] } }).entities ?? {};
   const [screens, flowMetas, tableMetas, conventions, layoutComponents, businessFlows, reports] = await Promise.all([
@@ -25,15 +26,15 @@ async function loadInput(): Promise<DesignDocInput> {
     listTables().catch(() => []),
     loadConventions().catch(() => null),
     loadLayoutComponents().catch(() => []),
-    listBusinessFlows().catch(() => []),
-    listReports().catch(() => []),
+    listBusinessFlowsDetailed().catch(() => ({ flows: [], unreadable: [] as string[] })),
+    listReportsDetailed().catch(() => ({ reports: [], unreadable: [] as string[] })),
   ]);
   const [flows, tables] = await Promise.all([
     Promise.all(flowMetas.map((m) => loadProcessFlow(m.id).catch(() => null))),
     Promise.all(tableMetas.map((m) => loadTable(m.id).catch(() => null))),
   ]);
   const meta = (raw as { meta?: { id?: string; name?: string; description?: string } }).meta ?? {};
-  return {
+  const input: DesignDocInput = {
     project: { id: meta.id, name: meta.name ?? "プロジェクト", description: meta.description },
     screens: screens.filter(Boolean) as unknown as DesignDocInput["screens"],
     flows: flows.filter(Boolean) as unknown as DesignDocInput["flows"],
@@ -41,15 +42,17 @@ async function loadInput(): Promise<DesignDocInput> {
     transitions: entities.screenTransitions ?? [],
     messages: ((conventions as { msg?: DesignDocInput["messages"] } | null)?.msg) ?? {},
     layoutComponents,
-    businessFlows,
-    reports,
+    businessFlows: businessFlows.flows,
+    reports: reports.reports,
     roles: ((conventions as { role?: DesignDocInput["roles"] } | null)?.role) ?? {},
     permissions: ((conventions as { permission?: DesignDocInput["permissions"] } | null)?.permission) ?? {},
   };
+  return { input, skipped: [...businessFlows.unreadable.map((f) => `business-flows/${f}`), ...reports.unreadable.map((f) => `reports/${f}`)] };
 }
 
 export function DesignDocumentView() {
   const [input, setInput] = useState<DesignDocInput | null>(null);
+  const [skipped, setSkipped] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -57,7 +60,7 @@ export function DesignDocumentView() {
   const reload = useCallback(() => {
     setLoading(true);
     loadInput()
-      .then((i) => { setInput(i); setError(null); })
+      .then((r) => { setInput(r.input); setSkipped(r.skipped); setError(null); })
       .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)))
       .finally(() => setLoading(false));
   }, []);
@@ -126,6 +129,11 @@ export function DesignDocumentView() {
         <button type="button" className="ddv-btn" onClick={openInNewTab} disabled={!doc} title="別タブで開く (印刷はこちらから)"><i className="bi bi-box-arrow-up-right" /> 別タブで開く</button>
         <button type="button" className="ddv-btn primary" onClick={saveHtml} disabled={!doc} data-testid="ddv-save-html"><i className="bi bi-download" /> HTML で保存</button>
       </header>
+      {skipped.length > 0 && (
+        <p className="ddv-skipped" role="alert" data-testid="ddv-skipped">
+          <i className="bi bi-exclamation-triangle" /> 読めないファイルがあるため、設計書に載っていません (JSON が壊れています): {skipped.map((f) => <code key={f}>{f}</code>)}
+        </p>
+      )}
       {error ? (
         <div className="ddv-message">設計データを読み込めませんでした: {error}</div>
       ) : !doc ? (
