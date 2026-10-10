@@ -29,8 +29,8 @@
 }
 
 .edit-mode-toolbar--locked {
-  background: color-mix(in srgb, #ffc40a 9%, var(--hm-surface));
-  border-bottom-color: color-mix(in srgb, #ffc20a 38%, var(--hm-surface));
+  background: color-mix(in srgb, var(--hm-hue-amber) 9%, var(--hm-surface));
+  border-bottom-color: color-mix(in srgb, var(--hm-hue-amber) 38%, var(--hm-surface));
 }
 
 .edit-mode-toolbar--force-released {
@@ -46,7 +46,7 @@
 
 .edit-mode-alert {
   font-size: 0.875rem;
-  color: color-mix(in srgb, #cf3a47 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg));
   font-weight: 500;
 }
 
@@ -73,7 +73,7 @@
 .edit-mode-btn:hover:not(:disabled) {
   border-color: #2563eb;
   background: var(--hm-surface-3);
-  color: color-mix(in srgb, #2758e2 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
 }
 
 .edit-mode-btn:disabled {
@@ -107,7 +107,7 @@
 
 .edit-mode-btn-warning:hover:not(:disabled) {
   border-color: #b45309;
-  background: color-mix(in srgb, #fbb90f 32%, var(--hm-surface));
+  background: color-mix(in srgb, var(--hm-hue-amber) 32%, var(--hm-surface));
   color: var(--hm-fg);
 }
 
@@ -175,7 +175,7 @@
 }
 
 .list-item-draft-mark {
-  color: color-mix(in srgb, #db2e3f 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg));
   font-size: 0.625rem;
   vertical-align: middle;
   margin-left: 4px;

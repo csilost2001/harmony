@@ -111,14 +111,14 @@ export function GenericDefinitionCatalogView() {
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
-                <i className={`bi ${KIND_ICONS[kind]}`} style={{ fontSize: "1.3rem", color: "color-mix(in srgb, #0c6efd 80%, var(--hm-fg))" }} />
+                <i className={`bi ${KIND_ICONS[kind]}`} style={{ fontSize: "1.3rem", color: "color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg))" }} />
                 <span style={{ fontWeight: 600, fontSize: "0.95rem" }}>
                   {GENERIC_DEFINITION_KIND_LABELS[kind]}
                 </span>
                 <span style={{
                   fontSize: "0.75rem",
                   background: "var(--hm-surface-3)",
-                  color: "color-mix(in srgb, #0c6efd 80%, var(--hm-fg))",
+                  color: "color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg))",
                   padding: "2px 6px",
                   borderRadius: "4px",
                   marginLeft: "auto",

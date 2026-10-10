@@ -190,9 +190,9 @@ export function ActionMetaTabBar({ group, updateGroup, updateGroupSilent }: Prop
               className="action-meta-progress"
               title={`確定 ${counts.committed} / 暫定 ${counts.provisional} / 下書き ${counts.draft} (合計 ${counts.total})`}
             >
-              <span style={{ color: "color-mix(in srgb, #2edb6e 80%, var(--hm-fg))" }}><i className="bi bi-circle-fill" /> {counts.committed}</span>
-              <span style={{ color: "color-mix(in srgb, #f97010 80%, var(--hm-fg))" }}><i className="bi bi-circle-fill" /> {counts.provisional}</span>
-              <span style={{ color: "color-mix(in srgb, #f5a214 80%, var(--hm-fg))" }}><i className="bi bi-circle-fill" /> {counts.draft}</span>
+              <span style={{ color: "color-mix(in srgb, var(--hm-hue-green) 80%, var(--hm-fg))" }}><i className="bi bi-circle-fill" /> {counts.committed}</span>
+              <span style={{ color: "color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg))" }}><i className="bi bi-circle-fill" /> {counts.provisional}</span>
+              <span style={{ color: "color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg))" }}><i className="bi bi-circle-fill" /> {counts.draft}</span>
               <span className="text-muted">/ {counts.total}</span>
               {counts.notes > 0 && (
                 <span className="text-muted" title={`付箋 ${counts.notes} 件`}>

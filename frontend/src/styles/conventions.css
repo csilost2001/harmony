@@ -84,7 +84,7 @@
 }
 
 .conventions-category-tab.active {
-  color: color-mix(in srgb, #1e23eb 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   border-bottom-color: #6366f1;
   font-weight: 600;
 }
@@ -169,7 +169,7 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.78rem;
   font-weight: 600;
-  color: color-mix(in srgb, #2e57db 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   background: var(--hm-surface-3);
   padding: 2px 8px;
   border-radius: 4px;
@@ -228,14 +228,14 @@
 
 .conventions-issue {
   font-size: 0.75rem;
-  color: color-mix(in srgb, #df2a2a 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg));
   display: inline-flex;
   align-items: center;
   gap: 4px;
 }
 
 .conventions-issue .bi {
-  color: color-mix(in srgb, #dd2c2c 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg));
   font-size: 0.85rem;
 }
 

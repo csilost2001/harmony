@@ -46,13 +46,13 @@
   flex-wrap: wrap;
   gap: 4px;
   font-size: 0.8rem;
-  color: color-mix(in srgb, #db2e3f 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg));
   margin: 0;
 }
 
 .entity-id-input__apply-btn {
   text-decoration: none;
-  color: color-mix(in srgb, #0c6efd 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   border: none;
   background: transparent;
 }

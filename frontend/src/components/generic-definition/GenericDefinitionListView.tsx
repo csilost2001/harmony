@@ -289,7 +289,7 @@ export function GenericDefinitionListView() {
       // (Screen / Table / ProcessFlow) と同じ dblclick / Enter で開く挙動に統一。
       // navigation 経路: row dblclick (DataList 共通) または Enter キー (useListKeyboard)。
       render: (item) => (
-        <span style={{ fontWeight: 600, fontFamily: "monospace", color: "color-mix(in srgb, #0c6efd 80%, var(--hm-fg))" }}>
+        <span style={{ fontWeight: 600, fontFamily: "monospace", color: "color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg))" }}>
           {item.name}
         </span>
       ),
@@ -308,7 +308,7 @@ export function GenericDefinitionListView() {
         <span>
           {item.targets.map((t) => (
             <span key={t} style={{
-              background: "var(--hm-surface-3)", color: "color-mix(in srgb, #0c6efd 80%, var(--hm-fg))",
+              background: "var(--hm-surface-3)", color: "color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg))",
               padding: "2px 6px", borderRadius: "4px",
               fontSize: "0.78rem", marginRight: "4px",
             }}>
@@ -332,7 +332,7 @@ export function GenericDefinitionListView() {
         const v = validationMap.get(item.name);
         if (!v) return <span style={{ color: "var(--hm-fg-faint)", fontSize: "0.8rem" }}>...</span>;
         if (v.errors === 0 && v.warnings === 0) {
-          return <i className="bi bi-check-lg" style={{ color: "color-mix(in srgb, #3ad05c 80%, var(--hm-fg))" }} title="問題なし" />;
+          return <i className="bi bi-check-lg" style={{ color: "color-mix(in srgb, var(--hm-hue-green) 80%, var(--hm-fg))" }} title="問題なし" />;
         }
         return (
           <span style={{ display: "inline-flex", gap: "4px" }}>
@@ -355,7 +355,7 @@ export function GenericDefinitionListView() {
       >
         {/* #1088 提案 B (案 A): name の single-click ショートカット削除。card 全体の
             dblclick (DataList 共通) または Enter キーで開く挙動に統一。 */}
-        <div style={{ fontWeight: 600, fontFamily: "monospace", color: "color-mix(in srgb, #0c6efd 80%, var(--hm-fg))", marginBottom: "4px", fontSize: "0.95rem" }}>
+        <div style={{ fontWeight: 600, fontFamily: "monospace", color: "color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg))", marginBottom: "4px", fontSize: "0.95rem" }}>
           {item.name}
         </div>
         <div style={{ fontSize: "0.82rem", color: "var(--hm-fg-2)", marginBottom: "8px" }}>{item.purpose}</div>
@@ -363,7 +363,7 @@ export function GenericDefinitionListView() {
           <div>
             {item.targets.map((t) => (
               <span key={t} style={{
-                background: "var(--hm-surface-3)", color: "color-mix(in srgb, #0c6efd 80%, var(--hm-fg))",
+                background: "var(--hm-surface-3)", color: "color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg))",
                 padding: "2px 6px", borderRadius: "4px",
                 fontSize: "0.75rem", marginRight: "4px",
               }}>
@@ -383,7 +383,7 @@ export function GenericDefinitionListView() {
   }, [validationMap]);
 
   if (!kind) {
-    return <div style={{ padding: "24px", color: "color-mix(in srgb, #ff0a0a 80%, var(--hm-fg))" }}>不正な kind です</div>;
+    return <div style={{ padding: "24px", color: "color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg))" }}>不正な kind です</div>;
   }
 
   const columnLabels: Record<string, string> = { name: "名前", fieldCount: "フィールド数" };
@@ -456,7 +456,7 @@ export function GenericDefinitionListView() {
               編集
             </div>
             <div
-              style={{ padding: "6px 16px", cursor: "pointer", fontSize: "0.88rem", color: "color-mix(in srgb, #ff0a0a 80%, var(--hm-fg))" }}
+              style={{ padding: "6px 16px", cursor: "pointer", fontSize: "0.88rem", color: "color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg))" }}
               onClick={async () => {
                 if (!window.confirm(`${contextMenu.name} を削除しますか？`)) return;
                 await deleteGenericDefinition(kind, contextMenu.name);
@@ -479,7 +479,7 @@ export function GenericDefinitionListView() {
             minWidth: "480px", maxWidth: "600px",
           }} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ marginTop: 0, fontSize: "1.1rem" }}>{label}を新規作成</h3>
-            {addError && <div style={{ color: "color-mix(in srgb, #ff0a0a 80%, var(--hm-fg))", marginBottom: "12px", fontSize: "0.88rem" }}>{addError}</div>}
+            {addError && <div style={{ color: "color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg))", marginBottom: "12px", fontSize: "0.88rem" }}>{addError}</div>}
             <div style={{ marginBottom: "12px" }}>
               <label style={{ display: "block", fontWeight: 600, marginBottom: "4px", fontSize: "0.88rem" }}>
                 名前 (PascalCase、例: OrderForm)

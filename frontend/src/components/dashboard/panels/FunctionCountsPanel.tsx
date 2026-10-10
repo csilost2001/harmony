@@ -85,10 +85,10 @@ export function FunctionCountsPanel() {
   }
 
   const items: Array<{ label: string; value: number; icon: string; color: string }> = [
-    { label: "画面", value: counts.screens, icon: "bi-window", color: "color-mix(in srgb, #1e23eb 80%, var(--hm-fg))" },
-    { label: "テーブル", value: counts.tables, icon: "bi-table", color: "color-mix(in srgb, #0dabfd 80%, var(--hm-fg))" },
-    { label: "処理フロー", value: counts.processFlows, icon: "bi-lightning-charge", color: "color-mix(in srgb, #f5a214 80%, var(--hm-fg))" },
-    { label: "FK 関係", value: counts.foreignKeys, icon: "bi-share", color: "color-mix(in srgb, #1eeca7 80%, var(--hm-fg))" },
+    { label: "画面", value: counts.screens, icon: "bi-window", color: "color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg))" },
+    { label: "テーブル", value: counts.tables, icon: "bi-table", color: "color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg))" },
+    { label: "処理フロー", value: counts.processFlows, icon: "bi-lightning-charge", color: "color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg))" },
+    { label: "FK 関係", value: counts.foreignKeys, icon: "bi-share", color: "color-mix(in srgb, var(--hm-hue-green) 80%, var(--hm-fg))" },
   ];
 
   return (

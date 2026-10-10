@@ -132,7 +132,7 @@ export function EdgeEditModal({ open, initial, onSave, onDelete, onClose }: Prop
               <button
                 type="button"
                 className="flow-btn flow-btn-secondary"
-                style={{ color: "color-mix(in srgb, #ec1d1d 80%, var(--hm-fg))", borderColor: "color-mix(in srgb, #fa0f0f 38%, var(--hm-surface))" }}
+                style={{ color: "color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg))", borderColor: "color-mix(in srgb, var(--hm-hue-red) 38%, var(--hm-surface))" }}
                 onClick={onDelete}
               >
                 <i className="bi bi-trash" /> 削除

@@ -84,7 +84,7 @@
 
 .tabbar-tab-dirty {
   font-size: 10px;
-  color: color-mix(in srgb, #f5a214 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg));
   flex-shrink: 0;
   margin-right: -2px;
 }
@@ -211,10 +211,10 @@
   background-color: var(--dz-bg-3);
 }
 .tab-context-item.danger {
-  color: color-mix(in srgb, #ec1d1d 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg));
 }
 .tab-context-item.danger:hover {
-  background-color: color-mix(in srgb, #ec1d1d 10%, transparent);
+  background-color: color-mix(in srgb, var(--hm-hue-red) 10%, transparent);
 }
 .tab-context-separator {
   height: 1px;
@@ -227,5 +227,5 @@
   width: 14px;
 }
 .tab-context-item.danger i {
-  color: color-mix(in srgb, #ec1d1d 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg));
 }
