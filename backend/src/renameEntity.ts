@@ -1712,7 +1712,8 @@ function detectLockedByOther(
 /** entityType → editSessionStore で使う resourceType への mapping */
 export function entityTypeToResourceType(entityType: RenameEntityType): string {
   switch (entityType) {
-    case "screen":         return "screen";
+    // 画面は画面項目 + レイアウトの編集セッション (screen-item) が `screens/<id>.json` を書く
+    case "screen":         return "screen-item";
     case "table":          return "table";
     case "processFlow":    return "process-flow";
     case "sequence":       return "sequence";
@@ -1740,6 +1741,7 @@ async function detectConcurrentEditRefs(
   entityType: RenameEntityType,
   oldId: string,
   opts: RenameOpts | undefined,
+  root: string,
 ): Promise<Array<{ entityKind: string; entityId: string; sessionId: string }>> {
   const fetcher = opts?.fetchEditSessionsForRef;
   if (!fetcher) return [];
@@ -1767,6 +1769,14 @@ async function detectConcurrentEditRefs(
     if (seenKeys.has(key)) continue;
     seenKeys.add(key);
     candidates.push({ entityKind: loc.entityKind, entityId: loc.entityId });
+  }
+
+  // 改名で参照が書き換わる業務フロー・帳票 (編集セッションを持つ) も対象にする
+  if (entityType === "screen" || entityType === "processFlow") {
+    for (const id of (await renameBusinessFlowRefsInProject(entityType, oldId, "", root, true)).changed) candidates.push({ entityKind: "businessFlow", entityId: id });
+  }
+  if (entityType === "screen" || entityType === "processFlow" || entityType === "table") {
+    for (const id of (await renameReportRefsInProject(entityType, oldId, "", root, true)).changed) candidates.push({ entityKind: "report", entityId: id });
   }
 
   for (const c of candidates) {
@@ -2051,7 +2061,7 @@ async function _previewEntityRenameImpl(
   const ambiguousDependencies = await detectAmbiguousDependencies(entityType, oldId, root, dataRoot);
 
   // Phase G M-4 (Codex round 2): 参照側 entity の active EditSession 検出
-  const concurrentEditRefs = await detectConcurrentEditRefs(refScan, entityType, oldId, opts);
+  const concurrentEditRefs = await detectConcurrentEditRefs(refScan, entityType, oldId, opts, root);
 
   return {
     entityType, oldId, newId,
@@ -2175,7 +2185,7 @@ async function _renameEntityIdImpl(
   // Phase G M-4 (Codex round 2): 参照側 entity に active Edit session があれば block
   // (rename は committed file を直接 write するため、別 session の draft 保持 → 後続 save で
   // rename 済 ref を旧 id に巻き戻して orphan 再生成するリスクを回避)
-  const concurrentEditRefs = await detectConcurrentEditRefs(refScan, entityType, oldId, opts);
+  const concurrentEditRefs = await detectConcurrentEditRefs(refScan, entityType, oldId, opts, root);
   if (concurrentEditRefs.length > 0) {
     const refs = concurrentEditRefs
       .map((r) => `${r.entityKind}/${r.entityId} (session=${r.sessionId})`)
@@ -2342,14 +2352,10 @@ async function _renameEntityIdImpl(
   // migration。失敗しても rename 自体は成功扱いとし、operation snapshot に書込状況を
   // 記録して undo で reversible に扱う。
   //
-  // Phase J Should-fix SF-ε (#1298 round 5 Codex S-1): Screen rename は primary + aux
-  // (screen-item / puck-data) の 3 resource type すべてで history dir migration を行う。
-  // 旧実装は primary 1 種のみで auxiliary history (ScreenItemsView / Puck Designer の編集
-  // 履歴) を rename 後に新 id から不可視化していた。
+  // Phase J Should-fix SF-ε (#1298 round 5 Codex S-1): 編集履歴の dir も新 id へ移す
+  // (旧エディタ廃止後、画面の編集セッション種別は screen-item のみ)。
   const kebabResourceType = entityTypeToResourceType(entityType);
-  const historyResourceTypes = entityType === "screen"
-    ? ["screen", "screen-item", "puck-data"]
-    : [kebabResourceType];
+  const historyResourceTypes = [kebabResourceType];
   const migrationWarnings: string[] = [];
   const historyMigrations: Array<{ resourceType: string; oldId: string; newId: string }> = [];
   for (const rt of historyResourceTypes) {
@@ -2370,11 +2376,8 @@ async function _renameEntityIdImpl(
   }
 
   // Phase J Must-fix C (#1298 round 5 Codex M-3): live store + persisted file の resourceId
-  // 移行を bridge API 経由で行う (旧 raw fs 操作を廃止)。Screen rename は 3 resource type
-  // すべてで migrate する (screen + screen-item + puck-data の auxiliary session も対象)。
-  const sessionResourceTypes = entityType === "screen"
-    ? (["screen", "screen-item", "puck-data"] as const)
-    : [kebabResourceType as string] as const;
+  // 移行を bridge API 経由で行う (旧 raw fs 操作を廃止)。
+  const sessionResourceTypes = [kebabResourceType as string] as const;
   let editSessionMigrations: Array<{ editSessionId: string; oldResourceId: string; newResourceId: string; resourceType: string }> = [];
   for (const rt of sessionResourceTypes) {
     try {

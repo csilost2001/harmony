@@ -38,6 +38,8 @@ import {
   writePageLayout,
   writeScreenItems,
   writeSequence,
+  writeBusinessFlow,
+  writeReport,
   writeGenericDefinition,
   resolveRoot,
 } from "../projectStorage.js";
@@ -381,12 +383,6 @@ export class EditSessionService {
       const payload = session.payload;
       try {
         switch (type) {
-          // 旧エディタ (GrapesJS / Puck) の廃止後、旧デザイン本体 (screen / page-layout-design / puck-data)
-          // を書く編集セッションは無い (種別は旧データ・履歴のために残してある)。
-          case "screen":
-          case "page-layout-design":
-          case "puck-data":
-            break;
           case "table":
             await writeTable(resId, payload, root);
             resourceChange = { event: "tableChanged", data: { tableId: resId } };
@@ -416,6 +412,14 @@ export class EditSessionService {
             resourceChange = { event: "screenItemsChanged", data: { screenId: siScreenId } };
             break;
           }
+          case "business-flow":
+            await writeBusinessFlow(resId, payload, root);
+            resourceChange = { event: "businessFlowChanged", data: { flowId: resId } };
+            break;
+          case "report":
+            await writeReport(resId, payload, root);
+            resourceChange = { event: "reportChanged", data: { reportId: resId } };
+            break;
           case "sequence":
             await writeSequence(resId, payload, root);
             resourceChange = { event: "sequenceChanged", data: { sequenceId: resId } };

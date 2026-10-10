@@ -2,7 +2,8 @@
  * 業務フロー編集 (/business-flow/edit/:businessFlowId)。
  *
  * 左: レーンと工程の一覧 / 中央: 図 (原本から自動で配置) と要確認 / 右: 選んだ工程・レーンの設定。
- * 図の工程をクリックで選び、「次の工程を追加」で同じレーンに作ってつなぐ。保存は明示的 (開いただけでは書き換えない)。
+ * 図の工程をクリックで選び、「次の工程を追加」で同じレーンに作ってつなぐ。
+ * 編集は「編集開始」で編集セッションを作って行い (他の人・AI は閲覧のみ)、保存は明示的 (開いただけでは書き換えない)。
  * 仕様: docs/spec/business-flow.md
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -16,49 +17,53 @@ import { mcpBridge } from "../../mcp/mcpBridge";
 import { loadProject } from "../../store/flowStore";
 import { listProcessFlows } from "../../store/processFlowStore";
 import { loadConventions } from "../../store/conventionsStore";
-import { isSaveConflict, loadBusinessFlow, saveBusinessFlow } from "../../store/businessFlowStore";
-import { makeTabId, setDirty as setTabDirty } from "../../store/tabStore";
+import { loadBusinessFlow } from "../../store/businessFlowStore";
+import { useEditableDocument } from "../../hooks/useEditableDocument";
+import { EditSessionChrome } from "../editing/EditSessionChrome";
+import { EditSessionDropdown } from "../editing/EditSessionDropdown";
 import { SortableList, SortableRow } from "../common/SortableList";
 import { moveById } from "../../utils/reorder";
 import "../../styles/businessFlow.css";
 
 type Selection = { kind: "step" | "lane"; id: string } | null;
 const STEP_ICON: Record<StepKind, string> = { start: "bi-play-circle", task: "bi-square", decision: "bi-diamond", end: "bi-stop-circle" };
-const MAX_HISTORY = 60;
 
 export function BusinessFlowEditor() {
   const { businessFlowId } = useParams<{ businessFlowId: string }>();
   const navigate = useNavigate();
   const { wsPath } = useWorkspacePath();
-  const [flow, setFlow] = useState<BusinessFlow | null>(null);
   const [missing, setMissing] = useState(false);
-  const [savedJson, setSavedJson] = useState("");
   const [selection, setSelection] = useState<Selection>(null);
-  const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  // 他 (AI・別タブ) が保存した / 保存が競合した状態
-  const [outdated, setOutdated] = useState<null | "updated" | "conflict" | "deleted">(null);
   const [screens, setScreens] = useState<Array<{ id: string; name: string }>>([]);
   const [flows, setFlows] = useState<Array<{ id: string; name: string }>>([]);
   const [roles, setRoles] = useState<Array<{ key: string; name: string }>>([]);
   const [zoom, setZoom] = useState(1);
   const paperRef = useRef<HTMLDivElement>(null);
-  const undoStack = useRef<BusinessFlow[]>([]);
-  const redoStack = useRef<BusinessFlow[]>([]);
 
-  // ── 読み込み ──
+  // ── 文書 (編集セッション・元に戻す・他の保存の検知は useEditableDocument) ──
+  const {
+    doc: flow, editable, mode, sessionLoading, dirty, apply: applyDoc, undo, redo, canUndo, canRedo,
+    attach, takeOver, syncSessionToUrl, sessionId, chrome,
+  } = useEditableDocument<BusinessFlow>({
+    resourceType: "business-flow",
+    tabType: "business-flow",
+    mtimeKind: "businessFlow",
+    draftKind: "businessFlow",
+    id: businessFlowId,
+    load: loadBusinessFlow,
+    broadcastName: "businessFlowChanged",
+    broadcastIdField: "flowId",
+    onNotFound: () => setMissing(true),
+    autoEditKey: "business-flow",
+  });
+  // 変更の関数は、複製した文書を書き換えて返す (同じ結果なら何もしない)
+  const apply = useCallback((fn: (f: BusinessFlow) => BusinessFlow) => applyDoc(fn), [applyDoc]);
+
   useEffect(() => {
     if (!businessFlowId) return;
     let alive = true;
     mcpBridge.startWithoutEditor();
-    (async () => {
-      const f = await loadBusinessFlow(businessFlowId);
-      if (!alive) return;
-      if (!f) { setMissing(true); return; }
-      setFlow(f);
-      setSavedJson(JSON.stringify(f));
-      undoStack.current = []; redoStack.current = [];
-    })().catch((e) => { console.error(e); if (alive) setMissing(true); });
     loadProject().then((p) => { if (alive) setScreens(p.screens.map((s) => ({ id: s.id as string, name: s.name as string }))); }).catch(() => undefined);
     listProcessFlows().then((l) => { if (alive) setFlows(l.map((m) => ({ id: m.id as string, name: (m.name as string) ?? (m.id as string) }))); }).catch(() => undefined);
     loadConventions().then((c) => {
@@ -68,14 +73,6 @@ export function BusinessFlowEditor() {
     return () => { alive = false; };
   }, [businessFlowId]);
 
-  const dirty = flow !== null && JSON.stringify(flow) !== savedJson;
-  // タブの「未保存」印
-  useEffect(() => {
-    if (!businessFlowId) return;
-    const tabId = makeTabId("business-flow", businessFlowId);
-    setTabDirty(tabId, dirty);
-    return () => setTabDirty(tabId, false);
-  }, [businessFlowId, dirty]);
   useEffect(() => {
     if (!dirty) return;
     const h = (e: BeforeUnloadEvent) => { e.preventDefault(); };
@@ -83,87 +80,12 @@ export function BusinessFlowEditor() {
     return () => window.removeEventListener("beforeunload", h);
   }, [dirty]);
 
-  // ── 編集 (元に戻す / やり直す つき) ──
-  // 更新関数の中で履歴を触ると StrictMode で二重に積まれるため、最新の値は ref から読む
-  const flowRef = useRef<BusinessFlow | null>(null);
-  flowRef.current = flow;
-  const savedJsonRef = useRef("");
-  savedJsonRef.current = savedJson;
-  const apply = useCallback((fn: (f: BusinessFlow) => BusinessFlow) => {
-    const cur = flowRef.current;
-    if (!cur) return;
-    const next = fn(structuredClone(cur));
-    if (JSON.stringify(next) === JSON.stringify(cur)) return;
-    undoStack.current = [...undoStack.current.slice(-(MAX_HISTORY - 1)), cur];
-    redoStack.current = [];
-    flowRef.current = next;
-    setFlow(next);
-  }, []);
-  const undo = useCallback(() => {
-    const cur = flowRef.current, prev = undoStack.current.pop();
-    if (!cur || !prev) return;
-    redoStack.current = [...redoStack.current, cur];
-    flowRef.current = prev;
-    setFlow(prev);
-  }, []);
-  const redo = useCallback(() => {
-    const cur = flowRef.current, nxt = redoStack.current.pop();
-    if (!cur || !nxt) return;
-    undoStack.current = [...undoStack.current, cur];
-    flowRef.current = nxt;
-    setFlow(nxt);
-  }, []);
-
-  const save = useCallback(async (force = false) => {
-    const cur = flowRef.current;
-    if (!cur) return;
-    setSaving(true);
-    try {
-      const saved = await saveBusinessFlow(cur, { force });
-      flowRef.current = saved; setFlow(saved); setSavedJson(JSON.stringify(saved));
-      setOutdated(null);
-      setNotice("保存しました");
-    } catch (e) {
-      if (isSaveConflict(e)) setOutdated("conflict");
-      else setNotice(`保存できませんでした: ${(e as Error).message}`);
-    } finally { setSaving(false); }
-  }, []);
-
-  /** サーバの最新を読み直す (編集中の変更は捨てる) */
-  const reloadFromServer = useCallback(async () => {
-    if (!businessFlowId) return;
-    const f = await loadBusinessFlow(businessFlowId);
-    if (!f) { setOutdated("deleted"); return; }
-    flowRef.current = f; setFlow(f); setSavedJson(JSON.stringify(f));
-    undoStack.current = []; redoStack.current = [];
-    setOutdated(null);
-  }, [businessFlowId]);
-
-  // 他が保存・削除したときの通知。未保存の変更が無ければ黙って読み直し、あれば知らせる
+  // 取り消し・読み直しで消えた工程・レーンの選択は外す
   useEffect(() => {
-    if (!businessFlowId) return;
-    return mcpBridge.onBroadcast("businessFlowChanged", (data: unknown) => {
-      const d = data as { flowId?: string; deleted?: boolean; reload?: boolean } | undefined;
-      // reload: 画面・処理フローの ID 改名などで、参照が書き換わったかもしれない (どの業務フローかは不明)
-      if (!d?.reload && d?.flowId !== businessFlowId) return;
-      if (d.deleted) { setOutdated("deleted"); return; }
-      // サーバの内容が、いま開いている保存済みの内容と違うときだけ扱う (無関係な改名の通知では何もしない)
-      loadBusinessFlow(businessFlowId).then((latest) => {
-        if (!latest) { setOutdated("deleted"); return; }
-        if (JSON.stringify(latest) === savedJsonRef.current) return;
-        const cur = flowRef.current;
-        if (cur && JSON.stringify(cur) === savedJsonRef.current) reloadFromServer().then(() => setNotice("他で更新されたため、読み直しました")).catch(console.error);
-        else setOutdated("updated");
-      }).catch(console.error);
-    });
-  }, [businessFlowId, reloadFromServer]);
-
-  const discard = useCallback(async () => {
-    if (!businessFlowId) return;
-    if (dirty && !window.confirm("保存していない変更を破棄します。よろしいですか?")) return;
-    const f = await loadBusinessFlow(businessFlowId);
-    if (f) { setFlow(f); setSavedJson(JSON.stringify(f)); undoStack.current = []; redoStack.current = []; setSelection(null); }
-  }, [businessFlowId, dirty]);
+    if (!flow || !selection) return;
+    const exists = selection.kind === "step" ? flow.steps.some((s) => s.id === selection.id) : flow.lanes.some((l) => l.id === selection.id);
+    if (!exists) setSelection(null);
+  }, [flow, selection]);
 
   // ── 検証・図 ──
   const refs = useMemo(() => ({
@@ -270,10 +192,8 @@ export function BusinessFlowEditor() {
   const onKeyDown = (e: React.KeyboardEvent) => {
     const tag = (e.target as HTMLElement).tagName;
     if (/INPUT|TEXTAREA|SELECT/.test(tag)) return;
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { e.preventDefault(); if (e.shiftKey) redo(); else undo(); }
-    else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") { e.preventDefault(); redo(); }
-    else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); save(); }
-    else if ((e.key === "Delete" || e.key === "Backspace") && selectedStep) { e.preventDefault(); deleteStep(selectedStep.id); }
+    // 元に戻す / やり直し / 保存は useEditableDocument が受け持つ
+    if ((e.key === "Delete" || e.key === "Backspace") && selectedStep && editable) { e.preventDefault(); deleteStep(selectedStep.id); }
   };
 
   if (missing) {
@@ -284,33 +204,33 @@ export function BusinessFlowEditor() {
       </div>
     );
   }
-  if (!flow) return <div className="bfe-empty"><p>読み込み中…</p></div>;
+  if (!flow || sessionLoading) return <div className="bfe-empty"><p>読み込み中…</p></div>;
 
   const stepName = (id: string) => flow.steps.find((s) => s.id === id)?.name ?? id;
   const laneName = (id: string) => flow.lanes.find((l) => l.id === id)?.name ?? id;
   const counts = { error: issues.filter((i) => i.severity === "error").length, warning: issues.filter((i) => i.severity === "warning").length };
 
   return (
-    <div className="bfe" data-testid="business-flow-editor" tabIndex={-1} onKeyDown={onKeyDown}>
+    <div className={`bfe${editable ? "" : " bfe-readonly"}`} data-testid="business-flow-editor" tabIndex={-1} onKeyDown={onKeyDown}>
+      <EditSessionChrome {...chrome} />
       <div className="bfe-bar">
-        <input className="bfe-title" value={flow.name} onChange={(e) => apply((f) => { f.name = e.target.value; return f; })} aria-label="業務フロー名" data-testid="bf-name" />
+        <input className="bfe-title" value={flow.name} disabled={!editable} onChange={(e) => apply((f) => { f.name = e.target.value; return f; })} aria-label="業務フロー名" data-testid="bf-name" />
         <code className="bfe-id">{flow.id}</code>
         {dirty && <span className="bfe-dirty" data-testid="bf-dirty">未保存</span>}
         <span className="bfe-spacer" />
-        <button type="button" className="bfe-btn" onClick={undo} disabled={!undoStack.current.length} title="元に戻す (Ctrl+Z)" aria-label="元に戻す"><i className="bi bi-arrow-counterclockwise" /></button>
-        <button type="button" className="bfe-btn" onClick={redo} disabled={!redoStack.current.length} title="やり直す (Ctrl+Y)" aria-label="やり直す"><i className="bi bi-arrow-clockwise" /></button>
-        <button type="button" className="bfe-btn" onClick={discard} disabled={!dirty} data-testid="bf-discard">破棄</button>
-        <button type="button" className="bfe-btn bfe-btn-primary" onClick={() => save()} disabled={!dirty || saving} data-testid="bf-save"><i className="bi bi-check-lg" /> 保存</button>
+        <button type="button" className="bfe-btn" onClick={undo} disabled={!editable || !canUndo} title="元に戻す (Ctrl+Z)" aria-label="元に戻す"><i className="bi bi-arrow-counterclockwise" /></button>
+        <button type="button" className="bfe-btn" onClick={redo} disabled={!editable || !canRedo} title="やり直す (Ctrl+Y)" aria-label="やり直す"><i className="bi bi-arrow-clockwise" /></button>
+        <EditSessionDropdown
+          resourceType="business-flow"
+          resourceId={flow.id}
+          currentMode={mode}
+          currentSessionId={sessionId}
+          onStartEditing={() => { void chrome.onStartEditing(); }}
+          onViewerAttached={syncSessionToUrl}
+          onAttachAsView={attach}
+          onTakeOver={takeOver}
+        />
       </div>
-      {outdated && (
-        <p className="bfe-notice bfe-notice-warn" role="alert" data-testid="bf-outdated">
-          {outdated === "deleted" ? "この業務フローは他で削除されました。保存すると作り直します。"
-            : outdated === "conflict" ? "開いたあとに他で更新されていたため、保存しませんでした。"
-            : "他で更新されました。このまま保存すると、他の変更を上書きします。"}
-          {outdated !== "deleted" && <button type="button" className="bfe-link" onClick={() => reloadFromServer().catch(console.error)} data-testid="bf-reload">読み直す (自分の変更は破棄)</button>}
-          <button type="button" className="bfe-link" onClick={() => save(true)} data-testid="bf-force-save">上書きして保存</button>
-        </p>
-      )}
       {notice && <p className="bfe-notice" role="status" data-testid="bf-notice">{notice} <button type="button" className="bfe-link" onClick={() => setNotice(null)}>閉じる</button></p>}
 
       <div className="bfe-body">
@@ -318,27 +238,27 @@ export function BusinessFlowEditor() {
         <aside className="bfe-left" aria-label="レーンと工程">
           <section>
             <h4>レーン</h4>
-            <SortableList className="bfe-list" testId="bf-lane-list" ids={flow.lanes.map((l) => l.id)} onReorder={reorderLanes}>
+            <SortableList className="bfe-list" testId="bf-lane-list" ids={flow.lanes.map((l) => l.id)} onReorder={reorderLanes} disabled={!editable}>
               {flow.lanes.map((l, i) => (
-                <SortableRow key={l.id} id={l.id} label={l.name} className={selection?.kind === "lane" && selection.id === l.id ? "bfe-sel" : ""}>
+                <SortableRow key={l.id} id={l.id} disabled={!editable} label={l.name} className={selection?.kind === "lane" && selection.id === l.id ? "bfe-sel" : ""}>
                   <button type="button" className="bfe-row" onClick={() => setSelection({ kind: "lane", id: l.id })} data-testid={`bf-lane-${l.id}`}>
                     <i className={`bi ${l.kind === "system" ? "bi-cpu" : l.kind === "external" ? "bi-box-arrow-in-right" : "bi-person"}`} />
                     <span>{l.name}</span>
                   </button>
                   <span className="bfe-mini">
-                    <button type="button" onClick={() => moveLane(l.id, -1)} disabled={i === 0} aria-label={`${l.name}を上へ`}><i className="bi bi-chevron-up" /></button>
-                    <button type="button" onClick={() => moveLane(l.id, 1)} disabled={i === flow.lanes.length - 1} aria-label={`${l.name}を下へ`}><i className="bi bi-chevron-down" /></button>
+                    <button type="button" onClick={() => moveLane(l.id, -1)} disabled={!editable || i === 0} aria-label={`${l.name}を上へ`}><i className="bi bi-chevron-up" /></button>
+                    <button type="button" onClick={() => moveLane(l.id, 1)} disabled={!editable || i === flow.lanes.length - 1} aria-label={`${l.name}を下へ`}><i className="bi bi-chevron-down" /></button>
                   </span>
                 </SortableRow>
               ))}
             </SortableList>
-            <button type="button" className="bfe-btn bfe-btn-dashed" onClick={addLane} data-testid="bf-add-lane"><i className="bi bi-plus-lg" /> レーンを追加</button>
+            <button type="button" className="bfe-btn bfe-btn-dashed" onClick={addLane} disabled={!editable} data-testid="bf-add-lane"><i className="bi bi-plus-lg" /> レーンを追加</button>
           </section>
           <section>
             <h4>工程 <small>{flow.steps.length}</small></h4>
-            <SortableList className="bfe-list bfe-steps" testId="bf-step-list" ids={flow.steps.map((s) => s.id)} onReorder={reorderSteps}>
+            <SortableList className="bfe-list bfe-steps" testId="bf-step-list" ids={flow.steps.map((s) => s.id)} onReorder={reorderSteps} disabled={!editable}>
               {flow.steps.map((s) => (
-                <SortableRow key={s.id} id={s.id} label={s.name} className={selection?.kind === "step" && selection.id === s.id ? "bfe-sel" : ""}>
+                <SortableRow key={s.id} id={s.id} disabled={!editable} label={s.name} className={selection?.kind === "step" && selection.id === s.id ? "bfe-sel" : ""}>
                   <button type="button" className="bfe-row" onClick={() => setSelection({ kind: "step", id: s.id })} data-testid={`bf-list-step-${s.id}`}>
                     <i className={`bi ${STEP_ICON[s.kind]}`} />
                     <span>{s.name}</span>
@@ -350,7 +270,7 @@ export function BusinessFlowEditor() {
             </SortableList>
             <div className="bfe-add-row">
               {(["task", "decision", "start", "end"] as StepKind[]).map((k) => (
-                <button key={k} type="button" className="bfe-btn bfe-btn-dashed" onClick={() => addStep(k)} data-testid={`bf-add-${k}`}><i className={`bi ${STEP_ICON[k]}`} /> {BUSINESS_STEP_KIND_LABELS[k]}</button>
+                <button key={k} type="button" className="bfe-btn bfe-btn-dashed" onClick={() => addStep(k)} disabled={!editable} data-testid={`bf-add-${k}`}><i className={`bi ${STEP_ICON[k]}`} /> {BUSINESS_STEP_KIND_LABELS[k]}</button>
               ))}
             </div>
             <p className="bfe-hint">選んだ工程の後ろにつないで追加します。</p>
@@ -383,6 +303,7 @@ export function BusinessFlowEditor() {
 
         {/* 右: 設定 */}
         <aside className="bfe-right" aria-label="設定" data-testid="bf-inspector">
+          <fieldset className="bfe-fieldset" disabled={!editable}>
           {selectedStep ? (
             <StepInspector
               step={selectedStep} flow={flow} screens={screens} flows={flows}
@@ -408,6 +329,7 @@ export function BusinessFlowEditor() {
               <p className="bfe-hint">図の工程か、左の一覧の工程・レーンを選ぶと、ここで設定できます。</p>
             </section>
           )}
+          </fieldset>
         </aside>
       </div>
     </div>

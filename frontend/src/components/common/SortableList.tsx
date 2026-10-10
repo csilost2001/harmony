@@ -13,10 +13,12 @@ interface ListProps {
   onReorder: (activeId: string, overId: string) => void;
   className?: string;
   testId?: string;
+  /** 閲覧のみのときは、持ち手を出さず並べ替えもできない */
+  disabled?: boolean;
   children: ReactNode;
 }
 
-export function SortableList({ ids, onReorder, className, testId, children }: ListProps) {
+export function SortableList({ ids, onReorder, className, testId, disabled, children }: ListProps) {
   // 数 px 動かすまでは「クリック」のまま (行の選択を妨げない)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
   const onDragEnd = (e: DragEndEvent) => {
@@ -25,16 +27,16 @@ export function SortableList({ ids, onReorder, className, testId, children }: Li
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
       <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-        <ul className={className} data-testid={testId}>{children}</ul>
+        <ul className={`${className ?? ""}${disabled ? " bfe-sort-disabled" : ""}`.trim()} data-testid={testId}>{children}</ul>
       </SortableContext>
     </DndContext>
   );
 }
 
-interface RowProps { id: string; className?: string; label: string; children: ReactNode }
+interface RowProps { id: string; className?: string; label: string; disabled?: boolean; children: ReactNode }
 
-export function SortableRow({ id, className, label, children }: RowProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+export function SortableRow({ id, className, label, disabled, children }: RowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled });
   return (
     <li
       ref={setNodeRef}

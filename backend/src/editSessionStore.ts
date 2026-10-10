@@ -16,7 +16,6 @@ import path from "path";
 import { randomBytes } from "node:crypto";
 import type { DraftHistoryStore } from "./draftHistoryStore.js";
 import { assertPathContained } from "./security/idValidator.js";
-import { deflateDesignComponents, inflateDesignComponents } from "./designPayloadStorage.js";
 import {
   DRAFT_RESOURCE_TYPES,
   EDIT_SESSION_TTL_DAYS,
@@ -160,10 +159,6 @@ function editSessionFilePath(workspaceRoot: string, editSessionId: string): stri
   return filePath;
 }
 
-function isDesignPayloadResource(resourceType: string): boolean {
-  return resourceType === "screen" || resourceType === "page-layout-design";
-}
-
 function editSessionPayloadDir(workspaceRoot: string, editSessionId: string): string {
   const dir = path.join(editSessionsDir(workspaceRoot), editSessionId);
   assertPathContained(dir, workspaceRoot);
@@ -198,16 +193,6 @@ async function writeEditSessionToFs(workspaceRoot: string, session: EditSession)
   const rand = randomBytes(4).toString("hex");
   const tmp = `${filePath}.tmp-${process.pid}-${Date.now()}-${rand}`;
 
-  const payload = isDesignPayloadResource(session.resourceType)
-    ? { payloadRef: `${session.id}/payload.design.json` }
-    : session.payload;
-  if (isDesignPayloadResource(session.resourceType)) {
-    const payloadDir = editSessionPayloadDir(workspaceRoot, session.id);
-    await fs.mkdir(payloadDir, { recursive: true });
-    const designPayload = await deflateDesignComponents({ data: session.payload, baseDir: payloadDir, baseName: "payload" });
-    await fs.writeFile(path.join(payloadDir, "payload.design.json"), JSON.stringify(designPayload, null, 2), "utf-8");
-  }
-
   // Map を object に変換して JSON シリアライズ
   const serializable = {
     id: session.id,
@@ -220,7 +205,7 @@ async function writeEditSessionToFs(workspaceRoot: string, session: EditSession)
     discardedAt: session.discardedAt,
     saveHistory: session.saveHistory,
     lastActivityAt: session.lastActivityAt,
-    payload,
+    payload: session.payload,
     participants: Object.fromEntries(session.participants.entries()),
   };
 
@@ -243,11 +228,11 @@ async function deleteEditSessionFromFs(workspaceRoot: string, editSessionId: str
   } catch {
     // ファイルが存在しない場合は無視
   }
+  // 旧形式 (旧デザイン本体の編集セッション) が残した payload ディレクトリがあれば一緒に消す
   await fs.rm(editSessionPayloadDir(workspaceRoot, editSessionId), { recursive: true, force: true }).catch(() => {});
 }
 
 async function readEditSessionFromFs(workspaceRoot: string, editSessionId: string): Promise<EditSession | null> {
-  const dir = editSessionsDir(workspaceRoot);
   const filePath = editSessionFilePath(workspaceRoot, editSessionId);
   let raw: string;
   try {
@@ -258,19 +243,8 @@ async function readEditSessionFromFs(workspaceRoot: string, editSessionId: strin
   const parsed = JSON.parse(raw) as Omit<EditSession, "participants"> & {
     participants?: Record<string, ParticipantInfo>;
   };
-  let payload = parsed.payload;
-  if (isDesignPayloadResource(parsed.resourceType)) {
-    const payloadRef = typeof (parsed.payload as { payloadRef?: unknown } | null)?.payloadRef === "string"
-      ? (parsed.payload as { payloadRef: string }).payloadRef
-      : `${parsed.id}/payload.design.json`;
-    const payloadPath = path.join(dir, payloadRef);
-    assertPathContained(payloadPath, dir);
-    const designPayload = JSON.parse(await fs.readFile(payloadPath, "utf-8"));
-    payload = await inflateDesignComponents(designPayload, path.dirname(payloadPath));
-  }
   return {
     ...parsed,
-    payload,
     participants: new Map(Object.entries(parsed.participants ?? {})),
   };
 }

@@ -31,6 +31,7 @@ import {
   isMcpRunning,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { discardAllEditSessions } from "./helpers/editSessions";
 
 const WS_KEY = "issue-1370-screen-rename";
 const OLD_SCREEN_ID = "cart";
@@ -58,6 +59,12 @@ test.describe("Screen rename smoke — 3 起動点 (#1370)", { tag: ["@regressio
 
   test.afterAll(async () => {
     if (mcpAvailable) await cleanupRealWorkspaces([WS_KEY]);
+  });
+
+  // 画面を編集中の編集セッションが残っていると、その画面を参照する別の画面の改名が「参照側を編集中」で止められる
+  // (正しい動作)。前のテストの編集セッションを次のテストに持ち越さない
+  test.afterEach(async () => {
+    if (mcpAvailable) await discardAllEditSessions(ws.workspacePath);
   });
 
   test.beforeEach(async ({ page: _page }) => {

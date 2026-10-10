@@ -39,6 +39,8 @@ import {
   writeViewDefinition,
   writePageLayout,
   writeScreenEntity,
+  writeBusinessFlow,
+  writeReport,
 } from "./projectStorage.js";
 
 const TMP_ROOT = path.join(os.tmpdir(), `rename-entity-test-${process.pid}-${Date.now()}`);
@@ -1448,6 +1450,32 @@ describe("renameEntityId — Phase G M-4: 参照側 entity の active Edit sessi
     await expect(fs.access(dataPath(root, "tables", "new-tbl.json"))).rejects.toThrow();
   });
 
+  it("業務フロー・帳票を別 session が Edit 中なら、参照先の画面・処理フロー・テーブルの改名は block される", async () => {
+    const root = await makeWorkspace();
+    await writeScreenEntity("scr-bf", { id: "scr-bf", name: "scr-bf", kind: "list", path: "/scr-bf" }, root);
+    await seedTable(root, "tbl-rp");
+    await writeBusinessFlow("flow-1", { id: "flow-1", name: "f", lanes: [{ id: "l", name: "L" }], steps: [{ id: "s", lane: "l", kind: "task", name: "S", screenRef: "scr-bf" }] }, root);
+    await writeReport("rp-1", { id: "rp-1", name: "r", trigger: { kind: "screen", screenRef: "scr-bf" }, sections: [{ id: "d", kind: "detail", fields: [{ id: "f1", kind: "field", source: "tbl-rp.col" }] }] }, root);
+
+    const editing = (kind: string, id: string): ReadonlyArray<EditSessionLike> =>
+      (kind === "businessFlow" && id === "flow-1") || (kind === "report" && id === "rp-1")
+        ? [{ state: "Active", participants: new Map([["other", { sessionId: "other", role: "Edit" as const }]]) }]
+        : [];
+
+    const preview = await previewEntityRename("screen", "scr-bf", "scr-bf-x", root, { sessionId: "self", fetchEditSessionsForRef: editing });
+    expect(preview.concurrentEditRefs.map((r) => `${r.entityKind}/${r.entityId}`).sort()).toEqual(["businessFlow/flow-1", "report/rp-1"]);
+    await expect(renameEntityId("screen", "scr-bf", "scr-bf-x", root, { sessionId: "self", fetchEditSessionsForRef: editing })).rejects.toThrow(/参照側.*編集中/);
+
+    // テーブルの改名は、そのテーブルを出どころにしている帳票だけが対象 (業務フローは対象外)
+    const tablePreview = await previewEntityRename("table", "tbl-rp", "tbl-rp-x", root, { sessionId: "self", fetchEditSessionsForRef: editing });
+    expect(tablePreview.concurrentEditRefs.map((r) => `${r.entityKind}/${r.entityId}`)).toEqual(["report/rp-1"]);
+
+    // 参照していない画面の改名は止まらない
+    await writeScreenEntity("scr-free", { id: "scr-free", name: "scr-free", kind: "list", path: "/scr-free" }, root);
+    const free = await previewEntityRename("screen", "scr-free", "scr-free-x", root, { sessionId: "self", fetchEditSessionsForRef: editing });
+    expect(free.concurrentEditRefs).toEqual([]);
+  });
+
   it("自セッションが ref 側 Edit role でも rename は通る (excluded)", async () => {
     const root = await makeWorkspace();
     await seedTable(root, "self-ref-tbl");
@@ -2264,8 +2292,8 @@ describe("renameEntityId — Phase J D: project default Puck screen も payload 
 //   resourceId 移行 callback が Screen aux session も含めて呼ばれる
 // ─────────────────────────────────────────────────────────────────────────
 
-describe("renameEntityId — Phase J C: migrateEditSessions callback は Screen aux も含む", () => {
-  it("Screen rename で migrateEditSessions が screen + screen-item + puck-data 3 resourceType で呼ばれる", async () => {
+describe("renameEntityId — Phase J C: migrateEditSessions callback", () => {
+  it("Screen rename で migrateEditSessions が screen-item の resourceType で呼ばれる (旧エディタ廃止後、旧デザイン本体の種別は無い)", async () => {
     const root = await makeWorkspace();
     await writeScreenEntity("scr-c", { id: "scr-c", name: "scr-c", kind: "list", path: "/scr-c" }, root);
 
@@ -2277,9 +2305,8 @@ describe("renameEntityId — Phase J C: migrateEditSessions callback は Screen 
 
     await renameEntityId("screen", "scr-c", "scr-c-renamed", root, { migrateEditSessions });
 
-    // 3 種類すべてで呼ばれている
     const types = calls.map((c) => c.resourceType).sort();
-    expect(types).toEqual(["puck-data", "screen", "screen-item"]);
+    expect(types).toEqual(["screen-item"]);
     // oldId / newId が全 call で一致
     expect(calls.every((c) => c.oldId === "scr-c" && c.newId === "scr-c-renamed")).toBe(true);
   });
@@ -2305,13 +2332,13 @@ describe("renameEntityId — Phase J C: migrateEditSessions callback は Screen 
 //   失敗 / 衝突は warnings 経路に propagate
 // ─────────────────────────────────────────────────────────────────────────
 
-describe("renameEntityId — Phase J SF-ε: history migration は Screen aux 含む + warnings propagation", () => {
-  it("Screen rename で screen-item / puck-data history も移行される", async () => {
+describe("renameEntityId — Phase J SF-ε: history migration + warnings propagation", () => {
+  it("Screen rename で screen-item の history が新 id へ移行される", async () => {
     const root = await makeWorkspace();
     await writeScreenEntity("scr-h", { id: "scr-h", name: "scr-h", kind: "list", path: "/scr-h" }, root);
 
-    // 3 種類の history dir を seed
-    for (const rt of ["screen", "screen-item", "puck-data"]) {
+    // history dir を seed
+    for (const rt of ["screen-item"]) {
       const dir = path.join(root, ".edit-sessions-history", rt, "scr-h");
       await fs.mkdir(dir, { recursive: true });
       await fs.writeFile(
@@ -2323,8 +2350,8 @@ describe("renameEntityId — Phase J SF-ε: history migration は Screen aux 含
 
     await renameEntityId("screen", "scr-h", "scr-h-renamed", root);
 
-    // 3 種類すべてが新 id directory に rename されている
-    for (const rt of ["screen", "screen-item", "puck-data"]) {
+    // 新 id directory に rename されている
+    for (const rt of ["screen-item"]) {
       const newDir = path.join(root, ".edit-sessions-history", rt, "scr-h-renamed");
       await fs.access(newDir);
       const oldDir = path.join(root, ".edit-sessions-history", rt, "scr-h");

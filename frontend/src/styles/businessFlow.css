@@ -123,3 +123,9 @@
 .bfe-grip:hover { color: var(--hm-fg-2); background: var(--hm-hover); }
 .bfe-grip:active { cursor: grabbing; }
 .bfe-dragging { position: relative; z-index: 2; background: var(--hm-surface); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25); opacity: 0.95; }
+
+/* 閲覧のみ (編集開始前・他の人が編集中) */
+.bfe-fieldset { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.bfe-fieldset:disabled input, .bfe-fieldset:disabled select, .bfe-fieldset:disabled textarea { opacity: 0.7; cursor: default; }
+.bfe-sort-disabled .bfe-grip { visibility: hidden; }
+.bfe-readonly .bfe-title:disabled { background: transparent; color: var(--hm-fg); }

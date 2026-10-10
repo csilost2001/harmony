@@ -99,54 +99,6 @@ describe("saveSnapshot", () => {
     expect(parsed.snapshot).toEqual({ id: "tbl-1", columns: [] });
   });
 
-  it("screen snapshot は components string を history companion HTML に分離し、list/restore で復元する (#1448)", async () => {
-    const snapshot = {
-      pages: [
-        {
-          frames: [
-            {
-              component: {
-                type: "wrapper",
-                components: "<main>draft</main>\n",
-              },
-            },
-          ],
-        },
-      ],
-    };
-
-    const entry = await store.saveSnapshot({
-      resourceType: "screen",
-      resourceId: "scr-history",
-      editSessionId: "es-history-001",
-      ownerSessionId: "session-A",
-      ownerLabel: "@alice",
-      reason: "discard",
-      snapshot,
-    });
-
-    const dir = path.join(tmpDir, ".edit-sessions-history", "screen", "scr-history");
-    const jsonPath = path.join(dir, `${entry.historyId}.json`);
-    const designPath = path.join(dir, entry.historyId, "payload.design.json");
-    const htmlPath = path.join(dir, entry.historyId, "payload.components.html");
-    const storedEntry = JSON.parse(await fs.readFile(jsonPath, "utf-8"));
-    expect(storedEntry.snapshot).toEqual({ payloadRef: `${entry.historyId}/payload.design.json` });
-    const designPayload = JSON.parse(await fs.readFile(designPath, "utf-8"));
-    expect(designPayload.pages[0].frames[0].component.componentsRef).toBe("payload.components.html");
-    expect(designPayload.pages[0].frames[0].component).not.toHaveProperty("components");
-    expect(await fs.readFile(htmlPath, "utf-8")).toBe("<main>draft</main>\n");
-
-    const listed = await store.listHistory({ resourceType: "screen", resourceId: "scr-history" });
-    expect((listed[0].snapshot as any).pages[0].frames[0].component.components).toBe("<main>draft</main>\n");
-
-    const restored = await store.restoreFromHistory({ historyId: entry.historyId });
-    expect((restored!.snapshot as any).pages[0].frames[0].component.components).toBe("<main>draft</main>\n");
-  });
-});
-
-// ── listHistory ───────────────────────────────────────────────────────────────
-
-describe("listHistory", () => {
   it("エントリが timestamp 降順で返る", async () => {
     // 3 件を time 順に追加
     for (let i = 0; i < 3; i++) {

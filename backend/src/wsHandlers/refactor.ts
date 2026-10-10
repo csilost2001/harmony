@@ -42,10 +42,8 @@ function assertEntityType(t: unknown, label: string): RenameEntityType {
  * lock check 用 EditSession 一覧を bridge から取得 (wsId 必須)。
  * wsId が null (workspace 未選択) なら空配列 (rename 自体が走らないが defensive)。
  *
- * Phase I round 3+4 Must-fix G (Codex round 4 M-6): Screen rename 時は
- * `screen` / `screen-item` / `puck-data` の 3 種を集約して返す。
- * (旧実装は primary entity type 1 種のみ問い合わせていたため、ScreenItemsView /
- * Puck Designer の active session が lock check を素通りしていた。)
+ * Phase I round 3+4 Must-fix G (Codex round 4 M-6): primary entity type ごとに、同じ
+ * ファイルを書く resource type を集約して返す (PRIMARY_RESOURCE_TYPES_BY_ENTITY)。
  */
 function fetchEditSessions(
   bridge: WsBridge,
@@ -77,7 +75,11 @@ function fetchEditSessions(
  * fetch 時に entityId を "singleton" 固定で問い合わせる (下記 makeFetchEditSessionsForRef)。
  */
 const INTERNAL_KIND_TO_RESOURCE_TYPE: Record<string, EditSessionResourceType> = {
-  screen: "screen",
+  // 画面は画面項目 + レイアウトの編集セッション (screen-item) が `screens/<id>.json` を書く
+  screen: "screen-item",
+  // 業務フロー・帳票は、画面・処理フロー・テーブルの改名で参照を書き換えられる側
+  businessFlow: "business-flow",
+  report: "report",
   table: "table",
   processFlow: "process-flow",
   sequence: "sequence",
@@ -150,20 +152,18 @@ function makeFetchEditSessionsForRef(
 }
 
 /**
- * Phase I round 3+4 Must-fix G (Codex round 4 M-6): Screen rename 時の primary lock 対象を
- * `screen` 単独から `screen` + `screen-item` + `puck-data` の 3 種に拡張する。
+ * Phase I round 3+4 Must-fix G (Codex round 4 M-6): primary lock 対象の resource type。
  *
- * 理由: ScreenItemsView は `screen-item/<screenId>` session で編集し、保存時に
- * `writeScreenItems()` → `writeScreenEntity(screenId, ...)` で同じ `screens/<id>.json` を
- * 更新する。Puck Designer も `puck-data/<screenId>` session を使用し、`puck-data.json` を
- * 同 directory に書く。Screen rename 中にこれら auxiliary editor が active のままだと、
- * rename 後の save で old ID の screen / payload を再作成して orphan を生む。
+ * 画面は `screen-item/<screenId>` session (画面項目一覧・業務部品デザイナ) で編集し、保存時に
+ * `writeScreenItems()` → `writeScreenEntity(screenId, ...)` で `screens/<id>.json` を更新する。
+ * rename 中にこの editor が active のままだと、rename 後の save で old ID の screen を
+ * 再作成して orphan を生む。(旧エディタ廃止後、旧デザイン本体の session 種別は無い)
  *
  * 主 entity 種別ごとに「同じ disk file を競合的に書く resource type 群」を返す。
  * Table 等 auxiliary session を持たない entity は 1 件のみ返す (= 既存挙動互換)。
  */
 const PRIMARY_RESOURCE_TYPES_BY_ENTITY: Record<RenameEntityType, EditSessionResourceType[]> = {
-  screen: ["screen", "screen-item", "puck-data"],
+  screen: ["screen-item"],
   table: ["table"],
   processFlow: ["process-flow"],
   sequence: ["sequence"],
