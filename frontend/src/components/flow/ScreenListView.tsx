@@ -38,6 +38,7 @@ import "../../styles/screenList.css";
 import "../../styles/editMode.css";
 import { confirmDeletionImpact } from "../../utils/confirmDeletion";
 import { useQuickCreate } from "../../hooks/useQuickCreate";
+import { useReferencesDialog } from "../common/ReferencesButton";
 
 const STORAGE_KEY = "list-view-mode:screen-list";
 const TAB_ID = makeTabId("screen-list", "main");
@@ -65,6 +66,7 @@ export function ScreenListView() {
   const [viewMode, setViewMode] = usePersistentState<ViewMode>(STORAGE_KEY, "card");
   const [screenModal, setScreenModal] = useState<{ open: boolean; editId?: string; initial?: Partial<ScreenFormData> }>({ open: false });
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
+  const references = useReferencesDialog();
   const { hasDraft } = useDraftRegistry();
   // #1330: ScreenListView 起点の Screen rename refactor。完了後は一覧に留まる (singleton 起動)。
   const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null);
@@ -401,6 +403,14 @@ export function ScreenListView() {
           if (items.length === 1) setRenameTarget({ id: items[0].id, name: items[0].name });
         },
       },
+      {
+        key: "references", label: "参照元を見る", icon: "bi-diagram-3",
+        disabled: items.length !== 1,
+        disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
+        onClick: () => {
+          if (items.length === 1) references.show("screen", String(items[0].id), String(items[0].name ?? ""));
+        },
+      },
       { key: "sep3", separator: true },
       {
         key: "delete", label: "削除", icon: "bi-trash", shortcut: "Delete",
@@ -728,6 +738,8 @@ export function ScreenListView() {
         onSave={(data) => { handleScreenSave(data).catch(console.error); }}
         onClose={() => setScreenModal({ open: false })}
       />
+
+      {references.dialog}
 
       {contextMenu && (
         <ListContextMenu

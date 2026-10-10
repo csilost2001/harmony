@@ -34,6 +34,7 @@ import "../../styles/table.css";
 import "../../styles/editMode.css";
 import { confirmDeletionImpact } from "../../utils/confirmDeletion";
 import { useQuickCreate } from "../../hooks/useQuickCreate";
+import { useReferencesDialog } from "../common/ReferencesButton";
 
 const STORAGE_KEY = "list-view-mode:table-list";
 const TAB_ID = makeTabId("table-list", "main");
@@ -70,6 +71,7 @@ export function TableListView() {
   const [exportDialect, setExportDialect] = useState<SqlDialect>("postgresql");
   const [showExport, setShowExport] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
+  const references = useReferencesDialog();
   const [validationMap, setValidationMap] = useState<Map<string, ValidationSummary>>(new Map());
   // #893: draft history modal
   const [historyModal, setHistoryModal] = useState<{ resourceId: string } | null>(null);
@@ -415,6 +417,14 @@ export function TableListView() {
         disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
         onClick: () => {
           if (items.length === 1) navigate(wsPath(`/table/edit/${encodeURIComponent(items[0].id)}`));
+        },
+      },
+      {
+        key: "references", label: "参照元を見る", icon: "bi-diagram-3",
+        disabled: items.length !== 1,
+        disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
+        onClick: () => {
+          if (items.length === 1) references.show("table", String(items[0].id), String(items[0].name ?? ""));
         },
       },
       {
@@ -823,6 +833,8 @@ export function TableListView() {
             </div>
           </div>
         )}
+
+        {references.dialog}
 
         {contextMenu && (
           <ListContextMenu

@@ -48,6 +48,7 @@ import "../../styles/table.css";
 import "../../styles/editMode.css";
 import { confirmDeletionImpact } from "../../utils/confirmDeletion";
 import { useQuickCreate } from "../../hooks/useQuickCreate";
+import { useReferencesDialog } from "../common/ReferencesButton";
 
 const STORAGE_KEY = "list-view-mode:view-definition-list";
 const TAB_ID = makeTabId("view-definition-list", "main");
@@ -93,6 +94,7 @@ export function ViewDefinitionListView() {
   const [tableList, setTableList] = useState<TableEntry[]>([]);
   const [tableNameMap, setTableNameMap] = useState<Map<string, string>>(new Map());
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
+  const references = useReferencesDialog();
   const [validationMap, setValidationMap] = useState<Map<string, ValidationSummary>>(new Map());
   // #893: draft history modal
   const [historyModal, setHistoryModal] = useState<{ resourceId: string } | null>(null);
@@ -441,6 +443,14 @@ export function ViewDefinitionListView() {
         disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
         onClick: () => {
           if (items.length === 1) navigate(wsPath(`/view-definition/edit/${encodeURIComponent(String(items[0].id))}`));
+        },
+      },
+      {
+        key: "references", label: "参照元を見る", icon: "bi-diagram-3",
+        disabled: items.length !== 1,
+        disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
+        onClick: () => {
+          if (items.length === 1) references.show("viewDefinition", String(items[0].id), String(items[0].name ?? ""));
         },
       },
       {
@@ -835,6 +845,8 @@ export function ViewDefinitionListView() {
             </div>
           </div>
         )}
+
+        {references.dialog}
 
         {contextMenu && (
           <ListContextMenu

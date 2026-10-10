@@ -104,3 +104,13 @@ export function ReferencesDialog({ entityType, id, name, onClose }: Props & { on
     </div>
   );
 }
+
+/** 一覧の右クリックメニューなど、ボタン以外から参照元ダイアログを開くためのフック */
+export function useReferencesDialog() {
+  const [target, setTarget] = useState<{ entityType: ReferenceTargetType; id: string; name?: string } | null>(null);
+  const show = useCallback((entityType: ReferenceTargetType, id: string, name?: string) => setTarget({ entityType, id, name }), []);
+  const dialog = target
+    ? <ReferencesDialog entityType={target.entityType} id={target.id} name={target.name} onClose={() => setTarget(null)} />
+    : null;
+  return { show, dialog };
+}

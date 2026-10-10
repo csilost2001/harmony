@@ -52,6 +52,7 @@ import "../../styles/processFlow.css";
 import "../../styles/editMode.css";
 import { confirmDeletionImpact } from "../../utils/confirmDeletion";
 import { useQuickCreate } from "../../hooks/useQuickCreate";
+import { useReferencesDialog } from "../common/ReferencesButton";
 
 const ALL_TYPES: ProcessFlowType[] = ["screen", "batch", "scheduled", "system", "common", "other"];
 const STORAGE_KEY = "list-view-mode:process-flow-list";
@@ -105,6 +106,7 @@ export function ProcessFlowListView() {
   const [projectCatalogs, setProjectCatalogs] = useState<ProjectCatalogs | null>(null);
   const [viewMode, setViewMode] = usePersistentState<ViewMode>(STORAGE_KEY, "card");
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
+  const references = useReferencesDialog();
   // #893: draft history modal
   const [historyModal, setHistoryModal] = useState<{ resourceId: string } | null>(null);
 
@@ -545,6 +547,14 @@ export function ProcessFlowListView() {
         disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
         onClick: () => {
           if (items.length === 1) navigate(wsPath(`/process-flow/edit/${encodeURIComponent(items[0].id)}`));
+        },
+      },
+      {
+        key: "references", label: "参照元を見る", icon: "bi-diagram-3",
+        disabled: items.length !== 1,
+        disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
+        onClick: () => {
+          if (items.length === 1) references.show("processFlow", String(items[0].id), String(items[0].name ?? ""));
         },
       },
       {
@@ -1054,6 +1064,8 @@ export function ProcessFlowListView() {
           </div>
         </div>
       )}
+
+      {references.dialog}
 
       {contextMenu && (
         <ListContextMenu

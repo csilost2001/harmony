@@ -29,6 +29,7 @@ import "../../styles/table.css";
 import "../../styles/editMode.css";
 import { confirmDeletionImpact } from "../../utils/confirmDeletion";
 import { useQuickCreate } from "../../hooks/useQuickCreate";
+import { useReferencesDialog } from "../common/ReferencesButton";
 
 const STORAGE_KEY = "list-view-mode:view-list";
 const TAB_ID = makeTabId("view-list", "main");
@@ -62,6 +63,7 @@ export function ViewListView() {
   const [addId, setAddId] = useState("");
   const [addIdValidation, setAddIdValidation] = useState<EntityIdValidationState>({ isFormatValid: false, isUnique: true, isInvalid: true });
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
+  const references = useReferencesDialog();
   const [validationMap, setValidationMap] = useState<Map<string, ValidationSummary>>(new Map());
 
   const loadViews = useCallback(async () => {
@@ -354,6 +356,14 @@ export function ViewListView() {
         disabled: !hasSelection || sortActive,
         disabledReason: sortActive ? sortReason : undefined,
         onClick: () => { if (items.length > 0) handleDuplicate(items).catch(console.error); },
+      },
+      {
+        key: "references", label: "参照元を見る", icon: "bi-diagram-3",
+        disabled: items.length !== 1,
+        disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
+        onClick: () => {
+          if (items.length === 1) references.show("view", String(items[0].id), String(items[0].name ?? ""));
+        },
       },
       { key: "sep3", separator: true },
       {
@@ -668,6 +678,8 @@ export function ViewListView() {
             </div>
           </div>
         )}
+
+        {references.dialog}
 
         {contextMenu && (
           <ListContextMenu

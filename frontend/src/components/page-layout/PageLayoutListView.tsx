@@ -44,6 +44,7 @@ import "../../styles/table.css";
 import "../../styles/editMode.css";
 import { confirmDeletionImpact } from "../../utils/confirmDeletion";
 import { useQuickCreate } from "../../hooks/useQuickCreate";
+import { useReferencesDialog } from "../common/ReferencesButton";
 
 const STORAGE_KEY = "list-view-mode:page-layout-list";
 const TAB_ID = makeTabId("page-layout-list", "main");
@@ -72,6 +73,7 @@ export function PageLayoutListView() {
   const [addId, setAddId] = useState("");
   const [addIdValidation, setAddIdValidation] = useState<EntityIdValidationState>({ isFormatValid: false, isUnique: true, isInvalid: true });
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
+  const references = useReferencesDialog();
   const [historyModal, setHistoryModal] = useState<{ resourceId: string } | null>(null);
 
   const loadPageLayouts = useCallback(async () => {
@@ -344,6 +346,14 @@ export function PageLayoutListView() {
         onClick: () => { if (items.length > 0) handleDelete(items); },
       },
       { key: "sep4", separator: true },
+      {
+        key: "references", label: "参照元を見る", icon: "bi-diagram-3",
+        disabled: items.length !== 1,
+        disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
+        onClick: () => {
+          if (items.length === 1) references.show("pageLayout", String(items[0].id), String(items[0].name ?? ""));
+        },
+      },
       {
         key: "history", label: "履歴 (過去の EditSession)", icon: "bi-clock-history",
         disabled: items.length !== 1,
@@ -664,6 +674,8 @@ export function PageLayoutListView() {
             </div>
           </div>
         )}
+
+        {references.dialog}
 
         {contextMenu && (
           <ListContextMenu
