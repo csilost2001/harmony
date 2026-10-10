@@ -5,6 +5,7 @@ import { CodexIndicator } from "./codex/CodexIndicator";
 import { ThemeToggle } from "./common/ThemeToggle";
 import { QuickOpen } from "./quick-open/QuickOpen";
 import { ShortcutHelp } from "./help/ShortcutHelp";
+import { ConnectionStatus } from "./common/ConnectionStatus";
 import "../styles/commonHeader.css";
 
 interface Props {
@@ -22,6 +23,7 @@ export function CommonHeader({ notification, userName }: Props) {
         <WorkspaceIndicator />
       </div>
       <div className="common-header-center">
+        <ConnectionStatus />
         {notification}
       </div>
       <div className="common-header-right">
