@@ -8,6 +8,7 @@ import { buildDesignDocument, type DocIssue } from "@harmony/shared";
 import { useWorkspacePath } from "../../../hooks/useWorkspacePath";
 import { mcpBridge } from "../../../mcp/mcpBridge";
 import { loadDesignInput } from "../../document/loadDesignInput";
+import { referrerRoute } from "../../../utils/references";
 
 const SHOWN = 6;
 const RELOAD_EVENTS = [
@@ -88,7 +89,12 @@ export function DesignIssuesPanel() {
           {top.map((i, k) => (
             <li key={k} style={{ display: "flex", gap: 6, padding: "2px 0" }}>
               <i className={`bi ${SEV_ICON[i.severity]}`} style={{ color: SEV_COLOR[i.severity], marginTop: 2 }} />
-              <span><b>{i.section}</b>: {i.message}</span>
+              <span>
+                {i.ref && referrerRoute(i.ref)
+                  ? <button type="button" className="dip-issue-link" onClick={() => navigate(wsPath(referrerRoute(i.ref!)!))} title="この設計を開く" data-testid="design-issue-link"><b>{i.section}</b></button>
+                  : <b>{i.section}</b>}
+                : {i.message}
+              </span>
             </li>
           ))}
         </ul>
