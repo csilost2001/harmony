@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import "../../styles/editMode.css";
+import { friendlyLabel } from "../../utils/participantLabel";
 
 interface ModalProps {
   onClose: () => void;
@@ -97,7 +98,7 @@ export function ForceReleaseConfirmDialog({
   onConfirm,
   onCancel,
 }: ForceReleaseConfirmDialogProps) {
-  const label = ownerLabel ?? ownerSessionId;
+  const label = friendlyLabel(ownerLabel ?? ownerSessionId);
   return (
     <SimpleModal title="ロックを強制解除" onClose={onCancel}>
       <p>
@@ -143,7 +144,7 @@ export function AfterForceUnlockChoiceDialog({ previousOwner, onChoice }: AfterF
   return (
     <SimpleModal title="強制解除完了 — 引継ぎ選択" onClose={() => onChoice("discard")}>
       <p>
-        <strong>{previousOwner}</strong> の編集ロックを強制解除しました。
+        <strong>{friendlyLabel(previousOwner)}</strong> の編集ロックを強制解除しました。
         元の draft が保持されています。どうしますか？
       </p>
       <div className="edit-mode-modal-footer">

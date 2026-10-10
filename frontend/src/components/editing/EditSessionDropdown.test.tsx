@@ -20,6 +20,7 @@ vi.mock("../../mcp/mcpBridge", () => ({
   mcpBridge: {
     request: (...args: unknown[]) => mockRequest(...args),
     onBroadcast: vi.fn(() => () => {}),
+    onStatusChange: vi.fn(() => () => {}),
   },
 }));
 
@@ -177,6 +178,80 @@ describe("EditSessionDropdown", () => {
     });
   });
 
+  it("閉じたままでも、他の人が編集中なら「他 N 件が編集中」を出す", async () => {
+    mockRequest.mockResolvedValue({
+      sessions: [
+        makeEditSession({ id: "es-001" }),
+        makeEditSession({ id: "es-002", state: "Discarded" }),
+      ],
+    });
+
+    render(<EditSessionDropdown {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("esd-others-editing").textContent).toBe("他 1 件が編集中");
+    });
+  });
+
+  it("自分が編集者の編集セッションは数えない (他の人の 1 件だけ数える)", async () => {
+    const me = {
+      "session-self": {
+        sessionId: "session-self",
+        role: "Edit" as const,
+        joinedAt: new Date().toISOString(),
+        lastActivityAt: new Date().toISOString(),
+        displayLabel: "@me",
+      },
+    };
+    mockRequest.mockResolvedValue({
+      sessions: [makeEditSession({ id: "es-mine", participants: me }), makeEditSession({ id: "es-other" })],
+    });
+
+    render(<EditSessionDropdown {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("esd-others-editing").textContent).toBe("他 1 件が編集中");
+    });
+  });
+
+  it("自分が編集者の編集セッションだけなら「他 N 件が編集中」は出さない", async () => {
+    mockRequest.mockResolvedValue({
+      sessions: [makeEditSession({ id: "es-mine", participants: {
+        "session-self": {
+          sessionId: "session-self",
+          role: "Edit",
+          joinedAt: new Date().toISOString(),
+          lastActivityAt: new Date().toISOString(),
+          displayLabel: "@me",
+        },
+      } })],
+    });
+
+    render(<EditSessionDropdown {...defaultProps} />);
+
+    await waitFor(() => expect(mockRequest).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 20));
+    expect(screen.queryByTestId("esd-others-editing")).toBeNull();
+  });
+
+  it("一覧の取得に失敗しても、直前の一覧 (他 N 件) は消えず、やり直しで取れる", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      mockRequest.mockRejectedValueOnce(new Error("WorkspaceUnset"));
+      mockRequest.mockResolvedValue({ sessions: [makeEditSession({ id: "es-001" })] });
+
+      render(<EditSessionDropdown {...defaultProps} />);
+      expect(screen.queryByTestId("esd-others-editing")).toBeNull();
+
+      await vi.advanceTimersByTimeAsync(1100);
+      await waitFor(() => {
+        expect(screen.getByTestId("esd-others-editing").textContent).toBe("他 1 件が編集中");
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("未参加の EditSession には [👁 観察] ボタンが表示される", async () => {
     mockRequest.mockResolvedValue({
       sessions: [makeEditSession({ id: "es-001" })],
@@ -191,7 +266,7 @@ describe("EditSessionDropdown", () => {
   });
 
   it("[👁 観察] クリックで onAttachAsView prop が呼ばれ onViewerAttached が発火する (#980-A: required prop 化)", async () => {
-    mockRequest.mockResolvedValueOnce({ sessions: [makeEditSession({ id: "es-001" })] }); // list
+    mockRequest.mockResolvedValue({ sessions: [makeEditSession({ id: "es-001" })] }); // list
 
     const onAttachAsView = vi.fn().mockResolvedValue(undefined);
     const onViewerAttached = vi.fn();

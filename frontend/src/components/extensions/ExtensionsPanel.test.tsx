@@ -10,6 +10,7 @@ vi.mock("../../mcp/mcpBridge", () => ({
     request: vi.fn(),
     onExtensionsChanged: vi.fn(() => () => undefined),
     onBroadcast: vi.fn(() => () => undefined),
+    onStatusChange: vi.fn(() => () => undefined),
     // Phase 6 (#903): useEditSession (新 API) 用
     getSessionId: vi.fn(() => "test-session"),
     hasDraft: vi.fn(async () => ({ exists: false })),

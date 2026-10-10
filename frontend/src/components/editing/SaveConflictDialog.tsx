@@ -7,6 +7,7 @@
  * data-testid="overwrite-confirm-btn" は e2e spec `multi-session-branching.spec.ts:123` が参照する。
  */
 
+import { friendlyLabel } from "../../utils/participantLabel";
 import "../../styles/editMode.css";
 
 export interface ConflictInfo {
@@ -58,7 +59,7 @@ export function SaveConflictDialog({ conflict, onOverwrite, onCancel }: SaveConf
         </div>
         <div className="edit-mode-modal-body">
           <p>
-            別の編集セッション (<strong>{conflict.displayLabel}</strong>、{savedAtFormatted} 保存)
+            別の編集セッション (<strong>{friendlyLabel(conflict.displayLabel)}</strong>、{savedAtFormatted} 保存)
             で本体ファイルが更新されています。
           </p>
           <p>今回の保存で上書きしますか？</p>

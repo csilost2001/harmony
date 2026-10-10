@@ -50,7 +50,7 @@
   top: calc(100% + 4px);
   right: 0;
   z-index: 1040;
-  min-width: 280px;
+  min-width: 340px;
   max-width: 400px;
   background: var(--hm-surface);
   border: 1px solid var(--hm-border);
@@ -114,11 +114,11 @@
 }
 
 .esd-dot-active {
-  background: #28a745;
+  background: var(--hm-success);
 }
 
 .esd-dot-editing {
-  background: #28a745;
+  background: var(--hm-success);
 }
 
 .esd-dot-viewer {
@@ -155,11 +155,6 @@
   max-width: 120px;
 }
 
-.esd-row-time {
-  font-size: 11px;
-  flex-shrink: 0;
-}
-
 /* ── アクションボタン群 ──────────────────────────────────────────────────────── */
 .esd-actions {
   display: flex;
@@ -168,6 +163,7 @@
 }
 
 .esd-action-btn {
+  white-space: nowrap;
   font-size: 11px;
   padding: 1px 6px;
   line-height: 1.4;
@@ -189,4 +185,37 @@
 .esd-new-draft-btn:hover {
   background: var(--hm-surface-2);
   color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
+}
+
+/* ── 編集セッションの行 ──────────────────────────────────────────────────────── */
+.esd-session-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  border-top: 1px solid var(--hm-border);
+}
+.esd-session-row:hover { background: var(--hm-surface-2); }
+.esd-session-discarded { opacity: 0.6; }
+.esd-session-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.esd-session-title { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 13px; font-weight: 500; color: var(--hm-fg); }
+.esd-session-title .esd-row-owner-label { max-width: none; font-size: 13px; }
+.esd-session-icon { color: var(--hm-accent); flex: 0 0 auto; }
+.esd-session-discarded .esd-session-icon { color: var(--hm-fg-muted); }
+.esd-ai-tag { flex: 0 0 auto; padding: 0 5px; border-radius: 3px; background: var(--hm-accent-soft); color: var(--hm-accent); font-size: 10px; font-weight: 700; }
+.esd-session-meta { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px; font-size: 11px; color: var(--hm-fg-muted); }
+.esd-session-id { margin-left: auto; background: transparent; color: var(--hm-fg-faint); font-size: 10px; padding: 0; }
+.esd-loading { padding: 8px 12px; color: var(--hm-fg-muted); font-size: 12px; }
+.esd-session-title-rest { white-space: nowrap; }
+
+/* 閉じた状態のバッジ: 他の人が編集中であることを示す */
+.esd-badge-others {
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--hm-warning) 22%, var(--hm-surface));
+  color: var(--hm-fg);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
 }

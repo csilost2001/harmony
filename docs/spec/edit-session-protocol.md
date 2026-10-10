@@ -734,6 +734,12 @@ interface UseEditSessionResult {
 - `EditSessionBadge.tsx` / `PresenceBadge.tsx` — そのまま継続 (旧 `SessionBadge.tsx` は Phase 6 で削除)
 - `TransferNotificationBanner.tsx` — `editSession.roleChanged` event listen のみ (旧 `lock.changed` listen は Phase 6 で削除)
 
+#### 参加者の表示名と「他の人が編集中」の表示
+
+- 編集者の名前は、付けられた表示名 (AI は `Alice@AI` 形式) をそのまま使う。表示名が無い、またはブラウザのセッション ID (UUID) がそのまま入っている参加者は「ゲスト (先頭 4 文字)」と表示する (`utils/participantLabel.ts`)。一覧・バナー・強制解除の確認・保存競合・履歴のどこでも同じ表記にする
+- `EditSessionDropdown` は、閉じた状態でも `editSession.list` を取得し、正規版を見ている (読み取り専用の) ときは「他 N 件が編集中」を出す。N は、破棄されておらず、編集者が自分以外の編集セッションの数
+- 一覧の取得に失敗したときは、直前の一覧を保ったまま数回やり直し、接続が復帰したときにも取り直す。他のリソースの編集セッションの broadcast では取り直さない
+
 ---
 
 ## 16. 既存 spec との関係
@@ -875,3 +881,4 @@ PR #888 マージ済の現実装は **過渡的扱い**。本 spec 実装シリ�
 |---|---|
 | 2026-05-07 | 新設 (#876 / #855 派生 Direction B 実装の根本欠陥を解消する正規プロトコル) |
 | 2026-05-07 | Phase 6 (#903): 旧 API 完全削除 (lock.* / draft.* MCP tools / handlers / lockManager.ts / draftStore.ts / onBehalfOfSession.ts 削除)、useEditSessionLegacy 削除、SessionBadge.tsx 削除、TransferNotificationBanner の lock.changed listen 削除、useDraftRegistry を editSession.list ベースに移行。§15.2 UI components 欄・§15.1 互換性表を更新。|
+| 2026-10-11 | 参加者の表示名の決め方 (ゲスト表記) と、閉じたバッジの「他 N 件が編集中」を §15.2 に追記。 |
