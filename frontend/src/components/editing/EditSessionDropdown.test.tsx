@@ -177,6 +177,40 @@ describe("EditSessionDropdown", () => {
     });
   });
 
+  it("閉じたままでも、他の人が編集中なら「他 N 件が編集中」を出す", async () => {
+    mockRequest.mockResolvedValue({
+      sessions: [
+        makeEditSession({ id: "es-001" }),
+        makeEditSession({ id: "es-002", state: "Discarded" }),
+      ],
+    });
+
+    render(<EditSessionDropdown {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("esd-others-editing").textContent).toBe("他 1 件が編集中");
+    });
+  });
+
+  it("自分が編集者の編集セッションだけなら「他 N 件が編集中」は出さない", async () => {
+    mockRequest.mockResolvedValue({
+      sessions: [makeEditSession({ id: "es-001", participants: {
+        "session-self": {
+          sessionId: "session-self",
+          role: "Edit",
+          joinedAt: new Date().toISOString(),
+          lastActivityAt: new Date().toISOString(),
+          displayLabel: "@me",
+        },
+      } })],
+    });
+
+    render(<EditSessionDropdown {...defaultProps} currentMode={{ kind: "editing" } as never} />);
+
+    await waitFor(() => expect(mockRequest).toHaveBeenCalled());
+    expect(screen.queryByTestId("esd-others-editing")).toBeNull();
+  });
+
   it("未参加の EditSession には [👁 観察] ボタンが表示される", async () => {
     mockRequest.mockResolvedValue({
       sessions: [makeEditSession({ id: "es-001" })],
@@ -191,7 +225,7 @@ describe("EditSessionDropdown", () => {
   });
 
   it("[👁 観察] クリックで onAttachAsView prop が呼ばれ onViewerAttached が発火する (#980-A: required prop 化)", async () => {
-    mockRequest.mockResolvedValueOnce({ sessions: [makeEditSession({ id: "es-001" })] }); // list
+    mockRequest.mockResolvedValue({ sessions: [makeEditSession({ id: "es-001" })] }); // list
 
     const onAttachAsView = vi.fn().mockResolvedValue(undefined);
     const onViewerAttached = vi.fn();

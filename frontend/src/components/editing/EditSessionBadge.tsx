@@ -12,6 +12,7 @@
  *   active 1 件以上: 📝 N (= active EditSession 数)
  *   ホバー時: tooltip で各 EditSession の participants
  */
+import { participantLabel } from "../../utils/participantLabel";
 import { useCallback, useEffect, useState } from "react";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import type { DraftResourceType } from "../../types/draft";
@@ -34,11 +35,11 @@ function buildTooltip(sessions: EditSessionData[]): string {
     const editor = participants.find((p) => p.role === "Edit");
     const viewers = participants.filter((p) => p.role === "View");
     const editorLabel = editor
-      ? `編集中: ${editor.displayLabel || editor.sessionId.slice(0, 8)}`
+      ? `編集中: ${participantLabel(editor.displayLabel, editor.sessionId)}`
       : "編集者なし";
     const viewerLabel =
       viewers.length > 0
-        ? `閲覧中: ${viewers.map((v) => v.displayLabel || v.sessionId.slice(0, 8)).join(", ")}`
+        ? `閲覧中: ${viewers.map((v) => participantLabel(v.displayLabel, v.sessionId)).join(", ")}`
         : null;
     const parts = [editorLabel, viewerLabel].filter(Boolean).join(" / ");
     lines.push(`[${s.id.slice(0, 8)}] ${parts}`);

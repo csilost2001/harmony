@@ -12,6 +12,7 @@
  *
  * 後方互換: currentMode (旧 EditMode) は引き続き受け付ける (Phase 6 で削除予定)
  */
+import { participantLabel } from "../../utils/participantLabel";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { EDIT_SESSION_DISCARDED_RETENTION_DAYS } from "@harmony/shared";
 import { mcpBridge } from "../../mcp/mcpBridge";
@@ -80,19 +81,27 @@ function isAIParticipant(p: ParticipantInfo): boolean {
  * spec §10.3: "Alice@AI" 形式。displayLabel がそのまま使える。
  */
 function participantDisplayLabel(p: ParticipantInfo): string {
-  return p.displayLabel || `@${p.sessionId.slice(0, 8)}`;
+  return participantLabel(p.displayLabel, p.sessionId);
 }
 
 // ── 集約バッジ ────────────────────────────────────────────────────────────────
 
-function AggregateBadge({ mode }: { mode: EditMode }) {
+function AggregateBadge({ mode, othersEditing }: { mode: EditMode; othersEditing: number }) {
   if (mode.kind === "editing") {
     return <><span className="esd-badge-icon">✏️</span><span className="esd-badge-label">編集中</span></>;
   }
   if (mode.kind === "viewer") {
     return <><span className="esd-badge-icon">👁</span><span className="esd-badge-label">観察中</span></>;
   }
-  return <><span className="esd-badge-icon">📄</span><span className="esd-badge-label">正規版</span></>;
+  return (
+    <>
+      <span className="esd-badge-icon">📄</span>
+      <span className="esd-badge-label">正規版</span>
+      {othersEditing > 0 && (
+        <span className="esd-badge-others" data-testid="esd-others-editing">他 {othersEditing} 件が編集中</span>
+      )}
+    </>
+  );
 }
 
 // ── EditSession 行コンポーネント ──────────────────────────────────────────────
@@ -121,78 +130,67 @@ function EditSessionRow({
   const amIViewer = myParticipant?.role === "View";
   const amIEditor = myParticipant?.role === "Edit";
 
+  const editorLabel = editor ? participantDisplayLabel(editor) : null;
+  // 「<編集者名> が編集中」。編集者名は別の要素に分けておく (文言で探せるように)
+  const ownerName = isDiscarded || !editor ? null : amIEditor ? "あなた" : editorLabel;
+  const titleRest = isDiscarded ? "破棄された編集セッション" : editor ? " が編集中" : "編集者のいない編集セッション";
+
   return (
     <div
       className={`esd-session-row ${isDiscarded ? "esd-session-discarded" : ""}`}
       data-testid={`esd-session-${session.id}`}
     >
-      {/* EditSession の状態アイコン + ID 短縮 */}
-      <span className="esd-session-state-icon">
-        {isDiscarded ? "🗑" : "📝"}
-      </span>
-      <span className="esd-session-id text-muted" title={session.id}>
-        {session.id.slice(0, 12)}
-      </span>
-
-      {/* editor 表示 */}
-      {editor && (
-        <span className="esd-session-editor ms-1" title={editor.sessionId}>
-          {isAIParticipant(editor) && <span className="esd-role-icon">🤖</span>}
-          <span className="esd-row-owner-label">{participantDisplayLabel(editor)}</span>
-          <span className="esd-role-icon ms-1" title="編集中">✏️</span>
+      <div className="esd-session-main">
+        <span className="esd-session-title">
+          <i className={`bi ${isDiscarded ? "bi-trash3" : "bi-pencil-square"} esd-session-icon`} aria-hidden="true" />
+          {editor && isAIParticipant(editor) && <span className="esd-ai-tag" title="AI">AI</span>}
+          {ownerName && <span className="esd-row-owner-label" title={editor?.sessionId}>{ownerName}</span>}
+          <span className="esd-session-title-rest">{titleRest}</span>
         </span>
-      )}
-
-      {/* viewer 数 */}
-      {viewers.length > 0 && (
-        <span className="esd-viewer-count ms-1 text-muted">
-          +{viewers.length} 👁
+        <span className="esd-session-meta">
+          最終操作 {relativeTime(session.lastActivityAt)}
+          {viewers.length > 0 && <> ・ 閲覧 {viewers.length} 人</>}
+          <code className="esd-session-id" title={session.id}>{session.id.slice(0, 8)}</code>
         </span>
-      )}
+      </div>
 
-      {/* 最終活動時刻 */}
-      <span className="esd-row-time text-muted ms-1">
-        {relativeTime(session.lastActivityAt)}
-      </span>
-
-      {/* アクションボタン群 */}
-      <div className="esd-actions ms-auto">
-        {/* [👁 観察]: View で attach — 自分が未参加、かつ Active */}
+      <div className="esd-actions">
+        {/* 閲覧: View で参加する (自分が未参加で、有効なもの) */}
         {!isDiscarded && !myParticipant && (
           <button
             type="button"
             className="btn btn-sm btn-outline-secondary esd-action-btn"
             onClick={() => onViewerAttach(session.id)}
-            title="観察モードで閲覧"
+            title="編集の内容を見る (閲覧のみ)"
             data-testid={`esd-viewer-btn-${session.id}`}
           >
-            👁
+            <i className="bi bi-eye" /> 閲覧
           </button>
         )}
 
-        {/* [↪ 引継]: View から Edit へ take-over — 自分が viewer、かつ editor がいる */}
+        {/* 引き継ぐ: 閲覧中の自分が、編集権を引き継ぐ */}
         {!isDiscarded && amIViewer && editor && !amIEditor && (
           <button
             type="button"
-            className="btn btn-sm btn-outline-warning esd-action-btn ms-1"
+            className="btn btn-sm btn-outline-warning esd-action-btn"
             onClick={() => onTakeOver(session.id)}
-            title="編集権を引き継ぐ"
+            title="編集権を引き継ぐ (いまの編集者は閲覧になります)"
             data-testid={`esd-takeover-btn-${session.id}`}
           >
-            ↪
+            <i className="bi bi-arrow-left-right" /> 引き継ぐ
           </button>
         )}
 
-        {/* [× 破棄]: 自分が Edit role、かつ Active */}
+        {/* 破棄: 自分が編集中のとき */}
         {!isDiscarded && amIEditor && (
           <button
             type="button"
-            className="btn btn-sm btn-outline-danger esd-action-btn ms-1"
+            className="btn btn-sm btn-outline-danger esd-action-btn"
             onClick={() => onDiscard(session.id)}
-            title="編集セッションを破棄"
+            title="この編集セッションを破棄 (編集中の内容は捨てられます)"
             data-testid={`esd-discard-btn-${session.id}`}
           >
-            ×
+            <i className="bi bi-trash3" /> 破棄
           </button>
         )}
       </div>
@@ -236,9 +234,9 @@ export function EditSessionDropdown({
     }
   }, [resourceType, resourceId]);
 
-  // ── 展開時に editSession.list を取得 ─────────────────────────────────────────
+  // ── 表示中 (閉じていても) と展開時に editSession.list を取得 ─────────────────
+  // 閉じた状態のバッジに「他の人が編集中」を出すため、開く前にも取得しておく。
   useEffect(() => {
-    if (!open) return;
     // async IIFE で await を挟んで effect body 内同期 setState を回避する
     // (react-hooks/set-state-in-effect #1385)。
     let cancelled = false;
@@ -252,7 +250,7 @@ export function EditSessionDropdown({
   // ── broadcast 受信時に list を更新 ──────────────────────────────────────────
   useEffect(() => {
     const refresh = () => {
-      if (open) void fetchSessions();
+      void fetchSessions();
     };
     const unsubs = [
       mcpBridge.onBroadcast("editSession.created", refresh),
@@ -263,7 +261,14 @@ export function EditSessionDropdown({
       mcpBridge.onBroadcast("editSession.discarded", refresh),
     ];
     return () => unsubs.forEach((u) => u());
-  }, [open, fetchSessions]);
+  }, [fetchSessions]);
+
+  // 他の人 (または AI) が編集中の編集セッション数。閉じたバッジに出す
+  const othersEditingCount = sessions.filter((s) => {
+    if (s.state === "Discarded") return false;
+    const editor = Object.values(s.participants).find((p) => p.role === "Edit");
+    return !!editor && editor.sessionId !== currentSessionId;
+  }).length;
 
   // ── クリックアウトサイドで閉じる ───────────────────────────────────────────
   useEffect(() => {
@@ -299,10 +304,10 @@ export function EditSessionDropdown({
   const handleTakeOver = useCallback(
     async (editSessionId: string) => {
       const session = sessions.find((s) => s.id === editSessionId);
-      const editorLabel = Object.values(session?.participants ?? {}).find((p) => p.role === "Edit")?.displayLabel;
+      const editor = Object.values(session?.participants ?? {}).find((p) => p.role === "Edit");
       const confirmed = window.confirm(
-        `${editorLabel ? `@${editorLabel}` : "現在の編集者"} さんの編集権を引き継ぎます。\n` +
-        `現在の編集状態 (payload) はそのまま引き継がれます。よろしいですか?`,
+        `${editor ? participantLabel(editor.displayLabel, editor.sessionId) : "現在の編集者"} の編集権を引き継ぎます。\n` +
+        `編集中の内容はそのまま引き継がれ、いまの編集者は閲覧になります。よろしいですか?`,
       );
       if (!confirmed) return;
       try {
@@ -355,7 +360,7 @@ export function EditSessionDropdown({
         aria-haspopup="listbox"
         data-testid="esd-toggle-btn"
       >
-        <AggregateBadge mode={currentMode} />
+        <AggregateBadge mode={currentMode} othersEditing={othersEditingCount} />
         <i className={`bi bi-chevron-${open ? "up" : "down"} ms-1 esd-chevron`} />
       </button>
 
