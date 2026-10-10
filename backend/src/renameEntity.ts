@@ -1104,7 +1104,7 @@ async function sourceFingerprint(paths: readonly string[]): Promise<string> {
  */
 async function assertReferenceSourcesReadable(
   root: string, dataRoot: string,
-  options: { enforceFresh?: boolean } = {},
+  options: { enforceFresh?: boolean; includeLayoutComponents?: boolean } = {},
 ): Promise<void> {
   // Phase M Codex SF-2: 入口で TTL sweep して memory retention を抑制
   sweepExpiredReferencePreflightCache();
@@ -1122,8 +1122,9 @@ async function assertReferenceSourcesReadable(
     path.join(root, "harmony.json"),
     path.join(dataRoot, "screen-flow-positions.json"),
     path.join(dataRoot, "er-layout.json"),
-    path.join(dataRoot, "layout-components.json"),
   );
+  // 独自部品の定義は、画面の改名でだけ書き換える。壊れていても、他の種類の改名は止めない
+  if (options.includeLayoutComponents) paths.push(path.join(dataRoot, "layout-components.json"));
   const genericDir = path.join(dataRoot, "generic-definitions");
   let kinds: import("node:fs").Dirent[];
   try {
@@ -1164,7 +1165,7 @@ async function scanAllRefs(
   options: { enforceFresh?: boolean } = {},
 ): Promise<RefScanResult> {
   const dataRoot = await resolveDataRoot(root);
-  await assertReferenceSourcesReadable(root, dataRoot, { enforceFresh: options.enforceFresh });
+  await assertReferenceSourcesReadable(root, dataRoot, { enforceFresh: options.enforceFresh, includeLayoutComponents: entityType === "screen" });
   const scalarFields = new Set(SCALAR_REF_FIELDS[entityType]);
   const compositeFields = COMPOSITE_REF_FIELDS[entityType];
   const arrayFields = new Set(ARRAY_REF_FIELDS[entityType]);

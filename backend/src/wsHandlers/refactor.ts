@@ -286,6 +286,8 @@ export const refactorHandlers: RpcHandlerMap = {
         "screenChanged", "tableChanged", "processFlowChanged", "viewChanged",
         "sequenceChanged", "viewDefinitionChanged", "pageLayoutChanged",
         "genericDefinitionChanged", "businessFlowChanged", "reportChanged",
+        // 画面の改名は、独自部品の定義 (layout-components.json) の差し込み口・定義内の遷移先も書き換える
+        "layoutComponentsChanged",
       ];
       for (const ev of RELOAD_EVENTS) {
         if (ev === `${et}Changed`) continue; // 自身の event は上で発行済
@@ -332,6 +334,8 @@ export const refactorHandlers: RpcHandlerMap = {
         "screenChanged", "tableChanged", "processFlowChanged", "viewChanged",
         "sequenceChanged", "viewDefinitionChanged", "pageLayoutChanged",
         "genericDefinitionChanged", "businessFlowChanged", "reportChanged",
+        // 画面の改名は、独自部品の定義 (layout-components.json) の差し込み口・定義内の遷移先も書き換える
+        "layoutComponentsChanged",
       ];
       for (const ev of RELOAD_EVENTS) {
         bridge.broadcast({

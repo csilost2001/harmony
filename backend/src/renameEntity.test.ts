@@ -830,6 +830,19 @@ describe("renameEntityId — screen rename が独自部品の差し込み口 (�
   });
 });
 
+describe("renameEntityId — 独自部品の定義 (layout-components.json) が壊れているとき", () => {
+  it("画面の改名は、定義を書き換えられないので止まるが、テーブルなど他の種類の改名は止まらない", async () => {
+    const root = await makeWorkspace();
+    await writeScreenEntity("home", { id: "home", kind: "page", path: "/", items: [] }, root);
+    await seedTable(root, "tbl-lc");
+    await fs.writeFile(dataPath(root, "..", "harmony", "layout-components.json"), "{ not json", "utf-8");
+
+    await expect(renameEntityId("screen", "home", "top", root)).rejects.toThrow(/layout-components\.json/);
+    const { operation } = await renameEntityId("table", "tbl-lc", "tbl-lc-x", root);
+    expect(operation.newId).toBe("tbl-lc-x");
+  });
+});
+
 // ─── M-4: screen-flow-positions の object KEY rename + harmony entries[].id rename ───
 
 describe("renameEntityId — M-4: screen rename → screen-flow-positions.positions[KEY] migration", () => {

@@ -458,6 +458,8 @@ export class EditSessionService {
         console.error(`[editSession.save] resource file 書き込み失敗 (type=${type}, id=${resId}):`, writeErr);
         // 業務フロー・帳票は、書き込みの失敗を保存の失敗として呼び出し元へ返す (成功扱いにしない)。
         // 他の種別は従来どおり、書き込み失敗でも saveHistory / broadcast は続行 (可用性優先)
+        // (store.save は先に実行済みのため、saveHistory と履歴のスナップショットは、書き込みに失敗した保存でも残る。
+        //  書けない形は上の事前検査で防いでいるので、残るのは fs エラーなどのまれな場合だけ)
         if (type === "business-flow" || type === "report") throw writeErr;
       }
     }

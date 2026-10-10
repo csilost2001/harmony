@@ -100,6 +100,27 @@ describe("処理のテスト観点と観点表", () => {
   });
 });
 
+describe("テスト観点表の細部", () => {
+  it("CSV: = + - @ で始まる文字列のセルは、Excel で式として解釈されないよう先頭に ' を付ける (数値のセルは付けない)", () => {
+    const sheet = deriveTestViewpointSheet({
+      screens: [{ id: "s", name: "画面", items: [{ id: "n", label: "数", type: "integer", min: 0 }] }],
+      flows: [],
+    });
+    const row = testViewpointSheetToCsv(sheet).split("\r\n").find((l) => l.startsWith("s.n.min-under"))!;
+    const cells = row.split(",");
+    expect(cells[4]).toBe("'-1"); // 入力・状況 (文字列の -1)
+    expect(cells[7]).toBe("-1"); // 入力値 (数値の -1) はそのまま
+  });
+
+  it("処理のケース ID: アクションに ID が無く名前が重なっても、重ならない", () => {
+    const step = [{ id: "s1", kind: "return", responseRef: "200" }];
+    const cases = deriveFlowCases({ meta: { id: "f" }, actions: [{ name: "同名", steps: step }, { name: "同名", steps: step }] } as never);
+    const ids = cases.map((c) => c.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
 describe("設計書の付録「テスト観点 (画面入力)」", () => {
   const base = { project: { name: "P" }, flows: [], tables: [], transitions: [], messages: {} };
   it("入力のある画面があれば、要確認事項の後ろに付録として出て、章番号は動かない", () => {

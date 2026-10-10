@@ -217,8 +217,12 @@ export function deriveScreenInputCases(screen: TestScreenLike, ctx: TestContext 
 }
 
 export function deriveFlowCases(flow: TestFlowLike): FlowTestCase[] {
+  const taken = new Set<string>();
   return flow.actions.flatMap((a, ai) => {
-    const actionId = a.id ?? a.name ?? `action${ai + 1}`;
+    let actionId = a.id ?? a.name ?? `action${ai + 1}`;
+    // アクションの ID が無く名前が重なっても、観点の ID が重ならないようにする
+    if (taken.has(actionId)) actionId = `${actionId}-${ai + 1}`;
+    taken.add(actionId);
     return deriveTestViewpoints(a).map((v) => ({
       id: `${flow.meta.id}.${actionId}.TV-${String(v.no).padStart(2, "0")}`,
       flowId: flow.meta.id, actionId, ...(a.name ? { actionName: a.name } : {}),
@@ -242,7 +246,9 @@ export function deriveTestViewpointSheet(input: { screens: TestScreenLike[]; flo
 }
 
 const csvCell = (v: unknown): string => {
-  const s = v === undefined || v === null ? "" : String(v);
+  let s = v === undefined || v === null ? "" : String(v);
+  // Excel で開いたとき、= + - @ で始まる文字列が式として解釈されないよう、文字列の先頭に ' を付ける (数値はそのまま)
+  if (typeof v === "string" && /^[=+\-@\t\r]/.test(s)) s = `'${s}`;
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 
