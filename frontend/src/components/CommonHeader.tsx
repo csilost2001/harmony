@@ -4,6 +4,7 @@ import { WorkspaceIndicator } from "./workspace/WorkspaceIndicator";
 import { CodexIndicator } from "./codex/CodexIndicator";
 import { ThemeToggle } from "./common/ThemeToggle";
 import { QuickOpen } from "./quick-open/QuickOpen";
+import { ShortcutHelp } from "./help/ShortcutHelp";
 import "../styles/commonHeader.css";
 
 interface Props {
@@ -25,6 +26,7 @@ export function CommonHeader({ notification, userName }: Props) {
       </div>
       <div className="common-header-right">
         <QuickOpen />
+        <ShortcutHelp />
         <ThemeToggle />
         <CodexIndicator />
         <span className="common-header-user">
