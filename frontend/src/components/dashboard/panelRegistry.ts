@@ -17,6 +17,7 @@ import { RecentEditsPanel } from "./panels/RecentEditsPanel";
 import { ProcessFlowMaturityPanel } from "./panels/ProcessFlowMaturityPanel";
 import { MarkersSummaryPanel } from "./panels/MarkersSummaryPanel";
 import { DesignIssuesPanel } from "./panels/DesignIssuesPanel";
+import { GettingStartedPanel } from "./panels/GettingStartedPanel";
 
 /** react-grid-layout の 1 パネルのレイアウト指定 */
 export interface PanelLayout {
@@ -56,6 +57,13 @@ export interface DashboardPanel {
  * 配列の順序が初期表示順を決める（y, x が未指定の場合）。
  */
 export const dashboardPanels: DashboardPanel[] = [
+  {
+    id: "getting-started",
+    title: "はじめかた",
+    icon: "bi-signpost-split",
+    defaultLayout: { w: 6, h: 5, minW: 4, minH: 4 },
+    component: GettingStartedPanel,
+  },
   {
     id: "function-counts",
     title: "機能別定義数",

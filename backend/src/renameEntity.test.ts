@@ -738,7 +738,7 @@ describe("renameEntityId — screen rename が layout の遷移先 (button / lin
       layout: { version: 1, nodes: [
         { id: "toLogin", type: "button", props: { label: "ログイン", screenRef: "login" } },
         { id: "toOther", type: "link", props: { label: "他", screenRef: "cart" } },
-        // 独自部品の差し込み値は画面項目 ID・文言と区別できないため自動更新しない
+        // 独自部品の定義が無く、差し込み口の種類が分からない差し込み値は触れない
         { id: "box", type: "component", componentRef: "back-link", args: { target: "login" } },
       ] },
     }, root);
@@ -758,6 +758,75 @@ describe("renameEntityId — screen rename が layout の遷移先 (button / lin
     expect(after.layout.nodes[0].props?.screenRef).toBe("sign-in");
     expect(after.layout.nodes[1].props?.screenRef).toBe("cart");
     expect(after.layout.nodes[2].args).toEqual({ target: "login" });
+  });
+});
+
+describe("renameEntityId — screen rename が独自部品の差し込み口 (種類 = 画面) の値に追従する", () => {
+  const harmonyWithScreens = (ids: string[]) => JSON.stringify({
+    schemaVersion: "v3", dataDir: "harmony",
+    meta: { id: "ws", uuid: "44444444-4444-4444-8444-444444444446", name: "ws", createdAt: "2026-05-25T00:00:00.000Z", updatedAt: "2026-05-25T00:00:00.000Z" },
+    extensionsApplied: [],
+    entities: { screens: ids.map((id, i) => ({ id, no: i + 1, name: id, kind: "page", updatedAt: "2026-05-25T00:00:00.000Z" })) },
+  }, null, 2);
+
+  it("種類が「画面」の差し込み口だけ更新し、「文言」「項目」の値は同じ文字でも触れない。定義の既定値・定義内の使い方にも追従し、元に戻せる", async () => {
+    const root = await makeWorkspace();
+    await writeScreenEntity("login", { id: "login", kind: "page", path: "/login", items: [] }, root);
+    await writeScreenEntity("dashboard", {
+      id: "dashboard", kind: "page", path: "/", items: [],
+      layout: { version: 1, nodes: [
+        { id: "box", type: "section", children: [
+          { id: "back", type: "component", componentRef: "back-link", args: { target: "login", caption: "login", field: "login" } },
+        ] },
+      ] },
+    }, root);
+    await fs.writeFile(harmonyFile(root), harmonyWithScreens(["login", "dashboard"]), "utf-8");
+    const lcPath = dataPath(root, "..", "harmony", "layout-components.json");
+    const defs = {
+      version: 1,
+      components: [
+        { id: "back-link", label: "戻るリンク", params: [
+          { id: "target", label: "遷移先", kind: "screen", default: "login" },
+          { id: "caption", label: "文言", kind: "text", default: "login" },
+          { id: "field", label: "項目", kind: "item" },
+        ], nodes: [{ id: "n", type: "link", props: { label: "{{caption}}", screenRef: "{{target}}" } }] },
+        { id: "wrapper", label: "包む", params: [], nodes: [
+          { id: "inner", type: "component", componentRef: "back-link", args: { target: "login", caption: "login" } },
+        ] },
+      ],
+    };
+    await fs.writeFile(lcPath, JSON.stringify(defs, null, 2), "utf-8");
+
+    const { operation, preview } = await renameEntityId("screen", "login", "sign-in", root);
+    expect(preview.totalRefs).toBeGreaterThanOrEqual(3);
+
+    const screen = await readJsonFile<{ layout: { nodes: Array<{ children: Array<{ args: Record<string, string> }> }> } }>(dataPath(root, "screens", "dashboard.json"));
+    expect(screen.layout.nodes[0].children[0].args).toEqual({ target: "sign-in", caption: "login", field: "login" });
+    const after = JSON.parse(await fs.readFile(lcPath, "utf-8"));
+    expect(after.components[0].params[0].default).toBe("sign-in");
+    expect(after.components[0].params[1].default).toBe("login"); // 文言の既定値は触れない
+    expect(after.components[1].nodes[0].args).toEqual({ target: "sign-in", caption: "login" });
+    expect(after.components[0].nodes[0].props.screenRef).toBe("{{target}}"); // 差し込みの記法はそのまま
+
+    await undoEntityRename(operation.operationId, root);
+    const restored = await readJsonFile<{ layout: { nodes: Array<{ children: Array<{ args: Record<string, string> }> }> } }>(dataPath(root, "screens", "dashboard.json"));
+    expect(restored.layout.nodes[0].children[0].args.target).toBe("login");
+    expect(JSON.parse(await fs.readFile(lcPath, "utf-8"))).toEqual(defs);
+  });
+
+  it("自分自身を差し込み口 (種類 = 画面) に入れている画面も、新しい ID に追従する", async () => {
+    const root = await makeWorkspace();
+    await writeScreenEntity("home", {
+      id: "home", kind: "page", path: "/", items: [],
+      layout: { version: 1, nodes: [{ id: "back", type: "component", componentRef: "back-link", args: { target: "home" } }] },
+    }, root);
+    await fs.writeFile(harmonyFile(root), harmonyWithScreens(["home"]), "utf-8");
+    await fs.writeFile(dataPath(root, "..", "harmony", "layout-components.json"), JSON.stringify({ version: 1, components: [
+      { id: "back-link", label: "戻る", params: [{ id: "target", label: "遷移先", kind: "screen" }], nodes: [{ id: "n", type: "link", props: { label: "戻る", screenRef: "{{target}}" } }] },
+    ] }), "utf-8");
+    await renameEntityId("screen", "home", "top", root);
+    const after = await readJsonFile<{ layout: { nodes: Array<{ args: Record<string, string> }> } }>(dataPath(root, "screens", "top.json"));
+    expect(after.layout.nodes[0].args.target).toBe("top");
   });
 });
 

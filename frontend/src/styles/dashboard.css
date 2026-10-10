@@ -376,3 +376,18 @@
 /* 設計の要確認パネル: 設計書へ移るリンク */
 .dip-open { margin-top: 10px; padding: 0; border: 0; background: none; color: var(--hm-accent); font-size: 0.85rem; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 .dip-open:hover { color: var(--hm-accent-hover); }
+
+/* はじめかたパネル */
+.gsp { padding: 8px; font-size: 0.88rem; display: flex; flex-direction: column; gap: 8px; }
+.gsp-lead { margin: 0; color: var(--hm-fg-2); }
+.gsp-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.gsp-steps li { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border: 1px solid var(--hm-border); border-radius: 6px; background: var(--hm-surface); }
+.gsp-steps li.done { background: var(--hm-surface-2); }
+.gsp-mark { color: var(--hm-accent); font-size: 1.1rem; flex: 0 0 auto; }
+.gsp-steps li.done .gsp-mark { color: var(--hm-success); }
+.gsp-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; line-height: 1.4; }
+.gsp-text small { color: var(--hm-fg-muted); }
+.gsp-go { flex: 0 0 auto; border: 1px solid var(--hm-border-strong); background: var(--hm-surface); color: var(--hm-accent); border-radius: 4px; padding: 3px 10px; font-size: 0.8rem; cursor: pointer; }
+.gsp-go:hover { background: var(--hm-accent-soft); }
+.gsp-tips { margin: 0; color: var(--hm-fg-muted); font-size: 0.8rem; line-height: 1.7; }
+.gsp kbd { border: 1px solid var(--hm-border-strong); border-bottom-width: 2px; border-radius: 3px; padding: 0 4px; font-size: 0.75rem; background: var(--hm-surface-2); color: var(--hm-fg-2); }

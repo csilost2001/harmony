@@ -22,6 +22,7 @@ export function DesignIssuesPanel() {
   const { wsPath } = useWorkspacePath();
   const [issues, setIssues] = useState<DocIssue[] | null>(null);
   const [skipped, setSkipped] = useState<string[]>([]);
+  const [empty, setEmpty] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -31,7 +32,10 @@ export function DesignIssuesPanel() {
       try {
         const { input, skipped: sk } = await loadDesignInput();
         const doc = buildDesignDocument(input);
-        if (!cancelled) { setIssues(doc.issues); setSkipped(sk); setError(null); }
+        if (!cancelled) {
+          setIssues(doc.issues); setSkipped(sk); setError(null);
+          setEmpty(input.screens.length + input.flows.length + input.tables.length + (input.businessFlows?.length ?? 0) + (input.reports?.length ?? 0) === 0);
+        }
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : String(e));
       }
@@ -57,6 +61,8 @@ export function DesignIssuesPanel() {
 
   if (error) return <div className="panel-error"><i className="bi bi-exclamation-triangle" /> 検査失敗: {error}</div>;
   if (!issues) return <div style={{ padding: 8, color: "var(--hm-fg-muted)" }}>検査中…</div>;
+
+  if (empty && skipped.length === 0) return <div className="design-issues-panel" data-testid="design-issues-panel" style={{ padding: 8, color: "var(--hm-fg-muted)" }}>設計がまだないため、検査するものがありません。</div>;
 
   const go = () => navigate(wsPath("/document"));
   const clean = counts.error === 0 && counts.warning === 0;
