@@ -140,15 +140,25 @@ test.describe("業務フロー", () => {
     }
   });
 
-  test("図を縮小・全体表示できる (閲覧中でも) @regression", async ({ page }) => {
+  test("図を縮小・全体表示できる (閲覧中でも)。開いたとき図が広ければ自動で全体が見える大きさになる @regression", async ({ page }) => {
+    await page.setViewportSize({ width: 1100, height: 800 }); // 図 (1000px 超) が領域より広くなる幅
     await openEditor(page, "order-to-shipment");
-    await expect(page.getByTestId("bf-zoom-val")).toHaveText("100%");
-    await page.getByTestId("bf-zoom-out").click();
-    await expect(page.getByTestId("bf-zoom-val")).toHaveText("90%");
-    await page.getByTestId("bf-zoom-fit").click();
-    const fitted = Number((await page.getByTestId("bf-zoom-val").innerText()).replace("%", ""));
-    expect(fitted).toBeLessThan(90);
+    const zoom = async () => Number((await page.getByTestId("bf-zoom-val").innerText()).replace("%", ""));
+    // 開いたとき: 自動で全体表示 (100% より小さい)
+    await expect.poll(zoom).toBeLessThan(100);
+    const fitted = await zoom();
     expect(fitted).toBeGreaterThanOrEqual(40);
+    // 図の右端 (最後の工程) が見えている
+    const paper = page.getByTestId("bf-diagram");
+    expect(await paper.evaluate((el) => el.scrollWidth <= el.clientWidth + 2)).toBe(true);
+    await page.getByTestId("bf-zoom-in").click();
+    expect(await zoom()).toBe(fitted + 10);
+    await page.getByTestId("bf-zoom-out").click();
+    await page.getByTestId("bf-zoom-out").click();
+    expect(await zoom()).toBe(Math.max(40, fitted - 10));
+    // 100% に戻せる
+    await page.getByRole("button", { name: "100%" }).click();
+    await expect(page.getByTestId("bf-zoom-val")).toHaveText("100%");
   });
 
   test("一覧から新規作成し、工程を足してつなぎ、保存できる @regression", async ({ page }) => {
@@ -243,6 +253,18 @@ test.describe("業務フロー", () => {
     await saveEdit(page);
     await expect(page.getByTestId("bf-dirty")).toHaveCount(0);
     expect((await readFlow("order-to-shipment")).lanes.map((l: { id: string }) => l.id)).toEqual([before[2], before[0], before[1], ...before.slice(3)]);
+
+    // キーボードでも並べ替えられる: 持ち手にフォーカス → Space で持ち上げ → ↓ で動かし → Space で置く
+    const order = [before[2], before[0], before[1], ...before.slice(3)];
+    await grip(order[0]).focus();
+    await page.keyboard.press("Space");
+    await page.waitForTimeout(150);
+    await page.keyboard.press("ArrowDown");
+    await page.waitForTimeout(250);
+    await page.keyboard.press("Space");
+    await expect.poll(laneIds).toEqual([order[1], order[0], ...order.slice(2)]);
+    await page.getByRole("button", { name: "元に戻す" }).click();
+    await expect.poll(laneIds).toEqual(order);
 
     // 工程の一覧も同じ操作で並べ替えられ、行のクリック (選択) は妨げない
     const steps = (await readFlow("order-to-shipment")).steps.map((x: { id: string }) => x.id);

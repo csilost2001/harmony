@@ -1,10 +1,11 @@
 /**
  * ドラッグ & ドロップで並べ替えられる縦のリスト (業務フロー・帳票の編集画面の左の一覧)。
- * つかむ場所は左端の持ち手だけ (行のクリックは選択のまま)。キーボードでは各行の上へ / 下へのボタンを使う。
+ * つかむ場所は左端の持ち手だけ (行のクリックは選択のまま)。持ち手にフォーカスして Space で持ち上げ、↑↓ で動かし、
+ * Space で置く (Esc で取りやめ)。各行の上へ / 下へのボタンでも動かせる。
  */
 import type { ReactNode } from "react";
-import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
-import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
 interface ListProps {
@@ -20,7 +21,10 @@ interface ListProps {
 
 export function SortableList({ ids, onReorder, className, testId, disabled, children }: ListProps) {
   // 数 px 動かすまでは「クリック」のまま (行の選択を妨げない)
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
   const onDragEnd = (e: DragEndEvent) => {
     if (e.over && e.active.id !== e.over.id) onReorder(String(e.active.id), String(e.over.id));
   };

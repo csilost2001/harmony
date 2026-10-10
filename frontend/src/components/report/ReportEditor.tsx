@@ -23,7 +23,7 @@ import { useEditableDocument } from "../../hooks/useEditableDocument";
 import { EditSessionChrome } from "../editing/EditSessionChrome";
 import { EditSessionDropdown } from "../editing/EditSessionDropdown";
 import { SortableList, SortableRow } from "../common/SortableList";
-import { moveById } from "../../utils/reorder";
+import { moveById, moveByIdAt } from "../../utils/reorder";
 import "../../styles/businessFlow.css";
 import "../../styles/report.css";
 
@@ -136,9 +136,10 @@ export function ReportEditor() {
     return r;
   });
   const reorderSections = (activeId: string, overId: string) => apply((r) => { moveById(r.sections, activeId, overId); return r; });
-  const reorderFields = (sid: string, activeId: string, overId: string) => apply((r) => {
+  /** 項目を、相手の前 / 後へ動かす (用紙の見本に出す落とす位置の目印と同じ位置に入れる) */
+  const reorderFields = (sid: string, activeId: string, overId: string, place: "before" | "after") => apply((r) => {
     const fs = r.sections.find((s) => s.id === sid)?.fields;
-    if (fs) moveById(fs, activeId, overId);
+    if (fs) moveByIdAt(fs, activeId, overId, place);
     return r;
   });
   const deleteSection = (id: string) => { apply((r) => { r.sections = r.sections.filter((s) => s.id !== id); return r; }); setSelection(null); };
@@ -202,13 +203,17 @@ export function ReportEditor() {
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", dragRef.current.fid);
   };
+  /** カーソルが項目の左半分なら前、右半分なら後ろ */
+  const dropPlace = (e: React.DragEvent, el: Element): "before" | "after" => {
+    const rect = el.getBoundingClientRect();
+    return e.clientX < rect.left + rect.width / 2 ? "before" : "after";
+  };
   const onPaperDragOver = (e: React.DragEvent) => {
     const el = dropTarget(e);
     clearDropMarks();
     if (!el) return;
     e.preventDefault();
-    const rect = el.getBoundingClientRect();
-    el.classList.add(e.clientX < rect.left + rect.width / 2 ? "rpe-drop-before" : "rpe-drop-after");
+    el.classList.add(dropPlace(e, el) === "before" ? "rpe-drop-before" : "rpe-drop-after");
   };
   const onPaperDrop = (e: React.DragEvent) => {
     const el = dropTarget(e);
@@ -217,7 +222,7 @@ export function ReportEditor() {
     dragRef.current = null;
     if (!el || !drag) return;
     e.preventDefault();
-    reorderFields(drag.sid, drag.fid, el.getAttribute("data-field") as string);
+    reorderFields(drag.sid, drag.fid, el.getAttribute("data-field") as string, dropPlace(e, el));
     setSelection({ sectionId: drag.sid, fieldId: drag.fid });
   };
   const onPaperDragEnd = () => { clearDropMarks(); dragRef.current = null; };

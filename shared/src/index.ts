@@ -52,3 +52,4 @@ export * from "./flowStructure.js";
 export * from "./designDocument.js";
 export * from "./businessFlow.js";
 export * from "./report.js";
+export * from "./testViewpoints.js";

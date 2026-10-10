@@ -1209,10 +1209,18 @@ async function listDocs(store: DocStore, root: string): Promise<DocList> {
 }
 
 /** 1 件を書く。id はファイル名と一致させ、作成日時は初回を保ち、更新日時を付ける。expectedUpdatedAt があり、保存済みの更新日時と違えば保存しない */
-async function writeDoc(store: DocStore, id: string, data: unknown, root: string, opts: DocWriteOpts = {}): Promise<Record<string, unknown>> {
+function assertDocShape(store: DocStore, data: unknown): asserts data is Record<string, unknown> {
   if (!isRecord(data) || store.arrays.some((k) => !Array.isArray(data[k]))) {
     throw new Error(`${store.label}は { id, name, ${store.arrays.map((k) => `${k}: []`).join(", ")} } の形で指定してください`);
   }
+}
+
+/** 業務フロー・帳票として保存できる形か (保存する前の確認用。形が違えば例外) */
+export const assertBusinessFlowShape = (data: unknown): void => assertDocShape(BUSINESS_FLOW_STORE, data);
+export const assertReportShape = (data: unknown): void => assertDocShape(REPORT_STORE, data);
+
+async function writeDoc(store: DocStore, id: string, data: unknown, root: string, opts: DocWriteOpts = {}): Promise<Record<string, unknown>> {
+  assertDocShape(store, data);
   const dataRoot = await ensureDataDirFromRoot(root);
   const dir = store.dir(dataRoot);
   const filePath = path.join(dir, `${id}.json`);

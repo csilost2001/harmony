@@ -653,3 +653,21 @@ describe("migrateResourceId — Phase K rename integrity", () => {
     expect(store.get(session.id)?.resourceId).toBe("persist-new");
   });
 });
+
+describe("旧エディタ廃止前の編集セッション (永続化済み)", () => {
+  it("旧種別 (screen / page-layout-design / puck-data) のセッションは読み込まない", async () => {
+    const dir = path.join(tmpDir, ".edit-sessions");
+    await fs.mkdir(dir, { recursive: true });
+    for (const rt of ["screen", "page-layout-design", "puck-data"]) {
+      await fs.writeFile(path.join(dir, `legacy-${rt}.json`), JSON.stringify({
+        id: `legacy-${rt}`, resourceType: rt, resourceId: "x", state: "Active", sequence: 1,
+        createdAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 1e9).toISOString(), saveHistory: [],
+        lastActivityAt: new Date().toISOString(), payload: { payloadRef: "legacy/payload.design.json" }, participants: {},
+      }));
+    }
+    const fresh = new EditSessionStore(tmpDir);
+    for (const rt of ["screen", "page-layout-design", "puck-data"]) {
+      expect(await fresh.fetchCurrentPayloadFromFs(`legacy-${rt}`)).toBeNull();
+    }
+  });
+});

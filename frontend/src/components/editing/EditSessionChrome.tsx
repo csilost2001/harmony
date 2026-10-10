@@ -14,6 +14,9 @@ export interface EditSessionChromeProps {
   mode: EditMode;
   saving: boolean;
   serverChanged: boolean;
+  /** 保存に失敗したときの案内 (なければ null) */
+  saveError: string | null;
+  onDismissSaveError: () => void;
   saveConflict: SaveConflictInfo | null;
   showDiscard: boolean;
   showForceRelease: boolean;
@@ -43,6 +46,12 @@ export function EditSessionChrome(p: EditSessionChromeProps) {
   return (
     <>
       {p.serverChanged && <ServerChangeBanner onReload={p.onReloadServer} onDismiss={p.onDismissServerBanner} />}
+      {p.saveError && (
+        <p className="edit-save-error" role="alert" data-testid="edit-save-error">
+          <i className="bi bi-exclamation-triangle-fill" /> {p.saveError}
+          <button type="button" className="edit-save-error__close" onClick={p.onDismissSaveError} aria-label="閉じる"><i className="bi bi-x-lg" /></button>
+        </p>
+      )}
       <EditModeToolbar
         mode={mode}
         onStartEditing={p.onStartEditing}

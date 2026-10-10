@@ -75,7 +75,11 @@ export function useEditableDocument<T extends object>(opts: UseEditableDocumentO
     }, 300);
   }, []);
 
-  /** 文書を変更する。変更の関数は、複製した文書を直接書き換えるか、新しい文書を返す。結果が同じなら何もしない */
+  /**
+   * 文書を変更する。変更の関数は、複製した文書を直接書き換えるか、新しい文書を返す。結果が同じなら何もしない。
+   * 変更の関数は**副作用のない純粋な関数**にすること (差分の判定のために最大 3 回呼ぶ。
+   * 選択の変更・通知の表示などは、関数の外で行う)。
+   */
   const apply = useCallback((fn: (draft: T) => T | void) => {
     const cur = docRef.current;
     if (!editable || !cur) return;
@@ -101,13 +105,16 @@ export function useEditableDocument<T extends object>(opts: UseEditableDocumentO
       await mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: docRef.current });
     }
     // 競合 (他のセッションが先に保存した) のときは、後処理せずダイアログに任せる
+    setSaveError(null);
     const { conflicted, failed } = await actions.save();
-    if (conflicted || failed) return;
+    if (failed) { setSaveError("保存できませんでした。内容を確認して、もう一度保存してください (編集中の内容は残っています)"); return; }
+    if (conflicted) return;
     await postSave();
   }, [editable, isSaving, editSession, actions, postSave]);
   useSaveShortcut(() => { save().catch(console.error); }, editable);
 
   // ── 破棄・再開・強制解除のダイアログ ──
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [showDiscard, setShowDiscard] = useState(false);
   const [showForceRelease, setShowForceRelease] = useState(false);
   const [showResume, setShowResume] = useState(false);
@@ -161,6 +168,8 @@ export function useEditableDocument<T extends object>(opts: UseEditableDocumentO
     mode,
     saving: isSaving,
     serverChanged,
+    saveError,
+    onDismissSaveError: () => setSaveError(null),
     saveConflict,
     showDiscard, showForceRelease, showResume,
     lockedByOther: lockedByOther ? { ownerSessionId: lockedByOther.ownerSessionId } : null,
@@ -181,7 +190,7 @@ export function useEditableDocument<T extends object>(opts: UseEditableDocumentO
     onForceReleaseCancel: () => setShowForceRelease(false),
     onSaveConflictOverwrite: async () => { try { await onSaveConflictOverwrite(); await postSave(); } catch (e) { console.error("[useEditableDocument] 上書き保存に失敗:", e); } },
     onSaveConflictCancel,
-  }), [mode, isSaving, serverChanged, saveConflict, showDiscard, showForceRelease, showResume, lockedByOther, actions, save, handleReset, dismissServerBanner, postSave, onSaveConflictOverwrite, onSaveConflictCancel]);
+  }), [mode, isSaving, serverChanged, saveError, saveConflict, showDiscard, showForceRelease, showResume, lockedByOther, actions, save, handleReset, dismissServerBanner, postSave, onSaveConflictOverwrite, onSaveConflictCancel]);
 
   return {
     doc, editable, mode, sessionLoading, dirty: isDirty, isSaving,

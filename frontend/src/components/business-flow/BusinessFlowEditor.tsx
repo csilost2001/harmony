@@ -104,6 +104,19 @@ export function BusinessFlowEditor() {
     setZoom(Math.max(0.4, Math.min(1, (paperRef.current.clientWidth - 2) / natural)));
   }, [flow]);
 
+  // 開いたとき、図が表示領域より広ければ、自動で全体が見える大きさにする (1 度だけ。あとは利用者の操作を優先)
+  const autoFitted = useRef<string | null>(null);
+  useEffect(() => {
+    if (!flow || sessionLoading || autoFitted.current === flow.id) return;
+    // 描画後に幅を測る (図の領域がまだ無ければ、次の更新でやり直す)
+    const t = setTimeout(() => {
+      if (!paperRef.current) return;
+      autoFitted.current = flow.id;
+      fitZoom();
+    }, 0);
+    return () => clearTimeout(t);
+  }, [flow, sessionLoading, fitZoom]);
+
   const selectedStep = flow && selection?.kind === "step" ? flow.steps.find((s) => s.id === selection.id) : undefined;
   const selectedLane = flow && selection?.kind === "lane" ? flow.lanes.find((l) => l.id === selection.id) : undefined;
 

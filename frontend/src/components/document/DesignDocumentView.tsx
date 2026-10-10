@@ -34,6 +34,7 @@ export function DesignDocumentView() {
   const counts = useMemo(() => ({
     error: doc?.issues.filter((i) => i.severity === "error").length ?? 0,
     warning: doc?.issues.filter((i) => i.severity === "warning").length ?? 0,
+    info: doc?.issues.filter((i) => i.severity === "info").length ?? 0,
   }), [doc]);
 
   const scrollTo = useCallback((id: string) => {
@@ -81,7 +82,7 @@ export function DesignDocumentView() {
         <span className="ddv-spacer" />
         {doc && (
           <button type="button" className={`ddv-issues${counts.error ? " has-error" : counts.warning ? " has-warning" : ""}`} onClick={() => scrollTo("issues")} data-testid="ddv-issues">
-            <i className="bi bi-clipboard-check" /> 要確認 {doc.issues.length} 件
+            <i className="bi bi-clipboard-check" /> 要確認 {counts.error + counts.warning} 件{counts.info > 0 && <small className="ddv-issues-info"> (情報 {counts.info})</small>}
           </button>
         )}
         <button type="button" className="ddv-btn" onClick={reload} disabled={loading} title="最新の設計データで作り直す"><i className="bi bi-arrow-clockwise" /> 再生成</button>
@@ -90,7 +91,7 @@ export function DesignDocumentView() {
       </header>
       {skipped.length > 0 && (
         <p className="ddv-skipped" role="alert" data-testid="ddv-skipped">
-          <i className="bi bi-exclamation-triangle" /> 読めないファイルがあるため、設計書に載っていません (JSON が壊れています): {skipped.map((f) => <code key={f}>{f}</code>)}
+          <i className="bi bi-exclamation-triangle" /> 読めないものがあるため、設計書に載っていません (JSON が壊れている・読み込みに失敗した): {skipped.map((f) => <code key={f}>{f}</code>)}
         </p>
       )}
       {error ? (

@@ -542,9 +542,52 @@ group("check-design", () => {
     writeFileSync(join(ws, "harmony/reports/delivery-note.json"), JSON.stringify(rp));
     assert("警告だけなら既定は終了コード 0", run(ws).status === 0);
     assert("警告は --strict で終了コード 1", run(ws, "--strict").status === 1);
+
+    // harmony.json に登録されていないテーブルは、設計書にも検査にも載らないので、warning として出す (--strict で失敗)
+    writeFileSync(join(ws, "harmony/reports/delivery-note.json"), JSON.stringify(JSON.parse(readFileSync(join(repo, "examples/retail/harmony/reports/delivery-note.json"), "utf8"))));
+    const hj = JSON.parse(readFileSync(join(ws, "harmony.json"), "utf8"));
+    const droppedTable = hj.entities.tables.shift();
+    writeFileSync(join(ws, "harmony.json"), JSON.stringify(hj));
+    const unreg = run(ws, "--strict");
+    assert("未登録のテーブルは --strict で終了コード 1 (理由が出る)", unreg.status === 1 && unreg.stdout.includes(droppedTable.id) && unreg.stdout.includes("登録されていない"), unreg.stdout);
+    hj.entities.tables.unshift(droppedTable);
+    writeFileSync(join(ws, "harmony.json"), JSON.stringify(hj));
+
+    // 規約カタログ・独自部品の JSON が壊れていたら、原因 (ファイルが壊れている) を error として示す
+    const lc = join(ws, "harmony/layout-components.json");
+    writeFileSync(lc, "{ not json");
+    const lcRes = run(ws);
+    assert("独自部品の JSON が壊れていたら、原因を示す error (終了コード 1)", lcRes.status === 1 && lcRes.stdout.includes("layout-components.json を読めない"), lcRes.stdout);
+    rmSync(lc);
+    writeFileSync(join(ws, "harmony/conventions/catalog.json"), "{ not json");
+    const cvRes = run(ws);
+    assert("規約カタログの JSON が壊れていたら、原因を示す error (終了コード 1)", cvRes.status === 1 && cvRes.stdout.includes("conventions/catalog.json を読めない"), cvRes.stdout);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
+});
+
+// ─────────────────────────────────────────────────────────────
+// export-test-viewpoints.mjs (テスト観点表の書き出し)
+// ─────────────────────────────────────────────────────────────
+group("export-test-viewpoints", () => {
+  const repo = resolve(__dirname, "../..");
+  const run = (...args) => spawnSync("node", ["scripts/export-test-viewpoints.mjs", ...args], { cwd: repo, encoding: "utf8" });
+  const json = run("examples/retail", "--format", "json");
+  let sheet = null;
+  try { sheet = JSON.parse(json.stdout); } catch { /* 下で失敗にする */ }
+  assert("--format json は観点表を返す", json.status === 0 && sheet && sheet.total > 0, json.stderr);
+  const ids = sheet ? [...sheet.screens.flatMap((s) => s.cases.map((c) => c.id)), ...sheet.flows.flatMap((f) => f.cases.map((c) => c.id))] : [];
+  assert("ID は重複しない", ids.length > 0 && new Set(ids).size === ids.length);
+  assert("同じ入力からは同じ結果 (決定的)", run("examples/retail", "--format", "json").stdout === json.stdout);
+  const only = run("examples/retail", "--format", "json", "--screen", "cart");
+  const onlySheet = JSON.parse(only.stdout);
+  assert("--screen で画面を絞れる (処理は絞った画面に関係なく出る)", onlySheet.screens.length === 1 && onlySheet.screens[0].screenId === "cart");
+  const csv = run("examples/retail");
+  assert("既定は CSV (BOM つき・見出し行つき)", csv.stdout.startsWith("\uFEFFID,対象,区分"));
+  assert("規約の上限 (@conv.limit) を解いて境界値を出す (cart.addQuantity の 1000)", /cart\.addQuantity\.max-over,.*,1000\r?\n/.test(csv.stdout));
+  assert("--format が不正なら終了コード 2", run("examples/retail", "--format", "xls").status === 2);
+  assert("引数なしは終了コード 2", run().status === 2);
 });
 
 // ─────────────────────────────────────────────────────────────

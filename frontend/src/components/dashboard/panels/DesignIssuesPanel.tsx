@@ -11,7 +11,7 @@ import { loadDesignInput } from "../../document/loadDesignInput";
 
 const SHOWN = 6;
 const RELOAD_EVENTS = [
-  "projectChanged", "screenChanged", "processFlowChanged", "tableChanged", "businessFlowChanged", "reportChanged", "layoutComponentsChanged",
+  "projectChanged", "screenChanged", "screenItemsChanged", "processFlowChanged", "tableChanged", "businessFlowChanged", "reportChanged", "layoutComponentsChanged",
 ] as const;
 
 const SEV_ICON: Record<DocIssue["severity"], string> = { error: "bi-x-octagon-fill", warning: "bi-exclamation-triangle-fill", info: "bi-info-circle" };
@@ -74,7 +74,7 @@ export function DesignIssuesPanel() {
       </div>
       {skipped.length > 0 && (
         <div style={{ marginTop: 6, fontSize: "0.8rem", color: SEV_COLOR.error }}>
-          <i className="bi bi-file-earmark-x me-1" />読めないファイル: {skipped.join(", ")}
+          <i className="bi bi-file-earmark-x me-1" />読めないもの: {skipped.join(", ")}
         </div>
       )}
       {top.length > 0 && (
@@ -87,7 +87,7 @@ export function DesignIssuesPanel() {
           ))}
         </ul>
       )}
-      <button type="button" className="btn btn-sm btn-link p-0 mt-2" onClick={go} data-testid="design-issues-open">
+      <button type="button" className="dip-open" onClick={go} data-testid="design-issues-open">
         設計書で全件を見る{counts.error + counts.warning > SHOWN ? ` (ほか ${counts.error + counts.warning - SHOWN} 件)` : ""}
       </button>
     </div>

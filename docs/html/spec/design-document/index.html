@@ -42,7 +42,11 @@
 
 
 
-<table><thead><tr><th>入口</th><th>内容</th></tr></thead><tbody><tr><td>アプリ: ヘッダーメニュー「設計書」(<code>/document</code>)</td><td>目次 + 紙面を表示。「再生成」「別タブで開く (印刷用)」「HTML で保存」</td></tr><tr><td>CLI: <code>node scripts/export-design-doc.mjs &#x3C;workspace> [--out file.html] [--version v]</code></td><td>単体の HTML ファイル (CSS・目次同梱) を書き出す。版は省略時 git の短縮 SHA</td></tr><tr><td>CLI: <code>npm run check:design -- &#x3C;workspace>... [--strict] [--info] [--json]</code></td><td>「要確認事項」だけを検査して一覧する (終了コード 0 = 問題なし / 1 = エラー (<code>--strict</code> なら警告も) あり / 2 = 読み込み失敗)。読めない (壊れた) JSON はエラー扱い。AI が設計を直したあと・コミット前の点検用。<code>npm run check</code> が <code>examples/</code> 全件を <code>--strict</code> で検査する</td></tr><tr><td>ダッシュボード「設計の要確認」パネル</td><td>要確認事項の件数 (エラー・警告・情報) と上位 6 件。クリックで設計書へ。保存・改名のたびに自動で更新する</td></tr></tbody></table>
+
+
+
+
+<table><thead><tr><th>入口</th><th>内容</th></tr></thead><tbody><tr><td>アプリ: ヘッダーメニュー「設計書」(<code>/document</code>)</td><td>目次 + 紙面を表示。「再生成」「別タブで開く (印刷用)」「HTML で保存」</td></tr><tr><td>CLI: <code>node scripts/export-design-doc.mjs &#x3C;workspace> [--out file.html] [--version v]</code></td><td>単体の HTML ファイル (CSS・目次同梱) を書き出す。版は省略時 git の短縮 SHA</td></tr><tr><td>CLI: <code>npm run check:design -- &#x3C;workspace>... [--strict] [--info] [--json]</code></td><td>「要確認事項」だけを検査して一覧する (終了コード 0 = 問題なし / 1 = エラー (<code>--strict</code> なら警告も) あり / 2 = 読み込み失敗)。読めない (壊れた) JSON はエラー扱い。AI が設計を直したあと・コミット前の点検用。<code>npm run check</code> が <code>examples/</code> 全件を <code>--strict</code> で検査する</td></tr><tr><td>CLI: <code>npm run export:tests -- &#x3C;workspace> [--format csv|json|md]</code></td><td>テスト観点表を書き出す (<a href="../../spec/test-viewpoints/">test-viewpoints.md</a>)。設計書の付録「テスト観点 (画面入力)」と同じ導出</td></tr><tr><td>ダッシュボード「設計の要確認」パネル</td><td>要確認事項の件数 (エラー・警告・情報) と上位 6 件。クリックで設計書へ。保存・改名のたびに自動で更新する</td></tr></tbody></table>
 <p>どちらも <code>@harmony/shared</code> の <code>buildDesignDocument</code> / <code>renderStandaloneDesignDoc</code> で生成する (同じ内容になる)。対象の処理フロー・テーブルは <code>harmony.json</code> に登録されたもの。</p>
 <h2 id="3-構成">3. 構成</h2>
 

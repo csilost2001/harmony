@@ -114,6 +114,20 @@ describe("EditSessionService.save resource change broadcast", () => {
     expect(broadcasts.find((call) => call.event === "reportChanged")?.data).toEqual({ reportId: "delivery" });
   });
 
+  it("業務フロー・帳票の編集セッションは、書けない形の payload を保存すると失敗し、ファイルも作らず、変更の通知も出さない", async () => {
+    for (const [type, id, bad, dir] of [
+      ["business-flow", "bad-flow", { id: "bad-flow", name: "x", lanes: [] }, "business-flows"], // steps が無い
+      ["report", "bad-report", { id: "bad-report", name: "x" }, "reports"], // sections が無い
+    ] as const) {
+      const { editSession } = service.create("client-editor", type, id, "x");
+      const editSessionId = (editSession as { id: string }).id;
+      service.update("client-editor", editSessionId, bad);
+      await expect(service.save("client-editor", editSessionId)).rejects.toThrow(/の形で指定してください/);
+      await expect(fs.access(path.join(tmpDir, "data", dir, `${id}.json`))).rejects.toThrow();
+      expect(broadcasts.find((c) => c.event === (type === "report" ? "reportChanged" : "businessFlowChanged"))).toBeUndefined();
+    }
+  });
+
   it("#1368 Codex Round 3 Must-fix: long composite generic-definition resourceId (>64 chars) も WS handler が accept する", async () => {
     // assertSafeName は max 64 chars だが、`${kind}__${name}` 形式は最大 64 + 2 + 64 = 130 chars
     // schema-valid な長い name で 64 chars を超える事例を捕捉する (Round 3 で観測):

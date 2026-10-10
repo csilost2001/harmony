@@ -54,14 +54,24 @@ export function QuickOpen() {
   const navigate = useNavigate();
   const { wsPath } = useWorkspacePath();
 
-  const show = useCallback(() => { setQuery(""); setCursor(0); setRecent(loadRecentQuickOpen()); setOpen(true); }, []);
+  const returnFocusTo = useRef<HTMLElement | null>(null);
+  const show = useCallback(() => {
+    returnFocusTo.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setQuery(""); setCursor(0); setRecent(loadRecentQuickOpen()); setOpen(true);
+  }, []);
 
   // Ctrl+K (Mac は ⌘K) でどこからでも開く。入力欄にフォーカスがあっても開く
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        setOpen((v) => { if (!v) { setQuery(""); setCursor(0); setRecent(loadRecentQuickOpen()); } return !v; });
+        setOpen((v) => {
+          if (!v) {
+            returnFocusTo.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+            setQuery(""); setCursor(0); setRecent(loadRecentQuickOpen());
+          }
+          return !v;
+        });
       }
     };
     document.addEventListener("keydown", onKey);
@@ -76,6 +86,13 @@ export function QuickOpen() {
     loadSources().then((src) => { if (alive) setEntries(buildQuickOpenEntries(src)); }).catch(() => { if (alive) setEntries([]); });
     inputRef.current?.focus();
     return () => { alive = false; };
+  }, [open]);
+
+  // 閉じたら、開く前にフォーカスしていた場所へ戻す (キーボード操作の途中で見失わないように)
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (wasOpen.current && !open) returnFocusTo.current?.focus?.();
+    wasOpen.current = open;
   }, [open]);
 
   const hits = useMemo(() => (entries ? searchQuickOpen(entries, query, 50, recent) : []), [entries, query, recent]);
@@ -95,10 +112,13 @@ export function QuickOpen() {
   }, [navigate, wsPath]);
 
   const onInputKey = (e: React.KeyboardEvent) => {
+    // 日本語入力の変換中の Esc / Enter は、変換の取り消し・確定に使うので、ここでは扱わない
+    if (e.nativeEvent.isComposing) return;
     if (e.key === "Escape") { e.preventDefault(); setOpen(false); }
+    else if (e.key === "Tab") { e.preventDefault(); } // 開いている間は、フォーカスを入力欄から出さない
     else if (e.key === "ArrowDown") { e.preventDefault(); setCursor((c) => Math.min(c + 1, Math.max(hits.length - 1, 0))); }
     else if (e.key === "ArrowUp") { e.preventDefault(); setCursor((c) => Math.max(c - 1, 0)); }
-    else if (e.key === "Enter" && !e.nativeEvent.isComposing) { e.preventDefault(); if (hits[cursor]) go(hits[cursor].entry); }
+    else if (e.key === "Enter") { e.preventDefault(); if (hits[cursor]) go(hits[cursor].entry); }
   };
 
   return (
@@ -123,6 +143,7 @@ export function QuickOpen() {
               role="combobox"
               aria-expanded="true"
               aria-controls="quick-open-list"
+              aria-activedescendant={hits[cursor] ? `quick-open-opt-${cursor}` : undefined}
             />
             <kbd>Esc</kbd>
           </div>
@@ -132,6 +153,7 @@ export function QuickOpen() {
             {hits.map(({ entry }, i) => (
               <li
                 key={entry.key}
+                id={`quick-open-opt-${i}`}
                 data-index={i}
                 data-testid="quick-open-item"
                 data-key={entry.key}

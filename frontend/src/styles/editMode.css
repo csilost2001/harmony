@@ -181,3 +181,7 @@
   margin-left: 4px;
   cursor: default;
 }
+
+/* 保存に失敗したときの案内 */
+.edit-save-error { display: flex; align-items: center; gap: 8px; margin: 0; padding: 8px 14px; background: var(--hm-surface-2); border-bottom: 1px solid var(--hm-danger); color: var(--hm-danger); font-size: 13px; }
+.edit-save-error__close { margin-left: auto; border: 0; background: none; color: inherit; cursor: pointer; padding: 2px 6px; }

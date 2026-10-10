@@ -203,17 +203,34 @@ test.describe("帳票", () => {
     await expect(page.getByTestId("rp-dirty")).toHaveCount(0);
     expect((await read("delivery-note")).sections.map((s: { id: string }) => s.id)).toEqual([secIds[1], secIds[2], secIds[0], ...secIds.slice(3)]);
 
-    // 用紙の見本: 明細の「商品名」を「金額」の右へ動かす
+    // 用紙の見本: 項目を同じ部の中で動かす。落とす位置 (項目の左半分 = 前 / 右半分 = 後ろ) が、結果の並びと一致する
     const detail = (await read("delivery-note")).sections.find((s: { kind: string }) => s.kind === "detail");
     const ids: string[] = detail.fields.map((f: { id: string }) => f.id);
-    await page.getByTestId(`rp-field-${ids[0]}`).first().dragTo(page.getByTestId(`rp-field-${ids[ids.length - 1]}`).first(), { targetPosition: { x: 4, y: 4 } });
-    await expect(page.getByTestId("rp-dirty")).toBeVisible();
+    expect(ids.length).toBeGreaterThanOrEqual(5);
+    const [f1, f2, f3, f4, f5] = ids;
+    const paperOrder = () => page.locator('section[data-section="lines"] .rp-row:not(.rp-labels)').first().locator("[data-field]").evaluateAll((els) => els.map((x) => x.getAttribute("data-field")));
+    const drop = async (from: string, to: string, half: "left" | "right") => {
+      const target = page.getByTestId(`rp-field-${to}`).first();
+      await expect(target).toBeVisible();
+      await target.scrollIntoViewIfNeeded();
+      const box = await target.boundingBox();
+      if (!box) throw new Error(`項目 ${to} が見つかりません`);
+      await page.getByTestId(`rp-field-${from}`).first().dragTo(target, { targetPosition: { x: half === "left" ? 4 : box.width - 4, y: 4 } });
+    };
+    await drop(f1, f3, "left");   // a を c の前へ        → b a c d e
+    await expect.poll(paperOrder).toEqual([f2, f1, f3, f4, f5]);
+    await drop(f5, f2, "right");  // e を b の後ろへ      → b e a c d
+    await expect.poll(paperOrder).toEqual([f2, f5, f1, f3, f4]);
+    await drop(f2, f4, "right");  // b を d の後ろへ      → e a c d b
+    await expect.poll(paperOrder).toEqual([f5, f1, f3, f4, f2]);
+    await drop(f4, f5, "left");   // d を e の前へ        → d e a c b
+    await expect.poll(paperOrder).toEqual([f4, f5, f1, f3, f2]);
+    await drop(f4, f5, "left");   // すでにその位置なら、並びは変わらない
+    await expect.poll(paperOrder).toEqual([f4, f5, f1, f3, f2]);
     await saveEdit(page);
     await expect(page.getByTestId("rp-dirty")).toHaveCount(0);
     const after = (await read("delivery-note")).sections.find((s: { kind: string }) => s.kind === "detail").fields.map((f: { id: string }) => f.id);
-    expect(after).not.toEqual(ids);
-    expect([...after].sort()).toEqual([...ids].sort());
-    expect(after.indexOf(ids[0])).toBe(ids.length - 1);
+    expect(after).toEqual([f4, f5, f1, f3, f2, ...ids.slice(5)]);
   });
 
   test("設計書に「帳票」の章 (用紙の見本と項目定義) が出る @regression", async ({ page }) => {

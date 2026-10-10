@@ -30,6 +30,11 @@ test.describe("クイックオープン", () => {
     await expect(page.getByTestId("quick-open")).toHaveCount(0);
 
     await page.getByTestId("quick-open-trigger").click();
+    await page.keyboard.press("Escape");
+    // 閉じたら、開く前にフォーカスしていた場所 (虫眼鏡のボタン) へ戻る
+    await expect(page.getByTestId("quick-open-trigger")).toBeFocused();
+    await page.getByTestId("quick-open-trigger").click();
+    await expect(page.getByTestId("quick-open-input")).toHaveAttribute("aria-activedescendant", /quick-open-opt-0/);
     await page.getByTestId("quick-open-input").fill("納品書");
     await expect(page.locator('[data-testid="quick-open-item"][data-key="report:delivery-note"]')).toBeVisible();
     await page.keyboard.press("Enter");

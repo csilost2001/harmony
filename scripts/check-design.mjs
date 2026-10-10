@@ -28,13 +28,11 @@ const MARK = { error: "✖", warning: "▲", info: "・" };
 const show = flag("--info") ? ["error", "warning", "info"] : ["error", "warning"];
 
 function check(dir) {
-  const loadWarnings = [];
-  const loaded = loadWorkspaceInput(dir, (m) => loadWarnings.push(m.replace(/^警告: /, "")));
+  // 読めないファイルや未登録のファイルは、設計書に載らないだけで気づきにくいので、問題として先頭に出す
+  const loaded = loadWorkspaceInput(dir, () => undefined);
   if (!loaded) return null;
   const { issues } = buildDesignDocument(loaded.input);
-  // 読めないファイルは、設計書に載らないだけで気づきにくいので error として扱う
-  const unreadable = loadWarnings.filter((m) => m.includes("読めない")).map((message) => ({ severity: "error", section: "読み込み", message }));
-  const all = [...unreadable, ...issues];
+  const all = [...loaded.problems, ...issues];
   const count = (sev) => all.filter((i) => i.severity === sev).length;
   const summary = { error: count("error"), warning: count("warning"), info: count("info") };
   const failed = summary.error > 0 || (flag("--strict") && summary.warning > 0);

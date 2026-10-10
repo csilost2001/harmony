@@ -11,6 +11,7 @@
  * - history FS: <workspace-root>/.edit-sessions/<editSessionId>.json
  */
 
+import { logWarn } from "./serverLog.js";
 import fs from "fs/promises";
 import path from "path";
 import { randomBytes } from "node:crypto";
@@ -243,6 +244,12 @@ async function readEditSessionFromFs(workspaceRoot: string, editSessionId: strin
   const parsed = JSON.parse(raw) as Omit<EditSession, "participants"> & {
     participants?: Record<string, ParticipantInfo>;
   };
+  // 旧エディタ (GrapesJS / Puck) の廃止前の編集セッション (screen / page-layout-design / puck-data) が残っていても、
+  // 今は扱えない (payload が別形式) ため読み込まない
+  if (!VALID_RESOURCE_TYPES.has(parsed.resourceType)) {
+    logWarn("edit-session", "persisted.legacy-type.skipped", { editSessionId, resourceType: String(parsed.resourceType) });
+    return null;
+  }
   return {
     ...parsed,
     participants: new Map(Object.entries(parsed.participants ?? {})),
