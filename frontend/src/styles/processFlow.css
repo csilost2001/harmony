@@ -70,11 +70,11 @@
   white-space: nowrap;
 }
 
-.process-flow-type-badge.screen { background: var(--hm-surface-3); color: color-mix(in srgb, #2758e2 80%, var(--hm-fg)); }
-.process-flow-type-badge.batch { background: color-mix(in srgb, #fbcb0e 9%, var(--hm-surface)); color: color-mix(in srgb, #ea6c20 80%, var(--hm-fg)); }
-.process-flow-type-badge.scheduled { background: var(--hm-surface-3); color: color-mix(in srgb, #483ecc 80%, var(--hm-fg)); }
-.process-flow-type-badge.system { background: var(--hm-surface-3); color: color-mix(in srgb, #e02973 80%, var(--hm-fg)); }
-.process-flow-type-badge.common { background: var(--hm-surface-3); color: color-mix(in srgb, #19f0b4 80%, var(--hm-fg)); }
+.process-flow-type-badge.screen { background: var(--hm-surface-3); color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg)); }
+.process-flow-type-badge.batch { background: color-mix(in srgb, var(--hm-hue-amber) 9%, var(--hm-surface)); color: color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg)); }
+.process-flow-type-badge.scheduled { background: var(--hm-surface-3); color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg)); }
+.process-flow-type-badge.system { background: var(--hm-surface-3); color: color-mix(in srgb, var(--hm-hue-purple) 80%, var(--hm-fg)); }
+.process-flow-type-badge.common { background: var(--hm-surface-3); color: color-mix(in srgb, var(--hm-hue-green) 80%, var(--hm-fg)); }
 .process-flow-type-badge.other { background: var(--hm-surface-2); color: var(--hm-fg-2); }
 
 /* ─── DataList カード内コンテンツ ────────────────────────────────── */
@@ -111,7 +111,7 @@
 }
 
 .process-flow-validation-ok {
-  color: color-mix(in srgb, #1eeca7 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-green) 80%, var(--hm-fg));
 }
 
 /* エラー/警告状態のカード装飾 (:has() で外側を着色) */
@@ -142,10 +142,10 @@
 .process-flow-marker-badge i {
   font-size: 0.7rem;
 }
-.process-flow-marker-badge.kind-todo { background: var(--hm-surface-3); color: color-mix(in srgb, #19f0b4 80%, var(--hm-fg)); }
-.process-flow-marker-badge.kind-question { background: var(--hm-surface-3); color: color-mix(in srgb, #7230d9 80%, var(--hm-fg)); }
-.process-flow-marker-badge.kind-attention { background: color-mix(in srgb, #fbcb0e 9%, var(--hm-surface)); color: color-mix(in srgb, #ea6c20 80%, var(--hm-fg)); }
-.process-flow-marker-badge.kind-chat { background: var(--hm-surface-3); color: color-mix(in srgb, #2e57db 80%, var(--hm-fg)); }
+.process-flow-marker-badge.kind-todo { background: var(--hm-surface-3); color: color-mix(in srgb, var(--hm-hue-green) 80%, var(--hm-fg)); }
+.process-flow-marker-badge.kind-question { background: var(--hm-surface-3); color: color-mix(in srgb, var(--hm-hue-purple) 80%, var(--hm-fg)); }
+.process-flow-marker-badge.kind-attention { background: color-mix(in srgb, var(--hm-hue-amber) 9%, var(--hm-surface)); color: color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg)); }
+.process-flow-marker-badge.kind-chat { background: var(--hm-surface-3); color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg)); }
 
 .process-flow-list-filter-sep {
   width: 1px;
@@ -173,7 +173,7 @@
 }
 
 .process-flow-editor-breadcrumb a {
-  color: color-mix(in srgb, #1e23eb 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   text-decoration: none;
 }
 
@@ -231,7 +231,7 @@
   justify-content: center;
   border-radius: 6px;
   background: var(--hm-surface-3);
-  color: color-mix(in srgb, #0fa7fb 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   font-size: 0.8rem;
   flex: 0 0 auto;
 }
@@ -254,7 +254,7 @@
 
 .process-flow-tab.active .process-flow-tab-trigger-icon {
   background: var(--hm-surface-3);
-  color: color-mix(in srgb, #2758e2 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
 }
 
 .process-flow-tab-remove {
@@ -274,7 +274,7 @@
 
 .process-flow-tab-remove:hover {
   background: var(--hm-surface-3);
-  color: color-mix(in srgb, #dd2c2c 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg));
 }
 
 .process-flow-tab-empty {
@@ -295,7 +295,7 @@
 }
 
 .process-flow-tab-add:hover {
-  color: color-mix(in srgb, #1f5fea 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   background: var(--hm-surface-3);
 }
 
@@ -330,7 +330,7 @@
   justify-content: center;
   border-radius: 8px;
   background: var(--hm-surface-3);
-  color: color-mix(in srgb, #2758e2 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   font-size: 1rem;
 }
 
@@ -751,7 +751,7 @@
 .process-flow-page .edit-session-dropdown-toggle:hover {
   border-color: #2563eb;
   background: var(--hm-surface-3);
-  color: color-mix(in srgb, #2758e2 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
 }
 
 .process-flow-page .editor-header .btn-primary,
@@ -823,7 +823,7 @@
 .process-flow-io-panel :where(button):hover {
   border-color: #2563eb;
   background: var(--hm-surface-3);
-  color: color-mix(in srgb, #2758e2 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
 }
 
 .process-flow-inspector-pane :where(button:not(.catalog-panel-toggle):not(.step-context-menu-item)):focus-visible,
@@ -994,7 +994,7 @@
 .step-toolbar-btn:hover {
   border-color: #2563eb;
   background: var(--hm-surface-3);
-  color: color-mix(in srgb, #2758e2 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
 }
 
@@ -1027,7 +1027,7 @@
 
 .step-template-btn:hover {
   border-color: #6366f1;
-  color: color-mix(in srgb, #483ecc 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
 }
 
 /* ─── ステップカード ──────────────────────────────────────────────── */
@@ -1102,7 +1102,7 @@
 
 .step-insert-btn:hover {
   border-color: #2563eb;
-  color: color-mix(in srgb, #1f5fea 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   background: var(--hm-surface-3);
 }
 
@@ -1120,7 +1120,7 @@
   border: 1px solid #93c5fd;
   border-radius: 999px;
   background: var(--hm-surface-2);
-  color: color-mix(in srgb, #2758e2 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   cursor: pointer;
   transition: background 0.15s;
 }
@@ -1192,7 +1192,7 @@
 .step-card-number {
   font-size: 0.78rem;
   font-weight: 700;
-  color: color-mix(in srgb, #1e23eb 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   min-width: 28px;
 }
 
@@ -1297,12 +1297,12 @@
 
 .step-branch-box.ok {
   background: var(--hm-surface-2);
-  border: 1px solid color-mix(in srgb, #24e568 38%, var(--hm-surface));
+  border: 1px solid color-mix(in srgb, var(--hm-hue-green) 38%, var(--hm-surface));
 }
 
 .step-branch-box.ng {
   background: var(--hm-surface-2);
-  border: 1px solid color-mix(in srgb, #fa0f0f 38%, var(--hm-surface));
+  border: 1px solid color-mix(in srgb, var(--hm-hue-red) 38%, var(--hm-surface));
 }
 
 .step-branch-label {
@@ -1429,7 +1429,7 @@
 .screen-item-picker-screen-row.active {
   background: var(--hm-surface-3);
   border-color: #60a5fa;
-  color: color-mix(in srgb, #2e57db 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   font-weight: 600;
 }
 .screen-item-picker-item-row {
@@ -1469,12 +1469,12 @@
   background: var(--hm-surface-2);
 }
 .structured-fields-link-badge {
-  color: color-mix(in srgb, #1f5fea 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   margin-left: 3px;
   font-size: 0.8rem;
 }
 .structured-fields-unlink {
-  color: color-mix(in srgb, #dd2c2c 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg));
 }
 
 /* ─── モーダル ────────────────────────────────────────────────────── */
@@ -1593,7 +1593,7 @@
 }
 
 .step-context-menu-item.danger {
-  color: color-mix(in srgb, #dd2c2c 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg));
 }
 
 .step-context-menu-item.danger:hover {
@@ -1758,7 +1758,7 @@
 
 .branch-add-btn:hover {
   border-color: #f97316;
-  color: color-mix(in srgb, #f97010 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg));
   background: var(--hm-surface-2);
 }
 
@@ -1781,7 +1781,7 @@
 }
 
 .loop-body {
-  border: 1px solid color-mix(in srgb, #12dff7 38%, var(--hm-surface));
+  border: 1px solid color-mix(in srgb, var(--hm-hue-cyan) 38%, var(--hm-surface));
   border-radius: 6px;
   background: var(--hm-surface-2);
   margin-top: 8px;
@@ -1793,10 +1793,10 @@
   align-items: center;
   gap: 6px;
   padding: 6px 10px;
-  border-bottom: 1px solid color-mix(in srgb, #12dff7 38%, var(--hm-surface));
+  border-bottom: 1px solid color-mix(in srgb, var(--hm-hue-cyan) 38%, var(--hm-surface));
   font-size: 0.78rem;
   font-weight: 600;
-  color: color-mix(in srgb, #15c9f4 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-cyan) 80%, var(--hm-fg));
   cursor: pointer;
   background: var(--hm-surface-2);
   user-select: none;
@@ -1838,7 +1838,7 @@
 
 .inline-add-btn:hover {
   border-color: #6366f1;
-  color: color-mix(in srgb, #1e23eb 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   background: var(--hm-surface-2);
 }
 
@@ -1875,7 +1875,7 @@
 .inline-type-btn:hover {
   background: var(--hm-surface-2);
   border-color: #6366f1;
-  color: color-mix(in srgb, #483ecc 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
 }
 
 /* ─── ジャンプ先セレクター (Phase 5) ────────────────────────────── */
@@ -1898,7 +1898,7 @@
 .jump-unresolved-icon {
   position: absolute;
   left: 8px;
-  color: color-mix(in srgb, #f5a214 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg));
   font-size: 0.82rem;
   pointer-events: none;
   z-index: 1;
@@ -1951,7 +1951,7 @@
 
 .jump-selector-option-label {
   font-weight: 600;
-  color: color-mix(in srgb, #1e23eb 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -1986,21 +1986,21 @@
 }
 
 .step-validation-msg.error {
-  color: color-mix(in srgb, #dd2c2c 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg));
   background: var(--hm-surface-2);
   border-top: 1px solid var(--hm-border);
 }
 
 .step-validation-msg.warning {
-  color: color-mix(in srgb, #f88d11 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg));
   background: var(--hm-surface-2);
-  border-top: 1px solid color-mix(in srgb, #fbcc0e 38%, var(--hm-surface));
+  border-top: 1px solid color-mix(in srgb, var(--hm-hue-amber) 38%, var(--hm-surface));
 }
 
 /* 警告詳細パネル (#261 UI 統合) */
 .process-flow-validation-panel {
   margin: 4px 16px 8px;
-  border: 1px solid color-mix(in srgb, #fbcc0e 38%, var(--hm-surface));
+  border: 1px solid color-mix(in srgb, var(--hm-hue-amber) 38%, var(--hm-surface));
   border-radius: 8px;
   background: var(--hm-surface-2);
   overflow: hidden;
@@ -2012,9 +2012,9 @@
   padding: 6px 12px;
   font-weight: 600;
   font-size: 0.82rem;
-  color: color-mix(in srgb, #ea6c20 80%, var(--hm-fg));
-  background: color-mix(in srgb, #fbcb0e 9%, var(--hm-surface));
-  border-bottom: 1px solid color-mix(in srgb, #fbcc0e 38%, var(--hm-surface));
+  color: color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg));
+  background: color-mix(in srgb, var(--hm-hue-amber) 9%, var(--hm-surface));
+  border-bottom: 1px solid color-mix(in srgb, var(--hm-hue-amber) 38%, var(--hm-surface));
 }
 .process-flow-validation-panel-list {
   list-style: none;
@@ -2029,18 +2029,18 @@
   gap: 6px;
   padding: 4px 0;
   font-size: 0.8rem;
-  border-bottom: 1px dashed color-mix(in srgb, #fbcc0e 38%, var(--hm-surface));
+  border-bottom: 1px dashed color-mix(in srgb, var(--hm-hue-amber) 38%, var(--hm-surface));
 }
 .process-flow-validation-panel-list li:last-child { border-bottom: none; }
 
 .process-flow-validation-panel-bulk-ai {
   margin-left: auto;
-  color: color-mix(in srgb, #2e57db 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   font-weight: 600;
 }
 .process-flow-validation-panel-bulk-ai:hover {
   background: var(--hm-surface-3);
-  color: color-mix(in srgb, #365fd3 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
 }
 
 .validation-ask-ai-btn {
@@ -2049,19 +2049,19 @@
   font-size: 0.72rem;
   border: 1px solid #93c5fd;
   background: var(--hm-surface-2);
-  color: color-mix(in srgb, #2e57db 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   border-radius: 3px;
   flex-shrink: 0;
 }
 .validation-ask-ai-btn:hover:not(:disabled) {
   background: var(--hm-surface-3);
-  color: color-mix(in srgb, #365fd3 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
 }
 .validation-ask-ai-btn.asked,
 .validation-ask-ai-btn:disabled {
   background: var(--hm-surface-2);
-  border-color: color-mix(in srgb, #27e26b 38%, var(--hm-surface));
-  color: color-mix(in srgb, #36d372 80%, var(--hm-fg));
+  border-color: color-mix(in srgb, var(--hm-hue-green) 38%, var(--hm-surface));
+  color: color-mix(in srgb, var(--hm-hue-green) 80%, var(--hm-fg));
   cursor: default;
 }
 
@@ -2074,14 +2074,14 @@
   font-size: 11px;
   font-weight: 600;
   background: var(--hm-surface-3);
-  color: color-mix(in srgb, #2e57db 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   border-radius: 10px;
   flex-shrink: 0;
   cursor: help;
   border: 1px solid #93c5fd;
 }
 .step-marker-badge:hover {
-  background: color-mix(in srgb, #0e77fb 32%, var(--hm-surface));
+  background: color-mix(in srgb, var(--hm-hue-blue) 32%, var(--hm-surface));
 }
 
 /* StepCard の kind 別マーカーバッジ (#261) */
@@ -2104,29 +2104,29 @@
   border: 1px solid transparent;
 }
 .step-marker-chip i { font-size: 9px; }
-.step-marker-chip.kind-todo { background: var(--hm-surface-3); color: color-mix(in srgb, #19f0b4 80%, var(--hm-fg)); border-color: color-mix(in srgb, #2ddc97 38%, var(--hm-surface)); }
-.step-marker-chip.kind-question { background: var(--hm-surface-3); color: color-mix(in srgb, #7230d9 80%, var(--hm-fg)); border-color: #c4b5fd; }
-.step-marker-chip.kind-attention { background: color-mix(in srgb, #fbcb0e 9%, var(--hm-surface)); color: color-mix(in srgb, #ea6c20 80%, var(--hm-fg)); border-color: color-mix(in srgb, #fbc30e 38%, var(--hm-surface)); }
-.step-marker-chip.kind-chat { background: var(--hm-surface-3); color: color-mix(in srgb, #2e57db 80%, var(--hm-fg)); border-color: #93c5fd; }
-.step-marker-chip.kind-validator { background: var(--hm-surface-3); color: color-mix(in srgb, #da2f2f 80%, var(--hm-fg)); border-color: #fca5a5; }
+.step-marker-chip.kind-todo { background: var(--hm-surface-3); color: color-mix(in srgb, var(--hm-hue-green) 80%, var(--hm-fg)); border-color: color-mix(in srgb, var(--hm-hue-green) 38%, var(--hm-surface)); }
+.step-marker-chip.kind-question { background: var(--hm-surface-3); color: color-mix(in srgb, var(--hm-hue-purple) 80%, var(--hm-fg)); border-color: #c4b5fd; }
+.step-marker-chip.kind-attention { background: color-mix(in srgb, var(--hm-hue-amber) 9%, var(--hm-surface)); color: color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg)); border-color: color-mix(in srgb, var(--hm-hue-amber) 38%, var(--hm-surface)); }
+.step-marker-chip.kind-chat { background: var(--hm-surface-3); color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg)); border-color: #93c5fd; }
+.step-marker-chip.kind-validator { background: var(--hm-surface-3); color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg)); border-color: #fca5a5; }
 .validation-code {
   font-family: ui-monospace, monospace;
   font-size: 0.7rem;
   padding: 1px 6px;
-  background: color-mix(in srgb, #fbcc0e 14%, var(--hm-surface));
-  color: color-mix(in srgb, #e46a25 80%, var(--hm-fg));
+  background: color-mix(in srgb, var(--hm-hue-amber) 14%, var(--hm-surface));
+  color: color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg));
   border-radius: 3px;
   flex-shrink: 0;
 }
 .validation-message {
-  color: color-mix(in srgb, #e46a25 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg));
   flex: 1;
   min-width: 0;
 }
 .validation-path {
   font-family: ui-monospace, monospace;
   font-size: 0.7rem;
-  color: color-mix(in srgb, #ea6c20 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg));
   opacity: 0.7;
   flex-basis: 100%;
   padding-left: 8px;
@@ -2196,7 +2196,7 @@
 }
 .process-flow-meta-tabs .catalog-panel:has(.bi-chevron-down) .catalog-panel-toggle,
 .action-meta-tabs .catalog-panel:has(.bi-chevron-down) .catalog-panel-toggle {
-  color: color-mix(in srgb, #2e57db 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
 }
 .process-flow-meta-tabbar-spacer,
 .action-meta-tabbar-spacer {
@@ -2293,7 +2293,7 @@
   font-weight: 600;
   padding: 2px 8px;
   background: var(--hm-surface-3);
-  color: color-mix(in srgb, #4941c8 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   border-radius: 3px;
 }
 .catalog-row-fields {
@@ -2332,7 +2332,7 @@
 /* マーカーパネル (#261) */
 .marker-panel .catalog-panel-toggle {
   background: var(--hm-surface-2);
-  color: color-mix(in srgb, #2e57db 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
 }
 .marker-row {
   border-left: 3px solid #3b82f6;
@@ -2351,15 +2351,15 @@
   font-weight: 600;
   padding: 2px 8px;
   background: var(--hm-surface-3);
-  color: color-mix(in srgb, #4941c8 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   border-radius: 3px;
   display: inline-flex;
   align-items: center;
   gap: 4px;
 }
-.marker-row.marker-kind-attention .marker-kind-badge { background: color-mix(in srgb, #fbcb0e 9%, var(--hm-surface)); color: color-mix(in srgb, #ea6c20 80%, var(--hm-fg)); }
-.marker-row.marker-kind-todo .marker-kind-badge { background: var(--hm-surface-3); color: color-mix(in srgb, #19f0b4 80%, var(--hm-fg)); }
-.marker-row.marker-kind-question .marker-kind-badge { background: var(--hm-surface-3); color: color-mix(in srgb, #7230d9 80%, var(--hm-fg)); }
+.marker-row.marker-kind-attention .marker-kind-badge { background: color-mix(in srgb, var(--hm-hue-amber) 9%, var(--hm-surface)); color: color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg)); }
+.marker-row.marker-kind-todo .marker-kind-badge { background: var(--hm-surface-3); color: color-mix(in srgb, var(--hm-hue-green) 80%, var(--hm-fg)); }
+.marker-row.marker-kind-question .marker-kind-badge { background: var(--hm-surface-3); color: color-mix(in srgb, var(--hm-hue-purple) 80%, var(--hm-fg)); }
 
 .marker-author, .marker-step-ref { padding: 0 4px; }
 .marker-body {
@@ -2373,10 +2373,10 @@
   margin-top: 4px;
   padding: 4px 8px;
   background: var(--hm-surface-2);
-  border: 1px solid color-mix(in srgb, #24e568 38%, var(--hm-surface));
+  border: 1px solid color-mix(in srgb, var(--hm-hue-green) 38%, var(--hm-surface));
   border-radius: 3px;
   font-size: 0.78rem;
-  color: color-mix(in srgb, #3acf75 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-green) 80%, var(--hm-fg));
 }
 .marker-timestamps { padding-top: 4px; }
 .marker-add-row { flex-wrap: wrap; gap: 4px; }
@@ -2388,7 +2388,7 @@
   gap: 3px;
   padding: 1px 6px;
   background: var(--hm-surface-3);
-  color: color-mix(in srgb, #da2f2f 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg));
   border-radius: 8px;
   font-size: 0.72rem;
   font-weight: 600;
@@ -2411,7 +2411,7 @@
   margin-top: 6px;
   padding: 8px;
   background: var(--hm-surface-2);
-  border: 1px dashed color-mix(in srgb, #27e26b 38%, var(--hm-surface));
+  border: 1px dashed color-mix(in srgb, var(--hm-hue-green) 38%, var(--hm-surface));
   border-radius: 4px;
   display: flex;
   flex-direction: column;
@@ -2716,7 +2716,7 @@
 
 .process-flow-ai-panel-status.connected {
   background: var(--hm-surface-2);
-  color: color-mix(in srgb, #2ddc6e 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-green) 80%, var(--hm-fg));
 }
 
 .process-flow-ai-panel-status.disconnected {
@@ -2749,20 +2749,20 @@
   font-size: 0.72rem;
   font-weight: 500;
   background: var(--hm-surface-2);
-  color: color-mix(in srgb, #2758e2 80%, var(--hm-fg));
-  border: 1px solid color-mix(in srgb, #0e77fb 38%, var(--hm-surface));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
+  border: 1px solid color-mix(in srgb, var(--hm-hue-blue) 38%, var(--hm-surface));
   max-width: 180px;
 }
 
 .process-flow-ai-chip--action {
   background: var(--hm-surface-2);
-  color: color-mix(in srgb, #2ddc6e 80%, var(--hm-fg));
-  border-color: color-mix(in srgb, #24e568 38%, var(--hm-surface));
+  color: color-mix(in srgb, var(--hm-hue-green) 80%, var(--hm-fg));
+  border-color: color-mix(in srgb, var(--hm-hue-green) 38%, var(--hm-surface));
 }
 
 .process-flow-ai-chip--flow {
   background: var(--hm-surface-2);
-  color: color-mix(in srgb, #8b2ddc 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-purple) 80%, var(--hm-fg));
   border-color: var(--hm-border-strong);
 }
 
@@ -2827,9 +2827,9 @@
   align-items: flex-start;
   gap: 5px;
   font-size: 0.78rem;
-  color: color-mix(in srgb, #dd2c2c 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg));
   background: var(--hm-surface-2);
-  border: 1px solid color-mix(in srgb, #fa0f0f 38%, var(--hm-surface));
+  border: 1px solid color-mix(in srgb, var(--hm-hue-red) 38%, var(--hm-surface));
   border-radius: 4px;
   padding: 6px 8px;
 }
@@ -2933,17 +2933,17 @@
 
 .diff-kind-badge--added {
   background: var(--hm-surface-2);
-  color: color-mix(in srgb, #2ddc6e 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-green) 80%, var(--hm-fg));
 }
 
 .diff-kind-badge--removed {
   background: var(--hm-surface-3);
-  color: color-mix(in srgb, #dd2c2c 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg));
 }
 
 .diff-kind-badge--changed {
-  background: color-mix(in srgb, #fbcb0e 9%, var(--hm-surface));
-  color: color-mix(in srgb, #ea6c20 80%, var(--hm-fg));
+  background: color-mix(in srgb, var(--hm-hue-amber) 9%, var(--hm-surface));
+  color: color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg));
 }
 
 .process-flow-ai-diff-before,
@@ -2975,14 +2975,14 @@
 
 .diff-code--before {
   background: var(--hm-surface-2);
-  border: 1px solid color-mix(in srgb, #fa0f0f 38%, var(--hm-surface));
-  color: color-mix(in srgb, #da2f2f 80%, var(--hm-fg));
+  border: 1px solid color-mix(in srgb, var(--hm-hue-red) 38%, var(--hm-surface));
+  color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg));
 }
 
 .diff-code--after {
   background: var(--hm-surface-2);
-  border: 1px solid color-mix(in srgb, #24e568 38%, var(--hm-surface));
-  color: color-mix(in srgb, #36d372 80%, var(--hm-fg));
+  border: 1px solid color-mix(in srgb, var(--hm-hue-green) 38%, var(--hm-surface));
+  color: color-mix(in srgb, var(--hm-hue-green) 80%, var(--hm-fg));
 }
 
 .process-flow-ai-diff-marker-form {
@@ -3034,7 +3034,7 @@
 
 .step-card-ai-btn:hover {
   background: var(--hm-surface-2);
-  color: color-mix(in srgb, #156af4 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
 }
 
 .step-card-ai-btn:focus-visible {
@@ -3066,10 +3066,10 @@
 .pfd-legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11.5px; color: var(--hm-fg-muted); }
 .pfd-legend-item { display: inline-flex; align-items: center; gap: 4px; }
 .pfd-swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; border: 1.5px solid var(--hm-border-strong); background: var(--hm-surface); }
-.pfd-swatch.pfd-tone-db { border-color: color-mix(in srgb, #2563eb 80%, var(--hm-fg)); }
-.pfd-swatch.pfd-tone-decision { border-color: color-mix(in srgb, #d97706 80%, var(--hm-fg)); background: color-mix(in srgb, #d97706 14%, var(--hm-surface)); transform: rotate(45deg) scale(0.8); }
-.pfd-swatch.pfd-frame-tx { border: 1.5px dashed color-mix(in srgb, #2563eb 80%, var(--hm-fg)); background: color-mix(in srgb, #2563eb 8%, var(--hm-surface)); }
-.pfd-swatch.pfd-frame-loop { border: 1.5px dashed color-mix(in srgb, #ca8a04 80%, var(--hm-fg)); }
+.pfd-swatch.pfd-tone-db { border-color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg)); }
+.pfd-swatch.pfd-tone-decision { border-color: color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg)); background: color-mix(in srgb, var(--hm-hue-orange) 14%, var(--hm-surface)); transform: rotate(45deg) scale(0.8); }
+.pfd-swatch.pfd-frame-tx { border: 1.5px dashed color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg)); background: color-mix(in srgb, var(--hm-hue-blue) 8%, var(--hm-surface)); }
+.pfd-swatch.pfd-frame-loop { border: 1.5px dashed color-mix(in srgb, var(--hm-hue-amber) 80%, var(--hm-fg)); }
 .pfd-swatch.pfd-tone-error { border-color: var(--hm-danger); background: color-mix(in srgb, var(--hm-danger) 14%, var(--hm-surface)); border-radius: 6px; }
 .pfd-zoom { display: inline-flex; border: 1px solid var(--hm-border-strong); border-radius: 6px; overflow: hidden; }
 .pfd-zoom button { border: 0; background: var(--hm-surface); color: var(--hm-fg-muted); font-size: 11.5px; padding: 2px 8px; cursor: pointer; font-variant-numeric: tabular-nums; }
@@ -3081,10 +3081,10 @@
 .pfd-hit { cursor: pointer; }
 .pfd-node rect, .pfd-node polygon { fill: var(--hm-surface); stroke: var(--hm-border-strong); stroke-width: 1.2; }
 .pfd-node .pfd-stripe { stroke: none; fill: var(--hm-fg-faint); }
-.pfd-tone-db rect:first-of-type { stroke: color-mix(in srgb, #2563eb 70%, var(--hm-fg)); }
-.pfd-tone-db .pfd-stripe { fill: color-mix(in srgb, #2563eb 80%, var(--hm-fg)); }
+.pfd-tone-db rect:first-of-type { stroke: color-mix(in srgb, var(--hm-hue-blue) 70%, var(--hm-fg)); }
+.pfd-tone-db .pfd-stripe { fill: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg)); }
 .pfd-tone-jump rect:first-of-type { stroke-dasharray: 4 3; }
-.pfd-tone-decision polygon { fill: color-mix(in srgb, #d97706 12%, var(--hm-surface)); stroke: color-mix(in srgb, #d97706 80%, var(--hm-fg)); }
+.pfd-tone-decision polygon { fill: color-mix(in srgb, var(--hm-hue-orange) 12%, var(--hm-surface)); stroke: color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg)); }
 .pfd-tone-error rect { fill: color-mix(in srgb, var(--hm-danger) 12%, var(--hm-surface)); stroke: var(--hm-danger); }
 .pfd-tone-ok rect { fill: color-mix(in srgb, var(--hm-success) 12%, var(--hm-surface)); stroke: var(--hm-success); }
 .pfd-tone-start rect { fill: var(--hm-surface-3); stroke: var(--hm-fg-muted); }
@@ -3094,24 +3094,24 @@
 .pfd-caption { font-size: 10.5px; font-weight: 700; fill: var(--hm-fg-muted); }
 .pfd-caption-inline { font-weight: 700; }
 .pfd-text { font-size: 12px; fill: var(--hm-fg); }
-.pfd-sub { font-size: 10.5px; fill: color-mix(in srgb, #2563eb 70%, var(--hm-fg)); font-family: ui-monospace, Menlo, monospace; }
+.pfd-sub { font-size: 10.5px; fill: color-mix(in srgb, var(--hm-hue-blue) 70%, var(--hm-fg)); font-family: ui-monospace, Menlo, monospace; }
 .pfd-tone-error .pfd-text, .pfd-tone-error .pfd-caption-inline { fill: var(--hm-danger); }
 .pfd-tone-ok .pfd-text { fill: color-mix(in srgb, var(--hm-success) 75%, var(--hm-fg)); }
 
 .pfd-frame rect { fill: transparent; stroke-width: 1.3; stroke-dasharray: 7 4; }
-.pfd-frame-tx rect { fill: color-mix(in srgb, #2563eb 5%, transparent); stroke: color-mix(in srgb, #2563eb 70%, var(--hm-fg)); }
-.pfd-frame-loop rect { stroke: color-mix(in srgb, #ca8a04 80%, var(--hm-fg)); }
+.pfd-frame-tx rect { fill: color-mix(in srgb, var(--hm-hue-blue) 5%, transparent); stroke: color-mix(in srgb, var(--hm-hue-blue) 70%, var(--hm-fg)); }
+.pfd-frame-loop rect { stroke: color-mix(in srgb, var(--hm-hue-amber) 80%, var(--hm-fg)); }
 .pfd-frame-rollback rect { fill: color-mix(in srgb, var(--hm-danger) 5%, transparent); stroke: var(--hm-danger); }
 .pfd-frame-commit rect { stroke: var(--hm-success); }
 .pfd-frame.is-selected rect { stroke: var(--hm-accent); stroke-width: 2.4; }
 .pfd-frame { cursor: pointer; }
 .pfd-frame-label { font-size: 11px; font-weight: 700; fill: var(--hm-fg-muted); font-family: ui-monospace, Menlo, monospace; }
-.pfd-frame-tx .pfd-frame-label { fill: color-mix(in srgb, #2563eb 75%, var(--hm-fg)); }
+.pfd-frame-tx .pfd-frame-label { fill: color-mix(in srgb, var(--hm-hue-blue) 75%, var(--hm-fg)); }
 .pfd-frame-rollback .pfd-frame-label { fill: var(--hm-danger); }
 
 .pfd-edge path { fill: none; stroke: var(--hm-fg-faint); stroke-width: 1.4; }
 .pfd-edge-error path { stroke: var(--hm-danger); }
-.pfd-edge-back path { stroke: color-mix(in srgb, #ca8a04 70%, var(--hm-fg)); stroke-dasharray: 4 3; }
+.pfd-edge-back path { stroke: color-mix(in srgb, var(--hm-hue-amber) 70%, var(--hm-fg)); stroke-dasharray: 4 3; }
 .pfd-edge-dashed path { stroke-dasharray: 5 4; }
 .pfd-arrowhead { fill: var(--hm-fg-faint); }
 .pfd-arrowhead-error { fill: var(--hm-danger); }
@@ -3127,13 +3127,13 @@
 .pft-table td { padding: 5px 8px; border: 1px solid var(--hm-border); vertical-align: top; color: var(--hm-fg); }
 .pft-no { width: 72px; font-family: ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .pft-kind { width: 110px; white-space: nowrap; color: var(--hm-fg-muted); }
-.pft-target { overflow-wrap: anywhere; width: 200px; font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; color: color-mix(in srgb, #2563eb 70%, var(--hm-fg)); }
+.pft-target { overflow-wrap: anywhere; width: 200px; font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; color: color-mix(in srgb, var(--hm-hue-blue) 70%, var(--hm-fg)); }
 .pft-note { width: 260px; font-size: 11.5px; color: var(--hm-fg-2); overflow-wrap: anywhere; }
 .pft-row { cursor: pointer; }
 .pft-row:hover td { background: var(--hm-hover); }
-.pft-row.is-tx td { background: color-mix(in srgb, #2563eb 6%, var(--hm-surface)); }
-.pft-row.is-tx td.pft-no { box-shadow: inset 3px 0 0 color-mix(in srgb, #2563eb 70%, var(--hm-fg)); }
-.pft-branch-arm td { color: color-mix(in srgb, #d97706 75%, var(--hm-fg)); font-weight: 600; background: color-mix(in srgb, #d97706 6%, var(--hm-surface)); }
+.pft-row.is-tx td { background: color-mix(in srgb, var(--hm-hue-blue) 6%, var(--hm-surface)); }
+.pft-row.is-tx td.pft-no { box-shadow: inset 3px 0 0 color-mix(in srgb, var(--hm-hue-blue) 70%, var(--hm-fg)); }
+.pft-branch-arm td { color: color-mix(in srgb, var(--hm-hue-orange) 75%, var(--hm-fg)); font-weight: 600; background: color-mix(in srgb, var(--hm-hue-orange) 6%, var(--hm-surface)); }
 .pft-row.is-error td { color: var(--hm-danger); }
 .pft-row.is-selected td { background: var(--hm-accent-soft); }
 .pft-row.is-selected td.pft-no { box-shadow: inset 3px 0 0 var(--hm-accent); }

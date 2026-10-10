@@ -120,7 +120,7 @@ export function FilterDefaultsSection({
                         d.filterDefaults = arr;
                       })}
                       onBlur={() => { if (!isReadonly) commit(); }}
-                      placeholder="@conv.numbering.threshold"
+                      placeholder="例: @conv.numbering.threshold"
                       className="vd-col-input-sm"
                       disabled={isReadonly}
                     />

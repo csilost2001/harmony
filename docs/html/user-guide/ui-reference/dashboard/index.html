@@ -14,7 +14,7 @@
 <strong>種別</strong>: シングルトンタブ</p>
 </blockquote>
 <h2 id="概要">概要</h2>
-<p>プロジェクト全体の状況を一目で俯瞰するパネル集合体。機能別定義数 / 処理フロー成熟度 / AI 依頼マーカー / 未保存ドラフト / 最近編集したもの の 5 パネルを <code>react-grid-layout</code> でドラッグ・リサイズ可能に配置できる。レイアウトはブラウザの localStorage (<code>dashboard-layout-v1</code>) に永続化されるため、各利用者の好みでカスタマイズ可。</p>
+<p>プロジェクト全体の状況を一目で俯瞰するパネル集合体。はじめかた / 機能別定義数 / 設計の要確認 / 処理フロー成熟度 / AI 依頼マーカー / 未保存ドラフト / 最近編集したもの の 7 パネルを <code>react-grid-layout</code> でドラッグ・リサイズ可能に配置できる。レイアウトはブラウザの localStorage (<code>dashboard-layout-v1</code>) に永続化されるため、各利用者の好みでカスタマイズ可。</p>
 <h2 id="到達経路">到達経路</h2>
 <ul>
 <li>ワークスペースを選択した直後に最初に表示される (ホーム位置)</li>
@@ -26,9 +26,11 @@
 <h3 id="主要エリア">主要エリア</h3>
 <ol>
 <li><strong>ヘッダー</strong> — タイトル「ダッシュボード」+ 副題「プロジェクト全体の状況を俯瞰 (パネルはドラッグ/リサイズ可能)」</li>
-<li><strong>パネルグリッド</strong> — 5 つの情報パネル (順序・サイズは利用者がカスタマイズ可)
+<li><strong>パネルグリッド</strong> — 7 つの情報パネル (順序・サイズは利用者がカスタマイズ可)
+0. <strong>はじめかた</strong> (<code>getting-started</code>) — 画面・テーブル・処理フロー・業務フロー・帳票のどれから作るかの案内。始めた項目には件数と印が付き、「はじめる」で各一覧へ移る。<code>Ctrl+K</code> と AI への依頼の案内つき
 <ol>
 <li><strong>機能別定義数</strong> (<code>function-counts</code>) — 画面 / テーブル / 処理フロー等の件数</li>
+<li><strong>設計の要確認</strong> (<code>design-issues</code>) — 設計書の「要確認事項」(エラー・警告・情報の件数と上位 6 件)。クリックで設計書へ。コマンド <code>npm run check:design</code> と同じ検査</li>
 <li><strong>処理フロー成熟度</strong> (<code>process-flow-maturity</code>) — draft / committed の比率を可視化</li>
 <li><strong>AI 依頼マーカー</strong> (<code>markers-summary</code>) — 未解決のマーカー (指示・質問・TODO) 件数</li>
 <li><strong>未保存ドラフト</strong> (<code>unsaved-drafts</code>) — <code>data/.drafts/&#x3C;wsId>/</code> に残っているドラフト一覧</li>

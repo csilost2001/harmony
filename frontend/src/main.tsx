@@ -3,6 +3,8 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "./styles/tokens.css";
+import "./styles/bootstrapCompat.css";
+import "./styles/viewEditors.css";
 import "./index.css";
 import App from "./App.tsx";
 import { ErrorBoundary } from "./components/common/ErrorBoundary";

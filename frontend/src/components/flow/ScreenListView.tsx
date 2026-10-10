@@ -478,15 +478,6 @@ export function ScreenListView() {
 
   const columns = useMemo<DataListColumn<ScreenNode>[]>(() => [
     {
-      key: "draft",
-      header: "",
-      width: "32px",
-      align: "center",
-      render: (s) => hasDraft("screen", s.id)
-        ? <span className="list-item-draft-mark" title="未保存の編集中 draft があります">●</span>
-        : null,
-    },
-    {
       key: "name",
       header: "画面名",
       sortable: true,
@@ -587,9 +578,6 @@ export function ScreenListView() {
         <span className="screen-card-name">{s.name}</span>
         <span className="screen-type-badge">{SCREEN_KIND_LABELS[s.kind] ?? s.kind}</span>
         <MaturityBadge maturity={s.maturity} />
-        {hasDraft("screen", s.id) && (
-          <span className="list-item-draft-mark" title="未保存の編集中 draft があります">●</span>
-        )}
         {validation && validation.errors > 0 && <ValidationBadge severity="error" count={validation.errors} />}
         {validation && validation.errors === 0 && validation.warnings > 0 && <ValidationBadge severity="warning" count={validation.warnings} />}
       </div>

@@ -3,7 +3,8 @@
  * theme-audit — 起動中の dev server で全主要画面を開き、ライト / ダーク各テーマで
  *   (1) 文字と背景のコントラスト不足 (WCAG 比 < 3.0)
  *   (2) テーマに合わない大きな面 (ライトで暗い面 / ダークで明るい面)
- * を機械検出する。上部ヘッダー (.common-header) と設計キャンバス (iframe) は対象外。
+ * を機械検出する。dev server が起動していなければ自動で起動し、終了時に止める。指摘があれば終了コード 1。
+ * 上部ヘッダー (.common-header) と設計キャンバス (iframe) は対象外。
  *
  * 使い方:
  *   node scripts/dev/theme-audit.mjs [--ws <workspace>] [--theme light|dark|both] [--only a,b] [--json out.json]
@@ -11,6 +12,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
+import { ensureDevServers, resolveWorkspace } from "./lib/dev-servers.mjs";
 
 const require = createRequire(path.resolve("frontend/package.json"));
 const { chromium } = require("@playwright/test");
@@ -20,7 +22,7 @@ const args = Object.fromEntries(process.argv.slice(2).reduce((acc, cur, i, arr) 
   return acc;
 }, []));
 const BASE = args.base ?? "http://localhost:5173";
-const wsPath = path.resolve(args.ws ?? "workspaces/dogfood-redesign-20261008");
+const wsPath = resolveWorkspace(args.ws ?? "workspaces/dogfood-redesign-20261008");
 const themes = (args.theme ?? "both") === "both" ? ["light", "dark"] : [args.theme];
 const only = args.only ? new Set(args.only.split(",")) : null;
 
@@ -117,6 +119,7 @@ const auditFn = (theme) => {
   return { contrast: contrast.slice(0, 25), surfaces: surfaces.slice(0, 10) };
 };
 
+const servers = await ensureDevServers();
 const browser = await chromium.launch();
 const report = {};
 for (const theme of themes) {
@@ -142,4 +145,9 @@ for (const theme of themes) {
   await context.close();
 }
 await browser.close();
+servers.stop();
 if (args.json) fs.writeFileSync(args.json, JSON.stringify(report, null, 2));
+// 指摘があれば失敗として終わる (コミット前・報告前の確認で終了コードを使えるように)
+const total = Object.values(report).reduce((n, r) => n + r.contrast.length + r.surfaces.length, 0);
+console.log(total ? `\n指摘 ${total} 件` : "\n指摘 0 件");
+process.exit(total ? 1 : 0);

@@ -167,7 +167,7 @@ export function fieldWidths(fields: readonly ReportField[]): number[] {
 export interface ReportHtmlOptions {
   /** 見本の明細の行数 (既定 3) */
   detailRows?: number;
-  /** 項目を選択可能にする (編集画面用)。data-field / data-section と testid を付ける */
+  /** 項目を選択可能にする (編集画面用)。data-field / data-section と testid を付け、項目はドラッグできる (draggable) */
   interactive?: boolean;
   selected?: { sectionId?: string; fieldId?: string };
 }
@@ -192,7 +192,7 @@ export function reportToHtml(report: Pick<Report, "sections" | "output" | "name"
     const label = `${REPORT_SECTION_LABELS[s.kind]}${s.name ? `: ${s.name}` : ""}${s.groupBy ? ` (${s.groupBy} ごと)` : ""}`;
     const cell = (f: ReportField, i: number, value: string, head = false) => {
       const fsel = inter && opts.selected?.fieldId === f.id && opts.selected.sectionId === s.id;
-      const attrs = inter && !head ? ` data-section="${esc(s.id)}" data-field="${esc(f.id)}" data-testid="rp-field-${esc(f.id)}" tabindex="0" role="button"` : "";
+      const attrs = inter && !head ? ` data-section="${esc(s.id)}" data-field="${esc(f.id)}" data-testid="rp-field-${esc(f.id)}" tabindex="0" role="button" draggable="true"` : "";
       return `<div class="rp-cell rp-${f.align ?? "left"} rp-k-${f.kind}${head ? " rp-head" : ""}${fsel ? " rp-selected" : ""}" style="flex:0 0 ${Math.round(widths[i] * 100) / 100}%"${attrs}>${esc(value)}</div>`;
     };
     parts.push(`<section class="rp-section rp-s-${s.kind}${sel ? " rp-selected" : ""}"${inter ? ` data-section="${esc(s.id)}" data-testid="rp-section-${esc(s.id)}"` : ""}><span class="rp-tag">${esc(label)}</span>`);

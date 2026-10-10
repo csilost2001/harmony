@@ -194,62 +194,6 @@ describe("update", () => {
       expect(parsed.sequence).toBe(1);
     });
   });
-
-  it("screen update は active draft payload を components companion に分離し、FS から復元できる (#1448)", async () => {
-    const session = store.create("session-A", "screen", "scr-draft", "@alice");
-    store.update(session.id, {
-      pages: [{ frames: [{ component: { type: "wrapper", components: "<main>active draft</main>" } }] }],
-    }, "session-A");
-
-    const filePath = path.join(tmpDir, ".edit-sessions", `${session.id}.json`);
-    const designPath = path.join(tmpDir, ".edit-sessions", session.id, "payload.design.json");
-    const htmlPath = path.join(tmpDir, ".edit-sessions", session.id, "payload.components.html");
-    await vi.waitFor(async () => {
-      const parsed = JSON.parse(await fs.readFile(filePath, "utf-8"));
-      expect(parsed.payload).toEqual({ payloadRef: `${session.id}/payload.design.json` });
-      const designPayload = JSON.parse(await fs.readFile(designPath, "utf-8"));
-      expect(designPayload.pages[0].frames[0].component.componentsRef).toBe("payload.components.html");
-      expect(designPayload.pages[0].frames[0].component).not.toHaveProperty("components");
-      expect(await fs.readFile(htmlPath, "utf-8")).toBe("<main>active draft</main>");
-    });
-
-    const restoredStore = new EditSessionStore(tmpDir);
-    const restored = await restoredStore.fetchCurrentPayloadFromFs(session.id);
-    expect((restored!.payload as any).pages[0].frames[0].component.components).toBe("<main>active draft</main>");
-    expect(restored!.sequence).toBe(1);
-  });
-
-  it("page-layout-design update も active draft payload を components companion に分離する (#1448)", async () => {
-    const session = store.create("session-A", "page-layout-design", "pl-draft", "@alice");
-    store.update(session.id, {
-      pages: [{ frames: [{ component: { type: "wrapper", components: "<section data-region-name=\"main\"></section>" } }] }],
-    }, "session-A");
-
-    const designPath = path.join(tmpDir, ".edit-sessions", session.id, "payload.design.json");
-    const htmlPath = path.join(tmpDir, ".edit-sessions", session.id, "payload.components.html");
-    await vi.waitFor(async () => {
-      const designPayload = JSON.parse(await fs.readFile(designPath, "utf-8"));
-      expect(designPayload.pages[0].frames[0].component.componentsRef).toBe("payload.components.html");
-      expect(await fs.readFile(htmlPath, "utf-8")).toBe("<section data-region-name=\"main\"></section>");
-    });
-  });
-
-  it("連続 update の active draft persist は最後の payload/sequence で収束する (#1448)", async () => {
-    const session = store.create("session-A", "screen", "scr-draft-race", "@alice");
-    for (let i = 1; i <= 8; i += 1) {
-      store.update(session.id, {
-        pages: [{ frames: [{ component: { type: "wrapper", components: `<main>${i}</main>` } }] }],
-      }, "session-A");
-    }
-
-    const filePath = path.join(tmpDir, ".edit-sessions", `${session.id}.json`);
-    const htmlPath = path.join(tmpDir, ".edit-sessions", session.id, "payload.components.html");
-    await vi.waitFor(async () => {
-      const parsed = JSON.parse(await fs.readFile(filePath, "utf-8"));
-      expect(parsed.sequence).toBe(8);
-      expect(await fs.readFile(htmlPath, "utf-8")).toBe("<main>8</main>");
-    });
-  });
 });
 
 // ── 5. transferEdit 正常系 → from Edit → View, to View → Edit に atomic ──────
@@ -707,5 +651,23 @@ describe("migrateResourceId — Phase K rename integrity", () => {
     expect(result.migrated.map((entry) => entry.editSessionId)).toEqual([session.id]);
     expect(result.warnings.join("\n")).toMatch(/persist injected/);
     expect(store.get(session.id)?.resourceId).toBe("persist-new");
+  });
+});
+
+describe("旧エディタ廃止前の編集セッション (永続化済み)", () => {
+  it("旧種別 (screen / page-layout-design / puck-data) のセッションは読み込まない", async () => {
+    const dir = path.join(tmpDir, ".edit-sessions");
+    await fs.mkdir(dir, { recursive: true });
+    for (const rt of ["screen", "page-layout-design", "puck-data"]) {
+      await fs.writeFile(path.join(dir, `legacy-${rt}.json`), JSON.stringify({
+        id: `legacy-${rt}`, resourceType: rt, resourceId: "x", state: "Active", sequence: 1,
+        createdAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 1e9).toISOString(), saveHistory: [],
+        lastActivityAt: new Date().toISOString(), payload: { payloadRef: "legacy/payload.design.json" }, participants: {},
+      }));
+    }
+    const fresh = new EditSessionStore(tmpDir);
+    for (const rt of ["screen", "page-layout-design", "puck-data"]) {
+      expect(await fresh.fetchCurrentPayloadFromFs(`legacy-${rt}`)).toBeNull();
+    }
   });
 });

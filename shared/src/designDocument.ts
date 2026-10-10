@@ -16,6 +16,7 @@ import {
   type Report,
 } from "./report.js";
 import { deriveAccessMatrix, type AccessPermission, type AccessRole } from "./accessMatrix.js";
+import { deriveScreenInputCases } from "./testViewpoints.js";
 import { expandComponentNode, expandLayout, validateLayoutWithComponents, type LayoutComponentDef } from "./layoutComponents.js";
 
 // ── 入力 (原本 JSON の必要部分だけを構造的に受け取る) ─────────────────────
@@ -92,6 +93,9 @@ export interface DesignDocInput {
   /** 規約の役割 (@conv.role.*) と権限 (@conv.permission.*)。あれば「権限」の章を出す */
   roles?: Record<string, AccessRole>;
   permissions?: Record<string, AccessPermission>;
+  /** 規約カタログの上限値 (`@conv.limit.*`) と正規表現 (`@conv.regex.*`)。テスト観点で項目の制約の参照を解くのに使う */
+  limits?: Record<string, { value?: number }>;
+  regex?: Record<string, { pattern?: string; exampleValid?: string[]; exampleInvalid?: string[] }>;
   /** プロジェクト独自部品の定義 (画面レイアウトの展開と「独自部品」の章に使う) */
   layoutComponents?: LayoutComponentDef[];
   /** 表紙に出す版 (例: git の短縮 SHA) */
@@ -664,6 +668,21 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
     ? table(["区分", "対象", "内容"], issues.map((x) => [`<span class="hd-sev hd-sev-${x.severity}">${sevLabel[x.severity]}</span>`, esc(x.section), esc(x.message)]))
     : `<p class="hd-empty">要確認事項はありません。</p>`, String(chap + 1));
 
+  // 付録: テスト観点 (画面入力)。画面項目の制約から、正常・異常・境界値のケースを導いた一覧。入力のある画面があるときだけ (章番号を動かさないよう、要確認事項の後ろに置く)
+  const inputCases = pages.map((s) => ({ s, cases: deriveScreenInputCases(s, { limits: input.limits, regex: input.regex, messages: input.messages }) })).filter((x) => x.cases.length);
+  if (inputCases.length) {
+    const catClass = (c: string) => (c === "正常系" ? "hd-sev-ok" : c === "境界値" ? "hd-sev-info" : "hd-sev-error");
+    toc.push({ id: "input-tests", title: "テスト観点 (画面入力)", level: 1 });
+    out.push(`<section class="hd-section hd-level-1" id="input-tests"><h2 class="hd-title"><span class="hd-chapter">付録</span>テスト観点 (画面入力)</h2>
+      <p class="hd-desc">画面項目の必須・桁数・範囲・形式から自動で導いた、入力のテストケースです (全 ${inputCases.reduce((n, x) => n + x.cases.length, 0)} 件)。ID は画面・項目・規則から決まります。<code>npm run export:tests</code> で CSV / JSON に書き出せます。</p>
+      ${inputCases.map(({ s, cases }) => `<h4 class="hd-sub"><a href="#${anchor("screen", s.id)}">${esc(s.name ?? s.id)}</a><small>${cases.length} 件</small></h4>
+      ${table(["ID", "項目", "区分", "観点", "入力", "期待結果"], cases.map((c) => [
+        `<code>${esc(c.rule)}</code>`, esc(c.itemLabel), `<span class="hd-sev ${catClass(c.category)}">${c.category}</span>`, esc(c.viewpoint), esc(c.input),
+        esc(c.expected) + (c.expectedMessage ? `<br><small>メッセージ: ${esc(c.expectedMessage)}</small>` : ""),
+      ]), "hd-incases")}`).join("")}
+    </section>`);
+  }
+
   return { html: `<article class="hd-doc">${out.join("\n")}</article>`, toc, css: DESIGN_DOC_CSS, issues };
 }
 
@@ -784,6 +803,7 @@ export const DESIGN_DOC_CSS = `
 .hd-items td:nth-child(3) code,.hd-columns td:nth-child(3) code{white-space:nowrap;overflow-wrap:normal}
 .hd-items td:nth-child(2){min-width:7em}.hd-items td:nth-child(4),.hd-items td:nth-child(5),.hd-items td:nth-child(6),.hd-items td:nth-child(7){white-space:nowrap}
 .hd-tests td:nth-child(2),.hd-tests td:nth-child(5){white-space:nowrap}
+.hd-incases td:nth-child(1),.hd-incases td:nth-child(3){white-space:nowrap}
 .hd-columns td:nth-child(2){min-width:7em}.hd-columns td:nth-child(n+4):nth-child(-n+8){white-space:nowrap}
 .lv-paper{border:1px solid var(--d-line);background:#f7f8fa;padding:14px;display:flex;flex-direction:column;gap:10px;font-size:12.5px}
 .lv-stack{display:flex;flex-direction:column;gap:8px;min-width:0}

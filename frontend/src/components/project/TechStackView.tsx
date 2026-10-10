@@ -465,12 +465,12 @@ export function TechStackView() {
               : <><i className="bi bi-save" style={{ marginRight: 6 }} />保存</>}
           </button>
           {saveSuccess && (
-            <span style={{ color: "color-mix(in srgb, #3ad05c 80%, var(--hm-fg))", fontSize: 13 }}>
+            <span style={{ color: "color-mix(in srgb, var(--hm-hue-green) 80%, var(--hm-fg))", fontSize: 13 }}>
               <i className="bi bi-check-circle" style={{ marginRight: 4 }} />保存しました
             </span>
           )}
           {hasViolations && (
-            <span style={{ color: "color-mix(in srgb, #db2e3f 80%, var(--hm-fg))", fontSize: 13 }}>
+            <span style={{ color: "color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg))", fontSize: 13 }}>
               <i className="bi bi-exclamation-triangle" style={{ marginRight: 4 }} />
               制約違反があるため保存できません
             </span>
@@ -513,7 +513,7 @@ export function TechStackView() {
         {/* 制約違反 */}
         {hasViolations && (
           <div style={{ marginTop: 16 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: "color-mix(in srgb, #db2e3f 80%, var(--hm-fg))", textTransform: "uppercase" as const, letterSpacing: 1, marginBottom: 8 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg))", textTransform: "uppercase" as const, letterSpacing: 1, marginBottom: 8 }}>
               <i className="bi bi-exclamation-triangle" style={{ marginRight: 4 }} />
               制約違反
             </div>
@@ -521,12 +521,12 @@ export function TechStackView() {
               <div
                 key={i}
                 style={{
-                  background: "color-mix(in srgb, #db2e3f 10%, transparent)",
+                  background: "color-mix(in srgb, var(--hm-hue-red) 10%, transparent)",
                   border: "1px solid rgba(220,53,69,0.3)",
                   borderRadius: 4, padding: "8px 10px", marginBottom: 8, fontSize: 12,
                 }}
               >
-                <div style={{ color: "color-mix(in srgb, #ff0a0a 70%, var(--hm-fg))", fontWeight: 500, marginBottom: 2 }}>{v.field}</div>
+                <div style={{ color: "color-mix(in srgb, var(--hm-hue-red) 70%, var(--hm-fg))", fontWeight: 500, marginBottom: 2 }}>{v.field}</div>
                 <div style={{ color: "var(--hm-fg-2)" }}>{v.message}</div>
               </div>
             ))}

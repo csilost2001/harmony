@@ -577,19 +577,21 @@ PR #888 で議論した B.5 (案 2 / 案 3 のどちらか) は本 spec で **�
 | EditSession 自体 (active) | acquire 時 | in-memory `EditSessionStore` のみ |
 | EditSession 自体 (history) | save 時 + Discarded 遷移時 | FS `<workspace-root>/.edit-sessions/<editSessionId>.json` (#856 dataDir 分離仕様: workspace root 直下、`<dataDir>` 配下ではない — 編集セッション管理は workspace 全体のメタデータ扱い) |
 | 中間 payload (mid-edit) | update 毎 | in-memory `EditSession.payload` + FS `<workspace-root>/.edit-sessions/<editSessionId>.json` |
-| design payload companion | update 毎 (screen / page-layout-design のみ) | `<workspace-root>/.edit-sessions/<editSessionId>/payload.design.json` + `payload.components.html` |
 | save の payload | save 操作時 | 本体ファイル + EditSession.saveHistory |
 
 **active draft は file-backed**: 別 session が attach した時は memory から fetch できるが、backend restart 後の復元にも耐えるため update 毎に active draft を FS に永続化する。永続化 write は editSessionId ごとの queue で直列化し、古い update が新しい update を上書きしないようにする。
 
 → B.5 は **案 3 (active draft file-backed)** を採用する。PR #888 時点の「初回 FS 書き込み」ではなく、edit-session payload 全体を active draft として扱う。
 
+> **編集できるリソースの種別** (`DRAFT_RESOURCE_TYPES`、`shared/src/draftResourceTypes.ts`): table / process-flow / view / view-definition / page-layout / screen-item (画面項目 + 業務部品レイアウト) / sequence / generic-definition / business-flow (業務フロー) / report (帳票) / extension / convention / flow / er-layout。
+> 旧エディタ (GrapesJS / Puck) の廃止 (2026-10) に伴い、旧デザイン本体の種別 `screen` / `page-layout-design` / `puck-data` と、その HTML 本体の分離保存 (design payload companion) は無い。
+> business-flow / report の resourceId は文書の ID (`<dataDir>/business-flows/<id>.json` / `reports/<id>.json`)、payload は文書全体で、保存すると文書のファイルを書き、`businessFlowChanged` / `reportChanged` を配信する。
+
 ### 13.5 backend crash 耐性
 
 Active EditSession の中間状態は update 毎に FS に永続化される。crash / backend restart 時:
 
 - `.edit-sessions/<editSessionId>.json` から metadata / sequence を復元できる
-- screen / page-layout-design の HTML body は `payload.design.json` + `payload.components.html` から inflate して復元できる
 - 最後の update 永続化前に process が落ちた場合のみ、直前の debounce window 分は失われる可能性がある
 
 → UX 上は「ブラウザ再起動・backend restart 後も active draft を復元できる」契約とする。
@@ -609,13 +611,6 @@ draft history snapshot は以下のパスに保存する:
 例: `2026-05-07T18-30-00.000Z--es01hxabc-f3a9.json`
 
 snapshot 取得契機は EditSession の `discard` / `transferEdit` / `save` 時。fire-and-forget で記録され、本処理を阻害しない。
-
-screen / page-layout-design の snapshot は metadata JSON とは別に以下の design payload companion を持つ:
-
-```
-<workspaceRoot>/.edit-sessions-history/<resourceType>/<resourceId>/<historyId>/payload.design.json
-<workspaceRoot>/.edit-sessions-history/<resourceType>/<resourceId>/<historyId>/payload.components.html
-```
 
 `draftHistoryRetentionDays` を経過した snapshot は `cleanupExpired({ olderThanDays })` で自動削除される。削除は `setInterval` 1 時間周期の cleanup に組み込む (§ 12.4 参照)。
 

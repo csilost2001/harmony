@@ -53,11 +53,11 @@ function assertResourceTypeMcp(rt: unknown, label: string): DraftResourceType {
  *
  * resourceType 別の resourceId 検証ポリシー (editSessionService.ts:352-407 の write*
  * 経路と整合):
- * - top-level entity (`screen` / `page-layout-design` / `table` / `process-flow` / `view` /
- *   `view-definition` / `page-layout` / `sequence`):
+ * - top-level entity (`table` / `process-flow` / `view` / `view-definition` / `page-layout` /
+ *   `sequence` / `business-flow` / `report`):
  *   → 直接 write 経路 (writeScreen / writeTable / ...) で渡されるため
  *     EntityId 検証必須 (RFC #1284 / S-002)。
- * - 副次 resource (`screen-item` / `puck-data`): resourceId は screenId 相当
+ * - 副次 resource (`screen-item`): resourceId は screenId 相当
  *   (EntityId)。`screen-item` は payload.screenId override 可能だが、
  *   create 時の resourceId は EntityId 規範。
  * - singleton / 別管理 (`flow` / `er-layout` / `extension` / `convention`):
@@ -65,11 +65,11 @@ function assertResourceTypeMcp(rt: unknown, label: string): DraftResourceType {
  *   外し空文字のみ拒否。
  */
 const TOP_LEVEL_RESOURCE_TYPES = new Set([
-  "screen", "page-layout-design", "table", "process-flow", "view", "view-definition", "page-layout", "sequence",
+  "table", "process-flow", "view", "view-definition", "page-layout", "sequence", "business-flow", "report",
 ]);
 
 /** screenId 相当 (EntityId for screen) を持つ副次 resource。 */
-const SCREEN_DERIVED_RESOURCE_TYPES = new Set(["screen-item", "puck-data"]);
+const SCREEN_DERIVED_RESOURCE_TYPES = new Set(["screen-item"]);
 
 /**
  * resourceType に応じた resourceId 検証。

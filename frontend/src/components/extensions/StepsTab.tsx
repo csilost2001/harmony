@@ -73,7 +73,7 @@ export function StepsTab({ bundle, saving, onSave, isReadonly }: ExtensionTabPro
           <div className="extensions-step-grid">
             <input className="form-control form-control-sm extensions-mono-input" placeholder="key" value={row.key} onChange={(e) => setRows(rows.map((r, i) => i === index ? { ...r, key: e.target.value } : r))} disabled={isReadonly} />
             <input className="form-control form-control-sm" placeholder="label" value={row.label} onChange={(e) => setRows(rows.map((r, i) => i === index ? { ...r, label: e.target.value } : r))} disabled={isReadonly} />
-            <input className="form-control form-control-sm extensions-mono-input" placeholder="bi-puzzle" value={row.icon} onChange={(e) => setRows(rows.map((r, i) => i === index ? { ...r, icon: e.target.value } : r))} disabled={isReadonly} />
+            <input className="form-control form-control-sm extensions-mono-input" placeholder="例: bi-puzzle" value={row.icon} onChange={(e) => setRows(rows.map((r, i) => i === index ? { ...r, icon: e.target.value } : r))} disabled={isReadonly} />
             <input className="form-control form-control-sm" placeholder="description" value={row.description} onChange={(e) => setRows(rows.map((r, i) => i === index ? { ...r, description: e.target.value } : r))} disabled={isReadonly} />
             <button className="btn btn-outline-danger btn-sm extensions-delete-button" onClick={() => setRows(rows.filter((_, i) => i !== index))} disabled={isReadonly}>削除</button>
             <textarea className="form-control form-control-sm font-monospace extensions-json-editor" rows={5} value={row.schemaText} onChange={(e) => setRows(rows.map((r, i) => i === index ? { ...r, schemaText: e.target.value } : r))} disabled={isReadonly} />

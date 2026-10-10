@@ -110,7 +110,7 @@ test.describe(
       const initialValue = await purposeField.inputValue();
       await purposeField.fill(`${initialValue}__DIRTY_K3`);
       const relationRefField = page.locator(
-        'input[placeholder="generic-definitions/data-contract/OrderForm"]',
+        'input[placeholder="例: generic-definitions/data-contract/OrderForm"]',
       ).first();
       await expect(relationRefField).toHaveValue(OLD_TABLE_REF);
 

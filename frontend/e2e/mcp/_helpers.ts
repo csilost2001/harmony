@@ -31,7 +31,6 @@ export async function isMcpRunning(): Promise<boolean> {
  */
 
 let _ws: WebSocketImpl | null = null;
-let _clientId: string | null = null;
 let _connectPromise: Promise<void> | null = null;
 const _pendingRequests = new Map<string, { resolve: (v: unknown) => void; reject: (e: Error) => void; timer: ReturnType<typeof setTimeout> }>();
 
@@ -44,7 +43,6 @@ async function ensureConnected(): Promise<void> {
     ws.on("open", () => {
       ws.send(JSON.stringify({ type: "register", clientId }));
       _ws = ws;
-      _clientId = clientId;
       resolve();
     });
     ws.on("error", (err) => {
@@ -69,7 +67,6 @@ async function ensureConnected(): Promise<void> {
     });
     ws.on("close", () => {
       _ws = null;
-      _clientId = null;
       _connectPromise = null;
       _pendingRequests.forEach(({ reject, timer }) => {
         clearTimeout(timer);
@@ -117,7 +114,6 @@ export async function closeBrowserSession(): Promise<void> {
   if (_ws) {
     const ws = _ws;
     _ws = null;
-    _clientId = null;
     _connectPromise = null;
     ws.close();
   }

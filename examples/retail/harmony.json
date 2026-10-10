@@ -448,6 +448,16 @@
         "actionCount": 1,
         "maturity": "committed",
         "updatedAt": "2026-05-12T00:00:00.000Z"
+      },
+      {
+        "id": "dashboard-kpi-summary",
+        "no": 7,
+        "name": "ダッシュボード KPI 集計",
+        "flowType": "screen",
+        "screenId": "dashboard",
+        "actionCount": 1,
+        "maturity": "committed",
+        "updatedAt": "2026-05-02T00:00:00.000Z"
       }
     ],
     "views": [

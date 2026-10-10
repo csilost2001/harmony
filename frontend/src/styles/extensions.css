@@ -75,7 +75,7 @@
 .extensions-panel .btn-warning {
   border-color: #d97706;
   background: #f59e0b;
-  color: color-mix(in srgb, #eb771f 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg));
 }
 
 .extensions-panel .btn-warning:hover:not(:disabled) {
@@ -112,19 +112,19 @@
   padding-left: 0;
   border-color: transparent;
   background: transparent;
-  color: color-mix(in srgb, #1f5fea 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   font-weight: 600;
 }
 
 .extensions-panel .btn-link:hover:not(:disabled) {
   background: transparent;
-  color: color-mix(in srgb, #2758e2 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   text-decoration: underline;
 }
 
 .extensions-panel .btn-outline-primary {
   border-color: #2563eb;
-  color: color-mix(in srgb, #1f5fea 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
 }
 
 .extensions-panel .btn-outline-primary:hover:not(:disabled) {
@@ -142,8 +142,8 @@
 }
 
 .extensions-panel .btn-outline-warning {
-  border-color: color-mix(in srgb, #fbc30e 38%, var(--hm-surface));
-  color: color-mix(in srgb, #f37616 80%, var(--hm-fg));
+  border-color: color-mix(in srgb, var(--hm-hue-amber) 38%, var(--hm-surface));
+  color: color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg));
 }
 
 .extensions-panel .btn-outline-warning:hover:not(:disabled) {
@@ -152,8 +152,8 @@
 }
 
 .extensions-panel .btn-outline-danger {
-  border-color: color-mix(in srgb, #fa0f0f 38%, var(--hm-surface));
-  color: color-mix(in srgb, #dd2c2c 80%, var(--hm-fg));
+  border-color: color-mix(in srgb, var(--hm-hue-red) 38%, var(--hm-surface));
+  color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg));
 }
 
 .extensions-panel .btn-outline-danger:hover:not(:disabled) {
@@ -225,21 +225,21 @@
 }
 
 .extensions-panel .alert-info {
-  border-color: color-mix(in srgb, #11a9f8 38%, var(--hm-surface));
+  border-color: color-mix(in srgb, var(--hm-hue-blue) 38%, var(--hm-surface));
   background: var(--hm-surface-2);
-  color: color-mix(in srgb, #16a6f3 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
 }
 
 .extensions-panel .alert-warning {
-  border-color: color-mix(in srgb, #fbcc0e 38%, var(--hm-surface));
+  border-color: color-mix(in srgb, var(--hm-hue-amber) 38%, var(--hm-surface));
   background: var(--hm-surface-2);
-  color: color-mix(in srgb, #ea6c20 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg));
 }
 
 .extensions-panel .alert-danger {
-  border-color: color-mix(in srgb, #fa0f0f 38%, var(--hm-surface));
+  border-color: color-mix(in srgb, var(--hm-hue-red) 38%, var(--hm-surface));
   background: var(--hm-surface-2);
-  color: color-mix(in srgb, #da2f2f 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg));
 }
 
 .extensions-panel .badge {
@@ -361,7 +361,7 @@
 }
 
 .extensions-title .bi {
-  color: color-mix(in srgb, #1f5fea 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
 }
 
 .extensions-description {
@@ -407,7 +407,7 @@
 }
 
 .extensions-tab.active {
-  color: color-mix(in srgb, #1f5fea 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   border-bottom-color: #2563eb;
   background: var(--hm-surface);
 }

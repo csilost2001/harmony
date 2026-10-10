@@ -98,6 +98,12 @@ describe("用紙の見本図 (HTML)", () => {
     expect(html).toContain('data-testid="rp-field-qty"');
     expect(html).toMatch(/rp-selected[^>]*data-field="qty"/);
   });
+  it("編集用 (interactive) の項目だけドラッグできる。設計書用の見本には付かない", () => {
+    const edit = reportToHtml(report(), { interactive: true });
+    expect(edit).toMatch(/data-field="qty"[^>]*draggable="true"/);
+    expect(edit).not.toMatch(/rp-head[^>]*draggable/); // 見出し行は対象外
+    expect(reportToHtml(report())).not.toContain("draggable");
+  });
   it("部が無いときは案内を出す", () => { expect(reportToHtml({ sections: [], name: "x" })).toContain("部がありません"); });
 });
 

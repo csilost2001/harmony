@@ -97,6 +97,20 @@ disable-model-invocation: true
 
 `$ARGUMENTS` から、テストコードを生成します。
 
+## テスト観点表を入力にする (推奨)
+
+テストの観点・入力値・期待結果は、設計から決まった規則で導出できる (正常 / 異常 / 境界値)。テストを書く前に、まず観点表を書き出して入力にする。
+
+```bash
+npm run export:tests -- <workspace-dir> --format json [--screen <screenId>] [--flow <flowId>]
+```
+
+- 画面入力 (`screens[].cases[]`): `id` (`<画面 ID>.<項目 ID>.<規則>`)・`category`・`input`・`value` (そのまま入力に使える値)・`expected`・`expectedMessage`
+- 処理 (`flows[].cases[]`): `id` (`<処理 ID>.<アクション ID>.TV-<連番>`)・`conditions`・`expected`・`status`・`stepNo`
+- テストの名前 (`test(...)` / `it(...)`) に観点表の `id` を含め、設計とテストを対応づける。観点にないケースを足すときは、`id` の形式に合わない名前にして区別する
+- `value` が無いケース (例: `pattern-invalid` で規約に例がない) は、制約から自分で値を作る。作った値はテストのコメントに残す
+- 導出の規則: [docs/spec/test-viewpoints.md](../../docs/spec/test-viewpoints.md)
+
 ## Step 0: 引数解析
 
 `$ARGUMENTS` を以下のように解析する。

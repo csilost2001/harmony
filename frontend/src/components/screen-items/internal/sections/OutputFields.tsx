@@ -72,7 +72,7 @@ export function OutputFields({
             value={item.displayFormat ?? ""}
             onChange={(e) => onUpdate(idx, { displayFormat: e.target.value || undefined })}
             onBlur={onCommit}
-            placeholder="YYYY/MM/DD"
+            placeholder="例: YYYY/MM/DD"
             disabled={isReadonly}
           />
         </label>
@@ -116,7 +116,7 @@ export function OutputFields({
                   value={binding?.path ?? ""}
                   onChange={(e) => handleBindingPatch({ path: e.target.value })}
                   onBlur={onCommit}
-                  placeholder="createdOrder.order_number"
+                  placeholder="例: createdOrder.order_number"
                   disabled={isReadonly}
                 />
               </label>
@@ -239,7 +239,7 @@ export function OutputFields({
                 value={binding?.path ?? ""}
                 onChange={(e) => handleBindingPatch({ path: e.target.value })}
                 onBlur={onCommit}
-                placeholder={kind === "expression" ? "@inputs.price * @inputs.qty" : "orderForm.fieldName"}
+                placeholder={kind === "expression" ? "例: @inputs.price * @inputs.qty" : "例: orderForm.fieldName"}
                 disabled={isReadonly}
               />
             </label>

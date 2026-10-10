@@ -14,9 +14,9 @@ interface Props {
 const TYPE_META: Record<StepNoteType, { icon: string; label: string; color: string }> = {
   assumption: { icon: "bi-lightbulb", label: "想定", color: "var(--hm-fg-muted)" },
   prerequisite: { icon: "bi-list-check", label: "前提", color: "var(--hm-fg-2)" },
-  todo: { icon: "bi-check2-square", label: "TODO", color: "color-mix(in srgb, #8715f4 80%, var(--hm-fg))" },
+  todo: { icon: "bi-check2-square", label: "TODO", color: "color-mix(in srgb, var(--hm-hue-purple) 80%, var(--hm-fg))" },
   deferred: { icon: "bi-pause-circle", label: "保留", color: "var(--hm-fg-faint)" },
-  question: { icon: "bi-question-circle", label: "質問", color: "color-mix(in srgb, #ec1d1d 80%, var(--hm-fg))" },
+  question: { icon: "bi-question-circle", label: "質問", color: "color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg))" },
 };
 
 // defensive lookup — `type` が未定義 / 不明値の場合は `kind` (旧フィールド) も試し、

@@ -49,7 +49,7 @@ export function ScopePanel({
                   value={entry.value}
                   onChange={(e) => onUpdate(key, { value: e.target.value })}
                   onBlur={onCommit}
-                  placeholder="domestic"
+                  placeholder="例: domestic"
                 />
               </td>
               <td>

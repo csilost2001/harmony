@@ -214,7 +214,7 @@
 
 .screen-node-icon {
   font-size: 18px;
-  color: color-mix(in srgb, #1e23eb 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   flex-shrink: 0;
 }
 
@@ -255,7 +255,7 @@
   gap: 3px;
   font-size: 10px;
   margin-top: 4px;
-  color: color-mix(in srgb, #2edb6e 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-green) 80%, var(--hm-fg));
 }
 
 .screen-node-design-badge.empty {
@@ -313,7 +313,7 @@
 
 .flow-edge-label:hover {
   border-color: #6366f1;
-  color: color-mix(in srgb, #1e23eb 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
 }
 
 /* ── Modal ─────────────────────────────────── */
@@ -445,7 +445,7 @@
 }
 
 .flow-context-menu-item.danger {
-  color: color-mix(in srgb, #ec1d1d 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg));
 }
 .flow-context-menu-item.danger:hover {
   background: var(--hm-surface-2);
@@ -492,7 +492,7 @@
 }
 
 .flow-file-menu-item.danger {
-  color: color-mix(in srgb, #ec1d1d 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg));
 }
 .flow-file-menu-item.danger:hover {
   background: var(--hm-surface-2);
@@ -638,7 +638,7 @@
 
 .flow-view-btn.active {
   background: var(--hm-surface);
-  color: color-mix(in srgb, #1e23eb 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
@@ -798,7 +798,7 @@
 }
 
 .screen-table-icon {
-  color: color-mix(in srgb, #1e23eb 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   font-size: 14px;
   flex-shrink: 0;
 }
@@ -835,7 +835,7 @@
   align-items: center;
   gap: 4px;
   font-size: 11px;
-  color: color-mix(in srgb, #2edb6e 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-green) 80%, var(--hm-fg));
 }
 
 .screen-design-badge.empty {
@@ -891,7 +891,7 @@
 
 .screen-table-btn.danger:hover {
   background: var(--hm-surface-3);
-  color: color-mix(in srgb, #ec1d1d 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg));
   border-color: #fca5a5;
 }
 
@@ -923,7 +923,7 @@
   padding: 1px 8px;
   font-size: 12px;
   font-weight: 600;
-  color: color-mix(in srgb, #1e23eb 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   user-select: none;
   pointer-events: none;
   transform: translateY(-50%);

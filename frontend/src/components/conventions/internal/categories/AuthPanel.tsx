@@ -53,7 +53,7 @@ export function AuthPanel({
                   value={entry.scheme}
                   onChange={(e) => onUpdate(key, { scheme: e.target.value })}
                   onBlur={onCommit}
-                  placeholder="session-cookie"
+                  placeholder="例: session-cookie"
                 />
               </td>
               <td>
@@ -62,7 +62,7 @@ export function AuthPanel({
                   value={entry.sessionStorage ?? ""}
                   onChange={(e) => onUpdate(key, { sessionStorage: e.target.value || undefined })}
                   onBlur={onCommit}
-                  placeholder="httpOnly-cookie"
+                  placeholder="例: httpOnly-cookie"
                 />
               </td>
               <td>

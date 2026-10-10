@@ -38,8 +38,8 @@
   min-height: 20px;
   padding: 2px 7px;
   border-radius: 999px;
-  background: color-mix(in srgb, #260aff 18%, transparent);
-  color: color-mix(in srgb, #2e0aff 80%, var(--hm-fg));
+  background: color-mix(in srgb, var(--hm-hue-blue) 18%, transparent);
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   font-size: 11px;
   font-weight: 600;
 }
@@ -225,8 +225,8 @@
 .plm-region-label span {
   padding: 2px 7px;
   border-radius: 999px;
-  background: color-mix(in srgb, #f5a214 16%, transparent);
-  color: color-mix(in srgb, #fbb90f 80%, var(--hm-fg));
+  background: color-mix(in srgb, var(--hm-hue-orange) 16%, transparent);
+  color: color-mix(in srgb, var(--hm-hue-amber) 80%, var(--hm-fg));
   font-size: 11px;
 }
 
@@ -245,7 +245,7 @@
 
 .plm-gadget-preview {
   border: 1px dashed rgba(99,102,241,0.6);
-  background: color-mix(in srgb, #1e23eb 12%, transparent);
+  background: color-mix(in srgb, var(--hm-hue-blue) 12%, transparent);
   color: var(--hm-fg);
 }
 

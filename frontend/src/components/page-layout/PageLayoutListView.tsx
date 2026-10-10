@@ -443,7 +443,7 @@ export function PageLayoutListView() {
       width: "90px",
       align: "center",
       render: (v) => v.hasProcessFlow
-        ? <i className="bi bi-lightning-charge-fill" title="ProcessFlow あり" style={{ color: "color-mix(in srgb, #f5a214 80%, var(--hm-fg))" }} />
+        ? <i className="bi bi-lightning-charge-fill" title="ProcessFlow あり" style={{ color: "color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg))" }} />
         : null,
     },
     {
@@ -478,7 +478,7 @@ export function PageLayoutListView() {
         )}
         <EditSessionBadge resourceType="page-layout" resourceId={String(v.id)} />
         {v.hasProcessFlow && (
-          <i className="bi bi-lightning-charge-fill" title="ProcessFlow あり" style={{ color: "color-mix(in srgb, #f5a214 80%, var(--hm-fg))", fontSize: "0.75rem" }} />
+          <i className="bi bi-lightning-charge-fill" title="ProcessFlow あり" style={{ color: "color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg))", fontSize: "0.75rem" }} />
         )}
       </div>
       <div className="seq-card-description">
@@ -607,7 +607,7 @@ export function PageLayoutListView() {
                   type="text"
                   value={addName}
                   onChange={(e) => { setAddName(e.target.value); setAddNameError(""); }}
-                  placeholder="Main Layout"
+                  placeholder="例: Main Layout"
                   autoFocus
                   className={addNameError ? "input-error" : undefined}
                   onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}

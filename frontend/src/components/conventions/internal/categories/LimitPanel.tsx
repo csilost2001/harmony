@@ -58,7 +58,7 @@ export function LimitPanel({
                   value={entry.unit ?? ""}
                   onChange={(e) => onUpdate(key, { unit: e.target.value || undefined })}
                   onBlur={onCommit}
-                  placeholder="char"
+                  placeholder="例: char"
                 />
               </td>
               <td>

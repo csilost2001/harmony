@@ -113,7 +113,7 @@
 }
 
 .screen-card-icon {
-  color: color-mix(in srgb, #1e23eb 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   font-size: 14px;
 }
 
@@ -156,7 +156,7 @@
 }
 
 .screen-table-icon {
-  color: color-mix(in srgb, #1e23eb 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
 }
 
 .screen-type-badge {
@@ -164,7 +164,7 @@
   padding: 2px 8px;
   border-radius: 10px;
   background: var(--hm-surface-3);
-  color: color-mix(in srgb, #483ecc 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   font-size: 11px;
   font-weight: 500;
 }
@@ -176,7 +176,7 @@
   padding: 2px 8px;
   border-radius: 10px;
   background: var(--hm-surface-3);
-  color: color-mix(in srgb, #19f0b4 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-green) 80%, var(--hm-fg));
   font-size: 11px;
   font-weight: 500;
 }

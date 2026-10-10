@@ -46,8 +46,11 @@ npm run kill           # 5173 / 5179 を握るプロセスを停止
 | E2E (Playwright がサーバも起動) | `cd frontend && npx playwright test <spec>` |
 | 回帰 E2E の trace 照合 (merge 前に必須) | `node scripts/verify/regression-trace-check.mjs --auto-run` |
 | サンプル JSON の runtime 契約検証 | `cd frontend && npm run validate:samples -- ../examples/<project-id>` |
-| 全画面スクリーンショット | `npm run ui:shots -- --out .tmp/screenshots/<名前> [--theme dark]` |
-| 配色監査 (コントラスト / テーマ不一致) | `npm run ui:audit` |
+| 全画面スクリーンショット (dev server が未起動なら自動で起動・終了時に停止) | `npm run ui:shots -- --out .tmp/screenshots/<名前> [--theme dark]` |
+| 配色監査 (コントラスト / テーマ不一致。同上。指摘があれば終了コード 1) | `npm run ui:audit` |
+| 設計の要確認事項の検査 (終了コードで判定。`npm run check` に含まれる) | `npm run check:design -- examples/<project-id> [--strict] [--info]` |
+| テスト観点表の書き出し (画面入力の境界値・処理の分岐。ID つき。テストコード生成の入力) | `npm run export:tests -- examples/<project-id> --format json` |
+| 設計書 HTML の書き出し | `npm run export:doc -- examples/<project-id> --out .tmp/doc.html` |
 
 - E2E は自前で起動した backend を再利用すると E2E 用環境変数が効かず失敗する。E2E 実行前は `npm run kill` して Playwright にサーバを起動させる。
 - AI が検証のために dev server を起動した場合は、作業の終わりに必ず `npm run kill` で止める。
@@ -84,7 +87,7 @@ AI Agent ──(http://localhost:5179/mcp)──┐
 
 | Path | 画面 |
 |---|---|
-| `/` | ダッシュボード |
+| `/` | ダッシュボード (「設計の要確認」パネルあり)。どの画面でも `Ctrl+K` で画面・テーブル・処理フロー等へ飛べる ([quick-open.md](docs/spec/quick-open.md)) |
 | `/document` | 設計書 (読み取り専用の紙面。HTML 保存・印刷) |
 | `/screen/flow` `/screen/list` | 画面フロー / 画面一覧 |
 | `/screen/design/:screenId` `/screen/items/:screenId` | 画面デザイナ / 画面項目 |

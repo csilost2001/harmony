@@ -91,7 +91,7 @@ export function RolePanel({
                       value={entry.name ?? ""}
                       onChange={(e) => onUpdate(key, { name: e.target.value || undefined })}
                       onBlur={onCommit}
-                      placeholder="顧客"
+                      placeholder="例: 顧客"
                     />
                   </td>
                   <td>
@@ -112,7 +112,7 @@ export function RolePanel({
                         onUpdate(key, { permissions: perms });
                       }}
                       onBlur={onCommit}
-                      placeholder="order.create, order.read"
+                      placeholder="例: order.create, order.read"
                     />
                   </td>
                   <td>
@@ -125,7 +125,7 @@ export function RolePanel({
                         onUpdate(key, { inherits: inh.length > 0 ? inh : undefined });
                       }}
                       onBlur={onCommit}
-                      placeholder="customer"
+                      placeholder="例: customer"
                     />
                   </td>
                   <td className="text-center"><DeleteBtn onClick={() => onRemove(key)} isReadonly={isReadonly} /></td>

@@ -177,7 +177,7 @@ describe("OutputFields", () => {
       />,
     );
     // 表示フォーマット input
-    expect(screen.getByPlaceholderText("YYYY/MM/DD")).toBeDisabled();
+    expect(screen.getByPlaceholderText("例: YYYY/MM/DD")).toBeDisabled();
     // kind select
     expect(screen.getByDisplayValue("— 未設定 —")).toBeDisabled();
   });

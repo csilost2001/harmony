@@ -69,7 +69,7 @@ test.describe("規約カタログ編集ビュー (#317)", { tag: ["@regression"]
     await newKeyInput.fill("test-regex-pattern");
     await page.locator(".conventions-entries button:has-text('追加')").click();
     await expect(page.locator(".conventions-key-badge", { hasText: "test-regex-pattern" })).toBeVisible();
-    const patternInput = page.locator('.conventions-table input[placeholder="^[A-Za-z0-9]+$"]').first();
+    const patternInput = page.locator('.conventions-table input[placeholder="例: ^[A-Za-z0-9]+$"]').first();
     await patternInput.fill("^\\d{4}$");
     await expect(patternInput).toHaveValue("^\\d{4}$");
   });

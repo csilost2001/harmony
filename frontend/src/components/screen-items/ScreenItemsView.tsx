@@ -1008,7 +1008,7 @@ export function ScreenItemsView() {
                         onCommit={commit}
                         resolvers={[screenItemTypeResolver]}
                         ctx={{ fieldKind: "extensionRef", extensions }}
-                        placeholder="string"
+                        placeholder="例: string"
                         disabled={isReadonly}
                       />
                     </td>
@@ -1185,7 +1185,7 @@ export function ScreenItemsView() {
                               value={item.visibleWhen ?? ""}
                               onChange={(e) => handleUpdateItem(i, { visibleWhen: e.target.value || undefined })}
                               onBlur={commit}
-                              placeholder="@inputs.role === 'admin'"
+                              placeholder="例: @inputs.role === 'admin'"
                               aria-label="visibleWhen"
                               disabled={isReadonly}
                             />
@@ -1197,7 +1197,7 @@ export function ScreenItemsView() {
                               value={item.enabledWhen ?? ""}
                               onChange={(e) => handleUpdateItem(i, { enabledWhen: e.target.value || undefined })}
                               onBlur={commit}
-                              placeholder="@inputs.status !== 'locked'"
+                              placeholder="例: @inputs.status !== 'locked'"
                               aria-label="enabledWhen"
                               disabled={isReadonly}
                             />
@@ -1264,7 +1264,7 @@ export function ScreenItemsView() {
                                 onCommit={commit}
                                 conventions={conventions}
                                 className="form-control form-control-sm"
-                                placeholder={`@conv.msg.${key}`}
+                                placeholder={`例: @conv.msg.${key}`}
                                 disabled={isReadonly}
                               />
                             </label>
@@ -1289,7 +1289,7 @@ export function ScreenItemsView() {
                                       value={ev.id}
                                       onChange={(e) => handleUpdateEvent(i, eIdx, { id: e.target.value })}
                                       onBlur={commit}
-                                      placeholder="click"
+                                      placeholder="例: click"
                                       disabled={isReadonly}
                                     />
                                   </label>
@@ -1300,7 +1300,7 @@ export function ScreenItemsView() {
                                       value={ev.label ?? ""}
                                       onChange={(e) => handleUpdateEvent(i, eIdx, { label: e.target.value || undefined })}
                                       onBlur={commit}
-                                      placeholder="クリック"
+                                      placeholder="例: クリック"
                                       disabled={isReadonly}
                                     />
                                   </label>
@@ -1313,7 +1313,7 @@ export function ScreenItemsView() {
                                       resolvers={[handlerFlowIdResolver]}
                                       ctx={{ fieldKind: "handlerFlowId", workspace }}
                                       className="form-control form-control-sm"
-                                      placeholder="ProcessFlow ID"
+                                      placeholder="例: ProcessFlow ID"
                                       disabled={isReadonly}
                                     />
                                   </label>
@@ -1394,7 +1394,7 @@ export function ScreenItemsView() {
                                             : undefined,
                                         }}
                                         className="form-control form-control-sm"
-                                        placeholder="@screen.<screenId>.item.<itemId>"
+                                        placeholder="例: @screen.<screenId>.item.<itemId>"
                                         disabled={isReadonly}
                                       />
                                       <button
@@ -1537,7 +1537,7 @@ export function ScreenItemsView() {
                                                   handleUpdateEvent(i, eIdx, { effects: next });
                                                 }}
                                                 onBlur={commit}
-                                                placeholder="@var.* / TemplateString 式"
+                                                placeholder="例: @var.* / TemplateString 式"
                                                 disabled={isReadonly}
                                               />
                                               <button
@@ -1597,7 +1597,7 @@ export function ScreenItemsView() {
                                               genericDefinitionsByKind,
                                             }}
                                             className="form-control form-control-sm screen-items-event-effect-value"
-                                            placeholder="@options.<name> / catalogRef / 式"
+                                            placeholder="例: @options.<name> / catalogRef / 式"
                                             disabled={isReadonly}
                                           />
                                         </>
@@ -1627,7 +1627,7 @@ export function ScreenItemsView() {
                                               genericDefinitionsByKind,
                                             }}
                                             className="form-control form-control-sm screen-items-event-effect-value"
-                                            placeholder={eff.kind === "showDialog" ? "@dialog.<name>" : "@messageArea.<name>"}
+                                            placeholder={eff.kind === "showDialog" ? "例: @dialog.<name>" : "例: @messageArea.<name>"}
                                             disabled={isReadonly}
                                           />
                                           <input

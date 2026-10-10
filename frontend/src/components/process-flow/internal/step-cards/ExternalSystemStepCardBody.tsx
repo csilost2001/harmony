@@ -63,7 +63,7 @@ export function ExternalSystemStepCardBody({
             value={step.operationRef ?? ""}
             onChange={(e) => onChange({ operationRef: trimToUndefined(e.target.value) })}
             onBlur={onCommit}
-            placeholder="/v1/payment_intents POST"
+            placeholder="例: /v1/payment_intents POST"
             style={{ fontFamily: "monospace" }}
           />
         </div>
@@ -75,7 +75,7 @@ export function ExternalSystemStepCardBody({
             value={step.operationId ?? ""}
             onChange={(e) => onChange({ operationId: trimToUndefined(e.target.value) })}
             onBlur={onCommit}
-            placeholder="PostPaymentIntents"
+            placeholder="例: PostPaymentIntents"
             style={{ fontFamily: "monospace" }}
           />
         </div>
@@ -89,7 +89,7 @@ export function ExternalSystemStepCardBody({
             value={step.requestBodyRef ?? ""}
             onChange={(e) => onChange({ requestBodyRef: trimToUndefined(e.target.value) })}
             onBlur={onCommit}
-            placeholder="#/components/schemas/PaymentIntentCreateParams"
+            placeholder="例: #/components/schemas/PaymentIntentCreateParams"
             style={{ fontFamily: "monospace" }}
           />
         </div>
@@ -101,7 +101,7 @@ export function ExternalSystemStepCardBody({
             value={step.responseRef ?? ""}
             onChange={(e) => onChange({ responseRef: trimToUndefined(e.target.value) })}
             onBlur={onCommit}
-            placeholder="#/components/responses/200/content/application~1json/schema"
+            placeholder="例: #/components/responses/200/content/application~1json/schema"
             style={{ fontFamily: "monospace" }}
           />
         </div>
@@ -161,7 +161,7 @@ export function ExternalSystemStepCardBody({
               }
             }}
             onBlur={onCommit}
-            placeholder="maxAttempts"
+            placeholder="例: maxAttempts"
             style={{ width: 90, fontSize: "0.8rem" }}
           />
         </div>
@@ -202,7 +202,7 @@ export function ExternalSystemStepCardBody({
                   },
                 })}
                 onBlur={onCommit}
-                placeholder="initialDelayMs"
+                placeholder="例: initialDelayMs"
                 style={{ width: 120, fontSize: "0.8rem" }}
               />
             </div>
@@ -252,7 +252,7 @@ export function ExternalSystemStepCardBody({
             value={step.auth?.headerName ?? ""}
             onChange={(e) => updateAuth({ headerName: e.target.value || undefined })}
             onBlur={onCommit}
-            placeholder="X-API-Key"
+            placeholder="例: X-API-Key"
             disabled={readOnly || !step.auth?.kind || step.auth.kind === "none"}
           />
         </div>

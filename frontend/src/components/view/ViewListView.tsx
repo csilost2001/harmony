@@ -612,7 +612,7 @@ export function ViewListView() {
                   type="text"
                   value={addPhysicalName}
                   onChange={(e) => { setAddPhysicalName(e.target.value); setAddPhysicalNameError(""); }}
-                  placeholder="v_customer_with_last_order"
+                  placeholder="例: v_customer_with_last_order"
                   autoFocus
                   className={addPhysicalNameError ? "input-error" : undefined}
                   onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
@@ -625,7 +625,7 @@ export function ViewListView() {
                   type="text"
                   value={addName}
                   onChange={(e) => setAddName(e.target.value)}
-                  placeholder="顧客最終購入日ビュー"
+                  placeholder="例: 顧客最終購入日ビュー"
                   onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
                 />
               </label>

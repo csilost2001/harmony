@@ -189,7 +189,7 @@ describe("SchemaForm", () => {
       },
     });
 
-    expect(screen.getByLabelText("chunkSize")).toHaveAttribute("placeholder", "100");
+    expect(screen.getByLabelText("chunkSize")).toHaveAttribute("placeholder", "既定: 100");
     await waitFor(() => expect(onChange).toHaveBeenCalledWith({ chunkSize: 100 }));
   });
 

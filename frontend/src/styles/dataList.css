@@ -300,11 +300,11 @@
   justify-content: space-between;
   gap: 12px;
   padding: 6px 12px;
-  background: color-mix(in srgb, #fbe70e 7%, var(--hm-surface));
-  border: 1px solid color-mix(in srgb, #fbcc0e 38%, var(--hm-surface));
+  background: color-mix(in srgb, var(--hm-hue-amber) 7%, var(--hm-surface));
+  border: 1px solid color-mix(in srgb, var(--hm-hue-amber) 38%, var(--hm-surface));
   border-radius: 6px;
   font-size: 12px;
-  color: color-mix(in srgb, #e46a25 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg));
   margin-bottom: 8px;
 }
 
@@ -318,12 +318,12 @@
 
 .filter-bar-clear {
   padding: 0;
-  color: color-mix(in srgb, #ea6c20 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg));
   text-decoration: none;
 }
 
 .filter-bar-clear:hover {
-  color: color-mix(in srgb, #e46a25 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg));
   text-decoration: underline;
 }
 
@@ -340,7 +340,7 @@
   border: 1px solid #93c5fd;
   border-radius: 6px;
   font-size: 12px;
-  color: color-mix(in srgb, #365fd3 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   margin-bottom: 8px;
 }
 
@@ -352,7 +352,7 @@
 }
 
 .sort-bar-icon {
-  color: color-mix(in srgb, #2758e2 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   font-size: 14px;
 }
 
@@ -380,7 +380,7 @@
 
 .sort-bar-key-name {
   background: var(--hm-surface);
-  border: 1px solid color-mix(in srgb, #0e77fb 38%, var(--hm-surface));
+  border: 1px solid color-mix(in srgb, var(--hm-hue-blue) 38%, var(--hm-surface));
   border-radius: 4px;
   padding: 1px 6px;
   font-weight: 500;
@@ -388,24 +388,24 @@
 
 .sort-bar-dir {
   font-size: 10px;
-  color: color-mix(in srgb, #2758e2 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
 }
 
 .sort-bar-clear {
   padding: 0;
-  color: color-mix(in srgb, #2e57db 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   text-decoration: none;
   margin-left: auto;
 }
 
 .sort-bar-clear:hover {
-  color: color-mix(in srgb, #365fd3 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   text-decoration: underline;
 }
 
 .sort-bar-note {
   font-size: 11px;
-  color: color-mix(in srgb, #2e57db 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   opacity: 0.75;
   padding-left: 22px;
 }
@@ -461,7 +461,7 @@
 }
 
 .list-context-menu-item.danger {
-  color: color-mix(in srgb, #df2a2a 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg));
 }
 
 .list-context-menu-item.danger:hover:not(.disabled),
@@ -518,7 +518,7 @@
   height: 24px;
   background: transparent;
   border: none;
-  color: color-mix(in srgb, #df2a2a 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg));
   opacity: 0;
   transition: opacity 0.12s;
   cursor: pointer;

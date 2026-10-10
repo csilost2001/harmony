@@ -69,7 +69,7 @@ function ValuesEditor({
             className="form-control form-control-sm catalog-values-ref"
             value={refExpr}
             data-field-path={`${fieldPathPrefix}.values.${envKey}`}
-            placeholder="vault://stripe/dev/secret_key"
+            placeholder="例: vault://stripe/dev/secret_key"
             onChange={(ev) => setEnvValue(envKey, ev.target.value)}
           />
           <button

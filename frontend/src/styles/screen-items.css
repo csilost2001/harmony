@@ -116,13 +116,13 @@
 
 /* lint 警告バナー (#351) */
 .screen-items-lint-warnings {
-  background: color-mix(in srgb, #fbe70e 7%, var(--hm-surface));
-  border: 1px solid color-mix(in srgb, #fcd60d 38%, var(--hm-surface));
+  background: color-mix(in srgb, var(--hm-hue-amber) 7%, var(--hm-surface));
+  border: 1px solid color-mix(in srgb, var(--hm-hue-amber) 38%, var(--hm-surface));
   border-radius: 6px;
   padding: 8px 12px;
   margin-bottom: 8px;
   font-size: 0.8rem;
-  color: color-mix(in srgb, #dd802c 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg));
 }
 .screen-items-lint-warnings ul {
   padding-left: 1.2em;
@@ -205,7 +205,7 @@
 .screen-items-event-row > td {
   background: var(--hm-surface-2);
   padding: 6px 8px;
-  border-bottom: 1px solid color-mix(in srgb, #fc8d0d 38%, var(--hm-surface));
+  border-bottom: 1px solid color-mix(in srgb, var(--hm-hue-orange) 38%, var(--hm-surface));
 }
 .screen-items-event-list {
   display: flex;
@@ -214,7 +214,7 @@
 }
 .screen-items-event-card {
   background: var(--hm-surface);
-  border: 1px solid color-mix(in srgb, #fc8d0d 38%, var(--hm-surface));
+  border: 1px solid color-mix(in srgb, var(--hm-hue-orange) 38%, var(--hm-surface));
   border-radius: 4px;
   padding: 8px;
 }
@@ -233,12 +233,12 @@
 .screen-items-event-label {
   font-size: 0.68rem;
   font-weight: 600;
-  color: color-mix(in srgb, #ea6c20 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg));
   font-family: ui-monospace, SFMono-Regular, monospace;
 }
 .screen-items-event-mapping {
   margin-top: 8px;
-  border-top: 1px dashed color-mix(in srgb, #fc8d0d 38%, var(--hm-surface));
+  border-top: 1px dashed color-mix(in srgb, var(--hm-hue-orange) 38%, var(--hm-surface));
   padding-top: 6px;
 }
 .screen-items-event-mapping-header {
@@ -268,7 +268,7 @@
 
 /* effects[] 編集 UI (#1283) */
 .screen-items-event-effects {
-  border-top: 1px dashed color-mix(in srgb, #fc8d0d 38%, var(--hm-surface));
+  border-top: 1px dashed color-mix(in srgb, var(--hm-hue-orange) 38%, var(--hm-surface));
   margin-top: 8px;
   padding-top: 8px;
 }
@@ -342,12 +342,12 @@
   width: 100%;
   margin-top: 8px;
   padding-top: 8px;
-  border-top: 1px dashed color-mix(in srgb, #0e77fb 38%, var(--hm-surface));
+  border-top: 1px dashed color-mix(in srgb, var(--hm-hue-blue) 38%, var(--hm-surface));
 }
 .screen-items-output-title {
   font-size: 0.68rem;
   font-weight: 700;
-  color: color-mix(in srgb, #2758e2 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   margin-bottom: 6px;
   letter-spacing: 0.03em;
 }
@@ -429,7 +429,7 @@
   white-space: nowrap;
 }
 .screen-item-candidates-table tbody tr.dup {
-  background: color-mix(in srgb, #fbcb0e 9%, var(--hm-surface));
+  background: color-mix(in srgb, var(--hm-hue-amber) 9%, var(--hm-surface));
   opacity: 0.7;
 }
 .screen-item-candidates-footer {

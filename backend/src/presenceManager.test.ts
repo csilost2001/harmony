@@ -65,18 +65,18 @@ describe("registerEditor", () => {
 
 describe("registerViewer", () => {
   it("viewer エントリを登録できる", () => {
-    const entry = registerViewer("ws-1", "sess-B", "screen", "scr-1");
+    const entry = registerViewer("ws-1", "sess-B", "screen-item", "scr-1");
     expect(entry.role).toBe("viewer");
     expect(entry.sessionId).toBe("sess-B");
-    expect(entry.resourceType).toBe("screen");
+    expect(entry.resourceType).toBe("screen-item");
     expect(entry.resourceId).toBe("scr-1");
     expect(entry.ownerLabel).toBeNull();
   });
 
   it("重複登録は既存エントリを update する", () => {
-    registerViewer("ws-1", "sess-B", "screen", "scr-1");
-    registerViewer("ws-1", "sess-B", "screen", "scr-1");
-    expect(list("ws-1", "screen", "scr-1")).toHaveLength(1);
+    registerViewer("ws-1", "sess-B", "screen-item", "scr-1");
+    registerViewer("ws-1", "sess-B", "screen-item", "scr-1");
+    expect(list("ws-1", "screen-item", "scr-1")).toHaveLength(1);
   });
 });
 
@@ -109,7 +109,7 @@ describe("unregisterAllForSession", () => {
   it("指定 sessionId の全 (wsId, resource) エントリを削除する", () => {
     registerEditor("ws-1", "sess-A", "table", "tbl-1");
     registerViewer("ws-1", "sess-A", "process-flow", "pf-1");
-    registerEditor("ws-2", "sess-A", "screen", "scr-1");
+    registerEditor("ws-2", "sess-A", "screen-item", "scr-1");
     // 別 session は影響を受けない
     registerEditor("ws-1", "sess-B", "table", "tbl-1");
 
@@ -119,13 +119,13 @@ describe("unregisterAllForSession", () => {
     expect(removed).toEqual(expect.arrayContaining([
       { wsId: "ws-1", resourceType: "table", resourceId: "tbl-1" },
       { wsId: "ws-1", resourceType: "process-flow", resourceId: "pf-1" },
-      { wsId: "ws-2", resourceType: "screen", resourceId: "scr-1" },
+      { wsId: "ws-2", resourceType: "screen-item", resourceId: "scr-1" },
     ]));
     expect(list("ws-1", "table", "tbl-1")).toEqual([
       expect.objectContaining({ sessionId: "sess-B" }),
     ]);
     expect(list("ws-1", "process-flow", "pf-1")).toHaveLength(0);
-    expect(list("ws-2", "screen", "scr-1")).toHaveLength(0);
+    expect(list("ws-2", "screen-item", "scr-1")).toHaveLength(0);
   });
 
   it("該当 entry が無い session の削除は空配列を返す", () => {
@@ -168,9 +168,9 @@ describe("heartbeat", () => {
   });
 
   it("未登録セッションの heartbeat は auto-register (viewer として)", () => {
-    const result = heartbeat("ws-1", "sess-new", "screen", "scr-1", "activity");
+    const result = heartbeat("ws-1", "sess-new", "screen-item", "scr-1", "activity");
     expect(result.entry.role).toBe("viewer");
-    expect(list("ws-1", "screen", "scr-1")).toHaveLength(1);
+    expect(list("ws-1", "screen-item", "scr-1")).toHaveLength(1);
   });
 
   it("changed フラグが返される", () => {
@@ -208,9 +208,9 @@ describe("list", () => {
 
   it("resourceType の違いは独立してフィルタされる", () => {
     registerEditor("ws-1", "sess-A", "table", "res-1");
-    registerViewer("ws-1", "sess-B", "screen", "res-1");
+    registerViewer("ws-1", "sess-B", "screen-item", "res-1");
     expect(list("ws-1", "table", "res-1")).toHaveLength(1);
-    expect(list("ws-1", "screen", "res-1")).toHaveLength(1);
+    expect(list("ws-1", "screen-item", "res-1")).toHaveLength(1);
   });
 });
 

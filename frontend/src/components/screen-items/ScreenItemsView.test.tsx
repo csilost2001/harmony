@@ -546,8 +546,8 @@ describe("ScreenItemsView (Step 2: 編集動作)", () => {
       // setOptions 用の placeholder "@options.<name> / catalogRef / 式" が出現すること
       await waitFor(() => {
         const optionsInput = container.querySelector<HTMLInputElement>(
-          "input[placeholder='@options.<name> / catalogRef / 式']"
-        ) ?? container.querySelector<HTMLElement>("[placeholder='@options.<name> / catalogRef / 式']");
+          "input[placeholder='例: @options.<name> / catalogRef / 式']"
+        ) ?? container.querySelector<HTMLElement>("[placeholder='例: @options.<name> / catalogRef / 式']");
         expect(optionsInput).not.toBeNull();
       }, { timeout: 3000 });
     });
@@ -650,7 +650,7 @@ describe("ScreenItemsView (Step 2: 編集動作)", () => {
         expect(checkbox).toBeNull();
         // expression input が出現すること
         const exprInput = container.querySelector<HTMLInputElement>(
-          "input[placeholder='@var.* / TemplateString 式']"
+          "input[placeholder='例: @var.* / TemplateString 式']"
         );
         expect(exprInput).not.toBeNull();
       }, { timeout: 3000 });
@@ -667,7 +667,7 @@ describe("ScreenItemsView (Step 2: 編集動作)", () => {
       // expression モードの確認 (text input あり)
       await waitFor(() => {
         const exprInput = container.querySelector<HTMLInputElement>(
-          "input[placeholder='@var.* / TemplateString 式']"
+          "input[placeholder='例: @var.* / TemplateString 式']"
         );
         expect(exprInput).not.toBeNull();
       }, { timeout: 3000 });
@@ -684,7 +684,7 @@ describe("ScreenItemsView (Step 2: 編集動作)", () => {
       await waitFor(() => {
         // expression input が消えること
         const exprInput = container.querySelector(
-          "input[placeholder='@var.* / TemplateString 式']"
+          "input[placeholder='例: @var.* / TemplateString 式']"
         );
         expect(exprInput).toBeNull();
         // checkbox が出現すること (boolean モードに戻った)

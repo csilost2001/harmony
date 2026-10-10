@@ -21,9 +21,9 @@ interface Props {
  * onChange 指定時はクリックで循環切替 (#188)。
  */
 const STYLE_MAP: Record<Maturity, { color: string; label: string; title: string }> = {
-  draft: { color: "color-mix(in srgb, #f5a214 80%, var(--hm-fg))", label: "●", title: "下書き (draft)" },
-  provisional: { color: "color-mix(in srgb, #f97010 80%, var(--hm-fg))", label: "●", title: "暫定 (provisional)" },
-  committed: { color: "color-mix(in srgb, #2edb6e 80%, var(--hm-fg))", label: "●", title: "確定 (committed)" },
+  draft: { color: "color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg))", label: "●", title: "下書き (draft)" },
+  provisional: { color: "color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg))", label: "●", title: "暫定 (provisional)" },
+  committed: { color: "color-mix(in srgb, var(--hm-hue-green) 80%, var(--hm-fg))", label: "●", title: "確定 (committed)" },
 };
 
 const CYCLE: Record<Maturity, Maturity> = {

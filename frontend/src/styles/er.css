@@ -98,8 +98,8 @@
   font-size: 10px;
   padding: 1px 6px;
   border-radius: 3px;
-  background: color-mix(in srgb, #260aff 10%, transparent);
-  color: color-mix(in srgb, #260aff 80%, var(--hm-fg));
+  background: color-mix(in srgb, var(--hm-hue-blue) 10%, transparent);
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   white-space: nowrap;
 }
 
@@ -133,7 +133,7 @@
 }
 
 .er-col.pk:hover {
-  background: color-mix(in srgb, #fbe70e 7%, var(--hm-surface));
+  background: color-mix(in srgb, var(--hm-hue-amber) 7%, var(--hm-surface));
 }
 
 .er-col.fk {
@@ -152,11 +152,11 @@
 }
 
 .pk-icon {
-  color: color-mix(in srgb, #faae0f 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-amber) 80%, var(--hm-fg));
 }
 
 .fk-icon {
-  color: color-mix(in srgb, #156af4 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
 }
 
 .er-col-icon-space {
@@ -188,7 +188,7 @@
   gap: 4px;
   padding: 4px 10px;
   font-size: 10px;
-  color: color-mix(in srgb, #260aff 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   cursor: pointer;
   border-top: 1px dashed var(--hm-border);
   margin-top: 2px;
@@ -265,7 +265,7 @@
 }
 
 .er-relation-arrow {
-  color: color-mix(in srgb, #260aff 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
   font-size: 18px;
   flex-shrink: 0;
 }
@@ -288,8 +288,8 @@
   font-size: 10px;
   padding: 1px 6px;
   border-radius: 3px;
-  background: color-mix(in srgb, #260aff 15%, transparent);
-  color: color-mix(in srgb, #2c0aff 80%, var(--hm-fg));
+  background: color-mix(in srgb, var(--hm-hue-blue) 15%, transparent);
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
 }
 
 /* ── エクスポートメニュー ──────────────────────────────────────────────── */

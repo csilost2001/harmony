@@ -474,8 +474,8 @@ function ErDiagramInner() {
           >
             <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
             <MiniMap
-              nodeColor="#7c6bff"
-              maskColor="rgba(26,26,46,0.7)"
+              nodeColor="var(--hm-accent)"
+              maskColor="color-mix(in srgb, var(--hm-bg) 70%, transparent)"
               style={{ borderRadius: 8 }}
             />
           </ReactFlow>
@@ -755,7 +755,7 @@ function AddTableFromErModal({
             type="text"
             value={physicalName}
             onChange={(e) => setPhysicalName(e.target.value)}
-            placeholder="customers"
+            placeholder="例: customers"
             autoFocus
             onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
           />
@@ -766,7 +766,7 @@ function AddTableFromErModal({
             type="text"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="顧客マスタ"
+            placeholder="例: 顧客マスタ"
             onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
           />
         </label>

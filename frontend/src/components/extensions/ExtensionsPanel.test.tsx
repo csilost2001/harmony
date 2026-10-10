@@ -77,7 +77,7 @@ describe("ExtensionsPanel", () => {
     }
 
     fireEvent.click(screen.getByRole("button", { name: "追加" }));
-    fireEvent.change(screen.getAllByPlaceholderText("ApiError")[1], { target: { value: "Created" } });
+    fireEvent.change(screen.getAllByPlaceholderText("例: ApiError")[1], { target: { value: "Created" } });
     // EditModeToolbar の「保存」と tab の「保存」があるため getAllByRole で後者を選ぶ
     const saveButtons = screen.getAllByRole("button", { name: "保存" });
     fireEvent.click(saveButtons[saveButtons.length - 1]);

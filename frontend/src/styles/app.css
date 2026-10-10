@@ -35,7 +35,7 @@
   cursor: not-allowed;
 }
 .icon-btn.danger:hover {
-  background-color: color-mix(in srgb, #ec1d1d 15%, transparent);
+  background-color: color-mix(in srgb, var(--hm-hue-red) 15%, transparent);
   color: var(--dz-danger);
 }
 

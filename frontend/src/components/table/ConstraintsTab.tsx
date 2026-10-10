@@ -212,7 +212,7 @@ function ConstraintEditor({
             onChange={(e) =>
               onUpdate({ physicalName: (e.target.value || undefined) as never } as Partial<Constraint>)
             }
-            placeholder="constraint_physical_name"
+            placeholder="例: constraint_physical_name"
           />
         </div>
         <button className="tbl-btn-icon" onClick={onClose} title="閉じる">
@@ -309,7 +309,7 @@ function CheckEditor({
         type="text"
         value={c.expression}
         onChange={(e) => onUpdate({ expression: e.target.value } as Partial<CheckConstraint>)}
-        placeholder="amount > 0"
+        placeholder="例: amount > 0"
         className="constraint-expr-input"
       />
     </label>

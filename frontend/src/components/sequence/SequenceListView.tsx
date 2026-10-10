@@ -551,7 +551,7 @@ export function SequenceListView() {
                   type="text"
                   value={addPhysicalName}
                   onChange={(e) => { setAddPhysicalName(e.target.value); setAddPhysicalNameError(""); }}
-                  placeholder="po_number_seq"
+                  placeholder="例: po_number_seq"
                   autoFocus
                   className={addPhysicalNameError ? "input-error" : undefined}
                   onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
@@ -564,7 +564,7 @@ export function SequenceListView() {
                   type="text"
                   value={addName}
                   onChange={(e) => setAddName(e.target.value)}
-                  placeholder="発注番号採番"
+                  placeholder="例: 発注番号採番"
                   onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
                 />
               </label>

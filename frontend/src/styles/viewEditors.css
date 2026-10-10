@@ -1,0 +1,66 @@
+/*
+ * ビュー編集 (ViewEditor) とビュー定義編集 (ViewDefinitionEditor) の、画面ごとの部品の見た目。
+ * これまで定義が無く、入力欄・表がブラウザの既定の見た目 (細い SELECT 文の枠、太い灰色の入力欄など) になっていた。
+ */
+
+/* ── ビュー編集 ── */
+.view-editor-section-marker { font-size: 0.85em; }
+.view-editor-select-stmt {
+  display: block; width: 100%; min-height: 12rem; padding: 0.6rem 0.75rem; border: 1px solid var(--hm-border-strong); border-radius: 4px;
+  background: var(--hm-surface); color: var(--hm-fg); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.82rem; line-height: 1.55;
+  resize: vertical; tab-size: 2; box-sizing: border-box;
+}
+.view-editor-select-stmt:focus { outline: none; border-color: var(--hm-accent); box-shadow: 0 0 0 3px var(--hm-focus); }
+.view-editor-dep-add { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+.view-editor-dep-input, .view-editor-col-name, .view-editor-col-type, .view-editor-col-desc, .view-editor-col-add-form input {
+  min-width: 0; padding: 0.3rem 0.5rem; border: 1px solid var(--hm-border-strong); border-radius: 4px; background: var(--hm-surface); color: var(--hm-fg); font: inherit; font-size: 0.85rem;
+}
+.view-editor-dep-input { flex: 1 1 auto; }
+.view-editor-col-list { display: flex; flex-direction: column; gap: 6px; }
+.view-editor-col-row { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.6fr) auto; gap: 6px; align-items: center; }
+.view-editor-col-add-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px; margin-top: 8px; align-items: center; }
+.view-editor-col-add-btn { margin-left: auto; }
+.view-editor-col-name:focus, .view-editor-col-type:focus, .view-editor-col-desc:focus, .view-editor-dep-input:focus, .view-editor-col-add-form input:focus {
+  outline: none; border-color: var(--hm-accent); box-shadow: 0 0 0 3px var(--hm-focus);
+}
+.view-editor-col-name:disabled, .view-editor-col-type:disabled, .view-editor-col-desc:disabled, .view-editor-dep-input:disabled { background: var(--hm-surface-2); color: var(--hm-fg); }
+
+/* ── ビュー定義編集 ── */
+.vd-editor-required { color: var(--hm-danger); }
+.vd-editor-kind-row, .vd-editor-maturity-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.vd-editor-maturity-label { font-size: 0.9rem; color: var(--hm-fg); }
+.vd-editor-number-input { width: 7rem; padding: 0.3rem 0.5rem; border: 1px solid var(--hm-border-strong); border-radius: 4px; background: var(--hm-surface); color: var(--hm-fg); font: inherit; }
+.vd-editor-col-count { margin-left: 8px; font-size: 0.78rem; font-weight: 400; color: var(--hm-fg-muted); }
+.vd-editor-columns-table-wrap { overflow-x: auto; border: 1px solid var(--hm-border); border-radius: 6px; }
+.vd-editor-columns-table, .vd-editor-sub-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.vd-editor-columns-table th, .vd-editor-sub-table th { padding: 6px 8px; text-align: left; background: var(--hm-surface-2); color: var(--hm-fg-2); font-weight: 600; white-space: nowrap; border-bottom: 1px solid var(--hm-border); }
+.vd-editor-columns-table td, .vd-editor-sub-table td { padding: 4px 6px; border-bottom: 1px solid var(--hm-border); vertical-align: middle; }
+.vd-editor-columns-table tr:last-child td, .vd-editor-sub-table tr:last-child td { border-bottom: 0; }
+.vd-col-input-sm, .vd-col-input-xs, .vd-col-select, .vd-col-select-xs {
+  width: 100%; min-width: 0; padding: 0.25rem 0.4rem; border: 1px solid var(--hm-border-strong); border-radius: 4px; background: var(--hm-surface); color: var(--hm-fg); font: inherit; font-size: 0.8rem; box-sizing: border-box;
+}
+.vd-col-input-sm { min-width: 7rem; }
+.vd-col-input-xs, .vd-col-select-xs { min-width: 3.5rem; width: 5rem; }
+.vd-col-select { min-width: 6rem; }
+.vd-col-input-sm:focus, .vd-col-input-xs:focus, .vd-col-select:focus, .vd-col-select-xs:focus { outline: none; border-color: var(--hm-accent); box-shadow: 0 0 0 3px var(--hm-focus); }
+.vd-col-input-sm:disabled, .vd-col-input-xs:disabled, .vd-col-select:disabled, .vd-col-select-xs:disabled { background: var(--hm-surface-2); color: var(--hm-fg); }
+.vd-col-center { text-align: center; }
+.vd-col-ops { white-space: nowrap; text-align: right; }
+.vd-editor-add-row-btn { margin-top: 8px; }
+.vd-editor-col-issues { display: flex; gap: 6px; align-items: baseline; margin-top: 6px; font-size: 0.8rem; }
+.vd-editor-col-issues-label { font-weight: 600; color: var(--hm-fg-2); }
+.vd-editor-issue-hints { display: flex; flex-direction: column; gap: 2px; margin-top: 3px; }
+.vd-editor-issue { display: flex; align-items: baseline; gap: 5px; font-size: 0.78rem; }
+.vd-editor-issue--error { color: var(--hm-danger); }
+.vd-editor-issue--warning { color: var(--hm-warning); }
+.vd-editor-issue-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 6px 14px; border-bottom: 1px solid var(--hm-border); background: var(--hm-surface-2); font-size: 0.82rem; }
+.vd-editor-issue-bar-label { font-weight: 600; color: var(--hm-fg-2); }
+
+/* ── 編集画面 (テーブル・シーケンス・ビュー・ビュー定義) の、クラスの付いていない入力欄・選択欄・テキスト欄の基本の見た目 ──
+   詳細度 0 (:where) なので、画面ごとのクラスの指定があればそちらが優先される */
+:where(.seq-editor-body, .table-editor-page) :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]), select, textarea) {
+  padding: 0.25rem 0.45rem; border: 1px solid var(--hm-border-strong); border-radius: 4px;
+  background: var(--hm-surface); color: var(--hm-fg); font: inherit; font-size: 0.85rem; box-sizing: border-box;
+}
+:where(.seq-editor-body, .table-editor-page) :where(input, select, textarea):focus { outline: none; border-color: var(--hm-accent); box-shadow: 0 0 0 3px var(--hm-focus); }
+:where(.seq-editor-body, .table-editor-page) :where(input, select, textarea):disabled { background: var(--hm-surface-2); color: var(--hm-fg); }

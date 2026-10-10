@@ -54,8 +54,8 @@ test.describe("役割・権限タブ (#555)", { tag: ["@regression"] }, () => {
     await page.locator(".conventions-entries button:has-text('追加')").click();
     await expect(page.locator(".conventions-key-badge", { hasText: "order.create" })).toBeVisible();
 
-    await page.locator('.conventions-table input[placeholder="Order"]').first().fill("Order");
-    await page.locator('.conventions-table input[placeholder="create"]').first().fill("create");
+    await page.locator('.conventions-table input[placeholder="例: Order"]').first().fill("Order");
+    await page.locator('.conventions-table input[placeholder="例: create"]').first().fill("create");
     await page.locator(".conventions-table select").first().selectOption("own");
     await expect(page.locator(".conventions-table select").first()).toHaveValue("own");
   });
@@ -72,8 +72,8 @@ test.describe("役割・権限タブ (#555)", { tag: ["@regression"] }, () => {
     await page.locator(".conventions-entries button:has-text('追加')").click();
     await expect(page.locator(".conventions-key-badge", { hasText: "customer" })).toBeVisible();
 
-    await page.locator('.conventions-table input[placeholder="顧客"]').first().fill("顧客");
-    const permsInput = page.locator('.conventions-table input[placeholder="order.create, order.read"]').first();
+    await page.locator('.conventions-table input[placeholder="例: 顧客"]').first().fill("顧客");
+    const permsInput = page.locator('.conventions-table input[placeholder="例: order.create, order.read"]').first();
     await permsInput.fill("order.read");
     await expect(permsInput).toHaveValue("order.read");
     // onChange → updateSilent → integrityIssues 再計算が live で走るため blur 不要。
@@ -85,7 +85,7 @@ test.describe("役割・権限タブ (#555)", { tag: ["@regression"] }, () => {
     await page.locator(".conventions-category-tab", { hasText: "役割" }).click();
     await page.locator(".conventions-new-key-input").fill("admin");
     await page.locator(".conventions-entries button:has-text('追加')").click();
-    const permsInput = page.locator('.conventions-table input[placeholder="order.create, order.read"]').first();
+    const permsInput = page.locator('.conventions-table input[placeholder="例: order.create, order.read"]').first();
     await permsInput.fill("does.not.exist");
     await permsInput.blur();
     await expect(page.locator(".conventions-issue")).toContainText("does.not.exist");
@@ -102,7 +102,7 @@ test.describe("役割・権限タブ (#555)", { tag: ["@regression"] }, () => {
     await page.locator(".conventions-entries button:has-text('追加')").click();
 
     // A.inherits = [B], B.inherits = [A] で循環
-    const inhInputs = page.locator('.conventions-table input[placeholder="customer"]');
+    const inhInputs = page.locator('.conventions-table input[placeholder="例: customer"]');
     await inhInputs.nth(0).fill("B");
     await inhInputs.nth(0).blur();
     await inhInputs.nth(1).fill("A");

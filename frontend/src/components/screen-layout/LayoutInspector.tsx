@@ -192,7 +192,7 @@ function NodePanel(props: LayoutInspectorProps & { node: LayoutNode }) {
         </>
       )}
       {(node.type === "section" || node.type === "form" || node.type === "search-panel" || node.type === "tab") && (
-        <Row label="表題" htmlFor="sld-title"><TextInput id="sld-title" value={p.title ?? ""} disabled={!editable} onLive={(v) => setProp("title", v, false)} onDone={onCommit} placeholder={node.type === "search-panel" ? "検索条件" : ""} />{chips("title")}</Row>
+        <Row label="表題" htmlFor="sld-title"><TextInput id="sld-title" value={p.title ?? ""} disabled={!editable} onLive={(v) => setProp("title", v, false)} onDone={onCommit} placeholder={node.type === "search-panel" ? "既定: 検索条件" : ""} />{chips("title")}</Row>
       )}
       {node.type === "section" && (
         <Row label="外枠" htmlFor="sld-variant">
@@ -236,7 +236,7 @@ function NodePanel(props: LayoutInspectorProps & { node: LayoutNode }) {
       )}
       {(node.type === "button" || node.type === "link") && (
         <>
-          <Row label="表示文言" htmlFor="sld-label"><TextInput id="sld-label" value={p.label ?? ""} disabled={!editable} onLive={(v) => setProp("label", v, false)} onDone={onCommit} placeholder={item?.label as string | undefined} />{chips("label")}</Row>
+          <Row label="表示文言" htmlFor="sld-label"><TextInput id="sld-label" value={p.label ?? ""} disabled={!editable} onLive={(v) => setProp("label", v, false)} onDone={onCommit} placeholder={item?.label ? `既定: ${item.label}` : undefined} />{chips("label")}</Row>
           {node.type === "button" && (
             <Row label="強調" htmlFor="sld-bvariant">
               <select id="sld-bvariant" className="sld-input" value={p.variant ?? "secondary"} disabled={!editable} onChange={(e) => setProp("variant", e.target.value as LayoutNodeProps["variant"])}>
@@ -325,7 +325,7 @@ function ComponentArgsPanel({ node, def, items, screens, editable, onSetArg, onE
                 {screens.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             ) : (
-              <TextInput id={id} value={value} disabled={!editable} placeholder={q.default} onLive={(v) => onSetArg?.(node.id, q.id, v, false)} onDone={onCommit} />
+              <TextInput id={id} value={value} disabled={!editable} placeholder={q.default ? `既定: ${q.default}` : undefined} onLive={(v) => onSetArg?.(node.id, q.id, v, false)} onDone={onCommit} />
             )}
           </Row>
         );

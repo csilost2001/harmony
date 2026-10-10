@@ -62,7 +62,7 @@ export function SlaPanel({ sla, onChange, label = "SLA / Timeout" }: Props) {
             className="form-control form-control-sm"
             value={sla?.timeoutMs ?? ""}
             onChange={(e) => patch({ timeoutMs: toNumber(e.target.value) })}
-            placeholder="2000"
+            placeholder="例: 2000"
           />
         </div>
         <div className="col-sm-3" data-field-path="sla.onTimeout">
@@ -86,7 +86,7 @@ export function SlaPanel({ sla, onChange, label = "SLA / Timeout" }: Props) {
             className="form-control form-control-sm"
             value={sla?.warningThresholdMs ?? ""}
             onChange={(e) => patch({ warningThresholdMs: toNumber(e.target.value) })}
-            placeholder="1500"
+            placeholder="例: 1500"
           />
         </div>
         <div className="col-sm-3" data-field-path="sla.p95LatencyMs">
@@ -107,7 +107,7 @@ export function SlaPanel({ sla, onChange, label = "SLA / Timeout" }: Props) {
             className="form-control form-control-sm"
             value={sla?.errorCode ?? ""}
             onChange={(e) => patch({ errorCode: (e.target.value || undefined) as ErrorCode | undefined })}
-            placeholder="TIMEOUT"
+            placeholder="例: TIMEOUT"
             style={{ fontFamily: "monospace" }}
           />
         </div>

@@ -90,7 +90,7 @@
 }
 
 .codex-settings-error-message {
-  color: color-mix(in srgb, #d43a36 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg));
   background: var(--hm-surface-2);
   padding: 8px 12px;
   border-radius: 4px;
@@ -158,7 +158,7 @@
   word-break: break-all;
 }
 .codex-settings-auth-url a {
-  color: color-mix(in srgb, #2c7edd 80%, var(--hm-fg));
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
 }
 
 .codex-settings-account {

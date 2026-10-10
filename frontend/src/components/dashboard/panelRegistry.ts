@@ -16,6 +16,8 @@ import { UnsavedDraftsPanel } from "./panels/UnsavedDraftsPanel";
 import { RecentEditsPanel } from "./panels/RecentEditsPanel";
 import { ProcessFlowMaturityPanel } from "./panels/ProcessFlowMaturityPanel";
 import { MarkersSummaryPanel } from "./panels/MarkersSummaryPanel";
+import { DesignIssuesPanel } from "./panels/DesignIssuesPanel";
+import { GettingStartedPanel } from "./panels/GettingStartedPanel";
 
 /** react-grid-layout の 1 パネルのレイアウト指定 */
 export interface PanelLayout {
@@ -56,11 +58,25 @@ export interface DashboardPanel {
  */
 export const dashboardPanels: DashboardPanel[] = [
   {
+    id: "getting-started",
+    title: "はじめかた",
+    icon: "bi-signpost-split",
+    defaultLayout: { w: 6, h: 5, minW: 4, minH: 4 },
+    component: GettingStartedPanel,
+  },
+  {
     id: "function-counts",
     title: "機能別定義数",
     icon: "bi-bar-chart-line",
     defaultLayout: { w: 6, h: 3, minW: 4, minH: 3 },
     component: FunctionCountsPanel,
+  },
+  {
+    id: "design-issues",
+    title: "設計の要確認",
+    icon: "bi-clipboard2-check",
+    defaultLayout: { w: 6, h: 4, minW: 4, minH: 3 },
+    component: DesignIssuesPanel,
   },
   {
     id: "process-flow-maturity",

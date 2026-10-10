@@ -20,9 +20,6 @@
  *      handler 側 routing を追加 (allowlist 自体はここから自動導出)
  */
 export const DRAFT_RESOURCE_TYPES = [
-  "screen",
-  "page-layout-design", // #1448: PageLayout Designer の GrapesJS/Puck design payload
-  "puck-data",
   "table",
   "process-flow",
   "view",
@@ -35,6 +32,11 @@ export const DRAFT_RESOURCE_TYPES = [
   "flow",
   "er-layout",
   "generic-definition", // #1331: GenericDefinition EditSession 化 (kind/name 複合 id)
+  "business-flow", // 再設計 2026-10 段階 4: 業務フロー (<dataDir>/business-flows/<id>.json)
+  "report", // 再設計 2026-10 段階 4: 帳票 (<dataDir>/reports/<id>.json)
 ] as const;
+
+// 旧エディタ (GrapesJS / Puck) の廃止 (2026-10) に伴い、旧デザイン本体の種別 "screen" / "page-layout-design" / "puck-data" は除いた。
+// 画面のデザインは "screen-item" (画面項目 + layout) の編集セッションで編集する。
 
 export type DraftResourceType = typeof DRAFT_RESOURCE_TYPES[number];

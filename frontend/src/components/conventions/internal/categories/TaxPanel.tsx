@@ -68,7 +68,7 @@ export function TaxPanel({
                   step={0.01}
                   min={0}
                   max={1}
-                  placeholder="0.10"
+                  placeholder="例: 0.10"
                 />
               </td>
               <td>

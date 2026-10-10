@@ -22,4 +22,16 @@ if (n !== 0) {
   console.error(`テーマ非対応の直書き色が ${n} 件あります。bash scripts/dev/apply-color-tokens.sh で変換するか var(--hm-*) を使ってください。`);
   process.exit(1);
 }
+
+// color-mix の基準色に 16 進の色を直書きしない (テーマで明るさが変わらず、ダークテーマで文字が読みにくくなる)
+import fs from "node:fs";
+const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]));
+const bad = walk(path.join(root, "frontend/src"))
+  .filter((f) => /\.(css|tsx)$/.test(f) && !f.includes(".test."))
+  .flatMap((f) => fs.readFileSync(f, "utf8").split("\n").flatMap((line, i) => (/color-mix\(in srgb, #[0-9a-fA-F]{3,6}\b/.test(line) ? [`${path.relative(root, f)}:${i + 1}`] : [])));
+if (bad.length) {
+  console.error(`color-mix の基準色に 16 進の色が直書きされています (${bad.length} 件)。var(--hm-accent) / var(--hm-hue-*) などのトークンを使うか、node scripts/dev/tokenize-color-mix.mjs --write で変換してください。`);
+  for (const b of bad.slice(0, 10)) console.error(`  ${b}`);
+  process.exit(1);
+}
 console.log("OK: アプリ UI の色はすべて配色トークン経由です");
