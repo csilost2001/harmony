@@ -1,0 +1,81 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="../../../favicon.svg" type="image/svg+xml"><title>ui reference/report</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="../../../_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="../../../_astro/_slug_.XtJAgJeQ.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="../../../" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="../../../spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="../../../user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="../../../conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="../../../setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="../../../presentation/" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ユーザーガイド </div> <ul class="space-y-0.5"> <li> <a href="../../../user-guide/readme/" class="sidebar-link"> Overview </a> </li><li> <a href="../../../user-guide/process-flow-workflow/" class="sidebar-link"> ProcessFlow ワークフロー </a> </li><li> <a href="../../../user-guide/marker-workflow/" class="sidebar-link"> Marker ワークフロー </a> </li><li> <a href="../../../user-guide/rename-screen-ids-workflow/" class="sidebar-link"> 画面 ID リネーム </a> </li><li> <a href="../../../user-guide/multi-editor-puck-guide/" class="sidebar-link"> マルチエディタ利用 </a> </li><li> <a href="../../../user-guide/troubleshooting/" class="sidebar-link"> トラブルシューティング </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="帳票">帳票</h1>
+<blockquote>
+<p><strong>ルート</strong>: 一覧 <code>/w/:wsId/report/list</code>、編集 <code>/w/:wsId/report/edit/:id</code>
+<strong>仕様</strong>: <a href="../../../spec/report/">report.md</a></p>
+</blockquote>
+<h2 id="概要">概要</h2>
+<p>納品書・一覧表などの出力帳票を、部 (ヘッダー・明細・フッターなど) と項目に分けて設計する。出力契機・出力条件・データの出どころ (テーブルの列) を決め、用紙の見本図を見ながら組み立てる。</p>
+<h2 id="一覧">一覧</h2>
+<p>ヘッダーメニュー「帳票」。新規作成 (名前と ID)・複製・削除。新規作成の直後は編集を始めた状態で開く。</p>
+<h2 id="編集">編集</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>エリア</th><th>内容</th></tr></thead><tbody><tr><td>左</td><td>基本設定 (名前・出力・契機・出力条件) と部の一覧。持ち手 (⋮⋮) のドラッグで部を並べ替え。部の追加 (種類を選ぶ)・削除</td></tr><tr><td>中央</td><td>用紙の見本図。項目をドラッグして同じ部の中で並べ替えられる (落とす位置は青い線で示す)</td></tr><tr><td>右</td><td>選んだ部・項目の設定。項目は種類・見出し・データの出どころ (テーブル / 列)・書式・揃え・幅</td></tr><tr><td>見本図の下</td><td>要確認 (参照先のテーブル・列がない、など)</td></tr></tbody></table>
+<p>編集の始め方・保存・同時編集は <a href="../../../user-guide/ui-reference/common-operations/">共通の操作</a> を参照。</p>
+<h2 id="関連">関連</h2>
+<ul>
+<li>設計書ビュー: 「帳票」の章に見本図と項目表が出る</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

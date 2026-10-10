@@ -17,7 +17,11 @@
 <li><strong>生成 / 更新スキル</strong>: <code>/document-ui</code> (<code>ai-skills/document-ui/SKILL.md</code>)</li>
 </ul>
 <p>仕様書 (<code>docs/spec/</code>) は設計者・実装者向けで、本ディレクトリは <strong>画面の使い方</strong> にフォーカス。両者で重複する内容 (例: ProcessFlow の variable lifecycle) は spec を canonical とし、本書からはリンクのみ張る。</p>
-<h2 id="全-28-画面-pr-1403-で全画面完備">全 28 画面 (PR #1403 で全画面完備)</h2>
+<h2 id="共通の操作">共通の操作</h2>
+<ul>
+<li><a href="../../../user-guide/ui-reference/common-operations/"><code>common-operations</code></a> — 開く・探す (<code>Ctrl+K</code>)、編集開始 → 保存、タブの「●」、ID の入力、共同編集、並べ替え</li>
+</ul>
+<h2 id="画面一覧-全-32-画面">画面一覧 (全 32 画面)</h2>
 <p>ルーティングは AGENTS.md の “Routing” 表 が canonical。</p>
 <h3 id="a-ダッシュボード全体俯瞰">A. ダッシュボード・全体俯瞰</h3>
 <p>プロジェクト全体の状態を俯瞰する画面群。最初に開く / 全体把握用。</p>
@@ -25,6 +29,7 @@
 <li><a href="../../../user-guide/ui-reference/dashboard/"><code>dashboard</code></a> — Dashboard (<code>/</code>): プロジェクト全体俯瞰</li>
 <li><a href="../../../user-guide/ui-reference/screen-flow/"><code>screen-flow</code></a> — 画面フロー図 (<code>/screen/flow</code>): ReactFlow キャンバスで画面遷移を表示</li>
 <li><a href="../../../user-guide/ui-reference/er-diagram/"><code>er-diagram</code></a> — ER 図 (<code>/table/er</code>): テーブル関連を Mermaid で可視化</li>
+<li><a href="../../../user-guide/ui-reference/document/"><code>document</code></a> — 設計書ビュー (<code>/document</code>): 紙面で読む・HTML 保存・印刷</li>
 <li><a href="../../../user-guide/ui-reference/generic-definition-catalog/"><code>generic-definition-catalog</code></a> — 汎用定義カタログ (<code>/generic-definition</code>)</li>
 <li><a href="../../../user-guide/ui-reference/conventions-catalog/"><code>conventions-catalog</code></a> — 横断規約カタログ (<code>/conventions/catalog</code>)</li>
 </ul>
@@ -39,11 +44,13 @@
 <li><a href="../../../user-guide/ui-reference/view-definition-list/"><code>view-definition-list</code></a> — ViewDefinition 一覧 (<code>/view-definition/list</code>)</li>
 <li><a href="../../../user-guide/ui-reference/page-layout-list/"><code>page-layout-list</code></a> — ページレイアウト一覧 (<code>/page-layout/list</code>)</li>
 <li><a href="../../../user-guide/ui-reference/gadget-list/"><code>gadget-list</code></a> — ガジェット一覧 (<code>/gadget/list</code>)</li>
+<li><a href="../../../user-guide/ui-reference/business-flow/"><code>business-flow</code></a> — 業務フロー一覧・編集 (<code>/business-flow/list</code>, <code>/business-flow/edit/:id</code>): スイムレーン図</li>
+<li><a href="../../../user-guide/ui-reference/report/"><code>report</code></a> — 帳票一覧・編集 (<code>/report/list</code>, <code>/report/edit/:id</code>): 部と項目で設計</li>
 </ul>
 <h3 id="c-リソース個別エディタ">C. リソース個別エディタ</h3>
 <p>各リソースを編集する画面。リソース ID 単位でタブが開く (per-resource)。</p>
 <ul>
-<li><a href="../../../user-guide/ui-reference/screen-designer/"><code>screen-designer</code></a> — 画面デザイナー (GrapesJS) (<code>/screen/design/:id</code>)</li>
+<li><a href="../../../user-guide/ui-reference/screen-designer/"><code>screen-designer</code></a> — 画面デザイナー (業務部品デザイナ) (<code>/screen/design/:id</code>)</li>
 <li><a href="../../../user-guide/ui-reference/screen-items/"><code>screen-items</code></a> — 画面項目編集 (<code>/screen/items/:id</code>)</li>
 <li><a href="../../../user-guide/ui-reference/table-editor/"><code>table-editor</code></a> — テーブル定義編集 (<code>/table/edit/:id</code>)</li>
 <li><a href="../../../user-guide/ui-reference/process-flow-editor/"><code>process-flow-editor</code></a> — 処理フロー編集 (<code>/process-flow/edit/:id</code>)</li>
@@ -81,13 +88,13 @@
 </ol>
 <h3 id="全画面の-screenshot-を最新化したい時">全画面の screenshot を最新化したい時</h3>
 <pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>/document-ui</span></span></code></pre>
-<p>(全 28 画面を順次撮影 + md 再生成、所要時間: 1-2 時間目安。実機 dev server 起動 + dogfood-uidoc-* workspace 前提)</p>
+<p>(全画面を順次撮影 + md 再生成、所要時間: 1-2 時間目安。実機 dev server 起動 + dogfood-uidoc-* workspace 前提)</p>
 <h2 id="関連">関連</h2>
 <ul>
 <li>生成スキル: <a href="https://github.com/csilost2001/harmony/blob/main/ai-skills/document-ui/SKILL.md"><code>ai-skills/document-ui/SKILL.md</code></a></li>
 <li>ルーティング正本: <a href="https://github.com/csilost2001/harmony/blob/main/AGENTS.md">AGENTS.md</a> の “Routing” セクション</li>
 <li>一覧 UI 共通仕様: <a href="../../../spec/list-common/"><code>docs/spec/list-common.md</code></a></li>
-<li>画面デザイナー仕様: <a href="../../../spec/multi-editor-puck/"><code>docs/spec/multi-editor-puck.md</code></a></li>
+<li>画面デザイナー仕様: <a href="../../../spec/screen-layout/"><code>docs/spec/screen-layout.md</code></a></li>
 <li>ページレイアウト仕様: <a href="../../../spec/page-layout/"><code>docs/spec/page-layout.md</code></a></li>
 </ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
       // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
