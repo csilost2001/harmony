@@ -649,9 +649,8 @@ export function SequenceEditor() {
             <i className={`bi bi-chevron-${ddlOpen ? "down" : "right"}`} />
             DDL プレビュー (CREATE SEQUENCE)
           </button>
-          {ddlOpen && (
-            <pre className="seq-ddl-preview">{ddl}</pre>
-          )}
+          {/* 常に描く。狭い画面は開閉で見せ、幅の広い画面は右カラムに常時出す (CSS) */}
+          <pre className={`seq-ddl-preview${ddlOpen ? " open" : ""}`}>{ddl}</pre>
         </section>
       </div>
 

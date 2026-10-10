@@ -2362,6 +2362,7 @@
   color: var(--hm-fg);
 }
 .seq-ddl-preview {
+  display: none; /* 狭い画面は、トグルで開いたときだけ (.open) */
   margin-top: 12px;
   background: var(--hm-bg);
   border: 1px solid var(--hm-border);
@@ -2375,8 +2376,8 @@
   overflow-x: auto;
 }
 
-/* 4K responsive: フォームセクション + 右サイド DDL 常時表示 */
-@media (min-width: 2560px) {
+/* 幅の広い画面 (FHD 以上): フォームセクション + 右サイド DDL 常時表示 (狭い画面は DDL を折りたたんで縦に並べる) */
+@media (min-width: 1500px) {
   .seq-editor-body {
     flex-direction: row;
     align-items: flex-start;
@@ -2385,33 +2386,49 @@
   }
   .seq-editor-left-col {
     flex: 1;
+    max-width: 1100px; /* 入力欄が横に伸びすぎないように */
     min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 20px;
   }
   .seq-editor-grid {
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr;
   }
   .seq-editor-ddl-section {
-    width: 520px;
+    width: 480px;
     flex-shrink: 0;
     position: sticky;
     top: 16px;
   }
+  /* 常時表示: トグルは見出しとして残す (押せない) */
   .seq-ddl-toggle {
+    pointer-events: none;
+    cursor: default;
+  }
+  .seq-ddl-toggle .bi {
     display: none;
   }
   .seq-ddl-preview {
-    display: block !important;
-    margin-top: 0;
+    display: block;
+    margin-top: 8px;
   }
 }
 
-/* FHD: 通常レイアウト (デフォルト flex-direction: column 維持) */
-@media (max-width: 2559px) {
+/* 1500px 未満: 縦 1 列 (デフォルト flex-direction: column 維持) */
+@media (max-width: 1499px) {
   .seq-editor-body {
     max-width: 900px;
+  }
+}
+
+/* 4K: 3 列のフォーム */
+@media (min-width: 2560px) {
+  .seq-editor-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  .seq-editor-ddl-section {
+    width: 520px;
   }
 }
 
@@ -2546,3 +2563,5 @@
   padding: 8px;
   resize: vertical;
 }
+
+.seq-ddl-preview.open { display: block; }
