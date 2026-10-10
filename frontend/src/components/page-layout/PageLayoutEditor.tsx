@@ -482,6 +482,16 @@ export function PageLayoutEditor() {
         />
       )}
 
+      <EditModeToolbar
+        mode={mode}
+        onStartEditing={actions.startEditing}
+        onSave={handleSave}
+        onDiscardClick={() => setShowDiscardDialog(true)}
+        onForceReleaseClick={() => setShowForceReleaseDialog(true)}
+        saving={isSaving}
+        ownerLabel={lockedByOther?.ownerSessionId}
+      />
+
       {/* ─── Header ───────────────────────────────────────────────────── */}
       <EditorHeader
         title={<><i className="bi bi-layout-wtf" /> レイアウトマネージャ: <code>{pl.name}</code></>}
@@ -523,16 +533,6 @@ export function PageLayoutEditor() {
       {serverChanged && (
         <ServerChangeBanner onDismiss={dismissServerBanner} onReload={() => { void reload(); }} />
       )}
-
-      <EditModeToolbar
-        mode={mode}
-        onStartEditing={actions.startEditing}
-        onSave={handleSave}
-        onDiscardClick={() => setShowDiscardDialog(true)}
-        onForceReleaseClick={() => setShowForceReleaseDialog(true)}
-        saving={isSaving}
-        ownerLabel={lockedByOther?.ownerSessionId}
-      />
 
       <div className="table-editor-content page-layout-editor-content">
         {/* ─── 基本情報 ─────────────────────────────────────────────── */}

@@ -953,7 +953,7 @@ describe("Check 32: TX_INNER_VAR_LEAK_OUTSIDE_TX (#1267 Round 7 Must-fix 5)", ()
     expect(found.length).toBeGreaterThan(0);
     expect(found[0].severity).toBe("error");
     expect(found[0].message).toContain("newScore");
-    expect(found[0].message).toContain("TX 内 → TX 外 mutation static 禁止");
+    expect(found[0].message).toContain("トランザクション外から直接参照");
   });
 
   it("positive (draft): 同上を maturity=draft で → warning", () => {

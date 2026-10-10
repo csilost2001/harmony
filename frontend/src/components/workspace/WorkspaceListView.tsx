@@ -296,7 +296,7 @@ export function AddWorkspaceDialog({ onClose, onAdded, initialPath = "" }: AddWo
               type="button"
               className="tbl-btn tbl-btn-ghost"
               onClick={() => setShowFolderPicker(true)}
-              title="backend のフォルダをブラウズして選択 (#1056)"
+              title="backend のフォルダをブラウズして選択"
               data-testid="open-folder-picker"
             >
               <i className="bi bi-folder2-open" /> 参照

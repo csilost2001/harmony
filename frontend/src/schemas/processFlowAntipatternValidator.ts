@@ -987,7 +987,7 @@ export function checkAntipatterns(
             severity: "error",
             code: "DB_ACCESS_SQL_REQUIRED_FOR_COMMITTED",
             path: `${stepPath}.sql`,
-            message: `\`dbAccess\` step は \`maturity: "committed"\` の場合 \`sql\` 必須です${dbStep.naturalQuery ? ` (現状 \`naturalQuery\` のみで sql 未設定)` : ""}。draft 期間で \`naturalQuery\` を AI が実 SQL に変換してから committed 昇格してください (#1263 Phase X3 / #1254 件 5)。`,
+            message: `\`dbAccess\` step は \`maturity: "committed"\` の場合 \`sql\` 必須です${dbStep.naturalQuery ? ` (現状 \`naturalQuery\` のみで sql 未設定)` : ""}。draft 期間で \`naturalQuery\` を AI が実 SQL に変換してから committed 昇格してください。`,
           });
         }
       }
@@ -1001,7 +1001,7 @@ export function checkAntipatterns(
             severity: "error",
             code: "SIDE_EFFECT_INLINE_BAN",
             path,
-            message: `\`\${...}\` 内で \`@${prefix}.<...>\` を呼び出すのは副作用 invocation のため禁止です (#1254 件 3.7)。専用 step (commonProcess / componentCall / eventPublish 等) を使ってください (検出: ${snippet})`,
+            message: `\`\${...}\` 内で \`@${prefix}.<...>\` を呼び出すのは副作用を伴う呼び出しのため使えません。専用 step (commonProcess / componentCall / eventPublish 等) を使ってください (検出: ${snippet})`,
           });
         }
       }
@@ -1020,7 +1020,7 @@ export function checkAntipatterns(
               // #1269 提案 C: project-level catalog index 渡し時は 24 prefix 全件 (entity + generic-definition +
               // catalog + project) を検証する。projectIndex 未渡し時は Phase X2 互換で @var / @event のみ。
               message: ref.prefix === "this" || ref.prefix === "self"
-                ? `\`@${ref.prefix}.${ref.key}\` は designer-time alias ですが、参照先 field が ${ref.prefix === "this" ? "ProcessFlow editor 許可 field (meta / context / action / expressionLanguage) / flow.actions[].id / EntityMeta field" : "step 共通 field (id / description / runIf / outputBinding / compensatesFor)"} に該当しません (maturity=${maturity}、#1322 Phase B-3a)。${maturity === "committed" ? "committed では error として扱います" : "draft / provisional では warning として扱います"}`
+                ? `\`@${ref.prefix}.${ref.key}\` は designer-time alias ですが、参照先 field が ${ref.prefix === "this" ? "ProcessFlow editor 許可 field (meta / context / action / expressionLanguage) / flow.actions[].id / EntityMeta field" : "step 共通 field (id / description / runIf / outputBinding / compensatesFor)"} に該当しません (maturity=${maturity})。${maturity === "committed" ? "committed では error として扱います" : "draft / provisional では warning として扱います"}`
                 : `\`@${ref.prefix}.${ref.key}\` の参照先が ProcessFlow.context / 変数 scope / project catalog に存在しません (maturity=${maturity}、対象 prefix: @var / @event / @this / @self${refCtx.projectIndex ? " + project catalog 系" : " のみ"})。${maturity === "committed" ? "committed では error として扱います" : "draft / provisional では warning として扱います"}`,
             });
           } else {
@@ -1033,7 +1033,7 @@ export function checkAntipatterns(
                 severity: brokenRefSeverity,
                 code: "TX_INNER_VAR_LEAK_OUTSIDE_TX",
                 path,
-                message: `\`@${ref.varName}.${ref.key}\` は TransactionScopeStep inner step の outputBinding を TX 外から参照していますが、#1264 verdict 観点 4「TX 内 → TX 外 mutation static 禁止」違反です (maturity=${maturity})。TX 外参照は \`transactionScope.outputBinding.expose\` で宣言した key のみ許可されます (3 予約値 \`committed\` / \`error\` / \`diagnostics\` + 任意 inner var 名、Round 7 option C)。${maturity === "committed" ? "committed では error として扱います" : "draft / provisional では warning として扱います"}`,
+                message: `\`@${ref.varName}.${ref.key}\` は TransactionScopeStep inner step の outputBinding を TX 外から参照していますが、トランザクション内で作った値をトランザクション外から直接参照することは認められていません (maturity=${maturity})。TX 外参照は \`transactionScope.outputBinding.expose\` で宣言した key のみ許可されます (3 予約値 \`committed\` / \`error\` / \`diagnostics\` + 任意 inner var 名、Round 7 option C)。${maturity === "committed" ? "committed では error として扱います" : "draft / provisional では warning として扱います"}`,
               });
             }
           }

@@ -16,6 +16,7 @@ import { EditorHeader } from "../common/EditorHeader";
 import { ServerChangeBanner } from "../common/ServerChangeBanner";
 import { useResourceEditor } from "../../hooks/useResourceEditor";
 import { useEditSession } from "../../hooks/useEditSession";
+import { useSaveShortcut } from "../../hooks/useSaveShortcut";
 import { useSessionUrlSync } from "../../hooks/useSessionUrlSync";
 import { EditModeToolbar } from "../editing/EditModeToolbar";
 import { EditSessionDropdown } from "../editing/EditSessionDropdown";
@@ -346,6 +347,11 @@ export function ScreenItemsView() {
     if (conflicted || failed) return;
     await postSave();
   }, [isReadonly, isSaving, actions, postSave, screenId, editSession]);
+
+  // Ctrl+S で保存 (保存ボタンの title にも書いてある)
+  useSaveShortcut(() => {
+    if (isDirty && !isSaving && !isReadonly) handleSave().catch(console.error);
+  });
 
   const handleDiscard = useCallback(async () => {
     setShowDiscardDialog(false);

@@ -17,6 +17,7 @@ import { EditorHeader } from "../common/EditorHeader";
 import { ServerChangeBanner } from "../common/ServerChangeBanner";
 import { useResourceEditor } from "../../hooks/useResourceEditor";
 import { useEditSession } from "../../hooks/useEditSession";
+import { useSaveShortcut } from "../../hooks/useSaveShortcut";
 import { EditModeToolbar } from "../editing/EditModeToolbar";
 import { EditSessionDropdown } from "../editing/EditSessionDropdown";
 import {
@@ -208,6 +209,11 @@ export function ConventionsCatalogView() {
     }
     await postSave();
   }, [isReadonly, isSaving, postSave, actions, editSession]);
+
+  // Ctrl+S で保存 (保存ボタンの title にも書いてある)
+  useSaveShortcut(() => {
+    if (isDirty && !isSaving && !isReadonly) handleSave().catch(console.error);
+  });
 
   const handleDiscard = useCallback(async () => {
     setShowDiscardDialog(false);

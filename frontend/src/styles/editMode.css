@@ -122,6 +122,12 @@
   cursor: default;
 }
 
+/* 閲覧のみでは入力例は要らない (空欄に「例: …」が並んで本当の値と紛らわしい) */
+.readonly-mode input::placeholder,
+.readonly-mode textarea::placeholder {
+  color: transparent;
+}
+
 .readonly-mode .btn:not(.edit-mode-toolbar .btn):not(.edit-mode-modal .btn) {
   pointer-events: none;
   opacity: 0.6;

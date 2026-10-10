@@ -343,7 +343,7 @@ export function TransactionScopeStepPanel({
             </span>
           </label>
           <div className="text-muted small mb-1">
-            予約値 (<code>committed</code> / <code>error</code> / <code>diagnostics</code>) は常に利用可能、ここへの明示宣言不要 (#1264 verdict 観点 4)
+            予約値 (<code>committed</code> / <code>error</code> / <code>diagnostics</code>) は常に利用可能、ここへの明示宣言不要
           </div>
           <input
             type="text"

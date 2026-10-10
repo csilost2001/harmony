@@ -556,3 +556,10 @@
     justify-self: start;
   }
 }
+
+/* 閲覧のみでは、押しても何も起きない操作ボタン (保存・追加・削除) を出さない */
+.readonly-mode .extensions-toolbar-actions,
+.readonly-mode .extensions-footer-actions,
+.readonly-mode .extensions-delete-button {
+  display: none;
+}

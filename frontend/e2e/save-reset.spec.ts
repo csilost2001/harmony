@@ -204,4 +204,15 @@ test.describe("テーブルエディタ：保存/リセットボタン", { tag: 
     await page.keyboard.press("Control+s");
     await expect(page.locator(".srb-btn-save")).toBeDisabled();
   });
+
+  test("入力欄にカーソルがあっても Ctrl+S で保存できる (ブラウザの保存ダイアログは出さない)", async ({ page }) => {
+    await setupTableEditor(page);
+    await page.getByRole("button", { name: /カラム追加/ }).click();
+    await expect(page.locator(".srb-btn-save")).toBeEnabled();
+    const field = page.locator(".table-editor-page input[type=text], .table-editor-page textarea").first();
+    await field.focus();
+    await expect(field).toBeFocused();
+    await page.keyboard.press("Control+s");
+    await expect(page.locator(".srb-btn-save")).toBeDisabled();
+  });
 });
