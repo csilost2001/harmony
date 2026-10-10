@@ -1,22 +1,16 @@
-import type { Data } from "@measured/puck";
-import { mcpBridge } from "../mcp/mcpBridge";
-import { regeneratePuckDataIds } from "../editor/puckIdRegeneration";
-import type { EditorKind } from "../utils/resolveEditorKind";
+import { buildDefaultScreen, loadScreenEntity, saveScreenEntity } from "./screenStore";
 
-export async function duplicateScreenDesignData(
-  srcScreenId: string,
-  dupScreenId: string,
-  editorKind: EditorKind,
-): Promise<void> {
-  if (editorKind === "puck") {
-    const src = await mcpBridge.loadPuckData(srcScreenId);
-    if (!src) return;
-    const regenerated = regeneratePuckDataIds(src as Data);
-    await mcpBridge.savePuckData(dupScreenId, regenerated);
-    return;
-  }
-
-  const src = await mcpBridge.request("loadScreen", { screenId: srcScreenId });
-  if (!src) return;
-  await mcpBridge.request("saveScreen", { screenId: dupScreenId, data: src });
+/**
+ * 画面の内容 (画面項目と業務部品レイアウト) を複製先の画面にコピーする。
+ * 複製先の画面 (プロジェクト上のノード) は呼び出し側が先に作っておく。
+ * uuid・名前・パスは複製先のものを使う。旧形式のデザイン (GrapesJS / Puck) は複製しない。
+ */
+export async function duplicateScreenContent(srcScreenId: string, dupScreenId: string): Promise<void> {
+  const [src, base] = await Promise.all([loadScreenEntity(srcScreenId), buildDefaultScreen(dupScreenId)]);
+  await saveScreenEntity({
+    ...base,
+    description: src.description,
+    items: structuredClone(src.items ?? []),
+    layout: src.layout ? structuredClone(src.layout) : base.layout,
+  });
 }

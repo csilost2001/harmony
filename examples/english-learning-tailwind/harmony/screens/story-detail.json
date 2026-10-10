@@ -80,7 +80,63 @@
       ]
     }
   ],
-  "design": {
-    "designFileRef": "story-detail.design.json"
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "storyTitle",
+        "type": "field",
+        "itemRef": "storyTitle"
+      },
+      {
+        "id": "storyCefrLevel",
+        "type": "field",
+        "itemRef": "storyCefrLevel"
+      },
+      {
+        "id": "section",
+        "type": "section",
+        "props": {
+          "variant": "card"
+        },
+        "children": [
+          {
+            "id": "heading",
+            "type": "heading",
+            "props": {
+              "text": "概要",
+              "level": 2
+            }
+          },
+          {
+            "id": "storyDescription",
+            "type": "field",
+            "itemRef": "storyDescription"
+          }
+        ]
+      },
+      {
+        "id": "heading2",
+        "type": "heading",
+        "props": {
+          "text": "シーン一覧",
+          "level": 2
+        }
+      },
+      {
+        "id": "sceneList",
+        "type": "field",
+        "itemRef": "sceneList"
+      },
+      {
+        "id": "startSession",
+        "type": "button",
+        "itemRef": "startSession",
+        "props": {
+          "label": "学習を開始する",
+          "variant": "primary"
+        }
+      }
+    ]
   }
 }

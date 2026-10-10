@@ -142,11 +142,11 @@ test.describe("画面項目定義プロトタイプ (#318)", { tag: ["@regressio
     // 1 行出現
     await expect(page.locator(".screen-items-table tbody tr")).toHaveCount(1);
     // ID 入力
-    const idInput = page.locator('.screen-items-table input[placeholder="email"]').first();
+    const idInput = page.locator('.screen-items-table input[placeholder="例: email"]').first();
     await idInput.fill("userId");
     await expect(idInput).toHaveValue("userId");
     // label 入力
-    const labelInput = page.locator('.screen-items-table input[placeholder="メールアドレス"]').first();
+    const labelInput = page.locator('.screen-items-table input[placeholder="例: メールアドレス"]').first();
     await labelInput.fill("ユーザー ID");
     // 必須 チェック
     await page.locator('.screen-items-table input[type="checkbox"][aria-label="必須"]').first().check();
@@ -161,7 +161,7 @@ test.describe("画面項目定義プロトタイプ (#318)", { tag: ["@regressio
     await setup(page);
     // scr-1 に 1 件追加 + 保存
     await page.locator(".screen-items-view button:has-text('項目追加')").click();
-    await page.locator('.screen-items-table input[placeholder="email"]').first().fill("field1");
+    await page.locator('.screen-items-table input[placeholder="例: email"]').first().fill("field1");
     await page.locator(".srb-btn-save").click();
     await expect(page.locator(".srb-btn-save")).toBeDisabled({ timeout: 3000 });
     // scr-2 の URL に遷移
@@ -171,21 +171,10 @@ test.describe("画面項目定義プロトタイプ (#318)", { tag: ["@regressio
     await expect(page.locator(".screen-items-empty-row")).toBeVisible();
   });
 
-  test("画面デザインから追加モーダルを開ける", async ({ page }) => {
-    await setup(page);
-    const btn = page.locator(".screen-items-view button:has-text('画面デザインから追加')");
-    await expect(btn).toBeVisible();
-    await btn.click();
-    await expect(page.locator(".screen-item-candidates")).toBeVisible();
-    // キャンセルで閉じる
-    await page.locator(".screen-item-candidates-footer button:has-text('キャンセル')").click();
-    await expect(page.locator(".screen-item-candidates")).toHaveCount(0);
-  });
-
   test("削除ボタンで項目が消える", async ({ page }) => {
     await setup(page);
     await page.locator(".screen-items-view button:has-text('項目追加')").click();
-    await page.locator('.screen-items-table input[placeholder="email"]').first().fill("willDelete");
+    await page.locator('.screen-items-table input[placeholder="例: email"]').first().fill("willDelete");
     await expect(page.locator(".screen-items-table tbody tr")).toHaveCount(1);
     await page.locator('.screen-items-table button[aria-label="削除"]').first().click();
     await expect(page.locator(".screen-items-empty-row")).toBeVisible();
@@ -196,8 +185,8 @@ test.describe("画面項目定義プロトタイプ (#318)", { tag: ["@regressio
     await page.locator(".screen-items-view button:has-text('項目追加')").click();
     // tr:last-child で新規追加行のみを対象にする (既存 MCP 行を避ける)
     const row = page.locator(".screen-items-table tbody tr:last-child");
-    const idInput = row.locator('input[placeholder="email"]');
-    const labelInput = row.locator('input[placeholder="メールアドレス"]');
+    const idInput = row.locator('input[placeholder="例: email"]');
+    const labelInput = row.locator('input[placeholder="例: メールアドレス"]');
     // ID を設定して blur で確定 (originalId が "" → !originalId → commit)
     await idInput.fill("userId");
     await labelInput.click();
@@ -216,10 +205,10 @@ test.describe("画面項目定義プロトタイプ (#318)", { tag: ["@regressio
     // nth-last-child で末尾 2 行のみ操作 (既存 MCP 行を避ける)
     const rowA = page.locator(".screen-items-table tbody tr:nth-last-child(2)");
     const rowB = page.locator(".screen-items-table tbody tr:last-child");
-    const idA = rowA.locator('input[placeholder="email"]');
-    const idB = rowB.locator('input[placeholder="email"]');
-    const labelA = rowA.locator('input[placeholder="メールアドレス"]');
-    const labelB = rowB.locator('input[placeholder="メールアドレス"]');
+    const idA = rowA.locator('input[placeholder="例: email"]');
+    const idB = rowB.locator('input[placeholder="例: email"]');
+    const labelA = rowA.locator('input[placeholder="例: メールアドレス"]');
+    const labelB = rowB.locator('input[placeholder="例: メールアドレス"]');
     // 各行の ID を設定して確定
     await idA.fill("fieldA");
     await labelA.click();
@@ -245,8 +234,8 @@ test.describe("画面項目定義プロトタイプ (#318)", { tag: ["@regressio
     await setup(page);
     await page.locator(".screen-items-view button:has-text('項目追加')").click();
     const row = page.locator(".screen-items-table tbody tr:last-child");
-    const idInput = row.locator('input[placeholder="email"]');
-    const labelInput = row.locator('input[placeholder="メールアドレス"]');
+    const idInput = row.locator('input[placeholder="例: email"]');
+    const labelInput = row.locator('input[placeholder="例: メールアドレス"]');
     // ID を設定して blur で確定
     await idInput.fill("myField");
     await labelInput.click();
@@ -272,9 +261,9 @@ test.describe("@conv.* lint + 補完 + errorMessages 永続化 (#351 #352)", { t
     // 項目追加
     await page.locator(".screen-items-view button:has-text('項目追加')").click();
     const row = page.locator(".screen-items-table tbody tr:last-child");
-    await row.locator('input[placeholder="email"]').fill("phone");
+    await row.locator('input[placeholder="例: email"]').fill("phone");
     // pattern 欄に存在しないキー
-    const patternInput = row.locator('input[placeholder="@conv.regex.email-simple"]');
+    const patternInput = row.locator('input[placeholder="例: @conv.regex.email-simple"]');
     await patternInput.fill("@conv.regex.no-such-key");
     await patternInput.blur();
     // 保存
@@ -289,8 +278,8 @@ test.describe("@conv.* lint + 補完 + errorMessages 永続化 (#351 #352)", { t
     await setup(page, { catalog: sampleCatalog });
     await page.locator(".screen-items-view button:has-text('項目追加')").click();
     const row = page.locator(".screen-items-table tbody tr:last-child");
-    await row.locator('input[placeholder="email"]').fill("email");
-    const patternInput = row.locator('input[placeholder="@conv.regex.email-simple"]');
+    await row.locator('input[placeholder="例: email"]').fill("email");
+    const patternInput = row.locator('input[placeholder="例: @conv.regex.email-simple"]');
     await patternInput.fill("@conv.regex.email-simple");
     await patternInput.blur();
     await page.locator(".srb-btn-save").click();
@@ -302,7 +291,7 @@ test.describe("@conv.* lint + 補完 + errorMessages 永続化 (#351 #352)", { t
     await setup(page, { catalog: sampleCatalog });
     await page.locator(".screen-items-view button:has-text('項目追加')").click();
     const row = page.locator(".screen-items-table tbody tr:last-child");
-    const patternInput = row.locator('input[placeholder="@conv.regex.email-simple"]');
+    const patternInput = row.locator('input[placeholder="例: @conv.regex.email-simple"]');
     await patternInput.click();
     await patternInput.fill("@conv.");
     // 補完候補 listbox は 2 種 (一般 / @conv 専用) あるため aria-label で specify
@@ -313,7 +302,7 @@ test.describe("@conv.* lint + 補完 + errorMessages 永続化 (#351 #352)", { t
     await setup(page, { catalog: sampleCatalog });
     await page.locator(".screen-items-view button:has-text('項目追加')").click();
     const row = page.locator(".screen-items-table tbody tr:last-child");
-    await row.locator('input[placeholder="email"]').fill("email");
+    await row.locator('input[placeholder="例: email"]').fill("email");
     // 💬 ボタンで errorMessages 展開
     await row.locator('button[aria-label="エラーメッセージ展開"]').click();
     const errorRow = page.locator(".screen-items-error-row").last();
@@ -388,7 +377,7 @@ test.describe("詳細フィールド展開行 (#353)", { tag: ["@regression"] },
     await setup(page);
     await page.locator(".screen-items-view button:has-text('項目追加')").click();
     const row = page.locator(".screen-items-table tbody tr:not(.screen-items-detail-row):first-child");
-    await row.locator('input[placeholder="email"]').fill("field1");
+    await row.locator('input[placeholder="例: email"]').fill("field1");
     // 展開して readonly ON
     await row.locator('button[aria-label="詳細展開"]').click();
     const detailRow = page.locator(".screen-items-detail-row").last();
@@ -407,7 +396,7 @@ test.describe("詳細フィールド展開行 (#353)", { tag: ["@regression"] },
     await setup(page);
     await page.locator(".screen-items-view button:has-text('項目追加')").click();
     const row = page.locator(".screen-items-table tbody tr:not(.screen-items-detail-row):first-child");
-    await row.locator('input[placeholder="email"]').fill("field1");
+    await row.locator('input[placeholder="例: email"]').fill("field1");
     await row.locator('button[aria-label="詳細展開"]').click();
     const detailRow = page.locator(".screen-items-detail-row").last();
     await expect(detailRow).toBeVisible({ timeout: 3000 });
@@ -424,7 +413,7 @@ test.describe("詳細フィールド展開行 (#353)", { tag: ["@regression"] },
     await setup(page);
     await page.locator(".screen-items-view button:has-text('項目追加')").click();
     const row = page.locator(".screen-items-table tbody tr:not(.screen-items-detail-row):first-child");
-    await row.locator('input[placeholder="email"]').fill("field1");
+    await row.locator('input[placeholder="例: email"]').fill("field1");
     await row.locator('button[aria-label="詳細展開"]').click();
     const detailRow = page.locator(".screen-items-detail-row").last();
     await expect(detailRow).toBeVisible({ timeout: 3000 });
@@ -441,7 +430,7 @@ test.describe("詳細フィールド展開行 (#353)", { tag: ["@regression"] },
     await setup(page);
     await page.locator(".screen-items-view button:has-text('項目追加')").click();
     const row = page.locator(".screen-items-table tbody tr:not(.screen-items-detail-row):first-child");
-    await row.locator('input[placeholder="email"]').fill("field1");
+    await row.locator('input[placeholder="例: email"]').fill("field1");
     await row.locator('button[aria-label="詳細展開"]').click();
     const detailRow = page.locator(".screen-items-detail-row").last();
     await expect(detailRow).toBeVisible({ timeout: 3000 });
@@ -519,7 +508,7 @@ test.describe("per-screen タブ独立編集 (#696)", { tag: ["@regression"] }, 
     await expect(page1.locator(".screen-items-view")).toBeVisible({ timeout: 10000 });
     await startEdit(page1);
     await page1.locator(".screen-items-view button:has-text('項目追加')").click();
-    await page1.locator('.screen-items-table input[placeholder="email"]').first().fill("screen1Field");
+    await page1.locator('.screen-items-table input[placeholder="例: email"]').first().fill("screen1Field");
     await expect(page1.locator(".srb-btn-save")).toBeEnabled({ timeout: 3000 });
 
     const page2 = await context.newPage();
@@ -527,7 +516,7 @@ test.describe("per-screen タブ独立編集 (#696)", { tag: ["@regression"] }, 
     await expect(page2.locator(".screen-items-view")).toBeVisible({ timeout: 10000 });
     await startEdit(page2);
     await page2.locator(".screen-items-view button:has-text('項目追加')").click();
-    await page2.locator('.screen-items-table input[placeholder="email"]').first().fill("screen2Field");
+    await page2.locator('.screen-items-table input[placeholder="例: email"]').first().fill("screen2Field");
     await expect(page2.locator(".srb-btn-save")).toBeEnabled({ timeout: 3000 });
 
     await page2.locator(".srb-btn-save").click();

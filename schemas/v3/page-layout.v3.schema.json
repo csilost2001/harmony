@@ -12,7 +12,7 @@
         { "$ref": "common.v3.schema.json#/$defs/EntityMeta" }
       ],
       "type": "object",
-      "required": ["regions", "assignments", "design"],
+      "required": ["regions", "assignments"],
       "properties": {
         "$schema": { "type": "string", "description": "instance JSON が参照する schema 文書への URL/相対パス。IDE の schema 関連付け用 (内容は loader が無視)。" },
         "regions": {

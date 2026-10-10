@@ -112,7 +112,7 @@ export function MarkersSummaryPanel() {
         <div style={{ fontSize: "1.5rem", fontWeight: 600 }}>
           {loading ? "…" : summary.total}
         </div>
-        <div style={{ color: "#64748b", fontSize: "0.85rem" }}>未解決マーカー (AI 依頼)</div>
+        <div style={{ color: "var(--hm-fg-muted)", fontSize: "0.85rem" }}>未解決マーカー (AI 依頼)</div>
       </div>
       <div style={{ display: "flex", gap: 8, marginTop: 8, fontSize: "0.78rem", flexWrap: "wrap" }}>
         {(Object.keys(summary.byKind) as MarkerKind[]).map((k) => {
@@ -133,30 +133,30 @@ export function MarkersSummaryPanel() {
                 type="button"
                 className="btn btn-sm btn-link p-0"
                 onClick={() => navigate(wsPath(`/process-flow/edit/${g.id}`))}
-                style={{ textAlign: "left", flex: 1, textDecoration: "none", color: "#334155" }}
+                style={{ textAlign: "left", flex: 1, textDecoration: "none", color: "var(--hm-fg-2)" }}
                 title="エディタを開く"
               >
                 {g.name}
               </button>
-              <span style={{ color: "#f97316", fontWeight: 600, marginLeft: 8 }}>{g.count}</span>
+              <span style={{ color: "color-mix(in srgb, #f97010 80%, var(--hm-fg))", fontWeight: 600, marginLeft: 8 }}>{g.count}</span>
             </li>
           ))}
           {summary.perGroup.length > 5 && (
-            <li style={{ fontSize: "0.75rem", color: "#94a3b8", padding: "2px 0" }}>
+            <li style={{ fontSize: "0.75rem", color: "var(--hm-fg-faint)", padding: "2px 0" }}>
               他 {summary.perGroup.length - 5} フロー
             </li>
           )}
         </ul>
       )}
       {summary.recent.length > 0 && (
-        <div style={{ marginTop: 10, borderTop: "1px solid #e2e8f0", paddingTop: 6 }}>
-          <div style={{ fontSize: "0.72rem", color: "#94a3b8", marginBottom: 4, fontWeight: 600 }}>最新マーカー</div>
+        <div style={{ marginTop: 10, borderTop: "1px solid var(--hm-border)", paddingTop: 6 }}>
+          <div style={{ fontSize: "0.72rem", color: "var(--hm-fg-faint)", marginBottom: 4, fontWeight: 600 }}>最新マーカー</div>
           <ul className="markers-recent-list" style={{ listStyle: "none", margin: 0, padding: 0 }}>
             {summary.recent.map((m) => (
               <li
                 key={m.id}
                 className="markers-recent-item"
-                style={{ padding: "4px 0", borderBottom: "1px dotted #f1f5f9", fontSize: "0.78rem" }}
+                style={{ padding: "4px 0", borderBottom: "1px dotted var(--hm-border)", fontSize: "0.78rem" }}
               >
                 <button
                   type="button"
@@ -169,10 +169,10 @@ export function MarkersSummaryPanel() {
                     <i className="bi bi-circle-fill" style={{ fontSize: "0.5rem", marginRight: 3 }} />
                     {KIND_LABEL[m.kind]}
                   </span>
-                  <span style={{ color: "#334155" }}>
+                  <span style={{ color: "var(--hm-fg-2)" }}>
                     {m.body.length > 50 ? `${m.body.slice(0, 50)}…` : m.body}
                   </span>
-                  <div style={{ color: "#94a3b8", fontSize: "0.7rem" }}>
+                  <div style={{ color: "var(--hm-fg-faint)", fontSize: "0.7rem" }}>
                     <i className="bi bi-diagram-3 me-1" />{m.processFlowName}
                   </div>
                 </button>
@@ -182,7 +182,7 @@ export function MarkersSummaryPanel() {
         </div>
       )}
       {summary.total === 0 && !loading && (
-        <div style={{ marginTop: 6, color: "#94a3b8", fontSize: "0.8rem" }}>
+        <div style={{ marginTop: 6, color: "var(--hm-fg-faint)", fontSize: "0.8rem" }}>
           未解決のマーカーはありません
         </div>
       )}

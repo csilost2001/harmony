@@ -1,5 +1,8 @@
 # dogfood レポート — 外部 React Component + 複合部品 通し検証 (2026-05-29)
 
+> **廃止 (2026-10)**: 旧エディタ (GrapesJS / Puck) は廃止し、画面デザインは「業務部品デザイナ」に一本化しました。
+> この文書は旧エディタ時代の記録として残しています。現行の仕様は [screen-layout.md](screen-layout.md) / [layout-components.md](layout-components.md) を参照してください。
+
 > **📝 ステータス**: RFC #1405「外部 React Component を Puck に取り込む」シリーズ P-5 (#1413) の dogfood 検証記録。P-1〜P-4 (#1409〜#1412) で実装した基盤を、実際に scaffold → vite build した本物の業務部品で通し検証した。
 
 ## 概要

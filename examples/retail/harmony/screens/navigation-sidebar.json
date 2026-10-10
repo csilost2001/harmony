@@ -39,8 +39,29 @@
       "description": "マスタ管理トップ (商品マスター /master/products) へのナビゲーションリンク。"
     }
   ],
-  "design": {
-    "editorKind": "grapesjs",
-    "cssFramework": "bootstrap"
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "navProductSearch",
+        "type": "field",
+        "itemRef": "navProductSearch"
+      },
+      {
+        "id": "navOrderList",
+        "type": "field",
+        "itemRef": "navOrderList"
+      },
+      {
+        "id": "navCustomerList",
+        "type": "field",
+        "itemRef": "navCustomerList"
+      },
+      {
+        "id": "navMasterManagement",
+        "type": "field",
+        "itemRef": "navMasterManagement"
+      }
+    ]
   }
 }

@@ -39,13 +39,14 @@ export const handleScreenItemTool: ToolHandler = async (name, args, root, sessio
       for (const agId of renameRes.processFlowsUpdated) {
         wsBridge.broadcast({ wsId: workspaceContextManager.getActivePath(sessionId), event: "processFlowChanged", data: { processFlowId: agId } });
       }
-      if (renameRes.screenHtmlUpdated) {
+      if (renameRes.screenHtmlUpdated || renameRes.layoutUpdated) {
         wsBridge.broadcast({ wsId: workspaceContextManager.getActivePath(sessionId), event: "screenChanged", data: { screenId: a.screenId } });
       }
       const lines = [
         `"${a.oldId}" → "${a.newId}" のリネームが完了しました。`,
         `  - screen-items: 更新済み`,
         `  - 画面 HTML: ${renameRes.screenHtmlUpdated ? "更新済み" : "変更なし"}`,
+        `  - 業務部品の木 (layout): ${renameRes.layoutUpdated ? "更新済み" : "変更なし"}`,
         `  - 処理フロー: ${renameRes.processFlowsUpdated.length} 件更新 (参照 ${renameRes.refsRenamed} 箇所)`,
       ];
       if (renameRes.warnings.length > 0) {

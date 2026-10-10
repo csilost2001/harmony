@@ -321,7 +321,8 @@ export async function listDisplayWorkspaces(): Promise<{
         continue;
       }
       kept.push(entry);
-      if (isE2eWorkspacePath(entry.path)) {
+      // E2E 用ワークスペースは利用者の一覧から隠す。E2E 用 backend (HARMONY_SHOW_E2E_WORKSPACES=1) では表示する
+      if (isE2eWorkspacePath(entry.path) && process.env.HARMONY_SHOW_E2E_WORKSPACES !== "1") {
         hiddenCount += 1;
         continue;
       }

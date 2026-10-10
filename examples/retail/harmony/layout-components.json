@@ -1,0 +1,104 @@
+{
+  "$schema": "../../../schemas/v3/layout-components.v3.schema.json",
+  "version": 1,
+  "components": [
+    {
+      "id": "master-search-panel",
+      "label": "マスタ検索条件",
+      "category": "検索",
+      "description": "マスタ画面 (商品・顧客・店舗) 共通の検索条件パネル。検索条件 5 つ (画面ごとに項目を割り当てる) と、クリア / 検索ボタン。",
+      "params": [
+        {
+          "id": "title",
+          "label": "表題",
+          "kind": "text",
+          "default": "検索条件"
+        },
+        {
+          "id": "condition1",
+          "label": "検索条件 1",
+          "kind": "item"
+        },
+        {
+          "id": "condition2",
+          "label": "検索条件 2",
+          "kind": "item"
+        },
+        {
+          "id": "condition3",
+          "label": "検索条件 3",
+          "kind": "item"
+        },
+        {
+          "id": "condition4",
+          "label": "検索条件 4",
+          "kind": "item"
+        },
+        {
+          "id": "condition5",
+          "label": "検索条件 5",
+          "kind": "item"
+        }
+      ],
+      "nodes": [
+        {
+          "id": "panel",
+          "type": "search-panel",
+          "props": {
+            "title": "{{title}}",
+            "columns": 3
+          },
+          "children": [
+            {
+              "id": "condition1",
+              "type": "field",
+              "itemRef": "{{condition1}}"
+            },
+            {
+              "id": "condition2",
+              "type": "field",
+              "itemRef": "{{condition2}}"
+            },
+            {
+              "id": "condition3",
+              "type": "field",
+              "itemRef": "{{condition3}}"
+            },
+            {
+              "id": "condition4",
+              "type": "field",
+              "itemRef": "{{condition4}}"
+            },
+            {
+              "id": "condition5",
+              "type": "field",
+              "itemRef": "{{condition5}}"
+            },
+            {
+              "id": "buttons",
+              "type": "button-bar",
+              "children": [
+                {
+                  "id": "clearButton",
+                  "type": "button",
+                  "props": {
+                    "label": "クリア",
+                    "variant": "secondary"
+                  }
+                },
+                {
+                  "id": "searchButton",
+                  "type": "button",
+                  "props": {
+                    "label": "検索",
+                    "variant": "primary"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

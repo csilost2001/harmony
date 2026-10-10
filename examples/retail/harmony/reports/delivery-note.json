@@ -1,0 +1,199 @@
+{
+  "$schema": "../../../../schemas/v3/report.v3.schema.json",
+  "version": 1,
+  "id": "delivery-note",
+  "name": "納品書",
+  "description": "注文を確定したお客さまへ渡す・同梱する納品書。**注文 1 件につき 1 部**。明細は注文明細の行ごとに出し、合計は消費税込みで示す。",
+  "maturity": "draft",
+  "output": {
+    "format": "pdf",
+    "paper": "A4",
+    "orientation": "portrait"
+  },
+  "trigger": {
+    "kind": "screen",
+    "screenRef": "order-complete",
+    "processFlowRef": "order-confirm",
+    "description": "注文完了画面の「納品書を印刷」"
+  },
+  "params": [
+    {
+      "id": "orderId",
+      "label": "注文",
+      "type": "integer",
+      "required": true,
+      "description": "出力する注文の ID"
+    }
+  ],
+  "sort": [
+    {
+      "field": "order-item.id",
+      "order": "asc"
+    }
+  ],
+  "sections": [
+    {
+      "id": "title",
+      "kind": "reportHeader",
+      "name": "表題",
+      "fields": [
+        {
+          "id": "title",
+          "kind": "text",
+          "label": "納品書",
+          "align": "center",
+          "width": 100
+        }
+      ]
+    },
+    {
+      "id": "orderInfo",
+      "kind": "pageHeader",
+      "name": "注文情報",
+      "fields": [
+        {
+          "id": "orderNumber",
+          "kind": "field",
+          "label": "注文番号",
+          "source": "order.order_number",
+          "width": 40
+        },
+        {
+          "id": "orderedAt",
+          "kind": "field",
+          "label": "注文日",
+          "source": "order.ordered_at",
+          "format": "YYYY/MM/DD",
+          "width": 30
+        },
+        {
+          "id": "printedAt",
+          "kind": "date",
+          "label": "出力日",
+          "format": "YYYY/MM/DD",
+          "align": "right",
+          "width": 30
+        }
+      ]
+    },
+    {
+      "id": "shipTo",
+      "kind": "pageHeader",
+      "name": "送付先",
+      "fields": [
+        {
+          "id": "shipPostal",
+          "kind": "field",
+          "label": "〒",
+          "source": "order.shipping_postal_code",
+          "width": 20
+        },
+        {
+          "id": "shipAddress",
+          "kind": "field",
+          "label": "送付先",
+          "source": "order.shipping_address",
+          "width": 80
+        }
+      ]
+    },
+    {
+      "id": "lines",
+      "kind": "detail",
+      "name": "明細",
+      "fields": [
+        {
+          "id": "productCode",
+          "kind": "field",
+          "label": "商品コード",
+          "source": "order-item.product_code_snapshot",
+          "width": 18
+        },
+        {
+          "id": "productName",
+          "kind": "field",
+          "label": "商品名",
+          "source": "order-item.product_name_snapshot",
+          "width": 38
+        },
+        {
+          "id": "unitPrice",
+          "kind": "field",
+          "label": "単価",
+          "source": "order-item.unit_price_snapshot",
+          "format": "¥#,##0",
+          "align": "right",
+          "width": 16
+        },
+        {
+          "id": "quantity",
+          "kind": "field",
+          "label": "数量",
+          "source": "order-item.quantity",
+          "format": "#,##0",
+          "align": "right",
+          "width": 12
+        },
+        {
+          "id": "lineAmount",
+          "kind": "field",
+          "label": "金額",
+          "source": "order-item.line_amount",
+          "format": "¥#,##0",
+          "align": "right",
+          "width": 16
+        }
+      ]
+    },
+    {
+      "id": "totals",
+      "kind": "reportFooter",
+      "name": "合計",
+      "fields": [
+        {
+          "id": "subtotal",
+          "kind": "aggregate",
+          "label": "小計",
+          "source": "order-item.line_amount",
+          "aggregate": "sum",
+          "format": "¥#,##0",
+          "align": "right",
+          "width": 34
+        },
+        {
+          "id": "tax",
+          "kind": "field",
+          "label": "消費税",
+          "source": "order.tax_amount",
+          "format": "¥#,##0",
+          "align": "right",
+          "width": 33
+        },
+        {
+          "id": "grandTotal",
+          "kind": "field",
+          "label": "合計金額",
+          "source": "order.total_amount",
+          "format": "¥#,##0",
+          "align": "right",
+          "width": 33
+        }
+      ]
+    },
+    {
+      "id": "pageNo",
+      "kind": "pageFooter",
+      "name": "ページ",
+      "fields": [
+        {
+          "id": "page",
+          "kind": "pageNumber",
+          "align": "center",
+          "width": 100
+        }
+      ]
+    }
+  ],
+  "createdAt": "2026-10-09T00:00:00.000Z",
+  "updatedAt": "2026-10-09T00:00:00.000Z"
+}

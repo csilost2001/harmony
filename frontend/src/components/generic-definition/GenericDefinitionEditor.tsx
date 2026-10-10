@@ -445,19 +445,19 @@ export function GenericDefinitionEditor() {
   }, [kind, decodedName, navigate, wsPath]);
 
   if (!kind) {
-    return <div style={{ padding: "24px", color: "#c00" }}>不正な kind です</div>;
+    return <div style={{ padding: "24px", color: "color-mix(in srgb, #ff0a0a 80%, var(--hm-fg))" }}>不正な kind です</div>;
   }
 
   if (!decodedName) {
-    return <div style={{ padding: "24px", color: "#c00" }}>不正な kind または name です</div>;
+    return <div style={{ padding: "24px", color: "color-mix(in srgb, #ff0a0a 80%, var(--hm-fg))" }}>不正な kind または name です</div>;
   }
 
   if (loading) {
-    return <div style={{ padding: "24px", color: "#888" }}>読み込み中...</div>;
+    return <div style={{ padding: "24px", color: "var(--hm-fg-muted)" }}>読み込み中...</div>;
   }
 
   if (error) {
-    return <div style={{ padding: "24px", color: "#c00" }}>{error}</div>;
+    return <div style={{ padding: "24px", color: "color-mix(in srgb, #ff0a0a 80%, var(--hm-fg))" }}>{error}</div>;
   }
 
   if (!def) return null;
@@ -485,9 +485,9 @@ export function GenericDefinitionEditor() {
               alignItems: "flex-start",
               gap: "6px",
               fontSize: "0.82rem",
-              color: iss.severity === "error" ? "#dc2626" : "#d97706",
-              background: iss.severity === "error" ? "#fef2f2" : "#fffbeb",
-              border: `1px solid ${iss.severity === "error" ? "#fecaca" : "#fde68a"}`,
+              color: iss.severity === "error" ? "var(--hm-danger)" : "var(--hm-warning)",
+              background: iss.severity === "error" ? "var(--danger-bg)" : "var(--warning-bg)",
+              border: `1px solid ${iss.severity === "error" ? "color-mix(in srgb, var(--hm-danger) 35%, var(--hm-surface))" : "color-mix(in srgb, var(--hm-warning) 35%, var(--hm-surface))"}`,
               borderRadius: "4px",
               padding: "4px 8px",
               marginBottom: "4px",
@@ -520,9 +520,9 @@ export function GenericDefinitionEditor() {
           data-testid="generic-definition-reload-banner"
           style={{
             padding: "8px 16px",
-            background: "#fef3c7",
-            borderBottom: "1px solid #fde68a",
-            color: "#92400e",
+            background: "color-mix(in srgb, #fbcb0e 9%, var(--hm-surface))",
+            borderBottom: "1px solid color-mix(in srgb, #fbcc0e 38%, var(--hm-surface))",
+            color: "color-mix(in srgb, #ea6c20 80%, var(--hm-fg))",
             fontSize: "0.85rem",
             display: "flex",
             alignItems: "center",
@@ -545,11 +545,11 @@ export function GenericDefinitionEditor() {
           </button>
         </div>
       )}
-      <div style={{ padding: "12px 24px", borderBottom: "1px solid #eee", display: "flex", alignItems: "center", gap: "12px" }}>
+      <div style={{ padding: "12px 24px", borderBottom: "1px solid var(--hm-border)", display: "flex", alignItems: "center", gap: "12px" }}>
         <h2 style={{ margin: 0, fontSize: "1.1rem" }}>
           {GENERIC_DEFINITION_KIND_LABELS[kind]}編集
         </h2>
-        <span style={{ fontFamily: "monospace", fontWeight: 600, color: "#0d6efd" }}>{def.name}</span>
+        <span style={{ fontFamily: "monospace", fontWeight: 600, color: "color-mix(in srgb, #0c6efd 80%, var(--hm-fg))" }}>{def.name}</span>
         <div style={{ marginLeft: "auto", display: "flex", gap: "8px", alignItems: "center" }}>
           {issues.length > 0 && (
             <span style={{ display: "inline-flex", gap: "4px", marginRight: "4px" }}>
@@ -580,13 +580,13 @@ export function GenericDefinitionEditor() {
       </div>
 
       {saveError && (
-        <div style={{ padding: "8px 24px", background: "#fff3f3", color: "#c00", fontSize: "0.88rem" }}>
+        <div style={{ padding: "8px 24px", background: "var(--hm-surface-2)", color: "color-mix(in srgb, #ff0a0a 80%, var(--hm-fg))", fontSize: "0.88rem" }}>
           {saveError}
         </div>
       )}
 
       {saveSuccess && (
-        <div style={{ padding: "8px 24px", background: "#f0fff4", color: "#186429", fontSize: "0.88rem" }}>
+        <div style={{ padding: "8px 24px", background: "var(--hm-surface-2)", color: "color-mix(in srgb, #3ad05b 80%, var(--hm-fg))", fontSize: "0.88rem" }}>
           保存しました
         </div>
       )}
@@ -601,20 +601,20 @@ export function GenericDefinitionEditor() {
               type="text"
               value={def.name}
               readOnly
-              style={{ ...inputStyle, background: "#f8f9fa", color: "#888", cursor: "not-allowed" }}
+              style={{ ...inputStyle, background: "var(--hm-surface-2)", color: "var(--hm-fg-muted)", cursor: "not-allowed" }}
             />
 
             <label style={labelStyle}>種別</label>
             <span style={{ padding: "6px 0", fontSize: "0.88rem" }}>
-              <span style={{ background: "#e8f4fd", color: "#0d6efd", padding: "2px 8px", borderRadius: "4px", fontFamily: "monospace" }}>
+              <span style={{ background: "var(--hm-surface-3)", color: "color-mix(in srgb, #0c6efd 80%, var(--hm-fg))", padding: "2px 8px", borderRadius: "4px", fontFamily: "monospace" }}>
                 {def.kind}
               </span>
-              <span style={{ marginLeft: "8px", color: "#555" }}>{GENERIC_DEFINITION_KIND_LABELS[def.kind]}</span>
+              <span style={{ marginLeft: "8px", color: "var(--hm-fg-2)" }}>{GENERIC_DEFINITION_KIND_LABELS[def.kind]}</span>
             </span>
 
             <label style={labelStyle}>
               目的
-              <span style={{ color: "#c00" }}> *</span>
+              <span style={{ color: "color-mix(in srgb, #ff0a0a 80%, var(--hm-fg))" }}> *</span>
             </label>
             <div>
               <textarea
@@ -624,7 +624,7 @@ export function GenericDefinitionEditor() {
                 style={{ ...inputStyle, resize: "vertical" }}
                 placeholder="この定義の目的を 1〜2 行で記述"
               />
-              <div style={{ fontSize: "0.75rem", color: def.purpose.length > 200 ? "#c00" : "#888", textAlign: "right" }}>
+              <div style={{ fontSize: "0.75rem", color: def.purpose.length > 200 ? "var(--hm-danger)" : "var(--hm-fg-muted)", textAlign: "right" }}>
                 {def.purpose.length}/200
               </div>
             </div>
@@ -634,8 +634,8 @@ export function GenericDefinitionEditor() {
         <section style={{ marginBottom: "24px" }}>
           <h3 style={{ fontSize: "1rem", marginBottom: "4px" }}>
             責務
-            <span style={{ color: "#c00" }}> *</span>
-            <span style={{ fontSize: "0.8rem", color: "#888", fontWeight: "normal", marginLeft: "8px" }}>最低 1 件</span>
+            <span style={{ color: "color-mix(in srgb, #ff0a0a 80%, var(--hm-fg))" }}> *</span>
+            <span style={{ fontSize: "0.8rem", color: "var(--hm-fg-muted)", fontWeight: "normal", marginLeft: "8px" }}>最低 1 件</span>
           </h3>
           {renderSectionIssues(["responsibilities"])}
           {def.responsibilities.map((r, i) => (
@@ -671,7 +671,7 @@ export function GenericDefinitionEditor() {
         <section style={{ marginBottom: "24px" }}>
           <h3 style={{ fontSize: "1rem", marginBottom: "4px" }}>
             適用領域
-            <span style={{ color: "#c00" }}> *</span>
+            <span style={{ color: "color-mix(in srgb, #ff0a0a 80%, var(--hm-fg))" }}> *</span>
           </h3>
           {renderSectionIssues(["targets"])}
           <div style={{ display: "flex", gap: "16px" }}>
@@ -699,7 +699,7 @@ export function GenericDefinitionEditor() {
           {fields.length > 0 && (
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem", marginBottom: "8px" }}>
               <thead>
-                <tr style={{ background: "#f8f9fa" }}>
+                <tr style={{ background: "var(--hm-surface-2)" }}>
                   <th style={thStyle}>名前</th>
                   <th style={thStyle}>型</th>
                   <th style={thStyle}>制約</th>
@@ -786,7 +786,7 @@ export function GenericDefinitionEditor() {
           {operations.length > 0 && (
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem", marginBottom: "8px" }}>
               <thead>
-                <tr style={{ background: "#f8f9fa" }}>
+                <tr style={{ background: "var(--hm-surface-2)" }}>
                   <th style={thStyle}>名前</th>
                   <th style={thStyle}>説明</th>
                   <th style={{ ...thStyle, width: "50px" }}></th>
@@ -847,7 +847,7 @@ export function GenericDefinitionEditor() {
           {relations.length > 0 && (
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem", marginBottom: "8px" }}>
               <thead>
-                <tr style={{ background: "#f8f9fa" }}>
+                <tr style={{ background: "var(--hm-surface-2)" }}>
                   <th style={thStyle}>種別</th>
                   <th style={thStyle}>参照先</th>
                   <th style={thStyle}>説明</th>
@@ -952,7 +952,7 @@ export function GenericDefinitionEditor() {
         <section style={{ marginBottom: "24px" }}>
           <h3 style={{ fontSize: "1rem", marginBottom: "4px" }}>
             マッピングヒント (mappingHints)
-            <span style={{ fontSize: "0.8rem", color: "#888", fontWeight: "normal", marginLeft: "8px" }}>
+            <span style={{ fontSize: "0.8rem", color: "var(--hm-fg-muted)", fontWeight: "normal", marginLeft: "8px" }}>
               JSON 形式。コード生成 AI 向けのヒント情報
             </span>
           </h3>
@@ -987,7 +987,7 @@ export function GenericDefinitionEditor() {
           position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)",
           display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000,
         }}>
-          <div style={{ background: "#fff", borderRadius: "8px", padding: "24px", minWidth: "320px" }}>
+          <div style={{ background: "var(--hm-surface)", borderRadius: "8px", padding: "24px", minWidth: "320px" }}>
             <h3 style={{ marginTop: 0, fontSize: "1rem" }}>削除確認</h3>
             <p style={{ fontSize: "0.9rem" }}>
               <strong>{def.name}</strong> を削除しますか？この操作は元に戻せません。
@@ -1024,7 +1024,7 @@ const labelStyle: React.CSSProperties = {
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
-  border: "1px solid #ddd",
+  border: "1px solid var(--hm-border-strong)",
   borderRadius: "4px",
   padding: "6px 10px",
   fontSize: "0.88rem",
@@ -1034,13 +1034,13 @@ const thStyle: React.CSSProperties = {
   padding: "6px 8px",
   textAlign: "left",
   fontSize: "0.82rem",
-  color: "#555",
-  borderBottom: "1px solid #ddd",
+  color: "var(--hm-fg-2)",
+  borderBottom: "1px solid var(--hm-border-strong)",
   fontWeight: 600,
 };
 
 const tdStyle: React.CSSProperties = {
   padding: "4px 8px",
   verticalAlign: "top",
-  borderBottom: "1px solid #f0f0f0",
+  borderBottom: "1px solid var(--hm-border)",
 };

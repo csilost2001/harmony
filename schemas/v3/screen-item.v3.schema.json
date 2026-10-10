@@ -28,6 +28,7 @@
         "required": { "type": "boolean" },
         "readonly": { "type": "boolean" },
         "disabled": { "type": "boolean" },
+        "nonVisual": { "type": "boolean", "description": "画面には表示しない項目 (画面の内部状態・隠し値など)。画面の部品の木に置かず、未配置の警告・自動配置の対象外。処理フローとの受け渡しには通常どおり使える。" },
         "minLength": { "type": "integer", "minimum": 0 },
         "maxLength": { "type": "integer", "minimum": 0 },
         "min": { "type": "number" },

@@ -6,8 +6,8 @@
   height: calc(100vh - var(--common-header-h, 0px) - var(--tabbar-h, 0px));
   display: flex;
   flex-direction: column;
-  background: #f8fafc;
-  color: #1e293b;
+  background: var(--hm-surface-2);
+  color: var(--hm-fg);
   padding: 16px;
   gap: 12px;
   box-sizing: border-box;
@@ -35,8 +35,8 @@
 .screen-list-count {
   font-size: 12px;
   font-weight: 400;
-  color: #64748b;
-  background: #e2e8f0;
+  color: var(--hm-fg-muted);
+  background: var(--hm-surface-3);
   padding: 2px 8px;
   border-radius: 10px;
 }
@@ -60,16 +60,16 @@
 .screen-list-search > i {
   position: absolute;
   left: 8px;
-  color: #94a3b8;
+  color: var(--hm-fg-faint);
   pointer-events: none;
 }
 
 .screen-list-search input {
   padding: 5px 28px 5px 28px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--hm-border-strong);
   border-radius: 6px;
   font-size: 13px;
-  background: #fff;
+  background: var(--hm-surface);
   outline: none;
   min-width: 240px;
 }
@@ -83,13 +83,13 @@
   right: 4px;
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: var(--hm-fg-faint);
   cursor: pointer;
   padding: 2px;
 }
 
 .screen-list-search .clear-btn:hover {
-  color: #475569;
+  color: var(--hm-fg-2);
 }
 
 .screen-list-body {
@@ -113,7 +113,7 @@
 }
 
 .screen-card-icon {
-  color: #6366f1;
+  color: color-mix(in srgb, #1e23eb 80%, var(--hm-fg));
   font-size: 14px;
 }
 
@@ -128,7 +128,7 @@
 .screen-card-path {
   font-family: "Consolas", "Monaco", monospace;
   font-size: 12px;
-  color: #64748b;
+  color: var(--hm-fg-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -139,7 +139,7 @@
   justify-content: space-between;
   align-items: center;
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--hm-fg-faint);
   gap: 8px;
 }
 
@@ -156,15 +156,15 @@
 }
 
 .screen-table-icon {
-  color: #6366f1;
+  color: color-mix(in srgb, #1e23eb 80%, var(--hm-fg));
 }
 
 .screen-type-badge {
   display: inline-block;
   padding: 2px 8px;
   border-radius: 10px;
-  background: #e0e7ff;
-  color: #4338ca;
+  background: var(--hm-surface-3);
+  color: color-mix(in srgb, #483ecc 80%, var(--hm-fg));
   font-size: 11px;
   font-weight: 500;
 }
@@ -175,24 +175,24 @@
   gap: 4px;
   padding: 2px 8px;
   border-radius: 10px;
-  background: #d1fae5;
-  color: #065f46;
+  background: var(--hm-surface-3);
+  color: color-mix(in srgb, #19f0b4 80%, var(--hm-fg));
   font-size: 11px;
   font-weight: 500;
 }
 
 .screen-design-badge.empty {
-  background: #f1f5f9;
-  color: #94a3b8;
+  background: var(--hm-surface-2);
+  color: var(--hm-fg-faint);
 }
 
 .screen-table-empty-cell {
-  color: #cbd5e1;
+  color: var(--hm-fg-faint);
 }
 
 .screen-table-date {
   font-size: 12px;
-  color: #64748b;
+  color: var(--hm-fg-muted);
   font-variant-numeric: tabular-nums;
 }
 

@@ -115,9 +115,201 @@
         }
       ],
       "description": "S-2 カートに追加ボタン。クリック時にカート追加フロー (9515d6f6) を起動する。"
+    },
+    {
+      "id": "cartItems",
+      "label": "カート明細",
+      "type": {
+        "kind": "array",
+        "itemType": "json"
+      },
+      "direction": "out",
+      "presentation": {
+        "kind": "table",
+        "columns": [
+          {
+            "id": "col1",
+            "label": "商品コード",
+            "path": "col1",
+            "type": "string"
+          },
+          {
+            "id": "col2",
+            "label": "商品名",
+            "path": "col2",
+            "type": "string"
+          },
+          {
+            "id": "col3",
+            "label": "単価",
+            "path": "col3",
+            "type": "string"
+          },
+          {
+            "id": "col4",
+            "label": "数量",
+            "path": "col4",
+            "type": "string"
+          },
+          {
+            "id": "col5",
+            "label": "小計",
+            "path": "col5",
+            "type": "string"
+          }
+        ]
+      }
     }
   ],
-  "design": {
-    "designFileRef": "cart.design.json"
-  }
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "heading",
+        "type": "heading",
+        "props": {
+          "text": "カート",
+          "level": 1
+        }
+      },
+      {
+        "id": "columns2",
+        "type": "columns",
+        "children": [
+          {
+            "id": "column4",
+            "type": "column",
+            "props": {
+              "span": 8
+            },
+            "children": [
+              {
+                "id": "addItemForm",
+                "type": "form",
+                "props": {
+                  "columns": 3,
+                  "title": "商品を追加"
+                },
+                "children": [
+                  {
+                    "id": "addProductCode",
+                    "type": "field",
+                    "itemRef": "addProductCode"
+                  },
+                  {
+                    "id": "addQuantity",
+                    "type": "field",
+                    "itemRef": "addQuantity"
+                  },
+                  {
+                    "id": "addStoreCode",
+                    "type": "field",
+                    "itemRef": "addStoreCode"
+                  },
+                  {
+                    "id": "addToCartButton",
+                    "type": "button",
+                    "itemRef": "addToCartButton",
+                    "props": {
+                      "label": "カートに追加",
+                      "variant": "primary"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "cartItems",
+                "type": "table",
+                "itemRef": "cartItems",
+                "props": {
+                  "title": "カート明細 3 点"
+                }
+              }
+            ]
+          },
+          {
+            "id": "column5",
+            "type": "column",
+            "props": {
+              "span": 4
+            },
+            "children": [
+              {
+                "id": "section",
+                "type": "section",
+                "props": {
+                  "title": "注文サマリ",
+                  "variant": "card"
+                },
+                "children": [
+                  {
+                    "id": "html",
+                    "type": "html",
+                    "props": {
+                      "html": "<table class=\"table table-sm mb-0\">\n                <tbody>\n                  <tr>\n                    <td class=\"text-muted\">小計 (税抜)</td>\n                    <td class=\"text-end\" id=\"subtotal\" data-item-id=\"subtotal\">¥107,091</td>\n                  </tr>\n                  <tr>\n                    <td class=\"text-muted\">消費税 (10%)</td>\n                    <td class=\"text-end\" id=\"taxAmount\" data-item-id=\"taxAmount\">¥10,709</td>\n                  </tr>\n                  <tr class=\"table-active\">\n                    <td class=\"fw-bold\">合計 (税込)</td>\n                    <td class=\"text-end fw-bold fs-5\" id=\"totalAmount\" data-item-id=\"totalAmount\">¥118,800</td>\n                  </tr>\n                </tbody>\n              </table>"
+                    }
+                  },
+                  {
+                    "id": "divider",
+                    "type": "divider"
+                  },
+                  {
+                    "id": "cartItemCount",
+                    "type": "field",
+                    "itemRef": "cartItemCount"
+                  },
+                  {
+                    "id": "cartTotalAmount",
+                    "type": "field",
+                    "itemRef": "cartTotalAmount"
+                  },
+                  {
+                    "id": "buttons",
+                    "type": "button-bar",
+                    "children": [
+                      {
+                        "id": "checkOrderButton",
+                        "type": "button",
+                        "props": {
+                          "label": "注文確認へ",
+                          "variant": "primary",
+                          "screenRef": "cart-confirm"
+                        }
+                      },
+                      {
+                        "id": "button",
+                        "type": "button",
+                        "props": {
+                          "label": "買い物を続ける",
+                          "variant": "secondary",
+                          "screenRef": "product-search"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "text",
+                "type": "text",
+                "props": {
+                  "text": "カート内の商品は最大 50 点まで追加できます。"
+                }
+              },
+              {
+                "id": "text2",
+                "type": "text",
+                "props": {
+                  "text": "在庫が不足している商品は注文確定時にエラーが表示されます。"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": [
+    "order:create"
+  ]
 }

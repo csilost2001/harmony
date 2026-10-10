@@ -119,7 +119,92 @@
       "description": "送信ボタン。users テーブルの display_name / target_cefr_level / interests を更新する処理フローを実行する。"
     }
   ],
-  "design": {
-    "designFileRef": "profile-settings.design.json"
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "text",
+        "type": "text",
+        "props": {
+          "text": "B1 | 現在のレベル",
+          "tone": "muted"
+        }
+      },
+      {
+        "id": "section",
+        "type": "section",
+        "props": {
+          "variant": "card"
+        },
+        "children": [
+          {
+            "id": "heading",
+            "type": "heading",
+            "props": {
+              "text": "プロフィール情報",
+              "level": 2
+            }
+          },
+          {
+            "id": "displayName",
+            "type": "field",
+            "itemRef": "displayName"
+          },
+          {
+            "id": "email",
+            "type": "field",
+            "itemRef": "email"
+          }
+        ]
+      },
+      {
+        "id": "section2",
+        "type": "section",
+        "props": {
+          "variant": "card"
+        },
+        "children": [
+          {
+            "id": "heading2",
+            "type": "heading",
+            "props": {
+              "text": "学習設定",
+              "level": 2
+            }
+          },
+          {
+            "id": "targetCefrLevel",
+            "type": "field",
+            "itemRef": "targetCefrLevel"
+          },
+          {
+            "id": "text2",
+            "type": "text",
+            "props": {
+              "text": "興味分野"
+            }
+          },
+          {
+            "id": "interests",
+            "type": "field",
+            "itemRef": "interests"
+          },
+          {
+            "id": "cefrLevelDisplay",
+            "type": "field",
+            "itemRef": "cefrLevelDisplay"
+          }
+        ]
+      },
+      {
+        "id": "saveProfile",
+        "type": "button",
+        "itemRef": "saveProfile",
+        "props": {
+          "label": "設定を保存する",
+          "variant": "primary"
+        }
+      }
+    ]
   }
 }

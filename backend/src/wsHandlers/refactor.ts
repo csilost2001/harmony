@@ -280,10 +280,12 @@ export const refactorHandlers: RpcHandlerMap = {
       // Phase J Must-fix B (#1298 round 5 Codex M-2): generic-definition の path 形式 ref も
       // I 期で rewrite 対象に追加したため、開いている GenericDefinitionEditor の stale state
       // overwrite を緩和するため `genericDefinitionChanged` も broadcast する。
+      // 業務フロー / 帳票は、工程・出力契機の参照が書き換わることがある。開いている編集画面が古い参照のまま
+      // 「上書きして保存」して参照切れを再導入しないよう、これらにも reload を通知する
       const RELOAD_EVENTS = [
         "screenChanged", "tableChanged", "processFlowChanged", "viewChanged",
         "sequenceChanged", "viewDefinitionChanged", "pageLayoutChanged",
-        "genericDefinitionChanged",
+        "genericDefinitionChanged", "businessFlowChanged", "reportChanged",
       ];
       for (const ev of RELOAD_EVENTS) {
         if (ev === `${et}Changed`) continue; // 自身の event は上で発行済
@@ -325,10 +327,11 @@ export const refactorHandlers: RpcHandlerMap = {
       // でない緩和策、Codex 独立レビュー S-1 で指摘)。
       // → undo 経路では excludeClientId を渡さず、originating client にも reload event を届ける。
       // Phase J Must-fix B: undo 後も genericDefinition reload を必要 (rename の逆操作)
+      // 業務フロー / 帳票の参照も元に戻るので、開いている編集画面にも通知する
       const RELOAD_EVENTS = [
         "screenChanged", "tableChanged", "processFlowChanged", "viewChanged",
         "sequenceChanged", "viewDefinitionChanged", "pageLayoutChanged",
-        "genericDefinitionChanged",
+        "genericDefinitionChanged", "businessFlowChanged", "reportChanged",
       ];
       for (const ev of RELOAD_EVENTS) {
         bridge.broadcast({

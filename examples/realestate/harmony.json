@@ -51,7 +51,8 @@
         "kind": "search",
         "path": "/properties/search",
         "maturity": "committed",
-        "updatedAt": "2026-05-03T00:00:00.000Z"
+        "updatedAt": "2026-05-03T00:00:00.000Z",
+        "hasDesign": true
       }
     ],
     "tables": [

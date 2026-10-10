@@ -11,7 +11,6 @@ import {
 import { wsBridge } from "./wsBridge.js";
 import { tools } from "./tools.js";
 import { handleAuthCheck, handlePropose } from "./aiRename.js";
-import { handlePuckComponentAsset } from "./handlers/puckComponentAssets.js";
 import { createStaticAssetHandler } from "./staticAssets.js";
 import {
   initWorkspaceState,
@@ -28,16 +27,16 @@ import { initServerLog, shutdownServerLog, logInfo, logError, ingestClientLog } 
 // それ以外は null を返して dispatcher に次の handler を試させる。
 import { handleMarkerTool } from "./handlers/marker.js";
 import { handleProcessFlowTool } from "./handlers/processFlow.js";
-import { handleDesignerTool } from "./handlers/designer.js";
 import { handleScreenTool } from "./handlers/screen.js";
 import { handleEdgeTool } from "./handlers/edge.js";
-import { handleCustomBlockTool } from "./handlers/customBlock.js";
-import { handlePuckComponentTool } from "./handlers/puckComponent.js";
 import { handleTableTool } from "./handlers/table.js";
 import { handlePageLayoutTool } from "./handlers/pageLayout.js";
 import { handleExportTool } from "./handlers/export.js";
 import { handleTabTool } from "./handlers/tab.js";
 import { handleScreenItemTool } from "./handlers/screenItem.js";
+import { handleLayoutTool } from "./handlers/layout.js";
+import { handleBusinessFlowTool } from "./handlers/businessFlow.js";
+import { handleReportTool } from "./handlers/report.js";
 import { handleWorkspaceTool } from "./handlers/workspace.js";
 import { handleEditSessionTool } from "./handlers/editSession.js";
 
@@ -176,16 +175,16 @@ function createMcpServer(sessionId: string): Server {
       const dispatchers = [
         handleMarkerTool,
         handleProcessFlowTool,
-        handleDesignerTool,
         handleScreenTool,
         handleEdgeTool,
-        handleCustomBlockTool,
-        handlePuckComponentTool,
         handleTableTool,
         handlePageLayoutTool,
         handleExportTool,
         handleTabTool,
         handleScreenItemTool,
+        handleLayoutTool,
+        handleBusinessFlowTool,
+        handleReportTool,
         handleWorkspaceTool,
         handleEditSessionTool,
       ];
@@ -250,12 +249,6 @@ async function main() {
   // AI 命名 endpoints (#337)
   wsBridge.registerHttpHandler("/ai/rename-screen-ids/auth-check", handleAuthCheck);
   wsBridge.registerHttpHandler("/ai/rename-screen-ids/propose", handlePropose);
-
-  // 外部 React Component 静的配信 (#1409 P-1 / #1415 P2-1): URL 内の wsId で要求ごとに
-  // workspace を解決し、その <dataRoot>/puck-components/ 配下の manifest.json / *.mjs を
-  // GET 配信する。`/workspace-assets/<wsId>/puck-components/<relpath>` 形式を handler 内で
-  // parse するため、親 prefix `/workspace-assets` で登録する。
-  wsBridge.registerHttpHandler("/workspace-assets", handlePuckComponentAsset);
 
   if (process.env.HARMONY_STATIC_DIR) {
     wsBridge.registerHttpFallbackHandler(createStaticAssetHandler(process.env.HARMONY_STATIC_DIR));

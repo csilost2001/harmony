@@ -368,10 +368,10 @@ UI 起点フロー (`type: "screen"` / `mode: "upstream"`) を作成するとき
   - `screen-items/<id>.json` として別ファイルに切り出しているデータは `screens/<id>.json#items` に移動すること
   - `EMPTY_SCREEN_ITEMS` warning が出ている場合: items が空 → UI 上でフォームが空表示になる
   - `LEGACY_SCREEN_ITEMS_DIR` error が出ている場合: screen-items/ ディレクトリに残存ファイルがある → 削除 or embed が必要
-- **GrapesJS デザインファイルは `screens/<id>.design.json` に配置する**: hard-coded path のみ参照される
-  - `screen.design.designFileRef` を設定する場合は basename が `<id>.design.json` と一致すること (basename のみ比較)
-  - `designs/foo.html` 等の外部パスは runtime が無視する → `EXTERNAL_DESIGN_REF` error
-  - ファイル自体が存在しなくても recoverable (空キャンバス) → `MISSING_DESIGN_FILE` warning として報告
+- **画面の見た目は `screens/<id>.json#layout` (業務部品の木) に書く**: 旧エディタ (GrapesJS / Puck) は廃止済みで、`design` (デザインファイル参照) は新規に作らない
+  - field / table / button 部品は `itemRef` で `items[]` の画面項目を参照する (項目の定義は items にだけ書く)
+  - `designer__set_screen_layout` で保存し、返る `issues` (存在しない項目・置けない位置・未設定の差し込み口) を解消する
+  - プロジェクト内で繰り返す部品の組は独自部品 (`designer__save_layout_component`) にまとめる。仕様: docs/spec/screen-layout.md / docs/spec/layout-components.md
 
 **Step 5.2 で `validate:samples` の `runtimeContractValidator` により機械的に検出される**
 
@@ -548,7 +548,7 @@ npm run validate:samples -- ../examples/<projectId>
 | viewDefinitionValidator | ViewDefinition 整合 (sourceTableId / tableColumnRef / sortDefaults / filterDefaults 等) | Rule 20 |
 | screenNavigationValidator | 画面遷移三者整合 (targetScreenId / forward edges / auth 整合 / path) | Rule 21 |
 | screenItemRefKeyValidator | ScreenItem.refKey 横断整合 (型一致 / conventions.fieldKeys 宣言 / ORPHAN 検出) | Rule 22 |
-| runtimeContractValidator (validate:samples 専用) | 画面項目 embed (`EMPTY_SCREEN_ITEMS` / `LEGACY_SCREEN_ITEMS_DIR`) + design ファイル配置 (`MISSING_DESIGN_FILE` / `EXTERNAL_DESIGN_REF`) | Rule 23 |
+| runtimeContractValidator (validate:samples 専用) | 画面項目 embed (`EMPTY_SCREEN_ITEMS` / `LEGACY_SCREEN_ITEMS_DIR`) | Rule 23 |
 | processFlowAntipatternValidator (validate:samples 専用) | retail dogfood 既知パターン (`LITERAL_CONV_REFERENCE` / `DUPLICATE_KIND_KEY` / `INVALID_SEQUENCE_CALL_SYNTAX` / `MULTIPLE_STATEMENTS_IN_SQL`) | Rule 24 / 25 / 27 / 29 |
 
 **fail した場合の対処**:
@@ -647,29 +647,12 @@ npx vitest run src/schemas/validateDogfood.test.ts -t "<flowId の一部>"
 - PR 作成へ
 ```
 
-## マルチエディタ対応 (#806)
+## 画面デザインの参照
 
-フロー作成前に **関連する画面の `editorKind` / `cssFramework`** を確認する。
-
-### 画面ロード時の解決順序
-
-1. `screen.design.editorKind` / `screen.design.cssFramework` (画面個別指定)
-2. `project.techStack.designer.editorKind` / `project.techStack.designer.cssFramework` (project default、#826 で `project.design` から移行)
-3. 最終 default (`"grapesjs"` / `"bootstrap"`)
-
-### editorKind 別のデザインファイル参照
-
-- `editorKind: "grapesjs"` → `screens/<id>/design.json` を読む (GrapesJS 形式、HTML+CSS+components)
-- `editorKind: "puck"` → `screens/<id>/puck-data.json` を読む (Puck Data tree、semantic props)
-
-### Thymeleaf / React 出力スクリプトの注意
-
-- **Thymeleaf 出力を生成するスクリプトは Puck 画面 (`editorKind: "puck"`) を明示スキップしてレポートに記録すること**
-  - Puck 画面の出力は React コンポーネントが前提 (Thymeleaf 非対応)
-  - 誤って Puck data を Thymeleaf テンプレートに渡すと broken HTML が生成される
-  - スキップ判定: `screen.design.editorKind === "puck"` または解決後の editorKind が "puck" であること
-
-詳細仕様: `docs/spec/multi-editor-puck.md` § 2.3
+画面の構造は `screens/<id>.json#layout` を読む (`designer__get_screen_layout` でも取得できる)。
+`type: "component"` の部品はプロジェクト独自部品の参照で、`layout-components.json` の定義を `args` で展開して扱う。
+旧エディタ (GrapesJS / Puck) の `design` 参照は読まない。layout の無い旧形式の画面は、業務部品デザイナで自動変換してから扱う。
+CSS フレームワークは `project.techStack.designer.cssFramework` (省略時 `bootstrap`) だけを見る。
 
 ## 制約 (必守)
 

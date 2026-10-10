@@ -63,7 +63,135 @@
       }
     }
   ],
-  "design": {
-    "designFileRef": "word-book.design.json"
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "section",
+        "type": "section",
+        "props": {
+          "variant": "card"
+        },
+        "children": [
+          {
+            "id": "columns",
+            "type": "columns",
+            "children": [
+              {
+                "id": "column",
+                "type": "column",
+                "props": {
+                  "span": 5
+                },
+                "children": [
+                  {
+                    "id": "masteryFilter",
+                    "type": "field",
+                    "itemRef": "masteryFilter"
+                  }
+                ]
+              },
+              {
+                "id": "column2",
+                "type": "column",
+                "props": {
+                  "span": 7
+                },
+                "children": [
+                  {
+                    "id": "wordSearch",
+                    "type": "field",
+                    "itemRef": "wordSearch"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "columns2",
+        "type": "columns",
+        "children": [
+          {
+            "id": "column3",
+            "type": "column",
+            "props": {
+              "span": 4
+            },
+            "children": [
+              {
+                "id": "text",
+                "type": "text",
+                "props": {
+                  "text": "未学習",
+                  "tone": "muted"
+                }
+              },
+              {
+                "id": "text2",
+                "type": "text",
+                "props": {
+                  "text": "12"
+                }
+              }
+            ]
+          },
+          {
+            "id": "column4",
+            "type": "column",
+            "props": {
+              "span": 4
+            },
+            "children": [
+              {
+                "id": "text3",
+                "type": "text",
+                "props": {
+                  "text": "学習中",
+                  "tone": "muted"
+                }
+              },
+              {
+                "id": "text4",
+                "type": "text",
+                "props": {
+                  "text": "34"
+                }
+              }
+            ]
+          },
+          {
+            "id": "column5",
+            "type": "column",
+            "props": {
+              "span": 4
+            },
+            "children": [
+              {
+                "id": "text5",
+                "type": "text",
+                "props": {
+                  "text": "習得済み",
+                  "tone": "muted"
+                }
+              },
+              {
+                "id": "text6",
+                "type": "text",
+                "props": {
+                  "text": "58"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "wordList",
+        "type": "table",
+        "itemRef": "wordList"
+      }
+    ]
   }
 }

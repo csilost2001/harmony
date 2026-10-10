@@ -144,60 +144,6 @@ describe("screenStore — load/save round-trip 契約", () => {
     expect((loaded as unknown as { auth?: string }).auth).toBe("optional");
   });
 
-  it("Puck 画面の saveScreenEntity が designFileRef を混入させない (Sh-4 / Codex 指摘)", async () => {
-    // 旧実装では saveScreenEntity が無条件で `designFileRef: ${id}.design.json` を追加しており、
-    // Puck 画面 (puckDataRef のみあるべき) に designFileRef が混入する regression があった。
-    const backend = makeMockBackend();
-    setScreenStorageBackend(backend);
-
-    const PUCK_SCREEN_ID = "puck-screen-001" as ScreenId;
-    backend._store.set(PUCK_SCREEN_ID, {
-      $schema: "../schemas/v3/screen.v3.schema.json",
-      id: PUCK_SCREEN_ID,
-      name: "Puck 画面",
-      kind: "form",
-      path: "/puck",
-      createdAt: TIMESTAMP,
-      updatedAt: TIMESTAMP,
-      items: [],
-      design: { editorKind: "puck", puckDataRef: "puck-data.json" },
-    });
-
-    const loaded = await loadScreenEntity(PUCK_SCREEN_ID);
-    await saveScreenEntity(loaded);
-
-    const savedRaw = backend._store.get(PUCK_SCREEN_ID) as { design?: Record<string, unknown> };
-    expect(savedRaw.design?.editorKind).toBe("puck");
-    expect(savedRaw.design?.puckDataRef).toBe("puck-data.json");
-    expect(savedRaw.design?.designFileRef).toBeUndefined();
-  });
-
-  it("GrapesJS 画面の saveScreenEntity は puckDataRef を持たない", async () => {
-    const backend = makeMockBackend();
-    setScreenStorageBackend(backend);
-
-    const GJS_SCREEN_ID = "gjs-screen-001" as ScreenId;
-    backend._store.set(GJS_SCREEN_ID, {
-      $schema: "../schemas/v3/screen.v3.schema.json",
-      id: GJS_SCREEN_ID,
-      name: "GrapesJS 画面",
-      kind: "form",
-      path: "/gjs",
-      createdAt: TIMESTAMP,
-      updatedAt: TIMESTAMP,
-      items: [],
-      design: { editorKind: "grapesjs", designFileRef: `${GJS_SCREEN_ID}.design.json` },
-    });
-
-    const loaded = await loadScreenEntity(GJS_SCREEN_ID);
-    await saveScreenEntity(loaded);
-
-    const savedRaw = backend._store.get(GJS_SCREEN_ID) as { design?: Record<string, unknown> };
-    expect(savedRaw.design?.editorKind).toBe("grapesjs");
-    expect(savedRaw.design?.designFileRef).toBe(`${GJS_SCREEN_ID}.design.json`);
-    expect(savedRaw.design?.puckDataRef).toBeUndefined();
-  });
-
   it("既存 items[] の round-trip 保持 (saveScreenEntity が items を消さない)", async () => {
     const backend = makeMockBackend();
     setScreenStorageBackend(backend);
@@ -227,63 +173,42 @@ describe("screenStore — load/save round-trip 契約", () => {
     expect(savedRaw.items).toEqual(items);
   });
 
-  it("saveScreenEntity で editorKind/cssFramework を指定すると design に保存される (#825)", async () => {
+  it("旧形式の design (GrapesJS / Puck の参照) は読込・保存でそのまま保持され、補完も削除もされない", async () => {
     const backend = makeMockBackend();
     setScreenStorageBackend(backend);
-
-    const screen: Screen = {
-      $schema: "../schemas/v3/screen.v3.schema.json",
-      id: SCREEN_ID,
-      uuid: "11111111-1111-4111-8111-111111111111" as Uuid,
-      name: "editor 選択テスト",
-      kind: "list",
-      path: "/test",
-      createdAt: TIMESTAMP,
-      updatedAt: TIMESTAMP,
-      items: [],
-      design: {
-        editorKind: "puck",
-        cssFramework: "tailwind",
-        puckDataRef: "puck-data.json",
-      },
-    };
-
-    await saveScreenEntity(screen);
-
-    const savedRaw = backend._store.get(SCREEN_ID) as { design?: Record<string, unknown> };
-    expect(savedRaw.design?.editorKind).toBe("puck");
-    expect(savedRaw.design?.cssFramework).toBe("tailwind");
-    expect(savedRaw.design?.puckDataRef).toBe("puck-data.json");
-    expect(savedRaw.design?.designFileRef).toBeUndefined();
+    for (const design of [
+      { editorKind: "grapesjs", cssFramework: "bootstrap", designFileRef: `${SCREEN_ID}.design.json` },
+      { editorKind: "puck", cssFramework: "tailwind", puckDataRef: "puck-data.json" },
+    ]) {
+      backend._store.set(SCREEN_ID, {
+        $schema: "../schemas/v3/screen.v3.schema.json", id: SCREEN_ID, uuid: "11111111-1111-4111-8111-111111111111" as Uuid,
+        name: "旧画面", createdAt: TIMESTAMP, updatedAt: TIMESTAMP, kind: "form", path: "/old", items: [], design,
+      });
+      const loaded = await loadScreenEntity(SCREEN_ID);
+      expect(loaded.design).toEqual(design);
+      await saveScreenEntity(loaded);
+      expect((backend._store.get(SCREEN_ID) as { design?: unknown }).design).toEqual(design);
+    }
   });
 
-  it("saveScreenEntity で editorKind=grapesjs/cssFramework=bootstrap が保存される (#825)", async () => {
+  it("layout の無い保存済みの画面を読んでも、既定の layout を補わない (旧形式の画面は開始画面で扱う)", async () => {
     const backend = makeMockBackend();
     setScreenStorageBackend(backend);
+    backend._store.set(SCREEN_ID, {
+      id: SCREEN_ID, uuid: "11111111-1111-4111-8111-111111111111", name: "旧画面", createdAt: TIMESTAMP, updatedAt: TIMESTAMP, kind: "form", path: "/old", items: [],
+      design: { designFileRef: `${SCREEN_ID}.design.json` },
+    });
+    expect((await loadScreenEntity(SCREEN_ID)).layout).toBeUndefined();
+  });
 
-    const screen: Screen = {
-      $schema: "../schemas/v3/screen.v3.schema.json",
-      id: SCREEN_ID,
-      uuid: "22222222-2222-4222-8222-222222222222" as Uuid,
-      name: "GrapesJS Bootstrap テスト",
-      kind: "form",
-      path: "/form",
-      createdAt: TIMESTAMP,
-      updatedAt: TIMESTAMP,
-      items: [],
-      design: {
-        editorKind: "grapesjs",
-        cssFramework: "bootstrap",
-        designFileRef: `${SCREEN_ID}.design.json`,
-      },
-    };
-
-    await saveScreenEntity(screen);
-
-    const savedRaw = backend._store.get(SCREEN_ID) as { design?: Record<string, unknown> };
-    expect(savedRaw.design?.editorKind).toBe("grapesjs");
-    expect(savedRaw.design?.cssFramework).toBe("bootstrap");
-    expect(savedRaw.design?.designFileRef).toBe(`${SCREEN_ID}.design.json`);
-    expect(savedRaw.design?.puckDataRef).toBeUndefined();
+  it("保存済みの layout は読込・保存で保持される", async () => {
+    const backend = makeMockBackend();
+    setScreenStorageBackend(backend);
+    const layout = { version: 1, nodes: [{ id: "f", type: "field", itemRef: "qty" }] };
+    backend._store.set(SCREEN_ID, { id: SCREEN_ID, uuid: "11111111-1111-4111-8111-111111111111", name: "画面", createdAt: TIMESTAMP, updatedAt: TIMESTAMP, kind: "form", path: "/x", items: [{ id: "qty", label: "数量", type: "integer" }], layout });
+    const loaded = await loadScreenEntity(SCREEN_ID);
+    expect(loaded.layout).toEqual(layout);
+    await saveScreenEntity(loaded);
+    expect((backend._store.get(SCREEN_ID) as { layout?: unknown }).layout).toEqual(layout);
   });
 });

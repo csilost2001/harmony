@@ -29,10 +29,5 @@
     "header": "global-header",
     "sidebar": "navigation-sidebar",
     "footer": "global-footer"
-  },
-  "design": {
-    "editorKind": "grapesjs",
-    "cssFramework": "bootstrap",
-    "designFileRef": "main-layout.design.json"
   }
 }

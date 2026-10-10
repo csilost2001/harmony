@@ -4,10 +4,9 @@
  * #696: per-screen タブ化。useParams<{ screenId }> で画面 ID を取得し、
  * 1 画面 = 1 タブ = 1 draft モデルに統一。
  *
- * 項目追加経路 3 つ:
+ * 項目追加経路 2 つ:
  * 1. 空欄追加 (従来)
- * 2. 画面デザインから選択 (#323 — モーダルで候補リスト + チェックボックス)
- * 3. (将来) GrapesJS サイドバーからの直接追加 (#322)
+ * 2. 業務部品デザイナで部品を置くときに作る / 未配置の項目を置く (docs/spec/screen-layout.md)
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -72,8 +71,6 @@ import { listGenericDefinitions } from "../../store/genericDefinitionStore";
 import { genericDefinitionResolver } from "../../utils/reference-completer/genericDefinitionResolver";
 import type { Table, View } from "../../types/v3";
 import { ConvCompletionInput } from "../common/ConvCompletionInput";
-import { ScreenItemCandidatesModal } from "./ScreenItemCandidatesModal";
-import type { ExtractedCandidate } from "../../utils/screenItemExtractor";
 import { generateAutoId, getFieldTypePrefix } from "../../utils/screenItemNaming";
 import "../../styles/screen-items.css";
 import "../../styles/editMode.css";
@@ -124,7 +121,6 @@ export function ScreenItemsView() {
   const navigate = useNavigate();
   const { wsPath, wsId } = useWorkspacePath();
   const [screens, setScreens] = useState<ScreenMeta[]>([]);
-  const [candidatesModalOpen, setCandidatesModalOpen] = useState(false);
   const [conventions, setConventions] = useState<ConventionsCatalog | null>(null);
   // lintIssues は file / conventions から純粋に派生するため useMemo で derive
   // (React 19 `react-hooks/set-state-in-effect` 対応、宣言は L702 付近)
@@ -589,26 +585,6 @@ export function ScreenItemsView() {
     });
   }, []);
 
-  /** 候補モーダルから受け取った ExtractedCandidate[] を ScreenItem[] として一括追加。
-   *  HTML name 属性 (c.name) を業務識別子 ScreenItem.id として採用する。未設定なら空文字。 */
-  const handleAddCandidates = useCallback((cands: ExtractedCandidate[]) => {
-    if (cands.length === 0) return;
-    updateWithDraft((f) => {
-      for (const c of cands) {
-        f.items.push({
-          id: (c.name || "") as Identifier,
-          label: c.label || "",
-          type: c.type,
-          required: c.required,
-          minLength: c.minLength,
-          maxLength: c.maxLength,
-          pattern: c.pattern,
-          placeholder: c.placeholder,
-        });
-      }
-    });
-  }, [updateWithDraft]);
-
   /** ID フィールドの blur 時: 変更あり + 参照あり → 確認ダイアログを表示 */
   const handleIdBlur = useCallback(async (idx: number, e: React.FocusEvent<HTMLInputElement>) => {
     const newId = e.target.value;
@@ -717,10 +693,6 @@ export function ScreenItemsView() {
     return map;
   }, [lintIssues]);
 
-  const existingIds = useMemo(
-    () => new Set((file?.items ?? []).map((i) => i.id).filter(Boolean)),
-    [file]
-  );
 
   const itemCount = file?.items.length ?? 0;
   const allSelected = itemCount > 0 && selectedIndices.size === itemCount;
@@ -1002,7 +974,7 @@ export function ScreenItemsView() {
                         onChange={(e) => handleUpdateItem(i, { id: e.target.value as Identifier })}
                         onFocus={(e) => idFocusVals.current.set(i, e.target.value)}
                         onBlur={(e) => handleIdBlur(i, e)}
-                        placeholder="email"
+                        placeholder="例: email"
                         disabled={isReadonly}
                       />
                     </td>
@@ -1012,7 +984,7 @@ export function ScreenItemsView() {
                         value={item.label}
                         onChange={(e) => handleUpdateItem(i, { label: e.target.value })}
                         onBlur={commit}
-                        placeholder="メールアドレス"
+                        placeholder="例: メールアドレス"
                         disabled={isReadonly}
                       />
                     </td>
@@ -1093,7 +1065,7 @@ export function ScreenItemsView() {
                         onCommit={commit}
                         conventions={conventions}
                         className="form-control form-control-sm"
-                        placeholder="@conv.regex.email-simple"
+                        placeholder="例: @conv.regex.email-simple"
                         disabled={isReadonly}
                       />
                     </td>
@@ -1810,15 +1782,6 @@ export function ScreenItemsView() {
               >
                 <i className="bi bi-plus-lg me-1" /> 項目追加
               </button>
-              <button
-                type="button"
-                className="btn btn-sm btn-outline-primary screen-items-add"
-                onClick={() => setCandidatesModalOpen(true)}
-                title="現在選択中の画面デザインから input/select/textarea を抽出してチェックで追加"
-                disabled={isReadonly}
-              >
-                <i className="bi bi-ui-checks me-1" /> 画面デザインから追加
-              </button>
               {selectedIndices.size > 0 && (
                 <button
                   type="button"
@@ -1917,15 +1880,6 @@ export function ScreenItemsView() {
           </div>
         </div>
       )}
-
-      <ScreenItemCandidatesModal
-        open={candidatesModalOpen}
-        screenId={screenId ?? null}
-        screenName={selectedScreenName}
-        existingIds={existingIds}
-        onClose={() => setCandidatesModalOpen(false)}
-        onAddCandidates={handleAddCandidates}
-      />
 
       {saveConflict && (
         <SaveConflictDialog

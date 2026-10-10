@@ -5,6 +5,7 @@ import {
   getState,
   subscribe as subscribeStore,
   loadWorkspaces,
+  isWorkspaceRequestInFlight,
   openWorkspace,
   inspectWorkspace,
   initAndOpen,
@@ -766,8 +767,9 @@ export function WorkspaceListView() {
       prevStatus = s;
       if (s !== "connected") return;
       if (!isReconnect) {
+        // 一覧取得 / open が実行中なら、その完了で state が更新されるので重ねて取得しない
         const { loading } = getState();
-        if (!loading) return;
+        if (!loading || isWorkspaceRequestInFlight()) return;
       }
       loadWorkspaces().catch(console.error);
     });
@@ -821,7 +823,7 @@ export function WorkspaceListView() {
             <span style={{
               fontSize: "0.7rem",
               background: "var(--accent, #4dabf7)",
-              color: "#fff",
+              color: "var(--hm-on-solid)",
               borderRadius: "3px",
               padding: "1px 5px",
             }}>
@@ -875,7 +877,7 @@ export function WorkspaceListView() {
           <span style={{
             fontSize: "0.7rem",
             background: "var(--accent, #4dabf7)",
-            color: "#fff",
+            color: "var(--hm-on-solid)",
             borderRadius: "3px",
             padding: "1px 5px",
             marginLeft: "6px",

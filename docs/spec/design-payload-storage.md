@@ -1,5 +1,8 @@
 # Design Payload Storage
 
+> **廃止 (2026-10)**: 旧エディタ (GrapesJS / Puck) は廃止し、画面デザインは「業務部品デザイナ」に一本化しました。
+> この文書は旧エディタ時代の記録として残しています。現行の仕様は [screen-layout.md](screen-layout.md) / [layout-components.md](layout-components.md) を参照してください。
+
 **Status**: Implemented for #1448 (GrapesJS `componentsRef` + `.components.html`)
 **Created**: 2026-06-05
 **Related**: #1448, edit-session-protocol.md, page-layout.md, screen-items.md

@@ -181,7 +181,262 @@
       ]
     }
   ],
-  "design": {
-    "designFileRef": "tag-management.design.json"
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "heading",
+        "type": "heading",
+        "props": {
+          "text": "タグ管理",
+          "level": 1
+        }
+      },
+      {
+        "id": "newButton",
+        "type": "button",
+        "props": {
+          "label": "新規タグ",
+          "variant": "secondary"
+        }
+      },
+      {
+        "id": "searchQuery",
+        "type": "field",
+        "itemRef": "searchQuery"
+      },
+      {
+        "id": "text",
+        "type": "text",
+        "props": {
+          "text": "12"
+        }
+      },
+      {
+        "id": "text2",
+        "type": "text",
+        "props": {
+          "text": "タグ総数",
+          "tone": "muted"
+        }
+      },
+      {
+        "id": "text3",
+        "type": "text",
+        "props": {
+          "text": "48"
+        }
+      },
+      {
+        "id": "text4",
+        "type": "text",
+        "props": {
+          "text": "タグ付き投稿",
+          "tone": "muted"
+        }
+      },
+      {
+        "id": "text5",
+        "type": "text",
+        "props": {
+          "text": "4.0"
+        }
+      },
+      {
+        "id": "text6",
+        "type": "text",
+        "props": {
+          "text": "平均タグ/投稿",
+          "tone": "muted"
+        }
+      },
+      {
+        "id": "tags",
+        "type": "field",
+        "itemRef": "tags"
+      },
+      {
+        "id": "heading2",
+        "type": "heading",
+        "props": {
+          "text": "新規タグを作成",
+          "level": 2
+        }
+      },
+      {
+        "id": "buttons",
+        "type": "button-bar",
+        "children": [
+          {
+            "id": "button",
+            "type": "button",
+            "props": {
+              "label": "ボタン",
+              "variant": "secondary"
+            }
+          }
+        ],
+        "props": {
+          "align": "between"
+        }
+      },
+      {
+        "id": "newTagName",
+        "type": "field",
+        "itemRef": "newTagName"
+      },
+      {
+        "id": "newTagSlug",
+        "type": "field",
+        "itemRef": "newTagSlug"
+      },
+      {
+        "id": "text7",
+        "type": "text",
+        "props": {
+          "text": "カラー"
+        }
+      },
+      {
+        "id": "newTagColor",
+        "type": "field",
+        "itemRef": "newTagColor"
+      },
+      {
+        "id": "buttons2",
+        "type": "button-bar",
+        "children": [
+          {
+            "id": "button2",
+            "type": "button",
+            "props": {
+              "label": "ボタン",
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "button3",
+            "type": "button",
+            "props": {
+              "label": "ボタン",
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "button4",
+            "type": "button",
+            "props": {
+              "label": "ボタン",
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "button5",
+            "type": "button",
+            "props": {
+              "label": "ボタン",
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "button6",
+            "type": "button",
+            "props": {
+              "label": "ボタン",
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "button7",
+            "type": "button",
+            "props": {
+              "label": "ボタン",
+              "variant": "secondary"
+            }
+          }
+        ]
+      },
+      {
+        "id": "text8",
+        "type": "text",
+        "props": {
+          "text": "アイコン"
+        }
+      },
+      {
+        "id": "newTagIcon",
+        "type": "field",
+        "itemRef": "newTagIcon"
+      },
+      {
+        "id": "buttons3",
+        "type": "button-bar",
+        "children": [
+          {
+            "id": "cancelButton",
+            "type": "button",
+            "props": {
+              "label": "キャンセル",
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "button8",
+            "type": "button",
+            "props": {
+              "label": "作成する",
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "createTagButton",
+            "type": "button",
+            "itemRef": "createTagButton",
+            "props": {
+              "variant": "primary"
+            }
+          },
+          {
+            "id": "updateTagButton",
+            "type": "button",
+            "itemRef": "updateTagButton",
+            "props": {
+              "variant": "primary"
+            }
+          },
+          {
+            "id": "deleteTagButton",
+            "type": "button",
+            "itemRef": "deleteTagButton",
+            "props": {
+              "variant": "danger"
+            }
+          }
+        ],
+        "props": {
+          "align": "right"
+        }
+      },
+      {
+        "id": "inputForm",
+        "type": "form",
+        "props": {
+          "title": "入力",
+          "columns": 2
+        },
+        "children": [
+          {
+            "id": "editTagId",
+            "type": "field",
+            "itemRef": "editTagId"
+          },
+          {
+            "id": "deleteTagId",
+            "type": "field",
+            "itemRef": "deleteTagId"
+          }
+        ]
+      }
+    ]
   }
 }

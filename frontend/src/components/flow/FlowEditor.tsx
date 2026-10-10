@@ -35,7 +35,6 @@ import { TRIGGER_LABELS } from "../../types/flow";
 import type { ScreenGroupId, ScreenKind, ScreenFlowPositions, Timestamp, PageLayoutId } from "../../types/v3";
 import {
   loadProject,
-  loadRawProject,
   saveProject,
   persistProject,
   addScreen,
@@ -55,10 +54,8 @@ import {
 import { buildDefaultScreen, loadScreenEntity, saveScreenEntity } from "../../store/screenStore";
 import { listPageLayouts } from "../../store/pageLayoutStore";
 import { clearScreenFlowPositionsPreview, saveScreenFlowPositionsPreview } from "../../store/screenFlowPositionsStore";
-import { duplicateScreenDesignData } from "../../store/duplicateScreen";
+import { duplicateScreenContent } from "../../store/duplicateScreen";
 import { makeDuplicatedEntityId } from "../../utils/entityIdSuggestion";
-import { resolveEditorKind } from "../../utils/resolveEditorKind";
-import { resolveCssFramework } from "../../utils/resolveCssFramework";
 import { RenameEntityDialog } from "../common/RenameEntityDialog";
 import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
 import { useRenameEntityUndoToast } from "../common/useRenameEntityUndoToast";
@@ -139,9 +136,9 @@ function toRFEdges(edges: ScreenEdge[]): RFEdge[] {
     label: e.label || (TRIGGER_LABELS[e.trigger] ?? ""),
     reconnectable: true,
     markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
-    style: { strokeWidth: 2, stroke: "#94a3b8" },
-    labelStyle: { fontSize: 11, fill: "#475569" },
-    labelBgStyle: { fill: "#fff", fillOpacity: 0.9 },
+    style: { strokeWidth: 2, stroke: "var(--hm-border-strong)" },
+    labelStyle: { fontSize: 11, fill: "var(--hm-fg-2)" },
+    labelBgStyle: { fill: "var(--hm-surface)", fillOpacity: 0.95 },
     labelBgPadding: [6, 4] as [number, number],
     labelBgBorderRadius: 4,
   }));
@@ -275,25 +272,16 @@ function FlowEditorInner() {
 
   useUndoKeyboard(handleUndo, handleRedo, !isReadonly);
 
-  // project.techStack.designer の project default (画面作成ダイアログのデフォルト選択値)
-  // #1379: react-hooks/immutability — `reloadProject` (後続 useCallback) が
-  // setProjectDefaultEditorKind / setProjectDefaultCssFramework を closure で参照するため、
-  // setter 宣言を `reloadProject` より物理的に前に移動する (TDZ forward reference 解消)。
-  const [projectDefaultEditorKind, setProjectDefaultEditorKind] = useState<"grapesjs" | "puck">("grapesjs");
-  const [projectDefaultCssFramework, setProjectDefaultCssFramework] = useState<"bootstrap" | "tailwind">("bootstrap");
-
   // プロジェクトを読み込んで UI に反映
   // #1388 case A: local var 名 `project` は state 名と衝突するため `loaded` に rename。
   const reloadProject = useCallback(async () => {
-    const [loaded, raw] = await Promise.all([loadProject(), loadRawProject()]);
+    const loaded = await loadProject();
     setProject(loaded);
     // purpose='gadget' は画面遷移図に表示しない (pl-4, #1025)
     const pageScreens = loaded.screens.filter((s) => s.purpose !== "gadget");
     setNodes(toRFNodesWithGroups(pageScreens, loaded.groups ?? [], screenEntitiesRef.current));
     setEdges(toRFEdges(loaded.edges));
     setProjectName(loaded.name);
-    setProjectDefaultEditorKind(resolveEditorKind(undefined, raw.techStack));
-    setProjectDefaultCssFramework(resolveCssFramework(undefined, raw.techStack));
     needsFitViewRef.current = pageScreens.length > 0;
     setIsLoading(false);
     setIsDirty(false);
@@ -475,9 +463,9 @@ function FlowEditorInner() {
         ...connection,
         id: edge.id,
         markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
-        style: { strokeWidth: 2, stroke: "#94a3b8" },
-        labelStyle: { fontSize: 11, fill: "#475569" },
-        labelBgStyle: { fill: "#fff", fillOpacity: 0.9 },
+        style: { strokeWidth: 2, stroke: "var(--hm-border-strong)" },
+        labelStyle: { fontSize: 11, fill: "var(--hm-fg-2)" },
+        labelBgStyle: { fill: "var(--hm-surface)", fillOpacity: 0.95 },
         labelBgPadding: [6, 4] as [number, number],
         labelBgBorderRadius: 4,
       }, eds));
@@ -551,16 +539,12 @@ function FlowEditorInner() {
         return { ...n, data: { ...screen } };
       }));
     } else {
-      const editorKind = data.editorKind ?? projectDefaultEditorKind;
-      const cssFramework = data.cssFramework ?? projectDefaultCssFramework;
       // RFC #1284 / #1297 I-5: kebab-case id を modal から受け取って addScreen に渡す
-      const screen = await addScreen(draft, data.name, data.type as ScreenKind, { path: data.path, editorKind, cssFramework, id: data.id });
+      const screen = await addScreen(draft, data.name, data.type as ScreenKind, { path: data.path, id: data.id });
       screen.description = data.description;
       await saveProject(draft);
-      // screen.design に editorKind/cssFramework を明示書き込み (spec § 2.5.2)
-      const entity = await buildDefaultScreen(screen.id);
-      entity.design = { ...entity.design, editorKind, cssFramework };
-      await saveScreenEntity(entity);
+      // 新しい画面は空の業務部品レイアウト (見出しだけ) を持つ
+      await saveScreenEntity(await buildDefaultScreen(screen.id));
       setNodes((nds) => [...nds, {
         id: screen.id,
         type: "screenNode" as const,
@@ -570,7 +554,7 @@ function FlowEditorInner() {
     }
     setProject(draft);
     setScreenModal({ open: false });
-  }, [project, screenModal.editId, projectDefaultEditorKind, projectDefaultCssFramework, setNodes, pushUndoSnapshot]);
+  }, [project, screenModal.editId, setNodes, pushUndoSnapshot]);
 
   // ── Edge Modal Actions ──
 
@@ -632,10 +616,6 @@ function FlowEditorInner() {
     pushUndoSnapshot();
     const screen = project.screens.find((s) => s.id === contextMenu.targetId);
     if (screen) {
-      // コピー元の editorKind/cssFramework を継承する (spec § 2.5.2: 作成時固定)
-      const srcEntity = await loadScreenEntity(screen.id);
-      const srcEditorKind = resolveEditorKind(srcEntity.design, undefined);
-      const srcCssFramework = resolveCssFramework(srcEntity.design, undefined);
       // RFC #1284 / #1329: duplicate 経路でも kebab-case id を発番する。
       // 元 id + `-copy[-N]` で uniqueness 衝突回避 (TableListView duplicate と同パターン)。
       const existingIds = new Set<string>(project.screens.map((s) => s.id));
@@ -649,17 +629,12 @@ function FlowEditorInner() {
           id: newId,
           path: screen.path,
           position: { x: screen.position.x + 30, y: screen.position.y + 30 },
-          editorKind: srcEditorKind,
-          cssFramework: srcCssFramework,
         },
       );
       dup.description = screen.description;
       await saveProject(draft);
-      // screen.design に editorKind/cssFramework を明示書き込み (spec § 2.5.2)
-      const dupEntity = await buildDefaultScreen(dup.id);
-      dupEntity.design = { ...dupEntity.design, editorKind: srcEditorKind, cssFramework: srcCssFramework };
-      await saveScreenEntity(dupEntity);
-      await duplicateScreenDesignData(screen.id, dup.id, srcEditorKind);
+      // 画面項目とレイアウトも複製する
+      await duplicateScreenContent(screen.id, dup.id);
       setProject(draft);
       setNodes((nds) => [...nds, {
         id: dup.id,
@@ -1258,13 +1233,13 @@ function FlowEditorInner() {
             deleteKeyCode={isReadonly ? null : ["Backspace", "Delete"]}
             defaultEdgeOptions={{
               markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
-              style: { strokeWidth: 2, stroke: "#94a3b8" },
+              style: { strokeWidth: 2, stroke: "var(--hm-border-strong)" },
             }}
           >
-            <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#cbd5e1" />
+            <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
             <MiniMap
-              nodeColor="#6366f1"
-              maskColor="rgba(241,245,249,0.7)"
+              nodeColor="var(--hm-accent)"
+              maskColor="color-mix(in srgb, var(--hm-bg) 70%, transparent)"
               style={{ borderRadius: 8 }}
             />
           </ReactFlow>
@@ -1365,8 +1340,6 @@ function FlowEditorInner() {
         initial={screenModal.initial}
         title={screenModal.editId ? "画面の編集" : "画面の追加"}
         isCreate={!screenModal.editId}
-        defaultEditorKind={projectDefaultEditorKind}
-        defaultCssFramework={projectDefaultCssFramework}
         pageLayouts={screenModal.editId ? pageLayouts : undefined}
         existingScreenIds={project?.screens.map((s) => s.id) ?? []}
         onSave={(data) => { handleScreenSave(data).catch(console.error); }}

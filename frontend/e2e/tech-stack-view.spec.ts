@@ -16,7 +16,7 @@ import { buildProject } from "./__fixtures__/builders";
 const dummyProject = buildProject({
   name: "技術スタック E2E テスト用プロジェクト",
   techStack: {
-    designer:   { editorKind: "grapesjs", cssFramework: "bootstrap" },
+    designer:   { cssFramework: "bootstrap" },
     backend:    { language: "java", framework: "spring-boot" },
     database:   { type: "postgresql", version: "16" },
     frontend:   { library: "thymeleaf" },
@@ -52,16 +52,18 @@ test.describe("技術スタック選定画面 (#826)", { tag: ["@regression"] },
     if (mcpAvailable) await ws.resetRuntimeState(page);
   });
 
-  test("ページが表示される — カテゴリペイン + デザイナーパネルが存在する", async ({ page }) => {
+  test("ページが表示される — カテゴリペイン + 画面デザインパネルが存在する", async ({ page }) => {
     await setup(page);
-    await expect(page.getByRole("heading", { name: /デザイナー/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /画面デザイン/ })).toBeVisible();
     await expect(page.getByRole("button", { name: /バックエンド/ })).toBeVisible();
     await expect(page.getByRole("button", { name: /データベース/ })).toBeVisible();
     await expect(page.getByRole("button", { name: /フロントエンド/ })).toBeVisible();
     await expect(page.getByRole("button", { name: /認証/ })).toBeVisible();
     await expect(page.getByRole("button", { name: /デプロイ/ })).toBeVisible();
-    await expect(page.locator('input[name="designer-editor-kind"][value="grapesjs"]')).toBeVisible();
-    await expect(page.locator('input[name="designer-editor-kind"][value="puck"]')).toBeVisible();
+    // 旧エディタ (GrapesJS / Puck) の廃止により、エディタ種別の選択は無い。CSS フレームワークだけを選ぶ
+    await expect(page.locator('input[name="designer-css-framework"][value="bootstrap"]')).toBeVisible();
+    await expect(page.locator('input[name="designer-css-framework"][value="tailwind"]')).toBeVisible();
+    await expect(page.locator('input[name="designer-editor-kind"]')).toHaveCount(0);
   });
 
   test("バックエンドカテゴリをクリックするとバックエンドパネルが表示される", async ({ page }) => {
@@ -83,11 +85,11 @@ test.describe("技術スタック選定画面 (#826)", { tag: ["@regression"] },
     await expect(page.locator("button", { hasText: "保存" })).toBeVisible();
   });
 
-  test("puck + thymeleaf の組合せで制約違反 warning が表示される", async ({ page }) => {
+  test("バックエンド言語とフレームワークの組合せ違反で制約違反 warning が表示され、保存できない", async ({ page }) => {
     await setup(page);
-    await page.locator('input[name="designer-editor-kind"][value="puck"]').click();
-    await page.locator("button", { hasText: "フロントエンド" }).click();
-    await page.locator('input[name="frontend-library"][value="thymeleaf"]').click();
+    await page.locator("button", { hasText: "バックエンド" }).click();
+    await page.locator('input[name="backend-language"][value="java"]').click();
+    await page.locator('input[name="backend-framework"][value="gin"]').click();
     await expect(page.getByText("制約違反", { exact: true })).toBeVisible();
     await expect(page.locator("button", { hasText: "保存" })).toBeDisabled();
   });

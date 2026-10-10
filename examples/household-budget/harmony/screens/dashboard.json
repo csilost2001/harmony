@@ -69,8 +69,167 @@
       }
     }
   ],
-  "design": {
-    "editorKind": "puck",
-    "cssFramework": "tailwind"
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "text",
+        "type": "text",
+        "props": {
+          "text": "Dashboard"
+        }
+      },
+      {
+        "id": "heading",
+        "type": "heading",
+        "props": {
+          "text": "家計簿",
+          "level": 1
+        }
+      },
+      {
+        "id": "buttons",
+        "type": "button-bar",
+        "children": [
+          {
+            "id": "button",
+            "type": "button",
+            "props": {
+              "label": "⚙",
+              "variant": "secondary"
+            }
+          }
+        ],
+        "props": {
+          "align": "between"
+        }
+      },
+      {
+        "id": "text2",
+        "type": "text",
+        "props": {
+          "text": "こんにちは、デモユーザーさん 👋"
+        }
+      },
+      {
+        "id": "text3",
+        "type": "text",
+        "props": {
+          "text": "2026年 6月"
+        }
+      },
+      {
+        "id": "text4",
+        "type": "text",
+        "props": {
+          "text": "収入"
+        }
+      },
+      {
+        "id": "currentMonthIncome",
+        "type": "field",
+        "itemRef": "currentMonthIncome"
+      },
+      {
+        "id": "text5",
+        "type": "text",
+        "props": {
+          "text": "支出"
+        }
+      },
+      {
+        "id": "currentMonthExpense",
+        "type": "field",
+        "itemRef": "currentMonthExpense"
+      },
+      {
+        "id": "text6",
+        "type": "text",
+        "props": {
+          "text": "収支"
+        }
+      },
+      {
+        "id": "currentMonthBalance",
+        "type": "field",
+        "itemRef": "currentMonthBalance"
+      },
+      {
+        "id": "buttons2",
+        "type": "button-bar",
+        "children": [
+          {
+            "id": "addLink",
+            "type": "link",
+            "props": {
+              "label": "＋ 追加",
+              "screenRef": "transaction-create"
+            }
+          },
+          {
+            "id": "listLink",
+            "type": "link",
+            "props": {
+              "label": "📋 一覧",
+              "screenRef": "transaction-list"
+            }
+          },
+          {
+            "id": "link",
+            "type": "link",
+            "props": {
+              "label": "📊 レポート",
+              "screenRef": "monthly-report"
+            }
+          },
+          {
+            "id": "link2",
+            "type": "link",
+            "props": {
+              "label": "🏷 カテゴリ",
+              "screenRef": "category-management"
+            }
+          }
+        ]
+      },
+      {
+        "id": "heading2",
+        "type": "heading",
+        "props": {
+          "text": "直近の取引",
+          "level": 2
+        }
+      },
+      {
+        "id": "buttons3",
+        "type": "button-bar",
+        "children": [
+          {
+            "id": "link3",
+            "type": "link",
+            "props": {
+              "label": "すべて見る →",
+              "screenRef": "transaction-list"
+            }
+          }
+        ],
+        "props": {
+          "align": "between"
+        }
+      },
+      {
+        "id": "recentTransactions",
+        "type": "table",
+        "itemRef": "recentTransactions"
+      },
+      {
+        "id": "link4",
+        "type": "link",
+        "props": {
+          "label": "＋",
+          "screenRef": "transaction-create"
+        }
+      }
+    ]
   }
 }

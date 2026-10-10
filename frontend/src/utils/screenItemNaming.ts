@@ -32,7 +32,7 @@ export function generateAutoId(prefix: string, existing: string[]): string {
 
 /**
  * ScreenItem の型 (FieldType) から命名プレフィックスを返す (#334)。
- * GrapesJS 要素の HTML タイプと 1:1 ではなく、論理的なデータ型から最も近いプレフィックスを選択。
+ * HTML 要素の種類と 1:1 ではなく、論理的なデータ型から最も近いプレフィックスを選択。
  */
 export function getFieldTypePrefix(type: FieldType): string {
   if (typeof type !== "string") return "field";

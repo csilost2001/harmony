@@ -64,9 +64,222 @@
       "direction": "in",
       "required": false,
       "description": "S-4 注文一覧の注文日範囲フィルタ (終了日)。"
+    },
+    {
+      "id": "customerNameFilter",
+      "label": "顧客名",
+      "type": "string",
+      "direction": "in",
+      "maxLength": 100,
+      "placeholder": "顧客名で検索"
+    },
+    {
+      "id": "orderDateFrom",
+      "label": "注文日 (開始)",
+      "type": "date",
+      "direction": "in"
+    },
+    {
+      "id": "orderDateTo",
+      "label": "注文日 (終了)",
+      "type": "date",
+      "direction": "in"
+    },
+    {
+      "id": "orderListRows",
+      "label": "注文一覧",
+      "type": {
+        "kind": "array",
+        "itemType": "json"
+      },
+      "direction": "out",
+      "presentation": {
+        "kind": "table",
+        "columns": [
+          {
+            "id": "col1",
+            "label": "注文番号",
+            "path": "col1",
+            "type": "string"
+          },
+          {
+            "id": "col2",
+            "label": "顧客名",
+            "path": "col2",
+            "type": "string"
+          },
+          {
+            "id": "col3",
+            "label": "合計金額",
+            "path": "col3",
+            "type": "string"
+          },
+          {
+            "id": "col4",
+            "label": "ステータス",
+            "path": "col4",
+            "type": "string"
+          },
+          {
+            "id": "col5",
+            "label": "注文日時",
+            "path": "col5",
+            "type": "string"
+          },
+          {
+            "id": "col6",
+            "label": "操作",
+            "path": "col6",
+            "type": "string"
+          }
+        ]
+      }
     }
   ],
-  "design": {
-    "designFileRef": "order-list.design.json"
-  }
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "heading",
+        "type": "heading",
+        "props": {
+          "text": "注文一覧",
+          "level": 1
+        }
+      },
+      {
+        "id": "searchPanel",
+        "type": "search-panel",
+        "props": {
+          "columns": 3
+        },
+        "children": [
+          {
+            "id": "orderNumberFilter",
+            "type": "field",
+            "itemRef": "orderNumberFilter"
+          },
+          {
+            "id": "customerNameFilter",
+            "type": "field",
+            "itemRef": "customerNameFilter"
+          },
+          {
+            "id": "orderDateFrom",
+            "type": "field",
+            "itemRef": "orderDateFrom"
+          },
+          {
+            "id": "text",
+            "type": "text",
+            "props": {
+              "text": "〜"
+            }
+          },
+          {
+            "id": "orderDateTo",
+            "type": "field",
+            "itemRef": "orderDateTo"
+          },
+          {
+            "id": "statusFilter",
+            "type": "field",
+            "itemRef": "statusFilter"
+          },
+          {
+            "id": "dateFromFilter",
+            "type": "field",
+            "itemRef": "dateFromFilter"
+          },
+          {
+            "id": "dateToFilter",
+            "type": "field",
+            "itemRef": "dateToFilter"
+          },
+          {
+            "id": "buttons",
+            "type": "button-bar",
+            "children": [
+              {
+                "id": "clearButton",
+                "type": "button",
+                "props": {
+                  "label": "クリア",
+                  "variant": "secondary"
+                }
+              },
+              {
+                "id": "searchButton",
+                "type": "button",
+                "props": {
+                  "label": "検索",
+                  "variant": "primary"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "section",
+        "type": "section",
+        "props": {
+          "variant": "panel"
+        },
+        "children": [
+          {
+            "id": "text2",
+            "type": "text",
+            "props": {
+              "text": "検索結果:"
+            }
+          },
+          {
+            "id": "text3",
+            "type": "text",
+            "props": {
+              "text": "87"
+            }
+          },
+          {
+            "id": "text4",
+            "type": "text",
+            "props": {
+              "text": "件"
+            }
+          },
+          {
+            "id": "csvButton",
+            "type": "button",
+            "props": {
+              "label": "CSV 出力",
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "orderListRows",
+            "type": "table",
+            "itemRef": "orderListRows"
+          },
+          {
+            "id": "text5",
+            "type": "text",
+            "props": {
+              "text": "1 - 10 / 87 件"
+            }
+          },
+          {
+            "id": "html",
+            "type": "html",
+            "props": {
+              "html": "<ul class=\"pagination pagination-sm mb-0\">\n              <li class=\"page-item disabled\"><a class=\"page-link\" href=\"#\">«</a></li>\n              <li class=\"page-item active\"><a class=\"page-link\" href=\"#\">1</a></li>\n              <li class=\"page-item\"><a class=\"page-link\" href=\"#\">2</a></li>\n              <li class=\"page-item\"><a class=\"page-link\" href=\"#\">3</a></li>\n              <li class=\"page-item\"><a class=\"page-link\" href=\"#\">4</a></li>\n              <li class=\"page-item\"><a class=\"page-link\" href=\"#\">5</a></li>\n              <li class=\"page-item\"><a class=\"page-link\" href=\"#\">»</a></li>\n            </ul>"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": [
+    "order:view"
+  ]
 }

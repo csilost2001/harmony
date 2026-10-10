@@ -35,7 +35,7 @@ export function SlaPanel({ sla, onChange, label = "SLA / Timeout" }: Props) {
   };
 
   return (
-    <div className="sla-panel" style={{ margin: "8px 0", borderTop: "1px dashed #e2e8f0", paddingTop: 8 }}>
+    <div className="sla-panel" style={{ margin: "8px 0", borderTop: "1px dashed var(--hm-border)", paddingTop: 8 }}>
       <div className="d-flex align-items-center gap-2 mb-2">
         <span className="form-label small fw-semibold mb-0">
           <i className="bi bi-stopwatch me-1" />

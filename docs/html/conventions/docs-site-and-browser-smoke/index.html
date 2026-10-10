@@ -1,0 +1,205 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="../../favicon.svg" type="image/svg+xml"><title>docs site and browser smoke</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="../../_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="../../_astro/_slug_.XtJAgJeQ.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="../../" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="../../spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="../../user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="../../conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="../../setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="../../presentation/" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> 規約カタログ </div> <ul class="space-y-0.5"> <li> <a href="../../conventions/expressions/" class="sidebar-link"> 式言語規約 (@conv/@env/@secret) </a> </li><li> <a href="../../conventions/product-scope/" class="sidebar-link"> プロダクトスコープ </a> </li><li> <a href="../../conventions/validation-rules/" class="sidebar-link"> バリデーション規約 </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="documentation-html-サイトと-ai-ブラウザ確認">Documentation HTML サイトと AI ブラウザ確認</h1>
+<p>AGENTS.md から移設した詳細版 (2026-10-08)。</p>
+<h3 id="documentation-html-サイト-docs-site">Documentation HTML サイト (docs-site/)</h3>
+<p>仕様書 / プレゼン HTML 化サイト (Astro 5 + Tailwind v4 + pagefind + rehype-mermaid)。詳細は <a href="../../conventions/docs-site/readme/"><code>docs-site/README.md</code></a> 参照。メタ ISSUE: <a href="https://github.com/csilost2001/harmony/issues/1124">#1124</a> (Phase A-E 完了済)。</p>
+<h4 id="出力構成">出力構成</h4>
+<ul>
+<li><strong>Source of truth (canonical)</strong>: <code>docs/spec/*.md</code> / <code>docs/user-guide/*.md</code> / <code>docs/conventions/*.md</code> / <code>docs/setup/*.md</code> (Markdown が一次成果物)</li>
+<li><strong>Build artifact (配布物)</strong>: <code>docs/html/</code> (git tracked、<strong>手編集禁止</strong>)</li>
+<li><strong>プレゼン</strong>: <code>docs/html/presentation/index.html</code> (1 ファイル完結、Swiper、16 スライド)</li>
+</ul>
+<h4 id="初回セットアップ">初回セットアップ</h4>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> docs-site</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> install</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">npx</span><span style="color:#032F62;--shiki-dark:#96D0FF"> playwright</span><span style="color:#032F62;--shiki-dark:#96D0FF"> install</span><span style="color:#032F62;--shiki-dark:#96D0FF"> chromium</span><span style="color:#6A737D;--shiki-dark:#768390">  # rehype-mermaid 用、初回のみ</span></span></code></pre>
+<h4 id="更新フロー-md-編集後の必須手順">更新フロー (md 編集後の必須手順)</h4>
+<ol>
+<li><code>docs/spec/*.md</code> 等の Markdown を編集 (canonical source)</li>
+<li><code>cd docs-site &#x26;&#x26; npm run build</code> で <code>docs/html/</code> を再生成
+<ul>
+<li><code>npm run build</code> は毎回 <code>.astro/</code> cache を clear してから build (Astro 5 cache stale state による link resolution 破壊を防止、ISSUE #1366)</li>
+</ul>
+</li>
+<li><code>git add docs/html/ docs-site/</code> で commit</li>
+<li>push / PR</li>
+</ol>
+<h4 id="スキーマ反映">スキーマ反映</h4>
+<p><code>schemas/v3/*.json</code> 変更時:</p>
+<ul>
+<li><code>SchemaTable</code> component が build 時に schema を再読込</li>
+<li>上記更新フローと同じ手順で HTML に反映 (rebuild 必須)</li>
+</ul>
+<h4 id="ローカル閲覧">ローカル閲覧</h4>
+<p>build 後の HTML を browser で開く方法。<strong><code>npm run build</code> の post-process で全 HTML/CSS/JS の絶対パス (<code>/foo/</code>) を相対パス (<code>./foo/</code> or <code>../../foo/</code>) に書き換え済</strong> (<code>docs-site/scripts/relativize-html-paths.mjs</code>)、両方対応:</p>
+<ol>
+<li><strong>静的に開く</strong> (file:// プロトコル、リンク + asset + 検索 UI 全動作):
+<ul>
+<li>Linux: <code>xdg-open docs/html/index.html</code></li>
+<li>macOS: <code>open docs/html/index.html</code></li>
+<li>Windows: <code>start docs\html\index.html</code></li>
+<li>Windows + WSL2: explorer から <code>\\wsl.localhost\&#x3C;distro>\home\&#x3C;user>\projects\harmony\docs\html\index.html</code> を double click</li>
+</ul>
+</li>
+<li><strong>preview server で開く</strong> (HTTP server、開発時の live reload 等):
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> docs-site</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> run</span><span style="color:#032F62;--shiki-dark:#96D0FF"> preview</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># → http://127.0.0.1:4321/</span></span></code></pre>
+</li>
+</ol>
+<p>注意: post-process script は <code>npm run build</code> で自動実行されるため、build artifact を直接 push する前提で機能する。手動で <code>astro build</code> のみ実行した場合は別途 <code>node scripts/relativize-html-paths.mjs</code> が必要。</p>
+<h4 id="ai-による-browser-smoke-test-playwright--chrome-devtools-mcp">AI による browser smoke test (Playwright / chrome-devtools MCP)</h4>
+<p>AI セッション内で <code>docs/html/</code> を実機 browser で smoke test する手順 (2026-05-17 設定済、<code>.mcp.json</code> で bundled chromium 利用)。</p>
+<h5 id="起動モード-3-種類">起動モード 3 種類</h5>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>モード</th><th>MCP server entry</th><th>用途</th><th>デフォルト</th></tr></thead><tbody><tr><td><strong>headless</strong></td><td><code>playwright</code> / <code>chrome-devtools</code></td><td>AI 完全自動 smoke、CI 用</td><td>✅ 原則これ</td></tr><tr><td><strong>headed (on-demand)</strong></td><td><code>playwright-headed</code> / <code>chrome-devtools-headed</code></td><td>ユーザーが動作を <strong>目視確認したい時のみ</strong></td><td>ユーザー要望時</td></tr><tr><td><strong>trace 再生</strong></td><td>(将来)</td><td>事後 review</td><td>未実装</td></tr></tbody></table>
+<h5 id="ai-判断基準-重要">AI 判断基準 (重要)</h5>
+<ul>
+<li><strong>デフォルト = headless</strong>: ユーザーから明示要望がない限り <code>mcp__playwright__*</code> (headless) を使う</li>
+<li><strong>headed 切替条件</strong>: ユーザーが以下のような発話をした時 <strong>のみ</strong> <code>mcp__playwright-headed__*</code> / <code>mcp__chrome-devtools-headed__*</code> を使う:
+<ul>
+<li>「動作を見たい」「画面を見せて」「目視確認したい」「headed で」「window で開いて」等</li>
+</ul>
+</li>
+<li>headed mode 中もユーザーが操作・観察できる (Windows desktop に window が立ち上がる、Dev Container では WSLg の X11 fallback 経由)</li>
+<li>headed task 完了後は <strong>次の自動 smoke から headless に戻す</strong> (永続切替しない)</li>
+</ul>
+<h5 id="基本手順">基本手順</h5>
+<ol>
+<li><strong>preview server を立てる</strong> (background or 別ターミナル):
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> docs-site</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> &#x26;&#x26; </span><span style="color:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> run</span><span style="color:#032F62;--shiki-dark:#96D0FF"> preview</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># → http://127.0.0.1:4321/</span></span></code></pre>
+</li>
+<li><strong>Playwright MCP で navigate + screenshot + console 確認</strong> (軽量、推奨):
+<ul>
+<li>headless: <code>mcp__playwright__browser_navigate</code> → <code>http://127.0.0.1:4321/</code></li>
+<li>headed: <code>mcp__playwright-headed__browser_navigate</code> → ユーザー目視可</li>
+<li><code>mcp__playwright__browser_take_screenshot</code> → <code>.tmp/screenshots/</code> に保存</li>
+<li><code>mcp__playwright__browser_console_messages</code> (level: error) で JS エラー確認</li>
+<li><code>mcp__playwright__browser_snapshot</code> で a11y tree から click 対象特定</li>
+</ul>
+</li>
+<li><strong>chrome-devtools MCP</strong> (Lighthouse / network 等の DevTools features 必要時):
+<ul>
+<li>同様に headless / headed 切替可</li>
+</ul>
+</li>
+</ol>
+<h5 id="環境前提">環境前提</h5>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>OS / 環境</th><th>headed 動作</th></tr></thead><tbody><tr><td>Windows 11 + WSL2 + Docker Desktop (Dev Container)</td><td>✅ WSLg の X11 fallback 経由で Windows desktop に自動表示 (推奨環境)。<code>/run/user/&#x3C;uid>/wayland-0</code> の bind mount エラーが出る環境では VS Code user settings で <code>dev.containers.mountWaylandSocket=false</code> を設定する (#1451)</td></tr><tr><td>Windows 11 + WSL2 native (Dev Container なし)</td><td>✅ WSLg 直接利用</td></tr><tr><td>Windows 10 + WSL2 + Docker Desktop</td><td>⚠️ VcXsrv / X410 等の X server 別途必要 (未対応)</td></tr><tr><td>macOS</td><td>⚠️ XQuartz install + <code>xhost +localhost</code> + <code>DISPLAY=host.docker.internal:0</code> (未対応)</td></tr><tr><td>Linux native</td><td>⚠️ X11 forwarding 手動 setup (未対応)</td></tr></tbody></table>
+<p>未対応環境では <code>.devcontainer/devcontainer.json</code> の WSLg 関連 mount (<code>/tmp/.X11-unix</code>, <code>/mnt/wslg</code>) を comment out + headed mode 利用断念。Wayland socket の自動 mount は repo から強制停止できないため、<code>/run/user/&#x3C;uid>/wayland-0</code> の bind mount エラーが出る環境では VS Code user settings に <code>"dev.containers.mountWaylandSocket": false</code> を設定する。</p>
+<h5 id="注意事項">注意事項</h5>
+<ul>
+<li><code>.mcp.json</code> / devcontainer.json の MCP / browser 設定変更後は <strong>claude code 再起動 + (devcontainer の場合) container rebuild</strong> が必要</li>
+<li>詳細 pitfall は memory <code>feedback_browser_smoke_headless_chrome_devtools.md</code> 参照</li>
+</ul>
+<h5 id="事前準備済-bundled-browser">事前準備済 bundled browser</h5>
+<ul>
+<li>Playwright chromium: <code>~/.cache/ms-playwright/chromium-1217/</code>, <code>chromium-1223/</code></li>
+<li>Chrome for Testing: <code>~/.cache/puppeteer/chrome/linux-150.0.7843.0/chrome-linux64/chrome</code> (chrome-devtools MCP 用)</li>
+</ul>
+<h4 id="注意事項-1">注意事項</h4>
+<ul>
+<li><strong><code>docs/html/</code> 配下の手編集は禁止</strong> (build artifact、次回 build で上書きされる)</li>
+<li><code>_astro/*.{css,js}</code> の hash 名は内容変化で変わる (commit diff 増加要因、想定済)</li>
+<li>pagefind index (<code>docs/html/pagefind/</code>) も build 毎に再生成 (<code>.pf_index</code> / <code>.pf_fragment</code> の hash 変動)</li>
+<li><strong>Astro 5 系を採用</strong> (Astro 6 は Node 22+ 必須、本プロジェクト Node 20 環境のため不適合)</li>
+<li>mermaid 図は build-time SVG 生成 (Playwright chromium 経由、client JS 不要)</li>
+<li>内部 <code>*.md</code> link は rehype plugin で自動的に Astro route (<code>/&#x3C;area>/&#x3C;slug>/</code>) に変換、4 area 外 link は GitHub blob URL に fallback</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

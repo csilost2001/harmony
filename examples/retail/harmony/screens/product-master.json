@@ -41,9 +41,207 @@
       "direction": "in",
       "defaultValue": true,
       "description": "商品マスター一覧の有効フラグフィルタ。"
+    },
+    {
+      "id": "categorySearch",
+      "label": "カテゴリ",
+      "type": "string",
+      "direction": "in",
+      "options": [
+        {
+          "value": "electronics",
+          "label": "電子機器"
+        },
+        {
+          "value": "peripheral",
+          "label": "周辺機器"
+        },
+        {
+          "value": "display",
+          "label": "ディスプレイ"
+        },
+        {
+          "value": "storage",
+          "label": "ストレージ"
+        }
+      ]
+    },
+    {
+      "id": "isActiveSearch",
+      "label": "有効/無効",
+      "type": "string",
+      "direction": "in",
+      "options": [
+        {
+          "value": "true",
+          "label": "有効"
+        },
+        {
+          "value": "false",
+          "label": "無効"
+        }
+      ]
+    },
+    {
+      "id": "productMasterRows",
+      "label": "商品マスター 一覧",
+      "type": {
+        "kind": "array",
+        "itemType": "json"
+      },
+      "direction": "out",
+      "presentation": {
+        "kind": "table",
+        "columns": [
+          {
+            "id": "col1",
+            "label": "商品コード",
+            "path": "col1",
+            "type": "string"
+          },
+          {
+            "id": "col2",
+            "label": "商品名",
+            "path": "col2",
+            "type": "string"
+          },
+          {
+            "id": "col3",
+            "label": "カテゴリ",
+            "path": "col3",
+            "type": "string"
+          },
+          {
+            "id": "col4",
+            "label": "単価 (税抜)",
+            "path": "col4",
+            "type": "string"
+          },
+          {
+            "id": "col5",
+            "label": "在庫数",
+            "path": "col5",
+            "type": "string"
+          },
+          {
+            "id": "col6",
+            "label": "有効",
+            "path": "col6",
+            "type": "string"
+          },
+          {
+            "id": "col7",
+            "label": "最終更新",
+            "path": "col7",
+            "type": "string"
+          },
+          {
+            "id": "col8",
+            "label": "操作",
+            "path": "col8",
+            "type": "string"
+          }
+        ]
+      }
     }
   ],
-  "design": {
-    "designFileRef": "product-master.design.json"
-  }
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "heading",
+        "type": "heading",
+        "props": {
+          "text": "商品マスター",
+          "level": 1
+        }
+      },
+      {
+        "id": "searchPanel",
+        "type": "component",
+        "componentRef": "master-search-panel",
+        "args": {
+          "condition1": "productCodeSearch",
+          "condition2": "productNameSearch",
+          "condition3": "categorySearch",
+          "condition4": "isActiveSearch",
+          "condition5": "activeOnlyFilter"
+        }
+      },
+      {
+        "id": "section",
+        "type": "section",
+        "props": {
+          "variant": "panel"
+        },
+        "children": [
+          {
+            "id": "text",
+            "type": "text",
+            "props": {
+              "text": "表示中:"
+            }
+          },
+          {
+            "id": "text2",
+            "type": "text",
+            "props": {
+              "text": "156"
+            }
+          },
+          {
+            "id": "text3",
+            "type": "text",
+            "props": {
+              "text": "件"
+            }
+          },
+          {
+            "id": "buttons2",
+            "type": "button-bar",
+            "children": [
+              {
+                "id": "registerNewButton",
+                "type": "button",
+                "props": {
+                  "label": "新規登録",
+                  "variant": "secondary"
+                }
+              },
+              {
+                "id": "csvButton",
+                "type": "button",
+                "props": {
+                  "label": "CSV 出力",
+                  "variant": "secondary"
+                }
+              }
+            ]
+          },
+          {
+            "id": "productMasterRows",
+            "type": "table",
+            "itemRef": "productMasterRows"
+          },
+          {
+            "id": "text4",
+            "type": "text",
+            "props": {
+              "text": "1 - 10 / 156 件"
+            }
+          },
+          {
+            "id": "html",
+            "type": "html",
+            "props": {
+              "html": "<ul class=\"pagination pagination-sm mb-0\">\n              <li class=\"page-item disabled\"><a class=\"page-link\" href=\"#\">«</a></li>\n              <li class=\"page-item active\"><a class=\"page-link\" href=\"#\">1</a></li>\n              <li class=\"page-item\"><a class=\"page-link\" href=\"#\">2</a></li>\n              <li class=\"page-item\"><a class=\"page-link\" href=\"#\">3</a></li>\n              <li class=\"page-item\"><a class=\"page-link\" href=\"#\">16</a></li>\n              <li class=\"page-item\"><a class=\"page-link\" href=\"#\">»</a></li>\n            </ul>"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": [
+    "product:edit"
+  ]
 }

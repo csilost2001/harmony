@@ -1,5 +1,8 @@
 # マルチエディタ対応 (Puck 併設) — 仕様書
 
+> **廃止 (2026-10)**: 旧エディタ (GrapesJS / Puck) は廃止し、画面デザインは「業務部品デザイナ」に一本化しました。
+> この文書は旧エディタ時代の記録として残しています。現行の仕様は [screen-layout.md](screen-layout.md) / [layout-components.md](layout-components.md) を参照してください。
+
 GrapesJS ベースの既存デザイナに加え、React 向けコンポーネントエディタ「Puck (by Measured)」を併設し、画面ごとに `editorKind` / `cssFramework` を選択可能にする framework 中規模拡張の仕様書。
 
 ## 関連

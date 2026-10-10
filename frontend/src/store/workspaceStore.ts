@@ -114,6 +114,25 @@ let _loadChain: Promise<void> = Promise.resolve();
 /** @internal テスト専用: _loadChain を初期状態にリセットする */
 export function __resetLoadChainForTest(): void {
   _loadChain = Promise.resolve();
+  _requestsInFlight = 0;
+}
+
+// 実行中のワークスペース要求 (一覧取得 / open / close / remove) の数。
+// 0 でなければ、その要求の完了時に state が更新されるので、画面側で一覧を再取得する必要はない。
+let _requestsInFlight = 0;
+
+/** 一覧取得や open などのワークスペース要求が実行中か */
+export function isWorkspaceRequestInFlight(): boolean {
+  return _requestsInFlight > 0;
+}
+
+async function _tracked<T>(run: () => Promise<T>): Promise<T> {
+  _requestsInFlight++;
+  try {
+    return await run();
+  } finally {
+    _requestsInFlight--;
+  }
 }
 
 /** @internal テスト専用: _state を初期状態にリセットする (#703 R-5) */
@@ -134,7 +153,8 @@ export async function loadWorkspaces(): Promise<void> {
   _loadChain = _loadChain
     .catch(() => undefined) // 前回失敗でチェーンを切らない
     .then(() => _doLoadWorkspaces());
-  return _loadChain;
+  const chain = _loadChain;
+  return _tracked(() => chain);
 }
 
 async function _doLoadWorkspaces(): Promise<void> {
@@ -267,65 +287,73 @@ export function __resetHostInfoCacheForTest(): void {
 }
 
 export async function openWorkspace(pathOrId: string, useId = false): Promise<string> {
-  _setState({ loading: true, error: null });
-  try {
-    const params = useId ? { id: pathOrId } : { path: pathOrId };
-    await mcpBridge.request("workspace.open", params);
-    await loadWorkspaces();
-    const wsId = _state.active?.id;
-    if (!wsId) {
-      throw new Error("active workspace id is missing after open");
+  return _tracked(async () => {
+    _setState({ loading: true, error: null });
+    try {
+      const params = useId ? { id: pathOrId } : { path: pathOrId };
+      await mcpBridge.request("workspace.open", params);
+      await loadWorkspaces();
+      const wsId = _state.active?.id;
+      if (!wsId) {
+        throw new Error("active workspace id is missing after open");
+      }
+      return wsId;
+    } catch (e) {
+      _setState({
+        loading: false,
+        error: e instanceof Error ? e.message : String(e),
+      });
+      throw e;
     }
-    return wsId;
-  } catch (e) {
-    _setState({
-      loading: false,
-      error: e instanceof Error ? e.message : String(e),
-    });
-    throw e;
-  }
+  });
 }
 
 export async function initAndOpen(path: string): Promise<void> {
-  _setState({ loading: true, error: null });
-  try {
-    await mcpBridge.request("workspace.open", { path, init: true });
-    await loadWorkspaces();
-  } catch (e) {
-    _setState({
-      loading: false,
-      error: e instanceof Error ? e.message : String(e),
-    });
-    throw e;
-  }
+  return _tracked(async () => {
+    _setState({ loading: true, error: null });
+    try {
+      await mcpBridge.request("workspace.open", { path, init: true });
+      await loadWorkspaces();
+    } catch (e) {
+      _setState({
+        loading: false,
+        error: e instanceof Error ? e.message : String(e),
+      });
+      throw e;
+    }
+  });
 }
 
 export async function closeWorkspace(): Promise<void> {
-  _setState({ loading: true, error: null });
-  try {
-    await mcpBridge.request("workspace.close");
-    await loadWorkspaces();
-  } catch (e) {
-    _setState({
-      loading: false,
-      error: e instanceof Error ? e.message : String(e),
-    });
-    throw e;
-  }
+  return _tracked(async () => {
+    _setState({ loading: true, error: null });
+    try {
+      await mcpBridge.request("workspace.close");
+      await loadWorkspaces();
+    } catch (e) {
+      _setState({
+        loading: false,
+        error: e instanceof Error ? e.message : String(e),
+      });
+      throw e;
+    }
+  });
 }
 
 export async function removeWorkspace(id: string): Promise<void> {
-  _setState({ loading: true, error: null });
-  try {
-    await mcpBridge.request("workspace.remove", { id });
-    await loadWorkspaces();
-  } catch (e) {
-    _setState({
-      loading: false,
-      error: e instanceof Error ? e.message : String(e),
-    });
-    throw e;
-  }
+  return _tracked(async () => {
+    _setState({ loading: true, error: null });
+    try {
+      await mcpBridge.request("workspace.remove", { id });
+      await loadWorkspaces();
+    } catch (e) {
+      _setState({
+        loading: false,
+        error: e instanceof Error ? e.message : String(e),
+      });
+      throw e;
+    }
+  });
 }
 
 /** workspace.changed ブロードキャストをサブスクライブし、状態を自動更新する */

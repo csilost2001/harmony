@@ -19,7 +19,8 @@ import fsSync from "fs";
 import path from "path";
 import crypto from "node:crypto";
 import type { ValidateFunction } from "ajv";
-import { buildHarmonyAjv } from "@harmony/shared";
+import { logWarn } from "./serverLog.js";
+import { buildHarmonyAjv, DOC_CONFLICT_MARK, DOC_EXISTS_MARK } from "@harmony/shared";
 import { workspaceContextManager } from "./workspaceState.js";
 import { assertPathContained } from "./security/idValidator.js";
 import {
@@ -103,10 +104,11 @@ const sequencesDir     = (dataRoot: string) => path.join(dataRoot, "sequences");
 const viewsDir         = (dataRoot: string) => path.join(dataRoot, "views");
 const viewDefsDir      = (dataRoot: string) => path.join(dataRoot, "view-definitions");
 const pageLayoutsDir   = (dataRoot: string) => path.join(dataRoot, "page-layouts");
+const businessFlowsDir = (dataRoot: string) => path.join(dataRoot, "business-flows");
+const reportsDir       = (dataRoot: string) => path.join(dataRoot, "reports");
 const genericDefinitionsDir = (dataRoot: string, kind: string) => path.join(dataRoot, "generic-definitions", kind);
 export const extensionsDir      = (dataRoot: string) => path.join(dataRoot, "extensions");
-export const customBlocksFile   = (dataRoot: string) => path.join(dataRoot, "custom-blocks.json");
-export const puckComponentsFile = (dataRoot: string) => path.join(dataRoot, "puck-components.json");
+export const layoutComponentsFile = (dataRoot: string) => path.join(dataRoot, "layout-components.json");
 export const erLayoutFile       = (dataRoot: string) => path.join(dataRoot, "er-layout.json");
 export const screenFlowPositionsFile = (dataRoot: string) => path.join(dataRoot, "screen-flow-positions.json");
 export const externalCatalogsFile = (dataRoot: string) => path.join(catalogsDir(dataRoot), "external.json");
@@ -418,10 +420,33 @@ async function fileExists(filePath: string): Promise<boolean> {
 async function writeJSON(filePath: string, data: unknown): Promise<void> {
   const json = JSON.stringify(data, null, 2);
   await fs.mkdir(path.dirname(filePath), { recursive: true });
-  await fs.writeFile(filePath, json, "utf-8");
+  // 同じディレクトリの一時ファイルに書いてから rename で置き換える。直接 writeFile すると
+  // 切り詰め〜書き込みの間に並行して読んだ側が空 / 途中の JSON を読み、「存在しない」扱いになる。
+  const tmp = path.join(path.dirname(filePath), `.${path.basename(filePath)}.${process.pid}.${crypto.randomUUID()}.tmp`);
+  try {
+    await fs.writeFile(tmp, json, "utf-8");
+    await fs.rename(tmp, filePath);
+  } catch (e) {
+    await fs.rm(tmp, { force: true }).catch(() => undefined);
+    throw e;
+  }
 }
 
-async function readEntityAndEnsureUuid(
+/** 同じファイルへの uuid 補完が並行すると別々の uuid を書き合うため、ファイル単位で 1 本にまとめる */
+const ensureUuidInFlight = new Map<string, Promise<unknown | null>>();
+
+function readEntityAndEnsureUuid(
+  kind: TopLevelEntityKind,
+  filePath: string,
+): Promise<unknown | null> {
+  const pending = ensureUuidInFlight.get(filePath);
+  if (pending) return pending.then((d) => (d && typeof d === "object" ? structuredClone(d) : d));
+  const p = readEntityAndEnsureUuidOnce(kind, filePath).finally(() => ensureUuidInFlight.delete(filePath));
+  ensureUuidInFlight.set(filePath, p);
+  return p;
+}
+
+async function readEntityAndEnsureUuidOnce(
   kind: TopLevelEntityKind,
   filePath: string,
 ): Promise<unknown | null> {
@@ -698,7 +723,7 @@ function resolveDataFile(kind: string, dataRoot: string, id?: string): string | 
   let filePath: string | null = null;
   switch (kind) {
     case "erLayout": filePath = erLayoutFile(dataRoot); break;
-    case "customBlocks": filePath = customBlocksFile(dataRoot); break;
+    case "layoutComponents": filePath = layoutComponentsFile(dataRoot); break;
     case "conventions": filePath = conventionsFile(dataRoot); break;
     case "screen": filePath = id ? path.join(screensDir(dataRoot), `${id}.design.json`) : null; break;
     case "screenEntity": filePath = id ? path.join(screensDir(dataRoot), `${id}.json`) : null; break;
@@ -709,7 +734,6 @@ function resolveDataFile(kind: string, dataRoot: string, id?: string): string | 
     case "view": filePath = id ? path.join(viewsDir(dataRoot), `${id}.json`) : null; break;
     case "viewDefinition": filePath = id ? path.join(viewDefsDir(dataRoot), `${id}.json`) : null; break;
     case "pageLayout": filePath = id ? path.join(pageLayoutsDir(dataRoot), `${id}.json`) : null; break;
-    case "pageLayoutDesign": filePath = id ? path.join(pageLayoutsDir(dataRoot), `${id}.design.json`) : null; break;
     default: return null;
   }
   // S-002: path containment check (defense-in-depth)
@@ -800,7 +824,6 @@ function buildDefaultScreenEntity(
     path: typeof entry?.path === "string" ? entry.path : "",
     ...(typeof entry?.groupId === "string" ? { groupId: entry.groupId } : {}),
     items,
-    design: { designFileRef: `${screenId}.design.json` },
   };
 }
 
@@ -988,27 +1011,21 @@ export async function writeScreenEntity(screenId: string, data: unknown, root: s
   const current = isRecord(data) ? data : {};
   const project = await readProject(r);
   const entry = getScreenEntry(project, screenId);
-  // Phase I round 3+4 Must-fix F (Codex round 4 M-5): editorKind に応じて
-  // designFileRef (grapesjs) と puckDataRef (puck) の **排他**を保証する。
-  // schema (`screen.v3.schema.json:146-155` allOf if/then) は両方を同時に持つことを禁止しているが、
-  // 旧 writeScreenEntity は常に designFileRef を付加しており、Puck screen で schema violation を
-  // 引き起こしていた (#1185 提案 D 違反)。
-  //
-  // Phase J Must-fix D (#1298 round 5 Codex M-4): editorKind 解決を 3 段 fallback 化。
-  // screen.design.editorKind 省略時は project.techStack.designer.editorKind を見る。
-  // 旧実装は (1) のみで判定し、project-default Puck screen を grapesjs として metadata に
-  // 書き直して puck payload を失っていた。
-  const currentDesign = isRecord(current.design) ? current.design : {};
-  const editorKind = await resolveScreenEditorKind(currentDesign, r);
-  const designOut: Record<string, unknown> = { ...currentDesign };
-  if (editorKind === "puck") {
-    // puck: puckDataRef のみ。designFileRef を明示的に除去 (上書きから残らないように)。
-    delete designOut.designFileRef;
-    designOut.puckDataRef = "puck-data.json";
-  } else {
-    // grapesjs (default) or 未指定: designFileRef のみ。puckDataRef を明示的に除去。
-    delete designOut.puckDataRef;
-    designOut.designFileRef = `${screenId}.design.json`;
+  // 旧エディタ (GrapesJS / Puck) の廃止後、画面は業務部品の木 (layout) を持ち、旧形式の design 参照は
+  // 持たない。既に design 参照を持つ画面 (未移行の画面) では、editorKind と対応する参照の排他だけを保ち、
+  // 参照の無い画面に design を足さない (保存のたびに旧形式の参照が生えるのを防ぐ)。
+  const currentDesign = isRecord(current.design) ? current.design : null;
+  let designOut: Record<string, unknown> | null = null;
+  if (currentDesign) {
+    const editorKind = await resolveScreenEditorKind(currentDesign, r);
+    designOut = { ...currentDesign };
+    if (editorKind === "puck") {
+      delete designOut.designFileRef;
+      designOut.puckDataRef = "puck-data.json";
+    } else {
+      delete designOut.puckDataRef;
+      designOut.designFileRef = `${screenId}.design.json`;
+    }
   }
   const toSave: Record<string, unknown> = {
     ...buildDefaultScreenEntity(screenId, entry, [], dataRoot),
@@ -1018,7 +1035,7 @@ export async function writeScreenEntity(screenId: string, data: unknown, root: s
     kind: typeof current.kind === "string" ? current.kind : (typeof entry?.kind === "string" ? entry.kind : "other"),
     path: typeof current.path === "string" ? current.path : (typeof entry?.path === "string" ? entry.path : ""),
     updatedAt: new Date().toISOString(),
-    design: designOut,
+    ...(designOut ? { design: designOut } : {}),
   };
   // #1294 I-2: uuid preserve / 採番 (entity meta)
   await preserveOrAssignUuid("screen", toSave, path.join(screensDir(dataRoot), `${screenId}.json`));
@@ -1044,51 +1061,261 @@ export async function deleteScreen(screenId: string, root: string): Promise<void
   } catch { /* file not found is OK */ }
 }
 
-/** custom-blocks.json を読み込み */
-export async function readCustomBlocks(root: string): Promise<unknown[]> {
-  const r = root;
-  const dataRoot = await resolveDataRoot(r);
-  return (await readJSON<unknown[]>(customBlocksFile(dataRoot))) ?? [];
+// ── プロジェクト独自部品 (layout-components.json、docs/spec/layout-components.md) ──────
+
+interface LayoutComponentRecord { id: string; [key: string]: unknown }
+interface LayoutComponentsDoc { $schema?: string; version: 1; components: LayoutComponentRecord[] }
+
+/** layout-components.json (dataDir 直下) から schemas/v3/layout-components.v3.schema.json への相対 path */
+function layoutComponentsSchemaRef(dataRoot: string): string {
+  return path.relative(dataRoot, path.join(SCHEMAS_DIR, "v3", "layout-components.v3.schema.json")).replace(/\\/g, "/");
 }
 
-/** custom-blocks.json を書き込み */
-export async function writeCustomBlocks(blocks: unknown[], root: string): Promise<void> {
-  const r = root;
-  const dataRoot = await ensureDataDirFromRoot(r);
-  await writeJSON(customBlocksFile(dataRoot), blocks);
+/** 同じファイルへの更新が並行しても、読んで・差し替えて・書く を 1 本ずつ行う */
+const layoutComponentsLock = new Map<string, Promise<unknown>>();
+function withLayoutComponentsLock<T>(file: string, run: () => Promise<T>): Promise<T> {
+  const prev = layoutComponentsLock.get(file) ?? Promise.resolve();
+  const next = prev.catch(() => undefined).then(run);
+  layoutComponentsLock.set(file, next);
+  return next.finally(() => { if (layoutComponentsLock.get(file) === next) layoutComponentsLock.delete(file); });
 }
 
-/** screens/{screenId}/puck-data.json を読み込み (#806) */
-export async function readPuckData(screenId: string, root: string): Promise<unknown | null> {
-  const r = root;
-  const dataRoot = await resolveDataRoot(r);
-  const filePath = path.join(screensDir(dataRoot), screenId, "puck-data.json");
-  assertPathContained(filePath, dataRoot); // defense-in-depth
-  return readJSON<unknown>(filePath);
+/** layout-components.json を読み込み。無ければ空の定義集合 */
+export async function readLayoutComponents(root: string): Promise<LayoutComponentsDoc> {
+  const dataRoot = await resolveDataRoot(root);
+  const doc = await readJSON<Partial<LayoutComponentsDoc>>(layoutComponentsFile(dataRoot));
+  return { version: 1, components: Array.isArray(doc?.components) ? doc!.components : [] };
 }
 
-/** screens/{screenId}/puck-data.json を書き込み (#806) */
-export async function writePuckData(screenId: string, data: unknown, root: string): Promise<void> {
-  const r = root;
-  const dataRoot = await ensureDataDirFromRoot(r);
-  const puckDir = path.join(screensDir(dataRoot), screenId);
-  assertPathContained(puckDir, dataRoot); // defense-in-depth
-  await fs.mkdir(puckDir, { recursive: true });
-  await writeJSON(path.join(puckDir, "puck-data.json"), data);
+/** 独自部品を 1 件追加 / 置き換える (id で照合)。他の部品には触れない */
+export async function upsertLayoutComponent(component: LayoutComponentRecord, root: string): Promise<LayoutComponentsDoc> {
+  const dataRoot = await ensureDataDirFromRoot(root);
+  const file = layoutComponentsFile(dataRoot);
+  return withLayoutComponentsLock(file, async () => {
+    const doc = await readLayoutComponents(root);
+    const at = doc.components.findIndex((c) => c.id === component.id);
+    if (at >= 0) doc.components[at] = component; else doc.components.push(component);
+    await writeJSON(file, { $schema: layoutComponentsSchemaRef(dataRoot), version: 1, components: doc.components });
+    return doc;
+  });
 }
 
-/** puck-components.json を読み込み */
-export async function readPuckComponents(root: string): Promise<unknown[]> {
-  const r = root;
-  const dataRoot = await resolveDataRoot(r);
-  return (await readJSON<unknown[]>(puckComponentsFile(dataRoot))) ?? [];
+/** 独自部品を使っている画面の id 一覧 (画面の部品の木と、他の独自部品の定義の中の参照を辿る) */
+export async function findLayoutComponentUsages(componentId: string, root: string): Promise<{ screens: string[]; components: string[] }> {
+  const dataRoot = await resolveDataRoot(root);
+  const refers = (nodes: unknown): boolean => Array.isArray(nodes) && nodes.some((n: any) =>
+    (n?.type === "component" && n?.componentRef === componentId) || refers(n?.children));
+  const screens: string[] = [];
+  let files: string[] = [];
+  try { files = await fs.readdir(screensDir(dataRoot)); } catch { /* 画面が無い */ }
+  for (const f of files.filter((n) => n.endsWith(".json") && !n.includes(".design.") && !n.includes("puck-data"))) {
+    const sc = await readJSON<any>(path.join(screensDir(dataRoot), f));
+    if (refers(sc?.layout?.nodes)) screens.push(f.replace(/\.json$/, ""));
+  }
+  const doc = await readLayoutComponents(root);
+  const components = doc.components.filter((c) => c.id !== componentId && refers(c.nodes)).map((c) => c.id);
+  return { screens, components };
 }
 
-/** puck-components.json を書き込み */
-export async function writePuckComponents(components: unknown[], root: string): Promise<void> {
-  const r = root;
-  const dataRoot = await ensureDataDirFromRoot(r);
-  await writeJSON(puckComponentsFile(dataRoot), components);
+/** 独自部品を削除する。使われている場合は force でない限り削除せず、使用箇所を返す */
+export async function deleteLayoutComponent(componentId: string, root: string, force = false): Promise<{ deleted: boolean; usages: { screens: string[]; components: string[] } }> {
+  const usages = await findLayoutComponentUsages(componentId, root);
+  if (!force && (usages.screens.length || usages.components.length)) return { deleted: false, usages };
+  const dataRoot = await ensureDataDirFromRoot(root);
+  const file = layoutComponentsFile(dataRoot);
+  await withLayoutComponentsLock(file, async () => {
+    const doc = await readLayoutComponents(root);
+    await writeJSON(file, { $schema: layoutComponentsSchemaRef(dataRoot), version: 1, components: doc.components.filter((c) => c.id !== componentId) });
+  });
+  return { deleted: true, usages };
+}
+
+// ── 業務フロー・帳票 (business-flows/<id>.json / reports/<id>.json) ─────────────────
+// どちらも「ディレクトリの中の 1 ファイル = 1 件」で、保存・一覧・改名追従を同じ仕組みで行う。
+// 仕様: docs/spec/business-flow.md / docs/spec/report.md
+
+/** 他で更新されていたため保存しなかった (楽観ロック)。`code` で見分ける */
+export class DocConflictError extends Error {
+  readonly code = "DOC_CONFLICT";
+  constructor(label: string, id: string) {
+    super(`${DOC_CONFLICT_MARK} ${label}「${id}」は、開いたあとに他で更新されています。読み直すか、上書きして保存してください`);
+  }
+}
+
+/** 作成専用の保存で、同じ ID がすでにあった */
+export class DocExistsError extends Error {
+  readonly code = "DOC_EXISTS";
+  constructor(label: string, id: string) {
+    super(`${DOC_EXISTS_MARK} ${label}「${id}」はすでにあります (別の場所で先に作られた可能性があります)`);
+  }
+}
+
+interface DocStore {
+  label: string;
+  dir: (dataRoot: string) => string;
+  schemaFile: string;
+  /** 構造として最低限必要な配列 (これが無いものは保存しない) */
+  arrays: string[];
+}
+const BUSINESS_FLOW_STORE: DocStore = { label: "業務フロー", dir: businessFlowsDir, schemaFile: "business-flow.v3.schema.json", arrays: ["lanes", "steps"] };
+const REPORT_STORE: DocStore = { label: "帳票", dir: reportsDir, schemaFile: "report.v3.schema.json", arrays: ["sections"] };
+
+/** 保存の条件。expectedUpdatedAt = 開いたときの更新日時 (違えば競合)、createOnly = すでにあれば失敗 (新規作成・複製用) */
+export interface DocWriteOpts { expectedUpdatedAt?: string; createOnly?: boolean }
+
+interface DocFile { file: string; id: string; data: Record<string, unknown> }
+interface DocList { docs: DocFile[]; unreadable: string[] }
+
+/** JSON を読む。無ければ null、あるのに読めない (壊れている) ときは例外 */
+async function readJsonStrict(filePath: string): Promise<unknown | null> {
+  let raw: string;
+  try { raw = await fs.readFile(filePath, "utf-8"); } catch (e) {
+    if ((e as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw e;
+  }
+  try { return JSON.parse(raw); } catch { throw new Error(`${path.basename(filePath)} を読めません (JSON が壊れています)`); }
+}
+
+async function readDoc(store: DocStore, id: string, root: string): Promise<Record<string, unknown> | null> {
+  const dataRoot = await resolveDataRoot(root);
+  const filePath = path.join(store.dir(dataRoot), `${id}.json`);
+  assertPathContained(filePath, dataRoot);
+  const data = await readJsonStrict(filePath).catch((e) => { throw new Error(`${store.label}「${id}」: ${(e as Error).message}`); });
+  return isRecord(data) ? data : null;
+}
+
+/** 全件を読む (ファイル名順)。読めないファイルは黙って捨てず、unreadable として返して警告ログに出す */
+async function listDocs(store: DocStore, root: string): Promise<DocList> {
+  const out: DocList = { docs: [], unreadable: [] };
+  let dir: string;
+  let files: string[];
+  try {
+    dir = store.dir(await resolveDataRoot(root));
+    files = (await fs.readdir(dir)).filter((f) => f.endsWith(".json")).sort();
+  } catch { return out; }
+  for (const f of files) {
+    try {
+      const d = await readJsonStrict(path.join(dir, f));
+      if (isRecord(d)) out.docs.push({ file: f, id: f.replace(/\.json$/, ""), data: d });
+      else out.unreadable.push(f);
+    } catch {
+      out.unreadable.push(f);
+    }
+  }
+  if (out.unreadable.length) logWarn("storage", "doc.list.unreadable", { label: store.label, files: out.unreadable });
+  return out;
+}
+
+/** 1 件を書く。id はファイル名と一致させ、作成日時は初回を保ち、更新日時を付ける。expectedUpdatedAt があり、保存済みの更新日時と違えば保存しない */
+async function writeDoc(store: DocStore, id: string, data: unknown, root: string, opts: DocWriteOpts = {}): Promise<Record<string, unknown>> {
+  if (!isRecord(data) || store.arrays.some((k) => !Array.isArray(data[k]))) {
+    throw new Error(`${store.label}は { id, name, ${store.arrays.map((k) => `${k}: []`).join(", ")} } の形で指定してください`);
+  }
+  const dataRoot = await ensureDataDirFromRoot(root);
+  const dir = store.dir(dataRoot);
+  const filePath = path.join(dir, `${id}.json`);
+  assertPathContained(filePath, dataRoot);
+  // 確認 → 書き込みの間に別の保存が入らないよう、同じファイルへの保存は 1 本ずつ行う
+  return withLayoutComponentsLock(filePath, async () => {
+  let prev: unknown = null;
+  let broken = false;
+  try { prev = await readJsonStrict(filePath); } catch {
+    // 壊れているファイルは消さずに退避してから、新しい内容を書く
+    await fs.rename(filePath, `${filePath}.broken-${Date.now()}`);
+    broken = true;
+  }
+  if (opts.createOnly && (prev !== null || broken)) throw new DocExistsError(store.label, id);
+  if (opts.expectedUpdatedAt !== undefined && isRecord(prev) && prev.updatedAt !== opts.expectedUpdatedAt) throw new DocConflictError(store.label, id);
+  const now = new Date().toISOString();
+  const { $schema: _ignored, ...rest } = data;
+  void _ignored;
+  const doc = {
+    $schema: path.relative(dir, path.join(SCHEMAS_DIR, "v3", store.schemaFile)).replace(/\\/g, "/"),
+    version: 1,
+    ...rest,
+    id,
+    createdAt: isRecord(prev) && typeof prev.createdAt === "string" ? prev.createdAt : (typeof rest.createdAt === "string" ? rest.createdAt : now),
+    updatedAt: now,
+  };
+  await writeJSON(filePath, doc);
+  return doc;
+  });
+}
+
+async function deleteDoc(store: DocStore, id: string, root: string): Promise<boolean> {
+  const dataRoot = await resolveDataRoot(root);
+  const filePath = path.join(store.dir(dataRoot), `${id}.json`);
+  assertPathContained(filePath, dataRoot);
+  try { await fs.unlink(filePath); return true; } catch { return false; }
+}
+
+/**
+ * 全件の文書に変換を当て、変わったものだけ書き戻す。書き戻し先は、読んだファイルそのもの
+ * (中の id ではなくファイル名)。1 件の失敗で残りを止めず、失敗は warnings として返す。
+ */
+async function updateAllDocs(store: DocStore, root: string, change: (doc: Record<string, unknown>) => boolean): Promise<{ changed: string[]; warnings: string[] }> {
+  const res = { changed: [] as string[], warnings: [] as string[] };
+  const dataRoot = await resolveDataRoot(root);
+  const { docs, unreadable } = await listDocs(store, root);
+  for (const f of unreadable) res.warnings.push(`${store.label}のファイル「${f}」が読めないため、参照を更新できませんでした`);
+  for (const d of docs) {
+    try {
+      if (!change(d.data)) continue;
+      const filePath = path.join(store.dir(dataRoot), d.file);
+      assertPathContained(filePath, dataRoot);
+      await withLayoutComponentsLock(filePath, () => writeJSON(filePath, { ...d.data, updatedAt: new Date().toISOString() }));
+      res.changed.push(d.id);
+    } catch (e) {
+      res.warnings.push(`${store.label}「${d.id}」の参照を更新できませんでした: ${(e as Error).message}`);
+    }
+  }
+  return res;
+}
+
+export const readBusinessFlow = (flowId: string, root: string) => readDoc(BUSINESS_FLOW_STORE, flowId, root);
+export const listBusinessFlowsDetailed = async (root: string) => { const l = await listDocs(BUSINESS_FLOW_STORE, root); return { flows: l.docs.map((d) => d.data), unreadable: l.unreadable }; };
+export const listBusinessFlows = async (root: string) => (await listBusinessFlowsDetailed(root)).flows;
+export const writeBusinessFlow = (flowId: string, data: unknown, root: string, opts?: DocWriteOpts) => writeDoc(BUSINESS_FLOW_STORE, flowId, data, root, opts);
+export const deleteBusinessFlow = (flowId: string, root: string) => deleteDoc(BUSINESS_FLOW_STORE, flowId, root);
+
+export const readReport = (reportId: string, root: string) => readDoc(REPORT_STORE, reportId, root);
+export const listReportsDetailed = async (root: string) => { const l = await listDocs(REPORT_STORE, root); return { reports: l.docs.map((d) => d.data), unreadable: l.unreadable }; };
+export const listReports = async (root: string) => (await listReportsDetailed(root)).reports;
+export const writeReport = (reportId: string, data: unknown, root: string, opts?: DocWriteOpts) => writeDoc(REPORT_STORE, reportId, data, root, opts);
+export const deleteReport = (reportId: string, root: string) => deleteDoc(REPORT_STORE, reportId, root);
+
+/** 画面 ID / 処理フロー ID の改名を、全業務フローの工程の参照へ反映する */
+export function renameBusinessFlowRefsInProject(kind: "screen" | "processFlow", from: string, to: string, root: string) {
+  const field = kind === "screen" ? "screenRef" : "processFlowRef";
+  return updateAllDocs(BUSINESS_FLOW_STORE, root, (flow) => {
+    let hit = false;
+    for (const s of Array.isArray(flow.steps) ? flow.steps : []) if (isRecord(s) && s[field] === from) { s[field] = to; hit = true; }
+    return hit;
+  });
+}
+
+/** 画面 / 処理フロー / テーブルの ID 改名を、全帳票の出力契機・項目の出どころへ反映する */
+export function renameReportRefsInProject(kind: "screen" | "processFlow" | "table", from: string, to: string, root: string) {
+  const tableRe = (s: unknown) => (typeof s === "string" && s.startsWith(`${from}.`) ? `${to}.${s.slice(from.length + 1)}` : s);
+  return updateAllDocs(REPORT_STORE, root, (rp) => {
+    let hit = false;
+    const trig = isRecord(rp.trigger) ? rp.trigger : null;
+    if (kind === "screen" && trig?.screenRef === from) { trig.screenRef = to; hit = true; }
+    if (kind === "processFlow" && trig?.processFlowRef === from) { trig.processFlowRef = to; hit = true; }
+    if (kind === "table") {
+      for (const s of Array.isArray(rp.sections) ? rp.sections : []) {
+        if (!isRecord(s)) continue;
+        const g = tableRe(s.groupBy); if (g !== s.groupBy) { s.groupBy = g; hit = true; }
+        for (const f of Array.isArray(s.fields) ? s.fields : []) {
+          if (isRecord(f)) { const v = tableRe(f.source); if (v !== f.source) { f.source = v; hit = true; } }
+        }
+      }
+      for (const o of Array.isArray(rp.sort) ? rp.sort : []) {
+        if (isRecord(o)) { const v = tableRe(o.field); if (v !== o.field) { o.field = v; hit = true; } }
+      }
+    }
+    return hit;
+  });
 }
 
 /** er-layout.json を読み込み */
@@ -1296,13 +1523,38 @@ export async function writeScreenItems(screenId: string, data: unknown, root: st
   const current = (await migrateScreenIfNeeded(screenId, r)) as Record<string, unknown> | null;
   const project = await readProject(r);
   const items = extractItems(data);
+  // 業務部品デザイナは items と layout を同じ編集セッションで保存する。layout を持たない
+  // payload (画面項目画面からの保存) では既存の layout をそのまま残す。
+  const layout = data && typeof data === "object" && "layout" in data ? (data as { layout?: unknown }).layout : undefined;
   const next = {
     ...(current ?? buildDefaultScreenEntity(screenId, getScreenEntry(project, screenId), [], dataRoot)),
     items,
+    ...(layout && typeof layout === "object" ? { layout } : {}),
     updatedAt: new Date().toISOString(),
   };
   await writeScreenEntity(screenId, next, r);
   try { await fs.unlink(path.join(screenItemsDir(dataRoot), `${screenId}.json`)); } catch { /* ignore */ }
+  if (layout && typeof layout === "object") await syncScreenHasDesign(screenId, layoutHasContent(layout), r);
+}
+
+/** 業務部品の木に中身があるか。画面名の見出しだけの画面は「未デザイン」 */
+function layoutHasContent(layout: unknown): boolean {
+  const nodes = isRecord(layout) && Array.isArray(layout.nodes) ? layout.nodes : [];
+  return nodes.length > 1 || nodes.some((n) => isRecord(n) && n.type !== "heading");
+}
+
+/** harmony.json の画面エントリの hasDesign (一覧の「デザイン済」) を、レイアウトの中身に合わせる */
+async function syncScreenHasDesign(screenId: string, hasDesign: boolean, root: string): Promise<void> {
+  try {
+    const project = await readProject(root);
+    const entry = getScreenEntry(project, screenId);
+    if (!entry || Boolean(entry.hasDesign) === hasDesign) return;
+    entry.hasDesign = hasDesign;
+    entry.updatedAt = new Date().toISOString();
+    await writeProject(project, root);
+  } catch (e) {
+    console.error("[projectStorage] hasDesign の更新に失敗:", e);
+  }
 }
 
 /** screen-items/{screenId}.json を削除 (#318) */
@@ -1565,34 +1817,6 @@ export async function writePageLayout(pageLayoutId: string, data: unknown, root:
     await preserveOrAssignUuid("pageLayout", data, filePath);
   }
   await writeJSON(filePath, data);
-}
-
-/**
- * RFC #1021 pl-6 (Codex A-2): PageLayout の design payload (GrapesJS / Puck data) を
- * `<dataDir>/page-layouts/<id>.design.json` に保存する。
- * 旧実装は Screen の synthetic id `page-layout:<id>` で `screens/page-layout:<id>.design.json` に
- * 保存していたが、これは Windows で無効なファイル名 + first-class artifact の永続化境界違反。
- */
-export async function readPageLayoutDesign(pageLayoutId: string, root: string): Promise<unknown | null> {
-  const dataRoot = await resolveDataRoot(root);
-  const filePath = path.join(pageLayoutsDir(dataRoot), `${pageLayoutId}.design.json`);
-  assertPathContained(filePath, dataRoot); // defense-in-depth
-  const data = await readJSON<unknown>(filePath);
-  if (data === null) return null;
-  return inflateDesignComponents(data, pageLayoutsDir(dataRoot));
-}
-
-export async function writePageLayoutDesign(pageLayoutId: string, data: unknown, root: string): Promise<void> {
-  const dataRoot = await ensureDataDirFromRoot(root);
-  const filePath = path.join(pageLayoutsDir(dataRoot), `${pageLayoutId}.design.json`);
-  assertPathContained(filePath, dataRoot); // defense-in-depth
-  await fs.mkdir(pageLayoutsDir(dataRoot), { recursive: true });
-  const designPayload = await deflateDesignComponents({
-    data,
-    baseDir: pageLayoutsDir(dataRoot),
-    baseName: pageLayoutId,
-  });
-  await writeJSON(filePath, designPayload);
 }
 
 export async function deletePageLayoutFile(pageLayoutId: string, root: string): Promise<void> {

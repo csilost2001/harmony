@@ -174,6 +174,8 @@ export interface ScreenItem {
   helperText?: string;
   /** バリデーション NG 時のメッセージ。`@conv.msg.<key>` 参照推奨。 */
   errorMessages?: Record<string, string>;
+  /** 画面には表示しない項目 (画面の内部状態・隠し値)。未配置の警告・自動配置の対象外。 */
+  nonVisual?: boolean;
   /** 表示条件式。 */
   visibleWhen?: TemplateString;
   /** 活性条件式。 */

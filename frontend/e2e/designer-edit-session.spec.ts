@@ -1,5 +1,5 @@
 /**
- * GrapesJS 画面デザイナー edit-session E2E テスト (#689)
+ * 画面デザイナー (業務部品デザイナ) edit-session E2E テスト (#689)
  *
  * #926: realWorkspace + 実 backend 経由に移植。
  *
@@ -62,8 +62,7 @@ test.describe("画面デザイナー edit-session — シナリオ 1: 編集開�
   });
 
   // #1423: canvas 中央の readonly オーバーレイは廃止。編集開始はツールバーの
-  // edit-mode-start ボタンから行う (Puck デザイナー UX と統一)。readonly でも
-  // canvas は暗転せずデザインを完全に閲覧できる。
+  // edit-mode-start ボタンから行う。readonly でも canvas は暗転せずデザインを完全に閲覧できる。
   test("ツールバーから編集開始 → 保存 → save 後も editing 継続 → discard で readonly に戻る", async ({ page }) => {
     await ws.gotoActive(page, `/screen/design/${SCREEN_NORM}`);
 
@@ -184,8 +183,7 @@ test.describe("画面デザイナー edit-session — シナリオ 3: 再オー�
 // 検証対象が存在しない。spec block ごと削除 (新経路 backend `/legacy-rescue` 検証は別 ISSUE)。
 
 // #980-A: ResumeOrDiscardDialog filter (participants[mySessionId] のみ) が
-// Designer (GrapesJS resourceType: "screen" / Puck resourceType: "puck-data") でも
-// 正しく動作することを multi-tab で検証する。
+// 画面デザイナー (resourceType: "screen-item") でも正しく動作することを multi-tab で検証する。
 test.describe("画面デザイナー edit-session — multi-tab ResumeOrDiscardDialog filter (#980-A)", { tag: ["@regression"] }, () => {
   test.beforeAll(async () => {
     mcpAvailable = await isMcpRunning();
@@ -200,7 +198,7 @@ test.describe("画面デザイナー edit-session — multi-tab ResumeOrDiscardD
     });
   });
 
-  test("GrapesJS: alice 編集中、bob open → ResumeOrDiscardDialog が出ない", async ({ browser }) => {
+  test("業務部品デザイナ: alice 編集中、bob open → ResumeOrDiscardDialog が出ない", async ({ browser }) => {
     test.setTimeout(120000);
     const ctxA = await browser.newContext();
     const ctxB = await browser.newContext();
@@ -209,7 +207,7 @@ test.describe("画面デザイナー edit-session — multi-tab ResumeOrDiscardD
     const dummyTabS = { id: `screen:${SCREEN_NORM}`, type: "screen", resourceId: SCREEN_NORM, label: "テスト画面", isDirty: false, isPinned: false };
 
     try {
-      // alice: GrapesJS Designer 編集開始
+      // alice: 画面デザイナー 編集開始
       await seedTabsForWorkspace(pageA, ws.wsId, [dummyTabS], dummyTabS.id);
       await ws.gotoActive(pageA, `/screen/design/${SCREEN_NORM}`);
       // 残骸 dialog dismiss

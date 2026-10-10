@@ -1,0 +1,250 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="../../favicon.svg" type="image/svg+xml"><title>issue and pr policy</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="../../_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="../../_astro/_slug_.XtJAgJeQ.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="../../" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="../../spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="../../user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="../../conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="../../setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="../../presentation/" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> 規約カタログ </div> <ul class="space-y-0.5"> <li> <a href="../../conventions/expressions/" class="sidebar-link"> 式言語規約 (@conv/@env/@secret) </a> </li><li> <a href="../../conventions/product-scope/" class="sidebar-link"> プロダクトスコープ </a> </li><li> <a href="../../conventions/validation-rules/" class="sidebar-link"> バリデーション規約 </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="issue-起票pr-運用の詳細規約">ISSUE 起票・PR 運用の詳細規約</h1>
+<p>AGENTS.md から移設した詳細版 (2026-10-08)。AGENTS.md には要点のみを残している。</p>
+<h2 id="issue-起票の鉄則-最重要絶対遵守全-ai">ISSUE 起票の鉄則 (最重要、絶対遵守、全 AI)</h2>
+<p><strong>1 人で 100〜200 / 日のペースで増える open ISSUE を回している。気軽な分離は チーム運用を破壊する。</strong></p>
+<p>ただし <strong>「ISSUE を増やしたくない」を理由に放置するのは絶対禁止</strong>。発見した課題は必ず「本 PR で対応」または「新規 ISSUE で受ける」のいずれかで処理する。第 3 の選択肢 (PR description / コメント / memory に “将来課題” として記録だけして放置) は trace を達成しないため<strong>禁止</strong>。</p>
+<h3 id="鉄則-0-最優先-放置は絶対にダメ">鉄則 0 (最優先): 放置は絶対にダメ</h3>
+<p>発見した課題は必ず以下のどちらかに振る。第 3 の選択肢は存在しない:</p>
+<ul>
+<li>(a) <strong>本 PR / 本 ISSUE 内で対応</strong> (デフォルト、最優先)</li>
+<li>(b) <strong>新規 ISSUE で受ける</strong> (本 ISSUE 不可な場合に限り、限定的に許可)</li>
+</ul>
+<p>「PR description に将来課題として記録」「memory にメモ」「TODO コメントで退避」「次にこのファイル触るとき対応」等は <strong>すべて放置</strong> であり、第 3 選択肢として禁止。クローズ済 PR の description は誰も読まない、memory は recall されないこともある、TODO は風化する — いずれも trace 不可能。</p>
+<h3 id="鉄則-1-本-pr--本-issue-内で対応するのが原則">鉄則 1: 本 PR / 本 ISSUE 内で対応するのが原則</h3>
+<p>別 ISSUE を起票したくなったら、まず以下を順に検討する:</p>
+<ol>
+<li><strong>本 PR で同 commit / 同 description に吸収できないか</strong> (1-3 時間以内なら必ず吸収)</li>
+<li><strong>後続の親 / 子 ISSUE のスコープに自然に入らないか</strong></li>
+<li><strong>同根の取り残しなら必ず同 PR で吸収</strong> (memory <code>feedback_issue_split_hidden_costs.md</code>)</li>
+</ol>
+<p>吸収可能なら吸収する。吸収不可な場合のみ鉄則 2 に進む (放置は鉄則 0 違反)。</p>
+<h3 id="鉄則-2-本-issue-で対応不可な場合のみ新規-issue-で受ける">鉄則 2: 本 ISSUE で対応不可な場合のみ新規 ISSUE で受ける</h3>
+<p>以下の <strong>明確な根拠</strong> が示せる場合のみ新規 ISSUE 起票が許可される:</p>
+<ol>
+<li><strong>完全に別機能側のバグ / 改善</strong> — 現在対応中の機能 / 領域と無関係</li>
+<li><strong>フレームワーク全体の再設計が必要</strong> — 1 PR では収まらない設計判断を要する</li>
+<li><strong>かなり大規模</strong> — 数日〜週単位の独立工数を要する</li>
+<li><strong>別チームへの依頼</strong> — 本リポジトリ外を含む</li>
+</ol>
+<p>これらに該当しない小さな課題は <strong>本 PR で吸収</strong>。本 PR がマージ済なら <strong>follow-up small PR を即作成して main に merge</strong>。放置は禁止。</p>
+<h3 id="鉄則-3-同根の複数提案は必ず-1-issue-に統合">鉄則 3: 同根の複数提案は必ず 1 ISSUE に統合</h3>
+<p>同じ schema / 同じ spec / 同じ領域 / 同根の発見イベント (同 PR / 同 dogfood / 同調査) から出てきた提案は 1 ISSUE 内に sub-section (## 提案 A / B / C) で列挙する。</p>
+<h3 id="鉄則-4-フォローアップ連鎖の絶対禁止--起票後-24h-着手義務-2026-05-28-1379--1385-連鎖事故で新設">鉄則 4: フォローアップ連鎖の絶対禁止 + 起票後 24h 着手義務 (2026-05-28 #1379 → #1385 連鎖事故で新設)</h3>
+<p><strong>N 次フォローアップ (フォローアップから更にフォローアップが派生) は user 承認なしに起票禁止</strong>。連鎖は ISSUE 純増コストを指数的に増やし、AI が「鉄則 0 を満たすため」と称して気軽に起票するパターンの温床。</p>
+<p>定義:</p>
+<ul>
+<li><strong>0 次</strong>: 本 PR の作業中に発見した課題</li>
+<li><strong>1 次フォローアップ</strong>: 0 次から派生したフォローアップ (= 通常の「鉄則 2 で許容される新規 ISSUE」)</li>
+<li><strong>2 次フォローアップ</strong>: 1 次フォローアップ ISSUE / PR の review 指摘 / 残課題から派生 → <strong>user 承認必須</strong></li>
+<li><strong>3 次以降</strong>: <strong>絶対禁止</strong> (user 承認不可、即停止して相談)</li>
+</ul>
+<p>起票後の責務 (1 次・2 次ともに):</p>
+<ul>
+<li><strong>起票後 24 時間以内に着手</strong> (= 実装 commit / WIP PR 作成)。それを超えるなら起票しない (= 本 PR で吸収するか、user に判断を委ねる)</li>
+<li>着手見込みがないのに「trace 確立のため」と起票するのは鉄則 0 違反 (放置の婉曲表現)</li>
+</ul>
+<p>実例 (#1379 → #1385 連鎖、2026-05-28):</p>
+<ul>
+<li>#1378 (#1375 実装) Must-fix #2 → #1379 (1 次) → PR #1382 Round 1 review 指摘 → #1385 (2 次、user 承認なし) で叱責「フォローアップ増殖キリがない」</li>
+<li>教訓: review 指摘の trace 不足は <strong>本 PR scope を広げて吸収</strong> が原則。「pattern 再設計が必要」「規模が大きい」は AI の過大評価。1 件サンプル fix で実測してから判断</li>
+</ul>
+<h3 id="鉄則-5-規模が大きく見えるを-follow-up-化の根拠にしない-2026-05-28-新設">鉄則 5: 「規模が大きく見える」を follow-up 化の根拠にしない (2026-05-28 新設)</h3>
+<p>AI の「規模感覚」は不正確で、warning N 件 / file N 個を見て即「数日工数」と判断するのは怠慢。<strong>必ず 1 件サンプル fix の所要時間 × N 件 + α で実測</strong>してから follow-up 化の判断をする。</p>
+<p>実測手順:</p>
+<ol>
+<li>N 件のうち最も複雑そうな 1 件を実際に修正してみる</li>
+<li>所要時間 (実装 + verify) を計測</li>
+<li>× N 件 + バッファ 30% で総工数を見積もる</li>
+<li>1-3 時間以内なら鉄則 1 (本 PR 吸収) を遵守、それ以上なら user に判断を委ねる</li>
+</ol>
+<p>「機械的修正 vs pattern 再設計」を区別せず一律「大規模」とラベルするのは禁止。</p>
+<h3 id="鉄則-6-codex--sonnet-review-が選択肢を提示しても本-pr-吸収がデフォルト-2026-05-28-新設">鉄則 6: Codex / Sonnet review が選択肢を提示しても、本 PR 吸収がデフォルト (2026-05-28 新設)</h3>
+<p>Codex / Sonnet の独立レビューが「本 PR で吸収 or follow-up ISSUE 起票」を選択肢として提示することがある。<strong>この場合、本 PR 吸収を default 選択</strong> とし、follow-up 化はユーザー承認時のみ。</p>
+<p>理由: AI 同士の review で「両方の選択肢を提示」されると、起票側 AI は安易に follow-up を選びがち (思考停止)。default を明示することで安易な分離を防ぐ。</p>
+<h3 id="禁止された逃げ口の理由付け">禁止された逃げ口の理由付け</h3>
+<p>以下の理由はすべて禁止:</p>
+<ul>
+<li>❌ 「schema governance により AI 単独実装禁止だから別 ISSUE 化」 — schema 提案も同 PR description / 統合 ISSUE に書けば良い</li>
+<li>❌ 「scope 厳守のため別 ISSUE」 — 同根なら scope 内</li>
+<li>❌ 「念のため別 ISSUE で隔離」 — ISSUE 純増コストが大きい</li>
+<li>❌ 「pre-existing 問題なので別 ISSUE」 — 同ファイル / 同画面なら同 PR 吸収</li>
+<li>❌ 「将来対応のため記録だけして放置」 — 鉄則 0 違反 (trace されない)</li>
+<li>❌ 「次にこのファイル触る時にやる」 — 放置の婉曲表現、鉄則 0 違反</li>
+<li>❌ 「PR description にメモするだけで trace 達成」 — クローズ済 PR は誰も見ない、放置と同義</li>
+<li>❌ <strong>「規模が大きく見えるから follow-up」 — 実測していない見積もりは禁止 (鉄則 5)</strong></li>
+<li>❌ <strong>「Codex / Sonnet review が follow-up を選択肢として提示したから」 — 提示されても本 PR 吸収がデフォルト (鉄則 6)</strong></li>
+<li>❌ <strong>「pattern 再設計が必要」を根拠に大量 warning / error を follow-up 化 — 1 件サンプル fix で機械的修正可能性を実証してから判断 (鉄則 5)</strong></li>
+</ul>
+<h3 id="起票直前の-self-check-義務">起票直前の self-check (義務)</h3>
+<p><code>gh issue create</code> を打つ <strong>直前</strong> に 9 項目すべて ✓ を確認:</p>
+<ol>
+<li>☐ 鉄則 0: 「放置せず必ず処理する」前提で考えている (記録だけして処理しない選択肢は無い)</li>
+<li>☐ 鉄則 1: 本 PR / follow-up small PR で吸収不可な明確な根拠を提示できる</li>
+<li>☐ 鉄則 2: 妥当条件 (別機能 / 再設計 / 大規模 / 別チーム) のいずれかに <strong>明確に</strong> 該当する</li>
+<li>☐ 鉄則 3: 他に同根の起票候補があるなら 1 ISSUE に統合する用意がある</li>
+<li>☐ 鉄則 4: <strong>N 次 (N≥2) フォローアップでないこと、または user 承認を得ている</strong></li>
+<li>☐ 鉄則 4: <strong>起票後 24h 以内に着手する確定計画がある</strong> (small follow-up PR を作成する目処が立っている)</li>
+<li>☐ 鉄則 5: <strong>「大規模」と判断する根拠は 1 件サンプル fix の実測値 × N 件 + α</strong></li>
+<li>☐ 「禁止された逃げ口」を理由にしていない (鉄則 6 の Codex review 提示も含む)</li>
+<li>☐ 「ISSUE 化しない」と決めた場合、必ず本 PR / follow-up small PR で対応する確定的な計画がある (放置していない)</li>
+</ol>
+<p>1 つでも疑問が残るなら立ち止まり、放置を選ばないこと。</p>
+<h3 id="失敗事例-再発防止のため記録">失敗事例 (再発防止のため記録)</h3>
+<ul>
+<li>2026-05-04 PR #780: 同根の framework 提案 3 件を #781/#782/#783 と別々に起票 → 2 件純増。同 schema (<code>schemas/v3/process-flow.v3.schema.json</code>) を触る同根提案は 1 ISSUE に統合すべきだった</li>
+<li>2026-05-28 #1378 (#1375 派生) → #1379 (1 次) → #1382 Round 1 review trace 不足 → #1385 (2 次フォローアップ、user 承認なし) 起票で叱責「フォローアップ増殖キリがない」。鉄則 4-6 はこの事故を受けて新設</li>
+</ul>
+<h3 id="関連-memory-起票判断時に必読">関連 memory (起票判断時に必読)</h3>
+<ul>
+<li><code>feedback_issue_split_criteria.md</code> (canonical 判定基準)</li>
+<li><code>feedback_issue_split_hidden_costs.md</code> (トークン累積 + main 滞留コスト)</li>
+<li><code>feedback_consolidate_related_proposals_into_one_issue.md</code> (鉄則 3 の具体例)</li>
+<li><code>feedback_pr_scope_absorb_pre_existing.md</code> (pre-existing は同 PR 吸収)</li>
+<li><code>feedback_pr_granularity.md</code> (PR を過度に細かく分けない)</li>
+</ul>
+<h2 id="pr-作成レビューの規約">PR 作成・レビューの規約</h2>
+<p>運用手引き (人間向け): <a href="../../conventions/docs/pr-review-workflow/">docs/pr-review-workflow.md</a></p>
+<ul>
+<li>PR 作成時は <a href="../../conventions/.github/pull_request_template/"><code>.github/pull_request_template.md</code></a> を<strong>全項目埋める</strong>。不要な項目は削除せず「N/A」と明記 (レビュアーが見落としと区別するため)</li>
+<li>「仕様逐条突合 (自己申告)」節は各条項を <code>file:line</code> で<strong>個別に列挙</strong>。「全条項 ✓」の一括表記は不可。大規模実装の完了報告前に仕様を逐条突合すること</li>
+<li>大規模実装 / spec 絡み / UI 影響のある PR は、<strong>別セッション (新しい会話)</strong> で独立レビューを実行し、結果を PR コメントに投稿してからマージ判断する (Claude Code 利用時は <code>/review-pr &#x3C;N></code> スキル、Codex は <code>/codex:review</code>)</li>
+<li><strong>1 ISSUE を複数 PR に分割したケース</strong>は、全 PR マージ後に ISSUE 単位の実装網羅性を監査する (Claude Code: <code>/review-issue &#x3C;N></code>)。PR 単位レビューでは検出できない実装漏れを拾う</li>
+<li>レビュー結果が Must-fix を含む場合はマージしない。Should-fix は AI が判断し、対応 or スコープ外として別 ISSUE 化</li>
+<li><strong>PR 単位 / 機能単位のユーザー確認は不要</strong>。AI が build / test / UI smoke (chrome-devtools MCP / Playwright) / 独立レビュー / Must-fix 解決 / マージまで完遂する。ユーザー確認は<strong>大規模改修一連の作業の最終リリース時のみ</strong></li>
+</ul>
+<h3 id="regression-suite--trace-issue-機械照合-gate-1346--必須全-ai">regression suite ↔ trace ISSUE 機械照合 gate (#1346 / 必須、全 AI)</h3>
+<p>E2E regression (<code>npm run test:e2e:regression</code>) を走らせて failure が残った場合、<strong>PR を merge する前</strong>に <code>scripts/verify/regression-trace-check.mjs</code> で全 fail が「trace 済 OPEN ISSUE 参照あり」または「isolation 3x pass 証跡ありの flake」であることを機械検証する。</p>
+<p>背景: #1299 Round 12-14 で「full suite に 8 fail 残ったまま merge-ready 判定」「単一 spec の strict-mode 違反を isolation pass = flake と誤判定」の事故が連続再発したため、private memory ベースの完了判定ルールを repo tracked な script に昇格 (case A)。</p>
+<p><strong>呼び方</strong> (一例 — orchestrator が必須で 1 回通す):</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># 推奨: --auto-run (npm banner を介さず playwright を直接 spawn するため shell redirect の落とし穴を回避)</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">node</span><span style="color:#032F62;--shiki-dark:#96D0FF"> scripts/verify/regression-trace-check.mjs</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> --auto-run</span><span style="color:#005CC5;--shiki-dark:#F47067"> \</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">  --flake</span><span style="color:#032F62;--shiki-dark:#96D0FF"> e2e/foo.spec.ts</span><span style="color:#6A737D;--shiki-dark:#768390">   # flake 主張する spec があれば明示</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># 別法: 既に regression を走らせて results.json を持っている場合は file 渡し</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">#   注意: npm scripts は stdout 先頭に banner ("> harmony-workspace@... \n> playwright test ...") を出すため</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">#   shell redirect で file 化するときは必ず `--silent` を付ける (付けないと JSON parse fail で exit 2)</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> run</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> --silent</span><span style="color:#032F62;--shiki-dark:#96D0FF"> test:e2e:regression:json</span><span style="color:#D73A49;--shiki-dark:#F47067"> ></span><span style="color:#032F62;--shiki-dark:#96D0FF"> .tmp/regression-results.json</span><span style="color:#D73A49;--shiki-dark:#F47067"> ||</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> true</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">node</span><span style="color:#032F62;--shiki-dark:#96D0FF"> scripts/verify/regression-trace-check.mjs</span><span style="color:#032F62;--shiki-dark:#96D0FF"> .tmp/regression-results.json</span><span style="color:#005CC5;--shiki-dark:#F47067"> \</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">  --flake</span><span style="color:#032F62;--shiki-dark:#96D0FF"> e2e/foo.spec.ts</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># isolation 3x pass の証跡 (frontend/test-results/isolation-&#x3C;sanitized>.json) を別途要求</span></span></code></pre>
+<p><strong>判定</strong>:</p>
+<ul>
+<li>exit 0 → 全 fail が OPEN ISSUE で trace 済 or flake 確認済 → merge gate 通過</li>
+<li>exit 1 → trace なし fail が 1 件以上 → <strong>merge 禁止</strong>。不足分の OPEN ISSUE を起票 (鉄則 0) して再走、または fail を解消するまで merge しない</li>
+<li>exit 2 → 入力エラー / gh 未配置等 → 設定不備、AI セッションでは原因究明して再走</li>
+</ul>
+<p><strong>flake 主張する場合の必須証跡</strong>:</p>
+<p>isolation 再走 3 回連続 pass の JSON 証跡が <code>frontend/test-results/isolation-&#x3C;sanitized>.json</code> に存在すること。<code>runs</code> の <strong>末尾 3 件</strong> が <code>{ "status": "passed", ... }</code> であれば flake 確定。前段に fail が混じっていても末尾 3 連続 pass なら OK。証跡 file は <code>--auto-isolation-rerun</code> flag で script に自動生成させることもできる。</p>
+<p><strong>注意 (memory <code>feedback_e2e_flake_isolation_vs_full_run.md</code> の補足)</strong>: locator selector が <code>strict-mode violation</code> を起こしうる場合 (例: 同 name の要素が複数描画される画面で <code>getByText</code> を直 use)、isolation pass を flake 根拠にしてはならない。<code>.first()</code> / <code>.last()</code> / specific scope (<code>.locator(...).filter(...)</code>) を必ず付与する。strict-mode の場合は flake ではなく実バグなので OPEN ISSUE で trace する。</p>
+<p>詳細: <code>scripts/verify/regression-trace-check.mjs</code> の top コメント + <code>docs/conventions/completion-gate.md</code>。</p>
+<h2 id="シリーズ-pr-統合-pr-運用">シリーズ PR (統合 PR) 運用</h2>
+<p>ISSUE 本文の冒頭に <code>## 🔗 統合 PR 情報</code> セクションがある ISSUE は、<strong>単独 PR ではなく統合 PR の一部</strong> として実装する。実装者 (AI エージェント) は ISSUE 本文を読んだ時点で以下を自動実行する:</p>
+<ol>
+<li>セクションに記載された <strong>統合ブランチ</strong> を <code>origin/main</code> (または指定 base) から切る (既に存在すれば checkout して継続)</li>
+<li>自分の担当 ISSUE 分のコミットをそのブランチに積む (ISSUE 単位で commit メッセージを分ける)</li>
+<li><strong>他の統合対象 ISSUE が全て完了するまで PR を作らない</strong> (draft も不可)</li>
+<li>最後の ISSUE 完了時に PR を作成、description に <strong>各 ISSUE の前に <code>Closes</code> を必ず書いて</strong> 全 ISSUE を列挙 (GitHub 仕様: 改行区切り推奨):
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>Closes #A</span></span>
+<span class="line"><span>Closes #B</span></span>
+<span class="line"><span>Closes #C</span></span></code></pre>
+<strong>NG</strong>: <code>Closes #A, #B, #C</code> は先頭しか自動 close されない</li>
+<li>独立レビューは統合 PR 単位で 1 回のみ (個別 ISSUE で実行しない)。AI smoke test も統合 PR 単位で 1 回</li>
+</ol>
+<p>ユーザーからの指示が <code>#&#x3C;N> やって</code> のように単一 ISSUE 番号でも、本文に本セクションがあれば上記に従う。セクションが無い場合は通常の 1 ISSUE = 1 PR 運用。</p>
+<p><strong>壁打ち担当 (設計者) は ISSUE 起票時</strong>、UI 一体性 / 関連修正 / 同一画面 / 依存関係のある ISSUE 群は必ず統合 PR 化し、各 ISSUE 本文冒頭に本セクションを挿入する。</p>
+<h3 id="後付けで関連性が判明した場合-起票時には無関係に見えた-issue">後付けで関連性が判明した場合 (起票時には無関係に見えた ISSUE)</h3>
+<p>テスター起票のバグや、他担当者が先行起票した ISSUE など、起票時点では関連性が不明なことは珍しくない。調査・実装の過程で他 ISSUE との共通点が判明した場合、以下で統合 PR 化する。</p>
+<p><strong>実装者の着手前ルーチン (必須)</strong>:</p>
+<ol>
+<li>ユーザーから <code>#&#x3C;N> やって</code> を受けた時点でまず <code>gh issue view &#x3C;N></code> で本文を読む</li>
+<li>本文に <code>## 🔗 統合 PR 情報</code> があればそれに従う (以上)</li>
+<li>なければ、<strong>着手前に必ず関連検索</strong> する:
+<ul>
+<li><code>gh issue list --state open --search "&#x3C;キーワード>"</code> で同一機能領域の open ISSUE を洗う</li>
+<li>本 ISSUE が触りそうなファイル・モジュール・UI 画面名をキーワードに使う</li>
+<li>親 spec / 同一ディレクトリが対象の ISSUE も確認</li>
+</ul>
+</li>
+<li>関連を発見した場合は <strong>着手する前に</strong> ユーザーに統合提案 (例: <code>「#&#x3C;N> を調査したところ #&#x3C;M> と同じ X を触ります。統合 PR にまとめていいですか?」</code>)</li>
+<li>承認後、全関連 ISSUE の本文冒頭に <code>## 🔗 統合 PR 情報</code> セクションを prepend (<code>gh issue edit --body-file</code>)。以後は通常の統合 PR 運用</li>
+</ol>
+<p><strong>実装中に関連が判明した場合</strong>:</p>
+<ul>
+<li>作業を一時停止 (コミットは保持、push しない)</li>
+<li>同じく統合提案 → 承認 → 本文更新</li>
+<li>既に作業ブランチを切っていた場合は、ブランチ名を統合ブランチ名にリネーム (<code>git branch -m</code>) or checkout し直す</li>
+</ul>
+<p><strong>壁打ち担当 (設計者) の新規起票時</strong>:</p>
+<ul>
+<li>起票前に <code>gh issue list --state open</code> で既存 open ISSUE を検索</li>
+<li>関連があれば「新規起票 + 既存 ISSUE を統合 PR でまとめる」提案をユーザーに先に出す</li>
+<li>承認後、新規 + 既存の全 ISSUE 本文に統合 PR 情報を追加</li>
+</ul>
+<p><strong>統合 PR 化の判断基準 (いずれか該当で検討)</strong>:</p>
+<ul>
+<li>同じファイル / モジュール / UI 画面を触る</li>
+<li>根本原因が共通 (1 fix で複数 ISSUE が解消する)</li>
+<li>変更内容に依存関係がある (A が無いと B が動かない等)</li>
+<li>UX として一体で単独では動作評価できない</li>
+</ul>
+<p>関連性が微妙な場合はユーザーに判断を委ねる。勝手に統合 / 単独を決めない。</p>
+<h2 id="コミットブランチpr-の書き方-旧-agentsmd-conventions-節">コミット・ブランチ・PR の書き方 (旧 AGENTS.md Conventions 節)</h2>
+<ul>
+<li>UX / 機能として一体 (単独で動かない・ユーザー体験が完結しない)</li>
+<li>調査の結果、関連バグ・関連修正と判明した</li>
+<li>シリーズ起票された ISSUE 群で、起票時点で PR グルーピングが宣言されている</li>
+<li>同じ画面に対する複数 ISSUE の同時修正</li>
+</ul>
+<p>束ねる場合: PR description に <strong>各 ISSUE の前に <code>Closes</code> キーワードを必ず書く</strong> (GitHub 仕様 “Use full syntax for each issue”)。改行区切り推奨:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>Closes #A</span></span>
+<span class="line"><span>Closes #B</span></span>
+<span class="line"><span>Closes #C</span></span></code></pre>
+<p><strong>NG</strong>: <code>Closes #A, #B, #C</code> は<strong>先頭しか自動 close されない</strong> (PR #340 で実例あり)。コミットは ISSUE 単位で分ける。独立レビューは<strong>統合 PR 単位で 1 回</strong>。</p>
+<p><strong>重要 (シリーズ PR 親 ISSUE 誤 close 防止、2026-05-17 PR #1163 で実証)</strong>: シリーズ PR の <strong>Phase 途中段階で親 ISSUE を open 維持したい場合は必ず <code>Refs #N</code> を使う</strong>。<code>Closes</code> キーワードは inline backtick (<code>`Closes #N`</code>) で囲っても GitHub parser が context-aware で auto-close trigger として処理する場合あり (parser ヒューリスティクス不安定)。詳細は memory <code>feedback_pr_closes_code_block_invalidates.md</code>。</p>
+<p>Never commit directly to <code>main</code>. Branch naming: <code>feat/issue-&#x3C;N>-&#x3C;slug></code> (単独 PR) / <code>feat/&#x3C;topic-slug></code> (統合 PR) for features, <code>fix/issue-&#x3C;N></code> or <code>fix/&#x3C;slug></code> for bug fixes, <code>docs/&#x3C;slug></code> for documentation-only changes. Create the branch from <code>origin/main</code> before starting work.</p>
+<ul>
+<li>PRs are squash-merged into <code>main</code>. The PR title should include the issue number (e.g., <code>feat(ui): ... (#83)</code>) so the merge commit references it.</li>
+<li><code>data/</code> は本体専用 (<code>data/extensions/</code> のみ git tracked) + <code>workspaces/</code> がユーザー作業領域 (両方 gitignored)</li>
+<li>Themes: standard (default Bootstrap), card, compact, dark — CSS injected into GrapesJS canvas iframe</li>
+<li>Custom blocks persist to active workspace の <code>custom-blocks.json</code> via customBlockStore</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

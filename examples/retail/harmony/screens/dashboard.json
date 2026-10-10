@@ -65,9 +65,403 @@
         "path": "dispatchPending",
         "processFlowId": "dashboard-kpi-summary"
       }
+    },
+    {
+      "id": "dashboardRows",
+      "label": "最近の注文 一覧",
+      "type": {
+        "kind": "array",
+        "itemType": "json"
+      },
+      "direction": "out",
+      "presentation": {
+        "kind": "table",
+        "columns": [
+          {
+            "id": "col1",
+            "label": "注文番号",
+            "path": "col1",
+            "type": "string"
+          },
+          {
+            "id": "col2",
+            "label": "顧客名",
+            "path": "col2",
+            "type": "string"
+          },
+          {
+            "id": "col3",
+            "label": "合計金額",
+            "path": "col3",
+            "type": "string"
+          },
+          {
+            "id": "col4",
+            "label": "ステータス",
+            "path": "col4",
+            "type": "string"
+          },
+          {
+            "id": "col5",
+            "label": "注文日時",
+            "path": "col5",
+            "type": "string"
+          }
+        ]
+      }
     }
   ],
-  "design": {
-    "designFileRef": "dashboard.design.json"
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "heading",
+        "type": "heading",
+        "props": {
+          "text": "ダッシュボード",
+          "level": 1
+        }
+      },
+      {
+        "id": "section5",
+        "type": "section",
+        "props": {
+          "title": "本日の状況 — 2026/05/02",
+          "variant": "panel"
+        },
+        "children": [
+          {
+            "id": "columns",
+            "type": "columns",
+            "children": [
+              {
+                "id": "column",
+                "type": "column",
+                "props": {
+                  "span": 3
+                },
+                "children": [
+                  {
+                    "id": "section",
+                    "type": "section",
+                    "props": {
+                      "variant": "card"
+                    },
+                    "children": [
+                      {
+                        "id": "text",
+                        "type": "text",
+                        "props": {
+                          "text": "今日の売上",
+                          "tone": "muted"
+                        }
+                      },
+                      {
+                        "id": "todaySales",
+                        "type": "field",
+                        "itemRef": "todaySales"
+                      },
+                      {
+                        "id": "text2",
+                        "type": "text",
+                        "props": {
+                          "text": "前日比 +12%",
+                          "tone": "muted"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "column2",
+                "type": "column",
+                "props": {
+                  "span": 3
+                },
+                "children": [
+                  {
+                    "id": "section2",
+                    "type": "section",
+                    "props": {
+                      "variant": "card"
+                    },
+                    "children": [
+                      {
+                        "id": "text3",
+                        "type": "text",
+                        "props": {
+                          "text": "在庫アラート",
+                          "tone": "muted"
+                        }
+                      },
+                      {
+                        "id": "lowStockCount",
+                        "type": "field",
+                        "itemRef": "lowStockCount"
+                      },
+                      {
+                        "id": "text4",
+                        "type": "text",
+                        "props": {
+                          "text": "低在庫品目数",
+                          "tone": "muted"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "column3",
+                "type": "column",
+                "props": {
+                  "span": 3
+                },
+                "children": [
+                  {
+                    "id": "section3",
+                    "type": "section",
+                    "props": {
+                      "variant": "card"
+                    },
+                    "children": [
+                      {
+                        "id": "text5",
+                        "type": "text",
+                        "props": {
+                          "text": "配送指示待ち",
+                          "tone": "muted"
+                        }
+                      },
+                      {
+                        "id": "dispatchPending",
+                        "type": "field",
+                        "itemRef": "dispatchPending"
+                      },
+                      {
+                        "id": "text6",
+                        "type": "text",
+                        "props": {
+                          "text": "指示待ち",
+                          "tone": "muted"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "column4",
+                "type": "column",
+                "props": {
+                  "span": 3
+                },
+                "children": [
+                  {
+                    "id": "section4",
+                    "type": "section",
+                    "props": {
+                      "variant": "card"
+                    },
+                    "children": [
+                      {
+                        "id": "text7",
+                        "type": "text",
+                        "props": {
+                          "text": "本日の注文件数",
+                          "tone": "muted"
+                        }
+                      },
+                      {
+                        "id": "ordersToday",
+                        "type": "field",
+                        "itemRef": "ordersToday"
+                      },
+                      {
+                        "id": "text8",
+                        "type": "text",
+                        "props": {
+                          "text": "本日の受注件数",
+                          "tone": "muted"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "section10",
+        "type": "section",
+        "props": {
+          "title": "業務メニュー",
+          "variant": "panel"
+        },
+        "children": [
+          {
+            "id": "columns2",
+            "type": "columns",
+            "children": [
+              {
+                "id": "column5",
+                "type": "column",
+                "props": {
+                  "span": 3
+                },
+                "children": [
+                  {
+                    "id": "section6",
+                    "type": "section",
+                    "props": {
+                      "title": "商品検索・在庫照会",
+                      "variant": "card"
+                    },
+                    "children": [
+                      {
+                        "id": "text9",
+                        "type": "text",
+                        "props": {
+                          "text": "商品コードや店舗を指定して在庫を照会します。低在庫品目はバッジで確認できます。",
+                          "tone": "muted"
+                        }
+                      },
+                      {
+                        "id": "searchButton",
+                        "type": "button",
+                        "props": {
+                          "label": "商品検索へ",
+                          "variant": "primary",
+                          "screenRef": "product-search"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "column6",
+                "type": "column",
+                "props": {
+                  "span": 3
+                },
+                "children": [
+                  {
+                    "id": "section7",
+                    "type": "section",
+                    "props": {
+                      "title": "カート・注文確定",
+                      "variant": "card"
+                    },
+                    "children": [
+                      {
+                        "id": "text10",
+                        "type": "text",
+                        "props": {
+                          "text": "商品をカートに追加し、配送先を入力して注文を確定します。",
+                          "tone": "muted"
+                        }
+                      },
+                      {
+                        "id": "cartButton",
+                        "type": "button",
+                        "props": {
+                          "label": "カートへ",
+                          "variant": "primary",
+                          "screenRef": "cart"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "column7",
+                "type": "column",
+                "props": {
+                  "span": 3
+                },
+                "children": [
+                  {
+                    "id": "section8",
+                    "type": "section",
+                    "props": {
+                      "title": "注文一覧・配送指示",
+                      "variant": "card"
+                    },
+                    "children": [
+                      {
+                        "id": "text11",
+                        "type": "text",
+                        "props": {
+                          "text": "受注した注文の一覧を確認し、配送会社への指示を登録します。",
+                          "tone": "muted"
+                        }
+                      },
+                      {
+                        "id": "orderListButton",
+                        "type": "button",
+                        "props": {
+                          "label": "注文一覧へ",
+                          "variant": "secondary",
+                          "screenRef": "order-list"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "column8",
+                "type": "column",
+                "props": {
+                  "span": 3
+                },
+                "children": [
+                  {
+                    "id": "section9",
+                    "type": "section",
+                    "props": {
+                      "title": "在庫一覧・補充",
+                      "variant": "card"
+                    },
+                    "children": [
+                      {
+                        "id": "text12",
+                        "type": "text",
+                        "props": {
+                          "text": "店舗別在庫を一覧表示します。低在庫品目は赤バッジで警告されます。",
+                          "tone": "muted"
+                        }
+                      },
+                      {
+                        "id": "listInventoryButton",
+                        "type": "button",
+                        "props": {
+                          "label": "在庫一覧へ",
+                          "variant": "secondary",
+                          "screenRef": "inventory-list"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "dashboardRows",
+        "type": "table",
+        "itemRef": "dashboardRows",
+        "props": {
+          "title": "最近の注文 (直近 5 件) すべて表示"
+        }
+      }
+    ]
   }
 }

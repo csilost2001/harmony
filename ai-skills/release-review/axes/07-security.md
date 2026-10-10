@@ -48,7 +48,7 @@ grep -rnE "log\..*req\.body|console\..*process\.env\b" backend/src/ 2>&1 | head 
 
 ```bash
 grep -rnE "Content-Security-Policy|iframe.*sandbox" frontend/src backend/src 2>&1 | head -20
-# GrapesJS canvas iframe / Puck preview iframe の sandbox 設定
+# iframe の sandbox 設定 (業務部品デザイナのキャンバスは iframe を使わない。DOMPurify で sanitize した HTML を描画する)
 ```
 
 ### 6. XSS リスク (innerHTML / dangerouslySetInnerHTML)

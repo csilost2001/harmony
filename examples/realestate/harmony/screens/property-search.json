@@ -100,5 +100,52 @@
         "viewDefinitionId": "property-list-viewer"
       }
     }
-  ]
+  ],
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "searchPanel",
+        "type": "search-panel",
+        "props": {
+          "columns": 3,
+          "title": "物件検索"
+        },
+        "children": [
+          {
+            "id": "propertyType",
+            "type": "field",
+            "itemRef": "propertyType"
+          },
+          {
+            "id": "maxPrice10kYen",
+            "type": "field",
+            "itemRef": "maxPrice10kYen"
+          },
+          {
+            "id": "minAreaSqm",
+            "type": "field",
+            "itemRef": "minAreaSqm"
+          },
+          {
+            "id": "searchButton",
+            "type": "button",
+            "itemRef": "searchButton",
+            "props": {
+              "label": "検索",
+              "variant": "primary"
+            }
+          }
+        ]
+      },
+      {
+        "id": "propertyRows",
+        "type": "table",
+        "itemRef": "propertyRows",
+        "props": {
+          "title": "検索結果 0 件"
+        }
+      }
+    ]
+  }
 }

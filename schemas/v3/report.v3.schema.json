@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/report.v3.schema.json",
+  "title": "Report (v3 帳票)",
+  "description": "紙 (PDF・Excel・CSV) に出力する帳票の設計。出力形式・用紙・出力契機・出力条件と、部 (表題・明細・合計など) ごとの項目の並びを持つ。座標は持たず、用紙の見本図は項目の並びと幅から自動で描く。<dataDir>/reports/<id>.json に対応。2026-10 再設計 段階 4 で導入 (docs/spec/report.md)。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "id", "name", "sections"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": { "const": 1, "description": "ファイル形式の版。" },
+    "id": { "$ref": "common.v3.schema.json#/$defs/EntityId", "description": "帳票 ID (kebab-case、ファイル名と一致、プロジェクト内で一意)。" },
+    "name": { "$ref": "common.v3.schema.json#/$defs/DisplayName" },
+    "description": { "$ref": "common.v3.schema.json#/$defs/Description" },
+    "maturity": { "$ref": "common.v3.schema.json#/$defs/Maturity" },
+    "output": { "$ref": "#/$defs/Output" },
+    "trigger": { "$ref": "#/$defs/Trigger" },
+    "params": { "type": "array", "items": { "$ref": "#/$defs/Param" }, "description": "出力条件 (帳票を出すときに指定する条件)。" },
+    "sort": { "type": "array", "items": { "$ref": "#/$defs/Sort" }, "description": "明細の並び順。" },
+    "sections": { "type": "array", "items": { "$ref": "#/$defs/Section" }, "description": "部 (上から順に並ぶ)。" },
+    "createdAt": { "$ref": "common.v3.schema.json#/$defs/Timestamp" },
+    "updatedAt": { "$ref": "common.v3.schema.json#/$defs/Timestamp" }
+  },
+  "$defs": {
+    "Output": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "format": { "type": "string", "enum": ["pdf", "excel", "csv", "html"], "description": "出力形式。" },
+        "paper": { "type": "string", "enum": ["A4", "A3", "B4", "B5", "letter"], "description": "用紙。省略時 A4。CSV では不要。" },
+        "orientation": { "type": "string", "enum": ["portrait", "landscape"], "description": "向き。portrait = 縦 / landscape = 横。省略時 縦。" }
+      }
+    },
+    "Trigger": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "type": "string", "enum": ["screen", "batch", "api"], "description": "出力契機の種類。screen = 画面の操作 / batch = バッチ・定期 / api = 外部からの要求。" },
+        "screenRef": { "$ref": "common.v3.schema.json#/$defs/EntityId", "description": "出力する画面の ID。" },
+        "processFlowRef": { "$ref": "common.v3.schema.json#/$defs/EntityId", "description": "データを集めて出力する処理フローの ID。" },
+        "description": { "type": "string", "description": "契機の説明。" }
+      }
+    },
+    "Param": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label"],
+      "properties": {
+        "id": { "$ref": "common.v3.schema.json#/$defs/Identifier", "description": "出力条件 ID (帳票内で一意)。" },
+        "label": { "$ref": "common.v3.schema.json#/$defs/DisplayName" },
+        "type": { "type": "string", "description": "型名 (string / integer / date など)。" },
+        "required": { "type": "boolean" },
+        "description": { "type": "string" }
+      }
+    },
+    "Sort": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["field"],
+      "properties": {
+        "field": { "type": "string", "description": "並べる項目 (source の列名、または項目 ID)。" },
+        "order": { "type": "string", "enum": ["asc", "desc"], "description": "昇順 / 降順。省略時 asc。" }
+      }
+    },
+    "SectionKind": {
+      "description": "部の種類。reportHeader = 表題部 (最初に 1 回) / pageHeader = ページヘッダ / groupHeader = グループヘッダ / detail = 明細部 (データ 1 件ごとに 1 行) / groupFooter = グループフッタ (小計) / reportFooter = 合計部 (最後に 1 回) / pageFooter = ページフッタ。",
+      "type": "string",
+      "enum": ["reportHeader", "pageHeader", "groupHeader", "detail", "groupFooter", "reportFooter", "pageFooter"]
+    },
+    "FieldKind": {
+      "description": "項目の種類。text = 固定文言 / field = データの項目 / aggregate = 集計 / pageNumber = ページ番号 / date = 出力日。",
+      "type": "string",
+      "enum": ["text", "field", "aggregate", "pageNumber", "date"]
+    },
+    "Section": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "fields"],
+      "properties": {
+        "id": { "$ref": "common.v3.schema.json#/$defs/Identifier", "description": "部 ID (帳票内で一意)。" },
+        "kind": { "$ref": "#/$defs/SectionKind" },
+        "name": { "type": "string", "description": "部の名前 (例: 明細、合計)。" },
+        "groupBy": { "type": "string", "description": "グループ化する項目 (source。groupHeader / groupFooter で使う)。" },
+        "description": { "type": "string" },
+        "fields": { "type": "array", "items": { "$ref": "#/$defs/Field" } }
+      }
+    },
+    "Field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind"],
+      "properties": {
+        "id": { "$ref": "common.v3.schema.json#/$defs/Identifier", "description": "項目 ID (帳票内で一意)。" },
+        "label": { "type": "string", "description": "見出し・固定文言。" },
+        "kind": { "$ref": "#/$defs/FieldKind" },
+        "source": { "type": "string", "description": "データの出どころ。`<テーブル ID>.<列の物理名>` または `@param.<出力条件 ID>`。" },
+        "aggregate": { "type": "string", "enum": ["sum", "count", "avg", "min", "max"], "description": "集計の種類 (kind=aggregate)。" },
+        "format": { "type": "string", "description": "書式 (例: #,##0 / ¥#,##0 / YYYY/MM/DD)。" },
+        "align": { "type": "string", "enum": ["left", "center", "right"] },
+        "width": { "type": "number", "exclusiveMinimum": 0, "maximum": 100, "description": "幅 (部の中の割合 %)。省略すると残りを均等に分ける。" },
+        "description": { "type": "string" }
+      }
+    }
+  }
+}

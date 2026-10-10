@@ -1,0 +1,249 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="../../favicon.svg" type="image/svg+xml"><title>layout components</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="../../_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="../../_astro/_slug_.XtJAgJeQ.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="../../" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="../../spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="../../user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="../../conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="../../setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="../../presentation/" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="../../spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="../../spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="../../spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="../../spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="../../spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="../../spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="../../spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="../../spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="../../spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="../../spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="../../spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="../../spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="../../spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="../../spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="../../spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="../../spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="../../spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="../../spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="../../spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="../../spec/spec-package/" class="sidebar-link"> @harmony/spec package </a> </li><li> <a href="../../spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="../../spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="../../spec/design-payload-storage/" class="sidebar-link"> Design payload storage </a> </li><li> <a href="../../spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="../../spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="../../spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="../../spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="../../spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="../../spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="../../spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="../../spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="../../spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="../../spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="../../spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="../../spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="../../spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="../../spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="../../spec/react-exporter/" class="sidebar-link"> React Exporter (designer__export_screen) </a> </li><li> <a href="../../spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="../../spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="../../spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="../../spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="../../spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="../../spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="../../spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="../../spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="../../spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="../../spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="../../spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="../../spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="../../spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="../../spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="../../spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="../../spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="../../spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="../../spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="プロジェクト独自部品-layout-components--仕様書">プロジェクト独自部品 (layout components) — 仕様書</h1>
+<p><strong>Status</strong>: 実装中 (2026-10、再設計 段階 1 の続き)
+<strong>関連</strong>: <a href="../../spec/screen-layout/">screen-layout.md</a> / <a href="../../spec/design-document/">design-document.md</a> / <a href="https://github.com/csilost2001/harmony/blob/main/docs/plans/redesign-2026-10.md">docs/plans/redesign-2026-10.md</a> / <a href="../../spec/schema-governance/">schema-governance.md</a></p>
+<h2 id="1-目的">1. 目的</h2>
+<p>業務部品 (入力フォーム・一覧表・ボタン群 等) の組み合わせのうち、プロジェクトの中で繰り返し使うもの (例: 「キーワード検索パネル」「注文サマリ」「承認ボタン群」) に名前を付けて登録し、どの画面にも 1 つの部品として置けるようにする。</p>
+<ul>
+<li>JSON を手で書かなくても、<strong>画面デザイナで組んだ部品を選んで登録する</strong>だけで作れる (WYSIWYG)</li>
+<li>画面ごとに変える箇所 (画面項目・文言・遷移先) は「差し込み口」として決めておく</li>
+<li>定義を直すと、使っているすべての画面に反映される (コピーが散らばらない)</li>
+<li>旧エディタ (GrapesJS / Puck) のカスタムブロック・登録コンポーネントに代わる仕組み</li>
+</ul>
+<p>外部の React コードで動く部品は対象外 (WYSIWYG では作れない)。設計書では「部品の名前・差し込み口・見た目の仕様」だけを定義し、実装はコード生成の段階で扱う。</p>
+<h2 id="2-データ形式">2. データ形式</h2>
+<h3 id="21-定義-datadirlayout-componentsjson-プロジェクト共通">2.1 定義: <code>&#x3C;dataDir>/layout-components.json</code> (プロジェクト共通)</h3>
+<p>schemas/v3/layout-components.v3.schema.json。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "$schema"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"../schemas/v3/layout-components.v3.schema.json"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "version"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">1</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "components"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"keyword-search"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "label"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"キーワード検索"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "category"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"検索"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"キーワード 1 つで絞り込む検索パネル"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "params"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">        { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"title"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"label"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"表題"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"text"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"default"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"検索条件"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">        { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"keyword"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"label"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"キーワード項目"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"item"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">        { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"searchButton"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"label"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"検索ボタン"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"item"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      ],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "nodes"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">        { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"panel"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"search-panel"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"props"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"title"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"{{title}}"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"children"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">          { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"keywordField"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"field"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"itemRef"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"{{keyword}}"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">          { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"bar"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"button-bar"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"props"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"align"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"right"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"children"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">            { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"go"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"button"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"itemRef"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"{{searchButton}}"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"props"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"variant"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"primary"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> } }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">          ] }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">        ] }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      ]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<ul>
+<li><code>nodes</code> は screen.v3 の <code>LayoutNode</code> と同じ形の部品の木 (テンプレート)</li>
+<li>差し込み口 (<code>params</code>) の種類:</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>kind</th><th>差し込み先</th><th>画面側 <code>args</code> の値</th></tr></thead><tbody><tr><td><code>text</code></td><td>部品の <code>props.title / text / label / html / src / alt</code> (文字列の一部でも可)</td><td>文言</td></tr><tr><td><code>item</code></td><td><code>itemRef</code> (値全体が <code>{{id}}</code>)</td><td>画面の <code>items[].id</code></td></tr><tr><td><code>screen</code></td><td><code>props.screenRef</code></td><td>画面 id</td></tr></tbody></table>
+<ul>
+<li>テンプレート内の <code>{{paramId}}</code> が、画面側の <code>args[paramId]</code> (無ければ <code>default</code>) で置き換わる。<code>text</code> の未指定は空文字、<code>item</code> / <code>screen</code> で <code>args</code> も <code>default</code> も無いと警告</li>
+<li>独自部品の中に別の独自部品 (<code>type: "component"</code>) を入れ子にできる。入れ子は 5 段まで、循環は不可</li>
+</ul>
+<h3 id="22-参照-画面の-layout-に置く部品-type-component">2.2 参照: 画面の <code>layout</code> に置く部品 (<code>type: "component"</code>)</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{ </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"productSearch"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"component"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"componentRef"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"keyword-search"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "args"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"title"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"商品を探す"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"keyword"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"productName"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"searchButton"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"searchButton"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> } }</span></span></code></pre>
+<ul>
+<li><code>componentRef</code>: 定義の <code>id</code>。<code>args</code>: 差し込み口に入れる値</li>
+<li>画面項目の定義は従来どおり画面の <code>items[]</code> に置く。独自部品の中の <code>field</code> / <code>table</code> / <code>button</code> は、<code>args</code> で渡された項目 id を介して <code>items[]</code> を参照する (項目定義の一元化は変わらない)</li>
+<li>置ける場所: 画面の最上位、<code>section</code> / <code>form</code> / <code>search-panel</code> / <code>column</code> / <code>tab</code> の中 (<code>button-bar</code> / <code>columns</code> / <code>tabs</code> の直下は不可)</li>
+</ul>
+<h2 id="3-展開">3. 展開</h2>
+<p>描画・検証・設計書出力のときは、参照部品を定義で展開した通常の部品の木にしてから扱う (<code>expandLayout</code> / <code>expandComponentNode</code>、shared/src/layoutComponents.ts)。</p>
+<ul>
+<li>展開後の部品 ID は <code>&#x3C;参照部品の ID>__&#x3C;定義内の部品 ID></code>。展開後の部品に起きた問題は、画面上の参照部品の問題として報告する</li>
+<li>元の木は書き換えない。展開は決定的で、同じ入力から同じ結果になる</li>
+<li>「展開して通常の部品にする」は、展開結果を画面の部品として直接置き、定義とのつながりを切る (ID は画面内で重ならないよう振り直す)</li>
+</ul>
+<h2 id="4-ui">4. UI</h2>
+<h3 id="41-画面デザイナ-screendesignscreenid">4.1 画面デザイナ (<code>/screen/design/:screenId</code>)</h3>
+<ul>
+<li>左パレット「部品」タブの下に「独自部品」の区画。ドラッグ / クリックで置く。「独自部品の管理…」で管理画面を開く</li>
+<li>キャンバスでは定義を展開して表示する (点線の枠と名前付き)。中の部品は選択・移動できず、参照部品ごと 1 つとして扱う</li>
+<li>右パネル (参照部品を選択): 差し込み口ごとの入力 (文言 = 入力欄 / 画面項目 = 画面項目の選択 / 遷移先 = 画面の選択)、「定義を編集」、「展開して通常の部品にする」</li>
+<li>右パネル (通常の部品を選択): 「独自部品として登録…」。名前・ID・分類・説明と、差し込み口にする箇所 (参照している画面項目は既定で選択、文言・遷移先は任意) を選んで登録する。登録すると元の部品は参照部品に置き換わる</li>
+<li>画面項目の「配置済み」判定には、独自部品の中で <code>args</code> 経由で使われている項目も含める</li>
+</ul>
+<h3 id="42-管理編集-モーダル">4.2 管理・編集 (モーダル)</h3>
+<ul>
+<li>一覧: 名前・ID・差し込み口の数・使用箇所 (画面数 / 部品数)。新規作成 (名前と ID)・編集・削除。使用中の部品は削除前に使用箇所を示して確認する</li>
+<li>編集: 画面デザイナと同じパレット・キャンバス・詳細パネル。差し込み口 (画面項目) はキャンバス上で仮の項目「{{id}}」として扱い、パレットの「項目」から入力欄・一覧・ボタンにドラッグして割り当てる。文言は部品を選んで「差し込み口を使う」から入れる。未選択時の右パネルで差し込み口 (表示名・ID・種類・既定値) と分類・説明を編集する</li>
+<li>保存済みの差し込み口の ID と種類は変えられない (使っている画面の <code>args</code> が参照するため)。追加は自由</li>
+<li>取り消し / やり直し、未保存の変更がある状態で閉じるときの確認あり</li>
+</ul>
+<h3 id="43-保存と同時編集">4.3 保存と同時編集</h3>
+<p>定義は 1 件ずつ保存する (backend が「読む → 差し替える → 書く」を直列に行う)。別の部品の編集を上書きしない。同じ部品を複数人が同時に保存した場合は後勝ち。編集セッション (排他ロック) は使わない。</p>
+<h2 id="5-検証-保存は妨げない-draft-state">5. 検証 (保存は妨げない: draft-state)</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>対象</th><th>コード</th><th>重大度</th></tr></thead><tbody><tr><td>画面</td><td><code>unknown-component</code> 定義が見つからない / <code>component-cycle</code> 循環 / <code>component-depth</code> 入れ子が深い</td><td>error</td></tr><tr><td>画面</td><td><code>missing-arg</code> 差し込み口 (画面項目・遷移先) が未設定 / <code>missing-screen</code> 遷移先の画面が存在しない (画面一覧が分かるとき)</td><td>warning</td></tr><tr><td>画面</td><td><code>invalid-child</code> 参照部品を置けない場所</td><td>error</td></tr><tr><td>定義</td><td><code>duplicate-component</code> ID 重複 / <code>bad-component-id</code> kebab-case でない / <code>duplicate-param</code> 差し込み口の ID が重複・不正 / <code>undeclared-param</code> 未定義の差し込み口を使っている / <code>component-cycle</code> / <code>invalid-child</code></td><td>error</td></tr><tr><td>定義</td><td><code>unused-param</code> 使われていない差し込み口</td><td>warning</td></tr></tbody></table>
+<p>展開後の部品の木には、通常の <code>validateLayout</code> (項目の存在・必須割当・未配置の項目 等) をそのまま適用する。</p>
+<h2 id="6-改名との関係">6. 改名との関係</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>改名するもの</th><th>画面の <code>layout</code></th><th>独自部品の <code>args</code></th></tr></thead><tbody><tr><td>画面項目 ID (<code>designer__rename_screen_item</code> / UI の ID 変更)</td><td>通常の部品の <code>itemRef</code> を更新</td><td>差し込み口の種類が <code>item</code> のものだけ更新 (文言の <code>args</code> は触れない)</td></tr><tr><td>画面 ID (entity rename)</td><td>button / link の <code>props.screenRef</code> を更新</td><td><strong>更新しない</strong> (画面項目 ID・文言と区別できず、誤って書き換えるおそれがあるため)。存在しない遷移先は検証で警告 (<code>missing-screen</code>)</td></tr><tr><td>独自部品 ID</td><td>未対応 (登録後は変えられない)</td><td>—</td></tr></tbody></table>
+<p>定義の中の項目参照は常に <code>{{差し込み口}}</code> なので、画面項目の改名は定義に影響しない。</p>
+<h2 id="7-ai-向け-mcp-ツール">7. AI 向け MCP ツール</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>ツール</th><th>内容</th></tr></thead><tbody><tr><td><code>designer__get_screen_layout</code></td><td>画面の layout / items / 検証結果</td></tr><tr><td><code>designer__set_screen_layout</code></td><td>layout (と任意で items) を保存。検証結果は保存を妨げず返す</td></tr><tr><td><code>designer__list_layout_components</code></td><td>独自部品の定義一覧 (使用箇所・定義の検証結果つき)</td></tr><tr><td><code>designer__save_layout_component</code></td><td>1 件追加 / 置換。定義にエラーがあると保存しない</td></tr><tr><td><code>designer__delete_layout_component</code></td><td>削除。使用中は <code>force: true</code> が必要</td></tr></tbody></table>
+<h2 id="8-設計書コード生成との関係">8. 設計書・コード生成との関係</h2>
+<ul>
+<li>設計書ビュー / HTML 出力は、画面レイアウトを展開して描く。章「独自部品」に定義の一覧・差し込み口・使用箇所を出す (docs/spec/design-document.md)</li>
+<li><code>/generate-code</code> は展開後の部品の木を画面構造の一次情報として読み、独自部品は再利用可能なコンポーネントとして生成する</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

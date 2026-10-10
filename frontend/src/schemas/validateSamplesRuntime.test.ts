@@ -1,13 +1,13 @@
 /**
  * validate-samples.ts runtime 契約整合性チェックのユニットテスト (#714)
  *
- * checkScreenItemsEmbedded / checkDesignFilePresence の 8 ケースを実 filesystem で検証する。
+ * checkScreenItemsEmbedded の各ケースを実 filesystem で検証する。
  */
 import { describe, it, expect, afterAll } from "vitest";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { checkScreenItemsEmbedded, checkDesignFilePresence, runValidation } from "../../scripts/validate-samples";
+import { checkScreenItemsEmbedded, runValidation } from "../../scripts/validate-samples";
 import type { Screen } from "../types/v3/screen";
 
 // ─── テスト用一時ディレクトリ管理 ──────────────────────────────────────────
@@ -79,18 +79,6 @@ describe("checkScreenItemsEmbedded — 正常ケース", () => {
   });
 });
 
-describe("checkDesignFilePresence — 正常ケース", () => {
-  it("design.json 存在 + designFileRef が <id>.design.json 一致 → issue なし", () => {
-    const dir = makeTempProject();
-    const id = "aaaaaaaa-0000-4000-8000-000000000002";
-    writeFileSync(join(dir, "screens", `${id}.design.json`), "{}");
-    const screens = [makeScreen(id, { design: { designFileRef: `${id}.design.json` } })];
-    const project = makeProject(dir, screens);
-    const issues = checkDesignFilePresence(project);
-    expect(issues).toHaveLength(0);
-  });
-});
-
 // ─── Case 2: items 空配列 → EMPTY_SCREEN_ITEMS warning ─────────────────
 
 describe("checkScreenItemsEmbedded — items 空配列", () => {
@@ -147,75 +135,6 @@ describe("checkScreenItemsEmbedded — legacy screen-items/ ディレクトリ",
       expect(i.severity).toBe("error");
       expect(i.validator).toBe("runtimeContractValidator");
     }
-  });
-});
-
-// ─── Case 5: design.json 不在 → MISSING_DESIGN_FILE warning ────────────
-
-describe("checkDesignFilePresence — design.json 不在", () => {
-  it("screens/<id>.design.json が存在しないとき MISSING_DESIGN_FILE warning が 1 件", () => {
-    const dir = makeTempProject();
-    const id = "dddddddd-0000-4000-8000-000000000001";
-    // design.json を作らない
-    const screens = [makeScreen(id)];
-    const project = makeProject(dir, screens);
-    const issues = checkDesignFilePresence(project);
-    expect(issues).toHaveLength(1);
-    expect(issues[0].code).toBe("MISSING_DESIGN_FILE");
-    expect(issues[0].severity).toBe("warning");
-    expect(issues[0].path).toBe(`screens/${id}.json`);
-  });
-});
-
-// ─── Case 6: designFileRef が外部参照 → EXTERNAL_DESIGN_REF error ───────
-
-describe("checkDesignFilePresence — designFileRef が外部参照", () => {
-  it("designFileRef が 'designs/foo.html' のとき EXTERNAL_DESIGN_REF error が 1 件", () => {
-    const dir = makeTempProject();
-    const id = "eeeeeeee-0000-4000-8000-000000000001";
-    writeFileSync(join(dir, "screens", `${id}.design.json`), "{}");
-    const screens = [makeScreen(id, { design: { designFileRef: "designs/foo.html" } })];
-    const project = makeProject(dir, screens);
-    const issues = checkDesignFilePresence(project);
-    const extRefIssues = issues.filter((i) => i.code === "EXTERNAL_DESIGN_REF");
-    expect(extRefIssues).toHaveLength(1);
-    expect(extRefIssues[0].severity).toBe("error");
-    expect(extRefIssues[0].message).toContain("designs/foo.html");
-  });
-});
-
-// ─── Case 7: designFileRef が <id>.design.json 一致 → error なし ─────────
-
-describe("checkDesignFilePresence — designFileRef が basename 一致", () => {
-  it("designFileRef が '<id>.design.json' と一致するとき EXTERNAL_DESIGN_REF は出ない (false positive 防止)", () => {
-    const dir = makeTempProject();
-    const id = "ffffffff-0000-4000-8000-000000000001";
-    writeFileSync(join(dir, "screens", `${id}.design.json`), "{}");
-    // フルパス形式でも basename が一致すれば OK
-    const screens = [makeScreen(id, { design: { designFileRef: `${id}.design.json` } })];
-    const project = makeProject(dir, screens);
-    const issues = checkDesignFilePresence(project);
-    const extRefIssues = issues.filter((i) => i.code === "EXTERNAL_DESIGN_REF");
-    expect(extRefIssues).toHaveLength(0);
-  });
-});
-
-// ─── Case 8: designFileRef 未指定 → EXTERNAL_DESIGN_REF は出ない ─────────
-
-describe("checkDesignFilePresence — designFileRef 未指定", () => {
-  it("designFileRef が未指定のとき EXTERNAL_DESIGN_REF error は出ない", () => {
-    const dir = makeTempProject();
-    const id = "ffffffff-0000-4000-8000-000000000002";
-    writeFileSync(join(dir, "screens", `${id}.design.json`), "{}");
-    // design 自体は設定するが designFileRef は指定しない
-    const screens = [makeScreen(id, { design: {} })];
-    const project = makeProject(dir, screens);
-    const issues = checkDesignFilePresence(project);
-    const extRefIssues = issues.filter((i) => i.code === "EXTERNAL_DESIGN_REF");
-    expect(extRefIssues).toHaveLength(0);
-    // MISSING_DESIGN_FILE は出ない (design.json が存在するため)
-    const missingIssues = issues.filter((i) => i.code === "MISSING_DESIGN_FILE");
-    expect(missingIssues).toHaveLength(0);
   });
 });
 

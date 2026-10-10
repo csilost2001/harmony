@@ -303,7 +303,8 @@
       "type": "integer",
       "direction": "in",
       "description": "AI画像alt生成 button 押下時に対象となる photos[] の id を保持する画面 state。photo クリック時に実装側で update する。",
-      "required": false
+      "required": false,
+      "nonVisual": true
     },
     {
       "id": "uploadPhotoFile",
@@ -444,7 +445,287 @@
       ]
     }
   ],
-  "design": {
-    "designFileRef": "post-edit.design.json"
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "text",
+        "type": "text",
+        "props": {
+          "text": "新しい投稿"
+        }
+      },
+      {
+        "id": "text2",
+        "type": "text",
+        "props": {
+          "text": "下書き保存済み",
+          "tone": "muted"
+        }
+      },
+      {
+        "id": "postTitle",
+        "type": "field",
+        "itemRef": "postTitle"
+      },
+      {
+        "id": "mood",
+        "type": "field",
+        "itemRef": "mood"
+      },
+      {
+        "id": "weather",
+        "type": "field",
+        "itemRef": "weather"
+      },
+      {
+        "id": "location",
+        "type": "field",
+        "itemRef": "location"
+      },
+      {
+        "id": "buttons",
+        "type": "button-bar",
+        "children": [
+          {
+            "id": "button",
+            "type": "button",
+            "props": {
+              "label": "太字",
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "button2",
+            "type": "button",
+            "props": {
+              "label": "斜体",
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "button3",
+            "type": "button",
+            "props": {
+              "label": "見出し",
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "button4",
+            "type": "button",
+            "props": {
+              "label": "リスト",
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "button5",
+            "type": "button",
+            "props": {
+              "label": "引用",
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "button6",
+            "type": "button",
+            "props": {
+              "label": "リンク",
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "button7",
+            "type": "button",
+            "props": {
+              "label": "プレビュー",
+              "variant": "secondary"
+            }
+          }
+        ]
+      },
+      {
+        "id": "postBody",
+        "type": "field",
+        "itemRef": "postBody"
+      },
+      {
+        "id": "photos",
+        "type": "field",
+        "itemRef": "photos"
+      },
+      {
+        "id": "heading",
+        "type": "heading",
+        "props": {
+          "text": "タグ",
+          "level": 3
+        }
+      },
+      {
+        "id": "tagIds",
+        "type": "field",
+        "itemRef": "tagIds"
+      },
+      {
+        "id": "text3",
+        "type": "text",
+        "props": {
+          "text": "AI アシスト",
+          "tone": "muted"
+        }
+      },
+      {
+        "id": "text4",
+        "type": "text",
+        "props": {
+          "text": "4つの機能で執筆をサポート",
+          "tone": "muted"
+        }
+      },
+      {
+        "id": "button8",
+        "type": "button",
+        "props": {
+          "label": "要約を生成 本文から自動要約",
+          "variant": "secondary"
+        }
+      },
+      {
+        "id": "aiSummary",
+        "type": "field",
+        "itemRef": "aiSummary"
+      },
+      {
+        "id": "button9",
+        "type": "button",
+        "props": {
+          "label": "タグ提案 内容から自動提案",
+          "variant": "secondary"
+        }
+      },
+      {
+        "id": "aiSuggestedTags",
+        "type": "field",
+        "itemRef": "aiSuggestedTags"
+      },
+      {
+        "id": "button10",
+        "type": "button",
+        "props": {
+          "label": "文章校正 誤字脱字・表現チェック",
+          "variant": "secondary"
+        }
+      },
+      {
+        "id": "aiProofreadResult",
+        "type": "field",
+        "itemRef": "aiProofreadResult"
+      },
+      {
+        "id": "altButton",
+        "type": "button",
+        "props": {
+          "label": "画像 alt 生成 アクセシビリティ対応",
+          "variant": "secondary"
+        }
+      },
+      {
+        "id": "aiImageAlt",
+        "type": "field",
+        "itemRef": "aiImageAlt"
+      },
+      {
+        "id": "status",
+        "type": "field",
+        "itemRef": "status"
+      },
+      {
+        "id": "buttons2",
+        "type": "button-bar",
+        "children": [
+          {
+            "id": "saveButton",
+            "type": "button",
+            "props": {
+              "label": "下書き保存",
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "button11",
+            "type": "button",
+            "props": {
+              "label": "公開する",
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "uploadPhotoFile",
+            "type": "button",
+            "itemRef": "uploadPhotoFile",
+            "props": {
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "saveButton2",
+            "type": "button",
+            "itemRef": "saveButton",
+            "props": {
+              "variant": "primary"
+            }
+          },
+          {
+            "id": "aiSummarizeButton",
+            "type": "button",
+            "itemRef": "aiSummarizeButton",
+            "props": {
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "aiTagSuggestButton",
+            "type": "button",
+            "itemRef": "aiTagSuggestButton",
+            "props": {
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "aiProofreadButton",
+            "type": "button",
+            "itemRef": "aiProofreadButton",
+            "props": {
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "aiImageAltButton",
+            "type": "button",
+            "itemRef": "aiImageAltButton",
+            "props": {
+              "variant": "secondary"
+            }
+          }
+        ]
+      },
+      {
+        "id": "displaySection",
+        "type": "section",
+        "props": {
+          "title": "表示項目",
+          "variant": "panel"
+        },
+        "children": [
+          {
+            "id": "postId",
+            "type": "field",
+            "itemRef": "postId"
+          }
+        ]
+      }
+    ]
   }
 }

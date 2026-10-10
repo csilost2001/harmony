@@ -3,15 +3,15 @@
   align-items: center;
   gap: 10px;
   padding: 8px 14px;
-  background: #1e2d45;
+  background: var(--hm-surface-2);
   border-bottom: 1px solid #2563eb;
   font-size: 13px;
-  color: #93c5fd;
+  color: color-mix(in srgb, #0f7efb 70%, var(--hm-fg));
   flex-shrink: 0;
 }
 
 .server-change-banner i {
-  color: #f59e0b;
+  color: color-mix(in srgb, #f5a214 70%, var(--hm-fg));
   flex-shrink: 0;
 }
 
@@ -30,7 +30,7 @@
 
 .scb-btn-reload {
   background: #2563eb;
-  color: #fff;
+  color: var(--hm-on-solid);
   border-color: #2563eb;
 }
 
@@ -40,10 +40,10 @@
 
 .scb-btn-dismiss {
   background: transparent;
-  color: #93c5fd;
+  color: color-mix(in srgb, #0f7efb 70%, var(--hm-fg));
   border-color: #2563eb;
 }
 
 .scb-btn-dismiss:hover {
-  background: rgba(37, 99, 235, 0.2);
+  background: color-mix(in srgb, #1f5fea 20%, transparent);
 }

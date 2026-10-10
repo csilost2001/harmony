@@ -139,5 +139,89 @@
       "default": true,
       "description": "セッション Cookie 認証。ログイン状態はサーバ側 Redis セッションで管理する。"
     }
+  },
+  "role": {
+    "staff": {
+      "name": "店員",
+      "description": "店頭の接客・注文受付を行う",
+      "permissions": [
+        "product:view",
+        "order:create",
+        "order:view",
+        "inventory:view"
+      ]
+    },
+    "manager": {
+      "name": "店長",
+      "description": "店員の権限に加え、商品マスタの更新と配送指示を行う",
+      "inherits": [
+        "staff"
+      ],
+      "permissions": [
+        "product:edit",
+        "shipment:dispatch"
+      ]
+    },
+    "admin": {
+      "name": "管理者",
+      "description": "店長の権限に加え、顧客・店舗マスタを管理する",
+      "inherits": [
+        "manager"
+      ],
+      "permissions": [
+        "customer:edit",
+        "store:edit"
+      ]
+    }
+  },
+  "permission": {
+    "product:view": {
+      "resource": "商品",
+      "action": "参照",
+      "scope": "all",
+      "description": "商品の検索・参照"
+    },
+    "product:edit": {
+      "resource": "商品",
+      "action": "登録・更新",
+      "scope": "all",
+      "description": "商品マスタの登録・更新"
+    },
+    "customer:edit": {
+      "resource": "顧客",
+      "action": "登録・更新",
+      "scope": "all",
+      "description": "顧客マスタの登録・更新"
+    },
+    "store:edit": {
+      "resource": "店舗",
+      "action": "登録・更新",
+      "scope": "all",
+      "description": "店舗マスタの登録・更新"
+    },
+    "order:view": {
+      "resource": "注文",
+      "action": "参照",
+      "scope": "all",
+      "description": "注文の一覧・詳細の参照"
+    },
+    "order:create": {
+      "resource": "注文",
+      "action": "登録",
+      "scope": "own",
+      "description": "カートへの追加と注文の確定 (自店舗分)"
+    },
+    "inventory:view": {
+      "resource": "在庫",
+      "action": "参照",
+      "scope": "all",
+      "description": "店舗別の在庫の参照"
+    },
+    "shipment:dispatch": {
+      "resource": "配送",
+      "action": "指示",
+      "scope": "all",
+      "description": "配送の指示 (出荷)"
+    }
   }
 }

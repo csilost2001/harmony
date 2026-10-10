@@ -1,63 +1,58 @@
-# 画面デザイナー
+# 画面デザイナー (業務部品デザイナ)
 
-> **対象画面**: `Designer` (`frontend/src/components/Designer.tsx`、`ResourceLoading` でラップ)
+> **対象画面**: `ScreenLayoutDesigner` (`frontend/src/components/screen-layout/`)
 > **ルート**: `/w/:wsId/screen/design/:screenId`
 > **種別**: マルチインスタンスタブ (リソース ID 毎)
+> **仕様**: [screen-layout.md](../../spec/screen-layout.md) / [layout-components.md](../../spec/layout-components.md)
 
 ## 概要
 
-Screen の **ビジュアル編集** を行う画面。GrapesJS (デフォルト) または Puck の 2 エディタを使い分け、画面の HTML 構造 + Bootstrap / Tailwind スタイルを WYSIWYG で組み立てる。60+ pre-built block (`frontend/src/grapes/blocks.ts`) + プロジェクト固有のカスタムブロックを使える。
+画面を「入力フォーム」「検索条件」「一覧表」「ボタン群」などの **業務部品** の組み合わせとして設計する画面。部品はドラッグ & ドロップで置き、画面項目 (型・桁数・必須など) の定義は右のパネルで直接編集する。
+画面項目の定義は 1 か所 (画面項目) にだけあり、部品は項目を参照するだけなので、HTML と項目定義の二重管理はない。
+旧エディタ (GrapesJS / Puck) は廃止した。旧形式の画面は、この画面の開始画面から「旧デザインから自動変換」できる。
 
 ## 到達経路
 
 - 画面一覧 (`/screen/list`) → カード / 行 ダブルクリック
-- 画面フロー (`/screen/flow`) → node ダブルクリック
+- 画面フロー (`/screen/flow`) → ノードをダブルクリック
 - 直接 URL: `/w/<wsId>/screen/design/<screenId>`
 
 ## 画面構成
 
-![画面デザイナー](../../ui-screenshots/ui-reference/screen-designer/01-default.png)
-
-### 主要エリア
-
-1. **EditorHeader** — Screen 名 / 編集モード切替 / 保存 / id 変更 / theme 切替 / Puck⇔GrapesJS 切替
-2. **左サイドバー (Block Manager)** — Bootstrap / 業務 / カスタムブロックのパレット
-3. **中央 Canvas** (iframe) — WYSIWYG プレビュー、ドラッグ&ドロップで配置
-4. **右サイドバー (Style Manager / Settings)** — 選択中要素の CSS / 属性 / コンポーネント設定
-5. **下部 Layer Tree** — 配置済要素の階層構造、選択 / 再順序
+| エリア | 内容 |
+|---|---|
+| 上部ツールバー | 編集開始 / 保存 / 破棄、表示幅 (PC / タブレット / スマホ)、密度、設計情報 (項目 ID・型・桁) の表示切替、取り消し / やり直し |
+| 左パネル「部品」 | 標準の部品 (区画・入力フォーム・検索条件・段組・タブ・ボタン群・見出し・文章・項目・一覧表・ボタン・リンク ほか) と、**独自部品** (このプロジェクト専用の部品)。「独自部品の管理…」で管理画面を開く |
+| 左パネル「項目」 | まだ画面に置いていない画面項目 (ドラッグかクリックで置く)。「未配置の項目を自動で配置」も使える。画面に表示しない項目 (内部状態・隠し値) は別の一覧に並ぶ |
+| 左パネル「テーブル」 | テーブルの列をドラッグすると、型・桁数・必須を引き継いだ入力項目を作って置く |
+| 左パネル「構成」 | 部品の入れ子 (クリックで選択) |
+| 中央 | 紙面プレビュー。設計対象アプリの見本として、アプリのテーマに関係なく明色で描く |
+| 右パネル | 選択した部品の属性と、参照する画面項目の定義。何も選んでいないときは画面全体の検証結果 (要確認) |
 
 ## 主要操作
 
-| 操作 | 手段 | 結果 |
-|---|---|---|
-| Block 配置 | 左パレット → Canvas にドラッグ | 要素挿入、autosave で workspace の `screens/{id}.design.json` に永続化 |
-| 要素選択 | Canvas または Layer Tree でクリック | 右サイドバーが該当要素の設定に切替 |
-| スタイル変更 | 右 Style Manager で CSS 編集 | inline style として書込み |
-| theme 切替 | EditorHeader → Theme dropdown | standard / card / compact / dark の CSS 切替 |
-| editor 切替 | EditorHeader → editorKind dropdown | GrapesJS ⇔ Puck (同 Screen を両エディタで開ける、選択値が project default 上書き) |
-| マーカー追加 | Canvas 上で右クリック → 「マーカー」 | `/designer-work` で AI 指示として処理可 |
-| カスタムブロック保存 | 左パレット → 選択要素を「Block にコピー」 | `custom-blocks.json` に保存、再利用可 |
-| 保存 | `Ctrl+S` or autosave | edit-session 経由でサーバ反映 |
+| 操作 | 方法 |
+|---|---|
+| 編集を始める | 上部の「編集開始」 (開いただけでは原本は変わらない) |
+| 部品を置く | 左パネルからドラッグ、またはクリックで選択中の部品の後ろに追加 |
+| 部品を動かす / 複製 / 削除 | ドラッグ / Alt+↑↓ / Ctrl+D / Delete |
+| 保存 / 取り消し | Ctrl+S / Ctrl+Z・Ctrl+Y |
+| 項目を作る | 「項目」「一覧表」を置く、またはテーブル列をドラッグ |
+| 画面に表示しない項目にする | 部品を選び、右パネルの「画面に表示しない」にチェック (未配置の警告・自動配置の対象外になる) |
 
-## データ前提
+## 独自部品
 
-- **空画面**: Canvas が真っ白、左の Block Manager から要素をドラッグして組み立て
-- **意味のある画面**: retail の `cart` 等は Bootstrap ベースの商品カート画面が既に配置されている
+プロジェクトの中で繰り返し使う部品の組に名前を付けて登録すると、どの画面にも 1 つの部品として置ける。JSON を手で書く必要はない。
 
-## 関連仕様書
+1. 登録したい部品 (と中の部品) を選び、右パネルの「独自部品として登録…」を押す
+2. 名前・部品 ID と、画面ごとに変えたい箇所 (画面項目・文言・遷移先) を「差し込み口」として選ぶ
+3. 登録すると、選んだ部品は独自部品への参照に置き換わる。他の画面でも左パネルの「独自部品」から置ける
+4. 置いた独自部品を選ぶと、右パネルで差し込み口の値 (どの画面項目を使うか、文言、遷移先) を設定できる。「定義を編集」で定義を直すと、使っているすべての画面に反映される。「展開して通常の部品にする」で定義とのつながりを切れる
 
-- [`docs/spec/multi-editor-puck.md`](../../spec/multi-editor-puck.md) — Puck/GrapesJS 共存仕様 (#806)
-- [`docs/user-guide/multi-editor-puck-guide.md`](../multi-editor-puck-guide.md) — Puck/GrapesJS 使い分けガイド
-- [`docs/spec/css-framework-switching.md`](../../spec/css-framework-switching.md) — Bootstrap/Tailwind 切替
+「独自部品の管理…」では、一覧 (使っている画面の数つき)・新規作成・編集・削除ができる。使用中の部品は、使っている画面を示したうえで確認してから削除する。
 
-## 関連 skill
+## 関連画面
 
-- `/designer-work <processFlowId>` — マーカー (Canvas 上の指示書き) を Claude Code が読んで処理フローを編集
-- `/rename-screen-ids` — Canvas 内 input/button の自動採番 id を業務名にリネーム
-
-## 既知の制約・注意
-
-- **iframe Canvas は a11y tree に出ない** — 本マニュアルの screenshot だけでは内部要素を読めない、実機で操作必須
-- WebSocket 切断時は **localStorage fallback** (`gjs-screen-{id}`)、復帰後 sync (`docs/spec/workspace.md` 参照)
-- GrapesJS / Puck の切替時は **未保存変更があると確認ダイアログ**
-- `purpose='gadget'` のガジェット編集も同 Designer を使う (viewport だけ小さくなる)
+- [画面項目](screen-items.md) — 画面項目を表形式で一覧・編集
+- [画面一覧](screen-list.md)
+- 設計書ビュー (ヘッダーメニュー「設計書」) — 画面のレイアウトを紙面で確認・HTML 出力

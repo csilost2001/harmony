@@ -193,6 +193,10 @@ async function saveAndWait(page: import("@playwright/test").Page): Promise<void>
 // ── TestWorkspace セットアップ ─────────────────────────────────────────────
 
 const WS_KEY = "issue-932-table-edit";
+/** テストごとに別のワークスペースを使う (同じフォルダの削除・再作成が前テストの後処理と競合し、
+ *  空のワークスペースを読む flake があったため)。後片付け用に使ったキーを控える */
+const usedKeys: string[] = [];
+let keySeq = 0;
 let mcpAvailable = false;
 let ws: OpenedWorkspace;
 
@@ -204,15 +208,17 @@ test.describe("テーブル編集 — column CRUD / 型変更 / PK / FK / index"
   });
 
   test.afterAll(async () => {
-    if (mcpAvailable) await cleanupRealWorkspaces([WS_KEY]);
+    if (mcpAvailable) await cleanupRealWorkspaces(usedKeys);
   });
 
   test.beforeEach(async ({ page }) => {
     test.skip(!mcpAvailable, "backend (port 5179) が起動していません");
     // 各 CRUD は同一 baseline を前提に検証する。canonical data と保存済み
     // edit-session を再 seed し、前 test の save/conflict を持ち込まない。
+    const key = `${WS_KEY}-${++keySeq}`;
+    usedKeys.push(key);
     ws = await setupTestWorkspace({
-      key: WS_KEY,
+      key,
       project: dummyProject,
       tables: [customersTable, ordersTable] as Parameters<typeof setupTestWorkspace>[0]["tables"],
       viewDefinitions: [ordersViewDefinition] as Parameters<typeof setupTestWorkspace>[0]["viewDefinitions"],

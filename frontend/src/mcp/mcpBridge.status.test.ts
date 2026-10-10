@@ -150,35 +150,4 @@ describe("McpStatus 状態遷移ロジック (#795-C)", () => {
     expect(bridge.getConnectAttempts()).toBe(countAfterFirst);
     expect(bridge.getStatus()).toBe("connecting");
   });
-
-  it("connecting 中に start(editor) を再呼び出ししても connectAttempts は増えない", async () => {
-    const bridge = await getFreshBridge();
-    const editor = {} as Parameters<typeof bridge.start>[0];
-
-    bridge.start(editor);
-    const countAfterFirst = bridge.getConnectAttempts();
-
-    bridge.start({} as Parameters<typeof bridge.start>[0]);
-
-    expect(bridge.getConnectAttempts()).toBe(countAfterFirst);
-    expect(FakeWebSocket.instances).toHaveLength(1);
-    expect(bridge.getStatus()).toBe("connecting");
-  });
-
-  it("open 済みの start(editor) 再呼び出しでも connectAttempts は増えない", async () => {
-    const bridge = await getFreshBridge();
-    const editor = {} as Parameters<typeof bridge.start>[0];
-
-    bridge.start(editor);
-    const ws = FakeWebSocket.instances[0];
-    ws.readyState = FakeWebSocket.OPEN;
-    ws.dispatchEvent(new Event("open"));
-    const countAfterOpen = bridge.getConnectAttempts();
-
-    bridge.start({} as Parameters<typeof bridge.start>[0]);
-
-    expect(bridge.getConnectAttempts()).toBe(countAfterOpen);
-    expect(FakeWebSocket.instances).toHaveLength(1);
-    expect(bridge.getStatus()).toBe("connected");
-  });
 });

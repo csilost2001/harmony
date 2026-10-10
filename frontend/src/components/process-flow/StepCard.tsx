@@ -242,7 +242,7 @@ export function StepCard({
                 alignItems: "center",
                 gap: 2,
                 padding: "0 4px",
-                color: "#64748b",
+                color: "var(--hm-fg-muted)",
                 fontSize: 11,
                 flexShrink: 0,
               }}
@@ -299,7 +299,7 @@ export function StepCard({
               className="btn btn-link p-0"
               title={`runIf: ${step.runIf} (クリックで編集)`}
               onClick={(e) => { e.stopPropagation(); setExpanded(true); }}
-              style={{ color: "#3b82f6", fontSize: 11, flexShrink: 0, lineHeight: 1 }}
+              style={{ color: "color-mix(in srgb, #156af4 80%, var(--hm-fg))", fontSize: 11, flexShrink: 0, lineHeight: 1 }}
             >
               <i className="bi bi-funnel" />
             </button>
@@ -310,7 +310,7 @@ export function StepCard({
               className="btn btn-link p-0"
               title={`Saga 補償 → ${step.compensatesFor} (クリックで編集)`}
               onClick={(e) => { e.stopPropagation(); setExpanded(true); }}
-              style={{ color: "#ef4444", fontSize: 11, flexShrink: 0, lineHeight: 1 }}
+              style={{ color: "color-mix(in srgb, #ec1d1d 80%, var(--hm-fg))", fontSize: 11, flexShrink: 0, lineHeight: 1 }}
             >
               <i className="bi bi-arrow-counterclockwise" />
             </button>
@@ -321,7 +321,7 @@ export function StepCard({
               className="btn btn-link p-0"
               title={`chain: ${step.externalChain.chainId} (${step.externalChain.phase}) (クリックで編集)`}
               onClick={(e) => { e.stopPropagation(); setExpanded(true); }}
-              style={{ color: "#f97316", fontSize: 11, flexShrink: 0, lineHeight: 1 }}
+              style={{ color: "color-mix(in srgb, #f97010 80%, var(--hm-fg))", fontSize: 11, flexShrink: 0, lineHeight: 1 }}
             >
               <i className="bi bi-link-45deg" />
             </button>
@@ -332,7 +332,7 @@ export function StepCard({
               className="btn btn-link p-0"
               title={`行数チェック: ${step.affectedRowsCheck.operator}${step.affectedRowsCheck.expected} → ${step.affectedRowsCheck.onViolation} (クリックで編集)`}
               onClick={(e) => { e.stopPropagation(); setExpanded(true); }}
-              style={{ color: "#14b8a6", fontSize: 11, flexShrink: 0, lineHeight: 1 }}
+              style={{ color: "color-mix(in srgb, #22e7d1 80%, var(--hm-fg))", fontSize: 11, flexShrink: 0, lineHeight: 1 }}
             >
               <i className="bi bi-shield-check" />
             </button>
@@ -343,13 +343,13 @@ export function StepCard({
               className="btn btn-link p-0"
               title={`outcomes: ${Object.keys(step.errorHandling?.outcomes).join(", ")} (クリックで編集)`}
               onClick={(e) => { e.stopPropagation(); setExpanded(true); }}
-              style={{ color: "#0ea5e9", fontSize: 11, flexShrink: 0, lineHeight: 1 }}
+              style={{ color: "color-mix(in srgb, #18aef1 80%, var(--hm-fg))", fontSize: 11, flexShrink: 0, lineHeight: 1 }}
             >
               <i className="bi bi-diagram-3" />
             </button>
           )}
           {step.kind === "externalSystem" && !isExtensionStep(step) && step.fireAndForget && (
-            <span title="fire-and-forget" style={{ color: "#eab308", fontSize: 11, flexShrink: 0 }}>
+            <span title="fire-and-forget" style={{ color: "color-mix(in srgb, #f7bf12 80%, var(--hm-fg))", fontSize: 11, flexShrink: 0 }}>
               <i className="bi bi-fire" />
             </span>
           )}
@@ -358,8 +358,8 @@ export function StepCard({
               className="badge"
               title={step.pattern}
               style={{
-                background: "#ccfbf1",
-                color: "#0f766e",
+                background: "color-mix(in srgb, #1cedc1 10%, var(--hm-surface))",
+                color: "color-mix(in srgb, #26e3d5 80%, var(--hm-fg))",
                 fontSize: 11,
                 flexShrink: 0,
               }}

@@ -5,13 +5,13 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #f8f9fa;
+  background: var(--hm-surface-2);
 }
 
 .conventions-meta-bar {
   padding: 6px 14px;
-  background: #fff;
-  border-bottom: 1px solid #e2e8f0;
+  background: var(--hm-surface);
+  border-bottom: 1px solid var(--hm-border);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -33,8 +33,8 @@
 }
 
 .conventions-tabs-area {
-  background: #fff;
-  border-bottom: 2px solid #e2e8f0;
+  background: var(--hm-surface);
+  border-bottom: 2px solid var(--hm-border);
 }
 
 .conventions-tab-group {
@@ -47,7 +47,7 @@
 .conventions-tab-group-label {
   font-size: 0.68rem;
   font-weight: 700;
-  color: #94a3b8;
+  color: var(--hm-fg-faint);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   white-space: nowrap;
@@ -67,7 +67,7 @@
   padding: 8px 16px;
   font-size: 0.85rem;
   font-weight: 500;
-  color: #64748b;
+  color: var(--hm-fg-muted);
   border: none;
   background: none;
   cursor: pointer;
@@ -80,18 +80,18 @@
 }
 
 .conventions-category-tab:hover {
-  color: #334155;
+  color: var(--hm-fg-2);
 }
 
 .conventions-category-tab.active {
-  color: #6366f1;
+  color: color-mix(in srgb, #1e23eb 80%, var(--hm-fg));
   border-bottom-color: #6366f1;
   font-weight: 600;
 }
 
 .conventions-category-count {
-  background: #e2e8f0;
-  color: #475569;
+  background: var(--hm-surface-3);
+  color: var(--hm-fg-2);
   font-size: 0.7rem;
   padding: 0 6px;
   border-radius: 999px;
@@ -101,7 +101,7 @@
 
 .conventions-category-tab.active .conventions-category-count {
   background: #6366f1;
-  color: #fff;
+  color: var(--hm-on-solid);
 }
 
 .conventions-category-content {
@@ -111,14 +111,14 @@
 }
 
 .conventions-entries {
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: var(--hm-surface);
+  border: 1px solid var(--hm-border);
   border-radius: 6px;
   padding: 8px;
 }
 
 .conventions-empty {
-  color: #94a3b8;
+  color: var(--hm-fg-faint);
   padding: 16px;
   text-align: center;
   font-style: italic;
@@ -135,9 +135,9 @@
 .conventions-table thead th {
   font-size: 0.72rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--hm-fg-muted);
   padding: 4px 6px;
-  border-bottom: 1px solid #cbd5e1;
+  border-bottom: 1px solid var(--hm-border-strong);
   text-align: left;
   background: transparent;
 }
@@ -145,7 +145,7 @@
 .conventions-table tbody td {
   padding: 3px 6px;
   vertical-align: middle;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--hm-border);
 }
 
 .conventions-table tbody tr:last-child td {
@@ -169,8 +169,8 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.78rem;
   font-weight: 600;
-  color: #1e40af;
-  background: #dbeafe;
+  color: color-mix(in srgb, #2e57db 80%, var(--hm-fg));
+  background: var(--hm-surface-3);
   padding: 2px 8px;
   border-radius: 4px;
   display: inline-block;
@@ -186,7 +186,7 @@
   align-items: center;
   margin-top: 8px;
   padding: 6px 0;
-  border-top: 1px dashed #e2e8f0;
+  border-top: 1px dashed var(--hm-border);
 }
 
 .conventions-new-key-input {
@@ -214,7 +214,7 @@
 .conventions-row-issues td {
   padding-top: 0;
   padding-bottom: 4px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--hm-border);
 }
 
 .conventions-issue-list {
@@ -228,13 +228,13 @@
 
 .conventions-issue {
   font-size: 0.75rem;
-  color: #b91c1c;
+  color: color-mix(in srgb, #df2a2a 80%, var(--hm-fg));
   display: inline-flex;
   align-items: center;
   gap: 4px;
 }
 
 .conventions-issue .bi {
-  color: #dc2626;
+  color: color-mix(in srgb, #dd2c2c 80%, var(--hm-fg));
   font-size: 0.85rem;
 }

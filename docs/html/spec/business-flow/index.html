@@ -1,0 +1,261 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="../../favicon.svg" type="image/svg+xml"><title>business flow</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="../../_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="../../_astro/_slug_.XtJAgJeQ.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="../../" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="../../spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="../../user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="../../conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="../../setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="../../presentation/" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="../../spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="../../spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="../../spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="../../spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="../../spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="../../spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="../../spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="../../spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="../../spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="../../spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="../../spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="../../spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="../../spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="../../spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="../../spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="../../spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="../../spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="../../spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="../../spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="../../spec/spec-package/" class="sidebar-link"> @harmony/spec package </a> </li><li> <a href="../../spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="../../spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="../../spec/design-payload-storage/" class="sidebar-link"> Design payload storage </a> </li><li> <a href="../../spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="../../spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="../../spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="../../spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="../../spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="../../spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="../../spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="../../spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="../../spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="../../spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="../../spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="../../spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="../../spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="../../spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="../../spec/react-exporter/" class="sidebar-link"> React Exporter (designer__export_screen) </a> </li><li> <a href="../../spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="../../spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="../../spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="../../spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="../../spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="../../spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="../../spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="../../spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="../../spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="../../spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="../../spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="../../spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="../../spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="../../spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="../../spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="../../spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="../../spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="../../spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="業務フロー-スイムレーン--仕様書">業務フロー (スイムレーン) — 仕様書</h1>
+<p><strong>Status</strong>: 実装済 (2026-10、再設計 段階 4)
+<strong>関連</strong>: <a href="https://github.com/csilost2001/harmony/blob/main/docs/plans/redesign-2026-10.md">docs/plans/redesign-2026-10.md</a> / <a href="../../spec/design-document/">design-document.md</a> / <a href="../../spec/layout-components/">layout-components.md</a></p>
+<h2 id="1-目的">1. 目的</h2>
+<p>画面・処理フローより上の「業務の流れ」を、誰 (部門・役割・システム) が何をするかをレーン (スイムレーン) に分けて表す。要件定義〜基本設計の入口で、業務担当者と開発者が同じ図を見て合意するための設計書にする。</p>
+<ul>
+<li>業務フローの工程から、実際の画面と処理フローへたどれる (どの工程がどの画面・処理で実現されるか)</li>
+<li>図は<strong>原本のデータから自動で配置</strong>する (座標を持たない)。設計者は工程・レーン・つながりだけを編集し、見た目の整列は規則で決まる</li>
+<li>設計書 (HTML) の章にも同じ図を出す</li>
+</ul>
+<h2 id="2-原本">2. 原本</h2>
+<p><code>&#x3C;dataDir>/business-flows/&#x3C;id>.json</code> (1 業務フローにつき 1 ファイル)。スキーマは <a href="../../schemas/v3/business-flow.v3.schema.json"><code>schemas/v3/business-flow.v3.schema.json</code></a>。<code>harmony.json</code> への登録は不要 (ディレクトリにあるものを一覧する)。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="jsonc"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "$schema"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"../../../../schemas/v3/business-flow.v3.schema.json"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "version"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">1</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"order-to-shipment"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,          </span><span style="color:#6A737D;--shiki-dark:#768390">// kebab-case。ファイル名と一致</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"注文から出荷まで"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"…"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "maturity"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"draft"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,                </span><span style="color:#6A737D;--shiki-dark:#768390">// draft / provisional / committed (任意)</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "lanes"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"customer"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"顧客"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"external"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"store"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"店舗"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"person"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"roleRef"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"staff"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"system"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"リテールシステム"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"system"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "steps"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"start"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"lane"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"customer"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"start"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"注文したい"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"next"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [{ </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"to"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"search"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }] },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"search"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"lane"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"store"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"task"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"商品を探す"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"screenRef"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"product-search"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"next"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [{ </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"to"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"stock"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }] },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"stock"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"lane"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"store"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"decision"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"在庫あり?"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"next"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [{ </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"to"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"order"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"label"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"あり"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }, { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"to"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"end"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"label"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"なし"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }] }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h3 id="21-レーン">2.1 レーン</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>項目</th><th>内容</th></tr></thead><tbody><tr><td><code>id</code></td><td>レーン ID (camelCase。フロー内で一意)</td></tr><tr><td><code>name</code></td><td>表示名 (部門名・役割名・システム名)</td></tr><tr><td><code>kind</code></td><td><code>person</code> (人・部門) / <code>system</code> (システム) / <code>external</code> (外部の関係者・外部システム)。図の見た目と一覧の区別に使う。省略時は <code>person</code></td></tr><tr><td><code>roleRef</code></td><td>規約の役割 (<code>@conv.role.&#x3C;key></code> のキー)。権限の章とつなげる (任意)</td></tr></tbody></table>
+<p>レーンは配列の順に上から並ぶ。</p>
+<h3 id="22-工程">2.2 工程</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>項目</th><th>内容</th></tr></thead><tbody><tr><td><code>id</code></td><td>工程 ID (camelCase。フロー内で一意)</td></tr><tr><td><code>lane</code></td><td>実施するレーンの ID</td></tr><tr><td><code>kind</code></td><td><code>start</code> 開始 / <code>task</code> 作業 / <code>decision</code> 判断 / <code>end</code> 終了</td></tr><tr><td><code>name</code></td><td>工程名 (図に出す短い名前)</td></tr><tr><td><code>description</code></td><td>工程の説明 (任意。設計書に出す)</td></tr><tr><td><code>screenRef</code></td><td>実現する画面の ID (任意)</td></tr><tr><td><code>processFlowRef</code></td><td>実現する処理フローの ID (任意)</td></tr><tr><td><code>next</code></td><td>次の工程 <code>[{ to, label? }]</code>。判断では分岐の条件を <code>label</code> に書く</td></tr></tbody></table>
+<h2 id="3-図の自動配置">3. 図の自動配置</h2>
+<p><code>shared/src/businessFlow.ts</code> の <code>layoutBusinessFlow</code> が決定的に配置する (同じ入力から同じ図)。</p>
+<ol>
+<li>開始工程 (なければ他の工程から入ってこない工程) を列 0 とし、<code>next</code> をたどって<strong>最長経路の深さ</strong>を列とする。戻る線 (ループ) は深さの計算から除く</li>
+<li>開始から到達できない工程は、最後の列のあとに並べる (要確認に出す)</li>
+<li>行は工程の <code>lane</code> で決まる。同じレーン・同じ列に複数の工程があるときはレーン内で縦に積む (レーンの高さが伸びる)</li>
+<li>線は直角に折れる線。戻る線は工程の下を回して描く。分岐の <code>label</code> は線の始点の近くに置く</li>
+</ol>
+<p>図の出力は SVG 文字列 (<code>businessFlowToSvg</code>)。アプリの編集画面と設計書で同じ関数を使う。</p>
+<h2 id="4-検証">4. 検証</h2>
+<p>保存は妨げず、要確認として表示する (draft-state の方針)。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>コード</th><th>重大度</th><th>内容</th></tr></thead><tbody><tr><td><code>duplicate-id</code></td><td>error</td><td>工程 ID / レーン ID が重複</td></tr><tr><td><code>unknown-lane</code></td><td>error</td><td>工程の <code>lane</code> が存在しない</td></tr><tr><td><code>dangling-next</code></td><td>error</td><td><code>next.to</code> の工程が存在しない</td></tr><tr><td><code>no-start</code></td><td>warning</td><td>開始工程がない</td></tr><tr><td><code>no-end</code></td><td>warning</td><td>終了工程がない</td></tr><tr><td><code>unreachable</code></td><td>warning</td><td>開始から到達できない工程</td></tr><tr><td><code>dead-end</code></td><td>warning</td><td>終了でない工程に次の工程がない</td></tr><tr><td><code>end-with-next</code></td><td>warning</td><td>終了工程に次の工程がある</td></tr><tr><td><code>decision-branches</code></td><td>warning</td><td>判断の分岐が 2 つ未満</td></tr><tr><td><code>decision-unlabeled</code></td><td>info</td><td>判断の分岐に条件 (<code>label</code>) がない</td></tr><tr><td><code>unknown-screen</code> / <code>unknown-flow</code> / <code>unknown-role</code></td><td>warning</td><td>参照先の画面・処理フロー・役割が存在しない</td></tr></tbody></table>
+<h2 id="5-操作-ui">5. 操作 (UI)</h2>
+<ul>
+<li>ヘッダーメニュー「業務フロー」→ 一覧 (<code>/business-flow/list</code>)。新規作成・複製・削除ができる</li>
+<li>編集 (<code>/business-flow/edit/:id</code>): 左にレーンと工程の一覧、中央に図、右に選んだ工程の設定
+<ul>
+<li>図の工程をクリックで選択。「次の工程を追加」で同じレーンに新しい工程を作ってつなぐ</li>
+<li>工程の設定: 名前・種類・レーン・説明・画面・処理フロー・次の工程 (条件つき)</li>
+<li>保存は明示的に行う (「保存」)。開いただけでは原本を書き換えない</li>
+</ul>
+</li>
+<li>要確認 (検証結果) を図の下に表示する</li>
+</ul>
+<h2 id="6-ai-mcp-から">6. AI (MCP) から</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>ツール</th><th>内容</th></tr></thead><tbody><tr><td><code>designer__list_business_flows</code></td><td>業務フローの一覧 (id / 名前 / 工程数)</td></tr><tr><td><code>designer__get_business_flow</code></td><td>1 件の原本 + 検証結果</td></tr><tr><td><code>designer__save_business_flow</code></td><td>1 件の保存 (スキーマ検証 + 検証結果を返す)</td></tr><tr><td><code>designer__delete_business_flow</code></td><td>1 件の削除</td></tr></tbody></table>
+<h2 id="7-関連の追従">7. 関連の追従</h2>
+<p>画面・処理フローの ID を改名すると、工程の <code>screenRef</code> / <code>processFlowRef</code> も追従する。</p>
+<h2 id="8-設計書">8. 設計書</h2>
+<p>「業務フロー」の章 (定義があるときだけ) に、フローごとの図・工程表 (工程 / レーン / 種類 / 画面 / 処理 / 次の工程) を出す。工程から画面・処理の節へリンクする。</p>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

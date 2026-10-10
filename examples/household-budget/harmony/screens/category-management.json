@@ -28,8 +28,60 @@
       }
     }
   ],
-  "design": {
-    "editorKind": "puck",
-    "cssFramework": "tailwind"
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "link",
+        "type": "link",
+        "props": {
+          "label": "←",
+          "screenRef": "dashboard"
+        }
+      },
+      {
+        "id": "heading",
+        "type": "heading",
+        "props": {
+          "text": "カテゴリ",
+          "level": 1
+        }
+      },
+      {
+        "id": "button",
+        "type": "button",
+        "props": {
+          "label": "＋",
+          "variant": "secondary"
+        }
+      },
+      {
+        "id": "buttons",
+        "type": "button-bar",
+        "children": [
+          {
+            "id": "button2",
+            "type": "button",
+            "props": {
+              "label": "支出 (8)",
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "button3",
+            "type": "button",
+            "props": {
+              "label": "収入 (4)",
+              "variant": "secondary"
+            }
+          }
+        ]
+      },
+      {
+        "id": "categoryRows",
+        "type": "table",
+        "itemRef": "categoryRows"
+      }
+    ]
   }
 }

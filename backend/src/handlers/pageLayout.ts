@@ -40,8 +40,8 @@ export const handlePageLayoutTool: ToolHandler = async (name, args, root) => {
     }
 
     case "designer__add_page_layout": {
-      if (typeof a.name !== "string" || typeof a.editorKind !== "string" || typeof a.cssFramework !== "string") {
-        throw new McpError(ErrorCode.InvalidParams, "name, editorKind, cssFramework は必須です");
+      if (typeof a.name !== "string") {
+        throw new McpError(ErrorCode.InvalidParams, "name は必須です");
       }
       // #1294 I-2: id は kebab-case EntityId (RFC #1284)、uuid は別途 randomUUID で採番
       // 暫定採番形式 (I-5 で UI 創成ダイアログから人間入力 / AI 提案に置き換え)
@@ -63,7 +63,6 @@ export const handlePageLayoutTool: ToolHandler = async (name, args, root) => {
           { name: "main" },
         ],
         assignments: {},
-        design: { editorKind: a.editorKind, cssFramework: a.cssFramework },
       };
       await writePageLayout(id, def, root);
       // harmony.json の entities.pageLayouts[] 更新
@@ -110,8 +109,7 @@ export const handlePageLayoutTool: ToolHandler = async (name, args, root) => {
       const idx = pageLayouts.findIndex((p) => p.id === a.pageLayoutId);
       const regions = (def.regions ?? []) as unknown[];
       const assignments = (def.assignments ?? {}) as Record<string, unknown>;
-      const design = (def.design ?? {}) as Record<string, unknown>;
-      // RFC #1021 pl-6 (Codex D-4): EntryBase の `no` を既存値から維持、hasDesign は designFileRef/puckDataRef 実体の有無で判定
+      // RFC #1021 pl-6 (Codex D-4): EntryBase の `no` を既存値から維持、hasDesign は region に gadget を割り当てているか
       const existingNo = idx >= 0 ? pageLayouts[idx].no : pageLayouts.length + 1;
       const meta = {
         id: a.pageLayoutId,
@@ -122,7 +120,7 @@ export const handlePageLayoutTool: ToolHandler = async (name, args, root) => {
         regionCount: regions.length,
         assignmentCount: Object.keys(assignments).length,
         hasProcessFlow: Boolean(def.processFlowId),
-        hasDesign: Boolean(design.designFileRef ?? design.puckDataRef),
+        hasDesign: Object.keys((def.assignments ?? {}) as Record<string, unknown>).length > 0,
       };
       if (idx >= 0) pageLayouts[idx] = meta; else pageLayouts.push(meta);
       entities.pageLayouts = pageLayouts;

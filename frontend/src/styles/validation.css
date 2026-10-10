@@ -9,15 +9,15 @@
 }
 
 .validation-badge.error {
-  background: #fef2f2;
-  color: #dc2626;
-  border: 1px solid #fecaca;
+  background: var(--hm-surface-2);
+  color: color-mix(in srgb, #dd2c2c 80%, var(--hm-fg));
+  border: 1px solid color-mix(in srgb, #fa0f0f 38%, var(--hm-surface));
 }
 
 .validation-badge.warning {
-  background: #fffbeb;
-  color: #d97706;
-  border: 1px solid #fde68a;
+  background: var(--hm-surface-2);
+  color: color-mix(in srgb, #f88d11 80%, var(--hm-fg));
+  border: 1px solid color-mix(in srgb, #fbcc0e 38%, var(--hm-surface));
 }
 
 .validation-badge.clickable {
@@ -26,14 +26,14 @@
 }
 
 .validation-badge.clickable:hover {
-  background: #fef3c7;
+  background: color-mix(in srgb, #fbcb0e 9%, var(--hm-surface));
 }
 
 .process-flow-data-list .data-list-card:has(.process-flow-card-content.has-error),
 .views-data-list .data-list-card:has(.seq-card-content.has-error),
 .tables-data-list .data-list-card:has(.table-card-content.has-error) {
-  background: #fff5f5;
-  border-color: #fecaca;
+  background: var(--hm-surface-2);
+  border-color: color-mix(in srgb, #fa0f0f 38%, var(--hm-surface));
 }
 
 .process-flow-data-list .data-list-card:has(.process-flow-card-content.has-error):hover,
@@ -45,14 +45,14 @@
 .process-flow-data-list .data-list-card:has(.process-flow-card-content.has-warning:not(.has-error)),
 .views-data-list .data-list-card:has(.seq-card-content.has-warning:not(.has-error)),
 .tables-data-list .data-list-card:has(.table-card-content.has-warning:not(.has-error)) {
-  background: #fffbeb;
-  border-color: #fde68a;
+  background: var(--hm-surface-2);
+  border-color: color-mix(in srgb, #fbcc0e 38%, var(--hm-surface));
 }
 
 .process-flow-data-list .data-list-card:has(.process-flow-card-content.has-warning:not(.has-error)):hover,
 .views-data-list .data-list-card:has(.seq-card-content.has-warning:not(.has-error)):hover,
 .tables-data-list .data-list-card:has(.table-card-content.has-warning:not(.has-error)):hover {
-  border-color: #fbbf24;
+  border-color: color-mix(in srgb, #fbb90f 38%, var(--hm-surface));
 }
 
 .step-card.has-error {

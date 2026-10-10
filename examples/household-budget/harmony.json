@@ -58,7 +58,8 @@
         "path": "/",
         "groupId": "household-budget",
         "maturity": "draft",
-        "updatedAt": "2026-05-24T00:00:00.000Z"
+        "updatedAt": "2026-05-24T00:00:00.000Z",
+        "hasDesign": true
       },
       {
         "id": "transaction-list",
@@ -68,7 +69,8 @@
         "path": "/transactions",
         "groupId": "household-budget",
         "maturity": "draft",
-        "updatedAt": "2026-05-24T00:00:00.000Z"
+        "updatedAt": "2026-05-24T00:00:00.000Z",
+        "hasDesign": true
       },
       {
         "id": "transaction-create",
@@ -78,7 +80,8 @@
         "path": "/transactions/new",
         "groupId": "household-budget",
         "maturity": "draft",
-        "updatedAt": "2026-05-24T00:00:00.000Z"
+        "updatedAt": "2026-05-24T00:00:00.000Z",
+        "hasDesign": true
       },
       {
         "id": "category-management",
@@ -88,7 +91,8 @@
         "path": "/categories",
         "groupId": "master-management",
         "maturity": "draft",
-        "updatedAt": "2026-05-24T00:00:00.000Z"
+        "updatedAt": "2026-05-24T00:00:00.000Z",
+        "hasDesign": true
       },
       {
         "id": "monthly-report",
@@ -98,7 +102,8 @@
         "path": "/reports/monthly",
         "groupId": "household-budget",
         "maturity": "draft",
-        "updatedAt": "2026-05-24T00:00:00.000Z"
+        "updatedAt": "2026-05-24T00:00:00.000Z",
+        "hasDesign": true
       },
       {
         "id": "transaction-edit",
@@ -108,7 +113,8 @@
         "path": "/transactions/:transactionId/edit",
         "groupId": "household-budget",
         "maturity": "draft",
-        "updatedAt": "2026-05-24T00:00:00.000Z"
+        "updatedAt": "2026-05-24T00:00:00.000Z",
+        "hasDesign": true
       }
     ],
     "screenTransitions": [

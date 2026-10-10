@@ -5,7 +5,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #f8f9fa;
+  background: var(--hm-surface-2);
 }
 
 /* 旧 screen-items-header / title / actions は EditorHeader に置換 (#318 改善) */
@@ -20,12 +20,12 @@
 .screen-items-empty {
   padding: 40px;
   text-align: center;
-  color: #64748b;
+  color: var(--hm-fg-muted);
 }
 
 .screen-items-table-wrap {
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: var(--hm-surface);
+  border: 1px solid var(--hm-border);
   border-radius: 6px;
   padding: 8px;
   overflow-x: auto;
@@ -41,16 +41,16 @@
 .screen-items-table thead th {
   font-size: 0.72rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--hm-fg-muted);
   padding: 7px 8px;
-  border-bottom: 1px solid #cbd5e1;
+  border-bottom: 1px solid var(--hm-border-strong);
   text-align: left;
 }
 
 .screen-items-table tbody td {
   padding: 6px 8px;
   vertical-align: middle;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--hm-border);
 }
 
 .screen-items-table tbody tr:last-child td {
@@ -66,13 +66,13 @@
 }
 
 .screen-items-no {
-  color: #94a3b8;
+  color: var(--hm-fg-faint);
   font-size: 0.75rem;
   text-align: center;
 }
 
 .screen-items-row-selected td {
-  background: #eff6ff;
+  background: var(--hm-surface-2);
 }
 
 .screen-items-actions-cell {
@@ -92,7 +92,7 @@
 }
 
 .screen-items-empty-row {
-  color: #94a3b8;
+  color: var(--hm-fg-faint);
   padding: 12px;
   text-align: center;
   font-style: italic;
@@ -116,13 +116,13 @@
 
 /* lint 警告バナー (#351) */
 .screen-items-lint-warnings {
-  background: #fef9c3;
-  border: 1px solid #fde047;
+  background: color-mix(in srgb, #fbe70e 7%, var(--hm-surface));
+  border: 1px solid color-mix(in srgb, #fcd60d 38%, var(--hm-surface));
   border-radius: 6px;
   padding: 8px 12px;
   margin-bottom: 8px;
   font-size: 0.8rem;
-  color: #713f12;
+  color: color-mix(in srgb, #dd802c 80%, var(--hm-fg));
 }
 .screen-items-lint-warnings ul {
   padding-left: 1.2em;
@@ -134,9 +134,9 @@
 
 /* errorMessages 展開行 (#352) */
 .screen-items-error-row > td {
-  background: #f8f9fa;
+  background: var(--hm-surface-2);
   padding: 6px 8px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--hm-border);
 }
 .screen-items-error-fields {
   display: flex;
@@ -153,15 +153,15 @@
 .screen-items-error-label {
   font-size: 0.68rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--hm-fg-muted);
   font-family: ui-monospace, SFMono-Regular, monospace;
 }
 
 /* 詳細フィールド展開行 (#353) */
 .screen-items-detail-row > td {
-  background: #f0f4ff;
+  background: var(--hm-surface-2);
   padding: 6px 8px;
-  border-bottom: 1px solid #dbeafe;
+  border-bottom: 1px solid var(--hm-border);
 }
 .screen-items-detail-fields {
   display: flex;
@@ -197,15 +197,15 @@
 .screen-items-detail-label {
   font-size: 0.68rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--hm-fg-muted);
   font-family: ui-monospace, SFMono-Regular, monospace;
 }
 
 /* イベント (#624) 展開行 (#1260) */
 .screen-items-event-row > td {
-  background: #fff7ed;
+  background: var(--hm-surface-2);
   padding: 6px 8px;
-  border-bottom: 1px solid #fed7aa;
+  border-bottom: 1px solid color-mix(in srgb, #fc8d0d 38%, var(--hm-surface));
 }
 .screen-items-event-list {
   display: flex;
@@ -213,8 +213,8 @@
   gap: 10px;
 }
 .screen-items-event-card {
-  background: #ffffff;
-  border: 1px solid #fed7aa;
+  background: var(--hm-surface);
+  border: 1px solid color-mix(in srgb, #fc8d0d 38%, var(--hm-surface));
   border-radius: 4px;
   padding: 8px;
 }
@@ -233,12 +233,12 @@
 .screen-items-event-label {
   font-size: 0.68rem;
   font-weight: 600;
-  color: #92400e;
+  color: color-mix(in srgb, #ea6c20 80%, var(--hm-fg));
   font-family: ui-monospace, SFMono-Regular, monospace;
 }
 .screen-items-event-mapping {
   margin-top: 8px;
-  border-top: 1px dashed #fed7aa;
+  border-top: 1px dashed color-mix(in srgb, #fc8d0d 38%, var(--hm-surface));
   padding-top: 6px;
 }
 .screen-items-event-mapping-header {
@@ -249,7 +249,7 @@
 }
 .screen-items-event-mapping-empty {
   font-size: 0.78rem;
-  color: #94a3b8;
+  color: var(--hm-fg-faint);
 }
 .screen-items-event-mapping-row {
   display: flex;
@@ -258,7 +258,7 @@
   margin-bottom: 4px;
 }
 .screen-items-event-mapping-eq {
-  color: #64748b;
+  color: var(--hm-fg-muted);
   font-family: ui-monospace, SFMono-Regular, monospace;
 }
 .screen-items-event-actions {
@@ -268,7 +268,7 @@
 
 /* effects[] 編集 UI (#1283) */
 .screen-items-event-effects {
-  border-top: 1px dashed #fed7aa;
+  border-top: 1px dashed color-mix(in srgb, #fc8d0d 38%, var(--hm-surface));
   margin-top: 8px;
   padding-top: 8px;
 }
@@ -280,7 +280,7 @@
 }
 .screen-items-event-effects-empty {
   font-size: 0.78rem;
-  color: #94a3b8;
+  color: var(--hm-fg-faint);
 }
 .screen-items-event-effect-row {
   display: flex;
@@ -329,7 +329,7 @@
   width: 100%;
 }
 .screen-items-event-effect-mapping-eq {
-  color: #64748b;
+  color: var(--hm-fg-muted);
   font-family: ui-monospace, SFMono-Regular, monospace;
 }
 .screen-items-event-effect-mapping-block {
@@ -342,12 +342,12 @@
   width: 100%;
   margin-top: 8px;
   padding-top: 8px;
-  border-top: 1px dashed #bfdbfe;
+  border-top: 1px dashed color-mix(in srgb, #0e77fb 38%, var(--hm-surface));
 }
 .screen-items-output-title {
   font-size: 0.68rem;
   font-weight: 700;
-  color: #1d4ed8;
+  color: color-mix(in srgb, #2758e2 80%, var(--hm-fg));
   margin-bottom: 6px;
   letter-spacing: 0.03em;
 }
@@ -377,7 +377,7 @@
   z-index: 1056;
 }
 .screen-item-candidates {
-  background: #fff;
+  background: var(--hm-surface);
   border-radius: 8px;
   width: 90%;
   max-width: 1000px;
@@ -391,7 +391,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 10px 14px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--hm-border);
 }
 .screen-item-candidates-body {
   flex: 1;
@@ -403,7 +403,7 @@
   align-items: center;
   gap: 8px;
   padding-bottom: 8px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--hm-border);
   margin-bottom: 8px;
 }
 .screen-item-candidates-table {
@@ -415,26 +415,26 @@
 .screen-item-candidates-table thead th {
   font-size: 0.7rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--hm-fg-muted);
   padding: 4px 6px;
-  border-bottom: 1px solid #cbd5e1;
+  border-bottom: 1px solid var(--hm-border-strong);
   text-align: left;
 }
 .screen-item-candidates-table tbody td {
   padding: 3px 6px;
   vertical-align: middle;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--hm-border);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .screen-item-candidates-table tbody tr.dup {
-  background: #fef3c7;
+  background: color-mix(in srgb, #fbcb0e 9%, var(--hm-surface));
   opacity: 0.7;
 }
 .screen-item-candidates-footer {
   padding: 10px 14px;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--hm-border);
   display: flex;
   align-items: center;
   gap: 8px;

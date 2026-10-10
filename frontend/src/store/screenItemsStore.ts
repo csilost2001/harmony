@@ -1,10 +1,12 @@
-import type { ScreenItem, ScreenId, Timestamp } from "../types/v3";
+import type { ScreenItem, ScreenId, Timestamp, ScreenLayout } from "../types/v3";
 import { loadScreenEntity, saveScreenEntity } from "./screenStore";
 
 export interface ScreenItemsDocument {
   screenId: ScreenId;
   updatedAt: Timestamp;
   items: ScreenItem[];
+  /** 画面レイアウト (業務部品の木)。未移行の画面では undefined。 */
+  layout?: ScreenLayout;
 }
 
 const _cache = new Map<string, ScreenItemsDocument>();
@@ -42,6 +44,7 @@ export async function loadScreenItems(screenId: string): Promise<ScreenItemsDocu
     screenId: screen.id as ScreenId,
     updatedAt: screen.updatedAt,
     items: [...(screen.items ?? [])],
+    ...(screen.layout ? { layout: screen.layout } : {}),
   };
 }
 
@@ -50,6 +53,7 @@ export async function saveScreenItems(file: ScreenItemsDocument): Promise<void> 
   await saveScreenEntity({
     ...screen,
     items: [...file.items],
+    ...(file.layout ? { layout: file.layout } : {}),
     updatedAt: nowTs(),
   });
   _cache.delete(file.screenId);

@@ -29,8 +29,76 @@
       }
     }
   ],
-  "design": {
-    "editorKind": "puck",
-    "cssFramework": "tailwind"
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "link",
+        "type": "link",
+        "props": {
+          "label": "←",
+          "screenRef": "dashboard"
+        }
+      },
+      {
+        "id": "heading",
+        "type": "heading",
+        "props": {
+          "text": "取引一覧",
+          "level": 1
+        }
+      },
+      {
+        "id": "link2",
+        "type": "link",
+        "props": {
+          "label": "＋",
+          "screenRef": "transaction-create"
+        }
+      },
+      {
+        "id": "buttons",
+        "type": "button-bar",
+        "children": [
+          {
+            "id": "button",
+            "type": "button",
+            "props": {
+              "label": "すべて",
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "button2",
+            "type": "button",
+            "props": {
+              "label": "今月",
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "button3",
+            "type": "button",
+            "props": {
+              "label": "支出のみ",
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "button4",
+            "type": "button",
+            "props": {
+              "label": "収入のみ",
+              "variant": "secondary"
+            }
+          }
+        ]
+      },
+      {
+        "id": "transactionRows",
+        "type": "table",
+        "itemRef": "transactionRows"
+      }
+    ]
   }
 }

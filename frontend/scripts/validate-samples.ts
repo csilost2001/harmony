@@ -541,49 +541,6 @@ export function checkScreenItemsEmbedded(project: ProjectResources): ValidationI
 }
 
 /**
- * Check 2: Design file presence check (#714)
- *
- * - screens/<id>.design.json が存在しない → warning (MISSING_DESIGN_FILE)
- * - screen.design?.designFileRef が外部参照 (basename が <id>.design.json と不一致) → error (EXTERNAL_DESIGN_REF)
- */
-export function checkDesignFilePresence(project: ProjectResources): ValidationIssue[] {
-  const issues: ValidationIssue[] = [];
-
-  // R-4 #853: screens/ は dataDir (harmony/) 配下に移動済
-  const _dataDirForDesign = resolveDataDirPath(project.projectDir);
-  for (const screen of project.screens) {
-    const id = screen.id ?? "unknown";
-    const expectedDesignFile = `${id}.design.json`;
-
-    // Check 2a: design.json ファイルが存在するか
-    const designFilePath = join(_dataDirForDesign, "screens", expectedDesignFile);
-    if (!existsSync(designFilePath)) {
-      issues.push({
-        validator: "runtimeContractValidator",
-        severity: "warning",
-        code: "MISSING_DESIGN_FILE",
-        path: `screens/${id}.json`,
-        message: `\`screens/${expectedDesignFile}\` が存在しません。UI で空キャンバスになります (recoverable)`,
-      });
-    }
-
-    // Check 2b: designFileRef が外部参照でないか
-    const designFileRef = screen.design?.designFileRef;
-    if (typeof designFileRef === "string" && basename(designFileRef) !== expectedDesignFile) {
-      issues.push({
-        validator: "runtimeContractValidator",
-        severity: "error",
-        code: "EXTERNAL_DESIGN_REF",
-        path: `screens/${id}.json`,
-        message: `designFileRef='${designFileRef}' は外部参照です。runtime はこれを読まず hard-coded path 'screens/${expectedDesignFile}' のみ参照します (#714)`,
-      });
-    }
-  }
-
-  return issues;
-}
-
-/**
  * Check 3: PageLayout assignments 整合性チェック (#1022)
  *
  * 各 PageLayout の assignments の各 region について:
@@ -891,10 +848,6 @@ export async function runValidation(projectDirArg: string): Promise<ValidationSu
   }
 
   for (const i of checkScreenItemsEmbedded(project)) {
-    projectIssues.push(i);
-  }
-
-  for (const i of checkDesignFilePresence(project)) {
     projectIssues.push(i);
   }
 

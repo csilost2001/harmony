@@ -34,7 +34,45 @@
       "description": "選択したパックを users.active_pack_ids に追加するためのパック ID 入力。適用ボタンクリックで処理フローに渡す。"
     }
   ],
-  "design": {
-    "designFileRef": "content-pack-list.design.json"
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "heading",
+        "type": "heading",
+        "props": {
+          "text": "パックを選んで学ぼう",
+          "level": 1
+        }
+      },
+      {
+        "id": "text",
+        "type": "text",
+        "props": {
+          "text": "興味のある分野のパックを適用して、専門的な英語を習得できます",
+          "tone": "muted"
+        }
+      },
+      {
+        "id": "packList",
+        "type": "table",
+        "itemRef": "packList"
+      },
+      {
+        "id": "inputForm",
+        "type": "form",
+        "props": {
+          "title": "入力",
+          "columns": 2
+        },
+        "children": [
+          {
+            "id": "activatePackId",
+            "type": "field",
+            "itemRef": "activatePackId"
+          }
+        ]
+      }
+    ]
   }
 }

@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import type { ScreenType } from "../../types/flow";
 import { SCREEN_TYPE_LABELS } from "../../types/flow";
-import type { EditorKind } from "../../utils/resolveEditorKind";
-import type { CssFramework } from "../../types/v3/harmony";
 import type { PageLayoutEntry } from "../../types/v3/harmony";
 import { EntityIdInput, type EntityIdValidationState } from "../common/EntityIdInput";
 
@@ -11,10 +9,6 @@ export interface ScreenFormData {
   type: ScreenType;
   path: string;
   description: string;
-  /** 画面作成時のみ有効。isCreate=false の場合は無視される。 */
-  editorKind?: EditorKind;
-  /** 画面作成時のみ有効。isCreate=false の場合は無視される。 */
-  cssFramework?: CssFramework;
   /** purpose='page' のときに設定する PageLayout ID (編集時のみ)。 */
   pageLayoutId?: string;
   /**
@@ -28,12 +22,8 @@ interface Props {
   open: boolean;
   initial?: Partial<ScreenFormData>;
   title: string;
-  /** true のとき editorKind / cssFramework ラジオを表示する。false は編集モード (非表示)。 */
+  /** true のとき新規作成 (画面 ID の入力を表示する)。false は編集モード。 */
   isCreate?: boolean;
-  /** 画面作成ダイアログのエディタ種別デフォルト選択値 (project.techStack.designer から取得)。 */
-  defaultEditorKind?: EditorKind;
-  /** 画面作成ダイアログの CSS フレームワークデフォルト選択値 (project.techStack.designer から取得)。 */
-  defaultCssFramework?: CssFramework;
   /**
    * purpose='page' の画面を編集するとき、pageLayoutId 選択 dropdown に表示する一覧。
    * undefined のとき (= gadget 画面 / 一覧未取得) は dropdown を非表示にする。
@@ -60,8 +50,6 @@ export function ScreenEditModal({
   initial,
   title,
   isCreate = false,
-  defaultEditorKind = "grapesjs",
-  defaultCssFramework = "bootstrap",
   pageLayouts,
   existingScreenIds = [],
   onSave,
@@ -69,8 +57,6 @@ export function ScreenEditModal({
 }: Props) {
   const [form, setForm] = useState<ScreenFormData>({
     ...defaultData,
-    editorKind: defaultEditorKind,
-    cssFramework: defaultCssFramework,
     ...initial,
   });
   // RFC #1284 / #1297 I-5: 創成モードのみ id field の validation 状態を保持。
@@ -88,8 +74,6 @@ export function ScreenEditModal({
       // eslint-disable-next-line react-hooks/set-state-in-effect -- modal open は外部イベント (open prop 変化) と同期する用途
       setForm({
         ...defaultData,
-        editorKind: defaultEditorKind,
-        cssFramework: defaultCssFramework,
         ...initial,
       });
       // S-3: isCreate に応じて idValidation を初期化 (edit 時は valid 固定で submit guard 通過)
@@ -99,7 +83,7 @@ export function ScreenEditModal({
           : { isFormatValid: true, isUnique: true, isInvalid: false },
       );
     }
-  }, [open, initial, defaultEditorKind, defaultCssFramework, isCreate]);
+  }, [open, initial, isCreate]);
 
   if (!open) return null;
 
@@ -167,66 +151,6 @@ export function ScreenEditModal({
                   ))}
                 </select>
               </>
-            )}
-
-            {isCreate && (
-              <div className="screen-create-design-options">
-                <div className="screen-create-design-group">
-                  <span className="screen-create-design-label">エディタ</span>
-                  <div className="screen-create-radio-group">
-                    <label className="screen-create-radio-option">
-                      <input
-                        type="radio"
-                        name="screen-editor-kind"
-                        value="grapesjs"
-                        checked={form.editorKind === "grapesjs"}
-                        onChange={() => setForm((f) => ({ ...f, editorKind: "grapesjs" }))}
-                      />
-                      GrapesJS
-                    </label>
-                    <label className="screen-create-radio-option">
-                      <input
-                        type="radio"
-                        name="screen-editor-kind"
-                        value="puck"
-                        checked={form.editorKind === "puck"}
-                        onChange={() => setForm((f) => ({ ...f, editorKind: "puck" }))}
-                      />
-                      Puck
-                    </label>
-                  </div>
-                </div>
-
-                <div className="screen-create-design-group">
-                  <span className="screen-create-design-label">CSS フレームワーク</span>
-                  <div className="screen-create-radio-group">
-                    <label className="screen-create-radio-option">
-                      <input
-                        type="radio"
-                        name="screen-css-framework"
-                        value="bootstrap"
-                        checked={form.cssFramework === "bootstrap"}
-                        onChange={() => setForm((f) => ({ ...f, cssFramework: "bootstrap" }))}
-                      />
-                      Bootstrap
-                    </label>
-                    <label className="screen-create-radio-option">
-                      <input
-                        type="radio"
-                        name="screen-css-framework"
-                        value="tailwind"
-                        checked={form.cssFramework === "tailwind"}
-                        onChange={() => setForm((f) => ({ ...f, cssFramework: "tailwind" }))}
-                      />
-                      Tailwind
-                    </label>
-                  </div>
-                </div>
-
-                <p className="screen-create-design-note">
-                  <i className="bi bi-info-circle" /> 作成後は変更できません
-                </p>
-              </div>
             )}
 
             {isCreate && (

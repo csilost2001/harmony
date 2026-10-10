@@ -63,7 +63,104 @@
       }
     }
   ],
-  "design": {
-    "designFileRef": "word-book.design.json"
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "section",
+        "type": "section",
+        "props": {
+          "variant": "card"
+        },
+        "children": [
+          {
+            "id": "text",
+            "type": "text",
+            "props": {
+              "text": "12",
+              "tone": "muted"
+            }
+          },
+          {
+            "id": "text2",
+            "type": "text",
+            "props": {
+              "text": "未学習",
+              "tone": "muted"
+            }
+          }
+        ]
+      },
+      {
+        "id": "section2",
+        "type": "section",
+        "props": {
+          "variant": "card"
+        },
+        "children": [
+          {
+            "id": "text3",
+            "type": "text",
+            "props": {
+              "text": "28"
+            }
+          },
+          {
+            "id": "text4",
+            "type": "text",
+            "props": {
+              "text": "学習中"
+            }
+          }
+        ]
+      },
+      {
+        "id": "section3",
+        "type": "section",
+        "props": {
+          "variant": "card"
+        },
+        "children": [
+          {
+            "id": "text5",
+            "type": "text",
+            "props": {
+              "text": "45"
+            }
+          },
+          {
+            "id": "text6",
+            "type": "text",
+            "props": {
+              "text": "習得済み"
+            }
+          }
+        ]
+      },
+      {
+        "id": "section4",
+        "type": "section",
+        "props": {
+          "variant": "card"
+        },
+        "children": [
+          {
+            "id": "wordSearch",
+            "type": "field",
+            "itemRef": "wordSearch"
+          },
+          {
+            "id": "masteryFilter",
+            "type": "field",
+            "itemRef": "masteryFilter"
+          }
+        ]
+      },
+      {
+        "id": "wordList",
+        "type": "table",
+        "itemRef": "wordList"
+      }
+    ]
   }
 }

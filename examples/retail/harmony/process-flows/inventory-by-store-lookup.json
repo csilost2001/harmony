@@ -411,6 +411,9 @@
           "responseId": "200-ok",
           "bodyExpression": "{ items: @inventoryItems, totalCount: @inventoryItems.length }"
         }
+      ],
+      "requiredPermissions": [
+        "inventory:view"
       ]
     }
   ],

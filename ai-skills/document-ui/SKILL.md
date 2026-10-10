@@ -81,7 +81,7 @@ subdir で `cd backend && npm run dev` / `cd frontend && npm run dev` も等価�
 
 | screen-key | route | コンポーネント | 想定リソース ID |
 |---|---|---|---|
-| `screen-designer` | `/screen/design/:id` | Designer (GrapesJS) | retail の主要 screen |
+| `screen-designer` | `/screen/design/:id` | ScreenLayoutDesigner (業務部品デザイナ) | retail の主要 screen |
 | `screen-items` | `/screen/items/:id` | ScreenItemsView | 同上 |
 | `table-editor` | `/table/edit/:id` | TableEditor | retail の主要 table |
 | `process-flow-editor` | `/process-flow/edit/:id` | ProcessFlowEditor | retail の主要 flow |
@@ -236,7 +236,6 @@ cd docs-site && npm run build
 ## 既知の落とし穴
 
 - **シングルトン画面でも `/w/:wsId/` prefix が必要** — `WorkspaceSelectView` (`/workspace/select`) と `/ai-settings` 以外は workspace 配下
-- **`screen-designer` (GrapesJS) の iframe 内 canvas は a11y tree に出ない** — 内部要素の説明は別 frame に切り替えるか、TableEditor 等の通常 DOM 画面と書き分ける
 - **`screen-flow` (ReactFlow) は drag-drop が必要** — 静的 screenshot だけでは操作説明が薄くなる、操作録画 GIF は本 PoC では対象外 (将来検討)
 - **空 workspace でも撮影してしまうと意味のない画面が並ぶ** — dogfood-uidoc-* workspace が active になっているか必ず確認
 - **Playwright MCP screenshot のデフォルト保存先** — 何も指定しないと CWD に出力されるため、必ず file_path 引数で `docs/ui-screenshots/ui-reference/<screen-key>/*.png` を明示
@@ -246,5 +245,5 @@ cd docs-site && npm run build
 - `feedback_tmp_file_placement.md` — 一時 screenshot は `.tmp/screenshots/` (生成完成版は `docs/ui-screenshots/`)
 - `feedback_no_ai_managed_dev_server.md` — dev server は AI が立てない
 - `feedback_browser_smoke_headless_chrome_devtools.md` — Playwright MCP の罠
-- `docs/spec/list-common.md` / `docs/spec/multi-editor-puck.md` / `docs/spec/page-layout.md` — UI 仕様
+- `docs/spec/list-common.md` / `docs/spec/screen-layout.md` / `docs/spec/page-layout.md` — UI 仕様
 - AGENTS.md の "Routing" 表 — screen-key と route の対応の正本

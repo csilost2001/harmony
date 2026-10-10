@@ -1,0 +1,176 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="../../favicon.svg" type="image/svg+xml"><title>design document</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="../../_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="../../_astro/_slug_.XtJAgJeQ.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="../../" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="../../spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="../../user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="../../conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="../../setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="../../presentation/" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="../../spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="../../spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="../../spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="../../spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="../../spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="../../spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="../../spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="../../spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="../../spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="../../spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="../../spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="../../spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="../../spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="../../spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="../../spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="../../spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="../../spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="../../spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="../../spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="../../spec/spec-package/" class="sidebar-link"> @harmony/spec package </a> </li><li> <a href="../../spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="../../spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="../../spec/design-payload-storage/" class="sidebar-link"> Design payload storage </a> </li><li> <a href="../../spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="../../spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="../../spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="../../spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="../../spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="../../spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="../../spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="../../spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="../../spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="../../spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="../../spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="../../spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="../../spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="../../spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="../../spec/react-exporter/" class="sidebar-link"> React Exporter (designer__export_screen) </a> </li><li> <a href="../../spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="../../spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="../../spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="../../spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="../../spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="../../spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="../../spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="../../spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="../../spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="../../spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="../../spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="../../spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="../../spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="../../spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="../../spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="../../spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="../../spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="../../spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="設計書ビューと-html-出力--仕様書">設計書ビューと HTML 出力 — 仕様書</h1>
+<p><strong>Status</strong>: 実装済 (2026-10、再設計 段階 3)
+<strong>関連</strong>: <a href="https://github.com/csilost2001/harmony/blob/main/docs/plans/redesign-2026-10.md">docs/plans/redesign-2026-10.md</a> / <a href="../../spec/screen-layout/">screen-layout.md</a></p>
+<h2 id="1-目的">1. 目的</h2>
+<p>設計データ (JSON) を、日本の現場で使われる設計書の体裁 (表紙・一覧・項目定義表・処理記述表・CRUD 図) で読めるようにする。レビュー・承認・顧客説明に使う「紙面」を、原本と常に一致した状態で提供する。</p>
+<ul>
+<li>出力は <strong>一方向</strong>。HTML を直しても原本には戻らない。修正は Harmony 上で原本に対して行う</li>
+<li>Excel 出力は当面サポートしない (設計者判断 2026-10-08)。HTML の方が表現力が高く AI も扱いやすい</li>
+</ul>
+<h2 id="2-入口">2. 入口</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>入口</th><th>内容</th></tr></thead><tbody><tr><td>アプリ: ヘッダーメニュー「設計書」(<code>/document</code>)</td><td>目次 + 紙面を表示。「再生成」「別タブで開く (印刷用)」「HTML で保存」</td></tr><tr><td>CLI: <code>node scripts/export-design-doc.mjs &#x3C;workspace> [--out file.html] [--version v]</code></td><td>単体の HTML ファイル (CSS・目次同梱) を書き出す。版は省略時 git の短縮 SHA</td></tr></tbody></table>
+<p>どちらも <code>@harmony/shared</code> の <code>buildDesignDocument</code> / <code>renderStandaloneDesignDoc</code> で生成する (同じ内容になる)。対象の処理フロー・テーブルは <code>harmony.json</code> に登録されたもの。</p>
+<h2 id="3-構成">3. 構成</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>章</th><th>内容</th><th>出典</th></tr></thead><tbody><tr><td>表紙</td><td>システム名・版・作成日・件数・承認欄</td><td>harmony.json meta</td></tr><tr><td>1 画面一覧</td><td>画面 ID / 画面名 / 種別 / URL / 成熟度</td><td>screens</td></tr><tr><td>2 画面遷移</td><td>遷移元 → 遷移先 / 契機</td><td>harmony.json screenTransitions</td></tr><tr><td>3 画面設計 (画面ごと)</td><td>基本情報、概要、画面レイアウト (業務部品の木の静的描画)、項目定義表、イベント、関連処理</td><td>screen.layout / items</td></tr><tr><td>4 処理一覧 / 処理設計 (フローごと)</td><td>基本情報、アクションごとの入出力・フロー図 (SVG)・処理記述表</td><td>process-flows</td></tr><tr><td>5 テーブル一覧 / テーブル定義</td><td>列定義、インデックス、利用箇所 (CRUD)</td><td>tables</td></tr><tr><td>6 CRUD 図</td><td>処理フロー × テーブルのマトリクスと所見</td><td>process-flows の dbAccess</td></tr><tr><td>7 バッチ・定期処理一覧</td><td>flowType が batch / scheduled の処理と起動</td><td>process-flows</td></tr><tr><td>8 外部インタフェース一覧</td><td>externalSystem ステップから導出した外部システムと呼び出し</td><td>process-flows</td></tr><tr><td>9 イベント一覧</td><td>発行 / 購読する処理とカタログの説明</td><td>process-flows / catalogs.events</td></tr><tr><td>10 独自部品 (定義があるときだけ)</td><td>独自部品ごとの差し込み口・見た目・使っている画面 (<a href="../../spec/layout-components/">layout-components.md</a>)</td><td>layout-components.json</td></tr><tr><td>10〜 業務フロー (定義があるときだけ)</td><td>フローごとの図 (スイムレーン SVG) と工程表。工程から画面・処理へリンク (<a href="../../spec/business-flow/">business-flow.md</a>)</td><td>business-flows/*.json</td></tr><tr><td>(業務フローの次) 帳票 (定義があるときだけ)</td><td>帳票ごとの基本情報・出力条件・用紙の見本図・項目定義表。出力契機から画面・処理へリンク (<a href="../../spec/report/">report.md</a>)</td><td>reports/*.json</td></tr><tr><td>(帳票の次) 権限 (定義か権限の指定があるときだけ)</td><td>役割 / 権限 / 画面 × 役割 / 処理 × 役割 (<a href="#31-%E6%A8%A9%E9%99%90%E3%81%AE%E7%AB%A0%E3%81%AE%E5%B0%8E%E5%87%BA%E8%A6%8F%E5%89%87">§3.1</a>)</td><td>conventions catalog の role / permission、画面の permissions、処理の requiredPermissions</td></tr><tr><td>(権限の次) メッセージ一覧</td><td><code>@conv.msg.*</code></td><td>conventions catalog</td></tr><tr><td>(最後) 要確認事項</td><td>レイアウト検証結果、未作成のレイアウト、未配置項目、CRUD の所見、使われていない独自部品</td><td>上記の自動検出</td></tr></tbody></table>
+<p>画面設計の画面レイアウトは、独自部品の参照部品を定義で展開して描く (点線の枠と名前付き)。独自部品の中で <code>args</code> 経由で使われている画面項目は「配置済み」に数える。</p>
+<h3 id="31-権限の章の導出規則">3.1 権限の章の導出規則</h3>
+<p>新しいスキーマは使わず、既存の定義から導く (<code>shared/src/accessMatrix.ts</code>)。</p>
+<ul>
+<li><strong>役割の有効な権限</strong> = 役割自身の <code>permissions</code> + <code>inherits</code> で継承した役割の有効な権限 (未定義の継承元・循環は無視して要確認に出す)</li>
+<li><strong>画面 × 役割</strong>: 画面の <code>permissions</code> を<strong>すべて</strong>持つ役割に ○。権限を指定していない画面は「誰でも開ける」として表には載せず、件数だけ注記する</li>
+<li><strong>処理 × 役割</strong>: 処理 (アクション) の <code>requiredPermissions</code> を同様に扱う。権限を指定していない処理は省略する</li>
+<li>権限キーは <code>@conv.permission.&#x3C;key></code> でもキーだけでもよい</li>
+<li>要確認事項に出す: 規約に無い権限を参照 (画面・処理・役割) / どの役割にも付与されていない権限を要求する画面・処理 (誰も使えない) / 役割の継承の不整合 / どこでも必要とされていない権限 (情報)</li>
+</ul>
+<h2 id="4-crud-の導出規則">4. CRUD の導出規則</h2>
+<p>処理フロー内 (分岐・ループ・TX・ロールバック時・コミット後を含む) の <code>dbAccess</code> を集計する。<code>SELECT</code>=R、<code>INSERT</code>=C、<code>UPDATE</code>=U、<code>DELETE</code>=D、<code>UPSERT</code>/<code>MERGE</code>=C+U、名前に <code>DECREMENT</code>/<code>INCREMENT</code> を含む独自操作=U、<code>CLEAR</code> を含む独自操作=D、それ以外=R。</p>
+<p>所見: どの処理フローからも使われないテーブル / 登録 (C) する処理が無いテーブル / 参照 (R) する処理が無いテーブル。</p>
+<h2 id="5-表示">5. 表示</h2>
+<p>紙面はアプリのテーマに関係なく明色 (印刷・PDF 化を前提とする)。単体 HTML は印刷時に目次を隠し、章ごとに改ページする。</p>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

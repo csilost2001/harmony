@@ -106,7 +106,6 @@ function snapshotPreview(snapshot: unknown, resourceType: string): string {
       return name ? `「${name}」 columns: ${columns} 件` : `columns: ${columns} 件`;
     }
     case "screen":
-    case "puck-data":
     case "view-definition": {
       const name = typeof obj.name === "string" ? obj.name : "";
       const id = typeof obj.id === "string" ? obj.id : "";

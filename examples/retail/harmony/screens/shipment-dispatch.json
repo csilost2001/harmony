@@ -118,9 +118,171 @@
         }
       ],
       "description": "S-4 配送指示登録ボタン。クリック時に配送指示フロー (d63c703c) を起動する。"
+    },
+    {
+      "id": "shipmentDispatchRows",
+      "label": "注文商品 一覧",
+      "type": {
+        "kind": "array",
+        "itemType": "json"
+      },
+      "direction": "out",
+      "presentation": {
+        "kind": "table",
+        "columns": [
+          {
+            "id": "col1",
+            "label": "商品コード",
+            "path": "col1",
+            "type": "string"
+          },
+          {
+            "id": "col2",
+            "label": "商品名",
+            "path": "col2",
+            "type": "string"
+          },
+          {
+            "id": "col3",
+            "label": "数量",
+            "path": "col3",
+            "type": "string"
+          },
+          {
+            "id": "col4",
+            "label": "小計",
+            "path": "col4",
+            "type": "string"
+          }
+        ]
+      }
     }
   ],
-  "design": {
-    "designFileRef": "shipment-dispatch.design.json"
-  }
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "heading",
+        "type": "heading",
+        "props": {
+          "text": "配送指示",
+          "level": 1
+        }
+      },
+      {
+        "id": "columns",
+        "type": "columns",
+        "children": [
+          {
+            "id": "column",
+            "type": "column",
+            "props": {
+              "span": 6
+            },
+            "children": [
+              {
+                "id": "section",
+                "type": "section",
+                "props": {
+                  "title": "注文詳細 (確認)",
+                  "variant": "card"
+                },
+                "children": [
+                  {
+                    "id": "html",
+                    "type": "html",
+                    "props": {
+                      "html": "<dl class=\"row mb-0\">\n                <dt class=\"col-sm-5 text-muted\">注文番号</dt>\n                <dd class=\"col-sm-7 font-monospace fw-bold\" id=\"orderNumberDisplay\" data-item-id=\"orderNumberDisplay\">ORD-2026-000024</dd>\n\n                <dt class=\"col-sm-5 text-muted\">顧客名</dt>\n                <dd class=\"col-sm-7\" id=\"customerNameDisplay\" data-item-id=\"customerNameDisplay\">田中 太郎</dd>\n\n                <dt class=\"col-sm-5 text-muted\">注文日時</dt>\n                <dd class=\"col-sm-7\">2026/05/02 14:32</dd>\n\n                <dt class=\"col-sm-5 text-muted\">配送先住所</dt>\n                <dd class=\"col-sm-7\" id=\"shippingAddressDisplay\" data-item-id=\"shippingAddressDisplay\">\n                  〒160-0022<br>東京都新宿区新宿 X-X-X\n                </dd>\n\n                <dt class=\"col-sm-5 text-muted\">ステータス</dt>\n                <dd class=\"col-sm-7\"><span class=\"badge bg-warning text-dark\">配送待ち</span></dd>\n              </dl>"
+                    }
+                  },
+                  {
+                    "id": "trackingNumber",
+                    "type": "field",
+                    "itemRef": "trackingNumber"
+                  }
+                ]
+              },
+              {
+                "id": "shipmentDispatchRows",
+                "type": "table",
+                "itemRef": "shipmentDispatchRows",
+                "props": {
+                  "title": "注文商品"
+                }
+              }
+            ]
+          },
+          {
+            "id": "column2",
+            "type": "column",
+            "props": {
+              "span": 6
+            },
+            "children": [
+              {
+                "id": "dispatchForm",
+                "type": "form",
+                "children": [
+                  {
+                    "id": "orderId",
+                    "type": "field",
+                    "itemRef": "orderId"
+                  },
+                  {
+                    "id": "carrierId",
+                    "type": "field",
+                    "itemRef": "carrierId"
+                  },
+                  {
+                    "id": "preferredDate",
+                    "type": "field",
+                    "itemRef": "preferredDate"
+                  },
+                  {
+                    "id": "timeSlot",
+                    "type": "field",
+                    "itemRef": "timeSlot"
+                  },
+                  {
+                    "id": "messageArea",
+                    "type": "message-area"
+                  },
+                  {
+                    "id": "buttons",
+                    "type": "button-bar",
+                    "children": [
+                      {
+                        "id": "dispatchOrderButton",
+                        "type": "button",
+                        "itemRef": "dispatchOrderButton",
+                        "props": {
+                          "label": "配送指示を登録する",
+                          "variant": "primary"
+                        }
+                      },
+                      {
+                        "id": "backOrderButton",
+                        "type": "button",
+                        "props": {
+                          "label": "注文一覧へ戻る",
+                          "variant": "secondary",
+                          "screenRef": "order-list"
+                        }
+                      }
+                    ]
+                  }
+                ],
+                "props": {
+                  "title": "配送指示入力"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": [
+    "shipment:dispatch"
+  ]
 }

@@ -74,34 +74,8 @@ export const PROCESS_FLOW_TYPE_ICONS: Record<string, string> = {
 };
 
 // ── Step.kind ──────────────────────────────────────────────────────────────
-export const STEP_TYPE_LABELS: Record<string, string> = {
-  validation: "入力チェック",
-  dbAccess: "DBアクセス",
-  externalSystem: "外部システム",
-  componentCall: "コンポーネント呼出",
-  commonProcess: "共通処理",
-  screenTransition: "画面遷移",
-  displayUpdate: "表示更新",
-  branch: "分岐",
-  loop: "ループ",
-  loopBreak: "ループ終了",
-  loopContinue: "次の繰り返し",
-  jump: "ジャンプ",
-  compute: "計算/代入",
-  return: "レスポンス返却",
-  log: "ログ",
-  audit: "監査",
-  workflow: "ワークフロー",
-  transactionScope: "トランザクション",
-  eventPublish: "イベント発行",
-  eventSubscribe: "イベント購読",
-  closing: "締め処理",
-  cdc: "CDC",
-  aiCall: "AI 呼出",
-  aiAgent: "AI エージェント",
-  extension: "拡張",
-  other: "その他",
-};
+/** ステップ種別の日本語名 (定義は @harmony/shared。HTML 設計書出力と共通) */
+export { STEP_KIND_LABELS as STEP_TYPE_LABELS } from "@harmony/shared";
 
 export const STEP_TYPE_ICONS: Record<string, string> = {
   validation: "check-square",
@@ -200,15 +174,8 @@ export const WORKFLOW_PATTERN_LABELS: Record<string, string> = {
 };
 
 // ── DB Operation (frontend 表示専用、schema には DbAccessStep.operation 直接) ──
-export const DB_OPERATION_LABELS: Record<string, string> = {
-  select: "検索",
-  insert: "登録",
-  update: "更新",
-  delete: "削除",
-  upsert: "登録または更新",
-  call: "呼び出し",
-  other: "その他",
-};
+/** DB 操作の日本語名 (定義は @harmony/shared) */
+export { DB_OPERATION_LABELS } from "@harmony/shared";
 
 // ── StepTemplate (Palette 表示用、空配列、将来 fill 予定) ──────────────────
 export interface StepTemplate {

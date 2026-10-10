@@ -1,0 +1,161 @@
+/* ==========================================================================
+   Harmony 配色トークン (アプリ UI 全体の唯一の色定義)
+
+   - テーマは <html data-theme="light|dark"> で切り替える (appTheme.ts が設定)
+   - 画面ごとの CSS は色を直書きせず、必ずこのトークンを参照する
+     (検査: node scripts/verify/no-raw-colors.mjs)
+   - 上部ヘッダー / タブバー (chrome) はどちらのテーマでも暗色
+   - 画面デザイナのキャンバス (紙面) は設計対象アプリの見本なので対象外。
+     紙面の色は styles/screenLayout.css の --pv-* が担う
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+
+  /* 面 */
+  --hm-bg: #f3f5f8;
+  --hm-surface: #ffffff;
+  --hm-surface-2: #f6f8fb;
+  --hm-surface-3: #eceff4;
+  --hm-surface-4: #dde2ea;
+  --hm-hover: rgba(15, 23, 42, 0.05);
+  --hm-inverse-bg: #1f2533;
+  --hm-inverse-fg: #f3f5f9;
+
+  /* 罫線 */
+  --hm-border: #e0e5ec;
+  --hm-border-strong: #c3cad6;
+
+  /* 文字 */
+  --hm-fg: #1c2331;
+  --hm-fg-2: #3d4657;
+  --hm-fg-muted: #626c80;
+  --hm-fg-faint: #7f889b;
+  --hm-on-solid: #ffffff;
+
+  /* アクセント (ブランド藍紫) と意味色 */
+  --hm-accent: #5458d8;
+  --hm-accent-hover: #4447c4;
+  --hm-accent-soft: #eef0ff;
+  --hm-accent-solid: #5458d8; /* 白文字を載せる塗り (両テーマ共通) */
+  --hm-accent-solid-hover: #4447c4;
+  --hm-focus: rgba(84, 88, 216, 0.35);
+  --hm-danger: #d03434;
+  --hm-warning: #c27a0e;
+  --hm-success: #1f8a4c;
+
+  /* 上部ヘッダー / タブバー (両テーマ共通の暗色) */
+  --hm-chrome-bg: #191b2b;
+  --hm-chrome-bg-2: #232539;
+  --hm-chrome-bg-3: #2e3150;
+  --hm-chrome-border: #34374f;
+  --hm-chrome-fg: #e4e6f0;
+  --hm-chrome-fg-dim: #9a9db5;
+
+  /* 旧 designer 変数 (app.css / editorHeader.css 等) をトークンへ寄せる */
+  --dz-bg: var(--hm-surface-2);
+  --dz-bg-2: var(--hm-surface);
+  --dz-bg-3: var(--hm-surface-3);
+  --dz-border: var(--hm-border);
+  --dz-text: var(--hm-fg);
+  --dz-text-dim: var(--hm-fg-muted);
+  --dz-accent: var(--hm-accent-solid);
+  --dz-accent-hover: var(--hm-accent-solid-hover);
+  --dz-danger: var(--hm-danger);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --hm-bg: #10131b;
+  --hm-surface: #181c26;
+  --hm-surface-2: #1e2330;
+  --hm-surface-3: #262c3b;
+  --hm-surface-4: #333a4c;
+  --hm-hover: rgba(255, 255, 255, 0.06);
+  --hm-inverse-bg: #e7eaf1;
+  --hm-inverse-fg: #161a23;
+
+  --hm-border: #2c3242;
+  --hm-border-strong: #414a5f;
+
+  --hm-fg: #e5e8ef;
+  --hm-fg-2: #c2c7d3;
+  --hm-fg-muted: #949bad;
+  --hm-fg-faint: #767e92;
+  --hm-on-solid: #ffffff;
+
+  --hm-accent: #8f93f5;
+  --hm-accent-hover: #a5a8f8;
+  --hm-accent-soft: #252949;
+  --hm-focus: rgba(143, 147, 245, 0.4);
+  --hm-danger: #f07373;
+  --hm-warning: #e3a43c;
+  --hm-success: #5cc58a;
+
+  --dz-bg: var(--hm-bg);
+  --dz-bg-2: var(--hm-surface);
+  --dz-bg-3: var(--hm-surface-3);
+}
+
+/* 旧来の未定義変数 (各所で fallback 付きで参照されていた) をトークンに結び付ける */
+:root {
+  --bg-color: var(--hm-bg);
+  --panel-bg: var(--hm-surface);
+  --card-bg: var(--hm-surface);
+  --header-bg: var(--hm-surface-2);
+  --code-bg: var(--hm-surface-2);
+  --button-bg: var(--hm-surface-2);
+  --button-hover-bg: var(--hm-surface-3);
+  --text-color: var(--hm-fg);
+  --muted-text: var(--hm-fg-muted);
+  --text-muted: var(--hm-fg-muted);
+  --app-muted: var(--hm-fg-muted);
+  --border: var(--hm-border);
+  --border-color: var(--hm-border);
+  --border-faint: var(--hm-border);
+  --accent: var(--hm-accent);
+  --danger-text: var(--hm-danger);
+  --danger-bg: color-mix(in srgb, var(--hm-danger) 12%, var(--hm-surface));
+  --warning-text: var(--hm-warning);
+  --warning-bg: color-mix(in srgb, var(--hm-warning) 14%, var(--hm-surface));
+  --success-text: var(--hm-success);
+  --success-bg: color-mix(in srgb, var(--hm-success) 12%, var(--hm-surface));
+}
+
+body {
+  background-color: var(--hm-bg);
+  color: var(--hm-fg);
+}
+
+/* ReactFlow (画面フロー図 / ER 図 / 処理フロー図) の既定配色 */
+.react-flow {
+  --xy-background-color-default: var(--hm-bg);
+  --xy-background-pattern-dots-color-default: var(--hm-border-strong);
+  --xy-background-pattern-lines-color-default: var(--hm-border);
+  --xy-background-pattern-cross-color-default: var(--hm-border);
+  --xy-edge-stroke-default: var(--hm-fg-faint);
+  --xy-edge-stroke-selected-default: var(--hm-accent);
+  --xy-connectionline-stroke-default: var(--hm-accent);
+  --xy-edge-label-background-color-default: var(--hm-surface);
+  --xy-edge-label-color-default: var(--hm-fg-2);
+  --xy-node-background-color-default: var(--hm-surface);
+  --xy-node-color-default: var(--hm-fg);
+  --xy-node-border-default: 1px solid var(--hm-border-strong);
+  --xy-handle-background-color-default: var(--hm-fg-muted);
+  --xy-handle-border-color-default: var(--hm-surface);
+  --xy-minimap-background-color-default: var(--hm-surface);
+  --xy-minimap-mask-background-color-default: color-mix(in srgb, var(--hm-bg) 60%, transparent);
+  --xy-minimap-node-background-color-default: var(--hm-surface-4);
+  --xy-controls-button-background-color-default: var(--hm-surface);
+  --xy-controls-button-background-color-hover-default: var(--hm-surface-3);
+  --xy-controls-button-color-default: var(--hm-fg-2);
+  --xy-controls-button-color-hover-default: var(--hm-fg);
+  --xy-controls-button-border-color-default: var(--hm-border);
+  --xy-attribution-background-color-default: transparent;
+  --xy-selection-background-color-default: color-mix(in srgb, var(--hm-accent) 10%, transparent);
+  --xy-selection-border-default: 1px dotted var(--hm-accent);
+}
+.react-flow__edge-textbg { fill: var(--hm-surface); }
+.react-flow__edge-text { fill: var(--hm-fg-2); }
+.react-flow__attribution { display: none; }

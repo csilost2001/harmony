@@ -57,7 +57,7 @@ for (const path of views) {
 
 各 examples/<project>/ の harmony.json から id を 1-2 件 sample し:
 
-- `/screen/design/<screenId>` (GrapesJS or Puck)
+- `/screen/design/<screenId>` (業務部品デザイナ)
 - `/screen/items/<screenId>`
 - `/table/edit/<tableId>`
 - `/process-flow/edit/<flowId>`

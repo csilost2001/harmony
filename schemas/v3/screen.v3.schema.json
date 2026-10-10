@@ -48,6 +48,10 @@
           "items": { "$ref": "screen-item.v3.schema.json#/$defs/ScreenItem" },
           "description": "画面項目定義一覧 (フォーム要素・表示要素)。"
         },
+        "layout": {
+          "$ref": "#/$defs/ScreenLayout",
+          "description": "画面レイアウト (業務部品の木)。画面を「入力フォーム」「一覧表」「ボタン群」等の業務部品の入れ子で表す。入力欄・一覧等の部品は itemRef で items[] の画面項目を参照し、型・桁・必須等の定義は items[] 側に一元化する。描画方式 (CSS フレームワーク等) は持たない。2026-10 再設計で導入 (docs/spec/screen-layout.md)。design は移行期間中の旧形式。"
+        },
         "permissions": {
           "type": "array",
           "items": { "type": "string" },
@@ -55,7 +59,7 @@
         },
         "design": {
           "$ref": "#/$defs/ScreenDesign",
-          "description": "画面デザイン (GrapesJS 生 HTML への参照)。本フレームワークの schema 範囲外、外部参照のみ。"
+          "description": "旧形式の画面デザイン参照 (GrapesJS 生 HTML / Puck Data)。本フレームワークの schema 範囲外、外部参照のみ。layout へ移行済みの画面では不要。"
         },
         "authoring": { "$ref": "common.v3.schema.json#/$defs/Authoring" }
       },
@@ -87,6 +91,62 @@
           "description": "拡張 ScreenKind 参照。namespace:kindName 形式 (例: 'retail:storefront')。"
         }
       ]
+    },
+
+    "ScreenLayout": {
+      "description": "画面レイアウト (業務部品の木)。nodes は画面上の上から下への並び。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "nodes"],
+      "properties": {
+        "version": { "const": 1, "description": "レイアウト形式の版。" },
+        "nodes": { "type": "array", "items": { "$ref": "#/$defs/LayoutNode" }, "description": "最上位の部品 (上から順)。" }
+      }
+    },
+
+    "LayoutNodeType": {
+      "description": "業務部品の種別。容器 (子を持つ): section=区画, form=入力フォーム, search-panel=検索条件, columns=段組, column=段, tabs=タブ群, tab=タブ, button-bar=ボタン群。要素: heading=見出し, text=文章, field=入力/表示項目, table=一覧表, button=ボタン, link=リンク, message-area=メッセージ領域, image=画像, divider=区切り線, html=自由 HTML (旧形式からの移行用), component=プロジェクト独自部品の参照 (componentRef で layout-components.json の定義を指す)。",
+      "type": "string",
+      "enum": ["section", "form", "search-panel", "columns", "column", "tabs", "tab", "button-bar", "heading", "text", "field", "table", "button", "link", "message-area", "image", "divider", "html", "component"]
+    },
+
+    "LayoutNode": {
+      "description": "業務部品 1 つ。field / table は itemRef で画面項目を参照する。button は itemRef (click イベントを持つ項目) を参照するか、props.label のみを持つ。type=component の部品は componentRef と args を持ち、描画・検証時に独自部品の定義を展開する。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type"],
+      "properties": {
+        "id": { "$ref": "common.v3.schema.json#/$defs/Identifier", "description": "画面内で一意な部品 ID。" },
+        "type": { "$ref": "#/$defs/LayoutNodeType" },
+        "itemRef": { "$ref": "common.v3.schema.json#/$defs/Identifier", "description": "参照する画面項目の id (items[].id)。" },
+        "props": { "$ref": "#/$defs/LayoutNodeProps" },
+        "children": { "type": "array", "items": { "$ref": "#/$defs/LayoutNode" }, "description": "子部品 (容器のみ)。" },
+        "note": { "type": "string", "description": "設計メモ (AI / 開発者への補足)。" },
+        "componentRef": { "$ref": "common.v3.schema.json#/$defs/EntityId", "description": "type=component のとき、参照する独自部品の id (layout-components.json の components[].id)。" },
+        "args": { "type": "object", "additionalProperties": { "type": "string" }, "description": "type=component のとき、独自部品の差し込み口 (params[].id) に入れる値。kind=text は文言、item は画面項目 id (items[].id)、screen は画面 id。" }
+      }
+    },
+
+    "LayoutNodeProps": {
+      "description": "部品の表示属性。意味 (semantic) のみを持ち、CSS クラスや色は持たない。",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": { "type": "string", "description": "区画・タブ・フォームの表題。" },
+        "text": { "type": "string", "description": "見出し・文章の本文。" },
+        "label": { "type": "string", "description": "ボタン・リンクの表示文言 (itemRef がある場合は items[].label を優先)。" },
+        "level": { "type": "integer", "minimum": 1, "maximum": 3, "description": "見出しの階層 (1=画面見出し)。" },
+        "columns": { "type": "integer", "minimum": 1, "maximum": 4, "description": "form / search-panel の項目の列数。" },
+        "span": { "type": "integer", "minimum": 1, "maximum": 12, "description": "column の幅 (12 分割)。" },
+        "align": { "type": "string", "enum": ["left", "center", "right", "between"], "description": "配置。" },
+        "variant": { "type": "string", "enum": ["primary", "secondary", "danger", "link", "plain", "card", "panel"], "description": "ボタンの強調度、または区画の外枠。" },
+        "tone": { "type": "string", "enum": ["normal", "muted", "note", "warning"], "description": "文章の調子。" },
+        "collapsible": { "type": "boolean", "description": "区画を折りたたみ可能にする。" },
+        "screenRef": { "$ref": "common.v3.schema.json#/$defs/EntityId", "description": "link / button の遷移先画面 id。" },
+        "html": { "type": "string", "description": "html 部品の本文 (旧形式から業務部品に変換できなかった部分)。" },
+        "src": { "type": "string", "description": "image の参照先。" },
+        "alt": { "type": "string", "description": "image の代替テキスト。" }
+      }
     },
 
     "ScreenDesign": {

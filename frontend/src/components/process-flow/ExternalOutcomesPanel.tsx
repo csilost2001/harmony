@@ -106,7 +106,7 @@ export function ExternalOutcomesPanel({ step, group, onChange, onCommit }: Props
   }
 
   return (
-    <div className="external-outcomes-panel" style={{ marginTop: 6, border: "1px solid #e2e8f0", borderRadius: 4, padding: 8 }}>
+    <div className="external-outcomes-panel" style={{ marginTop: 6, border: "1px solid var(--hm-border)", borderRadius: 4, padding: 8 }}>
       <div className="d-flex align-items-center justify-content-between mb-2">
         <button
           type="button"
@@ -123,7 +123,7 @@ export function ExternalOutcomesPanel({ step, group, onChange, onCommit }: Props
       {EXTERNAL_CALL_OUTCOME_VALUES.map((key) => {
         const spec = outcomes[key];
         return (
-          <div key={key} className="mb-2 p-2" style={{ background: "#f8fafc", borderRadius: 4, fontSize: "0.8rem" }}>
+          <div key={key} className="mb-2 p-2" style={{ background: "var(--hm-surface-2)", borderRadius: 4, fontSize: "0.8rem" }}>
             <div className="d-flex align-items-center gap-2 mb-1">
               <strong style={{ width: 100 }}>{OUTCOME_LABEL[key]} ({key}):</strong>
               {spec ? (

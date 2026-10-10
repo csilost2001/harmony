@@ -113,16 +113,15 @@ ISSUE が `docs/spec/` の追加・変更を伴う場合:
 - 実装にあって spec にない機能があれば「spec 側の更新漏れ」として指摘
 - **id 体系違反 (RFC #1284 / #1332)**: ISSUE が top-level entity (ProcessFlow / Screen / Table / Sequence / View / ViewDefinition / PageLayout) の作成 / 変更を伴う場合、各 entity ファイル / fixture / spec example が `id: EntityId (kebab-case)` + `uuid: Uuid` + `name: string` の 3 fields 構成になっているか確認。UUID 形式の `id` value、`uuid` field 欠落、entity id を「slug」と呼称する記述は指摘。検出例: `grep -nE '"id":\s*"[0-9a-f]{8}-' <ISSUE 関連 file>` / `grep -nE 'slug' <docs>` (ただし Astro route placeholder / branch 命名 / `slugifyToEntityId` 等の関数名 / business 領域 field / npm package は対象外)
 
-### Step 4.5: マルチエディタ対応 ISSUE の画面 editorKind 整合性確認 (#806)
+### Step 4.5: 画面デザイン (業務部品デザイナ) ISSUE の整合性確認
 
-ISSUE が画面デザイン / デザイナー / cssFramework / editorKind に関連する場合:
+ISSUE が画面デザイン / デザイナー / 独自部品に関連する場合:
 
-- 各画面の `editorKind` が ISSUE で約束した設計と一致しているか (`screen.design.editorKind` の実際の値を確認)
-- `editorKind: "puck"` 画面と `editorKind: "grapesjs"` 画面が同一プロジェクトに混在している場合、それぞれが独立に開けるか確認
-- 動的コンポーネント定義 (`puck-components.json`) が存在し、primitive フィールドが BUILTIN_PRIMITIVE_NAMES に含まれるか確認
-- Thymeleaf 出力が必要な ISSUE では、Puck 画面がスキップされ記録されているかの実装を確認
+- 画面の `layout` が ISSUE で約束した構造になっているか (`designer__get_screen_layout` の `issues` に error が無いこと)
+- 繰り返す部品の組が独自部品 (`layout-components.json`) になっているか、差し込み口 (画面項目 / 文言 / 遷移先) が妥当か
+- 旧エディタ (GrapesJS / Puck) の `design` 参照を新規に作っていないか
 
-詳細仕様: `docs/spec/multi-editor-puck.md` § 2.3
+詳細仕様: `docs/spec/screen-layout.md` / `docs/spec/layout-components.md`
 
 ### Step 5: テスト・動作確認の充足
 
@@ -137,7 +136,7 @@ ISSUE が画面デザイン / デザイナー / cssFramework / editorKind に関
 - `docs/spec/` を勝手に書き換えない (不備は指摘のみ)
 - `gh issue close` / `gh issue edit` 等の書き込み系は**コメント投稿以外禁止**
 - テスト実行は read-only の範囲 (`--update-snapshots` 等は不可)
-- ファイル編集は `tmp/review-cache/` 配下の一時ファイルのみ可 (`tmp/` は `.gitignore` 済)
+- ファイル編集は `.tmp/review-cache/` 配下の一時ファイルのみ可 (`.tmp/` は `.gitignore` 済)
 
 ## 報告フォーマット
 
@@ -145,7 +144,7 @@ ISSUE が画面デザイン / デザイナー / cssFramework / editorKind に関
 
 ### 1. 一時ファイルに書き出し
 
-事前に `mkdir -p tmp/review-cache` でディレクトリを確保してから、`tmp/review-cache/review-issue-$ARGUMENTS.md` に以下の構造で書き出す:
+事前に `mkdir -p .tmp/review-cache` でディレクトリを確保してから、`.tmp/review-cache/review-issue-$ARGUMENTS.md` に以下の構造で書き出す:
 
 ```markdown
 ## Claude Review (ISSUE 完了監査) — <YYYY-MM-DD>
@@ -226,10 +225,10 @@ ISSUE が画面デザイン / デザイナー / cssFramework / editorKind に関
 ### 2. ISSUE にコメント投稿
 
 ```bash
-gh issue comment $ARGUMENTS --body-file tmp/review-cache/review-issue-$ARGUMENTS.md
+gh issue comment $ARGUMENTS --body-file .tmp/review-cache/review-issue-$ARGUMENTS.md
 ```
 
-投稿前にユーザーの許可を得るフローになる (権限設定による)。拒否された場合でも `tmp/review-cache/review-issue-$ARGUMENTS.md` に結果が残っているので、ユーザーが内容を確認してから手動で投稿できる。
+投稿前にユーザーの許可を得るフローになる (権限設定による)。拒否された場合でも `.tmp/review-cache/review-issue-$ARGUMENTS.md` に結果が残っているので、ユーザーが内容を確認してから手動で投稿できる。
 
 ### 3. 完了報告
 

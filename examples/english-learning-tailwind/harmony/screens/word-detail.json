@@ -111,7 +111,146 @@
       }
     }
   ],
-  "design": {
-    "designFileRef": "word-detail.design.json"
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "section",
+        "type": "section",
+        "props": {
+          "variant": "card"
+        },
+        "children": [
+          {
+            "id": "text",
+            "type": "text",
+            "props": {
+              "text": "習得済み"
+            }
+          },
+          {
+            "id": "wordText",
+            "type": "field",
+            "itemRef": "wordText"
+          },
+          {
+            "id": "wordPartOfSpeech",
+            "type": "field",
+            "itemRef": "wordPartOfSpeech"
+          },
+          {
+            "id": "text2",
+            "type": "text",
+            "props": {
+              "text": "/ˈlɑːteɪ/"
+            }
+          },
+          {
+            "id": "text3",
+            "type": "text",
+            "props": {
+              "text": "A2"
+            }
+          }
+        ]
+      },
+      {
+        "id": "section2",
+        "type": "section",
+        "props": {
+          "variant": "card"
+        },
+        "children": [
+          {
+            "id": "text4",
+            "type": "text",
+            "props": {
+              "text": "日本語訳",
+              "tone": "muted"
+            }
+          },
+          {
+            "id": "wordTranslation",
+            "type": "field",
+            "itemRef": "wordTranslation"
+          }
+        ]
+      },
+      {
+        "id": "section3",
+        "type": "section",
+        "props": {
+          "variant": "card"
+        },
+        "children": [
+          {
+            "id": "text5",
+            "type": "text",
+            "props": {
+              "text": "例文",
+              "tone": "muted"
+            }
+          },
+          {
+            "id": "wordExampleSentence",
+            "type": "field",
+            "itemRef": "wordExampleSentence"
+          },
+          {
+            "id": "text6",
+            "type": "text",
+            "props": {
+              "text": "オートミルクのラテをいただけますか？ラージサイズでお願いします。",
+              "tone": "muted"
+            }
+          },
+          {
+            "id": "wordIpa",
+            "type": "field",
+            "itemRef": "wordIpa"
+          },
+          {
+            "id": "wordCefrLevel",
+            "type": "field",
+            "itemRef": "wordCefrLevel"
+          },
+          {
+            "id": "masteryStatus",
+            "type": "field",
+            "itemRef": "masteryStatus"
+          }
+        ]
+      },
+      {
+        "id": "buttons",
+        "type": "button-bar",
+        "children": [
+          {
+            "id": "button",
+            "type": "button",
+            "props": {
+              "label": "発音を聞く",
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "button2",
+            "type": "button",
+            "props": {
+              "label": "カード練習",
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "link",
+            "type": "link",
+            "props": {
+              "label": "会話練習",
+              "screenRef": "story-list"
+            }
+          }
+        ]
+      }
+    ]
   }
 }

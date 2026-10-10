@@ -1,0 +1,305 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="../../favicon.svg" type="image/svg+xml"><title>screen layout</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="../../_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="../../_astro/_slug_.XtJAgJeQ.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="../../" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="../../spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="../../user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="../../conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="../../setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="../../presentation/" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="../../spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="../../spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="../../spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="../../spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="../../spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="../../spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="../../spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="../../spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="../../spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="../../spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="../../spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="../../spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="../../spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="../../spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="../../spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="../../spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="../../spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="../../spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="../../spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="../../spec/spec-package/" class="sidebar-link"> @harmony/spec package </a> </li><li> <a href="../../spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="../../spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="../../spec/design-payload-storage/" class="sidebar-link"> Design payload storage </a> </li><li> <a href="../../spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="../../spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="../../spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="../../spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="../../spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="../../spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="../../spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="../../spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="../../spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="../../spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="../../spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="../../spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="../../spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="../../spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="../../spec/react-exporter/" class="sidebar-link"> React Exporter (designer__export_screen) </a> </li><li> <a href="../../spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="../../spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="../../spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="../../spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="../../spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="../../spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="../../spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="../../spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="../../spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="../../spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="../../spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="../../spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="../../spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="../../spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="../../spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="../../spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="../../spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="../../spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="画面レイアウト-業務部品の木--仕様書">画面レイアウト (業務部品の木) — 仕様書</h1>
+<p><strong>Status</strong>: 実装済 (2026-10、再設計 段階 1)
+<strong>関連</strong>: <a href="https://github.com/csilost2001/harmony/blob/main/docs/plans/redesign-2026-10.md">docs/plans/redesign-2026-10.md</a> / <a href="../../spec/screen-items/">screen-items.md</a> / <a href="../../spec/schema-governance/">schema-governance.md</a></p>
+<h2 id="1-目的">1. 目的</h2>
+<p>画面の設計を「業務部品の入れ子」として JSON で持つ。旧形式 (GrapesJS の HTML 文字列 / Puck Data) では、</p>
+<ul>
+<li>画面の見た目 (HTML) と画面項目 (items) が二重管理になり、同期処理が原本を汚していた</li>
+<li>HTML 文字列は AI にも人にも意味が読み取りにくく、差分レビューができなかった</li>
+<li>描画方式 (GrapesJS / Puck × Bootstrap / Tailwind) ごとに保存形式が分かれていた</li>
+</ul>
+<p>業務部品の木は、<strong>配置 (layout) と項目定義 (items) を分け、配置は項目を ID で参照するだけ</strong>にする。描画方式は持たない (どう描くかはプレビューと、コード生成時の AI の責務)。</p>
+<h2 id="2-データ形式">2. データ形式</h2>
+<p><code>screens/&#x3C;id>.json</code> の <code>layout</code> に置く (schemas/v3/screen.v3.schema.json <code>ScreenLayout</code>)。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"product-search"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "items"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"productCode"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"label"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"商品コード"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"direction"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"in"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"maxLength"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">20</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"inventoryRows"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"label"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"在庫一覧"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"array"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"itemType"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"json"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "direction"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"out"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"presentation"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"table"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"viewDefinitionId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"inventory-list"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> } }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "layout"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "version"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">1</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "nodes"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"heading"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"heading"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"props"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"text"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"商品検索"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"level"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">1</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> } },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"searchPanel"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"search-panel"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"props"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"columns"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">2</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"children"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">        { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"productCode"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"field"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"itemRef"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"productCode"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">        { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"buttons"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"button-bar"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"props"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"align"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"right"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"children"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">          { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"searchButton"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"button"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"itemRef"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"searchButton"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"props"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"label"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"検索"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"variant"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"primary"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> } }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">        ] }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      ] },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"inventoryRows"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"table"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"itemRef"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"inventoryRows"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    ]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h3 id="21-部品の種別">2.1 部品の種別</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>種別</th><th>名前</th><th>子</th><th>主な props</th></tr></thead><tbody><tr><td><code>section</code></td><td>区画</td><td>任意</td><td><code>title</code>, <code>variant</code> (card / panel / plain), <code>collapsible</code></td></tr><tr><td><code>form</code></td><td>入力フォーム</td><td>field / button / text / columns / button-bar / section 等</td><td><code>title</code>, <code>columns</code> (1–4)</td></tr><tr><td><code>search-panel</code></td><td>検索条件</td><td>form と同じ</td><td><code>title</code>, <code>columns</code></td></tr><tr><td><code>columns</code> / <code>column</code></td><td>段組 / 段</td><td>columns の子は column のみ</td><td>column: <code>span</code> (12 分割)</td></tr><tr><td><code>tabs</code> / <code>tab</code></td><td>タブ群 / タブ</td><td>tabs の子は tab のみ</td><td>tab: <code>title</code></td></tr><tr><td><code>button-bar</code></td><td>ボタン群</td><td>button / link のみ</td><td><code>align</code></td></tr><tr><td><code>heading</code></td><td>見出し</td><td>—</td><td><code>text</code>, <code>level</code> (1–3)</td></tr><tr><td><code>text</code></td><td>文章</td><td>—</td><td><code>text</code>, <code>tone</code> (normal / muted / note / warning)</td></tr><tr><td><code>field</code></td><td>項目</td><td>—</td><td><code>itemRef</code> 必須</td></tr><tr><td><code>table</code></td><td>一覧表</td><td>—</td><td><code>itemRef</code> 必須 (presentation.kind=table/list の項目)</td></tr><tr><td><code>button</code></td><td>ボタン</td><td>—</td><td><code>itemRef</code> (click イベントを持つ項目) または <code>label</code>, <code>variant</code>, <code>screenRef</code></td></tr><tr><td><code>link</code></td><td>リンク</td><td>—</td><td><code>label</code>, <code>screenRef</code></td></tr><tr><td><code>message-area</code></td><td>メッセージ領域</td><td>—</td><td>—</td></tr><tr><td><code>image</code></td><td>画像</td><td>—</td><td><code>src</code>, <code>alt</code></td></tr><tr><td><code>divider</code></td><td>区切り線</td><td>—</td><td>—</td></tr><tr><td><code>html</code></td><td>自由 HTML</td><td>—</td><td><code>html</code> (旧形式から変換できなかった部分。置き換え候補)</td></tr><tr><td><code>component</code></td><td>プロジェクト独自部品の参照</td><td>—</td><td><code>componentRef</code>, <code>args</code> (<a href="../../spec/layout-components/">layout-components.md</a>)</td></tr></tbody></table>
+<p>配置可否は <code>canContain()</code> (shared/src/screenLayout.ts) が唯一の定義。</p>
+<h3 id="22-原則">2.2 原則</h3>
+<ol>
+<li><strong>項目の定義は items[] にだけ書く</strong>。部品は <code>itemRef</code> で参照する。同じ項目を複数の部品から参照してよい</li>
+<li><strong>部品 ID は画面内で一意な lowerCamelCase</strong>。項目を参照する部品は、項目 ID と同じ ID を基本にする</li>
+<li><strong>props は意味だけを持つ</strong>。色・CSS クラス・ピクセル値は持たない</li>
+<li>検証 (<code>validateLayout</code>) は保存を妨げない (draft-state)。重複 ID / 存在しない項目 / 置けない位置は error、項目未割当は warning、未配置の項目・空の容器・自由 HTML は info</li>
+</ol>
+<h2 id="3-業務部品デザイナ-ui">3. 業務部品デザイナ (UI)</h2>
+<p><code>/screen/design/:screenId</code>。layout を持つ画面で開く。</p>
+<ul>
+<li>左: 部品パレット / 画面項目 (未配置の項目) / テーブル (列から項目を作成) / 構成ツリー</li>
+<li>中央: 紙面プレビュー (設計対象アプリの見本。アプリのテーマに関係なく明色)。表示幅 (PC / タブレット / スマホ)・密度・設計情報 (項目 ID・型・桁) を切替</li>
+<li>右: 選択した部品の属性と、参照する画面項目の定義 (型・桁・必須・書式・選択肢・一覧の列)。未選択時は画面全体の検証結果</li>
+<li>操作: ドラッグ &#x26; ドロップ / クリックで選択中の部品の後ろに追加 / Alt+↑↓ 移動 / Ctrl+D 複製 / Delete 削除 / Ctrl+Z・Y 取り消し / Ctrl+S 保存</li>
+<li>テーブル列をドラッグすると、型・桁数・必須 (NOT NULL かつ自動採番・既定値なし)・表示名・DB 列参照 (<code>binding.kind=tableColumn</code>) を引き継いだ入力項目を作る</li>
+<li>保存は画面項目と同じ編集セッション (<code>screen-item</code>) で items と layout を同時に確定する。画面を開いただけでは原本を書き換えない</li>
+</ul>
+<h3 id="31-未配置の項目の自動配置">3.1 未配置の項目の自動配置</h3>
+<p>画面項目 (items) はあるのに画面のどこにも置かれていない項目は、左パネル「項目」タブの「未配置の項目を自動で配置」で、種類に応じた容器へまとめて置ける (<code>autoPlaceItems</code>、shared/src/layoutAutoPlace.ts)。置いたあとで動かせる。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>項目の種類</th><th>置き場所</th></tr></thead><tbody><tr><td>一覧 (presentation が table / list 等、配列型)</td><td>最上位の末尾に一覧表</td></tr><tr><td>ボタン (型 / ID が <code>…Button</code> / 表示名が <code>…ボタン</code> / click イベント)</td><td>入力フォーム (または検索条件) の中のボタン群。無ければ作る。強調は保存・検索等=主、削除=危険、他=通常</td></tr><tr><td>表示専用 (<code>direction: out</code>)</td><td>項目を持つ区画 → 入力フォームを含まない区画 (注文サマリ等) → 入力フォーム → 無ければ「表示項目」の区画を作る</td></tr><tr><td>入力 (<code>in</code> / <code>both</code>)</td><td><code>…Filter</code> / 「絞り込み」は検索条件、それ以外は入力フォーム。無ければ「入力」フォームを作る</td></tr></tbody></table>
+<ul>
+<li>項目は、容器の中のボタン / ボタン群より前に置く</li>
+<li>独自部品の中 (差し込み値) で使われている項目は配置済みとみなす</li>
+<li>画面項目の「画面に表示しない」(<code>nonVisual: true</code>。画面の内部状態・隠し値) は自動配置せず、未配置の警告にも数えない。文言 (説明) による判定はしない</li>
+<li>コマンドで一括適用する場合: <code>node scripts/dev/auto-place-items.mjs &#x3C;workspace> [--apply]</code> (既定は確認のみ)</li>
+</ul>
+<h2 id="4-旧形式との関係">4. 旧形式との関係</h2>
+<ul>
+<li>layout を持たず旧デザイン (<code>design.designFileRef</code> / <code>puckDataRef</code>) だけを持つ画面は、旧デザイナで開き、上部に移行の案内を出す</li>
+<li>移行は案内から業務部品デザイナの開始画面に切り替え、「旧デザインから自動変換」または「空の画面から作る」を選ぶ。保存するまで原本は変わらない</li>
+<li>旧デザインファイルは移行後も削除しない (旧デザイナの廃止時にまとめて整理する)</li>
+</ul>
+<h2 id="5-旧デザイン-html-からの自動変換">5. 旧デザイン HTML からの自動変換</h2>
+<p><code>designToLayout()</code> (shared/src/designToLayout.ts) が決定的に変換する。一括変換は <code>node scripts/dev/convert-screens-to-layout.mjs &#x3C;workspace> [--apply]</code>。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>HTML</th><th>部品</th></tr></thead><tbody><tr><td><code>&#x3C;main></code> の外 (ヘッダ / サイドバー / フッタ)</td><td>除外 (ページレイアウトの責務)。ガジェット画面では除外しない</td></tr><tr><td><code>h1</code>〜<code>h6</code>, <code>.page-title</code></td><td>heading (level は 3 まで)</td></tr><tr><td><code>form</code>, <code>.search-area</code></td><td>form / search-panel (検索ボタンや class 名で判定)。<code>.row > .col-*</code> の列数を columns に</td></tr><tr><td>ラベル + 入力欄 1 つのまとまり</td><td>field。<code>data-item-id</code> → <code>name</code> → 表示名一致の順で既存項目に結び付け、無ければ項目を作る (型・必須・桁・選択肢を引き継ぐ)</td></tr><tr><td><code>&#x3C;table></code> (見出し行あり)</td><td>table。結び付く項目が無ければ列見出しから一覧項目を作る。名前は直前の見出しから</td></tr><tr><td><code>data-item-id</code> を持つ空要素 (viewer 差し込み位置)</td><td>項目の presentation に応じて table / field。直後の見本表は重複させない</td></tr><tr><td><code>button</code>, <code>a.btn</code></td><td>button。連続するものは button-bar にまとめる。<code>href</code> が画面 path なら <code>screenRef</code></td></tr><tr><td><code>.card</code>, <code>section</code>, <code>fieldset</code></td><td>section (見出しを title に)</td></tr><tr><td><code>.alert</code>, <code>[role=alert]</code></td><td>message-area</td></tr><tr><td><code>p</code>, 文字だけの <code>div</code></td><td>text (<code>text-muted</code> / <code>small</code> は tone=muted)</td></tr><tr><td><code>ul</code> / <code>ol</code> / <code>dl</code> / <code>svg</code> 等</td><td>html (原文を保持)</td></tr></tbody></table>
+<h2 id="6-コード生成との関係">6. コード生成との関係</h2>
+<p><code>/generate-code</code> は layout を画面構造の一次情報として読む (ai-skills/generate-code/SKILL.md Step 3-B)。layout が無い画面は従来どおり items と旧デザインから生成する。</p>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

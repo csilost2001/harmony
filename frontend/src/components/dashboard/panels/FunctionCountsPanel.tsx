@@ -85,10 +85,10 @@ export function FunctionCountsPanel() {
   }
 
   const items: Array<{ label: string; value: number; icon: string; color: string }> = [
-    { label: "画面", value: counts.screens, icon: "bi-window", color: "#6366f1" },
-    { label: "テーブル", value: counts.tables, icon: "bi-table", color: "#0284c7" },
-    { label: "処理フロー", value: counts.processFlows, icon: "bi-lightning-charge", color: "#f59e0b" },
-    { label: "FK 関係", value: counts.foreignKeys, icon: "bi-share", color: "#10b981" },
+    { label: "画面", value: counts.screens, icon: "bi-window", color: "color-mix(in srgb, #1e23eb 80%, var(--hm-fg))" },
+    { label: "テーブル", value: counts.tables, icon: "bi-table", color: "color-mix(in srgb, #0dabfd 80%, var(--hm-fg))" },
+    { label: "処理フロー", value: counts.processFlows, icon: "bi-lightning-charge", color: "color-mix(in srgb, #f5a214 80%, var(--hm-fg))" },
+    { label: "FK 関係", value: counts.foreignKeys, icon: "bi-share", color: "color-mix(in srgb, #1eeca7 80%, var(--hm-fg))" },
   ];
 
   return (

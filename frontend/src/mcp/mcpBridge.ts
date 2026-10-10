@@ -1,5 +1,3 @@
-import type { Editor as GEditor, Component, Block } from "grapesjs";
-import html2canvas from "html2canvas";
 import { generateUUID } from "../utils/uuid";
 import { isValidEntityId } from "../utils/entityIdValidation";
 import { uiInfo, uiWarn } from "../utils/uiLog";
@@ -26,19 +24,6 @@ import {
   type FlowStorageBackend,
 } from "../store/flowStore";
 import {
-  loadCustomBlocks,
-  upsertCustomBlock,
-  deleteCustomBlock,
-  injectCustomBlockCss,
-  setCustomBlocksBackend,
-  type CustomBlocksStorageBackend,
-  type CustomBlock,
-} from "../store/customBlockStore";
-import {
-  setPuckComponentsBackend,
-  type PuckComponentsStorageBackend,
-} from "../store/puckComponentsStore";
-import {
   setTableStorageBackend,
   type TableStorageBackend,
 } from "../store/tableStore";
@@ -58,11 +43,6 @@ import {
   setConventionsStorageBackend,
   type ConventionsStorageBackend,
 } from "../store/conventionsStore";
-import {
-  loadScreenItems,
-  setItemsInCache,
-  type ScreenItemsDocument,
-} from "../store/screenItemsStore";
 import {
   setScreenStorageBackend,
   buildDefaultScreen,
@@ -98,7 +78,6 @@ export type McpStatus = "disconnected" | "connecting" | "connected" | "failed";
 export type ThemeIdLike = "standard" | "card" | "compact" | "dark";
 
 type StatusCallback = (s: McpStatus) => void;
-type ThemeHandler = (theme: ThemeIdLike) => void;
 type NavigateHandler = (path: string) => void;
 type FlowChangeHandler = () => void;
 type ExtensionsChangedHandler = () => void;
@@ -124,12 +103,9 @@ declare global {
 
 class McpBridgeImpl {
   private ws: WebSocket | null = null;
-  private editor: GEditor | null = null;
-  private currentScreenId: string | null = null;
   private processFlowHandlers = new Map<string, ProcessFlowHandler>();
   private status: McpStatus = "disconnected";
   private statusCallbacks: Set<StatusCallback> = new Set();
-  private themeHandler: ThemeHandler | null = null;
   private navigateHandler: NavigateHandler | null = null;
   private flowChangeHandler: FlowChangeHandler | null = null;
   private extensionsCache: Promise<RawExtensionsBundle> | null = null;
@@ -171,20 +147,12 @@ class McpBridgeImpl {
 
   // ── ハンドラ setter ────────────────────────────────────────────────────
 
-  setCurrentScreenId(screenId: string | null): void {
-    this.currentScreenId = screenId;
-  }
-
   setProcessFlowHandler(id: string, handler: ProcessFlowHandler | null): void {
     if (handler) {
       this.processFlowHandlers.set(id, handler);
     } else {
       this.processFlowHandlers.delete(id);
     }
-  }
-
-  setThemeHandler(handler: ThemeHandler | null): void {
-    this.themeHandler = handler;
   }
 
   setNavigateHandler(handler: NavigateHandler | null): void {
@@ -244,18 +212,7 @@ class McpBridgeImpl {
 
   // ── 起動 / 停止 ───────────────────────────────────────────────────────
 
-  start(editor: GEditor): void {
-    this.editor = editor;
-    this.stopped = false;
-    // 既存接続が生きていれば editor 参照の差し替えだけ行う。
-    if (this._hasActiveConnection()) {
-      return;
-    }
-    uiInfo("ws-broadcast", "mcpBridge starting...");
-    this._connect();
-  }
-
-  /** フロー画面用: エディターなしで WebSocket 接続のみ起動。"failed" 状態からのリトライも可 */
+  /** WebSocket 接続のみ起動する (アプリ共通の起動口)。"failed" 状態からのリトライも可 */
   startWithoutEditor(): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) return;
     // "failed" 状態のリトライ: 残っている接続試行中の ws を破棄してから再接続
@@ -268,7 +225,7 @@ class McpBridgeImpl {
       return;
     }
     this.stopped = false;
-    uiInfo("ws-broadcast", "mcpBridge starting without editor (flow mode)...");
+    uiInfo("ws-broadcast", "mcpBridge starting...");
     this._connect();
   }
 
@@ -389,18 +346,6 @@ class McpBridgeImpl {
       deleteScreenData: (screenId) => this.request("deleteScreen", { screenId }).then(() => undefined),
     };
     setFlowStorageBackend(flowBackend);
-
-    const blocksBackend: CustomBlocksStorageBackend = {
-      loadCustomBlocks: () => this.request("loadCustomBlocks").then((r) => (r ?? []) as unknown[]),
-      saveCustomBlocks: (blocks) => this.request("saveCustomBlocks", { blocks }).then(() => undefined),
-    };
-    setCustomBlocksBackend(blocksBackend);
-
-    const puckComponentsBackend: PuckComponentsStorageBackend = {
-      loadPuckComponents: () => this.request("loadPuckComponents").then((r) => (r ?? []) as unknown[]),
-      savePuckComponents: (components) => this.request("savePuckComponents", { components }).then(() => undefined),
-    };
-    setPuckComponentsBackend(puckComponentsBackend);
 
     const tableBackend: TableStorageBackend = {
       loadTable: (tableId) => this.request("loadTable", { tableId }),
@@ -554,187 +499,8 @@ class McpBridgeImpl {
       }
     };
 
-    // GrapesJS editor インスタンスが不要なメソッド一覧
-    // (フロー操作 / タブ操作 / ProcessFlowHandler 操作)
-    const editorFreeMethods = [
-      "listScreens", "addScreen", "updateScreenMeta", "removeScreenNode",
-      "addFlowEdge", "removeFlowEdge", "getFlow", "navigateScreen",
-      "listCustomBlocks",
-      "openTab", "closeTab", "switchTab", "listTabs", "saveScreen", "saveAll",
-      "getProcessFlow", "applyProcessFlowMutation",
-    ];
-
-    if (!this.editor && !editorFreeMethods.includes(method)) {
-      respondError("エディターが初期化されていません");
-      return;
-    }
-
-    const editor = this.editor!;
-
     try {
       switch (method) {
-        case "getHtml": {
-          const html = editor.getHtml();
-          const css = editor.getCss() ?? "";
-          respond({ html, css });
-          break;
-        }
-
-        case "setComponents": {
-          const { html } = params as { html: string };
-          editor.setComponents(html);
-          respond({ success: true });
-          break;
-        }
-
-        case "screenshot": {
-          captureScreenshot(editor)
-            .then((png) => respond({ png }))
-            .catch((e: unknown) => respondError(String(e)));
-          break;
-        }
-
-        case "listBlocks": {
-          const all = editor.Blocks.getAll();
-          const blocks = all.map((b: Block) => ({
-            id: b.getId(),
-            label: stripHtml(String(b.get("label") ?? "")),
-            category: categoryLabel(b.get("category")),
-          }));
-          respond({ blocks });
-          break;
-        }
-
-        case "addBlock": {
-          const { blockId, targetId, position } = (params ?? {}) as {
-            blockId: string;
-            targetId?: string;
-            position?: "before" | "after" | "inside" | "append";
-          };
-          const block = editor.Blocks.get(blockId);
-          if (!block) {
-            respondError(`ブロックが見つかりません: ${blockId}`);
-            break;
-          }
-          const content = block.get("content");
-          const wrapper = editor.DomComponents.getWrapper();
-          if (!wrapper) {
-            respondError("キャンバスが初期化されていません");
-            break;
-          }
-
-          let parent: Component = wrapper;
-          let at: number | undefined = undefined;
-
-          if (targetId) {
-            const target = findComponentById(wrapper, targetId);
-            if (!target) {
-              respondError(`対象要素が見つかりません: ${targetId}`);
-              break;
-            }
-            const pos = position ?? "after";
-            if (pos === "inside" || pos === "append") {
-              parent = target;
-            } else {
-              const tParent = target.parent();
-              if (!tParent) {
-                respondError("対象要素の親が見つかりません");
-                break;
-              }
-              parent = tParent;
-              const siblings = tParent.components();
-              const idx = siblings.indexOf(target);
-              at = pos === "before" ? idx : idx + 1;
-            }
-          }
-
-          const added = parent.append(content as never, { at }) as unknown as Component[];
-          const first = Array.isArray(added) ? added[0] : (added as unknown as Component);
-          const addedId = first && typeof (first as Component).getId === "function"
-            ? (first as Component).getId()
-            : "";
-          respond({ addedId });
-          break;
-        }
-
-        case "removeElement": {
-          const { id: elId } = (params ?? {}) as { id: string };
-          const wrapper = editor.DomComponents.getWrapper();
-          if (!wrapper) {
-            respondError("キャンバスが初期化されていません");
-            break;
-          }
-          const target = findComponentById(wrapper, elId);
-          if (!target) {
-            respondError(`要素が見つかりません: ${elId}`);
-            break;
-          }
-          target.remove();
-          respond({ success: true });
-          break;
-        }
-
-        case "updateElement": {
-          const { id: elId, attributes, style, text, classes } = (params ?? {}) as {
-            id: string;
-            attributes?: Record<string, string>;
-            style?: Record<string, string>;
-            text?: string;
-            classes?: string[];
-          };
-          const wrapper = editor.DomComponents.getWrapper();
-          if (!wrapper) {
-            respondError("キャンバスが初期化されていません");
-            break;
-          }
-          const target = findComponentById(wrapper, elId);
-          if (!target) {
-            respondError(`要素が見つかりません: ${elId}`);
-            break;
-          }
-          if (attributes && typeof attributes === "object") {
-            target.addAttributes(attributes);
-          }
-          if (style && typeof style === "object") {
-            target.addStyle(style);
-          }
-          if (Array.isArray(classes)) {
-            target.setClass(classes);
-          }
-          if (typeof text === "string") {
-            const leaf = findFirstTextLeaf(target);
-            if (leaf) {
-              leaf.components(text);
-            } else if (target.components().length === 0) {
-              target.components(text);
-            } else {
-              respondError(
-                `要素 ${elId} にテキストを含む子孫が見つかりません。`,
-              );
-              break;
-            }
-          }
-          respond({ success: true });
-          break;
-        }
-
-        case "setTheme": {
-          const { theme } = (params ?? {}) as { theme: ThemeIdLike };
-          if (!["standard", "card", "compact", "dark"].includes(theme)) {
-            respondError(`不正なテーマID: ${theme}`);
-            break;
-          }
-          if (!this.themeHandler) {
-            respondError("テーマハンドラが登録されていません");
-            break;
-          }
-          this.themeHandler(theme);
-          respond({ success: true });
-          break;
-        }
-
-        // ── フロー操作（エディター不要） ──────────────────────────────
-
         case "listScreens": {
           const project = await loadProject();
           const screens = project.screens.map((s) => ({
@@ -752,14 +518,12 @@ class McpBridgeImpl {
           // RFC #1021 pl-6 (Codex 2nd review Must-fix): purpose を destructure + addScreen に渡す
           // (旧実装は purpose を捨てて undefined のまま追加していたので AI 経由で gadget が作れない bug)
           // RFC #1284 / #1297 I-5: id (kebab-case EntityId) を任意で受け取って addScreen に渡す
-          const { id: reqId, name, type, path: screenPath, position, editorKind: reqEditorKind, cssFramework: reqCssFramework, purpose: reqPurpose } = (params ?? {}) as {
+          const { id: reqId, name, type, path: screenPath, position, purpose: reqPurpose } = (params ?? {}) as {
             id?: string;
             name: string;
             type?: ScreenType;
             path?: string;
             position?: { x: number; y: number };
-            editorKind?: "grapesjs" | "puck";
-            cssFramework?: "bootstrap" | "tailwind";
             purpose?: "page" | "gadget";
           };
           if (!name) {
@@ -778,16 +542,11 @@ class McpBridgeImpl {
           const screen = await addScreen(project, name, type ?? "other", {
             path: screenPath,
             position,
-            editorKind: reqEditorKind,
-            cssFramework: reqCssFramework,
             purpose: reqPurpose,
             id: reqId,
           });
-          // screen.design に editorKind/cssFramework を明示書き込み (spec § 2.5.2)
-          // buildDefaultScreen は project.techStack.designer を参照して解決するので project default も反映される
+          // 新しい画面は空の業務部品レイアウト (見出しだけ) を持つ
           const entity = await buildDefaultScreen(screen.id);
-          if (reqEditorKind !== undefined) entity.design = { ...entity.design, editorKind: reqEditorKind };
-          if (reqCssFramework !== undefined) entity.design = { ...entity.design, cssFramework: reqCssFramework };
           await saveScreenEntity(entity);
           this.flowChangeHandler?.();
           respond({ screenId: screen.id });
@@ -908,91 +667,6 @@ class McpBridgeImpl {
           break;
         }
 
-        // ── カスタムブロック管理 ──────────────────────────────────────
-
-        case "defineBlock": {
-          const { id: blockId, label, category, content, styles, media } = (params ?? {}) as {
-            id: string;
-            label: string;
-            category: string;
-            content: string;
-            styles?: string;
-            media?: string;
-          };
-
-          const existing = editor.Blocks.get(blockId);
-          const customBlocks = await loadCustomBlocks();
-          const isCustom = customBlocks.some((b) => b.id === blockId);
-          if (existing && !isCustom) {
-            respondError(
-              `ブロックID "${blockId}" はビルトインブロックと衝突します。別のIDを使用してください。`,
-            );
-            break;
-          }
-
-          editor.BlockManager.add(blockId, {
-            label,
-            category,
-            content,
-            ...(media ? { media } : {}),
-          });
-
-          const blockNow = new Date().toISOString();
-          const prev = customBlocks.find((b) => b.id === blockId);
-          await upsertCustomBlock({
-            id: blockId,
-            label,
-            category,
-            content,
-            styles,
-            media,
-            createdAt: prev?.createdAt ?? blockNow,
-            updatedAt: blockNow,
-          } as CustomBlock);
-
-          injectCustomBlockCss(editor, await loadCustomBlocks());
-          respond({ success: true });
-          break;
-        }
-
-        case "removeCustomBlock": {
-          const { id: blockId } = (params ?? {}) as { id: string };
-          const ok = await deleteCustomBlock(blockId);
-          if (!ok) {
-            respondError(`カスタムブロック "${blockId}" が見つかりません`);
-            break;
-          }
-          editor.BlockManager.remove(blockId);
-          injectCustomBlockCss(editor, await loadCustomBlocks());
-          respond({ success: true });
-          break;
-        }
-
-        case "listCustomBlocks": {
-          const all = await loadCustomBlocks();
-          const blocks = all.map((b) => ({
-            id: b.id,
-            label: b.label,
-            category: b.category,
-            hasStyles: !!b.styles,
-          }));
-          respond({ blocks });
-          break;
-        }
-
-        // ── React エクスポート ────────────────────────────────────────
-
-        case "exportScreen": {
-          const { screenId } = (params ?? {}) as { screenId: string };
-          const html = editor.getHtml();
-          const css = editor.getCss() ?? "";
-          const project = await loadProject();
-          const screen = project.screens.find((s) => s.id === screenId);
-          const screenName = screen?.name ?? "Screen";
-          respond({ html, css, screenName });
-          break;
-        }
-
         // ── タブ操作 ──────────────────────────────────────────────────────
 
         case "openTab": {
@@ -1065,7 +739,7 @@ class McpBridgeImpl {
           const { screenId: saveScreenId } = (params ?? {}) as { screenId: string };
           if (!saveScreenId) { respondError("screenId は必須です"); break; }
           // edit-session モデル下では editSession.save 経由で本体ファイルに書き込む
-          const sessionsResult = await this.request("editSession.list", { resourceType: "screen", resourceId: saveScreenId }) as { sessions: Array<{ id: string }> } | null;
+          const sessionsResult = await this.request("editSession.list", { resourceType: "screen-item", resourceId: saveScreenId }) as { sessions: Array<{ id: string }> } | null;
           if (sessionsResult && sessionsResult.sessions.length > 0) {
             const esId = sessionsResult.sessions[0].id;
             await this.request("editSession.save", { editSessionId: esId });
@@ -1081,7 +755,7 @@ class McpBridgeImpl {
           for (const tab of dirtyTabs) {
             try {
               // edit-session モデル下では editSession.save 経由で本体ファイルに書き込む
-              const sessionsResult = await this.request("editSession.list", { resourceType: "screen", resourceId: tab.resourceId }) as { sessions: Array<{ id: string }> } | null;
+              const sessionsResult = await this.request("editSession.list", { resourceType: "screen-item", resourceId: tab.resourceId }) as { sessions: Array<{ id: string }> } | null;
               if (sessionsResult && sessionsResult.sessions.length > 0) {
                 const esId = sessionsResult.sessions[0].id;
                 await this.request("editSession.save", { editSessionId: esId });
@@ -1129,79 +803,6 @@ class McpBridgeImpl {
           break;
         }
 
-        // ── browser-first 命名支援 ─────────────────────────────────────
-
-        case "getCanvasSnapshot": {
-          const { screenId: reqScreenId } = (params ?? {}) as { screenId: string };
-          if (this.currentScreenId !== reqScreenId) {
-            respondError(`画面 ${reqScreenId} はブラウザで開かれていません (current: ${this.currentScreenId ?? "none"})`);
-            break;
-          }
-          const html = editor.getHtml();
-          let screenItems: ScreenItemsDocument | null = null;
-          try {
-            screenItems = await loadScreenItems(reqScreenId);
-          } catch { /* ignore */ }
-          respond({ html, screenItems });
-          break;
-        }
-
-        case "applyRenameInBrowser": {
-          const { screenId: reqScreenId, mapping } = (params ?? {}) as {
-            screenId: string;
-            mapping: Record<string, string>;
-          };
-          if (this.currentScreenId !== reqScreenId) {
-            respondError(`画面 ${reqScreenId} はブラウザで開かれていません`);
-            break;
-          }
-
-          let siFile: ScreenItemsDocument | null = null;
-          try {
-            siFile = await loadScreenItems(reqScreenId);
-          } catch (e) {
-            respondError(`screenItems の読み込みに失敗: ${e}`);
-            break;
-          }
-
-          const succeeded: string[] = [];
-          const failed: Array<{ oldId: string; error: string }> = [];
-          const wrapper = editor.DomComponents.getWrapper();
-
-          // UndoManager を停止して直接更新
-          const um = editor.UndoManager;
-          um.stop();
-          try {
-            for (const [oldId, newId] of Object.entries(mapping)) {
-              try {
-                const domHits = wrapper ? updateComponentIds(wrapper, oldId, newId) : 0;
-                let siHit = false;
-                if (siFile) {
-                  const item = siFile.items.find((i) => i.id === oldId);
-                  if (item) { item.id = newId as typeof item.id; siHit = true; }
-                }
-                if (domHits === 0 && !siHit) {
-                  failed.push({ oldId, error: `id "${oldId}" が DOM にも screen-items にも見つかりません` });
-                } else {
-                  succeeded.push(oldId);
-                }
-              } catch (e) {
-                failed.push({ oldId, error: String(e) });
-              }
-            }
-          } finally {
-            um.start();
-          }
-
-          if (succeeded.length > 0) {
-            if (siFile) setItemsInCache(siFile);
-            setDirty(makeTabId("design", reqScreenId), true);
-          }
-
-          respond({ succeeded, failed });
-          break;
-        }
-
         default:
           respondError(`未知のメソッド: ${method}`);
       }
@@ -1210,99 +811,19 @@ class McpBridgeImpl {
     }
   }
 
-  // ── セッション / Puck Data API ──────────────────────────────────────────
+  // ── セッション ──────────────────────────────────────────────────────────
 
   getSessionId(): string {
     return this.clientId;
-  }
-
-  // #806: Puck Data 専用 API (screens/<id>/puck-data.json)
-  loadPuckData(screenId: string): Promise<unknown> {
-    return this.request("loadPuckData", { screenId });
-  }
-
-  savePuckData(screenId: string, data: unknown): Promise<unknown> {
-    return this.request("savePuckData", { screenId, data });
   }
 }
 
 // ── ヘルパー関数 ────────────────────────────────────────────────────────────
 
-function updateComponentIds(component: Component, oldId: string, newId: string): number {
-  const attrs = component.getAttributes();
-  const updates: Record<string, string> = {};
-  if (attrs.name === oldId) updates.name = newId;
-  if (attrs.id === oldId) updates.id = newId;
-  let hits = Object.keys(updates).length > 0 ? 1 : 0;
-  if (hits > 0) component.addAttributes(updates);
-  const children = component.components();
-  for (let i = 0; i < children.length; i++) {
-    hits += updateComponentIds(children.at(i) as Component, oldId, newId);
-  }
-  return hits;
-}
-
-function findFirstTextLeaf(c: Component): Component | null {
-  const children = c.components();
-  if (
-    children.length > 0 &&
-    children.at(0).get("type") === "textnode" &&
-    children.length === 1
-  ) {
-    return c;
-  }
-  for (let i = 0; i < children.length; i++) {
-    const child = children.at(i) as Component;
-    if (child.get("type") === "textnode") continue;
-    const found = findFirstTextLeaf(child);
-    if (found) return found;
-  }
-  return null;
-}
-
-function findComponentById(root: Component, id: string): Component | null {
-  if (root.getId() === id) return root;
-  const children = root.components();
-  for (let i = 0; i < children.length; i++) {
-    const found = findComponentById(children.at(i) as Component, id);
-    if (found) return found;
-  }
-  return null;
-}
-
-function stripHtml(s: string): string {
-  return s.replace(/<[^>]*>/g, "").trim();
-}
-
-function categoryLabel(cat: unknown): string {
-  if (!cat) return "";
-  if (typeof cat === "string") return cat;
-  if (typeof cat === "object" && cat !== null) {
-    const obj = cat as { id?: string; label?: string };
-    return obj.label ?? obj.id ?? "";
-  }
-  return String(cat);
-}
-
 function isExtensionsBundle(value: unknown): value is RawExtensionsBundle {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-async function captureScreenshot(editor: GEditor): Promise<string> {
-  const canvasDoc = editor.Canvas.getDocument();
-  if (!canvasDoc || !canvasDoc.body) {
-    throw new Error("キャンバスのドキュメントにアクセスできません");
-  }
-  const body = canvasDoc.body;
-  const canvasEl = await html2canvas(body, {
-    backgroundColor: null,
-    scale: 1,
-    logging: false,
-    useCORS: true,
-    allowTaint: true,
-  });
-  return canvasEl.toDataURL("image/png").replace(/^data:image\/png;base64,/, "");
-}
 
 // ── HMR 対応: 既存インスタンスを再利用 ────────────────────────────────────
 

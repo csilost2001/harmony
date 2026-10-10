@@ -62,7 +62,95 @@
       ]
     }
   ],
-  "design": {
-    "designFileRef": "login.design.json"
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "heading",
+        "type": "heading",
+        "props": {
+          "text": "My Diary",
+          "level": 1
+        }
+      },
+      {
+        "id": "text",
+        "type": "text",
+        "props": {
+          "text": "あなたの毎日を記録しましょう"
+        }
+      },
+      {
+        "id": "username",
+        "type": "field",
+        "itemRef": "username"
+      },
+      {
+        "id": "text2",
+        "type": "text",
+        "props": {
+          "text": "パスワード"
+        }
+      },
+      {
+        "id": "password",
+        "type": "field",
+        "itemRef": "password"
+      },
+      {
+        "id": "buttons",
+        "type": "button-bar",
+        "children": [
+          {
+            "id": "button",
+            "type": "button",
+            "props": {
+              "label": "ボタン",
+              "variant": "secondary"
+            }
+          }
+        ],
+        "props": {
+          "align": "center"
+        }
+      },
+      {
+        "id": "rememberMe",
+        "type": "field",
+        "itemRef": "rememberMe"
+      },
+      {
+        "id": "buttons2",
+        "type": "button-bar",
+        "children": [
+          {
+            "id": "loginButton",
+            "type": "button",
+            "itemRef": "loginButton",
+            "props": {
+              "label": "ログイン",
+              "variant": "secondary"
+            }
+          }
+        ],
+        "props": {
+          "align": "center"
+        }
+      },
+      {
+        "id": "text3",
+        "type": "text",
+        "props": {
+          "text": "アカウントをお持ちでない方は、管理者にアカウント作成を依頼してください。"
+        }
+      },
+      {
+        "id": "text4",
+        "type": "text",
+        "props": {
+          "text": "My Diary v1.0.0"
+        }
+      }
+    ]
   }
 }

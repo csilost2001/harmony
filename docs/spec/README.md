@@ -6,6 +6,11 @@
 
 | ファイル | 対象 | 関連 issue |
 |---|---|---|
+| [design-document.md](design-document.md) | 設計書ビュー (/document) と HTML 出力、CRUD 図の導出規則 | 再設計 2026-10 |
+| [screen-layout.md](screen-layout.md) | 画面レイアウト (業務部品の木)・業務部品デザイナ・旧デザインからの自動変換 | 再設計 2026-10 |
+| [layout-components.md](layout-components.md) | プロジェクト独自部品 (登録・差し込み口・展開・管理 UI) | 再設計 2026-10 |
+| [report.md](report.md) | 帳票 (出力・契機・出力条件・部と項目・用紙の見本図・検証・編集 UI・MCP) | 再設計 2026-10 段階 4 |
+| [business-flow.md](business-flow.md) | 業務フロー (スイムレーン。レーン・工程・自動配置・検証・編集 UI・MCP) | 再設計 2026-10 段階 4 |
 | [list-common.md](list-common.md) | 一覧系画面の操作・見た目・内部 API (選択・キーボード・D&D・コピペ・ソート・フィルタ・Read-only モード・No 列永続フィールド) | #133 / #148 |
 | [process-flow-maturity.md](process-flow-maturity.md) | 成熟度・付箋・上流/下流モード (Phase 1 基盤) | #151 / #152 |
 | [process-flow-variables.md](process-flow-variables.md) | 変数・入出力・outputBinding (Phase 1 基盤) | #151 / #152 |
@@ -44,7 +49,7 @@
 | [e2e-vite-stability.md](e2e-vite-stability.md) | Vite dev server multi-context e2e crash 調査 + 既知回避策 + 再現 scaffold spec | #992 |
 | **[generic-definition-layer.md](generic-definition-layer.md)** | **汎用設計定義レイヤー (RFC v0.2)** — 既存 entity 構造化拡張 + Generic Definition Catalog (現行 17 kind、`ui-fragment` は #1436 で廃止) + AI 向け変換マニュアル方式。配置 `examples/<project>/<dataDir>/generic-definitions/<kind>/*.json` (実例: examples/retail/harmony/...) | #1060 |
 | **[conversion-guideline-for-ai.md](conversion-guideline-for-ai.md)** | **Markdown → Harmony JSON 変換ガイドライン (AI 向け、RFC v0.1)** — entity 構造 / archetype 10 種類別の落とし方 (§3.1〜§3.7 に JSON before/after pair 付き、§3.8/§3.9 は概要のみ) / Generic Definition catalog の共通メタモデル / audit warning 12 種 / 1 回限り変換 vs Importer 生成の判断 / TS scaffold テンプレ / 既知落とし穴 / decision flowchart。`/import-md` skill 起動点 | #1060 |
-| [react-exporter.md](react-exporter.md) | `designer__export_screen` MCP tool 用 HTML→JSX 機械変換器 (backend/reactExporter.ts) の存在意義 / `/generate-code` skill との関係 / 14 event placeholder | #1147 (N-8) |
+| [react-exporter.md](react-exporter.md) | **廃止 (2026-10)** `designer__export_screen` MCP tool 用 HTML→JSX 機械変換器 (backend/reactExporter.ts) の存在意義 / `/generate-code` skill との関係 / 14 event placeholder | #1147 (N-8) |
 
 **一次成果物**: JSON スキーマ [`schemas/process-flow.schema.json`](../../schemas/process-flow.schema.json) ([README](../../schemas/README.md))。仕様書と突合する機械可読版。
 

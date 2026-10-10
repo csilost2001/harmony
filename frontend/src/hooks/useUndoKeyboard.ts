@@ -5,7 +5,7 @@ import { useEffect } from "react";
  *
  * @param undo Undo 関数
  * @param redo Redo 関数
- * @param enabled false のときキーバインドを無効化（GrapesJS競合回避等）
+ * @param enabled false のときキーバインドを無効化（入力欄などとの競合回避等）
  */
 export function useUndoKeyboard(
   undo: () => void,

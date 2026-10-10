@@ -35,6 +35,8 @@ import {
   readPageLayout,
   writePageLayout,
   readScreenFlowPositions,
+  renameBusinessFlowRefsInProject,
+  renameReportRefsInProject,
   readErLayout,
   erLayoutFile,
   resolveScreenEditorKind,
@@ -312,7 +314,10 @@ const PROCESS_FLOW_LEGACY_DIR = "actions";
  * していたため、misleading な map entry を排除。
  */
 const SCALAR_REF_FIELDS: Record<RenameEntityType, string[]> = {
-  screen: ["screenId", "sourceScreenId", "targetScreenId"],
+  // screenRef: 業務部品の木 (screen.layout) の button / link の遷移先 (props.screenRef)。
+  // 独自部品の差し込み値 (layout 内 args) は画面項目 ID・文言と区別できないため自動更新せず、
+  // 存在しない遷移先は validateLayoutWithComponents が警告する (docs/spec/layout-components.md)
+  screen: ["screenId", "sourceScreenId", "targetScreenId", "screenRef"],
   table: ["tableId", "sourceTableId", "targetTableId", "referencedTableId"],
   processFlow: ["processFlowId", "handlerFlowId", "refId"],
   sequence: ["sequenceId"],
@@ -2421,6 +2426,16 @@ async function _renameEntityIdImpl(
   };
   pushUndo(root, operation);
 
+  // 業務フロー (business-flows/) の工程が持つ画面 / 処理フローの参照、帳票 (reports/) の出力契機・項目の出どころも追従させる
+  // (docs/spec/business-flow.md §7 / docs/spec/report.md §7)。1 件の失敗で改名全体を失敗にせず、警告として返す
+  if (entityType === "screen" || entityType === "processFlow") {
+    migrationWarnings.push(...(await renameBusinessFlowRefsInProject(entityType, oldId, newId, root)).warnings);
+  }
+  if (entityType === "screen" || entityType === "processFlow" || entityType === "table") {
+    migrationWarnings.push(...(await renameReportRefsInProject(entityType, oldId, newId, root)).warnings);
+  }
+  preview.warnings = [...refScan.warnings, ...migrationWarnings];
+
   // Phase J SF-γ (#1298 round 5 Opus SF-3): rename audit log (structured)。
   // incident 追跡 / compliance のため commit 成功時に必ず emit。
   try {
@@ -2450,7 +2465,7 @@ async function _renameEntityIdImpl(
  */
 export async function undoEntityRename(
   operationId: string, root: string, opts?: RenameOpts,
-): Promise<{ restoredFiles: number }> {
+): Promise<{ restoredFiles: number; warnings: string[] }> {
   // Phase I round 3+4 Should-fix SF-3: workspace mutex で直列化
   const release = await acquireWorkspaceLock(root);
   try {
@@ -2462,7 +2477,7 @@ export async function undoEntityRename(
 
 async function _undoEntityRenameImpl(
   operationId: string, root: string, opts?: RenameOpts,
-): Promise<{ restoredFiles: number }> {
+): Promise<{ restoredFiles: number; warnings: string[] }> {
   const op = popUndo(root, operationId);
   if (!op) {
     try {
@@ -2687,6 +2702,16 @@ async function _undoEntityRenameImpl(
     } catch { /* logger failure must not alter undo semantics */ }
   }
 
+  // 業務フローの工程の参照も元に戻す
+  const refRevertWarnings: string[] = [];
+  if (op.entityType === "screen" || op.entityType === "processFlow") {
+    refRevertWarnings.push(...(await renameBusinessFlowRefsInProject(op.entityType, op.newId, op.oldId, root)).warnings);
+  }
+  if (op.entityType === "screen" || op.entityType === "processFlow" || op.entityType === "table") {
+    refRevertWarnings.push(...(await renameReportRefsInProject(op.entityType, op.newId, op.oldId, root)).warnings);
+  }
+  for (const w of refRevertWarnings) logWarn("rename", "rename.undo.refs", { operationId, warning: w, workspaceRoot: root });
+
   // Phase J SF-γ: undo audit log
   try {
     logInfo("rename", "rename.undo.success", {
@@ -2700,7 +2725,7 @@ async function _undoEntityRenameImpl(
     });
   } catch { /* ignore */ }
 
-  return { restoredFiles: restored };
+  return { restoredFiles: restored, warnings: refRevertWarnings };
 }
 
 // ── internal: entity 種別ごとの write ───────────────────────────────────────

@@ -38,6 +38,18 @@ const MENU_ITEMS: MenuItem[] = [
     activePaths: ["/process-flow/list"], activePrefixes: ["/process-flow/edit/"],
   },
   {
+    id: "business-flow-list", label: "業務フロー", icon: "bi-diagram-2", route: "/business-flow/list",
+    activePaths: ["/business-flow/list"], activePrefixes: ["/business-flow/edit/"],
+  },
+  {
+    id: "report-list", label: "帳票", icon: "bi-file-earmark-text", route: "/report/list",
+    activePaths: ["/report/list"], activePrefixes: ["/report/edit/"],
+  },
+  {
+    id: "design-document", label: "設計書", icon: "bi-journal-text", route: "/document",
+    activePaths: ["/document"],
+  },
+  {
     id: "extensions", label: "拡張管理", icon: "bi-puzzle", route: "/extensions",
     activePaths: ["/extensions"],
   },

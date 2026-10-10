@@ -132,3 +132,24 @@
     padding-inline: 6px;
   }
 }
+
+.common-header-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--hm-chrome-fg-dim);
+  font-size: 15px;
+  cursor: pointer;
+}
+.common-header-icon-btn:hover {
+  background: var(--hm-chrome-bg-3);
+  color: var(--hm-chrome-fg);
+}
+.common-header-icon-btn:focus-visible {
+  outline: 2px solid var(--hm-focus);
+}

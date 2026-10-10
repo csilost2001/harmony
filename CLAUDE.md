@@ -1,157 +1,48 @@
 # CLAUDE.md
 
-Claude Code 向けの補足ガイダンス。
-
-**プロジェクト全般のルールは [AGENTS.md](./AGENTS.md) を参照してください** (Codex CLI 等の他 AI コーディングエージェントも同ファイルを読みます)。以下は Claude Code 固有の事項のみ記載します。
+Claude Code 向けの補足。プロジェクト共通のルールは [AGENTS.md](./AGENTS.md) にある (Codex CLI 等も同じファイルを読む)。
 
 @AGENTS.md
 
 ---
 
-## Claude Code 固有の環境
+## Claude Code 固有の事項
 
 ### MCP 接続
 
-- `.mcp.json` の URL エントリ経由で `backend` に自動接続 (port 5179)
-- 起動前提: `npm run backend` (root、または `cd backend && npm run dev`) で常駐済みであること (#1400 で root script 整備)
-- 接続先: `http://localhost:5179/mcp`
+- `.mcp.json` の URL エントリで backend (`http://localhost:5179/mcp`) に接続する。backend が `npm run backend` で起動済みであることが前提 (自動起動しない)
+- Dev Containers 内でも同じ URL で接続できる (`localhost` = container 自身)
+- ブラウザ確認用 MCP (Playwright / chrome-devtools) は既定で headless を使う。利用者が「画面を見たい」と言った時だけ `*-headed` を使う。詳細: [docs/conventions/docs-site-and-browser-smoke.md](docs/conventions/docs-site-and-browser-smoke.md)
+- MCP 用ブラウザが未インストールで使えない場合は、`npm run ui:shots` / `npm run ui:audit` (frontend の Playwright を直接使う) で代替できる
 
-### 開発環境 (推奨: Dev Containers / 代替: WSL2 native)
+### 開発環境
 
-本プロジェクトの推奨開発環境は **Dev Containers** (`.devcontainer/devcontainer.json` 同梱、git tracked、#847)。WSL2 native セットアップも引き続きサポート対象 — 利用者の選好で選んでよい。Quick Start は [`README.md`](README.md) を参照。
+推奨は Dev Containers (`.devcontainer/`)、WSL2 native も可。手順: [README.md](README.md) / [docs/setup/dev-containers.md](docs/setup/dev-containers.md) / [docs/setup/wsl2-native.md](docs/setup/wsl2-native.md)
 
-- Claude Code (CLI 版) は **container 内でも** `.mcp.json` の `http://localhost:5179/mcp` で backend に繋がる (`localhost` = container 自身)
-- 起動前提は両環境とも同じ: ターミナルで `npm run backend` (または `cd backend && npm run dev`) 常駐
-- Dev Containers ↔ WSL2 native の切替は `Dev Containers: Reopen Folder Locally` / `Reopen in Container` で随時可
-- 詳細: [`docs/setup/dev-containers.md`](docs/setup/dev-containers.md) (推奨) / [`docs/setup/wsl2-native.md`](docs/setup/wsl2-native.md) (代替) / [`docs/setup/distribution-roadmap.md`](docs/setup/distribution-roadmap.md) (将来の image 配布構想)
+### Skills (`ai-skills/<name>/SKILL.md` が正本、`.claude/skills/` は symlink)
 
-### Slash Commands / Skills
+| コマンド | 用途 |
+|---|---|
+| `/issues <N>` | ISSUE を実装から PR まで完遂 |
+| `/review-pr <N>` / `/review-issue <N>` | PR の独立レビュー / ISSUE 単位の網羅性監査 |
+| `/create-flow` / `/review-flow <flowId>` | 処理フロー JSON の作成 / 実行セマンティクスのレビュー |
+| `/generate-code` / `/generate-tests` | 設計書からのコード生成 / テスト生成 |
+| `/import-md <dir>` | Markdown 設計書を Harmony JSON に変換 |
+| `/rename-screen-ids` | 画面項目 ID の再命名 |
+| `/document-ui [<screen>]` | UI 操作リファレンスの自動生成 |
+| `/test-strategy` | テスト実装時の方針 (自動起動) |
+| `/release-review` | リリース前の自律レビュー |
+| `/publish-dev-image <ver>` | Dev Container base image の公開 (maintainer 専用) |
 
-本プロジェクトで利用する AI スキル (`ai-skills/<name>/SKILL.md` canonical、Claude Code / Codex / Copilot CLI から symlink 経由で共有、Agent Skills 標準準拠、#1118 Phase 3-4 で確立):
+### Memory
 
-- **`/issues <N>`** — ISSUE を 12 ルール Opus オーケストレーターワークフローで完遂 (`ai-skills/issues/SKILL.md`)
-- **`/review-pr <N>`** — PR 独立レビュー (一般品質: spec / 命名 / テスト) (`ai-skills/review-pr/SKILL.md`)
-- **`/create-flow <flowId> <業務概要> [namespace]`** — ProcessFlow JSON を品質ガード付きで作成 (`/review-flow` の 10 観点を作成前 self-check として組み込み、18 ルールの既知パターン回避 self-check を含む)。`/review-flow` と併用前提 (`ai-skills/create-flow/SKILL.md`)
-- **`/review-flow <flowId>`** — ProcessFlow JSON 実行セマンティクス専門レビュー (変数ライフサイクル / TX / runIf / 補償 / event 双方向)。設計フェーズから使える (`ai-skills/review-flow/SKILL.md`)
-- **`/review-issue <N>`** — ISSUE 単位の実装網羅性監査 (`ai-skills/review-issue/SKILL.md`)
-- **`/test-strategy`** — テスト実装時の自動起動スキル (`ai-skills/test-strategy/SKILL.md`)
-- **`/rename-screen-ids`** — AI 推論による画面項目 ID 再命名 (`ai-skills/rename-screen-ids/SKILL.md`)
-- **`/generate-code <flowId|screenId> [出力先]`** — project.techStack に基づき ProcessFlow → backend code / Screen → frontend code を生成。Spring Boot/Thymeleaf 系と NestJS/Next.js 系の 2 種類の techStack 組合せをカバー (`ai-skills/generate-code/SKILL.md`)
-- **`/generate-tests <flowId|screenId> [出力先]`** — ProcessFlow → backend e2e test (jest+supertest) / Screen → component test (vitest+testing-library) / multi-screen → playwright E2E / AI flow → mock+実 API 切替テストを spec から機械導出。`/generate-code` の対 (`ai-skills/generate-tests/SKILL.md`)
-- **`/import-md <project ディレクトリ>`** — Project の Markdown 設計書を Harmony JSON (screen / processFlow / table / generic-definitions/*) に変換。少数 MD は 1 回限り変換、継続更新ある場合は `<project>/scripts/import/*.ts` を生成。実体は [`docs/spec/conversion-guideline-for-ai.md`](docs/spec/conversion-guideline-for-ai.md) (#1060) (`ai-skills/import-md/SKILL.md`)
-- **`/publish-dev-image <version>`** — Harmony Dev Container 用 base image を ghcr.io に build + push する (maintainer 専用) (`ai-skills/publish-dev-image/SKILL.md`、#1118 Phase 3 で新設)
-- **`/document-ui [<screen-key>]`** — UI 各画面の操作リファレンス (`docs/user-guide/ui-reference/`) を Playwright MCP の screenshot + a11y snapshot で自動生成 / 更新。引数省略で全 28 画面、`<screen-key>` 指定で 1 画面のみ。dev server 起動が前提 (`ai-skills/document-ui/SKILL.md`、#1401)
-- **`/release-review [--branch <name>] [--max-hours N] [--max-issues N] [--exclude-axes csv]`** — リリース前限定の徹底自律レビュー orchestrator。8 軸 (schema-drift / process-flow runtime / type contract / backend storage / frontend store / test coverage / security / dogfood smoke) を /loop で 24h 規模 self-pace、findings を auto-fix / 集約 ISSUE / spec-pending に分類。3 巡連続 0 件で枯渇停止、destructive 検出で self-stop (`ai-skills/release-review/SKILL.md`)
+- 自動メモリは `~/.claude/projects/<encoded-path>/memory/` (マシン単位、git 管理外)。`MEMORY.md` が索引
+- クラウド版 Claude Code ではセッションごとに消える。複数セッションで共有すべき知見は AGENTS.md / docs/ に commit する
 
-Codex CLI 利用時はこれらのスキルは直接呼び出せません。等価機能は Codex plugin の `/codex:review` 等で代替するか、Opus が briefing で代替指示を出します。
+### クラウド版 Claude Code の push 制限
 
-### Documentation HTML サイト (docs-site/)
+クラウド版は git proxy が push 先ブランチを制限する。push できるのは自セッションの designated branch (`claude/<...>`) と `feat/test-push-*` だけ。他のブランチへの push は HTTP 403 になる。統合ブランチに積みたい場合は `git push origin <local>:feat/test-push-<issue>-<topic>` で staging し、後続セッションか利用者が本来のブランチへ反映する。ローカル CLI 版にこの制限は無い。
 
-仕様書 / プレゼン HTML 化サイト (Astro 5 + Tailwind v4 + pagefind)。詳細運用ルールは [AGENTS.md](AGENTS.md) の "Documentation HTML サイト (docs-site/)" セクション参照。
+### Codex plugin
 
-- **出力先**: `docs/html/` (git tracked、配布物、手編集禁止)
-- **更新**: `docs/spec/*.md` 等の md 編集後 `cd docs-site && npm run build` → commit
-- **初回**: `cd docs-site && npm install && npx playwright install chromium`
-- **メタ ISSUE**: [#1124](https://github.com/csilost2001/harmony/issues/1124) (Phase A-E 完了済)
-- **ローカル閲覧**: `docs/html/index.html` を browser で直接開く (file://)、または `cd docs-site && npm run preview` で http://127.0.0.1:4321/ に serve
-- **AI browser smoke**: `.mcp.json` で Playwright / chrome-devtools MCP を bundled chromium で起動 (2026-05-17、PR #1138)。preview server 立て→`mcp__playwright__browser_navigate` で smoke 可
-- **headed on-demand**: `playwright-headed` / `chrome-devtools-headed` MCP server を追加 (PR #TBD)。**ユーザーから「見たい」「目視確認したい」等の要望があった時のみ** `mcp__playwright-headed__*` を使う。それ以外は原則 `mcp__playwright__*` (headless)。Windows + WSL2 + Docker Desktop は WSLg 経由で Windows desktop に表示。設定変更後は claude code 再起動 + container rebuild 必要
-
-Markdown が canonical source、HTML は build artifact。Phase E 完了 (2026-05-17) 以降、md 編集 → build → commit のフローを守ること。
-
-### ワークスペース機能
-
-複数ワークスペース管理機能の仕様は [docs/spec/workspace.md](docs/spec/workspace.md) を参照。`backend` は **active workspace** 1 つに対応し、env `DESIGNER_DATA_DIR` が指定されている場合は lockdown モードで固定される (recent への読み書きなし)。
-
-複数ワークスペースの**同時並行編集** (v2) は [docs/spec/workspace-multi.md](docs/spec/workspace-multi.md) を参照 (#679 シリーズ)。
-
-### Schema ガバナンス (最重要、#511)
-
-`schemas/v3/process-flow.v3.schema.json` / `schemas/v3/extensions.v3.schema.json` / `schemas/v3/conventions.v3.schema.json` 等の **グローバル定義スキーマは、フレームワーク製作者 (設計者) の専権事項**。
-
-- AI (Sonnet/Codex/Opus 含む) が**勝手に変更するのは禁止** (権限外行為)
-- 業務記述で表現できない場合は:
-  1. 拡張機構 (`extensions/<namespace>/*.json`) で代替できないか確認
-  2. 既存 schema フィールドで代替表現できないか確認 (`type: "other"` + outputSchema パターン等)
-  3. それでも無理なら **ISSUE 起票して作業停止**、設計者承認待ち
-- テスト pass を理由に schema を勝手に拡張するのは**絶対禁止**
-
-詳細: memory `feedback_schema_governance_strict.md` / `docs/spec/schema-governance.md`
-
-`/issues` オーケストレーターは PR 作成後に `gh pr diff <PR> -- schemas/` で必ずチェックし、紐付かない変更を検出した場合は revert もしくは別 ISSUE 起票で隔離する。
-
-### draft-state policy (設計途中許容)
-
-業務リソースの保存は schema 違反があっても許可し、UI 側で違反や未完成項目を error / warning として可視化する。5 原則・severity 判定基準・新規リソース追加 checklist は [`docs/spec/draft-state-policy.md`](docs/spec/draft-state-policy.md) を参照すること。
-
-### ドッグフード deploy 先
-
-AI ドッグフード時のサンプル展開先は **`workspaces/dogfood-<目的-YYYYMMDD>/`** を使用する。`data/` への deploy は禁止 (`data/` はデザイナー本体組み込み拡張定義 `data/extensions/` 専用、#753 で責務縮退済み)。`examples/<project-id>/` を作業領域にコピーする際も `workspaces/<project-id>/` を使う。
-
-```bash
-# examples/retail/ を dogfood 領域にコピーする例 (Windows PowerShell)
-Copy-Item -Recurse -Force examples\retail\* workspaces\retail\
-```
-
-### edit-session-draft (サーバ側 draft 管理モデル)
-
-全エディタを明示保存式に統一し、編集中の作業コピーをサーバ側ファイルシステム (`data/.drafts/<wsId>/`) に保持するモデル。ロック排他制御・AI 連携 (`onBehalfOfSession`) を含む。仕様書: [`docs/spec/edit-session-draft.md`](docs/spec/edit-session-draft.md) (#683 / #684)
-
-### Memory システム
-
-- 自動メモリは Claude Code が `~/.claude/projects/<encoded-project-path>/memory/` に自動保存 (per-user / per-machine、git 管理外)
-- `MEMORY.md` が index、個別ファイルは `feedback_*.md` / `project_*.md` / `reference_*.md` 等の命名規約
-- Codex 経由のタスクでは memory は自動共有されないため、必要な文脈は Opus が briefing に転記する
-- **Claude Code クラウド版** はセッション毎に ephemeral コンテナで起動するため、`~/.claude/projects/...` の memory は **当該セッション限り** で別セッションに引き継がれない。クロスセッションで共有したい知見は本 `CLAUDE.md` / `AGENTS.md` / `docs/` に commit すること
-
-### Claude Code クラウド版固有の制約
-
-クラウド版 Claude Code (claude.ai/code) は git proxy 経由で push する。proxy は **destination branch の allowlist** を enforce しており、各セッションは以下にのみ push 可:
-
-- 自身の **designated branch** (system prompt で指定される `claude/<...>`)
-- **`feat/test-push-*`** パターン (任意 suffix、staging 用)
-
-他セッションの designated branch (例: 別セッションが担当する `feat/e2e-coverage-series`) への直接 push は **HTTP 403 (RPC failed)** で拒否される。エラーメッセージは reason header を含まないため、原因究明に時間を浪費しがち。
-
-#### 標準回避策
-
-統合ブランチ (例: シリーズ PR の `feat/<topic>-series`) に commit を積みたい場合:
-
-```bash
-# ローカルで本来の branch に commit を積む
-git checkout feat/<topic>-series
-git commit ...
-
-# feat/test-push-<discriminator> に staging push (proxy 通過)
-git push origin feat/<topic>-series:feat/test-push-<issue>-<topic>
-
-# 後続セッション (designated = feat/... 系) または ユーザーが本来のブランチに promote
-# (= fast-forward push or merge)
-```
-
-**discriminator** には ISSUE 番号や日付など、他セッションと衝突しない一意な suffix を付ける (例: `feat/test-push-934-coverage`)。
-
-#### NG パターン (避けること)
-
-- ❌ designated branch (`claude/...`) への cherry-pick で妥協 — 別セッションが pull/merge する際に commit hash 不一致で履歴混乱
-- ❌ 同 destination 名で source ref を変えてリトライ — proxy は destination で拒否、source 変更は無効
-- ❌ proxy port 変化を待ってリトライ — port が変わっても allowlist は同じ
-
-詳細・切り分け手順・実例は memory `feedback_cloud_proxy_push_restriction.md` (クラウド版では git に無いため、未経験セッションは本節のみで対応)。
-
-ローカル CLI 版 (PC で起動した Claude Code) には **この制限は無い**。クラウド版固有。
-
-### 命名運用中の重要事項
-
-- `ProcessFlow` → `ProcessFlow` への大規模リネームを計画中 (2026-04-25 決定)
-- 詳細は memory `project_framework_research_2026_04_25.md` を参照
-- リネーム完了まで当面は混在表記あり
-
-### Codex plugin 連携 (2026-04-25 以降導入)
-
-本プロジェクトでは **Codex plugin 経由で GPT-5.5 にタスク委譲** する運用を試行中。詳細は memory `project_framework_research_2026_04_25.md` を参照。
-
-- 実装委譲: `/codex:rescue <task description>`
-- 一次レビュー: `/codex:review`
-- 挑発的レビュー: `/codex:adversarial-review`
-- プロジェクト固有設定: `.codex/config.toml` を配置可能 (推奨モデル / reasoning effort 等)
+実装委譲は `Agent(subagent_type="codex:codex-rescue")`、レビューは `/codex:review` / `/codex:adversarial-review`。設定は `.codex/config.toml`。

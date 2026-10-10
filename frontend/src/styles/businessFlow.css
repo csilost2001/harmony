@@ -1,0 +1,119 @@
+/* 業務フロー (スイムレーン) の一覧・編集。色は配色トークン (--hm-*) だけを使う。仕様: docs/spec/business-flow.md */
+
+/* ── 図 (SVG)。設計書にも同じ SVG を出すため、色はクラスで指定する ── */
+.bf-svg { display: block; font-family: inherit; }
+.bf-lane-bg { fill: var(--hm-surface); stroke: var(--hm-border); }
+.bf-lane-alt .bf-lane-bg { fill: var(--hm-surface-2); }
+.bf-lane-head { fill: var(--hm-surface-3); stroke: var(--hm-border); }
+.bf-lane-system .bf-lane-head { fill: var(--hm-accent-soft); }
+.bf-lane-name { font-size: 12px; font-weight: 700; fill: var(--hm-fg); }
+.bf-edge { fill: none; stroke: var(--hm-fg-muted); stroke-width: 1.4; }
+.bf-edge-back { stroke-dasharray: 5 3; }
+.bf-arrowhead { fill: var(--hm-fg-muted); }
+.bf-edge-label { font-size: 11px; font-weight: 600; fill: var(--hm-accent); paint-order: stroke; stroke: var(--hm-surface); stroke-width: 3px; }
+.bf-shape { fill: var(--hm-surface); stroke: var(--hm-fg-2); stroke-width: 1.4; }
+.bf-start .bf-shape { fill: var(--hm-accent-soft); stroke: var(--hm-accent); }
+.bf-end .bf-shape { fill: var(--hm-surface-3); stroke: var(--hm-danger); }
+.bf-decision .bf-shape { fill: var(--hm-surface-2); stroke: var(--hm-warning); }
+.bf-step-name { font-size: 12px; fill: var(--hm-fg); }
+.bf-ref { font-size: 9px; font-weight: 700; fill: var(--hm-accent); }
+.bf-step { cursor: pointer; }
+.bf-step:hover .bf-shape { stroke: var(--hm-accent); }
+.bf-step:focus-visible { outline: none; }
+.bf-step:focus-visible .bf-shape { stroke: var(--hm-focus); stroke-width: 2.5; }
+.bf-selected .bf-shape { stroke: var(--hm-accent); stroke-width: 3; }
+.bf-problem .bf-shape { stroke-dasharray: 4 2; stroke: var(--hm-warning); }
+
+/* ── ボタン・入力 (一覧と編集で共通) ── */
+.bfe-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  border: 1px solid var(--hm-border-strong); background: var(--hm-surface); color: var(--hm-fg);
+  border-radius: 5px; font-size: 12.5px; padding: 4px 10px; cursor: pointer;
+}
+.bfe-btn:hover:not(:disabled) { background: var(--hm-hover); }
+.bfe-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.bfe-btn-primary { border-color: var(--hm-accent-solid); background: var(--hm-accent-solid); color: var(--hm-on-solid); }
+.bfe-btn-primary:hover:not(:disabled) { background: var(--hm-accent-solid-hover); }
+.bfe-btn-danger { color: var(--hm-danger); }
+.bfe-btn-dashed { border-style: dashed; background: transparent; color: var(--hm-accent); }
+.bfe-link { background: none; border: 0; padding: 0; color: var(--hm-accent); cursor: pointer; text-align: left; font: inherit; }
+.bfe-link:hover { text-decoration: underline; }
+.bfe-field { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--hm-fg-2); }
+.bfe-field input, .bfe-field select, .bfe-field textarea, .bfe-next-row select, .bfe-next-row input, .bfl-search {
+  border: 1px solid var(--hm-border-strong); background: var(--hm-surface); color: var(--hm-fg);
+  border-radius: 4px; padding: 4px 6px; font: inherit; font-size: 13px; min-width: 0;
+}
+.bfe-field textarea { resize: vertical; }
+
+/* ── 編集画面 ── */
+.bfe { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--hm-bg); color: var(--hm-fg); outline: none; }
+.bfe-bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--hm-border); background: var(--hm-surface); }
+.bfe-title { font-size: 16px; font-weight: 700; border: 1px solid transparent; background: transparent; color: var(--hm-fg); border-radius: 4px; padding: 2px 6px; min-width: 240px; }
+.bfe-title:hover, .bfe-title:focus { border-color: var(--hm-border-strong); background: var(--hm-surface); }
+.bfe-id { font-size: 11.5px; color: var(--hm-fg-muted); }
+.bfe-dirty { font-size: 11.5px; color: var(--hm-warning); border: 1px solid var(--hm-warning); border-radius: 999px; padding: 0 8px; }
+.bfe-spacer { flex: 1; }
+.bfe-notice { margin: 0; padding: 6px 12px; font-size: 12.5px; background: var(--hm-accent-soft); color: var(--hm-fg); border-bottom: 1px solid var(--hm-border); }
+.bfe-notice-warn { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; background: var(--hm-surface-2); border-left: 3px solid var(--hm-warning); }
+.bfe-body { flex: 1; min-height: 0; display: grid; grid-template-columns: 250px minmax(0, 1fr) 320px; }
+.bfe-left, .bfe-right { overflow: auto; padding: 10px; background: var(--hm-surface); display: flex; flex-direction: column; gap: 14px; }
+.bfe-left { border-right: 1px solid var(--hm-border); }
+.bfe-right { border-left: 1px solid var(--hm-border); }
+.bfe-left h4, .bfe-right h4 { margin: 0 0 6px; font-size: 12.5px; color: var(--hm-fg-2); display: flex; align-items: baseline; gap: 6px; }
+.bfe-left h4 small, .bfe-right h4 small { color: var(--hm-fg-muted); font-weight: 400; }
+.bfe-right h4 code { font-size: 11px; color: var(--hm-fg-muted); font-weight: 400; }
+.bfe-right h5 { margin: 0; font-size: 12px; color: var(--hm-fg-2); }
+.bfe-list { list-style: none; margin: 0 0 6px; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.bfe-list li { display: flex; align-items: center; border-radius: 5px; }
+.bfe-list li:hover { background: var(--hm-hover); }
+.bfe-list li.bfe-sel { background: var(--hm-accent-soft); }
+.bfe-row { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; background: none; border: 0; color: var(--hm-fg); font: inherit; font-size: 12.5px; padding: 5px 6px; cursor: pointer; text-align: left; }
+.bfe-row span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bfe-row small { color: var(--hm-fg-muted); font-size: 11px; white-space: nowrap; }
+.bfe-warn { color: var(--hm-warning); }
+.bfe-mini { display: flex; }
+.bfe-mini button, .bfe-mini-btn { background: none; border: 0; color: var(--hm-fg-muted); cursor: pointer; padding: 2px 4px; border-radius: 3px; }
+.bfe-mini button:hover:not(:disabled), .bfe-mini-btn:hover { background: var(--hm-hover); color: var(--hm-fg); }
+.bfe-mini button:disabled { opacity: 0.3; cursor: default; }
+.bfe-add-row, .bfe-btn-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.bfe-hint { margin: 4px 0 0; font-size: 11.5px; color: var(--hm-fg-muted); }
+.bfe-center { min-width: 0; overflow: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; background: var(--hm-surface-3); }
+.bfe-paper { border: 1px solid var(--hm-border-strong); border-radius: 6px; background: var(--hm-surface); overflow: auto; padding: 0; flex: none; }
+.bfe-paper .bf-svg { zoom: var(--bf-zoom, 1); }
+.bfe-zoom { display: flex; align-items: center; gap: 6px; }
+.bfe-zoom-val { min-width: 44px; text-align: center; font-size: 12px; color: var(--hm-fg-2); }
+.bfe-issues { background: var(--hm-surface); border: 1px solid var(--hm-border); border-radius: 6px; padding: 8px 12px; }
+.bfe-issues h4 { margin: 0 0 4px; font-size: 12.5px; color: var(--hm-fg-2); display: flex; gap: 8px; align-items: baseline; }
+.bfe-issues h4 small { color: var(--hm-fg-muted); font-weight: 400; }
+.bfe-issues ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; font-size: 12.5px; }
+.bfe-issue-error .bfe-link { color: var(--hm-danger); }
+.bfe-issue-warning .bfe-link { color: var(--hm-warning); }
+.bfe-form { display: flex; flex-direction: column; gap: 10px; }
+.bfe-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.bfe-next { display: flex; flex-direction: column; gap: 6px; padding-top: 4px; border-top: 1px solid var(--hm-border); }
+.bfe-next-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr) auto; gap: 4px; align-items: center; }
+.bfe-empty { padding: 32px; color: var(--hm-fg-2); display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+
+/* ── モーダル (一覧の新規作成) ── */
+.bfe-modal-overlay { position: fixed; inset: 0; background: color-mix(in srgb, var(--hm-inverse-bg) 55%, transparent); display: flex; align-items: center; justify-content: center; z-index: 1200; padding: 16px; }
+.bfe-modal { width: min(460px, calc(100vw - 32px)); background: var(--hm-surface); color: var(--hm-fg); border: 1px solid var(--hm-border-strong); border-radius: 8px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
+.bfe-modal h3 { margin: 0; font-size: 15px; }
+.bfe-modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* ── 一覧 ── */
+.bfl { padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; height: 100%; min-height: 0; overflow: auto; background: var(--hm-bg); color: var(--hm-fg); }
+.bfl-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.bfl-head h2 { margin: 0; font-size: 17px; display: flex; gap: 8px; align-items: center; }
+.bfl-search { width: 240px; }
+.bfl-actions { display: flex; gap: 6px; margin-left: auto; }
+.bfl-unreadable { margin: 0; padding: 8px 10px; font-size: 12.5px; color: var(--hm-fg); background: var(--hm-surface-2); border: 1px solid var(--hm-warning); border-radius: 6px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.bfl-unreadable i { color: var(--hm-warning); }
+.bfl-message { margin: 0; font-size: 12.5px; color: var(--hm-fg-2); }
+.bfl-name { font-weight: 600; }
+.bfl-issues { color: var(--hm-warning); font-weight: 700; }
+.bfl-ok { color: var(--hm-fg-muted); }
+
+@media (max-width: 1100px) {
+  .bfe-body { grid-template-columns: 200px minmax(0, 1fr); }
+  .bfe-right { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--hm-border); }
+}

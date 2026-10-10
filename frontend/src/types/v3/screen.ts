@@ -9,6 +9,9 @@
 
 import type { Authoring, EntityMeta, ScreenGroupId, ScreenId } from "./common";
 import type { ScreenItem } from "./screen-item";
+import type { ScreenLayout } from "@harmony/shared";
+
+export type { ScreenLayout, LayoutNode, LayoutNodeType, LayoutNodeProps } from "@harmony/shared";
 
 /** 組み込み画面種別 (12 種)。 */
 export type BuiltinScreenKind =
@@ -78,9 +81,11 @@ export interface Screen extends EntityMeta {
   groupId?: ScreenGroupId;
   /** 画面項目定義一覧 (フォーム要素・表示要素)。 */
   items?: ScreenItem[];
+  /** 画面レイアウト (業務部品の木)。items[] を itemRef で参照する。docs/spec/screen-layout.md */
+  layout?: ScreenLayout;
   /** 本画面表示に必要な permission キー (`@conv.permission.<key>`)。 */
   permissions?: string[];
-  /** 画面デザイン (GrapesJS 生 HTML への参照)。 */
+  /** 旧形式の画面デザイン参照 (GrapesJS / Puck)。layout 移行済みの画面では不要。 */
   design?: ScreenDesign;
   authoring?: Authoring;
 }

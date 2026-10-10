@@ -30,8 +30,7 @@ screenshots/
 # Claude Code runtime artifacts (ScheduleWakeup の lock ファイル等)
 .claude/scheduled_tasks.lock
 
-# 一時出力 (例: /review-pr /review-issue が書き出すレビュー結果は tmp/review-cache/ 配下)
-tmp/
+# 一時出力 (例: /review-pr /review-issue が書き出すレビュー結果は .tmp/review-cache/ 配下)
 .tmp/
 
 # Codex CLI のプロジェクト固有設定 (ユーザー個人の sandbox 設定等、共有しない)

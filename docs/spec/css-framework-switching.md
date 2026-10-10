@@ -1,5 +1,8 @@
 # CSS フレームワーク切替対応 (#793) — 仕様書
 
+> **廃止 (2026-10)**: 旧エディタ (GrapesJS / Puck) は廃止し、画面デザインは「業務部品デザイナ」に一本化しました。
+> この文書は旧エディタ時代の記録として残しています。現行の仕様は [screen-layout.md](screen-layout.md) / [layout-components.md](layout-components.md) を参照してください。
+
 画面ごとに CSS フレームワーク (Bootstrap / Tailwind) を選択可能にする framework 中規模再設計の仕様書。
 
 > **改訂履歴 (2026-05-05)**: 当初は project 単位固定 / 途中切替非サポートで設計したが、マルチエディタ対応 (`multi-editor-puck.md`) と同時に **画面単位固定 + project default + 画面間混在可** に再設計。これにより「旧システムの部分更新 (一部画面のみ Tailwind 化)」シナリオに対応可能となった。実装影響は最小 (Designer.tsx の theme 解決順序変更のみ)、既存サンプルは regression なし。

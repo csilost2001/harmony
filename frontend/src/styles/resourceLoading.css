@@ -3,12 +3,12 @@
   align-items: center;
   justify-content: center;
   min-height: calc(100vh - var(--common-header-h, 0px) - var(--tabbar-h, 0px));
-  background: #fafbfc;
+  background: var(--hm-surface-2);
 }
 
 .resource-loading-inner {
   text-align: center;
-  color: #6c757d;
+  color: var(--hm-fg-muted);
 }
 
 .resource-loading-inner p {
@@ -20,8 +20,8 @@
   display: inline-block;
   width: 28px;
   height: 28px;
-  border: 3px solid #dee2e6;
-  border-top-color: #6c757d;
+  border: 3px solid var(--hm-border);
+  border-top-color: var(--hm-border-strong);
   border-radius: 50%;
   animation: resource-loading-spin 0.9s linear infinite;
 }

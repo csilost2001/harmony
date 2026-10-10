@@ -25,8 +25,19 @@
       "description": "アプリケーションバージョン文字列。例: v1.0.0"
     }
   ],
-  "design": {
-    "editorKind": "grapesjs",
-    "cssFramework": "bootstrap"
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "copyright",
+        "type": "field",
+        "itemRef": "copyright"
+      },
+      {
+        "id": "version",
+        "type": "field",
+        "itemRef": "version"
+      }
+    ]
   }
 }

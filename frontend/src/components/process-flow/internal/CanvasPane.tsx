@@ -1,7 +1,7 @@
 // Phase-3 (#1145): ProcessFlowEditor.tsx 中央キャンバス (ステップリスト) を抽出。
 // SortableContext + 各 SortableStepCard + StepInsertZone の組合せ。
 
-import type { RefObject } from "react";
+import { useCallback, useEffect, useMemo, useState, type RefObject } from "react";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import type { ActionDefinition, Marker, ProcessFlow, Step, StepType } from "../../../types/v3";
 import type { ConventionsCatalog } from "../../../schemas/conventionsValidator";
@@ -13,6 +13,36 @@ import type { ValidationError } from "../../../utils/actionValidation";
 import type { UseAiContextChipsResult } from "../../../hooks/useAiContextChips";
 import type { EditLevel } from "../../../hooks/useEditLevel";
 import type { WorkspaceRefs } from "../../../utils/reference-completer/types";
+import { ProcessFlowDiagram } from "../diagram/ProcessFlowDiagram";
+import { ProcessFlowTable } from "../diagram/ProcessFlowTable";
+import type { FlowContext } from "../diagram/flowStructure";
+
+type FlowView = "cards" | "diagram" | "table";
+const VIEW_KEY = "harmony.processFlow.view";
+const VIEWS: Array<{ key: FlowView; label: string; icon: string; title: string }> = [
+  { key: "cards", label: "カード", icon: "bi-card-list", title: "ステップをカードで編集" },
+  { key: "diagram", label: "図", icon: "bi-diagram-3", title: "分岐・繰り返し・トランザクションを図で見る" },
+  { key: "table", label: "表", icon: "bi-table", title: "処理記述表 (No / 処理 / 対象 / 条件) で見る" },
+];
+
+function readView(): FlowView {
+  try {
+    const v = localStorage.getItem(VIEW_KEY);
+    if (v === "cards" || v === "diagram" || v === "table") return v;
+  } catch { /* storage 不可 */ }
+  return "cards";
+}
+
+/** 入れ子のステップ ID から、それを含む最上位ステップの ID を返す */
+function topLevelStepId(steps: readonly Step[], id: string): string | null {
+  const contains = (s: Step): boolean => {
+    if (s.id === id) return true;
+    const x = s as Step & { steps?: Step[]; branches?: Array<{ steps: Step[] }>; elseBranch?: { steps: Step[] }; onCommit?: Step[]; onRollback?: Step[] };
+    const kids = [...(x.steps ?? []), ...(x.branches ?? []).flatMap((b) => b.steps ?? []), ...(x.elseBranch?.steps ?? []), ...(x.onCommit ?? []), ...(x.onRollback ?? [])];
+    return kids.some(contains);
+  };
+  return steps.find(contains)?.id ?? null;
+}
 
 export interface CanvasPaneProps {
   group: ProcessFlow | null;
@@ -91,12 +121,51 @@ export function CanvasPane({
   lastSelectedIdRef,
   workspace,
 }: CanvasPaneProps) {
+  const [view, setView] = useState<FlowView>(readView);
+  const [focusId, setFocusId] = useState<string | null>(null);
+  const [scrollTo, setScrollTo] = useState<string | null>(null);
+  const changeView = useCallback((v: FlowView) => {
+    setView(v);
+    try { localStorage.setItem(VIEW_KEY, v); } catch { /* storage 不可 */ }
+  }, []);
+  const ctx: FlowContext = useMemo(() => ({
+    tableName: (id: string) => tables.find((t) => t.id === id)?.name,
+    screenName: (id: string) => screens.find((s) => s.id === id)?.name,
+  }), [tables, screens]);
+  const highlighted = useMemo(() => new Set([...selectedIds, ...(focusId ? [focusId] : [])]), [selectedIds, focusId]);
+  const selectFromView = useCallback((stepId: string) => {
+    if (!activeAction) return;
+    const top = topLevelStepId(activeAction.steps, stepId) ?? stepId;
+    setFocusId(stepId);
+    setSelectedIds(new Set([top]));
+    lastSelectedIdRef.current = top;
+  }, [activeAction, setSelectedIds, lastSelectedIdRef]);
+  const openInCards = useCallback((stepId: string) => {
+    selectFromView(stepId);
+    setScrollTo(stepId);
+    changeView("cards");
+  }, [selectFromView, changeView]);
+  useEffect(() => {
+    if (view !== "cards" || !scrollTo) return;
+    const el = stepListRef.current?.querySelector(`[data-step-id="${CSS.escape(scrollTo)}"]`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    setScrollTo(null);
+  }, [view, scrollTo, stepListRef]);
+
   return (
     <main className="process-flow-canvas-pane">
       <div className="process-flow-canvas-header">
         <div>
           <span className="process-flow-pane-kicker">Flow</span>
           <h6>{activeAction ? `${activeAction.name} の処理` : "処理フロー"}</h6>
+        </div>
+        <div className="pf-view-switch" role="tablist" aria-label="表示形式">
+          {VIEWS.map((v) => (
+            <button key={v.key} type="button" role="tab" aria-selected={view === v.key} className={view === v.key ? "active" : ""}
+              title={v.title} onClick={() => changeView(v.key)} data-testid={`pf-view-${v.key}`}>
+              <i className={`bi ${v.icon}`} /> {v.label}
+            </button>
+          ))}
         </div>
         {activeAction && (
           <div className="process-flow-canvas-metrics">
@@ -107,7 +176,11 @@ export function CanvasPane({
         )}
       </div>
       <div className="process-flow-content">
-        {activeAction ? (
+        {activeAction && view === "diagram" ? (
+          <ProcessFlowDiagram action={activeAction} ctx={ctx} selectedStepIds={highlighted} onSelectStep={selectFromView} onOpenStep={openInCards} />
+        ) : activeAction && view === "table" ? (
+          <ProcessFlowTable action={activeAction} ctx={ctx} selectedStepIds={highlighted} onSelectStep={selectFromView} onOpenStep={openInCards} />
+        ) : activeAction ? (
           <div className="step-editor">
             {activeAction.steps.length === 0 ? (
               <EmptyFlowDropZone disabled={isReadonly}>

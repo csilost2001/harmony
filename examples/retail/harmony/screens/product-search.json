@@ -105,9 +105,147 @@
         "kind": "table",
         "viewDefinitionId": "inventory-list-search-result-viewer"
       }
+    },
+    {
+      "id": "totalCount",
+      "label": "照会結果",
+      "type": "string",
+      "direction": "out"
     }
   ],
-  "design": {
-    "designFileRef": "product-search.design.json"
-  }
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "heading",
+        "type": "heading",
+        "props": {
+          "text": "商品検索 / 在庫照会",
+          "level": 1
+        }
+      },
+      {
+        "id": "searchPanel2",
+        "type": "search-panel",
+        "props": {
+          "columns": 2
+        },
+        "children": [
+          {
+            "id": "productCode",
+            "type": "field",
+            "itemRef": "productCode"
+          },
+          {
+            "id": "storeCode",
+            "type": "field",
+            "itemRef": "storeCode"
+          },
+          {
+            "id": "buttons",
+            "type": "button-bar",
+            "children": [
+              {
+                "id": "clearButton",
+                "type": "button",
+                "props": {
+                  "label": "クリア",
+                  "variant": "secondary"
+                }
+              },
+              {
+                "id": "searchInventoryButton",
+                "type": "button",
+                "itemRef": "searchInventoryButton",
+                "props": {
+                  "label": "在庫照会",
+                  "variant": "primary"
+                }
+              }
+            ]
+          },
+          {
+            "id": "text",
+            "type": "text",
+            "props": {
+              "text": "商品コードは P- で始まる 4〜6 桁の番号です。空欄の場合は全商品を表示します。",
+              "tone": "muted"
+            }
+          }
+        ]
+      },
+      {
+        "id": "inventoryRows",
+        "type": "table",
+        "itemRef": "inventoryRows"
+      },
+      {
+        "id": "section",
+        "type": "section",
+        "props": {
+          "variant": "panel"
+        },
+        "children": [
+          {
+            "id": "text2",
+            "type": "text",
+            "props": {
+              "text": "照会結果:"
+            }
+          },
+          {
+            "id": "totalCount",
+            "type": "field",
+            "itemRef": "totalCount"
+          },
+          {
+            "id": "text3",
+            "type": "text",
+            "props": {
+              "text": "件"
+            }
+          },
+          {
+            "id": "inquiredAt",
+            "type": "field",
+            "itemRef": "inquiredAt"
+          },
+          {
+            "id": "cartButton",
+            "type": "button",
+            "props": {
+              "label": "カートへ進む",
+              "variant": "secondary",
+              "screenRef": "cart"
+            }
+          },
+          {
+            "id": "text4",
+            "type": "text",
+            "props": {
+              "text": "1 - 10 / 42 件"
+            }
+          },
+          {
+            "id": "html",
+            "type": "html",
+            "props": {
+              "html": "<ul class=\"pagination pagination-sm mb-0\">\n              <li class=\"page-item disabled\"><a class=\"page-link\" href=\"#\">«</a></li>\n              <li class=\"page-item active\"><a class=\"page-link\" href=\"#\">1</a></li>\n              <li class=\"page-item\"><a class=\"page-link\" href=\"#\">2</a></li>\n              <li class=\"page-item\"><a class=\"page-link\" href=\"#\">3</a></li>\n              <li class=\"page-item\"><a class=\"page-link\" href=\"#\">4</a></li>\n              <li class=\"page-item\"><a class=\"page-link\" href=\"#\">5</a></li>\n              <li class=\"page-item\"><a class=\"page-link\" href=\"#\">»</a></li>\n            </ul>"
+            }
+          }
+        ]
+      },
+      {
+        "id": "text5",
+        "type": "text",
+        "props": {
+          "text": "在庫あり在庫 11 個以上 / 低在庫在庫 10 個以下 (補充推奨) / 在庫不足在庫 0〜3 個 (注文不可の場合あり)",
+          "tone": "muted"
+        }
+      }
+    ]
+  },
+  "permissions": [
+    "product:view"
+  ]
 }

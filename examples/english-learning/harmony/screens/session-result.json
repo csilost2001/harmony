@@ -48,7 +48,209 @@
       "description": "ユーザーの CEFR レベルと学習履歴から次に推奨するストーリー名。"
     }
   ],
-  "design": {
-    "designFileRef": "session-result.design.json"
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "totalScore",
+        "type": "field",
+        "itemRef": "totalScore"
+      },
+      {
+        "id": "text",
+        "type": "text",
+        "props": {
+          "text": "点",
+          "tone": "muted"
+        }
+      },
+      {
+        "id": "heading",
+        "type": "heading",
+        "props": {
+          "text": "お疲れ様でした！",
+          "level": 1
+        }
+      },
+      {
+        "id": "text2",
+        "type": "text",
+        "props": {
+          "text": "発音スコア: 82 点",
+          "tone": "muted"
+        }
+      },
+      {
+        "id": "columns",
+        "type": "columns",
+        "children": [
+          {
+            "id": "column",
+            "type": "column",
+            "props": {
+              "span": 4
+            },
+            "children": [
+              {
+                "id": "section",
+                "type": "section",
+                "props": {
+                  "variant": "card"
+                },
+                "children": [
+                  {
+                    "id": "turnCount",
+                    "type": "field",
+                    "itemRef": "turnCount"
+                  },
+                  {
+                    "id": "text3",
+                    "type": "text",
+                    "props": {
+                      "text": "ターン",
+                      "tone": "muted"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "column2",
+            "type": "column",
+            "props": {
+              "span": 4
+            },
+            "children": [
+              {
+                "id": "section2",
+                "type": "section",
+                "props": {
+                  "variant": "card"
+                },
+                "children": [
+                  {
+                    "id": "newWordsCount",
+                    "type": "field",
+                    "itemRef": "newWordsCount"
+                  },
+                  {
+                    "id": "text4",
+                    "type": "text",
+                    "props": {
+                      "text": "新規単語",
+                      "tone": "muted"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "column3",
+            "type": "column",
+            "props": {
+              "span": 4
+            },
+            "children": [
+              {
+                "id": "section3",
+                "type": "section",
+                "props": {
+                  "variant": "card"
+                },
+                "children": [
+                  {
+                    "id": "text5",
+                    "type": "text",
+                    "props": {
+                      "text": "+2"
+                    }
+                  },
+                  {
+                    "id": "text6",
+                    "type": "text",
+                    "props": {
+                      "text": "連続学習日",
+                      "tone": "muted"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "section4",
+        "type": "section",
+        "props": {
+          "title": "発音フィードバック",
+          "variant": "card"
+        },
+        "children": [
+          {
+            "id": "pronunciationFeedback",
+            "type": "field",
+            "itemRef": "pronunciationFeedback"
+          }
+        ]
+      },
+      {
+        "id": "section5",
+        "type": "section",
+        "props": {
+          "variant": "card"
+        },
+        "children": [
+          {
+            "id": "heading2",
+            "type": "heading",
+            "props": {
+              "text": "次におすすめのストーリー",
+              "level": 2
+            }
+          },
+          {
+            "id": "recommendedStory",
+            "type": "field",
+            "itemRef": "recommendedStory"
+          },
+          {
+            "id": "listButton",
+            "type": "button",
+            "props": {
+              "label": "ストーリー一覧を見る",
+              "variant": "secondary",
+              "screenRef": "story-list"
+            }
+          }
+        ]
+      },
+      {
+        "id": "buttons",
+        "type": "button-bar",
+        "children": [
+          {
+            "id": "homeButton",
+            "type": "button",
+            "props": {
+              "label": "ホームへ",
+              "variant": "secondary",
+              "screenRef": "dashboard"
+            }
+          },
+          {
+            "id": "nextButton",
+            "type": "button",
+            "props": {
+              "label": "次へ進む",
+              "variant": "primary",
+              "screenRef": "story-list"
+            }
+          }
+        ]
+      }
+    ]
   }
 }

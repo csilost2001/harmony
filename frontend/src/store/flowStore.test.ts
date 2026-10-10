@@ -326,18 +326,6 @@ describe("addScreen opts (#825)", () => {
     expect(screen.path).toBe("/test");
     expect(screen.position).toEqual({ x: 200, y: 300 });
   });
-
-  it("opts.editorKind / opts.cssFramework は ScreenNode に含まれないが addScreen が正常完了する", async () => {
-    const project = mkEmptyProject();
-    const screen = await addScreen(project, "Puck 画面", "other", {
-      editorKind: "puck",
-      cssFramework: "tailwind",
-    });
-    // addScreen は FlowProject メタのみ管理。editorKind/cssFramework は addScreen 内では無視される
-    // (呼び出し側が saveScreenEntity で screen.design に書き込む)
-    expect(screen.id).toBeTruthy();
-    expect(project.screens).toHaveLength(1);
-  });
 });
 
 describe("flowStore v3 compose/decompose", () => {

@@ -15,8 +15,6 @@ import { renumber, nextNo } from "../utils/listOrder";
 
 // Round 6 Phase C: 型定義は canonical (`types/v3/page-layout`) を一次 source とし、
 // store 内では re-export のみ行う (#1336 / Round 5 Codex M-R5-3 解消)。
-export type PageLayoutEditorKind = PageLayoutDesign["editorKind"];
-export type PageLayoutCssFramework = PageLayoutDesign["cssFramework"];
 export type PageLayoutRegion = Region;
 export type { PageLayout, PageLayoutDesign };
 
@@ -76,8 +74,6 @@ export async function savePageLayout(pl: PageLayout): Promise<void> {
 
 export async function createPageLayout(
   name: DisplayName,
-  editorKind: PageLayoutEditorKind,
-  cssFramework: PageLayoutCssFramework,
   description?: string,
   opts?: { id?: string },
 ): Promise<PageLayout> {
@@ -98,10 +94,6 @@ export async function createPageLayout(
       { name: "footer", description: "グローバルフッタ" },
     ],
     assignments: {},
-    design: {
-      editorKind,
-      cssFramework,
-    },
     createdAt: ts,
     updatedAt: ts,
   };
@@ -155,9 +147,7 @@ async function syncPageLayoutMeta(pl: PageLayout): Promise<void> {
   const entries = raw.entities.pageLayouts ?? [];
 
   const idx = entries.findIndex((entry) => String(entry.id) === String(pl.id));
-  // RFC #1021 pl-6 (Sonnet Should-fix): hasDesign は designFileRef/puckDataRef の実体有無で判定し、
-  // backend handler (index.ts) と同じロジックに揃える
-  const design = pl.design ?? {};
+  // hasDesign は region に gadget を 1 つでも割り当てたか (backend handler と同じ判定)
   const meta: PageLayoutEntry = {
     id: pl.id,
     no: idx >= 0 ? entries[idx].no : nextNo(entries),
@@ -167,7 +157,7 @@ async function syncPageLayoutMeta(pl: PageLayout): Promise<void> {
     regionCount: pl.regions?.length ?? 0,
     assignmentCount: Object.keys(pl.assignments ?? {}).length,
     hasProcessFlow: !!pl.processFlowId,
-    hasDesign: !!(design.designFileRef ?? design.puckDataRef),
+    hasDesign: Object.keys(pl.assignments ?? {}).length > 0,
   };
 
   if (idx >= 0) {

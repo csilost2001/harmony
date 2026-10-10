@@ -43,7 +43,57 @@
       }
     }
   ],
-  "design": {
-    "designFileRef": "study-history-list.design.json"
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "section",
+        "type": "section",
+        "props": {
+          "variant": "card"
+        },
+        "children": [
+          {
+            "id": "columns",
+            "type": "columns",
+            "children": [
+              {
+                "id": "column",
+                "type": "column",
+                "props": {
+                  "span": 6
+                },
+                "children": [
+                  {
+                    "id": "dateFromFilter",
+                    "type": "field",
+                    "itemRef": "dateFromFilter"
+                  }
+                ]
+              },
+              {
+                "id": "column2",
+                "type": "column",
+                "props": {
+                  "span": 6
+                },
+                "children": [
+                  {
+                    "id": "dateToFilter",
+                    "type": "field",
+                    "itemRef": "dateToFilter"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "sessionList",
+        "type": "table",
+        "itemRef": "sessionList"
+      }
+    ]
   }
 }

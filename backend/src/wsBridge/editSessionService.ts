@@ -31,14 +31,11 @@ import {
 } from "../editSessionStore.js";
 import { DraftHistoryStore } from "../draftHistoryStore.js";
 import {
-  writeScreen,
-  writePuckData,
   writeTable,
   writeProcessFlow,
   writeView,
   writeViewDefinition,
   writePageLayout,
-  writePageLayoutDesign,
   writeScreenItems,
   writeSequence,
   writeGenericDefinition,
@@ -384,17 +381,11 @@ export class EditSessionService {
       const payload = session.payload;
       try {
         switch (type) {
+          // 旧エディタ (GrapesJS / Puck) の廃止後、旧デザイン本体 (screen / page-layout-design / puck-data)
+          // を書く編集セッションは無い (種別は旧データ・履歴のために残してある)。
           case "screen":
-            await writeScreen(resId, payload, root);
-            resourceChange = { event: "screenChanged", data: { screenId: resId } };
-            break;
           case "page-layout-design":
-            await writePageLayoutDesign(resId, payload, root);
-            resourceChange = { event: "pageLayoutChanged", data: { pageLayoutId: resId } };
-            break;
           case "puck-data":
-            await writePuckData(resId, payload, root);
-            resourceChange = { event: "puckDataChanged", data: { screenId: resId } };
             break;
           case "table":
             await writeTable(resId, payload, root);

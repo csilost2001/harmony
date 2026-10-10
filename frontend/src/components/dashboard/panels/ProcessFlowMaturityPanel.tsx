@@ -83,21 +83,21 @@ export function ProcessFlowMaturityPanel() {
         <div style={{ fontSize: "1.5rem", fontWeight: 600 }}>
           {loading ? "…" : `${progressPct}%`}
         </div>
-        <div style={{ color: "#64748b", fontSize: "0.85rem" }}>
+        <div style={{ color: "var(--hm-fg-muted)", fontSize: "0.85rem" }}>
           確定フロー率
         </div>
       </div>
-      <div style={{ background: "#e2e8f0", borderRadius: 4, height: 8, marginTop: 6, overflow: "hidden" }}>
+      <div style={{ background: "var(--hm-surface-3)", borderRadius: 4, height: 8, marginTop: 6, overflow: "hidden" }}>
         <div style={{ background: "#22c55e", width: `${progressPct}%`, height: "100%", transition: "width 0.3s" }} />
       </div>
       <div style={{ display: "flex", gap: 12, marginTop: 10, fontSize: "0.85rem", flexWrap: "wrap" }}>
-        <button type="button" className="btn btn-sm btn-link p-0" onClick={go} style={{ color: "#22c55e", textDecoration: "none" }} title="一覧へ">
+        <button type="button" className="btn btn-sm btn-link p-0" onClick={go} style={{ color: "color-mix(in srgb, #2edb6e 80%, var(--hm-fg))", textDecoration: "none" }} title="一覧へ">
           <i className="bi bi-circle-fill me-1" />確定 {summary.committed}
         </button>
-        <button type="button" className="btn btn-sm btn-link p-0" onClick={go} style={{ color: "#f97316", textDecoration: "none" }} title="一覧へ">
+        <button type="button" className="btn btn-sm btn-link p-0" onClick={go} style={{ color: "color-mix(in srgb, #f97010 80%, var(--hm-fg))", textDecoration: "none" }} title="一覧へ">
           <i className="bi bi-circle-fill me-1" />暫定 {summary.provisional}
         </button>
-        <button type="button" className="btn btn-sm btn-link p-0" onClick={go} style={{ color: "#f59e0b", textDecoration: "none" }} title="一覧へ">
+        <button type="button" className="btn btn-sm btn-link p-0" onClick={go} style={{ color: "color-mix(in srgb, #f5a214 80%, var(--hm-fg))", textDecoration: "none" }} title="一覧へ">
           <i className="bi bi-circle-fill me-1" />下書き {summary.draft}
         </button>
         {summary.notes > 0 && (
@@ -107,7 +107,7 @@ export function ProcessFlowMaturityPanel() {
         )}
       </div>
       {unfinished > 0 && (
-        <div style={{ marginTop: 8, fontSize: "0.8rem", color: "#f97316" }}>
+        <div style={{ marginTop: 8, fontSize: "0.8rem", color: "color-mix(in srgb, #f97010 80%, var(--hm-fg))" }}>
           <i className="bi bi-exclamation-triangle me-1" />
           未確定: {unfinished} フロー (AI 実装前に committed へ昇格推奨)
         </div>

@@ -134,7 +134,182 @@
       "description": "S-3 注文確定ボタン。クリック時に注文確定フロー (f81dd9e0) を起動する。argumentMapping で shippingPostalCode / shippingAddress / note / paymentMethod を画面コンテキストから flow inputs に渡す。"
     }
   ],
-  "design": {
-    "designFileRef": "cart-confirm.design.json"
-  }
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "heading",
+        "type": "heading",
+        "props": {
+          "text": "注文確認",
+          "level": 1
+        }
+      },
+      {
+        "id": "text",
+        "type": "text",
+        "props": {
+          "text": "1. カート 2. 注文確認 3. 注文完了"
+        }
+      },
+      {
+        "id": "searchPanel",
+        "type": "search-panel",
+        "children": [
+          {
+            "id": "columns",
+            "type": "columns",
+            "children": [
+              {
+                "id": "column",
+                "type": "column",
+                "props": {
+                  "span": 7
+                },
+                "children": [
+                  {
+                    "id": "cartSummary",
+                    "type": "table",
+                    "itemRef": "cartSummary",
+                    "props": {
+                      "title": "注文商品一覧 (確認)"
+                    }
+                  },
+                  {
+                    "id": "section",
+                    "type": "section",
+                    "props": {
+                      "title": "配送先住所",
+                      "variant": "card"
+                    },
+                    "children": [
+                      {
+                        "id": "text2",
+                        "type": "text",
+                        "props": {
+                          "text": "郵便番号"
+                        }
+                      },
+                      {
+                        "id": "text3",
+                        "type": "text",
+                        "props": {
+                          "text": "*"
+                        }
+                      },
+                      {
+                        "id": "shippingPostalCode",
+                        "type": "field",
+                        "itemRef": "shippingPostalCode"
+                      },
+                      {
+                        "id": "confirmTotalAmount",
+                        "type": "field",
+                        "itemRef": "confirmTotalAmount"
+                      },
+                      {
+                        "id": "searchButton",
+                        "type": "button",
+                        "props": {
+                          "label": "住所検索",
+                          "variant": "secondary"
+                        }
+                      },
+                      {
+                        "id": "text4",
+                        "type": "text",
+                        "props": {
+                          "text": "ハイフンなし 7 桁の数字を入力してください。",
+                          "tone": "muted"
+                        }
+                      },
+                      {
+                        "id": "text5",
+                        "type": "text",
+                        "props": {
+                          "text": "郵便番号はハイフンなし 7 桁の数字で入力してください。"
+                        }
+                      },
+                      {
+                        "id": "shippingAddress",
+                        "type": "field",
+                        "itemRef": "shippingAddress"
+                      },
+                      {
+                        "id": "note",
+                        "type": "field",
+                        "itemRef": "note"
+                      },
+                      {
+                        "id": "paymentMethod",
+                        "type": "field",
+                        "itemRef": "paymentMethod"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "column2",
+                "type": "column",
+                "props": {
+                  "span": 5
+                },
+                "children": [
+                  {
+                    "id": "section2",
+                    "type": "section",
+                    "props": {
+                      "title": "注文確定",
+                      "variant": "card"
+                    },
+                    "children": [
+                      {
+                        "id": "html",
+                        "type": "html",
+                        "props": {
+                          "html": "<table class=\"table table-sm mb-3\">\n                  <tbody>\n                    <tr>\n                      <td class=\"text-muted\">商品合計 (税込)</td>\n                      <td class=\"text-end\">¥118,800</td>\n                    </tr>\n                    <tr>\n                      <td class=\"text-muted\">送料</td>\n                      <td class=\"text-end\">無料</td>\n                    </tr>\n                    <tr class=\"table-active\">\n                      <td class=\"fw-bold\">お支払い合計</td>\n                      <td class=\"text-end fw-bold fs-5\">¥118,800</td>\n                    </tr>\n                  </tbody>\n                </table>"
+                        }
+                      },
+                      {
+                        "id": "messageArea",
+                        "type": "message-area"
+                      },
+                      {
+                        "id": "buttons",
+                        "type": "button-bar",
+                        "children": [
+                          {
+                            "id": "confirmOrderButton",
+                            "type": "button",
+                            "itemRef": "confirmOrderButton",
+                            "props": {
+                              "label": "注文を確定する",
+                              "variant": "primary"
+                            }
+                          },
+                          {
+                            "id": "backCartButton",
+                            "type": "button",
+                            "props": {
+                              "label": "カートに戻る",
+                              "variant": "secondary",
+                              "screenRef": "cart"
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": [
+    "order:create"
+  ]
 }

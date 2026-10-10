@@ -81,7 +81,7 @@ export function GenericDefinitionCatalogView() {
   return (
     <div style={{ padding: "24px" }}>
       <h2 style={{ marginBottom: "8px", fontSize: "1.3rem" }}>汎用定義カタログ</h2>
-      <p style={{ color: "#666", marginBottom: "24px", fontSize: "0.9rem" }}>
+      <p style={{ color: "var(--hm-fg-2)", marginBottom: "24px", fontSize: "0.9rem" }}>
         Generic Definition Catalog — データ契約・ドメイン型・例外型など 17 種類の汎用設計定義を管理します。
       </p>
       <div style={{
@@ -96,11 +96,11 @@ export function GenericDefinitionCatalogView() {
               key={kind}
               onClick={() => navigate(wsPath(`/generic-definition/${kind}`))}
               style={{
-                border: "1px solid #ddd",
+                border: "1px solid var(--hm-border-strong)",
                 borderRadius: "8px",
                 padding: "16px",
                 cursor: "pointer",
-                backgroundColor: "#fff",
+                backgroundColor: "var(--hm-surface)",
                 transition: "box-shadow 0.15s",
               }}
               onMouseEnter={(e) => {
@@ -111,14 +111,14 @@ export function GenericDefinitionCatalogView() {
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
-                <i className={`bi ${KIND_ICONS[kind]}`} style={{ fontSize: "1.3rem", color: "#0d6efd" }} />
+                <i className={`bi ${KIND_ICONS[kind]}`} style={{ fontSize: "1.3rem", color: "color-mix(in srgb, #0c6efd 80%, var(--hm-fg))" }} />
                 <span style={{ fontWeight: 600, fontSize: "0.95rem" }}>
                   {GENERIC_DEFINITION_KIND_LABELS[kind]}
                 </span>
                 <span style={{
                   fontSize: "0.75rem",
-                  background: "#e8f4fd",
-                  color: "#0d6efd",
+                  background: "var(--hm-surface-3)",
+                  color: "color-mix(in srgb, #0c6efd 80%, var(--hm-fg))",
                   padding: "2px 6px",
                   borderRadius: "4px",
                   marginLeft: "auto",
@@ -126,10 +126,10 @@ export function GenericDefinitionCatalogView() {
                   {count} 件
                 </span>
               </div>
-              <p style={{ fontSize: "0.82rem", color: "#555", margin: 0 }}>
+              <p style={{ fontSize: "0.82rem", color: "var(--hm-fg-2)", margin: 0 }}>
                 {KIND_DESCRIPTIONS[kind]}
               </p>
-              <p style={{ fontSize: "0.78rem", color: "#888", margin: "4px 0 0", fontFamily: "monospace" }}>
+              <p style={{ fontSize: "0.78rem", color: "var(--hm-fg-muted)", margin: "4px 0 0", fontFamily: "monospace" }}>
                 {kind}
               </p>
             </div>

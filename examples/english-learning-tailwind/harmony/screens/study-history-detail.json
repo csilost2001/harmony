@@ -72,7 +72,80 @@
       "description": "当該セッションで user_word_progress が更新された words の一覧 (JSON 配列、単語 / 訳 / 習熟度)。"
     }
   ],
-  "design": {
-    "designFileRef": "study-history-detail.design.json"
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "section",
+        "type": "section",
+        "props": {
+          "variant": "card"
+        },
+        "children": [
+          {
+            "id": "storyName",
+            "type": "field",
+            "itemRef": "storyName"
+          },
+          {
+            "id": "text",
+            "type": "text",
+            "props": {
+              "text": "2026/05/04 19:32 2026/05/04 19:58",
+              "tone": "muted"
+            }
+          },
+          {
+            "id": "text2",
+            "type": "text",
+            "props": {
+              "text": "平均発音スコア",
+              "tone": "muted"
+            }
+          },
+          {
+            "id": "avgPronunciationScore",
+            "type": "field",
+            "itemRef": "avgPronunciationScore"
+          },
+          {
+            "id": "startedAt",
+            "type": "field",
+            "itemRef": "startedAt"
+          },
+          {
+            "id": "completedAt",
+            "type": "field",
+            "itemRef": "completedAt"
+          }
+        ]
+      },
+      {
+        "id": "heading",
+        "type": "heading",
+        "props": {
+          "text": "会話ログ",
+          "level": 2
+        }
+      },
+      {
+        "id": "turnLogList",
+        "type": "field",
+        "itemRef": "turnLogList"
+      },
+      {
+        "id": "heading2",
+        "type": "heading",
+        "props": {
+          "text": "今回習得した単語",
+          "level": 2
+        }
+      },
+      {
+        "id": "learnedWordList",
+        "type": "field",
+        "itemRef": "learnedWordList"
+      }
+    ]
   }
 }

@@ -9,9 +9,14 @@ import { ProcessFlowListView } from "./process-flow/ProcessFlowListView";
 import { ProcessFlowEditor } from "./process-flow/ProcessFlowEditor";
 import { ExtensionsPanel } from "./extensions/ExtensionsPanel";
 import { ConventionsCatalogView } from "./conventions/ConventionsCatalogView";
+import { DesignDocumentView } from "./document/DesignDocumentView";
 import { ScreenItemsView } from "./screen-items/ScreenItemsView";
 import { SequenceListView } from "./sequence/SequenceListView";
 import { SequenceEditor } from "./sequence/SequenceEditor";
+import { BusinessFlowListView } from "./business-flow/BusinessFlowListView";
+import { BusinessFlowEditor } from "./business-flow/BusinessFlowEditor";
+import { ReportListView } from "./report/ReportListView";
+import { ReportEditor } from "./report/ReportEditor";
 import { ViewListView } from "./view/ViewListView";
 import { ViewEditor } from "./view/ViewEditor";
 import { ViewDefinitionListView } from "./view-definition/ViewDefinitionListView";
@@ -35,6 +40,8 @@ import { loadProject } from "../store/flowStore";
 import { loadTable } from "../store/tableStore";
 import { loadProcessFlow } from "../store/processFlowStore";
 import { loadSequence } from "../store/sequenceStore";
+import { loadBusinessFlow } from "../store/businessFlowStore";
+import { loadReport } from "../store/reportStore";
 import { loadView } from "../store/viewStore";
 import { loadViewDefinition } from "../store/viewDefinitionStore";
 import { loadPageLayout } from "../store/pageLayoutStore";
@@ -108,9 +115,9 @@ function RedirectGuardBanner({ summary }: { summary: readonly string[] }) {
   return (
     <div style={{
       position: "fixed", top: 0, left: 0, right: 0, zIndex: 9999,
-      background: "#b71c1c", color: "#fff",
+      background: "#b71c1c", color: "var(--hm-on-solid)",
       padding: "12px 16px", fontSize: 13,
-      borderBottom: "2px solid #7f0000",
+      borderBottom: "2px solid color-mix(in srgb, #ff0a0a 45%, var(--hm-surface))",
       boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
     }}>
       <strong><i className="bi bi-exclamation-octagon-fill" /> リダイレクトループ検出 — 遷移を停止しました</strong>
@@ -140,7 +147,7 @@ function ConnectionFailedView({ onRetry }: { onRetry: () => void }) {
       color: "var(--muted-text, #ccc)",
       backgroundColor: "var(--bg-color, #1a1a1a)",
     }}>
-      <div style={{ fontSize: "3rem", color: "#dc3545" }}>
+      <div style={{ fontSize: "3rem", color: "color-mix(in srgb, #db2e3f 80%, var(--hm-fg))" }}>
         <i className="bi bi-plug-fill" />
       </div>
       <h2 style={{ margin: 0, fontSize: "1.25rem", color: "var(--text-color, #fff)" }}>
@@ -154,7 +161,7 @@ function ConnectionFailedView({ onRetry }: { onRetry: () => void }) {
           backend サーバ (port 5179) が起動しているか確認してください。
         </p>
         <pre style={{
-          background: "rgba(255,255,255,0.05)", padding: "12px 16px", borderRadius: 6,
+          background: "var(--hm-surface-2)", padding: "12px 16px", borderRadius: 6,
           fontSize: "0.8125rem", textAlign: "left", margin: "12px auto",
         }}>cd backend{"\n"}npm run dev</pre>
         <p style={{ margin: "12px 0 0" }}>
@@ -166,7 +173,7 @@ function ConnectionFailedView({ onRetry }: { onRetry: () => void }) {
         onClick={onRetry}
         style={{
           padding: "8px 24px", fontSize: "0.9375rem",
-          background: "#0d6efd", color: "#fff", border: "none", borderRadius: 6,
+          background: "#0d6efd", color: "var(--hm-on-solid)", border: "none", borderRadius: 6,
           cursor: "pointer", marginTop: 8,
         }}
       >
@@ -352,9 +359,14 @@ export function AppShell() {
         <Route path="process-flow/edit/:processFlowId" element={<ProcessFlowEditor />} />
         <Route path="extensions" element={<ExtensionsPanel />} />
         <Route path="conventions/catalog" element={<ConventionsCatalogView />} />
+        <Route path="document" element={<DesignDocumentView />} />
         <Route path="screen/items/:screenId" element={<ScreenItemsView />} />
         <Route path="sequence/list" element={<SequenceListView />} />
         <Route path="sequence/edit/:sequenceId" element={<SequenceEditor />} />
+        <Route path="business-flow/list" element={<BusinessFlowListView />} />
+        <Route path="business-flow/edit/:businessFlowId" element={<BusinessFlowEditor />} />
+        <Route path="report/list" element={<ReportListView />} />
+        <Route path="report/edit/:reportId" element={<ReportEditor />} />
         <Route path="view/list" element={<ViewListView />} />
         <Route path="view/edit/:viewId" element={<ViewEditor />} />
         <Route path="view-definition/list" element={<ViewDefinitionListView />} />
@@ -449,14 +461,14 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     }
     // non-null → 別の non-null / null: ユーザー操作による workspace 切替 / 閉じる
     prevActiveWorkspaceIdRef.current = currentId;
-    const perResourceTypes: TabType[] = ["design", "table", "process-flow", "sequence", "view", "view-definition", "screen-items", "page-layout", "generic-definition"];
+    const perResourceTypes: TabType[] = ["design", "table", "process-flow", "sequence", "view", "view-definition", "screen-items", "page-layout", "business-flow", "report", "generic-definition"];
     const dirtyLabels = getTabs()
       .filter((t) => t.isDirty && perResourceTypes.includes(t.type))
       .map((t) => t.label);
     if (dirtyLabels.length > 0) {
       console.warn(`[workspace] 未保存タブを強制破棄: ${dirtyLabels.join(", ")}`);
     }
-    // localStorage に永続化された旧 workspace のタブ / GrapesJS screen キャッシュを破棄してから reload。
+    // localStorage に永続化された旧 workspace のタブや画面のキャッシュを破棄してから reload。
     // これを怠ると、reload 後にタブ復元 → URL sync で旧 resource ID へ navigate → 切替先 workspace に
     // 同 ID があれば stale 表示・誤保存、無ければ dashboard fallback、というバグになる。
     clearPersistedTabs();
@@ -557,7 +569,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       mcpBridge.request("workspace.open", { id: action.id })
         // backend の workspace.changed broadcast は requester を除外する (wsBridge.ts excludeClientId)。
         // 自セッション側は broadcast を受けないため、明示的に loadWorkspaces で state.active を更新する。
-        // (#956 / puck-editor:67 reload 復元 race の真因対応)
+        // (#956 reload 復元 race の真因対応)
         .then(() => {
           __initialRestoreDoneWsIds.add(action.id);
           return loadWorkspaces();
@@ -636,6 +648,10 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       // wsId が解決された URL を期待: /w/:wsId/... のとき active.id と一致するまで待つ
       if (wsId && workspaceState.active.id !== wsId) return;
     }
+    // リロード直後は backend 側の per-session workspace が未確立 (他タブ / 他接続が最後に
+    // 開いた workspace が既定になる)。描画と同じく restore 完了まで待たないと、
+    // 別 workspace に対して loadTable 等が走り「見つかりません」でダッシュボードへ戻される。
+    if (!isWorkspaceChildRouteReady(workspaceState, wsId, __initialRestoreDoneWsIds, __recoveryPendingWsId)) return;
 
     uiInfo("urlsync", "pathname change", { pathname: location.pathname });
 
@@ -736,6 +752,52 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
         }).catch((e) => {
           recordError({ source: "manual", message: "loadSequence 失敗", stack: e instanceof Error ? e.stack : undefined });
           fallbackToDashboard("シーケンス", sequenceId);
+        });
+      }
+      return;
+    }
+
+    const businessFlowMatch = matchPath("/w/:wsId/business-flow/edit/:businessFlowId", location.pathname);
+    if (businessFlowMatch?.params.businessFlowId) {
+      const businessFlowId = businessFlowMatch.params.businessFlowId;
+      if (rejectIfUuidUrl(businessFlowId, "業務フロー")) return;
+      const tabId = makeTabId("business-flow", businessFlowId);
+      const existing = getTabs().find((t) => t.id === tabId);
+      if (existing) {
+        setActiveTab(tabId);
+      } else {
+        loadBusinessFlow(businessFlowId).then((flow) => {
+          if (flow) {
+            openTab({ id: tabId, type: "business-flow", resourceId: businessFlowId, label: flow.name });
+          } else {
+            fallbackToDashboard("業務フロー", businessFlowId);
+          }
+        }).catch((e) => {
+          recordError({ source: "manual", message: "loadBusinessFlow 失敗", stack: e instanceof Error ? e.stack : undefined });
+          fallbackToDashboard("業務フロー", businessFlowId);
+        });
+      }
+      return;
+    }
+
+    const reportMatch = matchPath("/w/:wsId/report/edit/:reportId", location.pathname);
+    if (reportMatch?.params.reportId) {
+      const reportId = reportMatch.params.reportId;
+      if (rejectIfUuidUrl(reportId, "帳票")) return;
+      const tabId = makeTabId("report", reportId);
+      const existing = getTabs().find((t) => t.id === tabId);
+      if (existing) {
+        setActiveTab(tabId);
+      } else {
+        loadReport(reportId).then((report) => {
+          if (report) {
+            openTab({ id: tabId, type: "report", resourceId: reportId, label: report.name });
+          } else {
+            fallbackToDashboard("帳票", reportId);
+          }
+        }).catch((e) => {
+          recordError({ source: "manual", message: "loadReport 失敗", stack: e instanceof Error ? e.stack : undefined });
+          fallbackToDashboard("帳票", reportId);
         });
       }
       return;
@@ -895,7 +957,10 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       { path: `${wsPrefix}/process-flow/list`,  type: "process-flow-list",  label: "処理フロー一覧" },
       { path: `${wsPrefix}/extensions`,         type: "extensions",         label: "拡張管理" },
       { path: `${wsPrefix}/conventions/catalog`, type: "conventions-catalog", label: "規約カタログ" },
+      { path: `${wsPrefix}/document`,           type: "design-document",    label: "設計書" },
       { path: `${wsPrefix}/sequence/list`,      type: "sequence-list",      label: "シーケンス一覧" },
+      { path: `${wsPrefix}/business-flow/list`, type: "business-flow-list", label: "業務フロー" },
+      { path: `${wsPrefix}/report/list`,        type: "report-list",        label: "帳票" },
       { path: `${wsPrefix}/view/list`,          type: "view-list",           label: "ビュー一覧" },
       { path: `${wsPrefix}/view-definition/list`, type: "view-definition-list", label: "ビュー定義一覧" },
       { path: `${wsPrefix}/page-layout/list`,    type: "page-layout-list",    label: "ページレイアウト一覧" },
@@ -913,7 +978,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
         return;
       }
     }
-  }, [location.pathname, fallbackToDashboard, wsId, workspaceState.loading, workspaceState.active, workspaceState.lockdown, workspaceState.error]);
+  }, [location.pathname, fallbackToDashboard, wsId, workspaceState]);
 
   // アクティブタブ → URL 同期
   // workspace が完全未選択 (active=null + wsId 無し) や /workspace/select 表示中は同期を停止する。
@@ -951,6 +1016,10 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       : activeTab.type === "table"            ? `${wp}/table/edit/${activeTab.resourceId}`
       : activeTab.type === "process-flow"     ? `${wp}/process-flow/edit/${activeTab.resourceId}`
       : activeTab.type === "sequence"         ? `${wp}/sequence/edit/${activeTab.resourceId}`
+      : activeTab.type === "business-flow"    ? `${wp}/business-flow/edit/${activeTab.resourceId}`
+      : activeTab.type === "business-flow-list" ? `${wp}/business-flow/list`
+      : activeTab.type === "report"           ? `${wp}/report/edit/${activeTab.resourceId}`
+      : activeTab.type === "report-list"      ? `${wp}/report/list`
       : activeTab.type === "view"             ? `${wp}/view/edit/${activeTab.resourceId}`
       : activeTab.type === "view-definition"  ? `${wp}/view-definition/edit/${activeTab.resourceId}`
       : activeTab.type === "page-layout"      ? `${wp}/page-layout/edit/${activeTab.resourceId}`
@@ -961,6 +1030,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       : activeTab.type === "process-flow-list" ? `${wp}/process-flow/list`
       : activeTab.type === "extensions"       ? `${wp}/extensions`
       : activeTab.type === "conventions-catalog" ? `${wp}/conventions/catalog`
+      : activeTab.type === "design-document"  ? `${wp}/document`
       : activeTab.type === "screen-items"     ? `${wp}/screen/items/${activeTab.resourceId}`
       : activeTab.type === "sequence-list"    ? `${wp}/sequence/list`
       : activeTab.type === "view-list"              ? `${wp}/view/list`

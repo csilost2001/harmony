@@ -50,8 +50,9 @@ beforeEach(async () => {
 
 afterEach(async () => {
   resetWorkspaceStateForTest();
-  await fs.rm(tmpDir, { recursive: true, force: true });
-  await fs.rm(otherTmpDir, { recursive: true, force: true });
+  // save 後の非同期な履歴書き込みが残っていると ENOTEMPTY になるため、削除はリトライする
+  await fs.rm(tmpDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+  await fs.rm(otherTmpDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
 });
 
 describe("EditSessionService.save resource change broadcast", () => {
@@ -85,7 +86,7 @@ describe("EditSessionService.save resource change broadcast", () => {
     expect(deliveredClientIds).not.toContain("client-other-workspace");
   });
 
-  it("page-layout-design は PageLayout design storage に保存し pageLayoutChanged を broadcast する (#1448)", async () => {
+  it("旧エディタ (GrapesJS / Puck) 廃止後、page-layout-design の編集セッションは旧デザイン本体を書かない", async () => {
     const { editSession } = service.create("client-editor", "page-layout-design", "main-layout", "レイアウト");
     const editSessionId = (editSession as { id: string }).id;
     service.update("client-editor", editSessionId, {
@@ -95,19 +96,8 @@ describe("EditSessionService.save resource change broadcast", () => {
     const result = await service.save("client-editor", editSessionId);
     expect(result.ok).toBe(true);
 
-    const designPath = path.join(tmpDir, "data", "page-layouts", "main-layout.design.json");
-    const htmlPath = path.join(tmpDir, "data", "page-layouts", "main-layout.components.html");
-    const design = JSON.parse(await fs.readFile(designPath, "utf-8"));
-    expect(design.pages[0].frames[0].component.componentsRef).toBe("main-layout.components.html");
-    expect(await fs.readFile(htmlPath, "utf-8")).toBe("<main data-region-name=\"main\"></main>");
-    await expect(fs.access(path.join(tmpDir, "data", "screens", "page-layout:main-layout.design.json"))).rejects.toThrow();
-
-    const changed = broadcasts.find((call) => call.event === "pageLayoutChanged");
-    expect(changed).toEqual({
-      wsId: tmpDir,
-      event: "pageLayoutChanged",
-      data: { pageLayoutId: "main-layout" },
-    });
+    await expect(fs.access(path.join(tmpDir, "data", "page-layouts", "main-layout.design.json"))).rejects.toThrow();
+    expect(broadcasts.find((call) => call.event === "pageLayoutChanged")).toBeUndefined();
   });
 
   it("#1368 Codex Round 3 Must-fix: long composite generic-definition resourceId (>64 chars) も WS handler が accept する", async () => {

@@ -111,7 +111,100 @@
       }
     }
   ],
-  "design": {
-    "designFileRef": "word-detail.design.json"
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "section",
+        "type": "section",
+        "props": {
+          "variant": "card"
+        },
+        "children": [
+          {
+            "id": "wordText",
+            "type": "field",
+            "itemRef": "wordText"
+          },
+          {
+            "id": "wordIpa",
+            "type": "field",
+            "itemRef": "wordIpa"
+          },
+          {
+            "id": "text",
+            "type": "text",
+            "props": {
+              "text": "動詞 B1 学習中"
+            }
+          },
+          {
+            "id": "wordTranslation",
+            "type": "field",
+            "itemRef": "wordTranslation"
+          }
+        ]
+      },
+      {
+        "id": "section2",
+        "type": "section",
+        "props": {
+          "title": "例文",
+          "variant": "card"
+        },
+        "children": [
+          {
+            "id": "wordExampleSentence",
+            "type": "field",
+            "itemRef": "wordExampleSentence"
+          },
+          {
+            "id": "text2",
+            "type": "text",
+            "props": {
+              "text": "彼女は機械学習と自然言語処理を専門としている。",
+              "tone": "muted"
+            }
+          },
+          {
+            "id": "wordPartOfSpeech",
+            "type": "field",
+            "itemRef": "wordPartOfSpeech"
+          },
+          {
+            "id": "wordCefrLevel",
+            "type": "field",
+            "itemRef": "wordCefrLevel"
+          },
+          {
+            "id": "masteryStatus",
+            "type": "field",
+            "itemRef": "masteryStatus"
+          }
+        ]
+      },
+      {
+        "id": "buttons",
+        "type": "button-bar",
+        "children": [
+          {
+            "id": "button",
+            "type": "button",
+            "props": {
+              "label": "発音を聞く",
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "button2",
+            "type": "button",
+            "props": {
+              "label": "習得した",
+              "variant": "primary"
+            }
+          }
+        ]
+      }
+    ]
   }
 }

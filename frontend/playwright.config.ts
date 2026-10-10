@@ -15,6 +15,8 @@ const includeEndurance = process.env.E2E_INCLUDE_ENDURANCE === "1" || cliInclude
 const PLAYWRIGHT_CONFIG_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(PLAYWRIGHT_CONFIG_DIR, "..");
 const ALLOWED_BROWSE_ROOTS = `${REPO_ROOT}${path.delimiter}/tmp`;
+// E2E 用 backend の「最近使ったワークスペース」記録先 (利用者の ~/.harmony/recent-workspaces.json と分ける)
+const E2E_RECENT_FILE = path.join(REPO_ROOT, ".tmp", "e2e-state", "recent-workspaces.json");
 
 export default defineConfig({
   testDir: "./e2e",
@@ -69,7 +71,9 @@ export default defineConfig({
       // Codex Round 1 Should-fix: repo root は `import.meta.url` から動的算出する
       // (上の `ALLOWED_BROWSE_ROOTS` 参照) ことで dev container / WSL2 native / 別 clone
       // path の全環境で機能させる。
-      command: `cd ../backend && HARMONY_E2E_NO_AUTO_ACTIVATE=1 HARMONY_ALLOWED_BROWSE_ROOTS=${ALLOWED_BROWSE_ROOTS} npm run dev`,
+      // HARMONY_SHOW_E2E_WORKSPACES=1: ワークスペース一覧に E2E 用ワークスペースを表示する (通常は隠す)
+      // DESIGNER_RECENT_FILE: 最近使ったワークスペースの記録を E2E 専用にし、利用者の ~/.harmony を汚さない
+      command: `cd ../backend && HARMONY_E2E_NO_AUTO_ACTIVATE=1 HARMONY_SHOW_E2E_WORKSPACES=1 DESIGNER_RECENT_FILE=${E2E_RECENT_FILE} HARMONY_ALLOWED_BROWSE_ROOTS=${ALLOWED_BROWSE_ROOTS} npm run dev`,
       url: "http://localhost:5179",
       reuseExistingServer: true, // 既存 backend があれば再利用 (常駐 backend に接続)
       timeout: 30000,
@@ -80,6 +84,7 @@ export default defineConfig({
       //       recent.lastActiveId の暗黙引き継ぎを断つ (spec が明示的 workspace.open で制御)
       env: {
         HARMONY_E2E_NO_AUTO_ACTIVATE: "1",
+        DESIGNER_RECENT_FILE: E2E_RECENT_FILE,
         HARMONY_ALLOWED_BROWSE_ROOTS: ALLOWED_BROWSE_ROOTS,
       },
     },

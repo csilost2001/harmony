@@ -34,7 +34,27 @@
       "description": "選択したパックを users.active_pack_ids に追加するためのパック ID 入力。適用ボタンクリックで処理フローに渡す。"
     }
   ],
-  "design": {
-    "designFileRef": "content-pack-list.design.json"
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "text",
+        "type": "text",
+        "props": {
+          "text": "学習コンテンツのパックを選択して適用できます。分野別パックを追加すると専門コンテンツが学習可能になります。",
+          "tone": "muted"
+        }
+      },
+      {
+        "id": "activatePackId",
+        "type": "field",
+        "itemRef": "activatePackId"
+      },
+      {
+        "id": "packList",
+        "type": "table",
+        "itemRef": "packList"
+      }
+    ]
   }
 }
