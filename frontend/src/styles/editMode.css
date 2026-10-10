@@ -114,8 +114,10 @@
 .readonly-mode input,
 .readonly-mode textarea,
 .readonly-mode select {
+  /* 閲覧のみでも、値は読めるように文字色は変えず、背景だけを沈める。
+     薄い斜体の文字は「入力例 (placeholder)」の印なので、本当の値を薄くすると見分けがつかなくなる */
   background-color: var(--hm-surface-2);
-  color: var(--hm-fg-muted);
+  color: var(--hm-fg);
   pointer-events: none;
   cursor: default;
 }

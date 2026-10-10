@@ -126,6 +126,6 @@
 
 /* 閲覧のみ (編集開始前・他の人が編集中) */
 .bfe-fieldset { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
-.bfe-fieldset:disabled input, .bfe-fieldset:disabled select, .bfe-fieldset:disabled textarea { opacity: 0.7; cursor: default; }
+.bfe-fieldset:disabled input, .bfe-fieldset:disabled select, .bfe-fieldset:disabled textarea { cursor: default; color: var(--hm-fg); }
 .bfe-sort-disabled .bfe-grip { visibility: hidden; }
 .bfe-readonly .bfe-title:disabled { background: transparent; color: var(--hm-fg); }

@@ -54,7 +54,9 @@
 }
 .form-control::placeholder { color: var(--hm-fg-faint); }
 .form-control:focus, .form-select:focus { outline: none; border-color: var(--hm-accent); box-shadow: 0 0 0 3px var(--hm-focus); }
-.form-control:disabled, .form-select:disabled, .form-control[readonly] { background: var(--hm-surface-2); color: var(--hm-fg-muted); cursor: not-allowed; }
+/* 閲覧のみ (読み取り専用・無効) の入力欄: 値は読めることが大事なので、文字色は変えず、背景だけを少し沈める。
+   (薄い文字は「入力例 (placeholder)」の印にしているため、本当の値を薄くすると見分けがつかなくなる) */
+.form-control:disabled, .form-select:disabled, .form-control[readonly] { background: var(--hm-surface-2); color: var(--hm-fg); cursor: default; }
 .form-control-sm, .form-select-sm { padding: 0.2rem 0.45rem; font-size: 0.8rem; }
 textarea.form-control { min-height: 2.6rem; resize: vertical; }
 .form-label { display: inline-block; margin-bottom: 0.25rem; color: var(--hm-fg-2); font-size: 0.8rem; font-weight: 500; }
