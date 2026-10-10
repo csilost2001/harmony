@@ -12,6 +12,7 @@ import { useSaveShortcut } from "../../hooks/useSaveShortcut";
 import { useSessionUrlSync } from "../../hooks/useSessionUrlSync";
 import { EditorHeader, type EditorHeaderSaveReset, type EditorHeaderBackLink } from "../common/EditorHeader";
 import { RenameEntityDialog } from "../common/RenameEntityDialog";
+import { ReferencesButton } from "../common/ReferencesButton";
 import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
 import { useRenameEntityUndoToast } from "../common/useRenameEntityUndoToast";
 import { handleRenameSuccess } from "../../utils/handleRenameSuccess";
@@ -362,6 +363,7 @@ export function SequenceEditor() {
               onAttachAsView={attach}
               onTakeOver={takeOver}
             />
+            {sequenceId && <ReferencesButton entityType="sequence" id={sequenceId} name={seq.physicalName || seq.name || ""} />}
             {/* #1298 I-6 (RFC #1284): id rename refactor */}
             <button
               type="button"

@@ -25,6 +25,7 @@ import { useListKeyboard } from "../../hooks/useListKeyboard";
 import { useListSort } from "../../hooks/useListSort";
 import { EditorHeader } from "../common/EditorHeader";
 import { RenameEntityDialog } from "../common/RenameEntityDialog";
+import { ReferencesButton } from "../common/ReferencesButton";
 import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
 import { useRenameEntityUndoToast } from "../common/useRenameEntityUndoToast";
 import { handleRenameSuccess } from "../../utils/handleRenameSuccess";
@@ -351,6 +352,7 @@ export function TableEditor() {
               onAttachAsView={attach}
               onTakeOver={takeOver}
             />
+            {tableId && <ReferencesButton compact entityType="table" id={tableId} name={table.physicalName || table.name || ""} />}
             {/* #1298 I-6 (RFC #1284): id rename refactor */}
             <button
               className="editor-header-undo-btn"

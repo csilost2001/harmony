@@ -5,6 +5,7 @@ import type { View, OutputColumn, PhysicalName, EntityId, Maturity, SemVer } fro
 import { loadView, saveView, listViews } from "../../store/viewStore";
 import { listTables } from "../../store/tableStore";
 import { RenameEntityDialog } from "../common/RenameEntityDialog";
+import { ReferencesButton } from "../common/ReferencesButton";
 import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
 import { useRenameEntityUndoToast } from "../common/useRenameEntityUndoToast";
 import { handleRenameSuccess } from "../../utils/handleRenameSuccess";
@@ -366,7 +367,9 @@ export function ViewEditor() {
           onClick: () => navigate(wsPath("/view/list")),
         } satisfies EditorHeaderBackLink}
         extraRight={
-          // #1298 I-6 (RFC #1284): id rename refactor
+          <>
+            {viewId && <ReferencesButton entityType="view" id={viewId} name={view.physicalName || view.name || ""} />}
+            {/* #1298 I-6 (RFC #1284): id rename refactor */}
           <button
             type="button"
             className="btn btn-sm btn-outline-secondary"
@@ -383,6 +386,7 @@ export function ViewEditor() {
           >
             <i className="bi bi-tag" /> id 変更
           </button>
+          </>
         }
         saveReset={isReadonly ? undefined : {
           isDirty,

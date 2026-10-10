@@ -36,6 +36,7 @@ import type { FieldTypePrimitive } from "../../types/v3";
 import type { TableId, LocalId, Identifier } from "../../types/v3/common";
 import { loadViewDefinition, saveViewDefinition, listViewDefinitions } from "../../store/viewDefinitionStore";
 import { RenameEntityDialog } from "../common/RenameEntityDialog";
+import { ReferencesButton } from "../common/ReferencesButton";
 import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
 import { useRenameEntityUndoToast } from "../common/useRenameEntityUndoToast";
 import { handleRenameSuccess } from "../../utils/handleRenameSuccess";
@@ -620,6 +621,7 @@ export function ViewDefinitionEditor() {
               onAttachAsView={attach}
               onTakeOver={takeOver}
             />
+            {viewDefinitionId && <ReferencesButton entityType="viewDefinition" id={viewDefinitionId} name={viewDefinition.name || ""} />}
             {/* #1298 I-6 (RFC #1284): id rename refactor */}
             <button
               type="button"

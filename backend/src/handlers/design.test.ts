@@ -75,3 +75,15 @@ describe("designer__get_test_viewpoints", () => {
     expect(await handleDesignTool("designer__other", {}, ROOT, "s")).toBeNull();
   });
 });
+
+describe("designer__find_references", () => {
+  it("参照元を返す (業務フローの工程が画面を参照)", async () => {
+    const r = JSON.parse(await call("designer__find_references", { entityType: "screen", id: "nowhere" }));
+    expect(r.exists).toBe(false);
+    expect(r.referrers.map((x: { id: string }) => x.id)).toContain("order");
+  });
+
+  it("種類が不正なら InvalidParams", async () => {
+    await expect(call("designer__find_references", { entityType: "bogus", id: "x" })).rejects.toThrow();
+  });
+});

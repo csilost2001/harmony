@@ -257,6 +257,20 @@ export const tools = [
     },
   },
   {
+    name: "designer__find_references",
+    description:
+      "ある設計 (画面・テーブル・処理フロー・シーケンス・ビュー・ビュー定義・ページレイアウト) を参照している設計の一覧 (参照元) を返します。" +
+      "ID の改名・削除の前の影響確認や、「これは誰が使っているか」を辿るときに使います。業務フロー・帳票・画面フロー (遷移) からの参照も含みます。",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        entityType: { type: "string", enum: ["screen", "table", "processFlow", "sequence", "view", "viewDefinition", "pageLayout"], description: "調べる設計の種類" },
+        id: { type: "string", description: "調べる設計の ID (kebab-case)" },
+      },
+      required: ["entityType", "id"],
+    },
+  },
+  {
     name: "designer__get_test_viewpoints",
     description:
       "テスト観点表を返します。画面入力 (必須・桁数・範囲・形式の正常 / 異常 / 境界値) と処理 (分岐と終了) を、決まった ID つきで導出します。" +

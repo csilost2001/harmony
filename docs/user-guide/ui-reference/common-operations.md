@@ -44,6 +44,10 @@
 
 詳細: [edit-session-protocol.md](../../spec/edit-session-protocol.md)
 
+## 参照元を調べる
+
+各エディタのヘッダー右の「参照元」で、いま開いている設計 (画面・テーブル・処理フロー等) を**参照している設計**が種類ごとに並ぶ。名前をクリックすると、その設計を開く。ID を変更する前や、削除する前の確認に使う。閲覧中でも使える。AI からは MCP の `designer__find_references`。仕様: [references.md](../../spec/references.md)
+
 ## 並べ替え
 
 一覧の持ち手 (⋮⋮) をドラッグ。キーボードでは持ち手にフォーカスして `Space` で持ち上げ、`↑` `↓` で動かし、`Space` で置く (`Esc` で取り消し)。

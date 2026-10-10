@@ -42,6 +42,7 @@ import { LayoutPalette } from "./LayoutPalette";
 import { LayoutInspector } from "./LayoutInspector";
 import { RegisterComponentDialog } from "./RegisterComponentDialog";
 import { ComponentManager } from "./ComponentManager";
+import { ReferencesButton } from "../common/ReferencesButton";
 import { useLayoutOps } from "./useLayoutOps";
 import { docReplaceNode, docUpdateItem, emptyLayout, setComponentArg, type LayoutDoc } from "./layoutModel";
 import "../../styles/editMode.css";
@@ -362,6 +363,7 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
             <button type="button" className="btn btn-sm btn-outline-secondary me-2" onClick={() => navigate(wsPath(`/screen/items/${encodeURIComponent(screenId)}`))} title="画面項目を表形式で一覧・編集">
               <i className="bi bi-list-columns me-1" />項目一覧
             </button>
+            <ReferencesButton entityType="screen" id={screenId} name={title} className="btn btn-sm btn-outline-secondary me-2" />
             <EditSessionDropdown
               resourceType="screen-item"
               resourceId={screenId}

@@ -30,6 +30,7 @@ import { SaveConflictDialog } from "../editing/SaveConflictDialog";
 import { ResumeOrDiscardDialog } from "../editing/ResumeOrDiscardDialog";
 import { setDirty as setTabDirty, makeTabId } from "../../store/tabStore";
 import { RenameEntityDialog } from "../common/RenameEntityDialog";
+import { ReferencesButton } from "../common/ReferencesButton";
 import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
 import { useRenameEntityUndoToast } from "../common/useRenameEntityUndoToast";
 import { handleRenameSuccess } from "../../utils/handleRenameSuccess";
@@ -857,13 +858,21 @@ export function ScreenItemsView() {
         undoRedo={{ onUndo: undo, onRedo: redo, canUndo, canRedo }}
         extraRight={
           <>
+            {screenId && <ReferencesButton entityType="screen" id={screenId} name={selectedScreenName ?? ""} className="btn btn-sm btn-outline-secondary me-2" />}
             {/* #1330: Screen rename refactor を ScreenItemsView 起点でも起動可能にする */}
             {screenId && (
               <button
                 type="button"
                 className="btn btn-sm btn-outline-secondary me-2"
                 onClick={() => setShowRenameDialog(true)}
-                title="この画面の ID を変更します (参照を一括更新)"
+                disabled={isReadonly || isDirty}
+                title={
+                  isReadonly
+                    ? "編集モードに切り替えてから ID を変更できます"
+                    : isDirty
+                    ? "未保存の変更があります。保存または破棄してから ID を変更してください"
+                    : "この画面の ID を変更します (参照を一括更新)"
+                }
                 data-testid="screen-items-rename-open-btn"
               >
                 <i className="bi bi-pencil-square me-1" />

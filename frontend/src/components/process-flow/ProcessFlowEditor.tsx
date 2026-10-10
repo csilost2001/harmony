@@ -65,6 +65,7 @@ import { useCodexStatus } from "../../codex/useCodexStatus";
 import { requestProcessFlowPartial, AiUnavailableError } from "../../codex/processFlowPartialRequest";
 import { EditorHeader } from "../common/EditorHeader";
 import { RenameEntityDialog } from "../common/RenameEntityDialog";
+import { ReferencesButton } from "../common/ReferencesButton";
 import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
 import { useRenameEntityUndoToast } from "../common/useRenameEntityUndoToast";
 import { handleRenameSuccess } from "../../utils/handleRenameSuccess";
@@ -967,6 +968,7 @@ export function ProcessFlowEditor() {
               onAttachAsView={editAttach}
               onTakeOver={editTakeOver}
             />
+            {processFlowId && <ReferencesButton entityType="processFlow" id={processFlowId} name={group.meta?.name ?? ""} />}
             {/* #1298 I-6 (RFC #1284): id rename refactor */}
             <button
               type="button"

@@ -22,6 +22,7 @@ import {
   type RenameEntityType,
   type EditSessionLike,
 } from "../renameEntity.js";
+import { findReferences } from "../references.js";
 import { assertEntityId, assertSafeName } from "../security/idValidator.js";
 import type { DraftResourceType as EditSessionResourceType } from "../editSessionStore.js";
 import type { WsBridge } from "../wsBridge.js";
@@ -204,6 +205,18 @@ export const refactorHandlers: RpcHandlerMap = {
   listRecentUndoOperations: async ({ root, respond, respondError }) => {
     try {
       respond(listRecentUndoOperations(root()));
+    } catch (e) {
+      respondError(e instanceof Error ? e.message : String(e));
+    }
+  },
+
+  /** 参照元 (その設計を参照している設計) の一覧。改名・削除の前の影響確認、設計を辿る用 */
+  findEntityReferences: async ({ params, root, respond, respondError }) => {
+    try {
+      const { entityType, id } = (params ?? {}) as { entityType: unknown; id: unknown };
+      const et = assertEntityType(entityType, "entityType");
+      assertEntityId(id, "id");
+      respond(await findReferences(et, id as string, root()));
     } catch (e) {
       respondError(e instanceof Error ? e.message : String(e));
     }

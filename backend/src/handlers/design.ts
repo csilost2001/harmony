@@ -8,6 +8,10 @@
  */
 import { buildDesignDocument, deriveTestViewpointSheet, testViewpointSheetToCsv } from "@harmony/shared";
 import { loadDesignInputFromRoot } from "../designInput.js";
+import { findReferences } from "../references.js";
+import { assertEntityIdMcp } from "../mcpHelpers.js";
+import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import type { RenameEntityType } from "../renameEntity.js";
 import type { ToolHandler } from "../mcpHelpers.js";
 
 const json = (v: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(v, null, 2) }] });
@@ -46,6 +50,15 @@ export const handleDesignTool: ToolHandler = async (name, args, root) => {
       });
       if (a.format === "csv") return { content: [{ type: "text" as const, text: testViewpointSheetToCsv(sheet) }] };
       return json(sheet);
+    }
+
+    case "designer__find_references": {
+      const types: RenameEntityType[] = ["screen", "table", "processFlow", "sequence", "view", "viewDefinition", "pageLayout"];
+      if (!types.includes(a.entityType as RenameEntityType)) {
+        throw new McpError(ErrorCode.InvalidParams, `entityType は ${types.join(" / ")} のどれかです`);
+      }
+      assertEntityIdMcp(a.id, "id");
+      return json(await findReferences(a.entityType as RenameEntityType, a.id as string, root));
     }
 
     default:
