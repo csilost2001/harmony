@@ -3,12 +3,12 @@
  * 画面項目をまとめて追加する。読み取りの規則は utils/itemPaste.ts。
  */
 import { useEffect, useMemo, useState } from "react";
-import { parseItemTable, splitDuplicateItems, type ParsedItem } from "../../utils/itemPaste";
+import { itemsToTsv, parseItemTable, splitDuplicateItems, type ParsedItem } from "../../utils/itemPaste";
 import type { ScreenItem } from "../../types/v3/screen-item";
 import "../../styles/pasteColumns.css";
 
 interface Props {
-  existing: readonly Pick<ScreenItem, "id">[];
+  existing: readonly ScreenItem[];
   onAdd: (items: ParsedItem[]) => void;
   onClose: () => void;
 }
@@ -17,6 +17,10 @@ const DIRECTION_LABEL: Record<string, string> = { in: "入力", out: "出力", b
 
 export function PasteItemsDialog({ existing, onAdd, onClose }: Props) {
   const [text, setText] = useState("");
+  const [copied, setCopied] = useState(false);
+  const copyCurrent = () => {
+    navigator.clipboard.writeText(itemsToTsv(existing)).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }).catch(() => undefined);
+  };
   const parsed = useMemo(() => parseItemTable(text), [text]);
   const { add, duplicates } = useMemo(() => splitDuplicateItems(parsed.items, existing), [parsed.items, existing]);
 
@@ -39,6 +43,11 @@ export function PasteItemsDialog({ existing, onAdd, onClose }: Props) {
             見出しがなければ、項目 ID・ラベル・型・入出力・必須・最大長・最小長・パターン・説明 の順に並んでいるものとして読みます。
             項目 ID は英字で始まる英数字 (<code>customer_name</code> は <code>customerName</code> に直します)、型は 文字列・整数・数値・真偽・日付・日時 などの書き方も読めます。
           </p>
+          <div>
+            <button type="button" className="btn btn-sm btn-link p-0" onClick={copyCurrent} data-testid="paste-items-copy-current">
+              <i className="bi bi-clipboard" /> {copied ? "コピーしました" : "いまの項目を、この形式の表としてコピー (Excel で編集して貼り戻せます)"}
+            </button>
+          </div>
           <textarea className="paste-cols-text" value={text} onChange={(e) => setText(e.target.value)} rows={7} autoFocus
             placeholder={"例:\n項目ID\tラベル\t型\t入出力\t必須\t最大長\ncustomerName\t顧客名\t文字列\t入力\t○\t100\nbirthDate\t生年月日\t日付\t入力\t\t"}
             spellCheck={false} data-testid="paste-items-text" />

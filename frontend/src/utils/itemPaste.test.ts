@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseDirection, parseItemTable, splitDuplicateItems, toItemId } from "./itemPaste";
+import { itemsToTsv, parseDirection, parseItemTable, splitDuplicateItems, toItemId } from "./itemPaste";
 
 describe("項目 ID", () => {
   it("camelCase に寄せる。日本語だけなら null", () => {
@@ -52,5 +52,18 @@ describe("項目定義の表の貼り付け", () => {
     const parsed = parseItemTable("a\tA\nb\tB").items;
     expect(splitDuplicateItems(parsed, [{ id: "a" as never }]).add.map((i) => i.id)).toEqual(["b"]);
     expect(parseItemTable("\n \n")).toEqual({ items: [], warnings: [], headerDetected: false });
+  });
+});
+
+describe("項目の表へ書き出し", () => {
+  it("書き出した表を貼り付け直すと、同じ項目が読める (往復)", () => {
+    const items = [
+      { id: "customerName", label: "顧客名", type: "string", direction: "in", required: true, maxLength: 100, description: "全角可" },
+      { id: "birthDate", label: "生年月日", type: "date", direction: "in" },
+      { id: "total", label: "合計", type: "number", direction: "out", min: 0, max: 999999 },
+    ] as never[];
+    const back = parseItemTable(itemsToTsv(items));
+    expect(back.warnings).toEqual([]);
+    expect(back.items).toEqual(items);
   });
 });

@@ -3,12 +3,12 @@
  * カラムをまとめて追加する。読み取りの規則は utils/columnPaste.ts。
  */
 import { useEffect, useMemo, useState } from "react";
-import { parseColumnTable, splitDuplicates, type ParsedColumn } from "../../utils/columnPaste";
+import { columnsToTsv, parseColumnTable, splitDuplicates, type ParsedColumn } from "../../utils/columnPaste";
 import type { Column } from "../../types/v3/table";
 import "../../styles/pasteColumns.css";
 
 interface Props {
-  existing: readonly Pick<Column, "physicalName">[];
+  existing: readonly Column[];
   onAdd: (columns: ParsedColumn[]) => void;
   onClose: () => void;
 }
@@ -17,6 +17,10 @@ const FLAG = (v?: boolean) => (v ? "○" : "");
 
 export function PasteColumnsDialog({ existing, onAdd, onClose }: Props) {
   const [text, setText] = useState("");
+  const [copied, setCopied] = useState(false);
+  const copyCurrent = () => {
+    navigator.clipboard.writeText(columnsToTsv(existing)).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }).catch(() => undefined);
+  };
   const parsed = useMemo(() => parseColumnTable(text), [text]);
   const { add, duplicates } = useMemo(() => splitDuplicates(parsed.columns, existing), [parsed.columns, existing]);
 
@@ -38,6 +42,11 @@ export function PasteColumnsDialog({ existing, onAdd, onClose }: Props) {
             Excel などの表 (タブ区切り・カンマ区切り) を貼り付けます。1 行目が見出し (物理名・表示名・データ型・長さ・NOT NULL・PK・UK・連番・デフォルト・備考) なら、列の順は自由です。
             見出しがなければ、この順に並んでいるものとして読みます。型は <code>VARCHAR(100)</code> や <code>int</code>・<code>文字列</code> のような書き方も読めます。
           </p>
+          <div>
+            <button type="button" className="btn btn-sm btn-link p-0" onClick={copyCurrent} data-testid="paste-columns-copy-current">
+              <i className="bi bi-clipboard" /> {copied ? "コピーしました" : "いまのカラムを、この形式の表としてコピー (Excel で編集して貼り戻せます)"}
+            </button>
+          </div>
           <textarea className="paste-cols-text" value={text} onChange={(e) => setText(e.target.value)} rows={7} autoFocus
             placeholder={"例:\n物理名\t表示名\tデータ型\t長さ\tNOT NULL\tPK\ncustomer_id\t顧客ID\tBIGINT\t\t○\t○\ncustomer_name\t顧客名\tVARCHAR\t100\t○\t"}
             spellCheck={false} data-testid="paste-columns-text" />

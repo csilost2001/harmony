@@ -7,7 +7,7 @@ const SAMPLE = "物理名\t表示名\tデータ型\t長さ\tNOT NULL\tPK\ncustom
 describe("PasteColumnsDialog", () => {
   it("貼り付けた表をプレビューし、既にある物理名は除いて追加する", () => {
     const onAdd = vi.fn(); const onClose = vi.fn();
-    render(<PasteColumnsDialog existing={[{ physicalName: "id" as never }]} onAdd={onAdd} onClose={onClose} />);
+    render(<PasteColumnsDialog existing={[{ id: "c1", physicalName: "id", name: "ID", dataType: "INTEGER" } as never]} onAdd={onAdd} onClose={onClose} />);
     expect((screen.getByTestId("paste-columns-add") as HTMLButtonElement).disabled).toBe(true);
     fireEvent.change(screen.getByTestId("paste-columns-text"), { target: { value: SAMPLE } });
     const preview = screen.getByTestId("paste-columns-preview");
@@ -31,5 +31,13 @@ describe("PasteColumnsDialog", () => {
     render(<PasteColumnsDialog existing={[]} onAdd={vi.fn()} onClose={onClose} />);
     fireEvent.keyDown(document, { key: "Escape" });
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it("いまのカラムを、貼り戻せる形式の表としてコピーできる", () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+    render(<PasteColumnsDialog existing={[{ id: "c1", physicalName: "id", name: "ID", dataType: "BIGINT", primaryKey: true } as never]} onAdd={vi.fn()} onClose={vi.fn()} />);
+    fireEvent.click(screen.getByTestId("paste-columns-copy-current"));
+    expect(writeText.mock.calls[0][0]).toContain("id\tID\tBIGINT");
   });
 });

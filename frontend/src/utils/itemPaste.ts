@@ -141,3 +141,18 @@ export function splitDuplicateItems(parsed: readonly ParsedItem[], existing: rea
   }
   return { add, duplicates };
 }
+
+const cell = (v: unknown) => String(v ?? "").replace(/[\t\r\n]+/g, " ");
+const DIRECTION_TEXT: Record<string, string> = { in: "入力", out: "出力", both: "入出力" };
+const TYPE_TEXT: Record<string, string> = { string: "文字列", integer: "整数", number: "数値", boolean: "真偽", date: "日付", datetime: "日時", json: "JSON" };
+
+/** 既存の画面項目を、貼り付けと同じ形式の表 (見出し付き・タブ区切り) にする。Excel へ貼って編集し、また貼り戻せる */
+export function itemsToTsv(items: readonly ScreenItem[]): string {
+  const head = ["項目ID", "ラベル", "型", "入出力", "必須", "最大長", "最小長", "最小値", "最大値", "パターン", "説明"].join("\t");
+  const rows = items.map((i) => [
+    cell(i.id), cell(i.label), typeof i.type === "string" ? (TYPE_TEXT[i.type] ?? i.type) : "", i.direction ? DIRECTION_TEXT[i.direction] : "",
+    i.required ? "○" : "", cell(i.maxLength), cell(i.minLength), cell(i.min), cell(i.max), cell(i.pattern), cell(i.description),
+  ].join("\t"));
+  return [head, ...rows].join("\n");
+}
+

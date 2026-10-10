@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { headerField, parseBoolean, parseColumnTable, parseDataType, splitDuplicates, toPhysicalName } from "./columnPaste";
+import { columnsToTsv, headerField, parseBoolean, parseColumnTable, parseDataType, splitDuplicates, toPhysicalName } from "./columnPaste";
 
 describe("型の書き方", () => {
   it("長さ・小数桁つきを分ける", () => {
@@ -89,5 +89,24 @@ describe("既存カラムとの重複", () => {
     const { add, duplicates } = splitDuplicates(parsed, [{ physicalName: "id" as never }]);
     expect(add.map((c) => c.physicalName)).toEqual(["name"]);
     expect(duplicates.map((c) => c.physicalName)).toEqual(["id"]);
+  });
+});
+
+describe("カラムの表へ書き出し", () => {
+  it("書き出した表を貼り付け直すと、同じカラムが読める (往復)", () => {
+    const cols = [
+      { id: "c1", physicalName: "id", name: "ID", dataType: "BIGINT", notNull: true, primaryKey: true, autoIncrement: true },
+      { id: "c2", physicalName: "price", name: "価格", dataType: "DECIMAL", length: 10, scale: 2, notNull: true, defaultValue: "0", comment: "税込" },
+      { id: "c3", physicalName: "note", name: "備考", dataType: "TEXT" },
+    ] as never[];
+    const tsv = columnsToTsv(cols);
+    expect(tsv.split("\n")[0]).toBe("物理名\t表示名\tデータ型\t長さ\tNOT NULL\tPK\tUK\t連番\tデフォルト\t備考");
+    const back = parseColumnTable(tsv);
+    expect(back.warnings).toEqual([]);
+    expect(back.columns).toEqual([
+      { physicalName: "id", name: "ID", dataType: "BIGINT", notNull: true, primaryKey: true, autoIncrement: true },
+      { physicalName: "price", name: "価格", dataType: "DECIMAL", length: 10, scale: 2, notNull: true, defaultValue: "0", comment: "税込" },
+      { physicalName: "note", name: "備考", dataType: "TEXT" },
+    ]);
   });
 });

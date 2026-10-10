@@ -224,3 +224,18 @@ export function splitDuplicates(parsed: readonly ParsedColumn[], existing: reado
   }
   return { add, duplicates };
 }
+
+const cell = (v: unknown) => String(v ?? "").replace(/[\t\r\n]+/g, " ");
+const flag = (v?: boolean) => (v ? "○" : "");
+
+/** 既存のカラムを、貼り付けと同じ形式の表 (見出し付き・タブ区切り) にする。Excel へ貼って編集し、また貼り戻せる */
+export function columnsToTsv(columns: readonly Column[]): string {
+  const head = ["物理名", "表示名", "データ型", "長さ", "NOT NULL", "PK", "UK", "連番", "デフォルト", "備考"].join("\t");
+  const rows = columns.map((c) => [
+    cell(c.physicalName), cell(c.name), cell(c.dataType),
+    c.length !== undefined ? (c.scale !== undefined ? `${c.length},${c.scale}` : String(c.length)) : "",
+    flag(c.notNull), flag(c.primaryKey), flag(c.unique), flag(c.autoIncrement), cell(c.defaultValue), cell(c.comment),
+  ].join("\t"));
+  return [head, ...rows].join("\n");
+}
+
