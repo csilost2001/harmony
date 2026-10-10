@@ -31,6 +31,8 @@ import { ResumeOrDiscardDialog } from "../editing/ResumeOrDiscardDialog";
 import { setDirty as setTabDirty, makeTabId } from "../../store/tabStore";
 import { RenameEntityDialog } from "../common/RenameEntityDialog";
 import { ReferencesButton } from "../common/ReferencesButton";
+import { PasteItemsDialog } from "./PasteItemsDialog";
+import type { ParsedItem } from "../../utils/itemPaste";
 import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
 import { useRenameEntityUndoToast } from "../common/useRenameEntityUndoToast";
 import { handleRenameSuccess } from "../../utils/handleRenameSuccess";
@@ -140,6 +142,7 @@ export function ScreenItemsView() {
 
   // #1330: ScreenItemsView 起点の Screen rename refactor。完了後は Items 画面に留まる。
   const [showRenameDialog, setShowRenameDialog] = useState(false);
+  const [showPasteItems, setShowPasteItems] = useState(false);
   const [allScreenIds, setAllScreenIds] = useState<string[]>([]);
   const [renameUndoToast, setRenameUndoToast] = useRenameEntityUndoToast(
     "screen",
@@ -409,6 +412,12 @@ export function ScreenItemsView() {
         label: "",
         type: "string",
       });
+    });
+  }, [updateWithDraft]);
+
+  const handlePasteItems = useCallback((items: ParsedItem[]) => {
+    updateWithDraft((f) => {
+      for (const it of items) f.items.push({ ...it } as ScreenItem);
     });
   }, [updateWithDraft]);
 
@@ -1797,6 +1806,16 @@ export function ScreenItemsView() {
               >
                 <i className="bi bi-plus-lg me-1" /> 項目追加
               </button>
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-secondary"
+                onClick={() => setShowPasteItems(true)}
+                disabled={isReadonly}
+                title="Excel などの項目定義の表を貼り付けて、画面項目をまとめて追加"
+                data-testid="paste-items-open"
+              >
+                <i className="bi bi-clipboard-data me-1" /> 表から貼り付け
+              </button>
               {selectedIndices.size > 0 && (
                 <button
                   type="button"
@@ -1909,6 +1928,10 @@ export function ScreenItemsView() {
           }}
           onCancel={onSaveConflictCancel}
         />
+      )}
+
+      {showPasteItems && (
+        <PasteItemsDialog existing={file?.items ?? []} onAdd={handlePasteItems} onClose={() => setShowPasteItems(false)} />
       )}
 
       {/* #1330: ScreenItemsView 起点の Screen rename refactor dialog */}

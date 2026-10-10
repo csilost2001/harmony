@@ -35,7 +35,7 @@ type Field = "physicalName" | "name" | "dataType" | "length" | "notNull" | "prim
 
 const DEFAULT_ORDER: Field[] = ["physicalName", "name", "dataType", "length", "notNull", "primaryKey", "unique", "autoIncrement", "defaultValue", "comment"];
 
-const norm = (s: string) => s.replace(/[\s　_\-・\/()（）]/g, "").toLowerCase();
+export const norm = (s: string) => s.replace(/[\s　_\-・\/()（）]/g, "").toLowerCase();
 
 const HEADER_ALIASES: Array<[Field, string[]]> = [
   ["physicalName", ["物理名", "物理カラム名", "カラム名", "列名", "column", "columnname", "physicalname", "フィールド名", "項目名物理"]],
@@ -72,12 +72,12 @@ const TYPE_ALIASES: Record<string, string> = {
 };
 
 /** 区切り文字を決める: タブがあればタブ、なければカンマ */
-function detectDelimiter(text: string): string {
+export function detectDelimiter(text: string): string {
   return text.includes("\t") ? "\t" : ",";
 }
 
 /** 1 行を分ける。カンマ区切りでは "..." で囲んだ中のカンマ・改行は区切りにしない */
-function splitRow(line: string, delim: string): string[] {
+export function splitRow(line: string, delim: string): string[] {
   if (delim === "\t") return line.split("\t");
   const out: string[] = [];
   let cur = "", inQ = false, depth = 0;
