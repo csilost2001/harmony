@@ -385,11 +385,8 @@ export function TableEditor() {
       <div className="table-editor-tabs">
         <button className={tab === "columns" ? "active" : ""} onClick={() => setTab("columns")}>
           <i className="bi bi-columns-gap" /> 列 <span className="tab-count">{table.columns.length}</span>
-          {columnsEmpty && (
-            <span className="view-editor-section-marker" style={{ color: "orange", marginLeft: 6 }} title="カラムが未定義です">{"⚠️"}</span>
-          )}
-          {primaryKeyEmpty && (
-            <span className="view-editor-section-marker" style={{ color: "orange", marginLeft: 6 }} title="主キーが未指定です">{"⚠️"}</span>
+          {(columnsEmpty || primaryKeyEmpty) && (
+            <span className="view-editor-section-marker" style={{ color: "orange", marginLeft: 6 }} title={columnsEmpty ? "カラムが未定義です" : "主キーが未指定です"}>{"⚠️"}</span>
           )}
         </button>
         <button className={tab === "constraints" ? "active" : ""} onClick={() => setTab("constraints")}>
@@ -950,13 +947,12 @@ function ColumnsTab({
       <div className="columns-selection-bar">
         <span className="columns-selection-count">
           {anySelected ? `${selectedCount} 件選択中 (ダブルクリック/Enter で編集)` : "クリックで選択、ダブルクリックで編集"}
-          {columnsEmpty && (
-            <span className="view-editor-section-marker" style={{ color: "orange", marginLeft: 6 }} title="カラムが未定義です">{"\u26A0\uFE0F"}</span>
-          )}
-          {primaryKeyEmpty && (
-            <span className="view-editor-section-marker" style={{ color: "orange", marginLeft: 6 }} title="主キーが未指定です">{"\u26A0\uFE0F"}</span>
-          )}
         </span>
+        {(columnsEmpty || primaryKeyEmpty) && (
+          <span className="columns-warning" data-testid="columns-warning">
+            <i className="bi bi-exclamation-triangle-fill" /> {columnsEmpty ? "カラムが未定義です" : "主キーが未指定です"}
+          </span>
+        )}
         <div className="columns-selection-actions">
           <button
             className="tbl-btn tbl-btn-ghost tbl-btn-sm"
