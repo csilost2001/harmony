@@ -1071,13 +1071,13 @@ function layoutComponentsSchemaRef(dataRoot: string): string {
   return path.relative(dataRoot, path.join(SCHEMAS_DIR, "v3", "layout-components.v3.schema.json")).replace(/\\/g, "/");
 }
 
-/** 同じファイルへの更新が並行しても、読んで・差し替えて・書く を 1 本ずつ行う */
-const layoutComponentsLock = new Map<string, Promise<unknown>>();
-function withLayoutComponentsLock<T>(file: string, run: () => Promise<T>): Promise<T> {
-  const prev = layoutComponentsLock.get(file) ?? Promise.resolve();
+/** 同じファイルへの更新が並行しても、読んで・差し替えて・書く を 1 本ずつ行う (独自部品・業務フロー・帳票で共用) */
+const fileLocks = new Map<string, Promise<unknown>>();
+function withFileLock<T>(file: string, run: () => Promise<T>): Promise<T> {
+  const prev = fileLocks.get(file) ?? Promise.resolve();
   const next = prev.catch(() => undefined).then(run);
-  layoutComponentsLock.set(file, next);
-  return next.finally(() => { if (layoutComponentsLock.get(file) === next) layoutComponentsLock.delete(file); });
+  fileLocks.set(file, next);
+  return next.finally(() => { if (fileLocks.get(file) === next) fileLocks.delete(file); });
 }
 
 /** layout-components.json を読み込み。無ければ空の定義集合 */
@@ -1091,7 +1091,7 @@ export async function readLayoutComponents(root: string): Promise<LayoutComponen
 export async function upsertLayoutComponent(component: LayoutComponentRecord, root: string): Promise<LayoutComponentsDoc> {
   const dataRoot = await ensureDataDirFromRoot(root);
   const file = layoutComponentsFile(dataRoot);
-  return withLayoutComponentsLock(file, async () => {
+  return withFileLock(file, async () => {
     const doc = await readLayoutComponents(root);
     const at = doc.components.findIndex((c) => c.id === component.id);
     if (at >= 0) doc.components[at] = component; else doc.components.push(component);
@@ -1123,7 +1123,7 @@ export async function deleteLayoutComponent(componentId: string, root: string, f
   if (!force && (usages.screens.length || usages.components.length)) return { deleted: false, usages };
   const dataRoot = await ensureDataDirFromRoot(root);
   const file = layoutComponentsFile(dataRoot);
-  await withLayoutComponentsLock(file, async () => {
+  await withFileLock(file, async () => {
     const doc = await readLayoutComponents(root);
     await writeJSON(file, { $schema: layoutComponentsSchemaRef(dataRoot), version: 1, components: doc.components.filter((c) => c.id !== componentId) });
   });
@@ -1216,7 +1216,7 @@ async function writeDoc(store: DocStore, id: string, data: unknown, root: string
   const filePath = path.join(dir, `${id}.json`);
   assertPathContained(filePath, dataRoot);
   // 確認 → 書き込みの間に別の保存が入らないよう、同じファイルへの保存は 1 本ずつ行う
-  return withLayoutComponentsLock(filePath, async () => {
+  return withFileLock(filePath, async () => {
   let prev: unknown = null;
   let broken = false;
   try { prev = await readJsonStrict(filePath); } catch {
@@ -1260,11 +1260,16 @@ async function updateAllDocs(store: DocStore, root: string, change: (doc: Record
   for (const f of unreadable) res.warnings.push(`${store.label}のファイル「${f}」が読めないため、参照を更新できませんでした`);
   for (const d of docs) {
     try {
-      if (!change(d.data)) continue;
       const filePath = path.join(store.dir(dataRoot), d.file);
       assertPathContained(filePath, dataRoot);
-      await withLayoutComponentsLock(filePath, () => writeJSON(filePath, { ...d.data, updatedAt: new Date().toISOString() }));
-      res.changed.push(d.id);
+      // 一覧を読んだあとに保存された内容を巻き戻さないよう、ロックの中で読み直してから変換する
+      const hit = await withFileLock(filePath, async () => {
+        const latest = await readJsonStrict(filePath);
+        if (!isRecord(latest) || !change(latest)) return false;
+        await writeJSON(filePath, { ...latest, updatedAt: new Date().toISOString() });
+        return true;
+      });
+      if (hit) res.changed.push(d.id);
     } catch (e) {
       res.warnings.push(`${store.label}「${d.id}」の参照を更新できませんでした: ${(e as Error).message}`);
     }

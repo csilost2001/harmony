@@ -3,6 +3,7 @@ import { HeaderMenu } from "./HeaderMenu";
 import { WorkspaceIndicator } from "./workspace/WorkspaceIndicator";
 import { CodexIndicator } from "./codex/CodexIndicator";
 import { ThemeToggle } from "./common/ThemeToggle";
+import { QuickOpen } from "./quick-open/QuickOpen";
 import "../styles/commonHeader.css";
 
 interface Props {
@@ -23,6 +24,7 @@ export function CommonHeader({ notification, userName }: Props) {
         {notification}
       </div>
       <div className="common-header-right">
+        <QuickOpen />
         <ThemeToggle />
         <CodexIndicator />
         <span className="common-header-user">

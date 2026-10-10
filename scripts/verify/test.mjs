@@ -6,7 +6,8 @@
 // Usage: node scripts/verify/test.mjs
 // Exit code: 0 = pass, 1 = fail
 
-import { readFileSync, mkdtempSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { readFileSync, mkdtempSync, writeFileSync, mkdirSync, existsSync, cpSync, rmSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -513,6 +514,37 @@ group("evaluate end-to-end", () => {
     presenceG?.verdict === "untraced" && presenceG?.detail?.includes("CLOSED"),
   );
   assert("G-closed: gateOk = false", resG_closed.gateOk === false);
+});
+
+// ─────────────────────────────────────────────────────────────
+// check-design.mjs (設計書の要確認事項をコマンドで検査)
+// ─────────────────────────────────────────────────────────────
+group("check-design", () => {
+  const repo = resolve(__dirname, "../..");
+  const run = (...args) => spawnSync("node", ["scripts/check-design.mjs", ...args], { cwd: repo, encoding: "utf8" });
+  const retail = run("examples/retail", "--strict");
+  assert("retail (警告なし) は --strict でも終了コード 0", retail.status === 0, retail.stdout + retail.stderr);
+  assert("--json は構造化して返す", (() => { try { const j = JSON.parse(run("examples/retail", "--json").stdout); return j.summary.error === 0 && Array.isArray(j.issues); } catch { return false; } })());
+  assert("使い方の誤り (引数なし) は終了コード 2", run().status === 2);
+  assert("harmony.json がない場所は終了コード 2", run("examples").status === 2);
+
+  const tmp = mkdtempSync(join(tmpdir(), "check-design-"));
+  try {
+    const ws = join(tmp, "retail");
+    cpSync(join(repo, "examples/retail"), ws, { recursive: true });
+    writeFileSync(join(ws, "harmony/reports/broken.json"), "{ not json");
+    const broken = run(ws);
+    assert("壊れた JSON は error として終了コード 1", broken.status === 1 && broken.stdout.includes("broken.json"), broken.stdout);
+    // 警告は既定では失敗にせず、--strict で失敗にする
+    const rp = JSON.parse(readFileSync(join(ws, "harmony/reports/delivery-note.json"), "utf8"));
+    rmSync(join(ws, "harmony/reports/broken.json"));
+    rp.sections.find((x) => x.kind === "detail").fields.push({ id: "noSrc", label: "出どころなし", kind: "field" });
+    writeFileSync(join(ws, "harmony/reports/delivery-note.json"), JSON.stringify(rp));
+    assert("警告だけなら既定は終了コード 0", run(ws).status === 0);
+    assert("警告は --strict で終了コード 1", run(ws, "--strict").status === 1);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
 });
 
 // ─────────────────────────────────────────────────────────────

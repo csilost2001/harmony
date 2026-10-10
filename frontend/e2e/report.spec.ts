@@ -134,6 +134,21 @@ test.describe("帳票", () => {
     await expect(page.getByTestId("rp-dirty")).toHaveCount(0);
   });
 
+  test("画面・テーブルの ID 改名で出力契機・項目の出どころが追従し、開いている編集画面にも反映される @regression", async ({ page }) => {
+    await openBrowserSessionWorkspace(ws.workspacePath);
+    await openEditor(page, "delivery-note");
+    await expect(page.getByTestId("rp-trigger-screen")).toHaveValue("order-complete");
+    await sendBrowserRequest("renameEntityId", { entityType: "screen", oldId: "order-complete", newId: "order-complete-x" });
+    await expect.poll(async () => (await read("delivery-note")).trigger.screenRef).toBe("order-complete-x");
+    // 未編集なので読み直され、選択肢も新しい ID を指す
+    await expect(page.getByTestId("rp-trigger-screen")).toHaveValue("order-complete-x", { timeout: 10000 });
+    await sendBrowserRequest("renameEntityId", { entityType: "table", oldId: "order-item", newId: "order-item-x" });
+    await expect.poll(async () => JSON.stringify(await read("delivery-note"))).toContain('"order-item-x.');
+    expect(JSON.stringify(await read("delivery-note"))).not.toContain('"order-item.');
+    await expect(page.getByTestId("rp-outdated")).toHaveCount(0);
+    await expect(page.getByTestId("rp-dirty")).toHaveCount(0);
+  });
+
   test("設計書に「帳票」の章 (用紙の見本と項目定義) が出る @regression", async ({ page }) => {
     await ws.gotoActive(page, "/document");
     await expect(page.locator("#reports")).toBeVisible({ timeout: 30000 });

@@ -34,6 +34,9 @@ vi.mock("./panels/RecentEditsPanel", () => ({
 vi.mock("./panels/ProcessFlowMaturityPanel", () => ({
   ProcessFlowMaturityPanel: () => <div data-testid="panel-process-flow-maturity">pm</div>,
 }));
+vi.mock("./panels/DesignIssuesPanel", () => ({
+  DesignIssuesPanel: () => <div data-testid="panel-design-issues">di</div>,
+}));
 vi.mock("./panels/MarkersSummaryPanel", () => ({
   MarkersSummaryPanel: () => <div data-testid="panel-markers-summary">ms</div>,
 }));
