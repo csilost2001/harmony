@@ -333,7 +333,7 @@ export function BusinessFlowEditor() {
           ) : (
             <section className="bfe-form">
               <h4>業務フロー</h4>
-              <label className="bfe-field"><span>説明</span><textarea rows={5} value={flow.description ?? ""} onChange={(e) => apply((f) => { if (e.target.value) f.description = e.target.value; else delete f.description; return f; })} data-testid="bf-description" /></label>
+              <label className="bfe-field"><span>説明 <small className="bfe-hint-inline">(**太字** と `コード` が使えます)</small></span><textarea rows={5} value={flow.description ?? ""} onChange={(e) => apply((f) => { if (e.target.value) f.description = e.target.value; else delete f.description; return f; })} data-testid="bf-description" /></label>
               <label className="bfe-field"><span>成熟度</span>
                 <select value={flow.maturity ?? ""} onChange={(e) => apply((f) => { if (e.target.value) f.maturity = e.target.value as BusinessFlow["maturity"]; else delete f.maturity; return f; })}>
                   <option value="">(未設定)</option><option value="draft">作成中</option><option value="provisional">レビュー中</option><option value="committed">確定</option>
@@ -376,7 +376,7 @@ function StepInspector(props: {
           </select>
         </label>
       </div>
-      <label className="bfe-field"><span>説明</span><textarea rows={3} value={step.description ?? ""} onChange={(e) => props.onPatch({ description: e.target.value })} /></label>
+      <label className="bfe-field"><span>説明 <small className="bfe-hint-inline">(**太字** と `コード` が使えます)</small></span><textarea rows={3} value={step.description ?? ""} onChange={(e) => props.onPatch({ description: e.target.value })} /></label>
       <label className="bfe-field"><span>実現する画面</span>
         <select value={step.screenRef ?? ""} onChange={(e) => props.onPatch({ screenRef: e.target.value })} data-testid="bf-step-screen">
           <option value="">(なし)</option>
@@ -432,7 +432,7 @@ function LaneInspector(props: { lane: BusinessLane; roles: Array<{ key: string; 
           {lane.roleRef && !props.roles.some((r) => r.key === lane.roleRef) && <option value={lane.roleRef}>{lane.roleRef} (存在しない)</option>}
         </select>
       </label>
-      <label className="bfe-field"><span>説明</span><textarea rows={3} value={lane.description ?? ""} onChange={(e) => props.onPatch({ description: e.target.value })} /></label>
+      <label className="bfe-field"><span>説明 <small className="bfe-hint-inline">(**太字** と `コード` が使えます)</small></span><textarea rows={3} value={lane.description ?? ""} onChange={(e) => props.onPatch({ description: e.target.value })} /></label>
       <button type="button" className="bfe-btn bfe-btn-danger" onClick={props.onDelete} data-testid="bf-lane-delete"><i className="bi bi-trash" /> このレーンを削除</button>
     </section>
   );

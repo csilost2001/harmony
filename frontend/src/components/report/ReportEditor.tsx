@@ -402,7 +402,7 @@ export function ReportEditor() {
           ) : (
             <section className="bfe-form">
               <h4>帳票</h4>
-              <label className="bfe-field"><span>説明</span><textarea rows={5} value={report.description ?? ""} onChange={(e) => patchReport((r) => { if (e.target.value) r.description = e.target.value; else delete r.description; })} data-testid="rp-description" /></label>
+              <label className="bfe-field"><span>説明 <small className="bfe-hint-inline">(**太字** と `コード` が使えます)</small></span><textarea rows={5} value={report.description ?? ""} onChange={(e) => patchReport((r) => { if (e.target.value) r.description = e.target.value; else delete r.description; })} data-testid="rp-description" /></label>
               <label className="bfe-field"><span>成熟度</span>
                 <select value={report.maturity ?? ""} onChange={(e) => patchReport((r) => { if (e.target.value) r.maturity = e.target.value as Report["maturity"]; else delete r.maturity; })}>
                   <option value="">(未設定)</option><option value="draft">作成中</option><option value="provisional">レビュー中</option><option value="committed">確定</option>
@@ -508,7 +508,7 @@ function FieldInspector(props: {
       <label className="bfe-field"><span>幅 % (空欄は自動)</span>
         <input type="number" min={1} max={100} step={1} value={field.width ?? ""} onChange={(e) => props.onPatch({ width: e.target.value === "" ? undefined : Number(e.target.value) })} data-testid="rp-field-width" />
       </label>
-      <label className="bfe-field"><span>説明</span><textarea rows={2} value={field.description ?? ""} onChange={(e) => props.onPatch({ description: e.target.value })} /></label>
+      <label className="bfe-field"><span>説明 <small className="bfe-hint-inline">(**太字** と `コード` が使えます)</small></span><textarea rows={2} value={field.description ?? ""} onChange={(e) => props.onPatch({ description: e.target.value })} /></label>
       <div className="bfe-btn-row">
         <button type="button" className="bfe-btn" onClick={() => props.onMove(-1)} disabled={idx <= 0} data-testid="rp-field-left"><i className="bi bi-arrow-left" /> 左へ</button>
         <button type="button" className="bfe-btn" onClick={() => props.onMove(1)} disabled={idx >= section.fields.length - 1} data-testid="rp-field-right">右へ <i className="bi bi-arrow-right" /></button>
