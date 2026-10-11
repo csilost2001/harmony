@@ -31,3 +31,6 @@
 .paste-cols-preview td { padding: 4px 8px; border-top: 1px solid var(--hm-border); white-space: nowrap; }
 .paste-cols-preview td code { font-size: 12px; background: transparent; }
 .paste-cols-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 10px 16px; border-top: 1px solid var(--hm-border); }
+.paste-cols-dup p { margin: 0 0 4px; }
+.paste-cols-dup ul { margin: 4px 0 0; padding-left: 20px; }
+.paste-cols-update { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; color: var(--hm-fg-2); }

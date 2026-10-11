@@ -149,7 +149,7 @@ test.describe("画面項目定義プロトタイプ (#318)", { tag: ["@regressio
     const labelInput = page.locator('.screen-items-table input[placeholder="例: メールアドレス"]').first();
     await labelInput.fill("ユーザー ID");
     // 必須 チェック
-    await page.locator('.screen-items-table input[type="checkbox"][aria-label="必須"]').first().check();
+    await page.locator('.screen-items-table input[type="checkbox"][aria-label$="の必須"]').first().check();
     // 保存 (EditorHeader 内の SaveResetButtons)
     const saveBtn = page.locator(".srb-btn-save");
     await expect(saveBtn).toBeEnabled();

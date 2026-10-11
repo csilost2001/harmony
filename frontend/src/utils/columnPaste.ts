@@ -13,6 +13,8 @@ export interface ParsedColumn {
   physicalName: string;
   name: string;
   dataType: string;
+  /** 型の欄が空だった (dataType は既定の VARCHAR)。既存の行を更新するときは、型を書き換えない */
+  typeEmpty?: true;
   length?: number;
   scale?: number;
   notNull?: boolean;
@@ -29,7 +31,11 @@ export interface ColumnPasteResult {
   warnings: string[];
   /** 先頭行を見出しとして読んだか */
   headerDetected: boolean;
+  /** 貼り付けた表にある項目 (見出しなしなら、既定の順の全項目)。既存の行を更新するとき、この項目だけを書き換える */
+  fields: ColumnField[];
 }
+
+export type ColumnField = "name" | "dataType" | "length" | "notNull" | "primaryKey" | "unique" | "autoIncrement" | "defaultValue" | "comment";
 
 type Field = "physicalName" | "name" | "dataType" | "length" | "nullable" | "notNull" | "primaryKey" | "unique" | "autoIncrement" | "defaultValue" | "comment";
 
@@ -160,7 +166,7 @@ export function parseColumnTable(text: string): ColumnPasteResult {
   const parsedRows = parseRowsChecked(text, detectDelimiter(text));
   const numbered = parsedRows.rows.filter((r) => r.cells.some((c) => c.trim() !== ""));
   if (parsedRows.unclosedQuote) warnings.push(UNCLOSED_QUOTE_WARNING);
-  if (numbered.length === 0) return { columns: [], warnings, headerDetected: false };
+  if (numbered.length === 0) return { columns: [], warnings, headerDetected: false, fields: [] };
   const rows = numbered.map((r) => r.cells.map((c) => c.trim()));
 
   // 見出し: 先頭行のうち 2 つ以上のセルが既知の見出し名なら、見出し行とみなす
@@ -197,6 +203,7 @@ export function parseColumnTable(text: string): ColumnPasteResult {
       if (t.scale !== undefined) col.scale = t.scale;
       if (!t.known) warnings.push(`${lineNo(i)} 行目: 型「${typeCell}」は組み込みの型にありません。そのまま「${t.dataType}」として取り込みます`);
     } else {
+      col.typeEmpty = true;
       warnings.push(`${lineNo(i)} 行目: 型が空のため VARCHAR にしました`);
     }
 
@@ -235,7 +242,11 @@ export function parseColumnTable(text: string): ColumnPasteResult {
     if (seen.has(c.physicalName)) warnings.push(`物理名「${c.physicalName}」が貼り付けの中で重複しています`);
     seen.add(c.physicalName);
   }
-  return { columns, warnings, headerDetected };
+  const present = new Set<Field>(order.filter((f): f is Field => f !== null));
+  // 「NULL 可」の列があるときは、NOT NULL を書き換える対象にする
+  if (present.has("nullable")) present.add("notNull");
+  const fields = (["name", "dataType", "length", "notNull", "primaryKey", "unique", "autoIncrement", "defaultValue", "comment"] as const).filter((f) => present.has(f));
+  return { columns, warnings, headerDetected, fields };
 }
 
 /** 既存のカラムと物理名が重なるものを除く (除いたものを返す) */
@@ -263,5 +274,32 @@ export function columnsToTsv(columns: readonly Column[]): string {
     flag(c.notNull), flag(c.primaryKey), flag(c.unique), flag(c.autoIncrement), cell(c.defaultValue), cell(c.comment),
   ].join("\t"));
   return [head, ...rows].join("\n");
+}
+
+/**
+ * 貼り付けた行のうち、既にあるカラム (同じ物理名) を更新する内容を作る。表にある項目だけを書き換える
+ * (表に無い項目は、既存のまま)。表にある項目で値が空なら、その項目を空にする (型だけは、空なら既存のまま)。
+ */
+export function columnUpdates(parsed: readonly ParsedColumn[], existing: readonly Column[], fields: readonly ColumnField[]): Array<{ id: string; physicalName: string; patch: Partial<Column> }> {
+  const out: Array<{ id: string; physicalName: string; patch: Partial<Column> }> = [];
+  for (const p of parsed) {
+    const cur = existing.find((c) => String(c.physicalName) === p.physicalName);
+    if (!cur) continue;
+    const patch: Record<string, unknown> = {};
+    for (const f of fields) {
+      if (f === "dataType") {
+        if (p.dataType && !p.typeEmpty) patch.dataType = p.dataType;
+        // 型に長さがついていれば (`varchar(100)`)、長さも書き換える
+        if (p.length !== undefined && !fields.includes("length")) { patch.length = p.length; patch.scale = p.scale; }
+        continue;
+      }
+      if (f === "length") { patch.length = p.length; patch.scale = p.scale; continue; }
+      patch[f] = p[f];
+    }
+    // 変わるものだけにする
+    const changed = Object.entries(patch).filter(([k, v]) => (cur as unknown as Record<string, unknown>)[k] !== v && !((cur as unknown as Record<string, unknown>)[k] === undefined && v === undefined));
+    if (changed.length) out.push({ id: String(cur.id), physicalName: p.physicalName, patch: Object.fromEntries(changed) as Partial<Column> });
+  }
+  return out;
 }
 

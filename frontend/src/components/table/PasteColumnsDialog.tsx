@@ -3,26 +3,30 @@
  * カラムをまとめて追加する。読み取りの規則は utils/columnPaste.ts。
  */
 import { useEffect, useMemo, useState } from "react";
-import { columnsToTsv, parseColumnTable, splitDuplicates, type ParsedColumn } from "../../utils/columnPaste";
+import { columnUpdates, columnsToTsv, parseColumnTable, splitDuplicates, type ParsedColumn } from "../../utils/columnPaste";
 import type { Column } from "../../types/v3/table";
 import "../../styles/pasteColumns.css";
 
 interface Props {
   existing: readonly Column[];
-  onAdd: (columns: ParsedColumn[]) => void;
+  /** 追加するカラムと、(「既にある行も更新する」のとき) 既存カラムの更新 */
+  onApply: (add: ParsedColumn[], updates: Array<{ id: string; patch: Partial<Column> }>) => void;
   onClose: () => void;
 }
 
 const FLAG = (v?: boolean) => (v ? "○" : "");
 
-export function PasteColumnsDialog({ existing, onAdd, onClose }: Props) {
+export function PasteColumnsDialog({ existing, onApply, onClose }: Props) {
   const [text, setText] = useState("");
   const [copied, setCopied] = useState(false);
+  const [updateExisting, setUpdateExisting] = useState(false);
   const copyCurrent = () => {
     navigator.clipboard.writeText(columnsToTsv(existing)).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }).catch(() => undefined);
   };
   const parsed = useMemo(() => parseColumnTable(text), [text]);
   const { add, duplicates } = useMemo(() => splitDuplicates(parsed.columns, existing), [parsed.columns, existing]);
+
+  const updates = useMemo(() => (updateExisting ? columnUpdates(duplicates, existing, parsed.fields) : []), [updateExisting, duplicates, existing, parsed.fields]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { e.preventDefault(); onClose(); } };
@@ -44,7 +48,7 @@ export function PasteColumnsDialog({ existing, onAdd, onClose }: Props) {
           </p>
           <div>
             <button type="button" className="btn btn-sm btn-link p-0" onClick={copyCurrent} data-testid="paste-columns-copy-current">
-              <i className="bi bi-clipboard" /> {copied ? "コピーしました" : "いまのカラムを、この形式の表としてコピー (Excel で新しい行を足して貼り戻せます。既にある行は更新されません)"}
+              <i className="bi bi-clipboard" /> {copied ? "コピーしました" : "いまのカラムを、この形式の表としてコピー (Excel で編集して貼り戻せます。既にある行は「更新する」を選ぶと反映されます)"}
             </button>
           </div>
           <textarea className="paste-cols-text" value={text} onChange={(e) => setText(e.target.value)} rows={7} autoFocus
@@ -57,9 +61,19 @@ export function PasteColumnsDialog({ existing, onAdd, onClose }: Props) {
             </ul>
           )}
           {duplicates.length > 0 && (
-            <p className="paste-cols-dup" data-testid="paste-columns-dup">
-              既にあるカラムと物理名が同じため、追加しません: {duplicates.map((d) => d.physicalName).join("、")}
-            </p>
+            <div className="paste-cols-dup" data-testid="paste-columns-dup">
+              <p>既にあるカラムと物理名が同じ行: {duplicates.map((d) => d.physicalName).join("、")}</p>
+              <label className="paste-cols-update">
+                <input type="checkbox" checked={updateExisting} onChange={(e) => setUpdateExisting(e.target.checked)} data-testid="paste-columns-update" />
+                {" "}これらも更新する (表にある項目だけを書き換えます。空欄にした項目は空になります)
+              </label>
+              {updateExisting && (
+                <ul data-testid="paste-columns-update-list">
+                  {updates.length === 0 && <li>変わるカラムはありません</li>}
+                  {updates.map((u) => <li key={u.id}><code>{u.physicalName}</code>: {Object.keys(u.patch).join("、")} を更新</li>)}
+                </ul>
+              )}
+            </div>
           )}
 
           {add.length > 0 && (
@@ -82,9 +96,9 @@ export function PasteColumnsDialog({ existing, onAdd, onClose }: Props) {
         </div>
         <div className="paste-cols-foot">
           <button type="button" className="tbl-btn tbl-btn-ghost" onClick={onClose}>キャンセル</button>
-          <button type="button" className="tbl-btn tbl-btn-primary" disabled={add.length === 0}
-            onClick={() => { onAdd(add); onClose(); }} data-testid="paste-columns-add">
-            {add.length > 0 ? `${add.length} 件のカラムを追加` : "追加するカラムがありません"}
+          <button type="button" className="tbl-btn tbl-btn-primary" disabled={add.length === 0 && updates.length === 0}
+            onClick={() => { onApply(add, updates); onClose(); }} data-testid="paste-columns-add">
+            {add.length === 0 && updates.length === 0 ? "追加・更新するカラムがありません" : `${add.length > 0 ? `${add.length} 件を追加` : ""}${add.length > 0 && updates.length > 0 ? "、" : ""}${updates.length > 0 ? `${updates.length} 件を更新` : ""}`}
           </button>
         </div>
       </div>

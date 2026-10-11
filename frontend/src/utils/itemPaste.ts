@@ -9,7 +9,9 @@ import { UNCLOSED_QUOTE_WARNING, detectDelimiter, norm, parseBoolean, parseDataT
 export type ParsedItem = Pick<ScreenItem, "id" | "label" | "type"> &
   Partial<Pick<ScreenItem, "direction" | "required" | "minLength" | "maxLength" | "min" | "max" | "pattern" | "description">>;
 
-export interface ItemPasteResult { items: ParsedItem[]; warnings: string[]; headerDetected: boolean }
+export type ItemField = "label" | "type" | "direction" | "required" | "maxLength" | "minLength" | "min" | "max" | "pattern" | "description";
+/** `fields`: 貼り付けた表にある項目 (見出しなしなら、既定の順の全項目)。既存の行を更新するとき、この項目だけを書き換える */
+export interface ItemPasteResult { items: ParsedItem[]; warnings: string[]; headerDetected: boolean; fields: ItemField[] }
 
 type Field = "id" | "label" | "type" | "direction" | "required" | "maxLength" | "minLength" | "min" | "max" | "pattern" | "description";
 const DEFAULT_ORDER: Field[] = ["id", "label", "type", "direction", "required", "maxLength", "minLength", "pattern", "description"];
@@ -69,7 +71,7 @@ export function parseItemTable(text: string): ItemPasteResult {
   const parsedRows = parseRowsChecked(text, detectDelimiter(text));
   const numbered = parsedRows.rows.filter((r) => r.cells.some((c) => c.trim() !== ""));
   if (parsedRows.unclosedQuote) warnings.push(UNCLOSED_QUOTE_WARNING);
-  if (numbered.length === 0) return { items: [], warnings, headerDetected: false };
+  if (numbered.length === 0) return { items: [], warnings, headerDetected: false, fields: [] };
   const rows = numbered.map((r) => r.cells.map((c) => c.trim()));
   const first = rows[0].map(headerField);
   const headerDetected = first.filter((f) => f !== null).length >= 2;
@@ -134,7 +136,9 @@ export function parseItemTable(text: string): ItemPasteResult {
     if (seen.has(it.id)) warnings.push(`項目 ID「${it.id}」が貼り付けの中で重複しています`);
     seen.add(it.id);
   }
-  return { items, warnings, headerDetected };
+  const present = new Set<Field>(order.filter((f): f is Field => f !== null));
+  const fields = (["label", "type", "direction", "required", "maxLength", "minLength", "min", "max", "pattern", "description"] as const).filter((f) => present.has(f));
+  return { items, warnings, headerDetected, fields };
 }
 
 /** 既存の項目と ID が重なるものを除く */
@@ -160,5 +164,25 @@ export function itemsToTsv(items: readonly ScreenItem[]): string {
     i.required ? "○" : "", cell(i.maxLength), cell(i.minLength), cell(i.min), cell(i.max), cell(i.pattern), cell(i.description),
   ].join("\t"));
   return [head, ...rows].join("\n");
+}
+
+/**
+ * 貼り付けた行のうち、既にある項目 (同じ ID) を更新する内容を作る。表にある項目だけを書き換える
+ * (表に無い項目は既存のまま)。表にある項目で値が空なら、その項目を空にする (ラベル・型は、空なら既存のまま)。
+ */
+export function itemUpdates(parsed: readonly ParsedItem[], existing: readonly ScreenItem[], fields: readonly ItemField[]): Array<{ id: string; patch: Partial<ScreenItem> }> {
+  const out: Array<{ id: string; patch: Partial<ScreenItem> }> = [];
+  for (const p of parsed) {
+    const cur = existing.find((c) => String(c.id) === String(p.id));
+    if (!cur) continue;
+    const patch: Record<string, unknown> = {};
+    for (const f of fields) {
+      if (f === "label" || f === "type") { if (p[f]) patch[f] = p[f]; continue; }
+      patch[f] = p[f];
+    }
+    const changed = Object.entries(patch).filter(([k, v]) => JSON.stringify((cur as unknown as Record<string, unknown>)[k]) !== JSON.stringify(v));
+    if (changed.length) out.push({ id: String(cur.id), patch: Object.fromEntries(changed) as Partial<ScreenItem> });
+  }
+  return out;
 }
 

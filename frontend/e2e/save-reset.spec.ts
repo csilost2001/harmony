@@ -232,4 +232,16 @@ test.describe("テーブルエディタ：保存/リセットボタン", { tag: 
     await page.keyboard.press("Control+s");
     await expect(page.locator(".srb-btn-save")).toBeDisabled();
   });
+
+  test("貼り付けた表で、既にあるカラム (同じ物理名) の表示名を更新できる", async ({ page }) => {
+    await setupTableEditor(page);
+    await page.getByTestId("paste-columns-open").click();
+    await page.getByTestId("paste-columns-text").fill("物理名\t表示名\nid\t利用者の識別子");
+    await expect(page.getByTestId("paste-columns-add")).toBeDisabled();
+    await page.getByTestId("paste-columns-update").check();
+    await expect(page.getByTestId("paste-columns-update-list")).toContainText("name");
+    await page.getByTestId("paste-columns-add").click();
+    await expect(page.locator(".columns-tab").getByText("利用者の識別子").first()).toBeVisible();
+    await expect(page.locator(".srb-btn-save")).toBeEnabled();
+  });
 });

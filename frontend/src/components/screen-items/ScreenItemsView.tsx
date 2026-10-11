@@ -415,8 +415,12 @@ export function ScreenItemsView() {
     });
   }, [updateWithDraft]);
 
-  const handlePasteItems = useCallback((items: ParsedItem[]) => {
+  const handlePasteItems = useCallback((items: ParsedItem[], updates: Array<{ id: string; patch: Partial<ScreenItem> }>) => {
     updateWithDraft((f) => {
+      for (const u of updates) {
+        const target = f.items.find((it) => it.id === u.id);
+        if (target) Object.assign(target, u.patch);
+      }
       for (const it of items) f.items.push({ ...it } as ScreenItem);
     });
   }, [updateWithDraft]);
@@ -999,6 +1003,7 @@ export function ScreenItemsView() {
                         onFocus={(e) => idFocusVals.current.set(i, e.target.value)}
                         onBlur={(e) => handleIdBlur(i, e)}
                         placeholder="例: email"
+                        aria-label={`行${i + 1}の項目 ID`}
                         disabled={isReadonly}
                       />
                     </td>
@@ -1009,6 +1014,7 @@ export function ScreenItemsView() {
                         onChange={(e) => handleUpdateItem(i, { label: e.target.value })}
                         onBlur={commit}
                         placeholder="例: メールアドレス"
+                        aria-label={`行${i + 1}のラベル`}
                         disabled={isReadonly}
                       />
                     </td>
@@ -1042,7 +1048,7 @@ export function ScreenItemsView() {
                         value={item.direction ?? "in"}
                         onChange={(e) => handleUpdateItem(i, { direction: e.target.value as "in" | "out" | "both" })}
                         onBlur={commit}
-                        aria-label="方向"
+                        aria-label={`行${i + 1}の方向`}
                         disabled={isReadonly}
                       >
                         <option value="in">In</option>
@@ -1056,7 +1062,7 @@ export function ScreenItemsView() {
                         className="form-check-input"
                         checked={!!item.required}
                         onChange={(e) => handleUpdateItem(i, { required: e.target.checked || undefined })}
-                        aria-label="必須"
+                        aria-label={`行${i + 1}の必須`}
                         disabled={isReadonly}
                       />
                     </td>
@@ -1068,6 +1074,7 @@ export function ScreenItemsView() {
                         min={0}
                         onChange={(e) => handleUpdateItem(i, { minLength: e.target.value === "" ? undefined : Number(e.target.value) })}
                         onBlur={commit}
+                        aria-label={`行${i + 1}の最小長`}
                         disabled={isReadonly}
                       />
                     </td>
@@ -1079,6 +1086,7 @@ export function ScreenItemsView() {
                         min={0}
                         onChange={(e) => handleUpdateItem(i, { maxLength: e.target.value === "" ? undefined : Number(e.target.value) })}
                         onBlur={commit}
+                        aria-label={`行${i + 1}の最大長`}
                         disabled={isReadonly}
                       />
                     </td>
@@ -1099,6 +1107,7 @@ export function ScreenItemsView() {
                         value={item.description ?? ""}
                         onChange={(e) => handleUpdateItem(i, { description: e.target.value || undefined })}
                         onBlur={commit}
+                        aria-label={`行${i + 1}の説明`}
                         disabled={isReadonly}
                       />
                     </td>
@@ -1931,7 +1940,7 @@ export function ScreenItemsView() {
       )}
 
       {showPasteItems && (
-        <PasteItemsDialog existing={file?.items ?? []} onAdd={handlePasteItems} onClose={() => setShowPasteItems(false)} />
+        <PasteItemsDialog existing={file?.items ?? []} onApply={handlePasteItems} onClose={() => setShowPasteItems(false)} />
       )}
 
       {/* #1330: ScreenItemsView 起点の Screen rename refactor dialog */}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { itemsToTsv, parseDirection, parseItemTable, splitDuplicateItems, toItemId } from "./itemPaste";
+import { itemUpdates, itemsToTsv, parseDirection, parseItemTable, splitDuplicateItems, toItemId } from "./itemPaste";
 
 describe("項目 ID", () => {
   it("camelCase に寄せる。日本語だけなら null", () => {
@@ -51,7 +51,7 @@ describe("項目定義の表の貼り付け", () => {
   it("既存の項目と ID が同じものは追加しない / 空なら空", () => {
     const parsed = parseItemTable("a\tA\nb\tB").items;
     expect(splitDuplicateItems(parsed, [{ id: "a" as never }]).add.map((i) => i.id)).toEqual(["b"]);
-    expect(parseItemTable("\n \n")).toEqual({ items: [], warnings: [], headerDetected: false });
+    expect(parseItemTable("\n \n")).toEqual({ items: [], warnings: [], headerDetected: false, fields: [] });
   });
 });
 
@@ -85,5 +85,22 @@ describe("閉じていない引用符", () => {
   it("警告を出す (以降の行が 1 セルに吸収されたことに気づけるように)", () => {
     const r = parseItemTable('項目ID\ta\nx\t"閉じていない\ny\tz');
     expect(r.warnings.join("")).toContain("閉じていない引用符");
+  });
+});
+
+describe("既存項目の更新 (同じ ID の行)", () => {
+  const existing = [
+    { id: "qty", label: "数量", type: "integer", required: true, min: 1, max: 99, description: "旧" },
+    { id: "memo", label: "メモ", type: "string", maxLength: 50 },
+  ] as never[];
+
+  it("表にある項目だけを書き換え、空にした項目は外す。変わらない項目は出さない", () => {
+    const r = parseItemTable("項目ID\tラベル\t必須\t最大値\t説明\nqty\t購入数\t\t50\t新\nmemo\tメモ\t\t\t");
+    const up = itemUpdates(r.items, existing, r.fields);
+    expect(up.map((u) => u.id)).toEqual(["qty"]);
+    expect(up[0].patch).toEqual({ label: "購入数", required: undefined, max: 50, description: "新" });
+    // 表に無い「型」「最小値」は既存のまま
+    expect(Object.keys(up[0].patch)).not.toContain("type");
+    expect(Object.keys(up[0].patch)).not.toContain("min");
   });
 });

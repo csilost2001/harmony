@@ -637,9 +637,13 @@ function ColumnsTab({
     setActiveColId(newColId);
   };
 
-  const handlePasteColumns = (cols: ParsedColumn[]) => {
+  const handlePasteColumns = (cols: ParsedColumn[], updates: Array<{ id: string; patch: Partial<Column> }>) => {
     const newIds: string[] = [];
     update((t) => {
+      for (const u of updates) {
+        const target = t.columns.find((c) => c.id === u.id);
+        if (target) Object.assign(target, u.patch);
+      }
       for (const c of cols) {
         // 既存のカラム ID と重ならない ID を付ける
         let n = t.columns.length + 1;
@@ -1078,7 +1082,7 @@ function ColumnsTab({
         </button>
       </div>
       {showPaste && (
-        <PasteColumnsDialog existing={table.columns} onAdd={handlePasteColumns} onClose={() => setShowPaste(false)} />
+        <PasteColumnsDialog existing={table.columns} onApply={handlePasteColumns} onClose={() => setShowPaste(false)} />
       )}
 
       {contextMenu && (

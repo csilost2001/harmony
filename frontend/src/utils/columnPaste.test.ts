@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { columnsToTsv, headerField, parseRows, parseBoolean, parseColumnTable, parseDataType, splitDuplicates, toPhysicalName } from "./columnPaste";
+import { columnUpdates, columnsToTsv, headerField, parseRows, parseBoolean, parseColumnTable, parseDataType, splitDuplicates, toPhysicalName } from "./columnPaste";
 
 describe("型の書き方", () => {
   it("長さ・小数桁つきを分ける", () => {
@@ -79,7 +79,7 @@ describe("表の貼り付け", () => {
 
   it("貼り付けの中の重複を知らせる / 空なら空", () => {
     expect(parseColumnTable("a\tx\tint\na\ty\tint").warnings.join("")).toContain("重複");
-    expect(parseColumnTable("   \n\n")).toEqual({ columns: [], warnings: [], headerDetected: false });
+    expect(parseColumnTable("   \n\n")).toEqual({ columns: [], warnings: [], headerDetected: false, fields: [] });
   });
 });
 
@@ -149,5 +149,35 @@ describe("閉じていない引用符", () => {
   it("警告を出す (以降の行が 1 セルに吸収されたことに気づけるように)", () => {
     const r = parseColumnTable('物理名\ta\tb\nx\t"閉じていない\ny\tz');
     expect(r.warnings.join("")).toContain("閉じていない引用符");
+  });
+});
+
+describe("既存カラムの更新 (同じ物理名の行)", () => {
+  const existing = [
+    { id: "c1", physicalName: "id", name: "ID", dataType: "BIGINT", notNull: true, primaryKey: true },
+    { id: "c2", physicalName: "price", name: "価格", dataType: "DECIMAL", length: 10, scale: 2, comment: "旧" },
+    { id: "c3", physicalName: "note", name: "備考", dataType: "TEXT" },
+  ] as never[];
+
+  it("表にある項目だけを書き換える (表に無い項目は既存のまま)。変わらないカラムは出さない", () => {
+    const r = parseColumnTable("物理名\t表示名\t備考\nprice\t税込価格\t\nid\tID\t\nnote\t備考\t新しい説明");
+    const up = columnUpdates(r.columns, existing, r.fields);
+    expect(up.map((u) => u.physicalName)).toEqual(["price", "note"]);
+    expect(up[0].patch).toEqual({ name: "税込価格", comment: undefined });
+    expect(up[1].patch).toEqual({ comment: "新しい説明" });
+    // 表に無い「データ型」「長さ」は、既存のまま
+    expect(Object.keys(up[0].patch)).not.toContain("dataType");
+  });
+
+  it("型の列があるとき、型と長さを書き換え、空の長さは外す。型が空なら既存のまま", () => {
+    const r = parseColumnTable("物理名\tデータ型\tNOT NULL\nprice\tdecimal(12,3)\t○\nnote\t\t");
+    const up = columnUpdates(r.columns, existing, r.fields);
+    expect(up.find((u) => u.physicalName === "price")?.patch).toMatchObject({ length: 12, scale: 3, notNull: true });
+    expect(up.find((u) => u.physicalName === "note")).toBeUndefined();
+  });
+
+  it("既存に無い物理名は更新の対象にしない", () => {
+    const r = parseColumnTable("物理名\t表示名\nnew_col\t新規");
+    expect(columnUpdates(r.columns, existing, r.fields)).toEqual([]);
   });
 });
