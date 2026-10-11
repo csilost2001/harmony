@@ -328,6 +328,7 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
         onDiscardClick={() => setShowDiscard(true)}
         onForceReleaseClick={() => setShowForceRelease(true)}
         saving={isSaving}
+        dirty={isDirty}
         ownerLabel={lockedByOther?.ownerSessionId}
       />
       {mode.kind === "force-released-pending" && <ForcedOutChoiceDialog previousDraftExists={mode.previousDraftExists} onChoice={(c) => actions.handleForcedOut(c)} />}

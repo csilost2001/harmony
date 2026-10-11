@@ -166,8 +166,8 @@ test.describe("プロダクト規約タブ (#347)", { tag: ["@regression"] }, ()
     await expect(valueInput).toHaveValue("overseas");
 
     // 保存
-    await page.locator(".srb-btn-save").click();
-    await expect(page.locator(".srb-btn-save")).not.toHaveClass(/dirty/, { timeout: 5000 });
+    await page.locator('[data-testid="edit-mode-save"]').click();
+    await expect(page.locator('[data-testid="edit-mode-save"]')).not.toHaveClass(/dirty/, { timeout: 5000 });
 
     // SPA リロード ではなく workspace 経由で再 navigate (page.reload は backend 接続を切るため)
     await ws.gotoActive(page, "/conventions/catalog");

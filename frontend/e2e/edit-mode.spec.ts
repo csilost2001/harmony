@@ -163,7 +163,7 @@ test.describe("編集モード UI — TableEditor", { tag: ["@regression"] }, ()
     // save 完了後: edit-mode-save は visible のまま (Active 継続) + header save ボタンは
     // disabled に戻る (isDirty=false)。
     await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 5000 });
-    await expect(page.locator(".srb-btn-save")).toBeDisabled({ timeout: 10000 });
+    await expect(page.locator('[data-testid="edit-mode-save"]')).toBeDisabled({ timeout: 10000 });
   });
 
   test("シナリオ 2: 編集開始 → 破棄確認ダイアログ → 破棄", async ({ page }) => {
@@ -207,11 +207,15 @@ test.describe("編集モード UI — ViewEditor (PR-7)", { tag: ["@regression"]
     await ws.gotoActive(page, `/view/edit/${VIEW_NORM}`);
     if (!await startEditOrSkip(page)) return;
     await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 5000 });
+    // 変更がなければ「保存」は押せない。説明を 1 文字足して、保存できる状態にする
+    await expect(page.getByTestId("edit-mode-save")).toBeDisabled();
+    await page.locator(".table-editor-page input:not([type=checkbox]):not([type=radio])").nth(1).fill("変更あり");
+    await expect(page.getByTestId("edit-mode-save")).toBeEnabled({ timeout: 5000 });
     await page.getByTestId("edit-mode-save").click();
-    // save 完了後: edit-mode-save は visible のまま (Active 継続) + header save ボタンは
+    // save 完了後: edit-mode-save は visible のまま (Active 継続) + 保存ボタンは
     // disabled に戻る (isDirty=false)。
     await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 5000 });
-    await expect(page.locator(".srb-btn-save")).toBeDisabled({ timeout: 10000 });
+    await expect(page.locator('[data-testid="edit-mode-save"]')).toBeDisabled({ timeout: 10000 });
   });
 });
 

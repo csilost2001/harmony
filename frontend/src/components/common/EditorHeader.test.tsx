@@ -77,18 +77,21 @@ describe("EditorHeader", () => {
     expect(screen.getByTestId("extra")).toBeInTheDocument();
   });
 
-  it("saveReset を渡すと SaveResetButtons が出て、isDirty=true で保存が押せる", () => {
+  it("saveReset を渡すと「リセット」が出て、isDirty=true で押せる (保存は「編集中」の帯に一本化したので、ここには出さない)", () => {
     const onSave = vi.fn();
     const onReset = vi.fn();
+    vi.spyOn(window, "confirm").mockReturnValue(true);
     render(
       <EditorHeader
         saveReset={{ isDirty: true, isSaving: false, onSave, onReset }}
       />,
     );
-    const save = screen.getByTitle("保存 (Ctrl+S)");
-    expect(save).not.toBeDisabled();
-    fireEvent.click(save);
-    expect(onSave).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTitle("保存 (Ctrl+S)")).toBeNull();
+    const reset = screen.getByTitle("最後に保存した状態に戻す");
+    expect(reset).not.toBeDisabled();
+    fireEvent.click(reset);
+    expect(onReset).toHaveBeenCalledTimes(1);
+    expect(onSave).not.toHaveBeenCalled();
   });
 
   it("saveReset を渡さないと SaveResetButtons は描画されない", () => {

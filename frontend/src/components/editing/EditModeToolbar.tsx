@@ -9,6 +9,8 @@ interface Props {
   onDiscardClick: () => void;
   onForceReleaseClick: () => void;
   saving?: boolean;
+  /** 未保存の変更があるか。false のあいだは「保存」を押せない (省略時は常に押せる) */
+  dirty?: boolean;
   ownerLabel?: string;
 }
 
@@ -19,6 +21,7 @@ export function EditModeToolbar({
   onDiscardClick,
   onForceReleaseClick,
   saving = false,
+  dirty,
   ownerLabel,
 }: Props) {
   if (mode.kind === "readonly") {
@@ -52,7 +55,8 @@ export function EditModeToolbar({
           type="button"
           className="edit-mode-btn edit-mode-btn-success"
           onClick={onSave}
-          disabled={saving}
+          disabled={saving || dirty === false}
+          title={dirty === false ? "変更がないので、保存するものはありません" : "保存 (Ctrl+S)"}
           data-testid="edit-mode-save"
         >
           {saving ? (

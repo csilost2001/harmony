@@ -120,7 +120,7 @@ test.describe("ビュー定義 E2E", { tag: ["@regression"] }, () => {
 
     await page.getByLabel(/表示名/).fill(UPDATED_NAME);
     // SaveResetButtons の保存ボタン (edit-mode-save と区別)
-    const saveBtn = page.locator(".srb-btn-save");
+    const saveBtn = page.locator('[data-testid="edit-mode-save"]');
     await expect(saveBtn).toBeEnabled();
     await saveBtn.click();
     await expect(saveBtn).toBeDisabled();

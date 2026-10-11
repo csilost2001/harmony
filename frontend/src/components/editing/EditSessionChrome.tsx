@@ -13,6 +13,8 @@ import "../../styles/editMode.css";
 export interface EditSessionChromeProps {
   mode: EditMode;
   saving: boolean;
+  /** 未保存の変更があるか (なければ「保存」を押せない) */
+  dirty: boolean;
   serverChanged: boolean;
   /** 保存に失敗したときの案内 (なければ null) */
   saveError: string | null;
@@ -59,6 +61,7 @@ export function EditSessionChrome(p: EditSessionChromeProps) {
         onDiscardClick={p.onDiscardClick}
         onForceReleaseClick={p.onForceReleaseClick}
         saving={p.saving}
+        dirty={p.dirty}
         ownerLabel={p.lockedByOther?.ownerSessionId}
       />
       {mode.kind === "force-released-pending" && <ForcedOutChoiceDialog previousDraftExists={mode.previousDraftExists} onChoice={p.onForcedOutChoice} />}

@@ -195,7 +195,7 @@ async function roundTripTableEditor(page: Page): Promise<void> {
 
   // 7. Ctrl+S で保存 → save ボタンが無効になることを確認
   await page.keyboard.press("Control+s");
-  await expect(page.locator(".srb-btn-save")).toBeDisabled({ timeout: 10000 });
+  await expect(page.locator('[data-testid="edit-mode-save"]')).toBeDisabled({ timeout: 10000 });
 
   // 8. アクティブタブを閉じる
   await page.locator(".tabbar-tab.active .tabbar-tab-close").click({ force: true });
@@ -277,7 +277,7 @@ async function roundTripProcessFlowEditor(page: Page): Promise<void> {
 
   // 7. Ctrl+S で保存
   await page.keyboard.press("Control+s");
-  await expect(page.locator(".srb-btn-save")).toBeDisabled({ timeout: 10000 });
+  await expect(page.locator('[data-testid="edit-mode-save"]')).toBeDisabled({ timeout: 10000 });
 
   // 8. アクティブタブを閉じる
   await page.locator(".tabbar-tab.active .tabbar-tab-close").click({ force: true });

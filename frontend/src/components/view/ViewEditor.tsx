@@ -291,6 +291,7 @@ export function ViewEditor() {
         onDiscardClick={() => setShowDiscardDialog(true)}
         onForceReleaseClick={() => setShowForceReleaseDialog(true)}
         saving={isSaving}
+        dirty={isDirty}
         ownerLabel={lockedByOther?.ownerSessionId}
       />
 

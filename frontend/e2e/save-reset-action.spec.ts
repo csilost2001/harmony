@@ -37,7 +37,7 @@ const dummyProject = buildProject({
 const PF_NORM = normalizeId(PROCESS_FLOW_ID);
 const dummyTab = { id: `process-flow:${PF_NORM}`, type: "process-flow", resourceId: PF_NORM, label: "テスト処理フロー", isDirty: false, isPinned: false };
 
-const toolbarSave = ".save-reset-buttons button.srb-btn-save";
+const toolbarSave = '[data-testid="edit-mode-save"]';
 const toolbarReset = ".save-reset-buttons button.srb-btn-reset";
 
 const WS_KEY = "issue-926-save-reset-action";

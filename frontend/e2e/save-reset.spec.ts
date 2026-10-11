@@ -111,20 +111,20 @@ test.describe("テーブルエディタ：保存/リセットボタン", { tag: 
 
   test("初期状態では保存・リセットボタンが無効", async ({ page }) => {
     await setupTableEditor(page);
-    await expect(page.locator(".srb-btn-save")).toBeDisabled();
+    await expect(page.locator('[data-testid="edit-mode-save"]')).toBeDisabled();
     await expect(page.locator(".srb-btn-reset")).toBeDisabled();
   });
 
   test("カラム追加後に保存・リセットボタンが有効になる", async ({ page }) => {
     await setupTableEditor(page);
     await page.getByRole("button", { name: /カラム追加/ }).click();
-    await expect(page.locator(".srb-btn-save")).toBeEnabled();
+    await expect(page.locator('[data-testid="edit-mode-save"]')).toBeEnabled();
     await expect(page.locator(".srb-btn-reset")).toBeEnabled();
   });
 
   test("編集を始めただけではタブの dirty インジケーターは出ない (変更したときだけ出る)", async ({ page }) => {
     await setupTableEditor(page);
-    await expect(page.locator(".srb-btn-save")).toBeDisabled();
+    await expect(page.locator('[data-testid="edit-mode-save"]')).toBeDisabled();
     await expect(page.locator(".tabbar-tab-dirty")).toHaveCount(0);
     await page.getByRole("button", { name: /カラム追加/ }).click();
     await expect(page.locator(".tabbar-tab-dirty")).toBeVisible();
@@ -141,13 +141,13 @@ test.describe("テーブルエディタ：保存/リセットボタン", { tag: 
     await setupTableEditor(page);
     page.on("dialog", (d) => d.accept());
     await page.getByRole("button", { name: /カラム追加/ }).click();
-    await expect(page.locator(".srb-btn-save")).toBeEnabled();
+    await expect(page.locator('[data-testid="edit-mode-save"]')).toBeEnabled();
     await page.locator(".srb-btn-reset").click();
     // window.confirm 承認後 → DiscardConfirmDialog (#683 edit-session-draft) が出るので確定する。
     await page.getByTestId("discard-confirm").click();
     // 破棄完了 → readonly モードに戻り SaveResetButtons は非表示、edit-mode-start 再表示。
     await expect(page.getByTestId("edit-mode-start")).toBeVisible({ timeout: 5000 });
-    await expect(page.locator(".srb-btn-save")).toHaveCount(0);
+    await expect(page.locator('[data-testid="edit-mode-save"]')).toHaveCount(0);
     await expect(page.locator(".srb-btn-reset")).toHaveCount(0);
   });
 
@@ -177,9 +177,9 @@ test.describe("テーブルエディタ：保存/リセットボタン", { tag: 
     await setupTableEditor(page);
     page.on("dialog", (d) => d.dismiss());
     await page.getByRole("button", { name: /カラム追加/ }).click();
-    await expect(page.locator(".srb-btn-save")).toBeEnabled();
+    await expect(page.locator('[data-testid="edit-mode-save"]')).toBeEnabled();
     await page.locator(".srb-btn-reset").click();
-    await expect(page.locator(".srb-btn-save")).toBeEnabled();
+    await expect(page.locator('[data-testid="edit-mode-save"]')).toBeEnabled();
     await expect(page.locator(".srb-btn-reset")).toBeEnabled();
     await expect(page.locator(".tabbar-tab.dirty")).toBeVisible();
   });
@@ -188,32 +188,32 @@ test.describe("テーブルエディタ：保存/リセットボタン", { tag: 
     await setupTableEditor(page);
     page.on("dialog", (d) => d.accept());
     await page.getByRole("button", { name: /カラム追加/ }).click();
-    await expect(page.locator(".srb-btn-save")).toBeEnabled();
+    await expect(page.locator('[data-testid="edit-mode-save"]')).toBeEnabled();
     await page.locator(".srb-btn-reset").click();
     await page.getByTestId("discard-confirm").click();
     // 破棄完了 → readonly モードに戻る (edit-mode-start が再表示) + SaveResetButtons 消失。
     // tab.dirty は別タスクで follow-up (上記 skip テスト参照)。
     await expect(page.getByTestId("edit-mode-start")).toBeVisible({ timeout: 5000 });
-    await expect(page.locator(".srb-btn-save")).toHaveCount(0);
+    await expect(page.locator('[data-testid="edit-mode-save"]')).toHaveCount(0);
   });
 
   test("Ctrl+S で保存が実行されて保存ボタンが無効に戻る", async ({ page }) => {
     await setupTableEditor(page);
     await page.getByRole("button", { name: /カラム追加/ }).click();
-    await expect(page.locator(".srb-btn-save")).toBeEnabled();
+    await expect(page.locator('[data-testid="edit-mode-save"]')).toBeEnabled();
     await page.keyboard.press("Control+s");
-    await expect(page.locator(".srb-btn-save")).toBeDisabled();
+    await expect(page.locator('[data-testid="edit-mode-save"]')).toBeDisabled();
   });
 
   test("入力欄にカーソルがあっても Ctrl+S で保存できる (ブラウザの保存ダイアログは出さない)", async ({ page }) => {
     await setupTableEditor(page);
     await page.getByRole("button", { name: /カラム追加/ }).click();
-    await expect(page.locator(".srb-btn-save")).toBeEnabled();
+    await expect(page.locator('[data-testid="edit-mode-save"]')).toBeEnabled();
     const field = page.locator(".table-editor-page input[type=text], .table-editor-page textarea").first();
     await field.focus();
     await expect(field).toBeFocused();
     await page.keyboard.press("Control+s");
-    await expect(page.locator(".srb-btn-save")).toBeDisabled();
+    await expect(page.locator('[data-testid="edit-mode-save"]')).toBeDisabled();
   });
 
   test("Excel の表を貼り付けて、カラムをまとめて追加し、保存できる", async ({ page }) => {
@@ -226,11 +226,11 @@ test.describe("テーブルエディタ：保存/リセットボタン", { tag: 
     await expect(page.getByTestId("paste-columns-dup")).toContainText("id");
     await page.getByTestId("paste-columns-add").click();
     await expect(page.getByTestId("paste-columns-dialog")).toHaveCount(0);
-    await expect(page.locator(".srb-btn-save")).toBeEnabled();
+    await expect(page.locator('[data-testid="edit-mode-save"]')).toBeEnabled();
     await expect(page.locator(".columns-tab").getByText("user_code").first()).toBeVisible();
     await expect(page.locator(".columns-tab").getByText("created_on").first()).toBeVisible();
     await page.keyboard.press("Control+s");
-    await expect(page.locator(".srb-btn-save")).toBeDisabled();
+    await expect(page.locator('[data-testid="edit-mode-save"]')).toBeDisabled();
   });
 
   test("貼り付けた表で、既にあるカラム (同じ物理名) の表示名を更新できる", async ({ page }) => {
@@ -242,7 +242,7 @@ test.describe("テーブルエディタ：保存/リセットボタン", { tag: 
     await expect(page.getByTestId("paste-columns-update-list")).toContainText("name");
     await page.getByTestId("paste-columns-add").click();
     await expect(page.locator(".columns-tab").getByText("利用者の識別子").first()).toBeVisible();
-    await expect(page.locator(".srb-btn-save")).toBeEnabled();
+    await expect(page.locator('[data-testid="edit-mode-save"]')).toBeEnabled();
   });
 
   test("Excel の表をそのまま貼り付けると (Ctrl+V)、「表から貼り付け」が表の内容つきで開く", async ({ page }) => {
