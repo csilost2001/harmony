@@ -4,7 +4,7 @@
  * なければ 項目 ID / ラベル / 型 / 入出力 / 必須 / 最大長 / 最小長 / パターン / 説明 の順とみなす。
  */
 import type { ScreenItem } from "../types/v3/screen-item";
-import { detectDelimiter, norm, parseBoolean, splitRow } from "./columnPaste";
+import { detectDelimiter, norm, parseBoolean, parseDataType, parseRows } from "./columnPaste";
 
 export type ParsedItem = Pick<ScreenItem, "id" | "label" | "type"> &
   Partial<Pick<ScreenItem, "direction" | "required" | "minLength" | "maxLength" | "min" | "max" | "pattern" | "description">>;
@@ -66,10 +66,9 @@ export function parseDirection(cell: string): ScreenItem["direction"] | undefine
 
 export function parseItemTable(text: string): ItemPasteResult {
   const warnings: string[] = [];
-  const numbered = text.replace(/\r\n?/g, "\n").split("\n").map((line, i) => ({ line, no: i + 1 })).filter((l) => l.line.trim() !== "");
+  const numbered = parseRows(text, detectDelimiter(text)).filter((r) => r.cells.some((c) => c.trim() !== ""));
   if (numbered.length === 0) return { items: [], warnings, headerDetected: false };
-  const delim = detectDelimiter(text);
-  const rows = numbered.map((l) => splitRow(l.line, delim).map((c) => c.trim()));
+  const rows = numbered.map((r) => r.cells.map((c) => c.trim()));
   const first = rows[0].map(headerField);
   const headerDetected = first.filter((f) => f !== null).length >= 2;
   const order: Array<Field | null> = headerDetected ? first : DEFAULT_ORDER;
@@ -96,8 +95,13 @@ export function parseItemTable(text: string): ItemPasteResult {
 
     const typeCell = get("type");
     if (typeCell) {
-      const t = TYPE_ALIASES[norm(typeCell)];
-      if (t) item.type = t;
+      // `varchar(100)` のように長さがついていれば、型と最大長に分ける
+      const dt = parseDataType(typeCell);
+      const t = TYPE_ALIASES[norm(typeCell)] ?? TYPE_ALIASES[norm(typeCell.replace(/[(（].*$/, ""))];
+      if (t) {
+        item.type = t;
+        if (dt.length !== undefined && item.maxLength === undefined && (t === "string")) item.maxLength = dt.length;
+      }
       else warnings.push(`${lineNo(i)} 行目: 型「${typeCell}」が分からないため string にしました (文字列・整数・数値・真偽・日付・日時 など)`);
     }
     const dirCell = get("direction");

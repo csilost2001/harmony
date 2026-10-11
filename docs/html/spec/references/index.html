@@ -94,6 +94,7 @@
 <p>画面の「ID 変更」と同じ処理 (参照の一括追従・編集中セッションの確認・reload の通知) を使う。実行後は開いている画面に reload が届く。</p>
 <h2 id="7-注意">7. 注意</h2>
 <ul>
+<li>ディスク上の<strong>保存済みの内容</strong>だけを調べる。ほかのセッションが編集中の下書き (<code>data/.drafts/</code>) にだけある参照は数えない</li>
 <li>参照を<strong>書き換える</strong>機能ではない (読み取りのみ)。書き換えは ID の改名</li>
 <li>画面に置いた画面項目の参照など、改名で書き換わらないものは対象外</li>
 </ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>

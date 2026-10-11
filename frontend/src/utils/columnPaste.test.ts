@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { columnsToTsv, headerField, parseBoolean, parseColumnTable, parseDataType, splitDuplicates, toPhysicalName } from "./columnPaste";
+import { columnsToTsv, headerField, parseRows, parseBoolean, parseColumnTable, parseDataType, splitDuplicates, toPhysicalName } from "./columnPaste";
 
 describe("型の書き方", () => {
   it("長さ・小数桁つきを分ける", () => {
@@ -108,5 +108,39 @@ describe("カラムの表へ書き出し", () => {
       { physicalName: "price", name: "価格", dataType: "DECIMAL", length: 10, scale: 2, notNull: true, defaultValue: "0", comment: "税込" },
       { physicalName: "note", name: "備考", dataType: "TEXT" },
     ]);
+  });
+});
+
+describe("Excel のコピー (引用符つきのセル)", () => {
+  it("改名・引用符・タブを含むセルを `\"...\"` で囲んだ形を読む (備考に改行があっても、偽のカラムを作らない)", () => {
+    const text = ["物理名\t表示名\t型\t備考", 'note\t備考\ttext\t"1 行目\n2 行目"', 'title\t題名\tvarchar(50)\t"""引用""付き"', "last\t最後\tint\t"].join("\n");
+    const r = parseColumnTable(text);
+    expect(r.columns.map((c) => c.physicalName)).toEqual(["note", "title", "last"]);
+    expect(r.columns[0].comment).toBe("1 行目\n2 行目");
+    expect(r.columns[1].comment).toBe('"引用"付き');
+    expect(r.warnings).toEqual([]);
+  });
+
+  it("行番号は、貼り付けた文のとおり (複数行のセルがあっても数がずれない)", () => {
+    const rows = parseRows('a\t"x\ny"\nb\tz', "\t");
+    expect(rows.map((r) => [r.no, r.cells])).toEqual([[1, ["a", "x\ny"]], [3, ["b", "z"]]]);
+    const r = parseColumnTable('物理名\t備考\nok\t"a\nb"\n\tx');
+    expect(r.warnings.join("")).toContain("4 行目: 物理名が空");
+  });
+
+  it("書き出し (columnsToTsv) → 貼り付けの往復で、備考の改行は落とさず空白にする", () => {
+    const tsv = columnsToTsv([{ id: "c", physicalName: "a", name: "A", dataType: "TEXT", comment: "x\ny" }] as never[]);
+    expect(parseColumnTable(tsv).columns[0].comment).toBe("x y");
+  });
+});
+
+describe("「NULL」の見出し (NOT NULL と取り違えない)", () => {
+  it("「NULL 可」の列は、○ なら NOT NULL にしない / 空 (×) なら NOT NULL にする", () => {
+    const r = parseColumnTable("物理名\t型\tNULL可\na\tint\t○\nb\tint\t\nc\tint\t×");
+    expect(r.columns.map((c) => c.notNull)).toEqual([undefined, undefined, true]);
+  });
+  it("単独の「NULL」は見出しとして扱わない (意味が決められないので、列を読み飛ばす)", () => {
+    expect(headerField("NULL")).toBeNull();
+    expect(headerField("NULL可")).toBe("nullable");
   });
 });

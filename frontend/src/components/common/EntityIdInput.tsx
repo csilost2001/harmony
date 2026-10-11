@@ -45,7 +45,7 @@ export interface EntityIdInputProps {
    * 英数字が含まれていれば、ID が未入力のあいだ (利用者がまだ ID を触っていないあいだ) は、
    * そこから作った ID を自動で入れる。
    */
-  slugSource?: string;
+  idSource?: string;
   /** validation 状態変化通知 — 親 modal の submit ボタン制御に使う */
   onValidationChange?: (state: EntityIdValidationState) => void;
 }
@@ -66,7 +66,7 @@ function fallbackPrefixFor(entityLabel: string): string {
 }
 
 /** 名前が英数字を含むときだけ、そこから作れる ID の候補 (日本語だけの名前からは作れない) */
-function asciiSlugCandidate(name: string, existing: ReadonlySet<string>, existingIds: readonly string[]): string | null {
+function asciiIdCandidate(name: string, existing: ReadonlySet<string>, existingIds: readonly string[]): string | null {
   if (!/[a-zA-Z]/.test(name)) return null;
   const slug = slugifyToEntityId(name);
   if (!isValidEntityId(slug)) return null;
@@ -90,7 +90,7 @@ export function EntityIdInput({
   inputId,
   placeholder = "例: today-sales",
   onEnter,
-  slugSource,
+  idSource,
   onValidationChange,
 }: EntityIdInputProps) {
   const [aiBusy, setAiBusy] = useState(false);
@@ -141,17 +141,17 @@ export function EntityIdInput({
     if (!trimmed) return;
     const suggested = suggestUniqueIdSuffix(trimmed, existingIds);
     if (suggested !== trimmed) changeByUser(suggested);
-  }, [trimmed, existingIds, onChange]);
+  }, [trimmed, existingIds, changeByUser]);
 
   // 未入力のとき: 保存できない理由と、すぐ進められる手段を出す
-  const emptyAndNamed = trimmed.length === 0 && (name.trim().length > 0 || (slugSource ?? "").trim().length > 0);
-  const candidateSource = (slugSource ?? "").trim() ? (slugSource as string) : name;
-  const asciiCandidate = asciiSlugCandidate(candidateSource, existingSet, existingIds);
+  const emptyAndNamed = trimmed.length === 0 && (name.trim().length > 0 || (idSource ?? "").trim().length > 0);
+  const candidateSource = (idSource ?? "").trim() ? (idSource as string) : name;
+  const asciiCandidate = asciiIdCandidate(candidateSource, existingSet, existingIds);
   const autoId = touchedRef.current ? null : asciiCandidate;
 
   useEffect(() => {
     if (touchedRef.current) return;
-    if (value.trim().length === 0 && name.trim().length === 0 && (slugSource ?? "").trim().length === 0) {
+    if (value.trim().length === 0 && name.trim().length === 0 && (idSource ?? "").trim().length === 0) {
       lastAutoRef.current = null;
       return;
     }
@@ -163,7 +163,7 @@ export function EntityIdInput({
         onChange(next);
       }
     }
-  }, [autoId, value, name, slugSource, onChange]);
+  }, [autoId, value, name, idSource, onChange]);
   const handleUseTemporaryId = useCallback(() => {
     changeByUser(generateFallbackEntityId(fallbackPrefixFor(entityLabel)));
   }, [entityLabel, changeByUser]);

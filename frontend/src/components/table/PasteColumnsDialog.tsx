@@ -44,7 +44,7 @@ export function PasteColumnsDialog({ existing, onAdd, onClose }: Props) {
           </p>
           <div>
             <button type="button" className="btn btn-sm btn-link p-0" onClick={copyCurrent} data-testid="paste-columns-copy-current">
-              <i className="bi bi-clipboard" /> {copied ? "コピーしました" : "いまのカラムを、この形式の表としてコピー (Excel で編集して貼り戻せます)"}
+              <i className="bi bi-clipboard" /> {copied ? "コピーしました" : "いまのカラムを、この形式の表としてコピー (Excel で新しい行を足して貼り戻せます。既にある行は更新されません)"}
             </button>
           </div>
           <textarea className="paste-cols-text" value={text} onChange={(e) => setText(e.target.value)} rows={7} autoFocus

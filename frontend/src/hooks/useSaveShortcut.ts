@@ -46,6 +46,8 @@ export function useSaveShortcut(
     const handler = (e: KeyboardEvent) => {
       if (!shouldTriggerSaveShortcut(e, allowInForm)) return;
       e.preventDefault();
+      // ダイアログの中では、背後のエディタを保存しない (貼り付け欄・ID 変更などで Ctrl+S を押しても、ブラウザの保存ダイアログは出さず、何もしない)
+      if ((e.target as HTMLElement | null)?.closest?.('[aria-modal="true"]')) return;
       const el = e.target as HTMLElement | null;
       const inField = !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT");
       if (!inField) {

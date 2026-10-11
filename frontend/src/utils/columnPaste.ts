@@ -31,7 +31,7 @@ export interface ColumnPasteResult {
   headerDetected: boolean;
 }
 
-type Field = "physicalName" | "name" | "dataType" | "length" | "notNull" | "primaryKey" | "unique" | "autoIncrement" | "defaultValue" | "comment";
+type Field = "physicalName" | "name" | "dataType" | "length" | "nullable" | "notNull" | "primaryKey" | "unique" | "autoIncrement" | "defaultValue" | "comment";
 
 const DEFAULT_ORDER: Field[] = ["physicalName", "name", "dataType", "length", "notNull", "primaryKey", "unique", "autoIncrement", "defaultValue", "comment"];
 
@@ -42,7 +42,8 @@ const HEADER_ALIASES: Array<[Field, string[]]> = [
   ["name", ["論理名", "表示名", "論理カラム名", "名称", "名前", "日本語名", "logicalname", "displayname", "項目名", "項目名称"]],
   ["dataType", ["データ型", "型", "type", "datatype", "属性"]],
   ["length", ["長さ", "桁数", "桁", "サイズ", "length", "size", "最大長"]],
-  ["notNull", ["notnull", "nn", "必須", "null不可", "nullable不可", "非null", "nullを許可しない", "null"]],
+  ["notNull", ["notnull", "nn", "必須", "null不可", "nullable不可", "非null", "nullを許可しない"]],
+  ["nullable", ["null可", "nullable", "null許可", "null許容", "nullを許可", "null可否"]],
   ["primaryKey", ["pk", "主キー", "primarykey", "プライマリキー"]],
   ["unique", ["uk", "ユニーク", "unique", "一意", "一意制約"]],
   ["autoIncrement", ["ai", "autoincrement", "連番", "自動採番", "採番", "identity"]],
@@ -76,25 +77,35 @@ export function detectDelimiter(text: string): string {
   return text.includes("\t") ? "\t" : ",";
 }
 
-/** 1 行を分ける。カンマ区切りでは "..." で囲んだ中のカンマ・改行は区切りにしない */
-export function splitRow(line: string, delim: string): string[] {
-  if (delim === "\t") return line.split("\t");
-  const out: string[] = [];
-  let cur = "", inQ = false, depth = 0;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
+/**
+ * 表の文字列を、行とセルに分ける。Excel のコピーと同じく、セルが `"` で始まるときは、次の `"` までを 1 つのセルとし
+ * (中の改行・区切り文字はそのまま、`""` は `"` 1 つ)、行は引用符の外の改行だけで分ける。
+ * カンマ区切りでは、型の `(10,2)` のカンマは区切りにしない。`no` は、その行が始まる行番号 (貼り付けた文のとおり)。
+ */
+export function parseRows(text: string, delim: string): Array<{ cells: string[]; no: number }> {
+  const src = text.replace(/\r\n?/g, "\n");
+  const rows: Array<{ cells: string[]; no: number }> = [];
+  let cells: string[] = [], cur = "", inQ = false, depth = 0, atCellStart = true, line = 1, rowNo = 1;
+  const endCell = () => { cells.push(cur); cur = ""; depth = 0; atCellStart = true; };
+  const endRow = () => { endCell(); rows.push({ cells, no: rowNo }); cells = []; rowNo = line; };
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
     if (inQ) {
-      if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+      if (ch === '"' && src[i + 1] === '"') { cur += '"'; i++; }
       else if (ch === '"') inQ = false;
-      else cur += ch;
-    } else if (ch === '"') inQ = true;
-    else if (ch === "(" || ch === "（") { depth++; cur += ch; }
-    else if (ch === ")" || ch === "）") { depth = Math.max(0, depth - 1); cur += ch; }
-    else if (ch === "," && depth === 0) { out.push(cur); cur = ""; } // 型の (10,2) のカンマは区切りにしない
-    else cur += ch;
+      else { cur += ch; if (ch === "\n") line++; }
+      continue;
+    }
+    if (ch === '"' && atCellStart) { inQ = true; atCellStart = false; continue; }
+    atCellStart = false;
+    if (ch === "\n") { line++; endRow(); continue; }
+    if (ch === delim && (delim === "\t" || depth === 0)) { endCell(); continue; }
+    if (ch === "(" || ch === "（") depth++;
+    else if (ch === ")" || ch === "）") depth = Math.max(0, depth - 1);
+    cur += ch;
   }
-  out.push(cur);
-  return out;
+  if (cur !== "" || cells.length > 0 || inQ) endRow();
+  return rows;
 }
 
 /** 見出しの 1 セルが、どの項目か (分からなければ null) */
@@ -141,10 +152,9 @@ export function toPhysicalName(raw: string): { value: string; changed: boolean }
 export function parseColumnTable(text: string): ColumnPasteResult {
   const warnings: string[] = [];
   // 空行は読み飛ばすが、行番号は貼り付けた文のとおりに数える
-  const numbered = text.replace(/\r\n?/g, "\n").split("\n").map((line, i) => ({ line, no: i + 1 })).filter((l) => l.line.trim() !== "");
+  const numbered = parseRows(text, detectDelimiter(text)).filter((r) => r.cells.some((c) => c.trim() !== ""));
   if (numbered.length === 0) return { columns: [], warnings, headerDetected: false };
-  const delim = detectDelimiter(text);
-  const rows = numbered.map((l) => splitRow(l.line, delim).map((c) => c.trim()));
+  const rows = numbered.map((r) => r.cells.map((c) => c.trim()));
 
   // 見出し: 先頭行のうち 2 つ以上のセルが既知の見出し名なら、見出し行とみなす
   const first = rows[0].map(headerField);
@@ -196,6 +206,13 @@ export function parseColumnTable(text: string): ColumnPasteResult {
       const b = parseBoolean(cell);
       if (b === undefined) warnings.push(`${lineNo(i)} 行目: ${f === "notNull" ? "NOT NULL" : f === "primaryKey" ? "PK" : f === "unique" ? "UK" : "連番"}の値「${cell}」が分からないため読み飛ばしました (○ か空で書いてください)`);
       else if (b) col[f] = true;
+    }
+    // 「NULL 可」の列 (○ = null を許す) は、NOT NULL の逆
+    const nl = get("nullable");
+    if (nl !== "") {
+      const b = parseBoolean(nl);
+      if (b === undefined) warnings.push(`${lineNo(i)} 行目: NULL 可の値「${nl}」が分からないため読み飛ばしました (○ か空で書いてください)`);
+      else if (!b) col.notNull = true;
     }
     // PK は NOT NULL を含む
     if (col.primaryKey) col.notNull = true;

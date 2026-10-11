@@ -178,6 +178,19 @@ test.describe("画面項目定義プロトタイプ (#318)", { tag: ["@regressio
     expect(saved?.items[0]).toMatchObject({ label: "顧客名", type: "string", direction: "in", required: true, maxLength: 100 });
   });
 
+  test("入力欄に打ち込んだ直後 (欄を出る前) に Ctrl+S を押しても、その値が保存される", async ({ page }) => {
+    await setup(page);
+    await page.locator(".screen-items-view button:has-text('項目追加')").click();
+    await page.locator('.screen-items-table input[placeholder="例: email"]').first().fill("quickSave");
+    const label = page.locator('.screen-items-table input[placeholder="例: メールアドレス"]').first();
+    await label.fill("打ち込み直後");
+    await expect(label).toBeFocused();
+    await page.keyboard.press("Control+s");
+    await expect(page.locator(".srb-btn-save")).toBeDisabled({ timeout: 5000 });
+    const saved = await readScreenItemsFile(screenId1);
+    expect(saved?.items.find((i) => i.id === "quickSave")).toMatchObject({ label: "打ち込み直後" });
+  });
+
   test("別画面の URL に移動すると別タブで開く", async ({ page }) => {
     await setup(page);
     // scr-1 に 1 件追加 + 保存

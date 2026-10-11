@@ -249,6 +249,22 @@ export async function runEntityRename(
   return { result, broadcastReload };
 }
 
+/**
+ * 直前の改名を取り消す。operation の持ち主のワークスペース (改名したときのもの) で、編集セッションの対象 ID も
+ * 元に戻す。結果と、応答のあとで呼ぶ reload 通知を返す。WebSocket (画面) と MCP (AI) の両方から使う。
+ */
+export async function runEntityUndo(bridge: WsBridge, operationId: string, fallbackRoot: string, sessionId: string) {
+  // operation の workspace ownership は client-supplied path ではなく server-side undo store で解決する。
+  // workspace 切替後 undo と raw path injection を同時に塞ぐ。
+  const opRoot = findUndoOperationWorkspaceRoot(operationId) ?? fallbackRoot;
+  const migrateEditSessions = makeMigrateEditSessions(bridge, opRoot);
+  const result = await undoEntityRename(operationId, opRoot, { sessionId, migrateEditSessions });
+  const broadcastReload = () => {
+    for (const ev of RENAME_RELOAD_EVENTS) bridge.broadcast({ wsId: opRoot, event: ev, data: { reload: true } });
+  };
+  return { result, broadcastReload };
+}
+
 export const refactorHandlers: RpcHandlerMap = {
   listRecentUndoOperations: async ({ root, respond, respondError }) => {
     try {
@@ -308,39 +324,10 @@ export const refactorHandlers: RpcHandlerMap = {
       };
       // operationId は UUID v4 (uuid module で生成) — safeName 範囲内 ([A-Za-z0-9_-]{1,64}) でカバー
       assertSafeName(operationId, "operationId");
-      const sessionId = clientId;
-      // operation の workspace ownership は client-supplied path ではなく server-side
-      // undo store で解決する。workspace 切替後 undo と raw path injection を同時に塞ぐ。
-      const opRoot = findUndoOperationWorkspaceRoot(operationId as string) ?? root();
-      // Phase J Must-fix C: live + persisted revert callback を inject
-      const migrateEditSessions = makeMigrateEditSessions(bridge, opRoot);
-      const result = await undoEntityRename(operationId as string, opRoot, {
-        sessionId, migrateEditSessions,
-      });
+      const { result, broadcastReload } = await runEntityUndo(bridge, operationId as string, root(), clientId);
       respond(result);
-      // Phase F S-1 (Codex 独立レビュー): undo は originating client 自身の cache (newId 側 store
-      // データ + ref 側 cache) も完全に無効化する必要がある。renameEntityId の broadcast は
-      // originating client を `excludeClientId` で除外しても良い (rename を起こした側は自分で
-      // tab/URL 遷移 + handleRenameSuccess で旧 tab close 等の cache 入替を行うため不要)。
-      // 一方 undo は editor が「同じ URL に戻る」だけのため、cache 同期は broadcast に頼る必要が
-      // あり、originating client を除外すると stale cache が残る (固定 300ms hard delay は決定的
-      // でない緩和策、Codex 独立レビュー S-1 で指摘)。
-      // → undo 経路では excludeClientId を渡さず、originating client にも reload event を届ける。
-      // Phase J Must-fix B: undo 後も genericDefinition reload を必要 (rename の逆操作)
-      // 業務フロー / 帳票の参照も元に戻るので、開いている編集画面にも通知する
-      const RELOAD_EVENTS = [
-        "screenChanged", "tableChanged", "processFlowChanged", "viewChanged",
-        "sequenceChanged", "viewDefinitionChanged", "pageLayoutChanged",
-        "genericDefinitionChanged", "businessFlowChanged", "reportChanged",
-        // 画面の改名は、独自部品の定義 (layout-components.json) の差し込み口・定義内の遷移先も書き換える
-        "layoutComponentsChanged",
-      ];
-      for (const ev of RELOAD_EVENTS) {
-        bridge.broadcast({
-          wsId: opRoot, event: ev, data: { reload: true },
-          // Phase F S-1: undo は originating client を除外しない (cache 同期保証)
-        });
-      }
+      // undo は、起点のクライアントにも reload を届ける (同じ URL に戻るだけで、cache の入れ替えを自前でしないため)
+      broadcastReload();
     } catch (e) {
       respondError(e instanceof Error ? e.message : String(e));
     }

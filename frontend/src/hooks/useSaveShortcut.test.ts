@@ -1,5 +1,6 @@
-import { describe, it, expect } from "vitest";
-import { shouldTriggerSaveShortcut } from "./useSaveShortcut";
+import { describe, it, expect, vi } from "vitest";
+import { renderHook } from "@testing-library/react";
+import { shouldTriggerSaveShortcut, useSaveShortcut } from "./useSaveShortcut";
 
 function makeEvent(overrides: {
   ctrlKey?: boolean;
@@ -80,5 +81,25 @@ describe("shouldTriggerSaveShortcut", () => {
     expect(
       shouldTriggerSaveShortcut(makeEvent({ ctrlKey: true, key: "s", targetTag: "BUTTON" })),
     ).toBe(true);
+  });
+});
+
+describe("useSaveShortcut (ダイアログの中)", () => {
+  it("ダイアログの中で Ctrl+S を押しても、背後のエディタの保存は呼ばない (ブラウザの保存ダイアログも出さない)", () => {
+    const onSave = vi.fn();
+    renderHook(() => useSaveShortcut(onSave));
+    const modal = document.createElement("div");
+    modal.setAttribute("aria-modal", "true");
+    const input = document.createElement("textarea");
+    modal.appendChild(input);
+    document.body.appendChild(modal);
+    const ev = new KeyboardEvent("keydown", { key: "s", ctrlKey: true, bubbles: true, cancelable: true });
+    input.dispatchEvent(ev);
+    expect(onSave).not.toHaveBeenCalled();
+    expect(ev.defaultPrevented).toBe(true);
+    // ダイアログの外では保存する
+    document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "s", ctrlKey: true, bubbles: true, cancelable: true }));
+    expect(onSave).toHaveBeenCalledTimes(1);
+    modal.remove();
   });
 });

@@ -1,6 +1,9 @@
-import { describe, it, expect } from "vitest";
-import { describeDeletionImpact } from "./confirmDeletion";
+import { describe, expect, it, vi, beforeEach } from "vitest";
+import { MAX_CHECKED, confirmDeletionImpact, describeDeletionImpact } from "./confirmDeletion";
 import type { ReferenceResult } from "./references";
+
+const request = vi.fn();
+vi.mock("../mcp/mcpBridge", () => ({ mcpBridge: { request: (...a: unknown[]) => request(...a) } }));
 
 const res = (id: string, referrers: ReferenceResult["referrers"]): { id: string; result: ReferenceResult } => ({
   id, result: { entityType: "screen", id, exists: true, referrers, total: referrers.length },
@@ -28,5 +31,42 @@ describe("削除の影響の文", () => {
   it("多いときは省略する", () => {
     const many = Array.from({ length: 12 }, (_, i) => ({ kind: "processFlow" as const, id: `f${i}`, count: 1 }));
     expect(describeDeletionImpact([res("cart", many)], "画面")).toContain("ほか 4 件");
+  });
+});
+
+describe("confirmDeletionImpact", () => {
+  beforeEach(() => { request.mockReset(); vi.restoreAllMocks(); });
+  const empty = (id: string) => ({ entityType: "screen", id, exists: true, referrers: [], total: 0 });
+
+  it("参照されていなければ、確認なしで true", async () => {
+    request.mockImplementation(async (_m: string, p: { id: string }) => empty(p.id));
+    const confirm = vi.spyOn(window, "confirm");
+    expect(await confirmDeletionImpact("screen", "画面", ["a", "b"])).toBe(true);
+    expect(confirm).not.toHaveBeenCalled();
+  });
+
+  it("参照されていれば確認し、答えを返す", async () => {
+    request.mockResolvedValue({ ...empty("a"), referrers: [{ kind: "report", id: "slip", count: 1 }] });
+    vi.spyOn(window, "confirm").mockReturnValueOnce(false);
+    expect(await confirmDeletionImpact("screen", "画面", ["a"])).toBe(false);
+  });
+
+  it("1 件ずつ調べ (同時に走らせない)、上限を超える分は調べない", async () => {
+    let running = 0, maxRunning = 0;
+    request.mockImplementation(async (_m: string, p: { id: string }) => {
+      running++; maxRunning = Math.max(maxRunning, running);
+      await new Promise((r) => setTimeout(r, 1));
+      running--;
+      return empty(p.id);
+    });
+    const ids = Array.from({ length: MAX_CHECKED + 5 }, (_, i) => `s${i}`);
+    expect(await confirmDeletionImpact("screen", "画面", ids)).toBe(true);
+    expect(request).toHaveBeenCalledTimes(MAX_CHECKED);
+    expect(maxRunning).toBe(1);
+  });
+
+  it("調べられなかったときは、保存を止めない", async () => {
+    request.mockRejectedValue(new Error("接続できません"));
+    expect(await confirmDeletionImpact("screen", "画面", ["a"])).toBe(true);
   });
 });

@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { findReferences } from "./references.js";
-import { writeScreenEntity, writeBusinessFlow, writeReport } from "./projectStorage.js";
+import { writeScreenEntity, writeBusinessFlow, writeReport, writeTable, writeScreenFlowPositions } from "./projectStorage.js";
 
 const ROOT = path.join(os.tmpdir(), `references-${process.pid}-${Date.now()}`);
 
@@ -50,3 +50,28 @@ describe("参照元の検索", () => {
     expect((await findReferences("screen", "nothing", ROOT)).exists).toBe(false);
   });
 });
+
+describe("参照元の検索 (範囲)", () => {
+  it("自分自身の中の参照は参照元にしない / 図の座標は参照に出さない", async () => {
+    await writeScreenEntity("self", {
+      id: "self", uuid: "33333333-3333-4333-8333-333333333333", name: "自己", kind: "form", path: "/self",
+      createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z", items: [],
+      layout: { version: 1, nodes: [{ id: "b", type: "button", props: { label: "自分へ", navigateTo: "self" } }] },
+    }, ROOT);
+    await writeScreenFlowPositions({ positions: { self: { x: 1, y: 2 } } }, ROOT).catch(() => undefined);
+    const r = await findReferences("screen", "self", ROOT);
+    expect(r.referrers.some((x) => x.kind === "screen" && x.id === "self")).toBe(false);
+    expect(r.referrers.some((x) => (x.kind as string) === "screenFlowPositions")).toBe(false);
+  });
+
+  it("テーブルを参照する帳票・別のテーブル (外部キー) を参照元として返す", async () => {
+    await writeTable("master", { id: "master", name: "マスタ", physicalName: "master", columns: [] }, ROOT);
+    await writeReport("list-report", {
+      name: "一覧", output: { format: "pdf" }, trigger: { kind: "manual" },
+      sections: [{ id: "body", kind: "detail", name: "明細", fields: [{ id: "f", kind: "field", label: "名", source: "master.name" }] }],
+    }, ROOT);
+    const r = await findReferences("table", "master", ROOT);
+    expect(r.referrers.map((x) => `${x.kind}:${x.id}`)).toContain("report:list-report");
+  });
+});
+

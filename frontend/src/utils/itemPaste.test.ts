@@ -67,3 +67,16 @@ describe("項目の表へ書き出し", () => {
     expect(back.items).toEqual(items);
   });
 });
+
+describe("項目の型に長さがついた書き方", () => {
+  it("`varchar(100)` は、型 string と最大長 100 として読む", () => {
+    const r = parseItemTable("項目ID\t型\nname\tvarchar(100)");
+    expect(r.items[0]).toMatchObject({ id: "name", type: "string", maxLength: 100 });
+    expect(r.warnings).toEqual([]);
+  });
+  it("引用符つきのセル (改行入りの説明) も読める", () => {
+    const r = parseItemTable('項目ID\t説明\na\t"1 行目\n2 行目"\nb\t');
+    expect(r.items.map((i) => i.id)).toEqual(["a", "b"]);
+    expect(r.items[0].description).toBe("1 行目\n2 行目");
+  });
+});

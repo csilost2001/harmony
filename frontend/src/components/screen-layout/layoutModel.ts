@@ -6,7 +6,7 @@
  * - 部品と項目をまとめて扱う操作 (追加・削除・複製)
  */
 import {
-  findNode, insertNode, nextNodeId, removeNode, cloneNode, findParent, collectItemRefs, collectExpandedItemRefs, walkLayout, updateNode,
+  findNode, insertNode, nextNodeId, removeNode, cloneNode, findParent, canContain, collectItemRefs, collectExpandedItemRefs, walkLayout, updateNode,
   type LayoutComponentDef, type LayoutNode, type LayoutNodeType, type ScreenLayout,
 } from "@harmony/shared";
 import type { Column, DataType, Table } from "../../types/v3/table";
@@ -231,21 +231,20 @@ export function setComponentArg(nodes: readonly LayoutNode[], nodeId: string, pa
 
 export interface Place { parentId: string | null; index?: number }
 
-/** 入力フォーム・検索条件・ボタン群の中には、画面の構成を作る部品 (区画・フォーム・段組みなど) を入れない */
-const LEAF_CONTAINERS: ReadonlySet<LayoutNodeType> = new Set(["form", "search-panel", "button-bar"]);
-const STRUCTURE_PARTS: ReadonlySet<LayoutNodeType> = new Set(["section", "form", "search-panel", "columns", "tabs"]);
-
 /**
- * パレットをクリックして新しい部品を置く場所。
- * 選択中が容器なら、その末尾。ただし画面の構成を作る部品 (区画・フォームなど) を
- * 入力フォーム等の中へ入れそうなときは、その容器の直後に置く。選択中が容器でなければ、その部品の直後。
+ * パレットをクリックして新しい部品を置く場所。ドラッグ & ドロップと同じ規則 (`canContain`) で決める。
+ * 選択中が、その部品を入れられる容器なら末尾。入れられないときは、選択中の部品の直後。
+ * そこにも置けなければ (例: ボタン群の中でフォームを足す)、置ける祖先まで上がって、その直後に置く。
  */
 export function insertionPlace(nodes: readonly LayoutNode[], selected: LayoutNode | null, type: LayoutNodeType): Place {
   if (!selected) return { parentId: null };
-  const intoContainer = selected.children !== undefined
-    && type !== "column" && type !== "tab"
-    && !(STRUCTURE_PARTS.has(type) && LEAF_CONTAINERS.has(selected.type));
-  if (intoContainer) return { parentId: selected.id };
-  const pos = findParent(nodes, selected.id);
-  return { parentId: pos?.parent?.id ?? null, index: (pos?.index ?? -1) + 1 };
+  if (selected.children !== undefined && canContain(selected.type, type)) return { parentId: selected.id };
+  let node: LayoutNode = selected;
+  for (;;) {
+    const pos = findParent(nodes, node.id);
+    const parent = pos?.parent ?? null;
+    if (canContain(parent?.type ?? null, type)) return { parentId: parent?.id ?? null, index: (pos?.index ?? -1) + 1 };
+    if (!parent) return { parentId: null };
+    node = parent;
+  }
 }

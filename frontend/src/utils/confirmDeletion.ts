@@ -6,6 +6,8 @@ import { mcpBridge } from "../mcp/mcpBridge";
 import { REFERRER_LABELS, type ReferenceResult, type ReferenceTargetType } from "./references";
 
 const MAX_LISTED = 8;
+/** 参照元を調べる件数の上限。1 件ごとにワークスペース全体を走査するため、多いときは先頭だけを調べる */
+export const MAX_CHECKED = 20;
 
 /** 削除する設計の参照元を、確認ダイアログの文にする。参照されていなければ null */
 export function describeDeletionImpact(
@@ -34,12 +36,15 @@ export async function confirmDeletionImpact(entityType: ReferenceTargetType, lab
   const ids = [...deletedIds];
   if (ids.length === 0) return true;
   try {
-    const results = await Promise.all(ids.map(async (id) => ({
-      id,
-      result: (await mcpBridge.request("findEntityReferences", { entityType, id })) as ReferenceResult,
-    })));
-    const message = describeDeletionImpact(results, label);
-    return message === null ? true : window.confirm(message);
+    // 1 件ずつ (同時に何本も全体走査を走らせない)
+    const results: Array<{ id: string; result: ReferenceResult }> = [];
+    for (const id of ids.slice(0, MAX_CHECKED)) {
+      results.push({ id, result: (await mcpBridge.request("findEntityReferences", { entityType, id })) as ReferenceResult });
+    }
+    const base = describeDeletionImpact(results, label);
+    if (base === null) return true;
+    const note = ids.length > MAX_CHECKED ? `\n\n(削除する ${ids.length} 件のうち、先頭の ${MAX_CHECKED} 件だけを調べました)` : "";
+    return window.confirm(base + note);
   } catch {
     return true;
   }

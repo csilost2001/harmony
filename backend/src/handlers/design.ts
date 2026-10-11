@@ -11,8 +11,8 @@ import { loadDesignInputFromRoot } from "../designInput.js";
 import { findReferences } from "../references.js";
 import { assertEntityIdMcp } from "../mcpHelpers.js";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
-import { undoEntityRename, findUndoOperationWorkspaceRoot, type RenameEntityType } from "../renameEntity.js";
-import { runEntityRename, runEntityRenamePreview } from "../wsHandlers/refactor.js";
+import type { RenameEntityType } from "../renameEntity.js";
+import { runEntityRename, runEntityRenamePreview, runEntityUndo } from "../wsHandlers/refactor.js";
 import { wsBridge } from "../wsBridge.js";
 import { workspaceContextManager } from "../workspaceState.js";
 import type { ToolHandler } from "../mcpHelpers.js";
@@ -101,11 +101,8 @@ export const handleDesignTool: ToolHandler = async (name, args, root, sessionId)
 
     case "designer__undo_rename": {
       if (typeof a.operationId !== "string" || !a.operationId) throw new McpError(ErrorCode.InvalidParams, "operationId を指定してください");
-      const opRoot = findUndoOperationWorkspaceRoot(a.operationId) ?? root;
-      const result = await undoEntityRename(a.operationId, opRoot, { sessionId });
-      for (const ev of ["screenChanged", "tableChanged", "processFlowChanged", "viewChanged", "sequenceChanged", "viewDefinitionChanged", "pageLayoutChanged", "genericDefinitionChanged", "businessFlowChanged", "reportChanged", "layoutComponentsChanged"]) {
-        wsBridge.broadcast({ wsId: workspaceContextManager.getActivePath(sessionId), event: ev, data: { reload: true } });
-      }
+      const { result, broadcastReload } = await runEntityUndo(wsBridge, a.operationId, root, sessionId);
+      broadcastReload();
       return json({ undone: true, ...result });
     }
 

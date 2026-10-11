@@ -655,7 +655,7 @@ export function ViewListView() {
                   value={addId}
                   onChange={setAddId}
                   name={addName}
-                  slugSource={addPhysicalName}
+                  idSource={addPhysicalName}
                   existingIds={existingIds}
                   entityLabel="DB ビュー"
                   inputId="view-id-input"
