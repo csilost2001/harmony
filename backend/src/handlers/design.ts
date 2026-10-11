@@ -9,6 +9,7 @@
 import { buildDesignDocument, deriveTestViewpointSheet, testViewpointSheetToCsv } from "@harmony/shared";
 import { loadDesignInputFromRoot } from "../designInput.js";
 import { findReferences } from "../references.js";
+import { collectSchemaIssues } from "../schemaIssues.js";
 import { assertEntityIdMcp } from "../mcpHelpers.js";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import type { RenameEntityType } from "../renameEntity.js";
@@ -27,7 +28,7 @@ export const handleDesignTool: ToolHandler = async (name, args, root, sessionId)
   switch (name) {
     case "designer__check_design": {
       const { input, skipped, counts } = await loadDesignInputFromRoot(root);
-      const { issues } = buildDesignDocument(input);
+      const { issues } = buildDesignDocument({ ...input, extraIssues: await collectSchemaIssues(root) });
       const all = [
         ...skipped.map((s) => ({ severity: "error" as const, section: "読み込み", message: `${s} を読めない (または見つからない) ため、検査に含まれていません` })),
         ...issues,

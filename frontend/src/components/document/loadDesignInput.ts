@@ -2,7 +2,8 @@
  * 設計書の入力 (画面・処理フロー・テーブル・規約・業務フロー・帳票など) を、ワークスペースから読み集める。
  * 設計書ビューとダッシュボードの「設計の要確認」パネルが共有する。
  */
-import type { DesignDocInput } from "@harmony/shared";
+import type { DesignDocInput, DocIssue } from "@harmony/shared";
+import { mcpBridge } from "../../mcp/mcpBridge";
 import { loadRawProject } from "../../store/flowStore";
 import { loadScreenEntity } from "../../store/screenStore";
 import { listProcessFlows, loadProcessFlow } from "../../store/processFlowStore";
@@ -27,7 +28,9 @@ export async function loadDesignInput(): Promise<{ input: DesignDocInput; skippe
     return v;
   };
   const entities = (raw as { entities?: { screens?: Array<{ id: string }>; screenTransitions?: DesignDocInput["transitions"] } }).entities ?? {};
-  const [screens, flowMetas, tableMetas, conventions, layoutComponents, businessFlows, reports] = await Promise.all([
+  const [schemaIssues, screens, flowMetas, tableMetas, conventions, layoutComponents, businessFlows, reports] = await Promise.all([
+    // スキーマに合っていない点 (読み込み時に backend が計算する。失敗しても設計書は出す)
+    mcpBridge.request("getSchemaIssues").then((r) => (Array.isArray(r) ? r as DocIssue[] : [])).catch(() => [] as DocIssue[]),
     Promise.all((entities.screens ?? []).map((s) => guardOne(`画面「${s.id}」`, loadScreenEntity(s.id)))),
     guard("処理フロー一覧", listProcessFlows(), []),
     guard("テーブル一覧", listTables(), []),
@@ -51,6 +54,7 @@ export async function loadDesignInput(): Promise<{ input: DesignDocInput; skippe
     layoutComponents,
     businessFlows: businessFlows.flows,
     reports: reports.reports,
+    extraIssues: schemaIssues,
     roles: ((conventions as { role?: DesignDocInput["roles"] } | null)?.role) ?? {},
     permissions: ((conventions as { permission?: DesignDocInput["permissions"] } | null)?.permission) ?? {},
     limits: ((conventions as { limit?: DesignDocInput["limits"] } | null)?.limit) ?? {},

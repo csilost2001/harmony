@@ -32,7 +32,7 @@ schema 変更は schema ガバナンス (#511) の対象であり、AI エージ
 
 保存時に検出した違反は、保存失敗ではなく validation 結果として保持し、一覧・カード・編集画面で可視化する。
 
-保存のたびに backend が schema 検査を行い、違反を `authoring.markers` に `kind: "validator"` の警告マーカーとして残す (本文は日本語: 「『/columns』の件数が少なすぎます (1 件以上)」のように、何がどう違うかを示す)。同じ違反 (`validatorCode` + `validatorPath`) は重複して増やさず、**直して保存すると、その警告は `resolvedAt` つきで解決済みになる** (未解決のまま残り続けない)。検査コードは `backend/src/ajvMessages.ts` (本文) と `projectStorage.ts` の `annotateValidationWarnings`。
+設計の原本が schema に合っていない点は、**読み込み時に backend が計算して「要確認」に出す** (`collectSchemaIssues`: 画面・テーブル・処理フロー。本文は日本語で、「スキーマ: 『/columns』の件数が少なすぎます (1 件以上)」のように何がどう違うかを示す)。ダッシュボードの「設計の要確認」・設計書の要確認事項・MCP `designer__check_design` に載る。**原本には書き込まない** (以前は保存のたびに `authoring.markers` へ `kind: "validator"` の警告を書き込んでいたが、機械が出した警告で原本と差分が汚れ、直しても残るため廃止した)。保存時に、過去に書き込まれた validator マーカーは取り除く (人・AI のマーカーは残す)。検査コードは `backend/src/schemaIssues.ts` / `ajvMessages.ts`。CLI の `npm run check:design` は backend を通さないため、この検査を含まない
 
 ### 2.3 読み込み時に検証
 
