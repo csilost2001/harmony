@@ -17,7 +17,7 @@ import { useWorkspacePath } from "../../hooks/useWorkspacePath";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { loadProject } from "../../store/flowStore";
 import { listProcessFlows } from "../../store/processFlowStore";
-import { listTables, loadTable } from "../../store/tableStore";
+import { loadAllTables } from "../../store/tableStore";
 import { loadReport } from "../../store/reportStore";
 import { useEditableDocument } from "../../hooks/useEditableDocument";
 import { EditSessionChrome } from "../editing/EditSessionChrome";
@@ -69,11 +69,10 @@ export function ReportEditor() {
     mcpBridge.startWithoutEditor();
     loadProject().then((p) => { if (alive) setScreens(p.screens.map((s) => ({ id: s.id as string, name: s.name as string }))); }).catch(() => undefined);
     listProcessFlows().then((l) => { if (alive) setFlows(l.map((m) => ({ id: m.id as string, name: (m.name as string) ?? (m.id as string) }))); }).catch(() => undefined);
-    listTables().then(async (metas) => {
-      const loaded = await Promise.all(metas.map((m) => loadTable(m.id as string).catch(() => null)));
-      if (alive) setTables(loaded.filter(Boolean).map((t) => ({
-        id: t!.id as string, name: (t!.name as string) ?? (t!.id as string),
-        columns: ((t!.columns ?? []) as Array<{ physicalName: string; name?: string }>).map((c) => ({ physicalName: c.physicalName, name: c.name ?? c.physicalName })),
+    loadAllTables().then((loaded) => {
+      if (alive) setTables(loaded.map((t) => ({
+        id: t.id as string, name: (t.name as string) ?? (t.id as string),
+        columns: ((t.columns ?? []) as Array<{ physicalName: string; name?: string }>).map((c) => ({ physicalName: c.physicalName, name: c.name ?? c.physicalName })),
       })));
     }).catch(() => undefined);
     return () => { alive = false; };

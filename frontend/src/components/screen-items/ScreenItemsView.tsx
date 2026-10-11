@@ -71,7 +71,7 @@ import type { ScreenItemsDocument } from "../../store/screenItemsStore";
 // (= ProcessFlowEntry alias)。v3 の ProcessFlowMeta (ProcessFlow.meta) とは別概念。
 import type { ProcessFlowMeta } from "../../types/flow";
 import { listProcessFlows } from "../../store/processFlowStore";
-import { listTables, loadTable } from "../../store/tableStore";
+import { loadAllTables } from "../../store/tableStore";
 import { listViews, loadView } from "../../store/viewStore";
 import { listGenericDefinitions } from "../../store/genericDefinitionStore";
 import { genericDefinitionResolver } from "../../utils/reference-completer/genericDefinitionResolver";
@@ -228,10 +228,8 @@ export function ScreenItemsView() {
   useEffect(() => {
     listProcessFlows().then(setProcessFlows).catch(console.error);
     (async () => {
-      const tableMetas = await listTables();
-      const tablesFull = (await Promise.all(tableMetas.map((m) => loadTable(m.id))))
-        .filter((t): t is Table => t !== null);
-      setTables(tablesFull);
+      // 全テーブルを 1 回の問い合わせでまとめて読む (1 件ずつ尋ねない)
+      setTables(await loadAllTables());
     })().catch(console.error);
     (async () => {
       const viewMetas = await listViews();

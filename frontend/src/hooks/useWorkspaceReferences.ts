@@ -12,7 +12,8 @@ import { loadProject } from "../store/flowStore";
 import { listTables } from "../store/tableStore";
 import { listViewDefinitions } from "../store/viewDefinitionStore";
 import { listGenericDefinitions } from "../store/genericDefinitionStore";
-import { loadProcessFlow } from "../store/processFlowStore";
+import { loadAllProcessFlows } from "../store/processFlowStore";
+import type { ProcessFlow } from "../types/v3";
 import { mcpBridge } from "../mcp/mcpBridge";
 import type { WorkspaceRefs } from "../utils/reference-completer/types";
 import type { ProjectCatalogs } from "../schemas/projectCatalogs";
@@ -64,9 +65,9 @@ export function useWorkspaceReferences(): WorkspaceRefs {
       const processFlowMetas = projectData?.processFlows ?? [];
 
       // actions[] を eager parallel preload する
-      const actionsResults = await Promise.allSettled(
-        processFlowMetas.map((m) => loadProcessFlow(m.id as unknown as string)),
-      );
+      // 1 回の問い合わせでまとめて読む (1 件ずつ尋ねない)
+      const allFlows = await loadAllProcessFlows().catch(() => new Map<string, ProcessFlow>());
+      const actionsResults: PromiseSettledResult<ProcessFlow | null>[] = processFlowMetas.map((m) => ({ status: "fulfilled" as const, value: allFlows.get(m.id as unknown as string) ?? null }));
 
       setRefs({
         screens: (projectData?.screens ?? []).map((s) => ({

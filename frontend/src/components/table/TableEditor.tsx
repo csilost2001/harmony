@@ -12,7 +12,7 @@ import {
 } from "./tableConstants";
 import type { SqlDialect } from "../../utils/ddlGenerator";
 import { loadTable, saveTable, addColumn, removeColumn } from "../../store/tableStore";
-import { listTables } from "../../store/tableStore";
+import { listTables, loadAllTables } from "../../store/tableStore";
 import { generateDdl, generateTableMarkdown } from "../../utils/ddlGenerator";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { useResourceEditor } from "../../hooks/useResourceEditor";
@@ -231,13 +231,7 @@ export function TableEditor() {
   useEffect(() => {
     mcpBridge.startWithoutEditor();
     (async () => {
-      const tl = await listTables();
-      const allTds: Table[] = [];
-      for (const m of tl) {
-        const td = await loadTable(m.id);
-        if (td) allTds.push(td);
-      }
-      setAllTables(allTds);
+      setAllTables(await loadAllTables()); // 全テーブルを 1 回の問い合わせで
     })();
   }, [tableId]);
 

@@ -8,8 +8,7 @@
  * 他クライアントの編集や同一クライアント内 SPA 遷移にも追従する。
  */
 import { useEffect, useState } from "react";
-import type { TableEntry, Table } from "../../../types/v3";
-import { listTables, loadTable, onTableChange } from "../../../store/tableStore";
+import { loadAllTables, onTableChange } from "../../../store/tableStore";
 import { mcpBridge } from "../../../mcp/mcpBridge";
 import type { TableDefinitionForView } from "../../../schemas/viewDefinitionValidator";
 
@@ -18,9 +17,7 @@ export function useTablesForValidator(): TableDefinitionForView[] {
   useEffect(() => {
     let cancelled = false;
     async function refresh(): Promise<void> {
-      const entries = await listTables();
-      const all = await Promise.all(entries.map((e: TableEntry) => loadTable(e.id)));
-      const valid = all.filter((t): t is Table => t !== null);
+      const valid = await loadAllTables(); // 全テーブルを 1 回の問い合わせで
       if (!cancelled) {
         // Table is shape-compatible with TableDefinitionForView (id / name / physicalName / columns)
         setTables(valid as unknown as TableDefinitionForView[]);
@@ -50,12 +47,10 @@ export function useTableOptions(): TableOption[] {
   useEffect(() => {
     let cancelled = false;
     async function refresh(): Promise<void> {
-      const entries = await listTables();
-      const tables = await Promise.all(entries.map((e: TableEntry) => loadTable(e.id)));
+      const tables = await loadAllTables(); // 全テーブルを 1 回の問い合わせで
       if (!cancelled) {
         setOptions(
           tables
-            .filter((t): t is Table => t !== null)
             .map((t) => ({
               id: t.id,
               name: t.name ?? t.physicalName ?? t.id,

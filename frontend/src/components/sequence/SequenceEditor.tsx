@@ -4,7 +4,7 @@ import { useWorkspacePath } from "../../hooks/useWorkspacePath";
 import type { Sequence, TableColumnRef, TableId, LocalId, Maturity, SemVer } from "../../types/v3";
 import { loadSequence, saveSequence } from "../../store/sequenceStore";
 import { loadConventions } from "../../store/conventionsStore";
-import { listTables, loadTable } from "../../store/tableStore";
+import { loadAllTables } from "../../store/tableStore";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { useResourceEditor } from "../../hooks/useResourceEditor";
 import { useEditSession } from "../../hooks/useEditSession";
@@ -30,7 +30,7 @@ import { SaveConflictDialog } from "../editing/SaveConflictDialog";
 import { ResumeOrDiscardDialog } from "../editing/ResumeOrDiscardDialog";
 import { setDirty as setTabDirty, makeTabId } from "../../store/tabStore";
 import { generateSequenceDdl } from "./generateSequenceDdl";
-import type { Table, NumberingEntry } from "../../types/v3";
+import type { NumberingEntry } from "../../types/v3";
 import "../../styles/table.css";
 import "../../styles/editMode.css";
 
@@ -225,11 +225,9 @@ export function SequenceEditor() {
         setNumberingKeys(entries);
       }
 
-      const metas = await listTables();
       const opts: TableColumnOption[] = [];
-      for (const m of metas) {
-        const td: Table | null = await loadTable(m.id);
-        if (td) {
+      for (const td of await loadAllTables()) { // 全テーブルを 1 回の問い合わせで
+        {
           opts.push({
             tableId: td.id,
             tableName: td.name || td.physicalName,

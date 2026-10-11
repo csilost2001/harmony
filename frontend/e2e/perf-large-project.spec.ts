@@ -71,7 +71,7 @@ test.describe("大きなプロジェクトの性能", () => {
   // 設計ごとに問い合わせる (N+1) と、大きなプロジェクトでは数千回の往復になり、サーバが他の操作に応えられなくなる。
   // 主要画面の問い合わせの総数が、設計の数 (約 600) に比例していないことを確かめる
   const COUNT_BUDGET = 150;
-  for (const route of ["/", "/screen/list", "/table/list", "/process-flow/list", "/table/er", "/document"]) {
+  for (const route of ["/", "/screen/list", "/table/list", "/process-flow/list", "/table/er", "/document", "/screen/design/cart", "/screen/items/cart", "/process-flow/edit/order-confirm", "/table/edit/order-item"]) {
     test(`${route} を開いたときの問い合わせの数が、設計の数に比例しない`, async ({ page }) => {
       await page.addInitScript(() => {
         const W = window as unknown as { __rpcCount: number };

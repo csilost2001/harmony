@@ -8,7 +8,7 @@
 
 import { useEffect, useState } from "react";
 import type { ProcessFlow } from "../../../types/v3";
-import { listTables, loadTable } from "../../../store/tableStore";
+import { listTables, loadAllTables } from "../../../store/tableStore";
 import { loadProject } from "../../../store/flowStore";
 import type { TableDefinition as ValidatorTableDef } from "../../../schemas/sqlColumnValidator";
 import type { ConventionsCatalog } from "../../../schemas/conventionsValidator";
@@ -57,18 +57,13 @@ export function useProcessFlowCatalogs(): ProcessFlowCatalogs {
         setTables(
           metas.map((tm) => ({ id: tm.id, physicalName: tm.physicalName ?? "", name: tm.name })),
         );
-        const defs = await Promise.all(
-          metas.map(async (tm) => {
-            const full = await loadTable(tm.id);
-            if (!full) return null;
-            return {
-              id: full.id,
-              name: full.physicalName,
-              columns: (full.columns ?? []).map((c) => ({ name: c.physicalName })),
-            } as ValidatorTableDef;
-          }),
-        );
-        setTableDefs(defs.filter((d): d is ValidatorTableDef => d !== null));
+        // 全テーブルを 1 回の問い合わせでまとめて読む (1 件ずつ尋ねない)
+        const defs = (await loadAllTables()).map((full) => ({
+          id: full.id,
+          name: full.physicalName,
+          columns: (full.columns ?? []).map((c) => ({ name: c.physicalName })),
+        } as ValidatorTableDef));
+        setTableDefs(defs);
       })
       .catch(console.error);
     loadConventions()
