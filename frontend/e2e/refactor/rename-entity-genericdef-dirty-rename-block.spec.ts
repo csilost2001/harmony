@@ -107,6 +107,9 @@ test.describe(
       // 2. dirty 化: purpose を編集する。
       //    GenericDefinitionEditor は state-controlled なので、purpose に 1 文字追加
       //    するだけで initialSnapshotRef !== current となり dirty 判定される。
+      // (編集開始を押してから編集する。開いただけでは入力欄は触れない)
+      await page.getByTestId("edit-mode-start").click();
+      await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 10000 });
       const initialValue = await purposeField.inputValue();
       await purposeField.fill(`${initialValue}__DIRTY_K3`);
       const relationRefField = page.locator(
