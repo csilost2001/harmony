@@ -27,7 +27,7 @@ const dummyProject = buildProject({
 
 // ── selectors ───────────────────────────────────────────────────────────────
 
-const toolbarSave = ".save-reset-buttons button.srb-btn-save";
+const toolbarSave = '[data-testid="edit-mode-save"]';
 
 // ── state ────────────────────────────────────────────────────────────────────
 

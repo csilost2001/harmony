@@ -22,6 +22,7 @@ import { useSessionUrlSync } from "../../hooks/useSessionUrlSync";
 import { useListSelection } from "../../hooks/useListSelection";
 import { useListClipboard } from "../../hooks/useListClipboard";
 import { useListKeyboard } from "../../hooks/useListKeyboard";
+import { useDetailPanelKeyboard } from "../../hooks/useDetailPanelKeyboard";
 import { useListSort } from "../../hooks/useListSort";
 import { EditorHeader } from "../common/EditorHeader";
 import { RenameEntityDialog } from "../common/RenameEntityDialog";
@@ -262,6 +263,7 @@ export function TableEditor() {
         onDiscardClick={() => setShowDiscardDialog(true)}
         onForceReleaseClick={() => setShowForceReleaseDialog(true)}
         saving={isSaving}
+        dirty={isDirty}
         ownerLabel={lockedByOther?.ownerSessionId}
       />
 
@@ -944,6 +946,27 @@ function ColumnsTab({
     setActiveColId(null);
   }
 
+  // 詳細パネルを Enter / Ctrl+Enter だけで次々に入力する (最後のカラムの次は、新しいカラムを追加)
+  const detailRef = useRef<HTMLDivElement>(null);
+  const goToColumn = (offset: number) => {
+    if (!detailCol) return;
+    const list = sort.sorted;
+    const at = list.findIndex((c) => c.id === detailCol.id);
+    const target = list[at + offset];
+    if (target) {
+      selection.setSelectedIds(new Set<string>([target.id]));
+      setActiveColId(target.id);
+    } else if (offset > 0 && !isReadonly && !sortActive) {
+      handleAddBlank();
+    }
+  };
+  const detailKeys = useDetailPanelKeyboard({
+    panelRef: detailRef,
+    resetKey: detailCol?.id ?? null,
+    onNext: () => goToColumn(1),
+    onPrev: () => goToColumn(-1),
+  });
+
   const columns = useMemo<DataListColumn<Column>[]>(() => [
     {
       key: "physicalName",
@@ -1067,11 +1090,11 @@ function ColumnsTab({
       />
 
       {detailCol && (
-        <div className="column-detail">
+        <div className="column-detail" ref={detailRef} onKeyDown={detailKeys.onKeyDown} data-testid="column-detail">
           <div className="column-detail-header">
             <span className="column-detail-title">
               <i className="bi bi-pencil-square" /> 編集中: <code>{detailCol.physicalName}</code>
-              <span className="column-detail-hint">(Esc で閉じる、外部キーは「制約」タブで管理)</span>
+              <span className="column-detail-hint">(Enter で次の欄、Ctrl+Enter で次のカラム、Esc で閉じる。外部キーは「制約」タブで管理)</span>
             </span>
             <button className="tbl-btn-icon" onClick={() => setActiveColId(null)} title="閉じる">
               <i className="bi bi-x-lg" />

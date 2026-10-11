@@ -1,6 +1,8 @@
 import type { EditMode } from "../../hooks/useEditSession";
 import "../../styles/editMode.css";
 import { friendlyLabel } from "../../utils/participantLabel";
+import { getActiveTabId } from "../../store/tabStore";
+import { getChangeSource, requestShowChanges } from "../../utils/changeSource";
 
 interface Props {
   mode: EditMode;
@@ -9,6 +11,8 @@ interface Props {
   onDiscardClick: () => void;
   onForceReleaseClick: () => void;
   saving?: boolean;
+  /** 未保存の変更があるか。false のあいだは「保存」を押せない (省略時は常に押せる) */
+  dirty?: boolean;
   ownerLabel?: string;
 }
 
@@ -19,6 +23,7 @@ export function EditModeToolbar({
   onDiscardClick,
   onForceReleaseClick,
   saving = false,
+  dirty,
   ownerLabel,
 }: Props) {
   if (mode.kind === "readonly") {
@@ -52,7 +57,8 @@ export function EditModeToolbar({
           type="button"
           className="edit-mode-btn edit-mode-btn-success"
           onClick={onSave}
-          disabled={saving}
+          disabled={saving || dirty === false}
+          title={dirty === false ? "変更がないので、保存するものはありません" : "保存 (Ctrl+S)"}
           data-testid="edit-mode-save"
         >
           {saving ? (
@@ -67,6 +73,19 @@ export function EditModeToolbar({
             </>
           )}
         </button>
+        {dirty === true && !!getChangeSource(getActiveTabId()) && (
+          <button
+            type="button"
+            className="edit-mode-btn edit-mode-btn-secondary"
+            onClick={requestShowChanges}
+            disabled={saving}
+            title="保存する前に、何が変わったかを確かめる"
+            data-testid="edit-mode-changes"
+          >
+            <i className="bi bi-card-checklist me-1" />
+            変更点
+          </button>
+        )}
         <button
           type="button"
           className="edit-mode-btn edit-mode-btn-secondary"

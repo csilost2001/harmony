@@ -2374,7 +2374,7 @@ async function _renameEntityIdImpl(
       ? rewriteComponentScreenArgs(selfRewritten, await loadComponentParamKinds(dataRoot), oldId, newId, () => undefined)
       : selfRewritten;
 
-    // 主ファイル new write は writeX 関数経由で行う (uuid preserve + schema annotate + path containment)
+    // 主ファイル new write は writeX 関数経由で行う (uuid preserve + 保存時の整理 + path containment)
     await writeEntityById(entityType, newId, rewrittenPrimary, root);
     writtenFiles.push(path.join(dataRoot, ENTITY_PRIMARY_DIR[entityType], `${newId}.json`));
 
@@ -2458,7 +2458,7 @@ async function _renameEntityIdImpl(
   // して snapshot に格納する。undo で post-update edit (rename 後の新 id 編集) を byte 比較で
   // 検出するための期待値 baseline。
   //
-  // 注意: writeEntityById は annotateValidationWarnings 等で副作用 mutation する場合があるため、
+  // 注意: writeEntityById は保存時に過去の validator マーカーを取り除く等、渡した内容と異なる bytes を書く場合があるため、
   // 「snapshot 構築時の oldContent」ではなく **commit 後の new path から実読** した bytes を
   // expected として保持する。これにより以降の post-update detection は file system 上の真実と
   // 一致した baseline で比較できる。
@@ -2859,20 +2859,19 @@ async function _undoEntityRenameImpl(
 /**
  * Phase I round 3+4 Nit (Opus round 3 N-2): writeEntityById は内部で各 writer
  * (writeScreenEntity / writeTable / writeProcessFlow 等) を call し、その先で
- * `annotateValidationWarnings(data)` が呼ばれる場合がある。
+ * 保存時に過去の validator マーカー (authoring.markers の kind='validator') を取り除く処理が呼ばれる場合がある。
  *
- * 副作用: AJV invalid な entity を write すると `data.authoring.markers` に validator marker
- * が **mutate** で append される。結果として「rename 後の新 file content」は walker の純粋
- * output に対して +N 件 marker が追加された状態で disk に出力される。
+ * 副作用: そのようなマーカーを持つ entity を write すると、書き出す file content は walker の純粋
+ * output からマーカー分だけ減る (違反を新たに記録することはしない。違反は読み込み時に検査して示す)。
  *
- * これは draft-state policy (`docs/spec/draft-state-policy.md`) で許容された挙動 (schema
- * invalid 状態を保存しつつ marker で trace する) だが、test の byte-identity assertion を
+ * これは draft-state policy (`docs/spec/draft-state-policy.md`) に沿った挙動 (schema
+ * invalid 状態でも保存でき、機械の警告は原本に残さない) だが、test の byte-identity assertion を
  * 組む場合は当該副作用を考慮する必要がある。undo 時は raw snapshot (rename 前 content) を
  * そのまま書き戻すため byte-identical だが、「rename → 新 file → undo (= 旧 file 復元)」の
- * 往復で旧 file は元のまま、新 file は marker 追加された content となる点に留意。
+ * 往復で旧 file は元のまま、新 file は (あれば) マーカーが取り除かれた content となる点に留意。
  *
  * rename module 自身は ref 書換えのみで schema validity を変えない前提のため、ここでは
- * bypass option を導入しない (writer 側で適切に annotate する責務に任せる)。
+ * bypass option を導入しない (writer 側の保存時の整理に任せる)。
  */
 async function writeEntityById(
   entityType: RenameEntityType, id: string, data: unknown, root: string,

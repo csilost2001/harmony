@@ -83,6 +83,9 @@ test.describe("画面デザイナー edit-session — シナリオ 1: 編集開�
     await editStartBtn.click();
 
     await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 5000 });
+    // 変更がないあいだは保存できないので、業務部品形式にしてから (原本の変更になる) 保存する
+    await page.getByRole("button", { name: /空の画面から作る/ }).click();
+    await expect(page.getByTestId("edit-mode-save")).toBeEnabled({ timeout: 5000 });
     await page.getByTestId("edit-mode-save").click();
 
     // spec §159: save 後も Active 状態が継続、複数回 save 可能 (Q2 合意)。

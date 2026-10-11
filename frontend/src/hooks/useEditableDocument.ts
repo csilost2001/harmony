@@ -166,6 +166,7 @@ export function useEditableDocument<T extends object>(opts: UseEditableDocumentO
   const chrome: EditSessionChromeProps = useMemo(() => ({
     mode,
     saving: isSaving,
+    dirty: isDirty,
     serverChanged,
     saveError,
     onDismissSaveError: () => setSaveError(null),
@@ -189,7 +190,7 @@ export function useEditableDocument<T extends object>(opts: UseEditableDocumentO
     onForceReleaseCancel: () => setShowForceRelease(false),
     onSaveConflictOverwrite: async () => { try { await onSaveConflictOverwrite(); await postSave(); } catch (e) { console.error("[useEditableDocument] 上書き保存に失敗:", e); } },
     onSaveConflictCancel,
-  }), [mode, isSaving, serverChanged, saveError, saveConflict, showDiscard, showForceRelease, showResume, lockedByOther, actions, save, handleReset, dismissServerBanner, postSave, onSaveConflictOverwrite, onSaveConflictCancel]);
+  }), [mode, isSaving, isDirty, serverChanged, saveError, saveConflict, showDiscard, showForceRelease, showResume, lockedByOther, actions, save, handleReset, dismissServerBanner, postSave, onSaveConflictOverwrite, onSaveConflictCancel]);
 
   return {
     doc, editable, mode, sessionLoading, dirty: isDirty, isSaving,

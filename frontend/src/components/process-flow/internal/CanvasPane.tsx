@@ -16,11 +16,15 @@ import type { WorkspaceRefs } from "../../../utils/reference-completer/types";
 import { ProcessFlowDiagram } from "../diagram/ProcessFlowDiagram";
 import { ProcessFlowTable } from "../diagram/ProcessFlowTable";
 import type { FlowContext } from "../diagram/flowStructure";
+import { OutlineEditor } from "./OutlineEditor";
+import { ALL_STEP_TYPES } from "./stepCardConstants";
+import type { OutlineLine } from "../../../utils/processFlowOutline";
 
-type FlowView = "cards" | "diagram" | "table";
+type FlowView = "cards" | "outline" | "diagram" | "table";
 const VIEW_KEY = "harmony.processFlow.view";
 const VIEWS: Array<{ key: FlowView; label: string; icon: string; title: string }> = [
   { key: "cards", label: "カード", icon: "bi-card-list", title: "ステップをカードで編集" },
+  { key: "outline", label: "アウトライン", icon: "bi-text-left", title: "1 行 1 工程のテキストで書く (試作)" },
   { key: "diagram", label: "図", icon: "bi-diagram-3", title: "分岐・繰り返し・トランザクションを図で見る" },
   { key: "table", label: "表", icon: "bi-table", title: "処理記述表 (No / 処理 / 対象 / 条件) で見る" },
 ];
@@ -28,7 +32,7 @@ const VIEWS: Array<{ key: FlowView; label: string; icon: string; title: string }
 function readView(): FlowView {
   try {
     const v = localStorage.getItem(VIEW_KEY);
-    if (v === "cards" || v === "diagram" || v === "table") return v;
+    if (v === "cards" || v === "outline" || v === "diagram" || v === "table") return v;
   } catch { /* storage 不可 */ }
   return "cards";
 }
@@ -82,6 +86,8 @@ export interface CanvasPaneProps {
   setSelectedIds: (ids: Set<string>) => void;
   /** 最終選択 ref (Shift+Click 範囲選択用) */
   lastSelectedIdRef: { current: string | null };
+  /** アウトライン (テキスト) の内容を、工程の並びへ反映する */
+  onApplyOutline: (lines: OutlineLine[]) => void;
   /** #1258 workspace 参照情報 (componentRef / modelRef 補完用) */
   workspace?: WorkspaceRefs;
 }
@@ -119,6 +125,7 @@ export function CanvasPane({
   onContextMenu,
   setSelectedIds,
   lastSelectedIdRef,
+  onApplyOutline,
   workspace,
 }: CanvasPaneProps) {
   const [view, setView] = useState<FlowView>(readView);
@@ -176,7 +183,9 @@ export function CanvasPane({
         )}
       </div>
       <div className="process-flow-content">
-        {activeAction && view === "diagram" ? (
+        {activeAction && view === "outline" ? (
+          <OutlineEditor key={activeAction.id} steps={activeAction.steps} kinds={ALL_STEP_TYPES} readonly={isReadonly} onApply={onApplyOutline} />
+        ) : activeAction && view === "diagram" ? (
           <ProcessFlowDiagram action={activeAction} ctx={ctx} selectedStepIds={highlighted} onSelectStep={selectFromView} onOpenStep={openInCards} />
         ) : activeAction && view === "table" ? (
           <ProcessFlowTable action={activeAction} ctx={ctx} selectedStepIds={highlighted} onSelectStep={selectFromView} onOpenStep={openInCards} />
@@ -226,6 +235,7 @@ export function CanvasPane({
                             question: stepMarkers.filter((m) => m.kind === "question").length,
                             attention: stepMarkers.filter((m) => m.kind === "attention").length,
                             chat: stepMarkers.filter((m) => m.kind === "chat").length,
+                            // 検査の警告マーカーは新しく書かれない。古い原本に残るものの移行用の件数 (消すのは次の整理)
                             validator: stepMarkers.filter((m) => m.kind === "validator").length,
                           }
                         : undefined;

@@ -153,3 +153,19 @@
 .common-header-icon-btn:focus-visible {
   outline: 2px solid var(--hm-focus);
 }
+
+/* 利用者名 (押すと名前を設定) */
+.common-header-user-wrap { position: relative; display: inline-flex; }
+button.common-header-user { background: transparent; cursor: pointer; font-family: inherit; }
+button.common-header-user:hover { color: #c9cbe0; border-color: #5a5e7a; }
+.common-header-user-pop {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 1100; width: 280px;
+  display: flex; flex-direction: column; gap: 6px; padding: 12px;
+  background: var(--hm-surface); color: var(--hm-fg); border: 1px solid var(--hm-border-strong); border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+.common-header-user-pop label { font-size: 12px; font-weight: 600; }
+.common-header-user-pop input { padding: 6px 8px; font-size: 13px; color: var(--hm-fg); background: var(--hm-surface); border: 1px solid var(--hm-border-strong); border-radius: 6px; }
+.common-header-user-pop input:focus { outline: 2px solid var(--hm-focus); outline-offset: -1px; }
+.common-header-user-pop small { font-size: 11px; color: var(--hm-fg-muted); line-height: 1.5; }
+.common-header-user-pop-actions { display: flex; gap: 6px; justify-content: flex-end; }

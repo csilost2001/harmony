@@ -151,7 +151,7 @@ test.describe("画面項目定義プロトタイプ (#318)", { tag: ["@regressio
     // 必須 チェック
     await page.locator('.screen-items-table input[type="checkbox"][aria-label$="の必須"]').first().check();
     // 保存 (EditorHeader 内の SaveResetButtons)
-    const saveBtn = page.locator(".srb-btn-save");
+    const saveBtn = page.locator('[data-testid="edit-mode-save"]');
     await expect(saveBtn).toBeEnabled();
     await saveBtn.click();
     await expect(saveBtn).toBeDisabled({ timeout: 3000 }); // isDirty 解消
@@ -169,7 +169,7 @@ test.describe("画面項目定義プロトタイプ (#318)", { tag: ["@regressio
     await expect(page.getByTestId("paste-items-dialog")).toHaveCount(0);
     await expect(page.locator(".screen-items-table tbody tr")).toHaveCount(2);
     await expect(page.locator('.screen-items-table input[placeholder="例: email"]').first()).toHaveValue("customerName");
-    const saveBtn = page.locator(".srb-btn-save");
+    const saveBtn = page.locator('[data-testid="edit-mode-save"]');
     await expect(saveBtn).toBeEnabled();
     await saveBtn.click();
     await expect(saveBtn).toBeDisabled({ timeout: 3000 });
@@ -186,7 +186,7 @@ test.describe("画面項目定義プロトタイプ (#318)", { tag: ["@regressio
     await label.fill("打ち込み直後");
     await expect(label).toBeFocused();
     await page.keyboard.press("Control+s");
-    await expect(page.locator(".srb-btn-save")).toBeDisabled({ timeout: 5000 });
+    await expect(page.locator('[data-testid="edit-mode-save"]')).toBeDisabled({ timeout: 5000 });
     const saved = await readScreenItemsFile(screenId1);
     expect(saved?.items.find((i) => i.id === "quickSave")).toMatchObject({ label: "打ち込み直後" });
   });
@@ -196,8 +196,8 @@ test.describe("画面項目定義プロトタイプ (#318)", { tag: ["@regressio
     // scr-1 に 1 件追加 + 保存
     await page.locator(".screen-items-view button:has-text('項目追加')").click();
     await page.locator('.screen-items-table input[placeholder="例: email"]').first().fill("field1");
-    await page.locator(".srb-btn-save").click();
-    await expect(page.locator(".srb-btn-save")).toBeDisabled({ timeout: 3000 });
+    await page.locator('[data-testid="edit-mode-save"]').click();
+    await expect(page.locator('[data-testid="edit-mode-save"]')).toBeDisabled({ timeout: 3000 });
     // scr-2 の URL に遷移
     await ws.gotoActive(page, `/screen/items/${SCREEN2_NORM}`);
     await expect(page.locator(".screen-items-view")).toBeVisible({ timeout: 10000 });
@@ -301,8 +301,8 @@ test.describe("@conv.* lint + 補完 + errorMessages 永続化 (#351 #352)", { t
     await patternInput.fill("@conv.regex.no-such-key");
     await patternInput.blur();
     // 保存
-    await page.locator(".srb-btn-save").click();
-    await expect(page.locator(".srb-btn-save")).toBeDisabled({ timeout: 3000 });
+    await page.locator('[data-testid="edit-mode-save"]').click();
+    await expect(page.locator('[data-testid="edit-mode-save"]')).toBeDisabled({ timeout: 3000 });
     // lint バナーが表示される
     await expect(page.locator(".screen-items-lint-warnings")).toBeVisible({ timeout: 3000 });
     await expect(page.locator(".screen-items-lint-warnings")).toContainText("@conv.regex.no-such-key");
@@ -316,8 +316,8 @@ test.describe("@conv.* lint + 補完 + errorMessages 永続化 (#351 #352)", { t
     const patternInput = row.locator('input[placeholder="例: @conv.regex.email-simple"]');
     await patternInput.fill("@conv.regex.email-simple");
     await patternInput.blur();
-    await page.locator(".srb-btn-save").click();
-    await expect(page.locator(".srb-btn-save")).toBeDisabled({ timeout: 3000 });
+    await page.locator('[data-testid="edit-mode-save"]').click();
+    await expect(page.locator('[data-testid="edit-mode-save"]')).toBeDisabled({ timeout: 3000 });
     await expect(page.locator(".screen-items-lint-warnings")).toHaveCount(0);
   });
 
@@ -346,8 +346,8 @@ test.describe("@conv.* lint + 補完 + errorMessages 永続化 (#351 #352)", { t
     await requiredInput.fill("@conv.msg.required");
     await requiredInput.blur();
     // 保存
-    await page.locator(".srb-btn-save").click();
-    await expect(page.locator(".srb-btn-save")).toBeDisabled({ timeout: 3000 });
+    await page.locator('[data-testid="edit-mode-save"]').click();
+    await expect(page.locator('[data-testid="edit-mode-save"]')).toBeDisabled({ timeout: 3000 });
     // localStorage に errorMessages が書き込まれていることを確認
     const stored = await readScreenItemsFile(screenId1);
     expect(stored).not.toBeNull();
@@ -381,8 +381,8 @@ test.describe("@conv.* lint + 補完 + errorMessages 永続化 (#351 #352)", { t
     await row.locator('button[aria-label="エラーメッセージ展開"]').click();
     await expect(page.locator(".screen-items-error-row")).toBeVisible({ timeout: 3000 });
     // 保存して別画面に遷移
-    await page.locator(".srb-btn-save").click();
-    await expect(page.locator(".srb-btn-save")).toBeDisabled({ timeout: 3000 });
+    await page.locator('[data-testid="edit-mode-save"]').click();
+    await expect(page.locator('[data-testid="edit-mode-save"]')).toBeDisabled({ timeout: 3000 });
     await ws.gotoActive(page, `/screen/items/${SCREEN2_NORM}`);
     await expect(page.locator(".screen-items-view")).toBeVisible({ timeout: 10000 });
     // scr-2 では展開行なし
@@ -418,8 +418,8 @@ test.describe("詳細フィールド展開行 (#353)", { tag: ["@regression"] },
     await expect(detailRow).toBeVisible({ timeout: 3000 });
     await detailRow.locator('input[aria-label="readonly"]').check();
     // 保存
-    await page.locator(".srb-btn-save").click();
-    await expect(page.locator(".srb-btn-save")).toBeDisabled({ timeout: 3000 });
+    await page.locator('[data-testid="edit-mode-save"]').click();
+    await expect(page.locator('[data-testid="edit-mode-save"]')).toBeDisabled({ timeout: 3000 });
     // localStorage で確認
     const stored = await readScreenItemsFile(screenId1);
     expect(stored).not.toBeNull();
@@ -437,8 +437,8 @@ test.describe("詳細フィールド展開行 (#353)", { tag: ["@regression"] },
     const placeholderInput = detailRow.locator('input[aria-label="placeholder"]');
     await placeholderInput.fill("例: user@example.com");
     await placeholderInput.blur();
-    await page.locator(".srb-btn-save").click();
-    await expect(page.locator(".srb-btn-save")).toBeDisabled({ timeout: 3000 });
+    await page.locator('[data-testid="edit-mode-save"]').click();
+    await expect(page.locator('[data-testid="edit-mode-save"]')).toBeDisabled({ timeout: 3000 });
     const stored = await readScreenItemsFile(screenId1);
     expect(stored?.items[0].placeholder).toBe("例: user@example.com");
   });
@@ -454,8 +454,8 @@ test.describe("詳細フィールド展開行 (#353)", { tag: ["@regression"] },
     const helperTextInput = detailRow.locator('input[aria-label="helperText"]');
     await helperTextInput.fill("半角英数字で入力してください");
     await helperTextInput.blur();
-    await page.locator(".srb-btn-save").click();
-    await expect(page.locator(".srb-btn-save")).toBeDisabled({ timeout: 3000 });
+    await page.locator('[data-testid="edit-mode-save"]').click();
+    await expect(page.locator('[data-testid="edit-mode-save"]')).toBeDisabled({ timeout: 3000 });
     const stored = await readScreenItemsFile(screenId1);
     expect(stored?.items[0].helperText).toBe("半角英数字で入力してください");
   });
@@ -471,8 +471,8 @@ test.describe("詳細フィールド展開行 (#353)", { tag: ["@regression"] },
     const visibleWhenInput = detailRow.locator('input[aria-label="visibleWhen"]');
     await visibleWhenInput.fill("@inputs.role === 'admin'");
     await visibleWhenInput.blur();
-    await page.locator(".srb-btn-save").click();
-    await expect(page.locator(".srb-btn-save")).toBeDisabled({ timeout: 3000 });
+    await page.locator('[data-testid="edit-mode-save"]').click();
+    await expect(page.locator('[data-testid="edit-mode-save"]')).toBeDisabled({ timeout: 3000 });
     const stored = await readScreenItemsFile(screenId1);
     expect(stored?.items[0].visibleWhen).toBe("@inputs.role === 'admin'");
   });
@@ -504,8 +504,8 @@ test.describe("詳細フィールド展開行 (#353)", { tag: ["@regression"] },
     await row.locator('button[aria-label="詳細展開"]').click();
     await expect(page.locator(".screen-items-detail-row")).toBeVisible({ timeout: 3000 });
     // 保存して別画面に遷移
-    await page.locator(".srb-btn-save").click();
-    await expect(page.locator(".srb-btn-save")).toBeDisabled({ timeout: 3000 });
+    await page.locator('[data-testid="edit-mode-save"]').click();
+    await expect(page.locator('[data-testid="edit-mode-save"]')).toBeDisabled({ timeout: 3000 });
     await ws.gotoActive(page, `/screen/items/${SCREEN2_NORM}`);
     await expect(page.locator(".screen-items-view")).toBeVisible({ timeout: 10000 });
     await expect(page.locator(".screen-items-detail-row")).toHaveCount(0);
@@ -543,7 +543,7 @@ test.describe("per-screen タブ独立編集 (#696)", { tag: ["@regression"] }, 
     await startEdit(page1);
     await page1.locator(".screen-items-view button:has-text('項目追加')").click();
     await page1.locator('.screen-items-table input[placeholder="例: email"]').first().fill("screen1Field");
-    await expect(page1.locator(".srb-btn-save")).toBeEnabled({ timeout: 3000 });
+    await expect(page1.locator('[data-testid="edit-mode-save"]')).toBeEnabled({ timeout: 3000 });
 
     const page2 = await context.newPage();
     await ws.gotoActive(page2, `/screen/items/${SCREEN2_NORM}`);
@@ -551,11 +551,11 @@ test.describe("per-screen タブ独立編集 (#696)", { tag: ["@regression"] }, 
     await startEdit(page2);
     await page2.locator(".screen-items-view button:has-text('項目追加')").click();
     await page2.locator('.screen-items-table input[placeholder="例: email"]').first().fill("screen2Field");
-    await expect(page2.locator(".srb-btn-save")).toBeEnabled({ timeout: 3000 });
+    await expect(page2.locator('[data-testid="edit-mode-save"]')).toBeEnabled({ timeout: 3000 });
 
-    await page2.locator(".srb-btn-save").click();
-    await expect(page2.locator(".srb-btn-save")).toBeDisabled({ timeout: 3000 });
-    await expect(page1.locator(".srb-btn-save")).toBeEnabled();
+    await page2.locator('[data-testid="edit-mode-save"]').click();
+    await expect(page2.locator('[data-testid="edit-mode-save"]')).toBeDisabled({ timeout: 3000 });
+    await expect(page1.locator('[data-testid="edit-mode-save"]')).toBeEnabled();
 
     await context.close();
   });

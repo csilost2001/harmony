@@ -1103,7 +1103,10 @@ describe("ScreenItemsView (Step 3: autosave / draft / lock)", () => {
       const { container } = renderWithRouter();
       await startEditingMode(container);
 
-      // 「保存」click
+      // 変更がなければ「保存」は押せないので、項目 ID を 1 文字変えてから「保存」click
+      const idInput = container.querySelector<HTMLInputElement>('.screen-items-table input[placeholder="例: email"]');
+      expect(idInput).not.toBeNull();
+      await act(async () => { fireEvent.change(idInput!, { target: { value: `${idInput!.value}x` } }); });
       const saveBtn = container.querySelector<HTMLButtonElement>('[data-testid="edit-mode-save"]');
       expect(saveBtn).not.toBeNull();
       await act(async () => {

@@ -79,6 +79,9 @@ import { AddActionModal } from "./internal/AddActionModal";
 import { StepContextMenu } from "./internal/StepContextMenu";
 import { WarningsPanel } from "./internal/WarningsPanel";
 import { ALL_STEP_TYPES } from "./internal/stepCardConstants";
+import { StepInsertMenu } from "./internal/StepInsertMenu";
+import { focusStepHeader, useStepKeyboard } from "./internal/useStepKeyboard";
+import { applyOutline, type OutlineLine } from "../../utils/processFlowOutline";
 import { getActionTriggerLabel } from "./internal/actionTriggerConstants";
 import { ProcessFlowDialogs } from "./internal/ProcessFlowDialogs";
 import { useProcessFlowCatalogs } from "./internal/useProcessFlowCatalogs";
@@ -478,16 +481,23 @@ export function ProcessFlowEditor() {
 
   // ActionHelpPopover の位置 / open-close debounce は useActionHelpPopover に集約済 (Phase-3)。
 
-  const handleAddStep = (kind: StepType, insertIndex?: number) => {
+  const handleAddStep = (kind: StepType, insertIndex?: number, focusNew = false) => {
     if (!activeAction) return;
     updateGroupWithDraft((g) => {
       const act = g.actions.find((a) => a.id === activeActionId);
       if (act) {
         const step = addStep(act, kind, insertIndex);
         setNewStepIds((prev) => new Set(prev).add(step.id));
+        if (focusNew) pendingFocusStepRef.current = step.id;
       }
     });
   };
+
+  // ── キーボード操作 (docs/spec/process-flow-keyboard.md) ──────────────────────
+  /** 挿入メニュー。afterStepId = その工程の後ろへ (null なら末尾) */
+  const [insertMenu, setInsertMenu] = useState<{ afterStepId: string | null } | null>(null);
+  /** 挿入した工程へ、描画のあとでフォーカスを移す */
+  const pendingFocusStepRef = useRef<string | null>(null);
 
   const handleAddTemplate = (templateId: string) => {
     const tpl = STEP_TEMPLATES.find((t) => t.id === templateId);
@@ -609,6 +619,15 @@ export function ProcessFlowEditor() {
       if (parent) addSubStep(parent, kind, g);
     });
     closeContextMenu();
+  };
+
+  /** アウトライン (テキスト) の内容を、工程の並びへ反映する (docs/spec/process-flow-outline.md) */
+  const handleApplyOutline = (lines: OutlineLine[]) => {
+    updateGroupWithDraft((g) => {
+      const act = g.actions.find((a) => a.id === activeActionId);
+      if (!act) return;
+      act.steps = applyOutline(act.steps, lines, collectAllProcessFlowLocalIds(g)).steps;
+    });
   };
 
   const handleDuplicateStep = (stepId: string) => {
@@ -779,6 +798,44 @@ export function ProcessFlowEditor() {
     enabled: !isReadonly && (selectedIds.size > 0 || clipboard !== null),
   });
 
+  // 工程の見出しを、キーボードだけで辿る・組み立てる (↑↓ / Enter / Insert ほか。インデントは、スキーマに入れ子の置き場が無いので配線しない)
+  useStepKeyboard({
+    editing: !isReadonly,
+    onInsert: (afterStepId) => setInsertMenu({ afterStepId }),
+    onOutdent: (parentId, id) => { handleOutdentSubStep(parentId, id); setTimeout(() => focusStepHeader(id), 60); },
+    onFocusStep: (id, topLevel) => setSelectedIds(topLevel ? new Set([id]) : new Set()),
+  });
+
+  // 挿入した工程へフォーカス (最初の入力欄へ。なければ見出しへ)
+  useEffect(() => {
+    const id = pendingFocusStepRef.current;
+    if (!id) return;
+    const card = document.querySelector<HTMLElement>(`.step-card[data-step-id="${CSS.escape(id)}"]`);
+    if (!card) return;
+    pendingFocusStepRef.current = null;
+    const field = card.querySelector<HTMLElement>(":scope > .step-card-body textarea, :scope > .step-card-body input:not([type=checkbox]):not([type=radio]):not([disabled])");
+    (field ?? card.querySelector<HTMLElement>(":scope > .step-card-header"))?.focus();
+    setSelectedIds(new Set([id]));
+  });
+
+  /** 挿入メニューで種類を選んだ: 指定の工程 (入れ子の中なら、いちばん外の工程) の後ろに挿入。なければ末尾 */
+  const handleInsertPick = (kind: StepType) => {
+    const after = insertMenu?.afterStepId ?? null;
+    setInsertMenu(null);
+    const steps = activeAction?.steps ?? [];
+    let index = steps.length;
+    if (after) {
+      let el: Element | null = document.querySelector(`.step-card[data-step-id="${CSS.escape(after)}"]`);
+      for (let outer = el?.closest(".sub-steps")?.closest(".step-card-wrapper"); outer; outer = el?.closest(".sub-steps")?.closest(".step-card-wrapper")) {
+        el = outer.querySelector(":scope > .step-card");
+      }
+      const topId = el?.getAttribute("data-step-id");
+      const at = steps.findIndex((s) => s.id === topId);
+      if (at >= 0) index = at + 1;
+    }
+    handleAddStep(kind, index, true);
+  };
+
   // 画面項目ピッカーのコールバック (#321) — hooks は early return より前で定義
   const handlePickScreenItem = useCallback((): Promise<ScreenItemPickResult | null> => {
     return new Promise((resolve) => {
@@ -865,6 +922,7 @@ export function ProcessFlowEditor() {
         onDiscardClick={() => setShowDiscardDialog(true)}
         onForceReleaseClick={() => setShowForceReleaseDialog(true)}
         saving={isSaving}
+        dirty={isDirty}
         ownerLabel={lockedByOther?.ownerSessionId}
       />
 
@@ -1076,6 +1134,7 @@ export function ProcessFlowEditor() {
               handleDuplicateStep={handleDuplicateStep}
               handleAddSubStep={handleAddSubStep}
               handleIndentStep={handleIndentStep}
+              onApplyOutline={handleApplyOutline}
               handleOutdentSubStep={handleOutdentSubStep}
               handleStepClick={handleStepClick}
               onNavigateCommon={(refId) => navigate(wsPath(`/process-flow/edit/${refId}`))}
@@ -1110,6 +1169,15 @@ export function ProcessFlowEditor() {
       </div>
 
       {/* コンテキストメニュー (Phase-3 で internal/StepContextMenu に抽出) */}
+      {insertMenu && (
+        <StepInsertMenu
+          kinds={ALL_STEP_TYPES}
+          where={insertMenu.afterStepId ? "選んだ工程の後ろに" : "末尾に"}
+          onPick={handleInsertPick}
+          onClose={() => { const id = insertMenu.afterStepId; setInsertMenu(null); if (id) setTimeout(() => focusStepHeader(id), 30); }}
+        />
+      )}
+
       {!isReadonly && contextMenu && (
         <StepContextMenu
           x={contextMenu.x}

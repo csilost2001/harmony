@@ -1405,7 +1405,7 @@ export const tools = [
           description: "編集対象 resource の種別",
         },
         resourceId: { type: "string", description: "編集対象 resource の ID (singleton resource は \"singleton\" 等)" },
-        displayLabel: { type: "string", description: "participant の表示名 (例: \"@alice\" / \"AI@bot\")。省略時は sessionId" },
+        displayLabel: { type: "string", description: "participant の表示名 (例: \"山田\" / AI は末尾に @AI を付けた \"Alice@AI\"。画面は末尾の @AI で AI を見分ける)。省略時は sessionId" },
       },
       required: ["resourceType", "resourceId"],
     },

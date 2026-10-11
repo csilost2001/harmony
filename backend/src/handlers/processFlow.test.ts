@@ -364,7 +364,7 @@ describe("writeProcessFlow AJV validation — #1141 F-2", () => {
   const root = path.join(TMP_ROOT, "ws-validation");
   beforeAll(async () => { await makeWorkspace(root); });
 
-  it("schema 違反の ProcessFlow を writeProcessFlow すると authoring.markers に validator marker が記録される (書き込みは許可)", async () => {
+  it("schema 違反の ProcessFlow も保存でき (draft-state)、違反は原本に書き込まれず、読み込み時の検査 (collectSchemaIssues) で出る", async () => {
     // schema 違反データ: meta.id が UUID 形式違反 (旧 `ag-xxx` 形式)、flowType 欠落
     const bad = {
       meta: {
@@ -382,45 +382,20 @@ describe("writeProcessFlow AJV validation — #1141 F-2", () => {
     await writeProcessFlow("ag-bad-id-not-uuid", bad, root);
     const reloaded = await readProcessFlow("ag-bad-id-not-uuid", root) as Record<string, unknown>;
     expect(reloaded).not.toBeNull();
-    // validator marker が authoring.markers に記録されている
-    const authoring = reloaded.authoring as Record<string, unknown>;
-    expect(authoring).toHaveProperty("markers");
-    const markers = authoring.markers as Array<Record<string, unknown>>;
-    expect(markers.length).toBeGreaterThan(0);
-    // common.v3 Marker 規範: kind='validator' + validatorCode + validatorPath 必須
-    const validatorMarkers = markers.filter((m) => m.kind === "validator");
-    expect(validatorMarkers.length).toBeGreaterThan(0);
-    for (const m of validatorMarkers) {
-      expect(typeof m.validatorCode).toBe("string");
-      expect(typeof m.validatorPath).toBe("string");
-      expect(typeof m.id).toBe("string");
-      expect(m.id).toMatch(UUID_V4_PATTERN); // marker.id は Uuid
-      expect(m.author).toBe("ai");
-      expect(typeof m.body).toBe("string");
-      expect(typeof m.createdAt).toBe("string");
-    }
+    // 機械が出した警告 (kind=validator のマーカー) は、原本に書き込まない
+    const markers = ((reloaded.authoring as Record<string, unknown> | undefined)?.markers ?? []) as Array<Record<string, unknown>>;
+    expect(markers.filter((m) => m.kind === "validator")).toEqual([]);
   });
 
-  it("同 validatorCode + validatorPath の marker は重複追加されない", async () => {
-    const bad = {
-      meta: {
-        id: "dup-marker-test",
-        name: "dup",
-        createdAt: "2026-01-01T00:00:00.000Z",
-        updatedAt: "2026-01-01T00:00:00.000Z",
-      },
-      context: {},
-      actions: [],
-      authoring: {},
-    };
-    await writeProcessFlow("dup-marker-test", bad, root);
-    const after1 = await readProcessFlow("dup-marker-test", root) as Record<string, unknown>;
-    const markers1 = ((after1.authoring as Record<string, unknown>).markers as Array<unknown>).length;
-    // 2 回目書込: 同じ違反なので marker は増えない
-    await writeProcessFlow("dup-marker-test", after1, root);
-    const after2 = await readProcessFlow("dup-marker-test", root) as Record<string, unknown>;
-    const markers2 = ((after2.authoring as Record<string, unknown>).markers as Array<unknown>).length;
-    expect(markers2).toBe(markers1);
+  it("人・AI のマーカーは残し、以前に書き込まれた validator マーカーだけを保存時に取り除く", async () => {
+    const human = { id: "11111111-1111-4111-8111-111111111111", kind: "todo", body: "確認して", author: "human", createdAt: "2026-01-01T00:00:00.000Z" };
+    const stale = { id: "22222222-2222-4222-8222-222222222222", kind: "validator", body: "古い警告", author: "ai", createdAt: "2026-01-01T00:00:00.000Z", validatorCode: "AJV_REQUIRED", validatorPath: "/meta" };
+    await writeProcessFlow("strip-test", {
+      meta: { id: "strip-test", name: "x", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" },
+      context: {}, actions: [], authoring: { markers: [human, stale] },
+    }, root);
+    const after = await readProcessFlow("strip-test", root) as Record<string, unknown>;
+    expect((after.authoring as { markers: Array<{ id: string }> }).markers.map((m) => m.id)).toEqual([human.id]);
   });
 
   it("schema valid な ProcessFlow は marker を追加しない", async () => {

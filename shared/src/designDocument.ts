@@ -98,6 +98,8 @@ export interface DesignDocInput {
   regex?: Record<string, { pattern?: string; exampleValid?: string[]; exampleInvalid?: string[] }>;
   /** プロジェクト独自部品の定義 (画面レイアウトの展開と「独自部品」の章に使う) */
   layoutComponents?: LayoutComponentDef[];
+  /** 設計の外で検出した要確認 (スキーマに合っていない点など)。要確認事項に加える */
+  extraIssues?: DocIssue[];
   /** 表紙に出す版 (例: git の短縮 SHA) */
   version?: string;
   /** 作成日時 (ISO)。省略時は呼び出し時刻 */
@@ -116,7 +118,7 @@ export interface DesignDocResult {
 }
 
 /** 要確認事項の対象となる設計 (分かるものだけ)。画面から開く・設計書の該当節へ飛ぶために使う */
-export interface DocIssueRef { kind: "screen" | "table" | "businessFlow" | "report"; id: string }
+export interface DocIssueRef { kind: "screen" | "table" | "processFlow" | "businessFlow" | "report"; id: string }
 export interface DocIssue { severity: "error" | "warning" | "info"; section: string; message: string; ref?: DocIssueRef }
 
 // ── 小道具 ───────────────────────────────────────────────────────────────
@@ -664,11 +666,12 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
     msgs.map(([k, m], i) => [String(i + 1), `<code>@conv.msg.${esc(k)}</code>`, esc(m.template ?? ""), esc(m.description ?? "")]),
   ), String(chap));
 
-  // 要確認事項
+  // 要確認事項 (設計の外で検出したものも含める)
+  for (const x of input.extraIssues ?? []) issues.push(x);
   const sevLabel = { error: "エラー", warning: "警告", info: "情報" } as const;
   sec("issues", "要確認事項", 1, issues.length
     ? table(["区分", "対象", "内容"], issues.map((x) => {
-      const a = x.ref ? `#${anchor(x.ref.kind === "businessFlow" ? "business-flow" : x.ref.kind, x.ref.id)}` : "";
+      const a = x.ref ? `#${anchor(x.ref.kind === "businessFlow" ? "business-flow" : x.ref.kind === "processFlow" ? "flow" : x.ref.kind, x.ref.id)}` : "";
       return [`<span class="hd-sev hd-sev-${x.severity}">${sevLabel[x.severity]}</span>`, a ? `<a href="${a}">${esc(x.section)}</a>` : esc(x.section), esc(x.message)];
     }))
     : `<p class="hd-empty">要確認事項はありません。</p>`, String(chap + 1));

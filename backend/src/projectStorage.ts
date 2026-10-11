@@ -14,12 +14,12 @@
  * - resolveDataRoot(root) が on-demand で harmony.json を読み dataDir を解決する
  * - ensureDataDir(root, dataDirVal) で呼び出し側が dataDir 値を渡す設計
  */
-import { describeAjvError, selectAjvErrors } from "./ajvMessages.js";
+import { selectAjvErrors } from "./ajvMessages.js";
 import fs from "fs/promises";
 import fsSync from "fs";
 import path from "path";
 import crypto from "node:crypto";
-import type { ValidateFunction } from "ajv";
+import type { ErrorObject, ValidateFunction } from "ajv";
 import { logWarn } from "./serverLog.js";
 import { buildHarmonyAjv, DOC_CONFLICT_MARK, DOC_EXISTS_MARK } from "@harmony/shared";
 import { workspaceContextManager } from "./workspaceState.js";
@@ -241,78 +241,32 @@ async function getEntityValidator(kind: EntityKind): Promise<ValidateFunction> {
 }
 
 /**
- * Entity を AJV 検証し、違反があれば draft-state policy に従って warning marker を data.authoring.markers
- * に append する (#1141 F-2 / docs/spec/draft-state-policy.md)。
- *
- * - 違反があっても throw しない (draft-state policy: 保存可 + 警告可視化)
- * - marker.kind='validator' + validatorCode + validatorPath を必須付与 (common.v3.schema Marker 規約)
- * - 同 validatorCode + validatorPath の marker が既に未解決で存在する場合は重複追加しない (本文は最新に更新)
- * - 検査で解消していた違反の警告 (未解決の validator marker) は、resolvedAt を付けて解決済みにする
- * - 戻り値: 追加・更新・解決した marker 件数 (0 = 変化なし)
- *
- * NOTE: marker id は RFC 4122 v4 UUID (common.v3 Marker.id は Uuid)。
+ * Entity を AJV 検証し、違反の一覧を返す (読み取りだけ。設計の原本は書き換えない)。
+ * draft-state policy: 違反があっても保存は妨げず、「要確認」として読み込み時に示す
+ * (以前は違反を authoring.markers に書き込んでいたが、機械が出した警告で原本が汚れるのでやめた)。
  */
-async function annotateValidationWarnings(
-  kind: EntityKind,
-  data: unknown,
-): Promise<number> {
-  if (typeof data !== "object" || data === null || Array.isArray(data)) return 0;
+export async function validateEntitySchema(kind: EntityKind, data: unknown): Promise<ErrorObject[]> {
+  if (typeof data !== "object" || data === null || Array.isArray(data)) return [];
   const validate = await getEntityValidator(kind);
-  const valid = validate(data);
-  const errors = valid ? [] : (validate.errors ?? []);
+  if (validate(data)) return [];
+  return selectAjvErrors(validate.errors ?? []);
+}
 
+/**
+ * 設計の原本から、ツールが付けた検査の警告マーカー (kind="validator") を取り除く (保存時)。
+ * 検査の結果は読み込み時に計算して示すので、原本には残さない。人と AI のマーカーには触れない。
+ */
+function stripValidatorMarkers(data: unknown): void {
+  if (typeof data !== "object" || data === null || Array.isArray(data)) return;
   const obj = data as Record<string, unknown>;
-  const authoring = (typeof obj.authoring === "object" && obj.authoring !== null && !Array.isArray(obj.authoring))
-    ? obj.authoring as Record<string, unknown>
-    : {};
-  const markers = Array.isArray(authoring.markers) ? authoring.markers as Array<Record<string, unknown>> : [];
-  const now = new Date().toISOString();
-  let changed = 0;
-
-  // いまの違反 (code + path ごと)
-  const current = new Map<string, { code: string; path: string; body: string }>();
-  for (const err of selectAjvErrors(errors)) {
-    const path = typeof err.instancePath === "string" && err.instancePath.length > 0 ? err.instancePath : "/";
-    const code = `AJV_${(err.keyword ?? "ERROR").toUpperCase()}`;
-    const key = `${code}|${path}`;
-    if (!current.has(key)) current.set(key, { code, path, body: describeAjvError(err) });
-  }
-
-  // 解消した違反の警告は、解決済みにする。続いている違反は、本文を最新 (日本語) にする
-  const open = new Set<string>();
-  for (const m of markers) {
-    if (!m || typeof m !== "object" || m.kind !== "validator" || m.resolvedAt) continue;
-    const key = `${String(m.validatorCode)}|${String(m.validatorPath)}`;
-    const still = current.get(key);
-    if (!still) {
-      m.resolvedAt = now;
-      m.resolution = "保存時の検査で、解消していることを確認しました";
-      changed++;
-    } else {
-      open.add(key);
-      if (m.body !== still.body) { m.body = still.body; changed++; }
-    }
-  }
-
-  for (const [key, v] of current) {
-    if (open.has(key)) continue;
-    markers.push({
-      id: crypto.randomUUID(),
-      kind: "validator",
-      body: v.body,
-      author: "ai",
-      createdAt: now,
-      validatorCode: v.code,
-      validatorPath: v.path,
-    });
-    changed++;
-  }
-
-  if (changed > 0) {
-    authoring.markers = markers;
-    obj.authoring = authoring;
-  }
-  return changed;
+  const authoring = obj.authoring;
+  if (typeof authoring !== "object" || authoring === null || Array.isArray(authoring)) return;
+  const a = authoring as Record<string, unknown>;
+  if (!Array.isArray(a.markers)) return;
+  const kept = (a.markers as Array<Record<string, unknown>>).filter((m) => !(m && typeof m === "object" && m.kind === "validator"));
+  if (kept.length === (a.markers as unknown[]).length) return;
+  if (kept.length > 0) a.markers = kept; else delete a.markers;
+  if (Object.keys(a).length === 0) delete obj.authoring;
 }
 
 /**
@@ -941,8 +895,9 @@ export async function readScreen(screenId: string, root: string): Promise<unknow
 
 /** screens/{screenId}.json を書き込み
  *
- * #1141 F-2: schema 違反は draft-state policy に従い `authoring.markers` (kind='validator')
- * として entity 側に記録した上で書き込みを許可する (throw しない)。
+ * schema 違反があっても書き込める (throw しない。draft-state policy)。違反は原本に記録せず、
+ * 過去の validator マーカー (authoring.markers の kind='validator') は取り除く。違反は読み込み時に
+ * `collectSchemaIssues` が検査して「要確認」に出す。
  */
 export async function writeScreen(screenId: string, data: unknown, root: string): Promise<void> {
   const r = root;
@@ -966,7 +921,7 @@ export async function writeScreen(screenId: string, data: unknown, root: string)
   };
   // #1294 I-2: uuid preserve / 採番 (entity 側の .json に uuid を持つ。.design.json は GrapesJS HTML のため uuid 不要)
   await preserveOrAssignUuid("screen", entity, path.join(screensDir(dataRoot), `${screenId}.json`));
-  await annotateValidationWarnings("screen", entity);
+  stripValidatorMarkers(entity);
   const sDir = screensDir(dataRoot);
   await writeJSON(path.join(sDir, `${screenId}.json`), entity);
   const designPayload = await deflateDesignComponents({ data, baseDir: sDir, baseName: screenId });
@@ -1401,8 +1356,9 @@ export async function readTable(tableId: string, root: string): Promise<unknown 
 
 /** tables/{tableId}.json を書き込み
  *
- * #1141 F-2: schema 違反は draft-state policy に従い `authoring.markers` (kind='validator')
- * として entity 側に記録した上で書き込みを許可する (throw しない)。
+ * schema 違反があっても書き込める (throw しない。draft-state policy)。違反は原本に記録せず、
+ * 過去の validator マーカー (authoring.markers の kind='validator') は取り除く。違反は読み込み時に
+ * `collectSchemaIssues` が検査して「要確認」に出す。
  */
 export async function writeTable(tableId: string, data: unknown, root: string): Promise<void> {
   const r = root;
@@ -1415,7 +1371,7 @@ export async function writeTable(tableId: string, data: unknown, root: string): 
   if (isRecord(data)) {
     await preserveOrAssignUuid("table", data, filePath);
   }
-  await annotateValidationWarnings("table", data);
+  stripValidatorMarkers(data);
   await writeJSON(filePath, data);
 }
 
@@ -1472,8 +1428,9 @@ export async function readProcessFlow(processFlowId: string, root: string): Prom
  * #1141: 新規作成時 (両 path に未存在) は v3 規範の `process-flows/<id>.json` に書く。
  * 既存があれば既存配置を維持 (legacy `actions/<id>.json` も互換のため対応)。
  *
- * #1141 F-2: schema 違反は draft-state policy に従い `authoring.markers` (kind='validator')
- * として entity 側に記録した上で書き込みを許可する (throw しない)。
+ * schema 違反があっても書き込める (throw しない。draft-state policy)。違反は原本に記録せず、
+ * 過去の validator マーカー (authoring.markers の kind='validator') は取り除く。違反は読み込み時に
+ * `collectSchemaIssues` が検査して「要確認」に出す。
  */
 export async function writeProcessFlow(processFlowId: string, data: unknown, root: string): Promise<void> {
   const r = root;
@@ -1501,7 +1458,7 @@ export async function writeProcessFlow(processFlowId: string, data: unknown, roo
   if (isRecord(data)) {
     await preserveOrAssignUuid("processFlow", data, targetPath);
   }
-  await annotateValidationWarnings("processFlow", data);
+  stripValidatorMarkers(data);
   await writeJSON(targetPath, data);
 }
 

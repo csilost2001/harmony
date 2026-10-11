@@ -17,7 +17,7 @@ const dummyProject = buildProject({
   name: "E2Eテスト用プロジェクト",
 });
 
-const toolbarSave = ".save-reset-buttons button.srb-btn-save";
+const toolbarSave = '[data-testid="edit-mode-save"]';
 const toolbarReset = ".save-reset-buttons button.srb-btn-reset";
 
 const WS_KEY = "issue-926-save-reset-flow";
@@ -126,8 +126,8 @@ test.describe("フロー画面：保存/リセットボタン", { tag: ["@regres
     await expect(page.getByTestId("discard-confirm")).toBeVisible({ timeout: 3000 });
     await page.getByTestId("discard-confirm").click();
     await expect(page.getByTestId("edit-mode-start")).toBeVisible({ timeout: 8000 });
-    // readonly 復帰後: ボタンは DOM に残るが isDirty=false で disabled になる
-    await expect(page.locator(toolbarSave)).toBeDisabled();
+    // readonly 復帰後: 「保存」は出ない (編集開始の帯になる)。リセットは DOM に残るが isDirty=false で disabled
+    await expect(page.locator(toolbarSave)).toHaveCount(0);
     await expect(page.locator(toolbarReset)).toBeDisabled();
   });
 

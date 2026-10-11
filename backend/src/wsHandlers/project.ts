@@ -10,6 +10,7 @@
  * 旧エディタ (GrapesJS / Puck) の廃止に伴い、デザイン本体・Puck データ・カスタムブロックの
  * 書き込み系は無い (docs/plans/redesign-2026-10.md)。
  */
+import { collectSchemaIssues } from "../schemaIssues.js";
 import {
   readProject,
   writeProject,
@@ -52,6 +53,11 @@ export const projectHandlers: RpcHandlerMap = {
     assertEntityId(screenId, "screenId");
     const data = await readScreen(screenId, root());
     respond(data);
+  },
+
+  /** 設計の原本のスキーマ違反 (要確認)。読み込み時に計算して返す。原本は書き換えない */
+  getSchemaIssues: async ({ root, respond, respondError }) => {
+    try { respond(await collectSchemaIssues(root())); } catch (e) { respondError(e instanceof Error ? e.message : String(e)); }
   },
 
   loadScreenEntity: async ({ params, root, respond }) => {

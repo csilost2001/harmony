@@ -120,6 +120,11 @@ test.describe("spec §5 1-6 step 完全フロー (EditSession ライフサイク
       await expect(pageB.getByTestId("esd-toggle-btn")).toBeVisible({ timeout: 15000 });
 
       // step 6: alice が save → spec §5.1 / §8.3 で Active 継続 (Edit role 維持)
+      // (変更がないあいだは保存できないので、アクションをひとつ足してから保存する)
+      await pageA.locator(".process-flow-tab-add").click();
+      await pageA.getByPlaceholder("例: 登録ボタン、検索ボタン").fill("検証アクション");
+      await pageA.getByRole("button", { name: "追加", exact: true }).click();
+      await expect(pageA.getByTestId("edit-mode-save")).toBeEnabled({ timeout: 10000 });
       await pageA.getByTestId("edit-mode-save").click();
       // save 成功後も edit-mode-save / edit-mode-discard は表示され続ける
       await expect(pageA.getByTestId("edit-mode-save")).toBeVisible({ timeout: 10000 });

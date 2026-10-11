@@ -1146,6 +1146,7 @@ function FlowEditorInner() {
         onDiscardClick={() => setShowDiscardDialog(true)}
         onForceReleaseClick={() => setShowForceReleaseDialog(true)}
         saving={isSaving}
+        dirty={isDirty}
         ownerLabel={lockedByOther?.ownerSessionId}
       />
       {/* #994: collab UX 整合 — Viewer attach / take-over / 新規 draft / 履歴 */}

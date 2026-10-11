@@ -22,7 +22,9 @@ import {
   validateGenericDefinition,
 } from "../../schemas/genericDefinitionValidator";
 import { ValidationBadge } from "../common/ValidationBadge";
-import { makeTabId, openTab } from "../../store/tabStore";
+import { makeTabId, openTab, setDirty as setTabDirty } from "../../store/tabStore";
+import { useSaveShortcut } from "../../hooks/useSaveShortcut";
+import { registerChangeSource, requestShowChanges } from "../../utils/changeSource";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { SaveConflictDialog, type ConflictInfo } from "../editing/SaveConflictDialog";
 
@@ -69,6 +71,8 @@ export function GenericDefinitionEditor() {
   const [reloadBanner, setReloadBanner] = useState(false);
   // dirty 検出用: loaded 直後の serialized snapshot を保持し、現 def との diff で判定
   const initialSnapshotRef = useRef<string | null>(null);
+  // 同じ snapshot を、描画の中で使えるように state でも持つ (未保存の変更の判定・タブの ● 用)
+  const [baseline, setBaseline] = useState<string | null>(null);
 
   // #1331: GenericDefinition EditSession 統合 (mcpBridge 直接呼出版)。
   // 編集 (= def 変更) があった時に lazily editSession.create し、他 session の rename を
@@ -245,6 +249,7 @@ export function GenericDefinitionEditor() {
         } else {
           setDef(loaded);
           initialSnapshotRef.current = JSON.stringify(loaded);
+          setBaseline(initialSnapshotRef.current);
           setReloadBanner(false);
         }
       })
@@ -299,6 +304,26 @@ export function GenericDefinitionEditor() {
     [def],
   );
 
+  // 未保存の変更があるか (読み込んだ・最後に保存した内容との差)
+  const dirty = useMemo(() => !!def && baseline !== null && JSON.stringify(def) !== baseline, [def, baseline]);
+  const tabResourceId = kind && decodedName ? `${kind}:${decodedName}` : null;
+  useEffect(() => {
+    if (!tabResourceId) return;
+    const tabId = makeTabId("generic-definition", tabResourceId);
+    setTabDirty(tabId, dirty);
+    return () => setTabDirty(tabId, false);
+  }, [tabResourceId, dirty]);
+  // 「変更点」の表示用 (読み込んだ内容といまの内容)
+  const defRef = useRef<GenericDefinition | null>(null);
+  useEffect(() => { defRef.current = def; }, [def]);
+  useEffect(() => {
+    if (!tabResourceId) return;
+    return registerChangeSource(makeTabId("generic-definition", tabResourceId), {
+      getBefore: () => (initialSnapshotRef.current ? JSON.parse(initialSnapshotRef.current) : null),
+      getAfter: () => defRef.current,
+    });
+  }, [tabResourceId]);
+
   const updateDef = useCallback((updater: (prev: GenericDefinition) => GenericDefinition) => {
     setDef((prev) => prev ? updater(prev) : prev);
     // #1331: 編集が発生したら EditSession を作成 (lazy)。重複 create は ensureEditSession 内で抑制。
@@ -328,6 +353,7 @@ export function GenericDefinitionEditor() {
   const postSaveSuccess = useCallback((savedDef: GenericDefinition) => {
     setSaveSuccess(true);
     initialSnapshotRef.current = JSON.stringify(savedDef);
+    setBaseline(initialSnapshotRef.current);
     setReloadBanner(false);
     setSaveConflict(null);
     // #1331: save 成功後は EditSession を discard。target を snapshot して、await 中の
@@ -437,6 +463,9 @@ export function GenericDefinitionEditor() {
       setSaving(false);
     }
   }, [def, reloadBanner, ensureEditSession, postSaveSuccess]);
+
+  // Ctrl+S (入力欄の中でも効く)。変更がないときは何もしない
+  useSaveShortcut(() => { if (dirty) handleSave().catch(console.error); }, !!def);
 
   const handleDelete = useCallback(async () => {
     if (!kind || !decodedName) return;
@@ -569,10 +598,22 @@ export function GenericDefinitionEditor() {
           >
             一覧に戻る
           </button>
+          {dirty && (
+            <button
+              className="btn btn-outline-secondary btn-sm"
+              onClick={requestShowChanges}
+              title="保存する前に、何が変わったかを確かめる"
+              data-testid="generic-definition-changes"
+            >
+              <i className="bi bi-card-checklist" /> 変更点
+            </button>
+          )}
           <button
             className="btn btn-primary btn-sm"
             onClick={handleSave}
-            disabled={saving || reloadBanner}
+            disabled={saving || reloadBanner || !dirty}
+            title={dirty ? "保存 (Ctrl+S)" : "変更がないので、保存するものはありません"}
+            data-testid="generic-definition-save"
           >
             {saving ? "保存中..." : "保存"}
           </button>

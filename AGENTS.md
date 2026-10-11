@@ -51,6 +51,7 @@ npm run kill           # 5173 / 5179 を握るプロセスを停止
 | 設計の要確認事項の検査 (終了コードで判定。`npm run check` に含まれる) | `npm run check:design -- examples/<project-id> [--strict] [--info]` |
 | テスト観点表の書き出し (画面入力の境界値・処理の分岐。ID つき。テストコード生成の入力) | `npm run export:tests -- examples/<project-id> --format json` |
 | 設計書 HTML の書き出し | `npm run export:doc -- examples/<project-id> --out .tmp/doc.html` |
+| 大きなプロジェクトでの性能 (画面 約 300 / 処理フロー 約 150 / テーブル 約 170。回帰には含めない) | `cd frontend && npx playwright test e2e/perf-large-project.spec.ts` (大きなワークスペースは `scripts/dev/make-large-workspace.mjs` が作る) |
 | AI (MCP) から: 設計の点検・参照元・改名・テスト観点 | `designer__check_design` (設計を直したら、完了報告の前に呼び error / warning 0 件にする) / `designer__find_references` (誰が参照しているか) / `designer__rename_entity` (既定は予行、`apply: true` で実行) と `designer__undo_rename` / `designer__get_test_viewpoints` |
 
 - E2E は自前で起動した backend を再利用すると E2E 用環境変数が効かず失敗する。E2E 実行前は `npm run kill` して Playwright にサーバを起動させる。
