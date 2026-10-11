@@ -205,6 +205,10 @@ export function StepCard({
       >
         <div
           className="step-card-header"
+          tabIndex={0}
+          role="button"
+          aria-expanded={expanded}
+          aria-label={`${label} ${STEP_TYPE_LABELS[step.kind]}`}
           onClick={(e) => {
             if ((e.target as HTMLElement).closest("[data-drag-handle]")) return;
             if ((e.ctrlKey || e.metaKey || e.shiftKey) && onHeaderClick) {

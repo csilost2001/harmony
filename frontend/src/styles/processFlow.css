@@ -3139,3 +3139,10 @@
 .pft-row.is-selected td { background: var(--hm-accent-soft); }
 .pft-row.is-selected td.pft-no { box-shadow: inset 3px 0 0 var(--hm-accent); }
 .pft-empty { text-align: center; color: var(--hm-fg-muted); padding: 24px; }
+
+/* 工程の見出しは、キーボードでフォーカスできる (↑↓ で前後へ、Enter で入力、Insert で挿入。docs/spec/process-flow-keyboard.md) */
+.step-card-header:focus-visible {
+  outline: 2px solid var(--hm-focus);
+  outline-offset: -2px;
+  border-radius: 6px;
+}
