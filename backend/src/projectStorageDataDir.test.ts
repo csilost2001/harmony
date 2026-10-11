@@ -665,14 +665,14 @@ describe("write* 内蔵 uniqueness check (#1294 I-2 review Must-fix #1)", () => 
 
 // ── #1332 Codex 再 review M2: listProcessFlows bulk path も uuid persist 適用済 ──
 
-describe("listProcessFlows: bulk path も uuid persist 適用 (#1332 M2 regression)", () => {
+describe("listProcessFlows: uuid の無いファイルは、uuid を (メモリ上で) 補って返し、ファイルは書き換えない", () => {
   const root = path.join(TMP_ROOT, "ws-list-pf-uuid-persist");
 
   beforeAll(async () => {
     await makeWorkspace(root, "harmony");
   });
 
-  it("meta.uuid 欠落の legacy actions/<id>.json は listProcessFlows 経由で uuid が persist される", async () => {
+  it("meta.uuid 欠落の legacy actions/<id>.json は、listProcessFlows で安定した uuid が付いて返り、ファイルは変わらない", async () => {
     const flowId = "legacy-actions-pf";
     const dataRoot = path.join(root, "harmony");
     const legacyDir = path.join(dataRoot, "actions");
@@ -705,10 +705,10 @@ describe("listProcessFlows: bulk path も uuid persist 適用 (#1332 M2 regressi
     expect(typeof meta1.uuid).toBe("string");
     expect(meta1.uuid as string).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
 
-    // disk 上にも persist されている (再読込で同じ uuid が返る = immutability)
+    // ファイルは書き換えない (開いただけ・一覧を見ただけで原本を変えない)。uuid は種類 + id から決まるので、何度読んでも同じ値
     const onDisk1 = JSON.parse(await fs.readFile(legacyPath, "utf-8")) as Record<string, unknown>;
-    const persistedUuid = (onDisk1.meta as Record<string, unknown>).uuid;
-    expect(persistedUuid).toBe(meta1.uuid);
+    expect((onDisk1.meta as Record<string, unknown>).uuid).toBeUndefined();
+    const persistedUuid = meta1.uuid;
 
     // 2 回目の list でも同じ uuid (uuid immutability)
     const list2 = await listProcessFlows(root);
@@ -719,7 +719,7 @@ describe("listProcessFlows: bulk path も uuid persist 適用 (#1332 M2 regressi
     expect(meta2.uuid).toBe(persistedUuid);
   });
 
-  it("meta.uuid 欠落の current process-flows/<id>.json も listProcessFlows 経由で uuid が persist される", async () => {
+  it("meta.uuid 欠落の current process-flows/<id>.json も、uuid が付いて返り、ファイルは変わらない", async () => {
     const flowId = "current-pf-no-uuid";
     const dataRoot = path.join(root, "harmony");
     const currentDir = path.join(dataRoot, "process-flows");
@@ -749,8 +749,11 @@ describe("listProcessFlows: bulk path も uuid persist 適用 (#1332 M2 regressi
     const meta = found?.meta as Record<string, unknown>;
     expect(typeof meta.uuid).toBe("string");
 
-    // disk persist 確認
+    // ファイルは変わらない。保存 (writeProcessFlow) で、渡された uuid が初めてファイルに残る
     const onDisk = JSON.parse(await fs.readFile(currentPath, "utf-8")) as Record<string, unknown>;
-    expect((onDisk.meta as Record<string, unknown>).uuid).toBe(meta.uuid);
+    expect((onDisk.meta as Record<string, unknown>).uuid).toBeUndefined();
+    await writeProcessFlow(flowId, found, root);
+    const saved = JSON.parse(await fs.readFile(currentPath, "utf-8")) as Record<string, unknown>;
+    expect((saved.meta as Record<string, unknown>).uuid).toBe(meta.uuid);
   });
 });

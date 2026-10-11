@@ -1,7 +1,8 @@
 /**
  * uuid を持たない entity を同時に読んだ時の整合性。
- * 読込時の uuid 補完 (ファイル書き戻し) が並行すると、片方が書き込み途中の空ファイルを読んで
+ * 以前は、読込時の uuid 補完 (ファイル書き戻し) が並行すると、片方が書き込み途中の空ファイルを読んで
  * null (= 存在しない) を返したり、呼び出しごとに別の uuid を返したりしていた。
+ * いまは読むだけ (uuid は種類 + id から決めてメモリ上で補う) なので、並行しても全員が同じ内容・同じ uuid を受け取る。
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import fs from "node:fs/promises";
@@ -24,7 +25,7 @@ beforeAll(async () => {
 afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true }); });
 
 describe("readTable の同時読込", () => {
-  it("uuid 補完が並行しても全員が同じ内容を受け取り、ファイルの uuid と一致する", async () => {
+  it("並行して読んでも全員が同じ内容・同じ uuid を受け取り、ファイルは書き換わらない", async () => {
     const columns = Array.from({ length: 200 }, (_, i) => ({ id: `c${i}`, physicalName: `col_${i}`, name: `列${i}`, dataType: "VARCHAR", length: 100 }));
     await fs.writeFile(TABLE_FILE, JSON.stringify({ id: "orders", physicalName: "orders", name: "注文", columns }, null, 2));
 
@@ -32,8 +33,9 @@ describe("readTable の同時読込", () => {
     expect(results.every((r) => r !== null)).toBe(true);
     const uuids = new Set(results.map((r) => r?.uuid));
     expect(uuids.size).toBe(1);
-    const onDisk = JSON.parse(await fs.readFile(TABLE_FILE, "utf-8")) as { uuid: string };
-    expect(onDisk.uuid).toBe(results[0]?.uuid);
+    expect(results[0]?.uuid).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    const onDisk = JSON.parse(await fs.readFile(TABLE_FILE, "utf-8")) as { uuid?: string };
+    expect(onDisk.uuid).toBeUndefined(); // 読んだだけではファイルを変えない
     // 呼び出し側が結果を書き換えても他の呼び出しの結果に波及しない
     expect(results[0]).not.toBe(results[1]);
   });

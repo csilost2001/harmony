@@ -245,6 +245,10 @@ backend が動作しているホスト OS 情報を返す。`AddWorkspaceDialog`
 - CLI (`scripts/lib/load-workspace.mjs`) は、載っていないものを「情報」で知らせる (設計書・検査には含める)。
 - 画面フローの内容 (`screenGroups` / `screenTransitions`) は一覧側にだけある原本で、ファイルからは導けない。
 
+### uuid の無いファイル
+
+手で置いた・AI が作ったファイルに `uuid` が無くても、読んだだけ (開く・一覧・検索・設計書) ではファイルを書き換えない。`uuid` は**種類 + id から決めた値** (v4 の形) をメモリ上で補って返すので、何度読んでも同じ値になる。保存 (`writeX`) のとき、渡された `uuid` がそのままファイルに残る (`backend/src/projectStorage.ts` の `deriveStableUuid`)。
+
 ---
 
 ## 4. lockdown モード

@@ -400,46 +400,31 @@ async function writeJSON(filePath: string, data: unknown): Promise<void> {
   }
 }
 
-/** 同じファイルへの uuid 補完が並行すると別々の uuid を書き合うため、ファイル単位で 1 本にまとめる */
-const ensureUuidInFlight = new Map<string, Promise<unknown | null>>();
-
-function readEntityAndEnsureUuid(
-  kind: TopLevelEntityKind,
-  filePath: string,
-): Promise<unknown | null> {
-  const pending = ensureUuidInFlight.get(filePath);
-  if (pending) return pending.then((d) => (d && typeof d === "object" ? structuredClone(d) : d));
-  const p = readEntityAndEnsureUuidOnce(kind, filePath).finally(() => ensureUuidInFlight.delete(filePath));
-  ensureUuidInFlight.set(filePath, p);
-  return p;
-}
-
-async function readEntityAndEnsureUuidOnce(
+/**
+ * 設計の実体を読み、uuid が無ければ**ファイルの id から決めた uuid** を (メモリ上だけで) 付けて返す。ファイルは書き換えない。
+ * 以前は、読んだときに uuid を採番してファイルへ書き戻していた (開いただけ・一覧を見ただけで原本が変わっていた)。
+ * 決め方は種類 + id で固定 (v4 の形) なので、何度読んでも同じ値で、保存 (writeX は渡された uuid を保つ) のときに初めてファイルに残る。
+ */
+async function readEntityAndEnsureUuid(
   kind: TopLevelEntityKind,
   filePath: string,
 ): Promise<unknown | null> {
   const data = await readJSON<any>(filePath);
   if (!data || typeof data !== "object") return data;
-
-  let hasUuid = false;
-  if (kind === "processFlow") {
-    hasUuid = !!(data.meta && typeof data.meta === "object" && data.meta.uuid);
-  } else {
-    hasUuid = !!data.uuid;
+  const holder = kind === "processFlow" ? (data.meta && typeof data.meta === "object" ? data.meta : null) : data;
+  if (kind === "processFlow" && !holder) return data;
+  if (holder && !holder.uuid) {
+    const id = typeof holder.id === "string" && holder.id ? holder.id : path.basename(filePath, ".json");
+    holder.uuid = deriveStableUuid(kind, id);
   }
-
-  if (!hasUuid) {
-    const newUuid = crypto.randomUUID();
-    if (kind === "processFlow") {
-      if (!data.meta || typeof data.meta !== "object") data.meta = {};
-      data.meta.uuid = newUuid;
-    } else {
-      data.uuid = newUuid;
-    }
-    await writeJSON(filePath, data);
-  }
-
   return data;
+}
+
+/** 種類 + id から決める uuid (RFC 4122 v4 の形。同じ入力なら同じ値) */
+export function deriveStableUuid(kind: string, id: string): string {
+  const h = crypto.createHash("sha256").update(`harmony:${kind}:${id}`).digest("hex");
+  const variant = "89ab"[parseInt(h[16], 16) % 4];
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-${variant}${h.slice(17, 20)}-${h.slice(20, 32)}`;
 }
 
 // ── EntityId uniqueness / uuid preserve helpers (#1294 I-2, RFC #1284) ──────
