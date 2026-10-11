@@ -16,19 +16,22 @@
 | → / ← | 工程を開く / 閉じる。Space で切り替え |
 | Enter / F2 | 工程を開き、最初の入力欄 (textarea / input) へ |
 | Insert または `/` | 工程の挿入メニューを開く。種類を入力して絞り込み、↑↓ + Enter で選ぶ。選ぶと見出しの次に挿入され、新しい工程の入力欄へカーソルが入る |
-| Tab | 最上位の工程なら、直前の工程の子 (`subSteps`) にする。移った先の見出しにカーソルが残る |
-| Shift+Tab | 子の工程を、親の次の位置へ出す |
+| Shift+Tab | 古い形式の入れ子 (`subSteps`) の工程を、親の次の位置へ出す |
 | Esc | 入力欄 → 見出しへ戻る |
 | Ctrl+Enter (入力欄の中) | 次の工程を挿入 |
 | Insert (工程以外の場所) | 末尾へ工程を挿入 |
 
 編集中でないとき (閲覧) は、移動・開閉だけが使える。
 
+### インデント (Tab) を入れていない理由
+
+工程を別の工程の中へ入れる「インデント」は、`subSteps` という項目を書き込む。この項目は v3 スキーマ (`schemas/v3/process-flow.v3.schema.json`) の工程に定義がなく、書き込むと保存した原本がスキーマ違反 (「要確認」) になる。スキーマは設計者の専権なので、AI の判断で項目を足さない。入れ子の置き場 (工程の共通項目に `subSteps` を足す / 分岐・繰り返しの中身として表す 等) が決まったら、`useStepKeyboard` の `onIndent` を配線すれば Tab で入れ子にできる (フック側は対応済み)。マウスの「インデント」ボタン (StepCard) も同じ問題を持つ。
+
 ## 実装
 
 - `frontend/src/components/process-flow/internal/useStepKeyboard.ts` — DOM のイベントを見て、挿入・インデント・アウトデントを `ProcessFlowEditor` へ依頼するフック。
 - `frontend/src/components/process-flow/internal/StepInsertMenu.tsx` — 種類を絞り込む挿入メニュー (combobox)。
-- 子の工程は親の `.step-card` の中ではなく、同じ `.step-card-wrapper` 内の `.sub-steps` に描画される。入れ子の判定はこの構造に依存する。
+- 古い形式の子の工程は親の `.step-card` の中ではなく、同じ `.step-card-wrapper` 内の `.sub-steps` に描画される。入れ子の判定はこの構造に依存する。
 - ショートカット一覧 (`?` キー) は `frontend/src/utils/shortcuts.ts`。
 
 ## 今後 (段階 2 以降)

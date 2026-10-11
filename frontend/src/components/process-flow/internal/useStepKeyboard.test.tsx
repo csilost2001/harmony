@@ -83,6 +83,14 @@ describe("useStepKeyboard", () => {
     expect(h.onOutdent).toHaveBeenCalledTimes(1);
   });
 
+  it("処理を渡さなければ Tab は何もしない (通常のフォーカス移動)", () => {
+    const h = mk({ onIndent: undefined, onOutdent: undefined });
+    const { getByTestId } = render(<Harness h={h} />);
+    const ev = new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true });
+    getByTestId("hb").dispatchEvent(ev);
+    expect(ev.defaultPrevented).toBe(false);
+  });
+
   it("Esc で、入力欄から工程の見出しへ戻る。→ ← で開閉 (見出しの click)", () => {
     const h = mk();
     const { getByTestId } = render(<Harness h={h} />);

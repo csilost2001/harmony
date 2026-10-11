@@ -21,6 +21,7 @@
 | [process-flow-sla.md](process-flow-sla.md) | SLA / Timeout 宣言 (ProcessFlow / ActionDefinition / StepBase) | #412 |
 | [process-flow-keyboard.md](process-flow-keyboard.md) | 処理フローのキーボード操作 (工程の移動・挿入・インデント) | - |
 | [grid-keyboard.md](grid-keyboard.md) | 表の入力のキーボード操作 (画面項目の行移動・カラムの編集パネルの連続入力) | - |
+| [process-flow-outline.md](process-flow-outline.md) | 処理フローのアウトライン (1 行 1 工程のテキスト) 編集 (試作) | - |
 | [process-flow-criterion.md](process-flow-criterion.md) | Criterion (ExternalSystemStep の `successCriteria`、Arazzo 1.0 互換、`$` Runtime Expression 推奨) | #427 |
 | [process-flow-tier-c.md](process-flow-tier-c.md) | Tier C 拡張 — circuitBreaker / bulkhead / ClosingStep / CdcStep / health / readiness / resources | #426 |
 | [process-flow-expression-language.md](process-flow-expression-language.md) | runIf / expression / bodyExpression の式言語 BNF (js-subset) | #253 |

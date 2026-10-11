@@ -4,7 +4,7 @@
  * 工程の見出し (.step-card-header) にフォーカスがあるとき:
  *   ↑ ↓ / Home End  前後の工程へ     → ←  開く / 閉じる     Space  開閉     Enter / F2  開いて最初の入力欄へ
  *   Insert / /      工程を挿入 (種類を打ち込んで選ぶ)
- *   Tab / Shift+Tab  インデント (直前の工程の中へ) / アウトデント     (編集中のみ)
+ *   Tab / Shift+Tab  インデント (直前の工程の中へ) / アウトデント     (編集中のみ。呼び出し側が処理を渡したときだけ)
  * 入力欄の中: Esc で工程の見出しへ戻る / Ctrl+Enter で、この工程の後ろに挿入
  * どこでも (入力欄の外): Insert で、いまの位置 (なければ末尾) に挿入
  *
@@ -17,8 +17,10 @@ export interface StepKeyboardHandlers {
   editing: boolean;
   /** 工程を挿入するメニューを開く。afterStepId = その工程の後ろ (なければ末尾) */
   onInsert: (afterStepId: string | null) => void;
-  onIndent: (stepId: string) => void;
-  onOutdent: (parentStepId: string, stepId: string) => void;
+  /** 直前の工程の中へ入れる (Tab)。渡さなければ Tab は通常のフォーカス移動 */
+  onIndent?: (stepId: string) => void;
+  /** 入れ子の工程をひとつ外へ出す (Shift+Tab)。渡さなければ通常のフォーカス移動 */
+  onOutdent?: (parentStepId: string, stepId: string) => void;
   /** 見出しにフォーカスが移った (キーボードで) */
   onFocusStep: (stepId: string, topLevel: boolean) => void;
 }
@@ -117,8 +119,8 @@ export function useStepKeyboard(h: StepKeyboardHandlers): void {
             if (!cfg.editing || e.ctrlKey || e.metaKey || e.altKey) return;
             const parent = parentStepIdOf(target);
             if (e.shiftKey) {
-              if (parent) { e.preventDefault(); cfg.onOutdent(parent, id); }
-            } else if (!parent) {
+              if (parent && cfg.onOutdent) { e.preventDefault(); cfg.onOutdent(parent, id); }
+            } else if (!parent && cfg.onIndent) {
               e.preventDefault(); cfg.onIndent(id);
             }
             return;
@@ -128,7 +130,7 @@ export function useStepKeyboard(h: StepKeyboardHandlers): void {
       }
 
       // どこでも: Insert で、末尾に挿入 (工程がまだないときの入口)
-      if (e.key === "Insert" && cfg.editing && !e.ctrlKey && !e.metaKey && !e.altKey && target.closest?.(".process-flow-page")) {
+      if (e.key === "Insert" && cfg.editing && !e.ctrlKey && !e.metaKey && !e.altKey && target.closest?.(".process-flow-page") && !target.closest?.(".pf-outline")) {
         e.preventDefault();
         cfg.onInsert(null);
       }

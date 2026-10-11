@@ -50,20 +50,64 @@ test.describe("処理フローのキーボード操作", () => {
     expect(focusedIsHeader).toBe(true);
   });
 
-  test("Tab でインデント、Shift+Tab でアウトデントできる @regression", async ({ page }) => {
+  test("Tab は入れ子にせず、通常のフォーカス移動のまま (subSteps はスキーマに無いため) @regression", async ({ page }) => {
     await ws.gotoActive(page, "/process-flow/edit/order-confirm");
     await page.getByTestId("edit-mode-start").click();
     await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 15000 });
-    const topBefore = await page.locator(".step-card-wrapper:not(.sub-steps .step-card-wrapper)").count();
     const second = page.locator(".step-card-wrapper:not(.sub-steps .step-card-wrapper) > .step-card > .step-card-header").nth(1);
     await second.focus();
     const id = await second.evaluate((el) => el.closest(".step-card")?.getAttribute("data-step-id"));
     await page.keyboard.press("Tab");
-    // 直前の工程の中へ入る: 親の工程の .sub-steps の中に入れ子になる
-    await expect(page.locator(`.sub-steps .step-card[data-step-id="${id}"]`)).toHaveCount(1, { timeout: 5000 });
-    await expect(page.locator(`.step-card[data-step-id="${id}"] > .step-card-header`)).toBeFocused({ timeout: 5000 });
-    await page.keyboard.press("Shift+Tab");
-    await expect(page.locator(`.sub-steps .step-card[data-step-id="${id}"]`)).toHaveCount(0, { timeout: 5000 });
-    expect(topBefore).toBeGreaterThan(0);
+    await expect(page.locator(`.sub-steps .step-card[data-step-id="${id}"]`)).toHaveCount(0);
+    await expect(page.getByTestId("edit-mode-save")).toBeDisabled();
+  });
+
+  test("アウトライン: 1 行 1 工程のテキストで、説明の変更・工程の追加・並べ替え・削除ができる @regression", async ({ page }) => {
+    await ws.gotoActive(page, "/process-flow/edit/order-confirm");
+    await page.getByTestId("edit-mode-start").click();
+    await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 15000 });
+    const cardsBefore = await page.locator(".step-card-wrapper:not(.sub-steps .step-card-wrapper)").count();
+
+    await page.getByTestId("pf-view-outline").click();
+    const area = page.getByTestId("pf-outline-text");
+    await expect(area).toBeVisible();
+    const lines = (await area.inputValue()).split("\n");
+    expect(lines.length).toBe(cardsBefore);
+    expect(lines[0]).toMatch(/^\[.+\] .* \^step-/);
+
+    // 1 行目の説明を書き換え、末尾に「/」で種類を選んで新しい行を足す → 欄を出ると自動で反映される
+    await area.focus();
+    await page.keyboard.press("Control+Home");
+    await page.keyboard.press("End");
+    await page.keyboard.press("Backspace"); // 末尾の 1 文字 (^id の最後) は消さない: 直後に戻す
+    await page.keyboard.type(lines[0].slice(-1));
+    await page.keyboard.press("Control+End");
+    await page.keyboard.press("Enter");
+    await page.keyboard.type("/");
+    await expect(page.getByTestId("step-insert-menu")).toBeVisible();
+    await page.keyboard.type("共通");
+    await page.keyboard.press("Enter");
+    await expect(area).toBeFocused();
+    await page.keyboard.type("在庫を引き当てる");
+    await expect(page.getByTestId("pf-outline-apply")).toBeEnabled();
+    await page.getByTestId("pf-outline-apply").click();
+
+    await expect(page.getByTestId("edit-mode-save")).toBeEnabled();
+    const after = (await area.inputValue()).split("\n");
+    expect(after.length).toBe(cardsBefore + 1);
+    expect(after[after.length - 1]).toMatch(/^\[共通処理\] 在庫を引き当てる \^step-/);
+
+    // 形式の誤りは行番号つきで知らせ、反映は止まる
+    await area.focus();
+    await page.keyboard.press("Control+End");
+    await page.keyboard.press("Enter");
+    await page.keyboard.type("種類のない行");
+    await expect(page.getByTestId("pf-outline-errors")).toContainText(`${after.length + 1} 行目`);
+    await expect(page.getByTestId("pf-outline-apply")).toBeDisabled();
+    await page.getByTestId("pf-outline-discard").click();
+
+    // カードの表示に戻ると、追加した工程がある
+    await page.getByTestId("pf-view-cards").click();
+    await expect(page.locator(".step-card-wrapper:not(.sub-steps .step-card-wrapper)")).toHaveCount(cardsBefore + 1);
   });
 });

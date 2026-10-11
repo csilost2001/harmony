@@ -81,6 +81,7 @@ import { WarningsPanel } from "./internal/WarningsPanel";
 import { ALL_STEP_TYPES } from "./internal/stepCardConstants";
 import { StepInsertMenu } from "./internal/StepInsertMenu";
 import { focusStepHeader, useStepKeyboard } from "./internal/useStepKeyboard";
+import { applyOutline, type OutlineLine } from "../../utils/processFlowOutline";
 import { getActionTriggerLabel } from "./internal/actionTriggerConstants";
 import { ProcessFlowDialogs } from "./internal/ProcessFlowDialogs";
 import { useProcessFlowCatalogs } from "./internal/useProcessFlowCatalogs";
@@ -620,6 +621,15 @@ export function ProcessFlowEditor() {
     closeContextMenu();
   };
 
+  /** アウトライン (テキスト) の内容を、工程の並びへ反映する (docs/spec/process-flow-outline.md) */
+  const handleApplyOutline = (lines: OutlineLine[]) => {
+    updateGroupWithDraft((g) => {
+      const act = g.actions.find((a) => a.id === activeActionId);
+      if (!act) return;
+      act.steps = applyOutline(act.steps, lines, collectAllProcessFlowLocalIds(g)).steps;
+    });
+  };
+
   const handleDuplicateStep = (stepId: string) => {
     updateGroupWithDraft((g) => {
       const act = g.actions.find((a) => a.id === activeActionId);
@@ -788,24 +798,10 @@ export function ProcessFlowEditor() {
     enabled: !isReadonly && (selectedIds.size > 0 || clipboard !== null),
   });
 
-  // 工程の見出しを、キーボードだけで辿る・組み立てる (↑↓ / Enter / Insert / Tab ほか)
+  // 工程の見出しを、キーボードだけで辿る・組み立てる (↑↓ / Enter / Insert ほか。インデントは、スキーマに入れ子の置き場が無いので配線しない)
   useStepKeyboard({
     editing: !isReadonly,
     onInsert: (afterStepId) => setInsertMenu({ afterStepId }),
-    onIndent: (id) => {
-      // 入った先 (直前の工程) が閉じていると、入れた工程が見えないので、開いてからフォーカスする
-      const steps = activeAction?.steps ?? [];
-      const at = steps.findIndex((st) => st.id === id);
-      const parentId = at > 0 ? steps[at - 1].id : null;
-      handleIndentStep(id);
-      setTimeout(() => {
-        if (parentId) {
-          const header = document.querySelector<HTMLElement>(`.step-card[data-step-id="${CSS.escape(parentId)}"] > .step-card-header`);
-          if (header && header.getAttribute("aria-expanded") !== "true") header.click();
-        }
-        setTimeout(() => focusStepHeader(id), 60);
-      }, 60);
-    },
     onOutdent: (parentId, id) => { handleOutdentSubStep(parentId, id); setTimeout(() => focusStepHeader(id), 60); },
     onFocusStep: (id, topLevel) => setSelectedIds(topLevel ? new Set([id]) : new Set()),
   });
@@ -1138,6 +1134,7 @@ export function ProcessFlowEditor() {
               handleDuplicateStep={handleDuplicateStep}
               handleAddSubStep={handleAddSubStep}
               handleIndentStep={handleIndentStep}
+              onApplyOutline={handleApplyOutline}
               handleOutdentSubStep={handleOutdentSubStep}
               handleStepClick={handleStepClick}
               onNavigateCommon={(refId) => navigate(wsPath(`/process-flow/edit/${refId}`))}
