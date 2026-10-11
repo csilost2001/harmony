@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { Step, StepType } from "../../../types/v3";
 import { OutlineEditor } from "./OutlineEditor";
 
@@ -70,5 +70,34 @@ describe("OutlineEditor — 字下げ (入れ子)", () => {
     expect(screen.getByRole("status").textContent).toContain("順序を変更");
     fireEvent.keyDown(area, { key: "Tab", shiftKey: true });
     expect(area.value.split("\n")[1].startsWith("[DBアクセス]")).toBe(true);
+  });
+});
+
+describe("OutlineEditor — 参照先の選択", () => {
+  it("[DBアクセス の直後の ':' でテーブルの候補が出て、選ぶと [DBアクセス:orders] になる", async () => {
+    const onApply = vi.fn();
+    render(<OutlineEditor steps={[]} kinds={["dbAccess", "validation"] as StepType[]} readonly={false} onApply={onApply}
+      refCandidates={{ dbAccess: [{ id: "orders", label: "注文" }, { id: "customers", label: "顧客" }] }} />);
+    const area = screen.getByTestId("pf-outline-text") as HTMLTextAreaElement;
+    fireEvent.change(area, { target: { value: "[DBアクセス" } });
+    area.setSelectionRange(area.value.length, area.value.length);
+    fireEvent.keyDown(area, { key: ":" });
+    expect(await screen.findByTestId("outline-ref-menu")).toBeTruthy();
+    expect(area.value).toBe("[DBアクセス:");
+    fireEvent.change(screen.getByTestId("outline-ref-input"), { target: { value: "注" } });
+    const items = screen.getAllByTestId("outline-ref-item");
+    expect(items).toHaveLength(1);
+    fireEvent.click(items[0]);
+    await waitFor(() => expect((screen.getByTestId("pf-outline-text") as HTMLTextAreaElement).value).toBe("[DBアクセス:orders] "));
+    expect(screen.getByRole("status").textContent).toContain("追加 1 件");
+  });
+
+  it("参照先を持たない種類では、':' で候補を出さない", () => {
+    render(<OutlineEditor steps={[]} kinds={["dbAccess", "validation"] as StepType[]} readonly={false} onApply={vi.fn()} refCandidates={{ dbAccess: [{ id: "a", label: "a" }] }} />);
+    const area = screen.getByTestId("pf-outline-text") as HTMLTextAreaElement;
+    fireEvent.change(area, { target: { value: "[入力チェック" } });
+    area.setSelectionRange(area.value.length, area.value.length);
+    fireEvent.keyDown(area, { key: ":" });
+    expect(screen.queryByTestId("outline-ref-menu")).toBeNull();
   });
 });

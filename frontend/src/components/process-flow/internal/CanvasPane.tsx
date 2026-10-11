@@ -139,6 +139,13 @@ export function CanvasPane({
     tableName: (id: string) => tables.find((t) => t.id === id)?.name,
     screenName: (id: string) => screens.find((s) => s.id === id)?.name,
   }), [tables, screens]);
+  // アウトラインの `[種類:` のあとに出す、参照先の候補
+  const refCandidates = useMemo(() => ({
+    dbAccess: tables.map((t) => ({ id: t.id, label: t.name || t.physicalName })),
+    commonProcess: commonGroups.map((c) => ({ id: c.id, label: c.name })),
+    screenTransition: screens.map((s) => ({ id: s.id, label: s.name })),
+    externalSystem: Object.keys(((group?.context as { catalogs?: { externalSystems?: Record<string, unknown> } } | undefined)?.catalogs?.externalSystems) ?? {}).map((k) => ({ id: k, label: k })),
+  }), [tables, commonGroups, screens, group]);
   const highlighted = useMemo(() => new Set([...selectedIds, ...(focusId ? [focusId] : [])]), [selectedIds, focusId]);
   const selectFromView = useCallback((stepId: string) => {
     if (!activeAction) return;
@@ -184,7 +191,7 @@ export function CanvasPane({
       </div>
       <div className="process-flow-content">
         {activeAction && view === "outline" ? (
-          <OutlineEditor key={activeAction.id} steps={activeAction.steps} kinds={ALL_STEP_TYPES} readonly={isReadonly} onApply={onApplyOutline} />
+          <OutlineEditor key={activeAction.id} steps={activeAction.steps} kinds={ALL_STEP_TYPES} readonly={isReadonly} onApply={onApplyOutline} refCandidates={refCandidates} />
         ) : activeAction && view === "diagram" ? (
           <ProcessFlowDiagram action={activeAction} ctx={ctx} selectedStepIds={highlighted} onSelectStep={selectFromView} onOpenStep={openInCards} />
         ) : activeAction && view === "table" ? (

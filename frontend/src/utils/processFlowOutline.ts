@@ -25,12 +25,25 @@ export interface OutlineLine {
   description: string;
   /** 行末の ^id (既存の工程との対応)。無ければ新しい工程 */
   id: string | null;
+  /** `[種類:参照先]` の参照先。書かれていなければ null (既存の工程では「変えない」)、`[種類:]` なら空文字 (消す) */
+  ref: string | null;
 }
 export interface OutlineError { lineNo: number; message: string }
 export interface ParsedOutline { lines: OutlineLine[]; errors: OutlineError[] }
 
+/**
+ * 種類ごとの「参照先」の項目 (行の `[種類:参照先]` で書く)。DB アクセス = テーブル、共通処理 = 処理フロー、
+ * 画面遷移 = 遷移先の画面、外部システム = システム名 (context.catalogs.externalSystems のキー)。
+ */
+export const REF_FIELD: Partial<Record<StepType, { field: string; label: string }>> = {
+  dbAccess: { field: "tableId", label: "テーブル" },
+  commonProcess: { field: "refId", label: "処理フロー" },
+  screenTransition: { field: "targetScreenId", label: "遷移先の画面" },
+  externalSystem: { field: "systemRef", label: "外部システム" },
+};
+
 const ID_SUFFIX = /\s\^([A-Za-z0-9][A-Za-z0-9._-]*)\s*$/;
-const KIND_PREFIX = /^\[([^\]]+)\]\s*(.*)$/;
+const KIND_PREFIX = /^\[([^\]:]+)(?::([^\]]*))?\]\s*(.*)$/;
 
 const escapeText = (s: string) => s.replace(/\\/g, "\\\\").replace(/\^/g, "\\^").replace(/\r?\n/g, "\\n");
 const unescapeText = (s: string) => s.replace(/\\(\\|n|\^)/g, (_m, c: string) => (c === "n" ? "\n" : c));
@@ -52,7 +65,9 @@ export function stepsToOutline(steps: readonly Step[], depth = 0): string {
   const rows: string[] = [];
   for (const step of steps) {
     const d = escapeText(step.description ?? "");
-    rows.push(`${"  ".repeat(depth)}[${kindLabel(step.kind)}]${d ? ` ${d}` : ""} ^${step.id}`);
+    const refField = REF_FIELD[step.kind as StepType]?.field;
+    const ref = refField ? String((step as unknown as Record<string, unknown>)[refField] ?? "") : "";
+    rows.push(`${"  ".repeat(depth)}[${kindLabel(step.kind)}${ref ? `:${ref}` : ""}]${d ? ` ${d}` : ""} ^${step.id}`);
     if (step.subSteps?.length) rows.push(stepsToOutline(step.subSteps, depth + 1));
   }
   return rows.join("\n");
@@ -89,7 +104,11 @@ export function parseOutline(text: string, kinds: readonly StepType[]): ParsedOu
       errors.push({ lineNo, message: `[${m[1]}] という種類はありません` });
       return;
     }
-    lines.push({ lineNo, depth, kind, description: unescapeText(m[2].trim()), id });
+    if (m[2] !== undefined && !REF_FIELD[kind]) {
+      errors.push({ lineNo, message: `[${m[1]}] には、参照先 (:…) を書けません` });
+      return;
+    }
+    lines.push({ lineNo, depth, kind, description: unescapeText(m[3].trim()), id, ref: m[2] !== undefined ? m[2].trim() : null });
     prevDepth = depth;
   });
   return { lines, errors };
@@ -154,9 +173,15 @@ export function applyOutline(steps: readonly Step[], lines: readonly OutlineLine
     const oldKids = node.base.subSteps ?? [];
     const sameKids = !node.isNew && kids.length === oldKids.length && kids.every((k, i) => k === oldKids[i]);
     const sameDesc = (node.base.description ?? "") === node.line.description;
-    if (!node.isNew && sameKids && sameDesc) return node.base;
-    if (!node.isNew && !sameDesc) changed++;
+    // 参照先: 書かれていれば反映 (`[種類:]` は消す)。書かれていなければ、既存の工程は変えない
+    const refField = REF_FIELD[node.base.kind as StepType]?.field;
+    const curRef = refField ? String((node.base as unknown as Record<string, unknown>)[refField] ?? "") : "";
+    const newRef = node.line.ref;
+    const refChanged = !!refField && newRef !== null && newRef !== curRef && node.base.kind === node.line.kind;
+    if (!node.isNew && sameKids && sameDesc && !refChanged) return node.base;
+    if (!node.isNew && (!sameDesc || refChanged)) changed++;
     const copy = { ...node.base, description: node.line.description } as Step;
+    if (refChanged && refField) (copy as unknown as Record<string, unknown>)[refField] = newRef;
     if (kids.length > 0) copy.subSteps = kids; else delete copy.subSteps;
     return copy;
   };
