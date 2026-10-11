@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { Fragment, useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { clearActiveTab, getTabs, getActiveTabId } from "../store/tabStore";
 import { useWorkspacePath } from "../hooks/useWorkspacePath";
@@ -28,10 +28,24 @@ export function HeaderMenu() {
     return () => document.removeEventListener("mousedown", close);
   }, [open]);
 
+  // 開いたら、いまの画面の項目 (なければ先頭) へカーソルを置く。↑↓ / Home / End で移れる。Esc で閉じてボタンへ戻る
   useEffect(() => {
     if (!open) return;
+    const items = () => [...(menuRef.current?.querySelectorAll<HTMLElement>(".header-menu-item") ?? [])];
+    (menuRef.current?.querySelector<HTMLElement>(".header-menu-item.active") ?? items()[0])?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        setOpen(false);
+        menuRef.current?.querySelector<HTMLElement>(".header-menu-btn")?.focus();
+        return;
+      }
+      if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) return;
+      const list = items();
+      if (list.length === 0 || !menuRef.current?.contains(document.activeElement)) return;
+      e.preventDefault();
+      const at = list.indexOf(document.activeElement as HTMLElement);
+      const next = e.key === "Home" ? 0 : e.key === "End" ? list.length - 1 : e.key === "ArrowDown" ? (at + 1) % list.length : (at - 1 + list.length) % list.length;
+      list[next].focus();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
@@ -73,8 +87,6 @@ export function HeaderMenu() {
 
       {open && (
         <div className="header-menu-dropdown" role="menu">
-          <div className="header-menu-section-label">ナビゲーション</div>
-
           <button
             key={DASHBOARD_ITEM.id}
             className={`header-menu-item${isActive(DASHBOARD_ITEM) ? " active" : ""}`}
@@ -87,16 +99,20 @@ export function HeaderMenu() {
 
           <div className="header-menu-separator" />
 
-          {MENU_ITEMS.map((item) => (
-            <button
-              key={item.id}
-              className={`header-menu-item${isActive(item) ? " active" : ""}`}
-              onClick={() => handleSelect(item.route)}
-              role="menuitem"
-            >
-              <i className={`bi ${item.icon}`} />
-              <span>{item.label}</span>
-            </button>
+          {MENU_ITEMS.map((item, i) => (
+            <Fragment key={item.id}>
+              {item.group && item.group !== MENU_ITEMS[i - 1]?.group && (
+                <div className="header-menu-section-label" role="presentation">{item.group}</div>
+              )}
+              <button
+                className={`header-menu-item${isActive(item) ? " active" : ""}`}
+                onClick={() => handleSelect(item.route)}
+                role="menuitem"
+              >
+                <i className={`bi ${item.icon}`} />
+                <span>{item.label}</span>
+              </button>
+            </Fragment>
           ))}
         </div>
       )}

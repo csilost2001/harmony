@@ -148,6 +148,22 @@ describe("useListKeyboard", () => {
     expect(onActivate).not.toHaveBeenCalled();
   });
 
+  it("メニューやボタンの上の Enter は、一覧の操作 (開く) にしない", () => {
+    const onActivate = vi.fn();
+    const { result } = setup({ onActivate });
+    act(() => result.current.handleRowClick("b", {}));
+    const menu = document.createElement("div");
+    menu.setAttribute("role", "menu");
+    const inMenu = document.createElement("button");
+    menu.appendChild(inMenu);
+    const plain = document.createElement("button");
+    document.body.append(menu, plain);
+    act(() => { inMenu.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true })); });
+    act(() => { plain.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true })); });
+    expect(onActivate).not.toHaveBeenCalled();
+    menu.remove(); plain.remove();
+  });
+
   it("F2 でも onActivate が発火する", () => {
     const onActivate = vi.fn();
     const { result } = setup({ onActivate });

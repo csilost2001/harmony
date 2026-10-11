@@ -113,3 +113,10 @@
   color: #9a9db5;
   font-weight: 500;
 }
+
+/* 区分の見出し: 2 つめ以降は、上に区切り線と余白 */
+.header-menu-item + .header-menu-section-label {
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid #3b3e55;
+}

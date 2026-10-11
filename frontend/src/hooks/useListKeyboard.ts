@@ -71,6 +71,10 @@ export function useListKeyboard<T>(opts: ListKeyboardOpts<T>): void {
       const tag = target.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
       if (target.isContentEditable) return;
+      // メニュー・ダイアログ・候補の中のキー操作は、その部品のもの (一覧の Enter / Delete が二重に働かないように)
+      if (target.closest?.('[role="menu"], [role="dialog"], [aria-modal="true"], [role="listbox"]')) return;
+      // ボタン・リンクにカーソルがあるときの Enter / Space は、そのボタン自身の操作
+      if ((e.key === "Enter" || e.key === " ") && target.closest?.("button, a[href], summary")) return;
 
       const ctrl = e.ctrlKey || e.metaKey;
       const itemIds = items.map(getId);
