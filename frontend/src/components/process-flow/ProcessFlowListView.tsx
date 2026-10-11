@@ -1028,6 +1028,11 @@ export function ProcessFlowListView() {
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
                 </select>
+                {!addScreenId && (
+                  <div className="form-text" data-testid="add-flow-screen-hint">
+                    画面を選ばずに作ると、「画面に紐付いていない」要確認が出ます。あとから処理フローの基本情報で選べます。
+                  </div>
+                )}
               </div>
             )}
             <div className="form-group">

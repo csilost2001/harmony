@@ -14,6 +14,7 @@
  * - resolveDataRoot(root) が on-demand で harmony.json を読み dataDir を解決する
  * - ensureDataDir(root, dataDirVal) で呼び出し側が dataDir 値を渡す設計
  */
+import { describeAjvError, selectAjvErrors } from "./ajvMessages.js";
 import fs from "fs/promises";
 import fsSync from "fs";
 import path from "path";
@@ -268,12 +269,12 @@ async function annotateValidationWarnings(
   const now = new Date().toISOString();
   let added = 0;
 
-  for (const err of errors) {
+  for (const err of selectAjvErrors(errors)) {
     const validatorPath = typeof err.instancePath === "string" && err.instancePath.length > 0
       ? err.instancePath
       : "/";
     const validatorCode = `AJV_${(err.keyword ?? "ERROR").toUpperCase()}`;
-    const body = `${err.message ?? "schema violation"} (${validatorPath})`;
+    const body = describeAjvError(err);
     const dup = markers.find((m) => (
       m && typeof m === "object" &&
       m.kind === "validator" &&

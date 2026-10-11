@@ -9,7 +9,8 @@
  * ここでは各カタログパネルを「タブボタン + body」に分離し、排他的に 1 つだけ
  * body を展開する。成熟度バッジ・進捗・下流モード警告はタブバーに常時表示。
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { loadProject } from "../../store/flowStore";
 import { Link } from "react-router-dom";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
 // #1186 Phase 2-D: types/action → types/v3 + processFlowMetadata 移行
@@ -77,10 +78,29 @@ export function ActionMetaTabBar({ group, updateGroup, updateGroupSilent }: Prop
   const [active, setActive] = useState<TabKey | null>(null);
   const { wsPath } = useWorkspacePath();
   const setActiveFrom = (k: TabKey, v: boolean) => setActive(v ? k : null);
+  // 「画面」の処理フローが紐付ける画面の候補
+  const [screenOptions, setScreenOptions] = useState<Array<{ id: string; name: string }>>([]);
+  const isScreenFlow = group.meta?.flowType === "screen";
+  useEffect(() => {
+    if (!isScreenFlow) return;
+    let cancelled = false;
+    loadProject()
+      .then((p) => { if (!cancelled) setScreenOptions((p.screens ?? []).filter((s) => s.purpose !== "gadget").map((s) => ({ id: String(s.id), name: s.name }))); })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [isScreenFlow]);
 
   const handleInfoChange = (field: string, value: string) => {
     updateGroupSilent((g) => {
       g.meta = { ...(g.meta ?? {}), [field]: value };
+    });
+  };
+  /** 紐付け画面。空にしたら項目ごと外す */
+  const handleScreenChange = (value: string) => {
+    updateGroupSilent((g) => {
+      const meta = { ...(g.meta ?? {}) } as Record<string, unknown>;
+      if (value) meta.screenId = value; else delete meta.screenId;
+      g.meta = meta as unknown as ProcessFlowMeta;
     });
   };
   const handleSlaChange = (sla: ProcessFlowMeta["sla"]) => {
@@ -241,7 +261,24 @@ export function ActionMetaTabBar({ group, updateGroup, updateGroupSilent }: Prop
                 ))}
               </select>
             </div>
-            <div className="col-md-6">
+            {isScreenFlow && (
+              <div className="col-md-3">
+                <label className="form-label small fw-semibold">紐付け画面</label>
+                <select
+                  className="form-select form-select-sm"
+                  value={group.meta?.screenId ?? ""}
+                  onChange={(e) => handleScreenChange(e.target.value)}
+                  data-testid="flow-screen-select"
+                >
+                  <option value="">（未設定）</option>
+                  {group.meta?.screenId && !screenOptions.some((o) => o.id === group.meta?.screenId) && (
+                    <option value={group.meta.screenId}>{group.meta.screenId}</option>
+                  )}
+                  {screenOptions.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+                </select>
+              </div>
+            )}
+            <div className={isScreenFlow ? "col-md-3" : "col-md-6"}>
               <label className="form-label small fw-semibold">説明</label>
               <input
                 className="form-control form-control-sm"
