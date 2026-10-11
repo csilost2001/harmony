@@ -11,6 +11,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
+import { useGridKeyboard } from "../../hooks/useGridKeyboard";
 import { TableSubToolbar } from "../table/TableSubToolbar";
 import { EditorHeader } from "../common/EditorHeader";
 import { ServerChangeBanner } from "../common/ServerChangeBanner";
@@ -423,6 +424,9 @@ export function ScreenItemsView() {
       input?.focus();
     }, 0);
   }, [updateWithDraft]);
+
+  // 表計算ソフトのように、Enter / ↑↓ で上下の行の同じ列へ移る (最後の行の Enter で行を追加)
+  const gridKeys = useGridKeyboard({ onAppendRow: isReadonly ? undefined : handleAddItem });
 
   const handlePasteItems = useCallback((items: ParsedItem[], updates: Array<{ id: string; patch: Partial<ScreenItem> }>) => {
     updateWithDraft((f) => {
@@ -947,7 +951,7 @@ export function ScreenItemsView() {
             </div>
           )}
           <div className="screen-items-table-wrap">
-            <table className="screen-items-table">
+            <table className="screen-items-table" onKeyDown={gridKeys.onKeyDown}>
               <colgroup>
                 <col style={{ width: 24 }} />
                 <col style={{ width: 40 }} />
