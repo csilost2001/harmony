@@ -172,6 +172,43 @@ export function searchQuickOpen(entries: QuickOpenEntry[], query: string, limit 
   return hits.slice(0, limit);
 }
 
+/** 本文検索 (backend の searchDesign) の 1 件 */
+export interface ContentSearchHit {
+  kind: "screen" | "table" | "process-flow" | "business-flow" | "report";
+  id: string;
+  name: string;
+  matches: { where: string; text: string }[];
+}
+
+/** 本文の一致を表す候補 (一致した場所と文字列を `detail` に持つ) */
+export interface QuickOpenContentEntry extends QuickOpenEntry {
+  detail: string;
+}
+
+const CONTENT_ROUTES: Record<ContentSearchHit["kind"], (id: string) => string> = {
+  "screen": (id) => `/screen/design/${encodeURIComponent(id)}`,
+  "table": (id) => `/table/edit/${encodeURIComponent(id)}`,
+  "process-flow": (id) => `/process-flow/edit/${encodeURIComponent(id)}`,
+  "business-flow": (id) => `/business-flow/edit/${encodeURIComponent(id)}`,
+  "report": (id) => `/report/edit/${encodeURIComponent(id)}`,
+};
+
+/**
+ * 本文検索の結果を、候補の形にする。名前・ID の検索ですでに出ているもの (`exclude` の key) は除く。
+ * key は名前検索の候補と同じ (kind:id) なので、「最近開いた」にも同じように載る。
+ */
+export function contentHitsToEntries(hits: readonly ContentSearchHit[], exclude: ReadonlySet<string> = new Set()): QuickOpenContentEntry[] {
+  const out: QuickOpenContentEntry[] = [];
+  hits.forEach((h, i) => {
+    const key = `${h.kind}:${h.id}`;
+    if (exclude.has(key) || h.matches.length === 0) return;
+    const first = h.matches[0];
+    const more = h.matches.length > 1 ? ` (ほか ${h.matches.length - 1} か所)` : "";
+    out.push({ key, kind: h.kind, id: h.id, label: h.name, hints: [h.id], route: CONTENT_ROUTES[h.kind](h.id), order: 10000 + i, detail: `${first.where}: ${first.text}${more}` });
+  });
+  return out;
+}
+
 const RECENT_KEY = "harmony-quick-open-recent";
 const RECENT_MAX = 10;
 

@@ -13,6 +13,7 @@
 import { collectSchemaIssues } from "../schemaIssues.js";
 import {
   writeProject,
+  listExistingEntityIds,
   readScreen,
   readScreenEntity,
   writeScreenEntity,
@@ -32,6 +33,9 @@ import {
 } from "../projectStorage.js";
 import { assertEntityId } from "../security/idValidator.js";
 import { readProjectWithUnregistered } from "../registryMerge.js";
+import { searchDesign } from "../designSearch.js";
+import { recentEdits } from "../recentEdits.js";
+import { loadDesignInputFromRoot } from "../designInput.js";
 import type { RpcHandlerMap } from "./types.js";
 
 export const projectHandlers: RpcHandlerMap = {
@@ -53,6 +57,39 @@ export const projectHandlers: RpcHandlerMap = {
     assertEntityId(screenId, "screenId");
     const data = await readScreen(screenId, root());
     respond(data);
+  },
+
+  /** 全画面の実体を、まとめて返す (一覧画面の検査用。1 件ずつ尋ねると、件数だけ往復する)。読めなかったものは含めない */
+  loadAllScreenEntities: async ({ root, respond }) => {
+    const r = root();
+    const out: unknown[] = [];
+    for (const id of (await listExistingEntityIds("screen", r)).sort()) {
+      const e = await readScreenEntity(id, r).catch(() => null);
+      if (e) out.push(e);
+    }
+    respond(out);
+  },
+
+  /** 最近編集した設計 (画面・テーブル・処理フロー) を、更新時刻の新しい順に返す (ダッシュボード用。1 回の問い合わせで済ませる) */
+  recentEdits: async ({ params, root, respond, respondError }) => {
+    const { limit } = (params ?? {}) as { limit?: number };
+    try { respond({ items: await recentEdits(root(), typeof limit === "number" ? Math.min(Math.max(limit, 1), 50) : 10) }); }
+    catch (e) { respondError(e instanceof Error ? e.message : String(e)); }
+  },
+
+  /** 設計書・検査の入力を、まとめて読んで返す (設計ごとの問い合わせの往復をなくす)。スキーマ違反の要確認も含める */
+  loadDesignInput: async ({ root, respond, respondError }) => {
+    try {
+      const { input, skipped } = await loadDesignInputFromRoot(root());
+      respond({ input: { ...input, extraIssues: await collectSchemaIssues(root()) }, skipped });
+    } catch (e) { respondError(e instanceof Error ? e.message : String(e)); }
+  },
+
+  /** 設計の本文検索 (クイックオープン用)。説明・カラム名・項目のラベル・工程の説明などから探す。書き込まない */
+  searchDesign: async ({ params, root, respond, respondError }) => {
+    const { query, limit } = (params ?? {}) as { query?: string; limit?: number };
+    try { respond({ hits: await searchDesign(root(), typeof query === "string" ? query.slice(0, 200) : "", typeof limit === "number" ? Math.min(limit, 100) : 30) }); }
+    catch (e) { respondError(e instanceof Error ? e.message : String(e)); }
   },
 
   /** 設計の原本のスキーマ違反 (要確認)。読み込み時に計算して返す。原本は書き換えない */

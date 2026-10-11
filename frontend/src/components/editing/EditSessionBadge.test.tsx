@@ -9,6 +9,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, act, waitFor } from "@testing-library/react";
 import { EditSessionBadge } from "./EditSessionBadge";
 import type { EditSessionData } from "../../hooks/useEditSession";
+import { _resetEditSessionIndex } from "../../utils/editSessionIndex";
 
 // ── broadcast ハンドラー管理 ─────────────────────────────────────────────────
 
@@ -62,6 +63,7 @@ beforeEach(() => {
   requestMock = vi.fn();
   vi.clearAllMocks();
   broadcastHandlers.clear();
+  _resetEditSessionIndex(); // 種類ごとの問い合わせの共有を、テスト間に持ち越さない
 });
 
 afterEach(() => {

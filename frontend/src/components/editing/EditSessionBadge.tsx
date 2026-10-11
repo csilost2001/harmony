@@ -17,6 +17,7 @@ import { useCallback, useEffect, useState } from "react";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import type { DraftResourceType } from "../../types/draft";
 import type { EditSessionData } from "../../hooks/useEditSession";
+import { invalidateSessionIndex, listActiveSessionsFor } from "../../utils/editSessionIndex";
 
 // ── 型 ──────────────────────────────────────────────────────────────────────
 
@@ -54,12 +55,8 @@ export function EditSessionBadge({ resourceType, resourceId }: EditSessionBadgeP
 
   const fetchSessions = useCallback(async () => {
     try {
-      const result = await mcpBridge.request("editSession.list", {
-        resourceType,
-        resourceId,
-      }) as { sessions: EditSessionData[] };
-      const active = (result.sessions ?? []).filter((s) => s.state === "Active");
-      setActiveSessions(active);
+      // 行ごとに問い合わせると行数だけ往復するので、種類ごとにまとめて尋ねる (utils/editSessionIndex.ts)
+      setActiveSessions(await listActiveSessionsFor(resourceType, resourceId));
     } catch (e) {
       console.warn("[EditSessionBadge] editSession.list failed:", e);
       setActiveSessions([]);
@@ -74,7 +71,7 @@ export function EditSessionBadge({ resourceType, resourceId }: EditSessionBadgeP
 
   // broadcast event で再 fetch
   useEffect(() => {
-    const refresh = () => { void fetchSessions(); };
+    const refresh = () => { invalidateSessionIndex(); void fetchSessions(); };
     const unsubs = [
       mcpBridge.onBroadcast("editSession.created", (data) => {
         const d = data as { resourceType?: string; resourceId?: string };

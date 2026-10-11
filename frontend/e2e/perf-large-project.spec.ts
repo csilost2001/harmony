@@ -56,4 +56,41 @@ test.describe("大きなプロジェクトの性能", () => {
     console.log(`[perf] Ctrl+K 4 文字入力 + 結果表示: ${ms} ms`);
     expect(ms).toBeLessThan(3000);
   });
+
+  test("Ctrl+K の本文検索 (説明・カラム・工程) が、大きなプロジェクトでも数秒以内に返る", async ({ page }) => {
+    await ws.gotoActive(page, "/");
+    await page.keyboard.press("Control+k");
+    const t0 = Date.now();
+    await page.getByTestId("quick-open-input").fill("サロゲートキー");
+    await expect(page.getByTestId("quick-open-content-head")).toBeVisible({ timeout: 15000 });
+    const ms = Date.now() - t0;
+    console.log(`[perf] Ctrl+K 本文検索 (約 600 件): ${ms} ms`);
+    expect(ms).toBeLessThan(5000);
+  });
+
+  // 設計ごとに問い合わせる (N+1) と、大きなプロジェクトでは数千回の往復になり、サーバが他の操作に応えられなくなる。
+  // 主要画面の問い合わせの総数が、設計の数 (約 600) に比例していないことを確かめる
+  const COUNT_BUDGET = 150;
+  for (const route of ["/", "/screen/list", "/table/list", "/process-flow/list", "/table/er", "/document"]) {
+    test(`${route} を開いたときの問い合わせの数が、設計の数に比例しない`, async ({ page }) => {
+      await page.addInitScript(() => {
+        const W = window as unknown as { __rpcCount: number };
+        W.__rpcCount = 0;
+        const Orig = window.WebSocket;
+        window.WebSocket = class extends Orig {
+          constructor(u: string | URL, p?: string | string[]) {
+            super(u, p);
+            const send = this.send.bind(this);
+            this.send = (d: string | ArrayBufferLike | Blob | ArrayBufferView) => { try { if (JSON.parse(String(d)).method) W.__rpcCount++; } catch { /* */ } send(d); };
+          }
+        } as typeof WebSocket;
+      });
+      await ws.gotoActive(page, route);
+      await page.waitForTimeout(5000);
+      const n = await page.evaluate(() => (window as unknown as { __rpcCount: number }).__rpcCount);
+      console.log(`[perf] ${route}: 問い合わせ ${n} 回`);
+      expect(n).toBeLessThan(COUNT_BUDGET);
+    });
+  }
 });
+

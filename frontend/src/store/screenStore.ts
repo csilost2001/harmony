@@ -6,6 +6,7 @@ import type {
   Uuid,
 } from "../types/v3";
 import { generateUUID } from "../utils/uuid";
+import { mcpBridge } from "../mcp/mcpBridge";
 import { validateLayoutWithComponents, type LayoutComponentDef } from "@harmony/shared";
 import { loadProject } from "./flowStore";
 import { loadLayoutComponents } from "./layoutComponentStore";
@@ -110,10 +111,14 @@ export async function loadScreenValidationMap(options?: {
   const defs: LayoutComponentDef[] = await loadLayoutComponents().catch(() => []);
   const screenIds = new Set(project.screens.map((s) => s.id as string));
 
-  // raw entity データを直接読み、loadScreenEntity の補完を介さずに検証する
+  // raw entity データを直接読み、loadScreenEntity の補完を介さずに検証する。
+  // 全画面を 1 回の問い合わせでまとめて読む (1 件ずつ尋ねると、画面の数だけ往復する)
+  const all = await mcpBridge.request("loadAllScreenEntities").catch(() => null) as unknown[] | null;
+  const byId = new Map<string, unknown>();
+  for (const e of all ?? []) if (isRecord(e) && typeof e.id === "string") byId.set(e.id, e);
   const rawEntities = await Promise.all(
     project.screens.map(async (entry) => {
-      const raw = await backend.loadScreenEntity(entry.id);
+      const raw = byId.get(entry.id) ?? await backend.loadScreenEntity(entry.id);
       if (!isRecord(raw)) return null;
       return { ...raw, id: (typeof raw.id === "string" ? raw.id : entry.id) as ScreenId } as unknown as Screen;
     }),

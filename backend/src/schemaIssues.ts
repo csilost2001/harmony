@@ -3,6 +3,7 @@
  * 以前は保存のたびに違反を原本の authoring.markers へ書き込んでいたが、機械が出した警告で原本が汚れ、
  * 差分にも混じるため、書き込まず、ここで計算して示す。draft-state: 違反があっても保存は妨げない。
  */
+import { memoizeBySignature } from "./dataSignature.js";
 import { readProjectWithUnregistered } from "./registryMerge.js";
 import { describeAjvError } from "./ajvMessages.js";
 import { listAllTables, listProcessFlows, readScreenEntity, validateEntitySchema } from "./projectStorage.js";
@@ -17,7 +18,7 @@ export interface SchemaIssue {
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
 
-export async function collectSchemaIssues(root: string): Promise<SchemaIssue[]> {
+async function computeSchemaIssues(root: string): Promise<SchemaIssue[]> {
   const out: SchemaIssue[] = [];
   const push = async (kind: SchemaIssue["ref"]["kind"], label: string, id: string, name: string | undefined, data: unknown) => {
     for (const err of await validateEntitySchema(kind, data)) {
@@ -39,3 +40,6 @@ export async function collectSchemaIssues(root: string): Promise<SchemaIssue[]> 
   }
   return out;
 }
+
+/** データが変わらないあいだは、検査し直さず前の結果を使う (大きなプロジェクトでは、検査に数秒かかる) */
+export const collectSchemaIssues: (root: string) => Promise<SchemaIssue[]> = memoizeBySignature(computeSchemaIssues);

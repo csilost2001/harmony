@@ -1,4 +1,5 @@
 ﻿// #1186 Phase 2-C: types/action → types/v3 移行 (ProcessFlowType/StepType は v3 で ProcessFlowKind/StepKind に rename)
+import { mcpBridge } from "../mcp/mcpBridge";
 import type {
   ActionDefinition,
   ActionTrigger,
@@ -51,6 +52,19 @@ export async function loadProcessFlow(id: string): Promise<ProcessFlow | null> {
   const migrated = migrateProcessFlow(data);
   // uuid 補完は backend (readEntityAndEnsureUuid) 責務。frontend では補完しない。
   return migrated;
+}
+
+/** 全処理フローを、1 回の問い合わせでまとめて読む (一覧の検査用。1 件ずつ尋ねない)。id → 処理フロー */
+export async function loadAllProcessFlows(): Promise<Map<string, ProcessFlow>> {
+  const all = await mcpBridge.request("loadAllProcessFlows") as unknown[] | null;
+  const out = new Map<string, ProcessFlow>();
+  for (const raw of all ?? []) {
+    if (!raw || typeof raw !== "object") continue;
+    const flow = migrateProcessFlow(raw as ProcessFlow);
+    const id = (flow as { meta?: { id?: string } }).meta?.id;
+    if (id) out.set(id, flow);
+  }
+  return out;
 }
 
 export async function saveProcessFlow(group: ProcessFlow): Promise<void> {

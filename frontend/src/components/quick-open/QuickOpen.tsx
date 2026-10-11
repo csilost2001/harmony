@@ -4,7 +4,7 @@
  *
  * 候補は開くたびに読み直す (他で追加・改名されたものも出る)。
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loadProject } from "../../store/flowStore";
 import { listBusinessFlows } from "../../store/businessFlowStore";
@@ -12,15 +12,19 @@ import { listReports } from "../../store/reportStore";
 import { listPageLayouts } from "../../store/pageLayoutStore";
 import { clearActiveTab, getActiveTabId, getTabs } from "../../store/tabStore";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
+import { mcpBridge } from "../../mcp/mcpBridge";
 import { requestQuickCreate } from "../../hooks/useQuickCreate";
 import { DASHBOARD_ITEM, MENU_ITEMS } from "../menuItems";
 import {
   QUICK_OPEN_KIND_ICONS,
   QUICK_OPEN_KIND_LABELS,
   buildQuickOpenEntries,
+  contentHitsToEntries,
   loadRecentQuickOpen,
   rememberQuickOpen,
   searchQuickOpen,
+  type ContentSearchHit,
+  type QuickOpenContentEntry,
   type QuickOpenEntry,
   type QuickOpenSources,
 } from "../../utils/quickOpen";
@@ -99,7 +103,31 @@ export function QuickOpen() {
     wasOpen.current = open;
   }, [open]);
 
-  const hits = useMemo(() => (entries ? searchQuickOpen(entries, query, 50, recent) : []), [entries, query, recent]);
+  const nameHits = useMemo(() => (entries ? searchQuickOpen(entries, query, 50, recent) : []), [entries, query, recent]);
+
+  // 本文の一致 (説明・カラム名・項目のラベル・工程の説明など)。2 文字以上で、入力が止まってから backend に尋ねる
+  const [contentHits, setContentHits] = useState<ContentSearchHit[]>([]);
+  useEffect(() => {
+    const q = query.trim();
+    if (!open || q.length < 2) { setContentHits([]); return; }
+    let alive = true;
+    const timer = setTimeout(() => {
+      mcpBridge.request("searchDesign", { query: q }).then((res) => {
+        if (alive) setContentHits(((res as { hits?: ContentSearchHit[] } | null)?.hits) ?? []);
+      }).catch(() => { if (alive) setContentHits([]); });
+    }, 250);
+    return () => { alive = false; clearTimeout(timer); };
+  }, [open, query]);
+
+  const contentEntries = useMemo<QuickOpenContentEntry[]>(
+    () => contentHitsToEntries(contentHits, new Set(nameHits.map((h) => h.entry.key))),
+    [contentHits, nameHits],
+  );
+  const hits = useMemo(
+    () => [...nameHits.map((h) => ({ entry: h.entry as QuickOpenEntry | QuickOpenContentEntry })), ...contentEntries.map((entry) => ({ entry: entry as QuickOpenEntry | QuickOpenContentEntry }))],
+    [nameHits, contentEntries],
+  );
+  const firstContentIndex = nameHits.length;
 
   useEffect(() => { setCursor(0); }, [query]);
   useEffect(() => {
@@ -157,8 +185,11 @@ export function QuickOpen() {
             {entries === null && <li className="quick-open-empty">読み込み中...</li>}
             {entries !== null && hits.length === 0 && <li className="quick-open-empty" data-testid="quick-open-empty">「{query}」に一致するものはありません</li>}
             {hits.map(({ entry }, i) => (
+              <Fragment key={`${i}:${entry.key}`}>
+              {i === firstContentIndex && contentEntries.length > 0 && (
+                <li className="quick-open-section" role="presentation" data-testid="quick-open-content-head">本文の一致 (説明・カラム・項目・工程など)</li>
+              )}
               <li
-                key={entry.key}
                 id={`quick-open-opt-${i}`}
                 data-index={i}
                 data-testid="quick-open-item"
@@ -171,10 +202,15 @@ export function QuickOpen() {
               >
                 <i className={`bi ${QUICK_OPEN_KIND_ICONS[entry.kind]}`} />
                 <span className="quick-open-label">{entry.label}</span>
-                {entry.kind !== "page" && entry.kind !== "create" && <span className="quick-open-id">{entry.id}</span>}
+                {"detail" in entry ? (
+                  <span className="quick-open-detail" data-testid="quick-open-detail">{entry.detail}</span>
+                ) : (
+                  entry.kind !== "page" && entry.kind !== "create" && <span className="quick-open-id">{entry.id}</span>
+                )}
                 {query.trim() === "" && recent.includes(entry.key) && <span className="quick-open-recent" title="最近開いた"><i className="bi bi-clock-history" /></span>}
                 <span className="quick-open-kind">{QUICK_OPEN_KIND_LABELS[entry.kind]}</span>
               </li>
+              </Fragment>
             ))}
           </ul>
           <div className="quick-open-footer">

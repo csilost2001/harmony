@@ -8,6 +8,7 @@ import {
   readScreenEntity, listProcessFlows, listAllTables, readConventions,
   readLayoutComponents, listBusinessFlowsDetailed, listReportsDetailed,
 } from "./projectStorage.js";
+import { memoizeBySignature } from "./dataSignature.js";
 import { readProjectWithUnregistered } from "./registryMerge.js";
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
@@ -19,7 +20,7 @@ export interface LoadedDesignInput {
   counts: { screens: number; flows: number; tables: number; businessFlows: number; reports: number };
 }
 
-export async function loadDesignInputFromRoot(root: string): Promise<LoadedDesignInput> {
+async function computeDesignInput(root: string): Promise<LoadedDesignInput> {
   const skipped: string[] = [];
   // 一覧 (harmony.json) に載っていない設計も、設計書・検査に含める (ファイルが原本)
   const raw = (await readProjectWithUnregistered(root)).project;
@@ -76,3 +77,6 @@ export async function loadDesignInputFromRoot(root: string): Promise<LoadedDesig
   };
   return { input, skipped, counts: { screens: screens.length, flows: flows.length, tables: tables.length, businessFlows: businessFlows.flows.length, reports: reports.reports.length } };
 }
+
+/** データが変わらないあいだは、読み直さず前の結果を使う (設計書・検査・ダッシュボードが同時に求めても 1 回で済む)。結果は書き換えないこと */
+export const loadDesignInputFromRoot: (root: string) => Promise<LoadedDesignInput> = memoizeBySignature(computeDesignInput);

@@ -81,6 +81,11 @@ export const processFlowHandlers: RpcHandlerMap = {
     respond(metas);
   },
 
+  /** 全処理フローを、まとめて返す (一覧画面の検査用。1 件ずつ尋ねると、件数だけ往復する) */
+  loadAllProcessFlows: async ({ root, respond }) => {
+    respond(await listProcessFlowFiles(root()));
+  },
+
   listAllViews: async ({ root, respond }) => {
     const viewsData = await listAllViews(root());
     respond(viewsData);

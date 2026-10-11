@@ -9,6 +9,7 @@ import { PROCESS_FLOW_TYPE_LABELS, PROCESS_FLOW_TYPE_ICONS } from "../../utils/p
 import {
   listProcessFlows,
   loadProcessFlow,
+  loadAllProcessFlows,
   saveProcessFlow,
   createProcessFlow,
   deleteProcessFlow,
@@ -20,7 +21,7 @@ import type { ConventionsCatalog } from "../../schemas/conventionsValidator";
 import type { GenericDefinitionNames } from "../../schemas/referentialIntegrity";
 import type { ProjectCatalogs } from "../../schemas/projectCatalogs";
 import { loadConventions } from "../../store/conventionsStore";
-import { listTables, loadTable } from "../../store/tableStore";
+import { loadAllTables } from "../../store/tableStore";
 import { listGenericDefinitions } from "../../store/genericDefinitionStore";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { makeTabId } from "../../store/tabStore";
@@ -155,20 +156,15 @@ export function ProcessFlowListView() {
   // SQL 列検査 / 規約参照のためにテーブル定義・規約カタログをロード (#261 UI 統合)
   useEffect(() => {
     let cancelled = false;
-    listTables().then(async (metas) => {
-      const defs = await Promise.all(
-        metas.map(async (tm) => {
-          const full = await loadTable(tm.id);
-          if (!full) return null;
-          return {
-            // sqlColumnValidator は物理名で SQL 列を検証するため v3 では physicalName を渡す。
-            id: full.id,
-            name: full.physicalName,
-            columns: (full.columns ?? []).map((c) => ({ name: c.physicalName })),
-          } as ValidatorTableDef;
-        }),
-      );
-      if (!cancelled) setTableDefs(defs.filter((d): d is ValidatorTableDef => d !== null));
+    // テーブルは 1 回の問い合わせでまとめて読む (1 件ずつ尋ねない)
+    loadAllTables().then((tables) => {
+      const defs = tables.map((full) => ({
+        // sqlColumnValidator は物理名で SQL 列を検証するため v3 では physicalName を渡す。
+        id: full.id,
+        name: full.physicalName,
+        columns: (full.columns ?? []).map((c) => ({ name: c.physicalName })),
+      } as ValidatorTableDef));
+      if (!cancelled) setTableDefs(defs);
     }).catch(console.error);
     // 規約カタログは wsBridge / localStorage 経由で取得 (#317)
     loadConventions()
@@ -198,10 +194,14 @@ export function ProcessFlowListView() {
     if (groups.length === 0) return;
     let cancelled = false;
     (async () => {
+      // 全処理フローを 1 回の問い合わせでまとめて読み、1 件ずつ検査する (件数だけ往復しない)
+      const all = await loadAllProcessFlows().catch(() => new Map<string, ProcessFlow>());
+      let n = 0;
       for (const meta of groups) {
         if (cancelled) break;
-        const group = await loadProcessFlow(meta.id);
+        const group = all.get(meta.id) ?? await loadProcessFlow(meta.id);
         if (!group || cancelled) continue;
+        if (++n % 10 === 0) await new Promise((r) => setTimeout(r, 0)); // 画面の描画に間を空ける
         const errs = aggregateValidation(group, {
           tables: tableDefs,
           conventions,

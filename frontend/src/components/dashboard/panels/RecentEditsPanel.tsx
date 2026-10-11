@@ -6,9 +6,6 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { loadProject } from "../../../store/flowStore";
-import { listTables } from "../../../store/tableStore";
-import { fetchServerMtime, type MtimeKind } from "../../../utils/serverMtime";
 import { mcpBridge } from "../../../mcp/mcpBridge";
 
 const MAX_ITEMS = 10;
@@ -40,33 +37,10 @@ function formatRelative(mtime: number, now: number): string {
   return new Date(mtime).toLocaleDateString();
 }
 
+/** 最近編集した設計 (backend が更新時刻の新しい順に 1 回で返す。設計ごとに更新時刻を尋ねない) */
 async function fetchAll(): Promise<RecentItem[]> {
-  const [project, tables] = await Promise.all([loadProject(), listTables()]);
-
-  const resources: Array<{ kind: MtimeKind; id: string; name: string; displayKind: RecentItem["kind"] }> = [
-    ...project.screens.map((s) => ({ kind: "screen" as MtimeKind, id: s.id, name: s.name, displayKind: "screen" as RecentItem["kind"] })),
-    ...tables.map((t) => ({ kind: "table" as MtimeKind, id: t.id, name: t.name ?? t.physicalName ?? t.id, displayKind: "table" as RecentItem["kind"] })),
-    ...(project.processFlows ?? []).map((a) => ({ kind: "processFlow" as MtimeKind, id: a.id, name: a.name, displayKind: "processFlow" as RecentItem["kind"] })),
-  ];
-
-  const withMtime = await Promise.all(
-    resources.map(async (r) => {
-      const mtime = await fetchServerMtime(r.kind, r.id);
-      if (mtime === null) return null;
-      return {
-        kind: r.displayKind,
-        id: r.id,
-        name: r.name,
-        mtime,
-        route: KIND_META[r.displayKind].route(r.id),
-      } satisfies RecentItem;
-    }),
-  );
-
-  return withMtime
-    .filter((x): x is RecentItem => x !== null)
-    .sort((a, b) => b.mtime - a.mtime)
-    .slice(0, MAX_ITEMS);
+  const res = await mcpBridge.request("recentEdits", { limit: MAX_ITEMS }) as { items?: Array<{ kind: RecentItem["kind"]; id: string; name: string; mtime: number }> } | null;
+  return (res?.items ?? []).map((r) => ({ kind: r.kind, id: r.id, name: r.name, mtime: r.mtime, route: KIND_META[r.kind].route(r.id) }));
 }
 
 export function RecentEditsPanel() {
