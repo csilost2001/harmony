@@ -28,6 +28,7 @@
 <h3 id="22-保存は常に許可">2.2 保存は常に許可</h3>
 <p>業務リソースの保存処理は、schema 違反や未完成項目があってもブロックしない。保存はユーザーの作業途中状態を失わないための操作であり、完成判定とは分離する。</p>
 <p>保存時に検出した違反は、保存失敗ではなく validation 結果として保持し、一覧・カード・編集画面で可視化する。</p>
+<p>保存のたびに backend が schema 検査を行い、違反を <code>authoring.markers</code> に <code>kind: "validator"</code> の警告マーカーとして残す (本文は日本語: 「『/columns』の件数が少なすぎます (1 件以上)」のように、何がどう違うかを示す)。同じ違反 (<code>validatorCode</code> + <code>validatorPath</code>) は重複して増やさず、<strong>直して保存すると、その警告は <code>resolvedAt</code> つきで解決済みになる</strong> (未解決のまま残り続けない)。検査コードは <code>backend/src/ajvMessages.ts</code> (本文) と <code>projectStorage.ts</code> の <code>annotateValidationWarnings</code>。</p>
 <h3 id="23-読み込み時に検証">2.3 読み込み時に検証</h3>
 <p>各リソースは読み込み時に <code>validate&#x3C;Resource>(item, allItems)</code> で検証する。単体項目だけで判定できない重複・参照整合性・リソース間関係は、必要な一覧を <code>allItems</code> として渡して判定する。</p>
 <p>各 store / UI は §5 のパターン A (<code>load&#x3C;Resource>ValidationMap()</code> を提供) または パターン B (UI 側 inline 構築) のいずれかで validation 結果を UI に届ける。戻り値は <code>Map&#x3C;Id, ValidationError[]></code> 形式で統一し、UI はこれを参照してバッジ・枠線・ヘッダー警告を描画する。</p>

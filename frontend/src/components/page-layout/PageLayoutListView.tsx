@@ -42,6 +42,9 @@ import type { Timestamp } from "../../types/v3";
 import type { PageLayout } from "../../types/v3/page-layout";
 import "../../styles/table.css";
 import "../../styles/editMode.css";
+import { confirmDeletionImpact } from "../../utils/confirmDeletion";
+import { useQuickCreate } from "../../hooks/useQuickCreate";
+import { useReferencesDialog } from "../common/ReferencesButton";
 
 const STORAGE_KEY = "list-view-mode:page-layout-list";
 const TAB_ID = makeTabId("page-layout-list", "main");
@@ -61,6 +64,8 @@ export function PageLayoutListView() {
   const [query, setQuery] = useState("");
   const [viewMode, setViewMode] = usePersistentState<ViewMode>(STORAGE_KEY, "card");
   const [showAdd, setShowAdd] = useState(false);
+  // クイックオープン (Ctrl+K) の「新しく作る」から来たときは、追加ダイアログを開く
+  useQuickCreate("page-layout", () => setShowAdd(true));
   const [addName, setAddName] = useState("");
   const [addDescription, setAddDescription] = useState("");
   const [addNameError, setAddNameError] = useState("");
@@ -68,6 +73,7 @@ export function PageLayoutListView() {
   const [addId, setAddId] = useState("");
   const [addIdValidation, setAddIdValidation] = useState<EntityIdValidationState>({ isFormatValid: false, isUnique: true, isInvalid: true });
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
+  const references = useReferencesDialog();
   const [historyModal, setHistoryModal] = useState<{ resourceId: string } | null>(null);
 
   const loadPageLayouts = useCallback(async () => {
@@ -341,7 +347,15 @@ export function PageLayoutListView() {
       },
       { key: "sep4", separator: true },
       {
-        key: "history", label: "履歴 (過去の EditSession)", icon: "bi-clock-history",
+        key: "references", label: "参照元を見る", icon: "bi-diagram-3",
+        disabled: items.length !== 1,
+        disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
+        onClick: () => {
+          if (items.length === 1) references.show("pageLayout", String(items[0].id), String(items[0].name ?? ""));
+        },
+      },
+      {
+        key: "history", label: "履歴 (過去の編集セッション)", icon: "bi-clock-history",
         disabled: items.length !== 1,
         disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
         onClick: () => {
@@ -385,8 +399,14 @@ export function PageLayoutListView() {
   });
 
   const handleSave = () => {
-    editor.save().catch(console.error);
-    selection.clearSelection();
+    // 削除する設計を、ほかの設計が参照していれば、保存の前に確認する
+    confirmDeletionImpact("pageLayout", "ページレイアウト", editor.deletedIds)
+      .then((ok) => {
+        if (!ok) return;
+        selection.clearSelection();
+        return editor.save();
+      })
+      .catch(console.error);
   };
 
   const handleReset = () => {
@@ -402,7 +422,7 @@ export function PageLayoutListView() {
       width: "32px",
       align: "center",
       render: (v) => hasDraft("page-layout", String(v.id))
-        ? <span className="list-item-draft-mark" title="未保存の編集中 draft があります">●</span>
+        ? <span className="list-item-draft-mark" title="未保存の下書きがあります">●</span>
         : null,
     },
     {
@@ -474,7 +494,7 @@ export function PageLayoutListView() {
         <MaturityBadge maturity={v.maturity} />
         <span className="seq-card-name">{v.name}</span>
         {hasDraft("page-layout", String(v.id)) && (
-          <span className="list-item-draft-mark" title="未保存の編集中 draft があります">●</span>
+          <span className="list-item-draft-mark" title="未保存の下書きがあります">●</span>
         )}
         <EditSessionBadge resourceType="page-layout" resourceId={String(v.id)} />
         {v.hasProcessFlow && (
@@ -654,6 +674,8 @@ export function PageLayoutListView() {
             </div>
           </div>
         )}
+
+        {references.dialog}
 
         {contextMenu && (
           <ListContextMenu

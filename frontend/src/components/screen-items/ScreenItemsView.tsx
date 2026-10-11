@@ -16,6 +16,7 @@ import { EditorHeader } from "../common/EditorHeader";
 import { ServerChangeBanner } from "../common/ServerChangeBanner";
 import { useResourceEditor } from "../../hooks/useResourceEditor";
 import { useEditSession } from "../../hooks/useEditSession";
+import { useSaveShortcut } from "../../hooks/useSaveShortcut";
 import { useSessionUrlSync } from "../../hooks/useSessionUrlSync";
 import { EditModeToolbar } from "../editing/EditModeToolbar";
 import { EditSessionDropdown } from "../editing/EditSessionDropdown";
@@ -29,6 +30,10 @@ import { SaveConflictDialog } from "../editing/SaveConflictDialog";
 import { ResumeOrDiscardDialog } from "../editing/ResumeOrDiscardDialog";
 import { setDirty as setTabDirty, makeTabId } from "../../store/tabStore";
 import { RenameEntityDialog } from "../common/RenameEntityDialog";
+import { ReferencesButton } from "../common/ReferencesButton";
+import { PasteItemsDialog } from "./PasteItemsDialog";
+import { isPasteIntoField, looksLikeSpreadsheet } from "../../utils/pasteDetect";
+import type { ParsedItem } from "../../utils/itemPaste";
 import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
 import { useRenameEntityUndoToast } from "../common/useRenameEntityUndoToast";
 import { handleRenameSuccess } from "../../utils/handleRenameSuccess";
@@ -138,6 +143,8 @@ export function ScreenItemsView() {
 
   // #1330: ScreenItemsView 起点の Screen rename refactor。完了後は Items 画面に留まる。
   const [showRenameDialog, setShowRenameDialog] = useState(false);
+  const [showPasteItems, setShowPasteItems] = useState(false);
+  const [pasteItemsInitial, setPasteItemsInitial] = useState("");
   const [allScreenIds, setAllScreenIds] = useState<string[]>([]);
   const [renameUndoToast, setRenameUndoToast] = useRenameEntityUndoToast(
     "screen",
@@ -269,7 +276,7 @@ export function ScreenItemsView() {
 
   // P2-2 fix (#907): URL ?session= から復元した initialEditSessionId を渡す (URL 招待 attach 復活)
   // #891 fix: useResourceEditor より前に呼び出し、viewerMode / viewerEditSessionId を渡せるようにする
-  const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions, attach, takeOver, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
+  const { editSession, mode, loading: sessionLoading, actions, attach, takeOver, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
     resourceType: "screen-item",
     resourceId: screenId ?? "",
     sessionId,
@@ -347,6 +354,11 @@ export function ScreenItemsView() {
     await postSave();
   }, [isReadonly, isSaving, actions, postSave, screenId, editSession]);
 
+  // Ctrl+S で保存 (保存ボタンの title にも書いてある)
+  useSaveShortcut(() => {
+    if (isDirty && !isSaving && !isReadonly) handleSave().catch(console.error);
+  });
+
   const handleDiscard = useCallback(async () => {
     setShowDiscardDialog(false);
     await actions.discard();
@@ -373,8 +385,8 @@ export function ScreenItemsView() {
   useEffect(() => {
     if (!screenId) return;
     const tabId = makeTabId("screen-items", screenId);
-    setTabDirty(tabId, isDirtyForTab || isDirty);
-  }, [screenId, isDirtyForTab, isDirty]);
+    setTabDirty(tabId, isDirty);
+  }, [screenId, isDirty]);
 
   // 復元ダイアログ (readonly + draft 存在時)
   useEffect(() => {
@@ -402,6 +414,23 @@ export function ScreenItemsView() {
         label: "",
         type: "string",
       });
+    });
+    // 追加した行の項目 ID 欄へ移り、すぐ打ち込めるようにする (画面の外なら見える位置へ)
+    setTimeout(() => {
+      const rows = document.querySelectorAll<HTMLTableRowElement>(".screen-items-table tbody tr");
+      const input = rows[rows.length - 1]?.querySelector<HTMLInputElement>('input[placeholder="例: email"]');
+      input?.scrollIntoView?.({ block: "nearest" });
+      input?.focus();
+    }, 0);
+  }, [updateWithDraft]);
+
+  const handlePasteItems = useCallback((items: ParsedItem[], updates: Array<{ id: string; patch: Partial<ScreenItem> }>) => {
+    updateWithDraft((f) => {
+      for (const u of updates) {
+        const target = f.items.find((it) => it.id === u.id);
+        if (target) Object.assign(target, u.patch);
+      }
+      for (const it of items) f.items.push({ ...it } as ScreenItem);
     });
   }, [updateWithDraft]);
 
@@ -787,7 +816,18 @@ export function ScreenItemsView() {
   const lockedByOther = mode.kind === "locked-by-other" ? mode : null;
 
   return (
-    <div className={`screen-items-view${isReadonly ? " readonly-mode" : ""}`}>
+    <div
+      className={`screen-items-view${isReadonly ? " readonly-mode" : ""}`}
+      onPaste={(e) => {
+        // Excel の項目定義の表を貼り付けたら、「表から貼り付け」を開く (入力欄の中は、ふつうの貼り付け)
+        if (isReadonly || isPasteIntoField(e.target)) return;
+        const text = e.clipboardData?.getData("text/plain");
+        if (!looksLikeSpreadsheet(text)) return;
+        e.preventDefault();
+        setPasteItemsInitial(text ?? "");
+        setShowPasteItems(true);
+      }}
+    >
       <TableSubToolbar />
 
       {serverChanged && (
@@ -851,13 +891,21 @@ export function ScreenItemsView() {
         undoRedo={{ onUndo: undo, onRedo: redo, canUndo, canRedo }}
         extraRight={
           <>
+            {screenId && <ReferencesButton entityType="screen" id={screenId} name={selectedScreenName ?? ""} className="btn btn-sm btn-outline-secondary me-2" />}
             {/* #1330: Screen rename refactor を ScreenItemsView 起点でも起動可能にする */}
             {screenId && (
               <button
                 type="button"
                 className="btn btn-sm btn-outline-secondary me-2"
                 onClick={() => setShowRenameDialog(true)}
-                title="この画面の ID を変更します (参照を一括更新)"
+                disabled={isReadonly || isDirty}
+                title={
+                  isReadonly
+                    ? "編集モードに切り替えてから ID を変更できます"
+                    : isDirty
+                    ? "未保存の変更があります。保存または破棄してから ID を変更してください"
+                    : "この画面の ID を変更します (参照を一括更新)"
+                }
                 data-testid="screen-items-rename-open-btn"
               >
                 <i className="bi bi-pencil-square me-1" />
@@ -975,6 +1023,7 @@ export function ScreenItemsView() {
                         onFocus={(e) => idFocusVals.current.set(i, e.target.value)}
                         onBlur={(e) => handleIdBlur(i, e)}
                         placeholder="例: email"
+                        aria-label={`行${i + 1}の項目 ID`}
                         disabled={isReadonly}
                       />
                     </td>
@@ -985,6 +1034,7 @@ export function ScreenItemsView() {
                         onChange={(e) => handleUpdateItem(i, { label: e.target.value })}
                         onBlur={commit}
                         placeholder="例: メールアドレス"
+                        aria-label={`行${i + 1}のラベル`}
                         disabled={isReadonly}
                       />
                     </td>
@@ -1018,7 +1068,7 @@ export function ScreenItemsView() {
                         value={item.direction ?? "in"}
                         onChange={(e) => handleUpdateItem(i, { direction: e.target.value as "in" | "out" | "both" })}
                         onBlur={commit}
-                        aria-label="方向"
+                        aria-label={`行${i + 1}の方向`}
                         disabled={isReadonly}
                       >
                         <option value="in">In</option>
@@ -1032,7 +1082,7 @@ export function ScreenItemsView() {
                         className="form-check-input"
                         checked={!!item.required}
                         onChange={(e) => handleUpdateItem(i, { required: e.target.checked || undefined })}
-                        aria-label="必須"
+                        aria-label={`行${i + 1}の必須`}
                         disabled={isReadonly}
                       />
                     </td>
@@ -1044,6 +1094,7 @@ export function ScreenItemsView() {
                         min={0}
                         onChange={(e) => handleUpdateItem(i, { minLength: e.target.value === "" ? undefined : Number(e.target.value) })}
                         onBlur={commit}
+                        aria-label={`行${i + 1}の最小長`}
                         disabled={isReadonly}
                       />
                     </td>
@@ -1055,6 +1106,7 @@ export function ScreenItemsView() {
                         min={0}
                         onChange={(e) => handleUpdateItem(i, { maxLength: e.target.value === "" ? undefined : Number(e.target.value) })}
                         onBlur={commit}
+                        aria-label={`行${i + 1}の最大長`}
                         disabled={isReadonly}
                       />
                     </td>
@@ -1075,6 +1127,7 @@ export function ScreenItemsView() {
                         value={item.description ?? ""}
                         onChange={(e) => handleUpdateItem(i, { description: e.target.value || undefined })}
                         onBlur={commit}
+                        aria-label={`行${i + 1}の説明`}
                         disabled={isReadonly}
                       />
                     </td>
@@ -1782,6 +1835,16 @@ export function ScreenItemsView() {
               >
                 <i className="bi bi-plus-lg me-1" /> 項目追加
               </button>
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-secondary"
+                onClick={() => setShowPasteItems(true)}
+                disabled={isReadonly}
+                title="Excel などの項目定義の表を貼り付けて、画面項目をまとめて追加"
+                data-testid="paste-items-open"
+              >
+                <i className="bi bi-clipboard-data me-1" /> 表から貼り付け
+              </button>
               {selectedIndices.size > 0 && (
                 <button
                   type="button"
@@ -1894,6 +1957,10 @@ export function ScreenItemsView() {
           }}
           onCancel={onSaveConflictCancel}
         />
+      )}
+
+      {showPasteItems && (
+        <PasteItemsDialog existing={file?.items ?? []} onApply={handlePasteItems} onClose={() => { setShowPasteItems(false); setPasteItemsInitial(""); }} initialText={pasteItemsInitial} />
       )}
 
       {/* #1330: ScreenItemsView 起点の Screen rename refactor dialog */}

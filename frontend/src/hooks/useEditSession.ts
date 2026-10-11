@@ -15,6 +15,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { showToast } from "../utils/toast";
 import { mcpBridge } from "../mcp/mcpBridge";
 import type { DraftResourceType } from "../types/draft";
 
@@ -517,6 +518,7 @@ export function useEditSession(opts: UseEditSessionOptions): UseEditSessionResul
         return { conflicted: true };
       }
       // saveHistory は broadcast editSession.saved で refreshEditSessionState が呼ばれる
+      showToast("保存しました");
       return { conflicted: false };
     } catch (e) {
       // P2 fix (#908 round-6): backend reject (transient failure) を caller に signal で伝播。

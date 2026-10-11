@@ -17,6 +17,7 @@ import type { Maturity, ScreenId } from "../../types/v3";
 import type { PageLayout, PageLayoutRegion } from "../../store/pageLayoutStore";
 import { loadPageLayout, savePageLayout, listPageLayouts } from "../../store/pageLayoutStore";
 import { RenameEntityDialog } from "../common/RenameEntityDialog";
+import { ReferencesButton } from "../common/ReferencesButton";
 import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
 import { useRenameEntityUndoToast } from "../common/useRenameEntityUndoToast";
 import { handleRenameSuccess } from "../../utils/handleRenameSuccess";
@@ -120,7 +121,7 @@ export function PageLayoutEditor() {
 
   const {
     editSession, mode, loading: sessionLoading,
-    isDirtyForTab, actions, attach, takeOver,
+    actions, attach, takeOver,
     saveConflict, onSaveConflictOverwrite, onSaveConflictCancel,
   } = useEditSession({
     resourceType: "page-layout",
@@ -233,8 +234,8 @@ export function PageLayoutEditor() {
   useEffect(() => {
     if (!pageLayoutId) return;
     const tabId = makeTabId("page-layout", pageLayoutId);
-    setTabDirty(tabId, isDirtyForTab || isDirty);
-  }, [pageLayoutId, isDirtyForTab, isDirty]);
+    setTabDirty(tabId, isDirty);
+  }, [pageLayoutId, isDirty]);
 
   useEffect(() => {
     if (!pageLayoutId || sessionLoading) return;
@@ -482,6 +483,16 @@ export function PageLayoutEditor() {
         />
       )}
 
+      <EditModeToolbar
+        mode={mode}
+        onStartEditing={actions.startEditing}
+        onSave={handleSave}
+        onDiscardClick={() => setShowDiscardDialog(true)}
+        onForceReleaseClick={() => setShowForceReleaseDialog(true)}
+        saving={isSaving}
+        ownerLabel={lockedByOther?.ownerSessionId}
+      />
+
       {/* ─── Header ───────────────────────────────────────────────────── */}
       <EditorHeader
         title={<><i className="bi bi-layout-wtf" /> レイアウトマネージャ: <code>{pl.name}</code></>}
@@ -498,6 +509,7 @@ export function PageLayoutEditor() {
               onAttachAsView={attach}
               onTakeOver={takeOver}
             />
+            {pageLayoutId && <ReferencesButton entityType="pageLayout" id={pageLayoutId} name={pl.name || ""} />}
             {/* #1298 I-6 (RFC #1284): id rename refactor */}
             <button
               type="button"
@@ -523,16 +535,6 @@ export function PageLayoutEditor() {
       {serverChanged && (
         <ServerChangeBanner onDismiss={dismissServerBanner} onReload={() => { void reload(); }} />
       )}
-
-      <EditModeToolbar
-        mode={mode}
-        onStartEditing={actions.startEditing}
-        onSave={handleSave}
-        onDiscardClick={() => setShowDiscardDialog(true)}
-        onForceReleaseClick={() => setShowForceReleaseDialog(true)}
-        saving={isSaving}
-        ownerLabel={lockedByOther?.ownerSessionId}
-      />
 
       <div className="table-editor-content page-layout-editor-content">
         {/* ─── 基本情報 ─────────────────────────────────────────────── */}

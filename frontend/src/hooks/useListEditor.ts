@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { setDirty as setTabDirty } from "../store/tabStore";
+import { showToast } from "../utils/toast";
 
 export interface UseListEditorOpts<T> {
   /** 識別子 */
@@ -173,6 +174,7 @@ export function useListEditor<T>(opts: UseListEditorOpts<T>): UseListEditorResul
       const itemsInOrder = applyRenumber(items.filter((it) => !deletedIds.has(getId(it))));
       await commit({ itemsInOrder, deletedIds: deleted });
       await reload();
+      showToast(deleted.length > 0 ? `保存しました (${deleted.length} 件を削除)` : "保存しました");
     } finally {
       setIsSaving(false);
     }

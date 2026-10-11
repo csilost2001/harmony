@@ -82,6 +82,7 @@ import { useErrorDialog } from "../common/ErrorDialogProvider";
 import { acknowledgeServerMtime } from "../../utils/serverMtime";
 import "../../styles/flow.css";
 import "../../styles/editMode.css";
+import { checkDeletionImpact } from "../../utils/confirmDeletion";
 
 const nodeTypes = {
   screenNode: ScreenNodeComponent,
@@ -217,7 +218,7 @@ function FlowEditorInner() {
   });
 
   // P2-2 fix (#907): URL ?session= から復元した initialEditSessionId を渡す (URL 招待 attach 復活)
-  const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions, attach, takeOver, saveCheckConflict, saveCommit, saveConflict, onSaveConflictCancel } = useEditSession({
+  const { editSession, mode, loading: sessionLoading, actions, attach, takeOver, saveCheckConflict, saveCommit, saveConflict, onSaveConflictCancel } = useEditSession({
     resourceType: "flow",
     resourceId: "singleton",
     sessionId,
@@ -339,8 +340,8 @@ function FlowEditorInner() {
   // タブ dirty マーク
   useEffect(() => {
     const tabId = makeTabId("screen-flow", "main");
-    setTabDirty(tabId, isDirtyForTab || isDirty);
-  }, [isDirtyForTab, isDirty]);
+    setTabDirty(tabId, isDirty);
+  }, [isDirty]);
 
   // 復元ダイアログ (readonly + draft 存在時)
   useEffect(() => {
@@ -650,7 +651,10 @@ function FlowEditorInner() {
     if (!contextMenu || !project) return;
     pushUndoSnapshot();
     const screen = project.screens.find((s) => s.id === contextMenu.targetId);
-    if (screen && confirm(`「${screen.name}」を削除しますか？\nデザインデータも削除されます。`)) {
+    // ほかの設計 (業務フロー・帳票・処理フロー等) から参照されていれば、先に知らせる (画面フロー自身の遷移は参照に数えない)
+    // 参照されているときは、参照元の確認 1 回で済ませる (削除してよいかは、その確認で聞く)。参照がなければ、ふつうの確認
+    const impact = screen ? await checkDeletionImpact("screen", "画面", [contextMenu.targetId], ["screenFlow"], "画面のデザインデータも削除されます。") : null;
+    if (screen && impact && (impact.referenced ? impact.confirmed : confirm(`「${screen.name}」を削除しますか？\nデザインデータも削除されます。`))) {
       const draft = structuredClone(project);
       await removeScreen(draft, contextMenu.targetId);
       setProject(draft);

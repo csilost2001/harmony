@@ -132,6 +132,22 @@ function TabItem({
 
 export function TabBar() {
   const { tabs, activeTabId } = useTabs();
+
+  // 未保存の変更があるタブが 1 つでもあれば、ブラウザを閉じる・再読み込みする前に確認を出す
+  const anyDirty = tabs.some((t) => t.isDirty);
+  useEffect(() => {
+    if (!anyDirty) return;
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [anyDirty]);
+
+  // ブラウザのタブ名: 開いている設計の名前 (未保存の変更があれば「●」つき)。ブラウザのタブを複数開いていても見分けられる
+  useEffect(() => {
+    const active = tabs.find((t) => t.id === activeTabId);
+    document.title = active ? `${active.isDirty ? "● " : ""}${active.label} - Harmony` : "Harmony";
+    return () => { document.title = "Harmony"; };
+  }, [tabs, activeTabId]);
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);

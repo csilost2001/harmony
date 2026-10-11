@@ -65,6 +65,7 @@ import { useCodexStatus } from "../../codex/useCodexStatus";
 import { requestProcessFlowPartial, AiUnavailableError } from "../../codex/processFlowPartialRequest";
 import { EditorHeader } from "../common/EditorHeader";
 import { RenameEntityDialog } from "../common/RenameEntityDialog";
+import { ReferencesButton } from "../common/ReferencesButton";
 import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
 import { useRenameEntityUndoToast } from "../common/useRenameEntityUndoToast";
 import { handleRenameSuccess } from "../../utils/handleRenameSuccess";
@@ -188,7 +189,7 @@ export function ProcessFlowEditor() {
 
   // P2-2 fix (#907): URL ?session= から復元した initialEditSessionId を渡す (URL 招待 attach 復活)
   // #891 fix: useResourceEditor より前に呼び出し、viewerMode / viewerEditSessionId を渡せるようにする
-  const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions: editActions, attach: editAttach, takeOver: editTakeOver, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
+  const { editSession, mode, loading: sessionLoading, actions: editActions, attach: editAttach, takeOver: editTakeOver, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
     resourceType: "process-flow",
     resourceId: processFlowId ?? "",
     sessionId,
@@ -225,6 +226,20 @@ export function ProcessFlowEditor() {
   });
 
   const isReadonly = mode.kind !== "editing";
+
+  // 「作成して編集」経由で sessionStorage に flag があれば、編集を始めた状態で開く。
+  const autoEditFiredRef = useRef(false);
+  useEffect(() => {
+    if (autoEditFiredRef.current) return;
+    if (!processFlowId) return;
+    if (mode.kind !== "readonly") return;
+    if (sessionLoading) return;
+    const key = `harmony-auto-edit:process-flow:${processFlowId}`;
+    if (sessionStorage.getItem(key) !== "1") return;
+    autoEditFiredRef.current = true;
+    sessionStorage.removeItem(key);
+    void editActions.startEditing();
+  }, [processFlowId, mode.kind, sessionLoading, editActions]);
 
   // #1258 workspace 参照情報 (componentRef / modelRef 補完用)
   const workspace = useWorkspaceReferences();
@@ -366,8 +381,8 @@ export function ProcessFlowEditor() {
   useEffect(() => {
     if (!processFlowId) return;
     const tabId = makeTabId("process-flow", processFlowId);
-    setTabDirty(tabId, isDirtyForTab || isDirty);
-  }, [processFlowId, isDirtyForTab, isDirty]);
+    setTabDirty(tabId, isDirty);
+  }, [processFlowId, isDirty]);
 
   useEffect(() => {
     if (!processFlowId || sessionLoading) return;
@@ -953,6 +968,7 @@ export function ProcessFlowEditor() {
               onAttachAsView={editAttach}
               onTakeOver={editTakeOver}
             />
+            {processFlowId && <ReferencesButton entityType="processFlow" id={processFlowId} name={group.meta?.name ?? ""} />}
             {/* #1298 I-6 (RFC #1284): id rename refactor */}
             <button
               type="button"

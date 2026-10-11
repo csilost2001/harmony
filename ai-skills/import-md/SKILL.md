@@ -108,6 +108,10 @@ Project ディレクトリ `$ARGUMENTS` の Markdown 設計書を Harmony JSON �
   3. 同根の課題があれば 1 ISSUE に統合 (鉄則 3)
   4. 「念のため別 ISSUE で隔離」「将来対応のためメモ」等の禁止理由付けに陥らない
 
+## 変換後の点検
+
+変換した設計は、MCP の `designer__check_design` (CLI: `npm run check:design -- <workspace-dir>`) で要確認事項を確認し、変換が原因の error / warning を直してから完了を報告する。
+
 ## 注意
 
 - 本 skill は **AI 向けマニュアル ([`conversion-guideline-for-ai.md`](../../../docs/spec/conversion-guideline-for-ai.md)) の起動点** に過ぎない。実体は spec 側にある

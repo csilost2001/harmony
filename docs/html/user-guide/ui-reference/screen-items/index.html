@@ -76,7 +76,12 @@
 
 
 
-<table><thead><tr><th>操作</th><th>手段</th><th>結果</th></tr></thead><tbody><tr><td>項目追加</td><td>「項目を追加」 / 表内のリネームから</td><td>行追加</td></tr><tr><td>ID 自動命名</td><td>「AI で命名」 (項目選択後)</td><td><code>/rename-screen-ids</code> skill 連携で AI 推論名を提案</td></tr><tr><td>編集</td><td>行クリック</td><td>右パネルで詳細編集</td></tr><tr><td>並び替え</td><td>行ドラッグ</td><td>表示順 = 業務順 (Tab key 移動順に影響)</td></tr><tr><td>削除</td><td>右クリック → 「削除」 / <code>Delete</code></td><td>process-flow 参照ありは警告</td></tr><tr><td>rename refactor</td><td>行右クリック → 「ID 変更…」</td><td>RenameEntityDialog (画面内のみ unique)</td></tr><tr><td>検証</td><td>autosave 後</td><td>warning / error バッジ表示</td></tr></tbody></table>
+
+
+
+
+
+<table><thead><tr><th>操作</th><th>手段</th><th>結果</th></tr></thead><tbody><tr><td>項目追加</td><td>「項目を追加」 / 表内のリネームから</td><td>行追加</td></tr><tr><td>項目をまとめて追加 (Excel から)</td><td>「表から貼り付け」、または Excel の表をコピーして画面の上で <code>Ctrl+V</code> (入力欄の中は、ふつうの貼り付け)</td><td>項目定義の表 (タブ / カンマ区切り) を貼り付け、プレビューを見て追加。1 行目が見出し (項目 ID・ラベル・型・入出力・必須・最大長・最小長・最小値・最大値・パターン・説明) なら列の順は自由、なければこの順。項目 ID は英字の camelCase (<code>customer_name</code> → <code>customerName</code>)。型は 文字列・整数・数値・真偽・日付・日時 などの書き方も読む。既にある ID の行は、既定では追加せず、「更新する」を選ぶと表にある項目だけを書き換える。「いまの項目を、この形式の表としてコピー」で Excel へ持ち出して編集し、貼り戻せる (既にある行は、「更新する」を選ぶと、表にある項目だけが書き換わる)。追加した項目は、画面デザイナの「未配置の項目」から置ける</td></tr><tr><td>ID 自動命名</td><td>「AI で命名」 (項目選択後)</td><td><code>/rename-screen-ids</code> skill 連携で AI 推論名を提案</td></tr><tr><td>編集</td><td>行クリック</td><td>右パネルで詳細編集</td></tr><tr><td>並び替え</td><td>行ドラッグ</td><td>表示順 = 業務順 (Tab key 移動順に影響)</td></tr><tr><td>削除</td><td>右クリック → 「削除」 / <code>Delete</code></td><td>process-flow 参照ありは警告</td></tr><tr><td>rename refactor</td><td>行右クリック → 「ID 変更…」</td><td>RenameEntityDialog (画面内のみ unique)</td></tr><tr><td>検証</td><td>autosave 後</td><td>warning / error バッジ表示</td></tr></tbody></table>
 <h2 id="データ前提">データ前提</h2>
 <ul>
 <li><strong>空状態</strong>: 「項目が未定義」プレースホルダ。Designer で配置した部品から自動採番 (<code>item-1</code> 等) で初期化される場合あり</li>

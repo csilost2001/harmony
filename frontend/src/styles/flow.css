@@ -147,11 +147,16 @@
   transition: background 0.15s, box-shadow 0.15s;
 }
 
+.flow-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .flow-btn-primary {
   background: #6366f1;
   color: var(--hm-on-solid);
 }
-.flow-btn-primary:hover {
+.flow-btn-primary:hover:not(:disabled) {
   background: #4f46e5;
 }
 
@@ -169,7 +174,7 @@
   color: var(--hm-fg-muted);
   padding: 6px 8px;
 }
-.flow-btn-ghost:hover {
+.flow-btn-ghost:hover:not(:disabled) {
   background: var(--hm-surface-2);
 }
 

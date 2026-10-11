@@ -5,7 +5,7 @@ import os from "node:os";
 
 import { renameEntityId, _clearUndoStoreForTest } from "../renameEntity.js";
 import { harmonyFile, ensureDataDir, writeTable } from "../projectStorage.js";
-import { refactorHandlers } from "./refactor.js";
+import { refactorHandlers, runEntityRename, runEntityUndo } from "./refactor.js";
 import type { WsBridge } from "../wsBridge.js";
 
 const TMP_ROOT = path.join(os.tmpdir(), `refactor-handler-test-${process.pid}-${Date.now()}`);
@@ -105,3 +105,32 @@ describe("listRecentUndoOperations RPC — Phase L frontend restoration", () => 
     ])]);
   });
 });
+
+describe("runEntityRename / runEntityUndo (MCP と共通) — 編集セッションの移行と通知先", () => {
+  it("改名で編集セッションの対象 ID を新 ID へ移し、undo で元の ID へ戻す。undo の通知は operation の持ち主のワークスペースへ", async () => {
+    const operationRoot = await makeWorkspace();
+    const currentRoot = await makeWorkspace();
+    await writeTable("before", { id: "before", name: "before", columns: [] }, operationRoot);
+    const migrate = vi.fn().mockResolvedValue({ migrated: [{ editSessionId: "es-1", oldResourceId: "before", newResourceId: "after", resourceType: "table" }], warnings: [] });
+    const bridge = {
+      editSessionListByResource: vi.fn().mockReturnValue([]),
+      editSessionMigrateResourceId: migrate,
+      broadcast: vi.fn(),
+    } as unknown as WsBridge;
+
+    const renamed = await runEntityRename(bridge, operationRoot, "table", "before", "after", operationRoot, "mcp-session");
+    renamed.broadcastReload();
+    expect(migrate).toHaveBeenCalledWith(operationRoot, "table", "before", "table", "after", undefined);
+
+    migrate.mockClear();
+    vi.mocked(bridge.broadcast).mockClear();
+    // 別のワークスペースが開いている状態で undo する (MCP の現在のワークスペース = currentRoot)
+    const undone = await runEntityUndo(bridge, renamed.result.operation.operationId, currentRoot, "mcp-session");
+    undone.broadcastReload();
+    expect(migrate).toHaveBeenCalledWith(operationRoot, "table", "after", "table", "before", ["es-1"]);
+    expect(vi.mocked(bridge.broadcast).mock.calls.length).toBeGreaterThan(0);
+    for (const call of vi.mocked(bridge.broadcast).mock.calls) expect(call[0].wsId).toBe(operationRoot);
+    await fs.access(path.join(operationRoot, "harmony", "tables", "before.json"));
+  });
+});
+

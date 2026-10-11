@@ -160,7 +160,7 @@ function checkExtensionCategoryCollisions(catalog: ConventionsCatalog, issues: C
         path: `extensionCategories.${extName}`,
         code: "CONV_CATEGORY_COLLISION",
         value: extName,
-        message: `extensionCategories.${extName} が built-in カテゴリ '${extName}' と衝突しています (#1221、同一名前空間禁止)。拡張カテゴリ名を別名にリネームしてください。`,
+        message: `extensionCategories.${extName} が built-in カテゴリ '${extName}' と衝突しています (同一名前空間は使えません)。拡張カテゴリ名を別名にリネームしてください。`,
       });
     }
   }
@@ -347,7 +347,7 @@ function checkValue(src: string, path: string, catalog: ConventionsCatalog, issu
         path,
         code: "INVALID_CONV_REFERENCE_FORM",
         value: `@conv.${category}.${key}`,
-        message: `@conv.extensionCategories.<category>.<key> 形式は禁止です (#1221)。拡張カテゴリも @conv.<category>.<key> 形式で参照してください (built-in カテゴリと同一名前空間で解決されます)。`,
+        message: `@conv.extensionCategories.<category>.<key> 形式は使えません。拡張カテゴリも @conv.<category>.<key> 形式で参照してください (built-in カテゴリと同一名前空間で解決されます)。`,
       });
       continue;
     }

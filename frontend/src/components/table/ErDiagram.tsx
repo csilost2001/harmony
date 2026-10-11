@@ -27,7 +27,7 @@ import { CARDINALITY_LABELS, type ErCardinality } from "../../utils/erUtils";
 import { listTables, loadTable, createTable } from "../../store/tableStore";
 import { clearErLayoutPreview, loadErLayout, loadErLayoutCanonical, saveErLayoutCanonical, saveErLayoutPreview } from "../../store/erLayoutStore";
 import { loadProject } from "../../store/flowStore";
-import { getAllRelations, autoLayout, generateErMermaid } from "../../utils/erUtils";
+import { getAllRelations, autoLayout, generateErMermaid, pickEdgeSides } from "../../utils/erUtils";
 import { generateSpecJson } from "../../utils/specExporter";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { generateUUID } from "../../utils/uuid";
@@ -188,12 +188,18 @@ function ErDiagramInner() {
     setNodes(rfNodes);
 
     const relations = getAllRelations(tables, layout);
-    const rfEdges: RFEdge[] = relations.map((rel) => ({
+    const rfEdges: RFEdge[] = relations.map((rel) => {
+      const sides = pickEdgeSides(
+        finalPositions[rel.sourceTableId] ?? { x: 0, y: 0 },
+        finalPositions[rel.targetTableId] ?? { x: 0, y: 0 },
+        rel.sourceTableId === rel.targetTableId,
+      );
+      return {
       id: rel.id,
       source: rel.sourceTableId,
       target: rel.targetTableId,
-      sourceHandle: "right",
-      targetHandle: "left",
+      sourceHandle: sides.sourceHandle,
+      targetHandle: sides.targetHandle,
       label: rel.sourceColumnName || rel.label || "",
       markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
       style: {
@@ -206,7 +212,8 @@ function ErDiagramInner() {
       labelBgPadding: [6, 4] as [number, number],
       labelBgBorderRadius: 4,
       data: { physical: rel.physical, cardinality: rel.cardinality },
-    }));
+    };
+    });
     setEdges(rfEdges);
 
     // Fit view on first load

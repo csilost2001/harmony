@@ -38,7 +38,7 @@ export function useEditableDocument<T extends object>(opts: UseEditableDocumentO
   const { resourceType, tabType, id, autoEditKey } = opts;
   const sessionId = mcpBridge.getSessionId();
   const { syncSessionToUrl, initialEditSessionId } = useSessionUrlSync({ resourceType, resourceId: id ?? "" });
-  const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions, attach, takeOver, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
+  const { editSession, mode, loading: sessionLoading, actions, attach, takeOver, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
     resourceType, resourceId: id ?? "", sessionId, editSessionId: initialEditSessionId,
   });
 
@@ -153,9 +153,8 @@ export function useEditableDocument<T extends object>(opts: UseEditableDocumentO
     void actions.startEditing();
   }, [id, mode.kind, sessionLoading, actions, autoEditKey]);
 
-  // タブの「編集中」印 (編集セッションを持っている間、または未保存の変更があるあいだ)。
-  // 画面の「未保存」表示と離脱の警告は、変更があるとき (isDirty) だけにする
-  const tabDirty = isDirtyForTab || isDirty;
+  // タブの「●」は、未保存の変更があるあいだだけ (編集を始めただけでは付けない。他のエディタと同じ)
+  const tabDirty = isDirty;
   useEffect(() => {
     if (!id) return;
     const tabId = makeTabId(tabType, id);

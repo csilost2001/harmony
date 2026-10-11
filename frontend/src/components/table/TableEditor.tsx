@@ -25,6 +25,11 @@ import { useListKeyboard } from "../../hooks/useListKeyboard";
 import { useListSort } from "../../hooks/useListSort";
 import { EditorHeader } from "../common/EditorHeader";
 import { RenameEntityDialog } from "../common/RenameEntityDialog";
+import { PasteColumnsDialog } from "./PasteColumnsDialog";
+import { showToast } from "../../utils/toast";
+import { isPasteIntoField, looksLikeSpreadsheet } from "../../utils/pasteDetect";
+import { columnsToTsv, type ParsedColumn } from "../../utils/columnPaste";
+import { ReferencesButton } from "../common/ReferencesButton";
 import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
 import { useRenameEntityUndoToast } from "../common/useRenameEntityUndoToast";
 import { handleRenameSuccess } from "../../utils/handleRenameSuccess";
@@ -77,7 +82,7 @@ export function TableEditor() {
 
   // P2-2 fix (#907): URL ?session= から復元した initialEditSessionId を渡す (URL 招待 attach 復活)
   // #891 fix: useResourceEditor より前に呼び出し、viewerMode / viewerEditSessionId を渡せるようにする
-  const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions, attach, takeOver, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
+  const { editSession, mode, loading: sessionLoading, actions, attach, takeOver, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
     resourceType: "table",
     resourceId: tableId ?? "",
     sessionId,
@@ -187,8 +192,8 @@ export function TableEditor() {
   useEffect(() => {
     if (!tableId) return;
     const tabId = makeTabId("table", tableId);
-    setTabDirty(tabId, isDirtyForTab || isDirty);
-  }, [tableId, isDirtyForTab, isDirty]);
+    setTabDirty(tabId, isDirty);
+  }, [tableId, isDirty]);
 
   useEffect(() => {
     if (!tableId || sessionLoading) return;
@@ -351,6 +356,7 @@ export function TableEditor() {
               onAttachAsView={attach}
               onTakeOver={takeOver}
             />
+            {tableId && <ReferencesButton compact entityType="table" id={tableId} name={table.physicalName || table.name || ""} />}
             {/* #1298 I-6 (RFC #1284): id rename refactor */}
             <button
               className="editor-header-undo-btn"
@@ -371,11 +377,27 @@ export function TableEditor() {
               className="editor-header-undo-btn"
               onClick={() => {
                 const md = generateTableMarkdown(table);
-                navigator.clipboard.writeText(md);
+                navigator.clipboard.writeText(md)
+                  .then(() => showToast("Markdown をコピーしました"))
+                  .catch(() => showToast("コピーできませんでした (ブラウザが許可していません)", "error"));
               }}
               title="Markdown をコピー"
+              aria-label="Markdown をコピー"
             >
               <i className="bi bi-clipboard" />
+            </button>
+            <button
+              className="editor-header-undo-btn"
+              onClick={() => {
+                navigator.clipboard.writeText(columnsToTsv(table.columns))
+                  .then(() => showToast("Excel 用の表 (タブ区切り) をコピーしました"))
+                  .catch(() => showToast("コピーできませんでした (ブラウザが許可していません)", "error"));
+              }}
+              title="カラムを Excel 用の表 (タブ区切り) としてコピー"
+              aria-label="カラムを Excel 用の表としてコピー"
+              data-testid="copy-columns-tsv"
+            >
+              <i className="bi bi-file-earmark-spreadsheet" />
             </button>
           </>
         }
@@ -385,11 +407,8 @@ export function TableEditor() {
       <div className="table-editor-tabs">
         <button className={tab === "columns" ? "active" : ""} onClick={() => setTab("columns")}>
           <i className="bi bi-columns-gap" /> 列 <span className="tab-count">{table.columns.length}</span>
-          {columnsEmpty && (
-            <span className="view-editor-section-marker" style={{ color: "orange", marginLeft: 6 }} title="カラムが未定義です">{"⚠️"}</span>
-          )}
-          {primaryKeyEmpty && (
-            <span className="view-editor-section-marker" style={{ color: "orange", marginLeft: 6 }} title="主キーが未指定です">{"⚠️"}</span>
+          {(columnsEmpty || primaryKeyEmpty) && (
+            <span className="view-editor-section-marker" style={{ color: "orange", marginLeft: 6 }} title={columnsEmpty ? "カラムが未定義です" : "主キーが未指定です"}>{"⚠️"}</span>
           )}
         </button>
         <button className={tab === "constraints" ? "active" : ""} onClick={() => setTab("constraints")}>
@@ -415,7 +434,7 @@ export function TableEditor() {
       <div className="table-editor-content-area">
         <div className="table-editor-body">
           {tab === "columns" && (
-            <ColumnsTab table={table} update={isReadonly ? () => {} : updateWithDraft} />
+            <ColumnsTab table={table} update={isReadonly ? () => {} : updateWithDraft} isReadonly={isReadonly} />
           )}
           {tab === "constraints" && (
             <ConstraintsTab table={table} update={isReadonly ? () => {} : updateWithDraft} allTables={allTables} />
@@ -582,12 +601,16 @@ function TableMetaEditor({
 // ── カラムタブ ────────────────────────────────────────────────────────────────
 
 function ColumnsTab({
-  table, update,
+  table, update, isReadonly = false,
 }: {
   table: Table;
   update: (fn: (t: Table) => void) => void;
+  /** 閲覧中 (編集を始めていない)。追加の操作を止める */
+  isReadonly?: boolean;
 }) {
   const [showTemplates, setShowTemplates] = useState(false);
+  const [showPaste, setShowPaste] = useState(false);
+  const [pasteInitial, setPasteInitial] = useState("");
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
   const [activeColId, setActiveColId] = useState<string | null>(null);
 
@@ -633,6 +656,26 @@ function ColumnsTab({
     update((t) => { newColId = addColumn(t).id; });
     selection.setSelectedIds(new Set<string>([newColId]));
     setActiveColId(newColId);
+  };
+
+  const handlePasteColumns = (cols: ParsedColumn[], updates: Array<{ id: string; patch: Partial<Column> }>) => {
+    const newIds: string[] = [];
+    update((t) => {
+      for (const u of updates) {
+        const target = t.columns.find((c) => c.id === u.id);
+        if (target) Object.assign(target, u.patch);
+      }
+      for (const c of cols) {
+        // 既存のカラム ID と重ならない ID を付ける
+        let n = t.columns.length + 1;
+        while (t.columns.some((x) => x.id === `col-${String(n).padStart(2, "0")}`)) n++;
+        newIds.push(addColumn(t, { ...c, id: `col-${String(n).padStart(2, "0")}` as Column["id"], physicalName: c.physicalName as PhysicalName, name: c.name as DisplayName }).id);
+      }
+    });
+    if (newIds.length > 0) {
+      selection.setSelectedIds(new Set<string>(newIds));
+      setActiveColId(newIds[newIds.length - 1]);
+    }
   };
 
   const handleAddFromTemplate = (tpl: ColumnTemplate) => {
@@ -754,6 +797,11 @@ function ColumnsTab({
           key: "addTpl", label: "テンプレートから追加", icon: "bi-collection",
           disabled: sortActive, disabledReason: sortReason,
           onClick: () => setShowTemplates(true),
+        },
+        {
+          key: "pasteTable", label: "表から貼り付け", icon: "bi-clipboard-data",
+          disabled: sortActive, disabledReason: sortReason,
+          onClick: () => setShowPaste(true),
         },
       ];
     }
@@ -946,17 +994,27 @@ function ColumnsTab({
   const primaryKeyEmpty = !table.columns.some((column) => column.primaryKey);
 
   return (
-    <div className="columns-tab">
+    <div
+      className="columns-tab"
+      onPaste={(e) => {
+        // Excel の表を貼り付けたら、「表から貼り付け」を開く (アプリ内のコピーがあるとき・入力欄の中は、ふつうの貼り付け)
+        if (isReadonly || sortActive || isPasteIntoField(e.target) || clipboard.hasContent) return;
+        const text = e.clipboardData?.getData("text/plain");
+        if (!looksLikeSpreadsheet(text)) return;
+        e.preventDefault();
+        setPasteInitial(text ?? "");
+        setShowPaste(true);
+      }}
+    >
       <div className="columns-selection-bar">
         <span className="columns-selection-count">
           {anySelected ? `${selectedCount} 件選択中 (ダブルクリック/Enter で編集)` : "クリックで選択、ダブルクリックで編集"}
-          {columnsEmpty && (
-            <span className="view-editor-section-marker" style={{ color: "orange", marginLeft: 6 }} title="カラムが未定義です">{"\u26A0\uFE0F"}</span>
-          )}
-          {primaryKeyEmpty && (
-            <span className="view-editor-section-marker" style={{ color: "orange", marginLeft: 6 }} title="主キーが未指定です">{"\u26A0\uFE0F"}</span>
-          )}
         </span>
+        {(columnsEmpty || primaryKeyEmpty) && (
+          <span className="columns-warning" data-testid="columns-warning">
+            <i className="bi bi-exclamation-triangle-fill" /> {columnsEmpty ? "カラムが未定義です" : "主キーが未指定です"}
+          </span>
+        )}
         <div className="columns-selection-actions">
           <button
             className="tbl-btn tbl-btn-ghost tbl-btn-sm"
@@ -1032,20 +1090,32 @@ function ColumnsTab({
         <button
           className="tbl-btn tbl-btn-primary"
           onClick={handleAddBlank}
-          disabled={sortActive}
-          title={sortActive ? "ソート中は無効 (ソート解除で利用可能)" : undefined}
+          disabled={sortActive || isReadonly}
+          title={isReadonly ? "「編集開始」を押してから追加できます" : sortActive ? "ソート中は無効 (ソート解除で利用可能)" : undefined}
         >
           <i className="bi bi-plus-lg" /> カラム追加
         </button>
         <button
           className={`tbl-btn tbl-btn-secondary${showTemplates ? " active" : ""}`}
           onClick={() => setShowTemplates(!showTemplates)}
-          disabled={sortActive}
-          title={sortActive ? "ソート中は無効 (ソート解除で利用可能)" : undefined}
+          disabled={sortActive || isReadonly}
+          title={isReadonly ? "「編集開始」を押してから追加できます" : sortActive ? "ソート中は無効 (ソート解除で利用可能)" : undefined}
         >
           <i className="bi bi-collection" /> テンプレートから追加
         </button>
+        <button
+          className="tbl-btn tbl-btn-secondary"
+          onClick={() => setShowPaste(true)}
+          disabled={sortActive || isReadonly}
+          title={isReadonly ? "「編集開始」を押してから追加できます" : sortActive ? "ソート中は無効 (ソート解除で利用可能)" : "Excel などの表を貼り付けて、カラムをまとめて追加"}
+          data-testid="paste-columns-open"
+        >
+          <i className="bi bi-clipboard-data" /> 表から貼り付け
+        </button>
       </div>
+      {showPaste && (
+        <PasteColumnsDialog existing={table.columns} onApply={handlePasteColumns} onClose={() => { setShowPaste(false); setPasteInitial(""); }} initialText={pasteInitial} />
+      )}
 
       {contextMenu && (
         <ListContextMenu

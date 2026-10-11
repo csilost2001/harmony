@@ -27,6 +27,9 @@ import { makeDuplicatedEntityId } from "../../utils/entityIdSuggestion";
 import { useDraftRegistry } from "../../hooks/useDraftRegistry";
 import "../../styles/table.css";
 import "../../styles/editMode.css";
+import { confirmDeletionImpact } from "../../utils/confirmDeletion";
+import { useQuickCreate } from "../../hooks/useQuickCreate";
+import { useReferencesDialog } from "../common/ReferencesButton";
 
 const STORAGE_KEY = "list-view-mode:view-list";
 const TAB_ID = makeTabId("view-list", "main");
@@ -51,6 +54,8 @@ export function ViewListView() {
   const [query, setQuery] = useState("");
   const [viewMode, setViewMode] = usePersistentState<ViewMode>(STORAGE_KEY, "card");
   const [showAdd, setShowAdd] = useState(false);
+  // クイックオープン (Ctrl+K) の「新しく作る」から来たときは、追加ダイアログを開く
+  useQuickCreate("view", () => setShowAdd(true));
   const [addPhysicalName, setAddPhysicalName] = useState("");
   const [addName, setAddName] = useState("");
   const [addPhysicalNameError, setAddPhysicalNameError] = useState("");
@@ -58,6 +63,7 @@ export function ViewListView() {
   const [addId, setAddId] = useState("");
   const [addIdValidation, setAddIdValidation] = useState<EntityIdValidationState>({ isFormatValid: false, isUnique: true, isInvalid: true });
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
+  const references = useReferencesDialog();
   const [validationMap, setValidationMap] = useState<Map<string, ValidationSummary>>(new Map());
 
   const loadViews = useCallback(async () => {
@@ -351,6 +357,14 @@ export function ViewListView() {
         disabledReason: sortActive ? sortReason : undefined,
         onClick: () => { if (items.length > 0) handleDuplicate(items).catch(console.error); },
       },
+      {
+        key: "references", label: "参照元を見る", icon: "bi-diagram-3",
+        disabled: items.length !== 1,
+        disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
+        onClick: () => {
+          if (items.length === 1) references.show("view", String(items[0].id), String(items[0].name ?? ""));
+        },
+      },
       { key: "sep3", separator: true },
       {
         key: "delete", label: "削除", icon: "bi-trash", shortcut: "Delete",
@@ -394,8 +408,14 @@ export function ViewListView() {
   });
 
   const handleSave = () => {
-    editor.save().catch(console.error);
-    selection.clearSelection();
+    // 削除する設計を、ほかの設計が参照していれば、保存の前に確認する
+    confirmDeletionImpact("view", "DB ビュー", editor.deletedIds)
+      .then((ok) => {
+        if (!ok) return;
+        selection.clearSelection();
+        return editor.save();
+      })
+      .catch(console.error);
   };
 
   const handleReset = () => {
@@ -411,7 +431,7 @@ export function ViewListView() {
       width: "32px",
       align: "center",
       render: (v) => hasDraft("view", v.id)
-        ? <span className="list-item-draft-mark" title="未保存の編集中 draft があります">●</span>
+        ? <span className="list-item-draft-mark" title="未保存の下書きがあります">●</span>
         : null,
     },
     {
@@ -481,7 +501,7 @@ export function ViewListView() {
           <MaturityBadge maturity={v.maturity} />
           <span className="seq-card-name">{v.name}</span>
           {hasDraft("view", v.id) && (
-            <span className="list-item-draft-mark" title="未保存の編集中 draft があります">●</span>
+            <span className="list-item-draft-mark" title="未保存の下書きがあります">●</span>
           )}
           {validation && (hasError || hasWarning) && (
             <span className="view-validation-badges">
@@ -635,6 +655,7 @@ export function ViewListView() {
                   value={addId}
                   onChange={setAddId}
                   name={addName}
+                  idSource={addPhysicalName}
                   existingIds={existingIds}
                   entityLabel="DB ビュー"
                   inputId="view-id-input"
@@ -657,6 +678,8 @@ export function ViewListView() {
             </div>
           </div>
         )}
+
+        {references.dialog}
 
         {contextMenu && (
           <ListContextMenu

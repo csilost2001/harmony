@@ -50,6 +50,9 @@ import { EditSessionBadge } from "../editing/EditSessionBadge";
 import { DraftHistoryModal } from "../editing/DraftHistoryModal";
 import "../../styles/processFlow.css";
 import "../../styles/editMode.css";
+import { confirmDeletionImpact } from "../../utils/confirmDeletion";
+import { useQuickCreate } from "../../hooks/useQuickCreate";
+import { useReferencesDialog } from "../common/ReferencesButton";
 
 const ALL_TYPES: ProcessFlowType[] = ["screen", "batch", "scheduled", "system", "common", "other"];
 const STORAGE_KEY = "list-view-mode:process-flow-list";
@@ -86,6 +89,8 @@ export function ProcessFlowListView() {
   const [validationMap, setValidationMap] = useState<Map<string, ValidationSummary>>(new Map());
   const [markerMap, setMarkerMap] = useState<Map<string, MarkerSummary>>(new Map());
   const [showAdd, setShowAdd] = useState(false);
+  // クイックオープン (Ctrl+K) の「新しく作る」から来たときは、追加ダイアログを開く
+  useQuickCreate("process-flow", () => setShowAdd(true));
   const [addName, setAddName] = useState("");
   const [addType, setAddType] = useState<ProcessFlowType>("screen");
   const [addScreenId, setAddScreenId] = useState("");
@@ -101,6 +106,7 @@ export function ProcessFlowListView() {
   const [projectCatalogs, setProjectCatalogs] = useState<ProjectCatalogs | null>(null);
   const [viewMode, setViewMode] = usePersistentState<ViewMode>(STORAGE_KEY, "card");
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
+  const references = useReferencesDialog();
   // #893: draft history modal
   const [historyModal, setHistoryModal] = useState<{ resourceId: string } | null>(null);
 
@@ -458,6 +464,8 @@ export function ProcessFlowListView() {
     setAddScreenId("");
     setAddDescription("");
     setAddId("");
+    // 作成した処理フローは、編集を始めた状態で開く
+    try { sessionStorage.setItem(`harmony-auto-edit:process-flow:${group.meta.id}`, "1"); } catch { /* 使えなくても開くだけ */ }
     navigate(wsPath(`/process-flow/edit/${group.meta.id}`));
   };
 
@@ -526,7 +534,7 @@ export function ProcessFlowListView() {
       },
       { key: "sep4", separator: true },
       {
-        key: "start-editing", label: "編集開始 (新規 EditSession)", icon: "bi-pencil",
+        key: "start-editing", label: "編集開始 (新しい編集セッション)", icon: "bi-pencil",
         disabled: items.length !== 1,
         disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
         onClick: () => {
@@ -534,7 +542,7 @@ export function ProcessFlowListView() {
         },
       },
       {
-        key: "draft-sessions", label: "既存 EditSession 一覧", icon: "bi-layers",
+        key: "draft-sessions", label: "編集セッションの一覧", icon: "bi-layers",
         disabled: items.length !== 1,
         disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
         onClick: () => {
@@ -542,7 +550,15 @@ export function ProcessFlowListView() {
         },
       },
       {
-        key: "history", label: "履歴 (過去の EditSession)", icon: "bi-clock-history",
+        key: "references", label: "参照元を見る", icon: "bi-diagram-3",
+        disabled: items.length !== 1,
+        disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
+        onClick: () => {
+          if (items.length === 1) references.show("processFlow", String(items[0].id), String(items[0].name ?? ""));
+        },
+      },
+      {
+        key: "history", label: "履歴 (過去の編集セッション)", icon: "bi-clock-history",
         disabled: items.length !== 1,
         disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
         onClick: () => {
@@ -586,8 +602,14 @@ export function ProcessFlowListView() {
   });
 
   const handleSave = () => {
-    editor.save().catch(console.error);
-    selection.clearSelection();
+    // 削除する設計を、ほかの設計が参照していれば、保存の前に確認する
+    confirmDeletionImpact("processFlow", "処理フロー", editor.deletedIds)
+      .then((ok) => {
+        if (!ok) return;
+        selection.clearSelection();
+        return editor.save();
+      })
+      .catch(console.error);
   };
 
   const handleReset = () => {
@@ -626,7 +648,7 @@ export function ProcessFlowListView() {
       width: "32px",
       align: "center",
       render: (g) => hasDraft("process-flow", g.id)
-        ? <span className="list-item-draft-mark" title="未保存の編集中 draft があります">●</span>
+        ? <span className="list-item-draft-mark" title="未保存の下書きがあります">●</span>
         : null,
     },
     {
@@ -735,7 +757,7 @@ export function ProcessFlowListView() {
           <MaturityBadge maturity={g.maturity} />
           <span className="process-flow-card-name">{g.name}</span>
           {hasDraft("process-flow", g.id) && (
-            <span className="list-item-draft-mark" title="未保存の編集中 draft があります">●</span>
+            <span className="list-item-draft-mark" title="未保存の下書きがあります">●</span>
           )}
           <EditSessionBadge resourceType="process-flow" resourceId={g.id} />
           {v && (hasError || hasWarning) && (
@@ -1006,6 +1028,11 @@ export function ProcessFlowListView() {
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
                 </select>
+                {!addScreenId && (
+                  <div className="form-text" data-testid="add-flow-screen-hint">
+                    画面を選ばずに作ると、「画面に紐付いていない」要確認が出ます。あとから処理フローの基本情報で選べます。
+                  </div>
+                )}
               </div>
             )}
             <div className="form-group">
@@ -1042,6 +1069,8 @@ export function ProcessFlowListView() {
           </div>
         </div>
       )}
+
+      {references.dialog}
 
       {contextMenu && (
         <ListContextMenu

@@ -160,3 +160,23 @@ describe("独自部品 (layout components)", () => {
     expect(doc.issues.some((i) => i.section.includes("キーワード検索") && i.message.includes("使われていません"))).toBe(true);
   });
 });
+
+describe("要確認事項の対象 (ref)", () => {
+  it("CRUD の所見はテーブルを指し、設計書の「要確認事項」の対象は該当節へのリンクになる", () => {
+    const doc = buildDesignDocument(input);
+    const crudIssue = doc.issues.find((i) => i.section.startsWith("CRUD") && i.message.includes("どの処理フローからも使われていません"));
+    expect(crudIssue?.ref).toEqual({ kind: "table", id: "customer-master" });
+    expect(doc.html).toContain('<a href="#table-customer-master">CRUD');
+  });
+
+  it("画面・業務フロー・帳票の指摘は、その設計を指す", () => {
+    const doc = buildDesignDocument({
+      ...input,
+      screens: [...input.screens, { id: "draft-screen", name: "下書き画面", kind: "form", path: "/d", items: [] } as never],
+      businessFlows: [{ id: "bf1", name: "業務", lanes: [{ id: "a", name: "A" }], steps: [{ id: "s", lane: "zz", kind: "task", name: "x" }] } as never],
+    });
+    expect(doc.issues.find((i) => i.section === "画面 下書き画面")?.ref).toEqual({ kind: "screen", id: "draft-screen" });
+    expect(doc.issues.find((i) => i.section === "業務フロー 業務")?.ref).toEqual({ kind: "businessFlow", id: "bf1" });
+    expect(doc.html).toContain('href="#business-flow-bf1"');
+  });
+});

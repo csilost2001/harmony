@@ -122,6 +122,14 @@ test.describe("テーブルエディタ：保存/リセットボタン", { tag: 
     await expect(page.locator(".srb-btn-reset")).toBeEnabled();
   });
 
+  test("編集を始めただけではタブの dirty インジケーターは出ない (変更したときだけ出る)", async ({ page }) => {
+    await setupTableEditor(page);
+    await expect(page.locator(".srb-btn-save")).toBeDisabled();
+    await expect(page.locator(".tabbar-tab-dirty")).toHaveCount(0);
+    await page.getByRole("button", { name: /カラム追加/ }).click();
+    await expect(page.locator(".tabbar-tab-dirty")).toBeVisible();
+  });
+
   test("変更後にタブの dirty インジケーターが表示される", async ({ page }) => {
     await setupTableEditor(page);
     await page.getByRole("button", { name: /カラム追加/ }).click();
@@ -145,7 +153,8 @@ test.describe("テーブルエディタ：保存/リセットボタン", { tag: 
 
   // 旧テスト「リセット後に dirty インジケーターが消える」は削除。
   // 理由は save-reset-action.spec.ts と同じ — edit-session-protocol §4 状態遷移図で reset 後も
-  // EditSession が Active 継続のため `isDirtyForTab = myRole === "Edit"` で tab dirty は維持される。
+  // (当時は EditSession が Active 継続のため編集中は tab dirty が維持されていた。
+  //  現在は変更の有無 (isDirty) だけで決まるので、リセットで消える)
   // reset の意味的検証は「リセット後に保存・リセットボタンが無効に戻る」テストでカバー済。
   // dirty 表示の意味論は schemas/TODO に保留 (#980)。
 
@@ -194,5 +203,59 @@ test.describe("テーブルエディタ：保存/リセットボタン", { tag: 
     await expect(page.locator(".srb-btn-save")).toBeEnabled();
     await page.keyboard.press("Control+s");
     await expect(page.locator(".srb-btn-save")).toBeDisabled();
+  });
+
+  test("入力欄にカーソルがあっても Ctrl+S で保存できる (ブラウザの保存ダイアログは出さない)", async ({ page }) => {
+    await setupTableEditor(page);
+    await page.getByRole("button", { name: /カラム追加/ }).click();
+    await expect(page.locator(".srb-btn-save")).toBeEnabled();
+    const field = page.locator(".table-editor-page input[type=text], .table-editor-page textarea").first();
+    await field.focus();
+    await expect(field).toBeFocused();
+    await page.keyboard.press("Control+s");
+    await expect(page.locator(".srb-btn-save")).toBeDisabled();
+  });
+
+  test("Excel の表を貼り付けて、カラムをまとめて追加し、保存できる", async ({ page }) => {
+    await setupTableEditor(page);
+    await page.getByTestId("paste-columns-open").click();
+    await page.getByTestId("paste-columns-text").fill(
+      "物理名\t表示名\tデータ型\t長さ\tNOT NULL\tPK\nuser_code\tユーザーコード\tvarchar(20)\t\t○\t\nid\t重複する列\tint\t\t\t\ncreated_on\t作成日\tdate\t\t\t",
+    );
+    await expect(page.getByTestId("paste-columns-preview")).toContainText("user_code");
+    await expect(page.getByTestId("paste-columns-dup")).toContainText("id");
+    await page.getByTestId("paste-columns-add").click();
+    await expect(page.getByTestId("paste-columns-dialog")).toHaveCount(0);
+    await expect(page.locator(".srb-btn-save")).toBeEnabled();
+    await expect(page.locator(".columns-tab").getByText("user_code").first()).toBeVisible();
+    await expect(page.locator(".columns-tab").getByText("created_on").first()).toBeVisible();
+    await page.keyboard.press("Control+s");
+    await expect(page.locator(".srb-btn-save")).toBeDisabled();
+  });
+
+  test("貼り付けた表で、既にあるカラム (同じ物理名) の表示名を更新できる", async ({ page }) => {
+    await setupTableEditor(page);
+    await page.getByTestId("paste-columns-open").click();
+    await page.getByTestId("paste-columns-text").fill("物理名\t表示名\nid\t利用者の識別子");
+    await expect(page.getByTestId("paste-columns-add")).toBeDisabled();
+    await page.getByTestId("paste-columns-update").check();
+    await expect(page.getByTestId("paste-columns-update-list")).toContainText("name");
+    await page.getByTestId("paste-columns-add").click();
+    await expect(page.locator(".columns-tab").getByText("利用者の識別子").first()).toBeVisible();
+    await expect(page.locator(".srb-btn-save")).toBeEnabled();
+  });
+
+  test("Excel の表をそのまま貼り付けると (Ctrl+V)、「表から貼り付け」が表の内容つきで開く", async ({ page }) => {
+    await setupTableEditor(page);
+    await page.evaluate(() => {
+      const dt = new DataTransfer();
+      dt.setData("text/plain", "物理名\t表示名\tデータ型\nlast_login\t最終ログイン\ttimestamp");
+      document.querySelector(".columns-tab")?.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+    });
+    await expect(page.getByTestId("paste-columns-dialog")).toBeVisible();
+    await expect(page.getByTestId("paste-columns-text")).toHaveValue(/last_login/);
+    await expect(page.getByTestId("paste-columns-preview")).toContainText("TIMESTAMP");
+    await page.getByTestId("paste-columns-add").click();
+    await expect(page.locator(".columns-tab").getByText("last_login").first()).toBeVisible();
   });
 });

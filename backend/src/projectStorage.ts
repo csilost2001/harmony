@@ -14,6 +14,7 @@
  * - resolveDataRoot(root) が on-demand で harmony.json を読み dataDir を解決する
  * - ensureDataDir(root, dataDirVal) で呼び出し側が dataDir 値を渡す設計
  */
+import { describeAjvError, selectAjvErrors } from "./ajvMessages.js";
 import fs from "fs/promises";
 import fsSync from "fs";
 import path from "path";
@@ -245,8 +246,9 @@ async function getEntityValidator(kind: EntityKind): Promise<ValidateFunction> {
  *
  * - 違反があっても throw しない (draft-state policy: 保存可 + 警告可視化)
  * - marker.kind='validator' + validatorCode + validatorPath を必須付与 (common.v3.schema Marker 規約)
- * - 同 validatorCode + validatorPath の marker が既に未解決で存在する場合は重複追加しない
- * - 戻り値: 新規追加した marker 件数 (0 = schema valid または重複既存)
+ * - 同 validatorCode + validatorPath の marker が既に未解決で存在する場合は重複追加しない (本文は最新に更新)
+ * - 検査で解消していた違反の警告 (未解決の validator marker) は、resolvedAt を付けて解決済みにする
+ * - 戻り値: 追加・更新・解決した marker 件数 (0 = 変化なし)
  *
  * NOTE: marker id は RFC 4122 v4 UUID (common.v3 Marker.id は Uuid)。
  */
@@ -256,9 +258,8 @@ async function annotateValidationWarnings(
 ): Promise<number> {
   if (typeof data !== "object" || data === null || Array.isArray(data)) return 0;
   const validate = await getEntityValidator(kind);
-  if (validate(data)) return 0;
-  const errors = validate.errors ?? [];
-  if (errors.length === 0) return 0;
+  const valid = validate(data);
+  const errors = valid ? [] : (validate.errors ?? []);
 
   const obj = data as Record<string, unknown>;
   const authoring = (typeof obj.authoring === "object" && obj.authoring !== null && !Array.isArray(obj.authoring))
@@ -266,39 +267,52 @@ async function annotateValidationWarnings(
     : {};
   const markers = Array.isArray(authoring.markers) ? authoring.markers as Array<Record<string, unknown>> : [];
   const now = new Date().toISOString();
-  let added = 0;
+  let changed = 0;
 
-  for (const err of errors) {
-    const validatorPath = typeof err.instancePath === "string" && err.instancePath.length > 0
-      ? err.instancePath
-      : "/";
-    const validatorCode = `AJV_${(err.keyword ?? "ERROR").toUpperCase()}`;
-    const body = `${err.message ?? "schema violation"} (${validatorPath})`;
-    const dup = markers.find((m) => (
-      m && typeof m === "object" &&
-      m.kind === "validator" &&
-      m.validatorCode === validatorCode &&
-      m.validatorPath === validatorPath &&
-      !m.resolvedAt
-    ));
-    if (dup) continue;
+  // いまの違反 (code + path ごと)
+  const current = new Map<string, { code: string; path: string; body: string }>();
+  for (const err of selectAjvErrors(errors)) {
+    const path = typeof err.instancePath === "string" && err.instancePath.length > 0 ? err.instancePath : "/";
+    const code = `AJV_${(err.keyword ?? "ERROR").toUpperCase()}`;
+    const key = `${code}|${path}`;
+    if (!current.has(key)) current.set(key, { code, path, body: describeAjvError(err) });
+  }
+
+  // 解消した違反の警告は、解決済みにする。続いている違反は、本文を最新 (日本語) にする
+  const open = new Set<string>();
+  for (const m of markers) {
+    if (!m || typeof m !== "object" || m.kind !== "validator" || m.resolvedAt) continue;
+    const key = `${String(m.validatorCode)}|${String(m.validatorPath)}`;
+    const still = current.get(key);
+    if (!still) {
+      m.resolvedAt = now;
+      m.resolution = "保存時の検査で、解消していることを確認しました";
+      changed++;
+    } else {
+      open.add(key);
+      if (m.body !== still.body) { m.body = still.body; changed++; }
+    }
+  }
+
+  for (const [key, v] of current) {
+    if (open.has(key)) continue;
     markers.push({
       id: crypto.randomUUID(),
       kind: "validator",
-      body,
+      body: v.body,
       author: "ai",
       createdAt: now,
-      validatorCode,
-      validatorPath,
+      validatorCode: v.code,
+      validatorPath: v.path,
     });
-    added++;
+    changed++;
   }
 
-  if (added > 0) {
+  if (changed > 0) {
     authoring.markers = markers;
     obj.authoring = authoring;
   }
-  return added;
+  return changed;
 }
 
 /**

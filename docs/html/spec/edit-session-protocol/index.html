@@ -1037,6 +1037,12 @@ business-flow / report の resourceId は文書の ID (<code>&#x3C;dataDir>/busi
 <li><code>EditSessionBadge.tsx</code> / <code>PresenceBadge.tsx</code> — そのまま継続 (旧 <code>SessionBadge.tsx</code> は Phase 6 で削除)</li>
 <li><code>TransferNotificationBanner.tsx</code> — <code>editSession.roleChanged</code> event listen のみ (旧 <code>lock.changed</code> listen は Phase 6 で削除)</li>
 </ul>
+<h4 id="参加者の表示名と他の人が編集中の表示">参加者の表示名と「他の人が編集中」の表示</h4>
+<ul>
+<li>編集者の名前は、付けられた表示名 (AI は <code>Alice@AI</code> 形式) をそのまま使う。表示名が無い、またはブラウザのセッション ID (UUID) がそのまま入っている参加者は「ゲスト (先頭 4 文字)」と表示する (<code>utils/participantLabel.ts</code>)。一覧・バナー・強制解除の確認・保存競合・履歴のどこでも同じ表記にする</li>
+<li><code>EditSessionDropdown</code> は、閉じた状態でも <code>editSession.list</code> を取得し、正規版を見ている (読み取り専用の) ときは「他 N 件が編集中」を出す。N は、破棄されておらず、編集者が自分以外の編集セッションの数</li>
+<li>一覧の取得に失敗したときは、直前の一覧を保ったまま数回やり直し、接続が復帰したときにも取り直す。他のリソースの編集セッションの broadcast では取り直さない</li>
+</ul>
 <hr>
 <h2 id="16-既存-spec-との関係">16. 既存 spec との関係</h2>
 <h3 id="161-collab-presencemd-876">16.1 <code>collab-presence.md</code> (#876)</h3>
@@ -1192,7 +1198,11 @@ business-flow / report の resourceId は文書の ID (<code>&#x3C;dataDir>/busi
 
 
 
-<table><thead><tr><th>日付</th><th>内容</th></tr></thead><tbody><tr><td>2026-05-07</td><td>新設 (#876 / #855 派生 Direction B 実装の根本欠陥を解消する正規プロトコル)</td></tr><tr><td>2026-05-07</td><td>Phase 6 (#903): 旧 API 完全削除 (lock.* / draft.* MCP tools / handlers / lockManager.ts / draftStore.ts / onBehalfOfSession.ts 削除)、useEditSessionLegacy 削除、SessionBadge.tsx 削除、TransferNotificationBanner の lock.changed listen 削除、useDraftRegistry を editSession.list ベースに移行。§15.2 UI components 欄・§15.1 互換性表を更新。</td></tr></tbody></table>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+
+
+
+
+<table><thead><tr><th>日付</th><th>内容</th></tr></thead><tbody><tr><td>2026-05-07</td><td>新設 (#876 / #855 派生 Direction B 実装の根本欠陥を解消する正規プロトコル)</td></tr><tr><td>2026-05-07</td><td>Phase 6 (#903): 旧 API 完全削除 (lock.* / draft.* MCP tools / handlers / lockManager.ts / draftStore.ts / onBehalfOfSession.ts 削除)、useEditSessionLegacy 削除、SessionBadge.tsx 削除、TransferNotificationBanner の lock.changed listen 削除、useDraftRegistry を editSession.list ベースに移行。§15.2 UI components 欄・§15.1 互換性表を更新。</td></tr><tr><td>2026-10-11</td><td>参加者の表示名の決め方 (ゲスト表記) と、閉じたバッジの「他 N 件が編集中」を §15.2 に追記。</td></tr></tbody></table>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
       // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
       document.getElementById('theme-toggle')?.addEventListener('click', () => {
         document.documentElement.classList.toggle('dark');

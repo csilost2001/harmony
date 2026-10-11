@@ -43,6 +43,7 @@ ID は `<画面 ID>.<項目 ID>.<規則>`。規則は次のとおり。
 | 出力 | 内容 |
 |---|---|
 | 設計書の付録「テスト観点 (画面入力)」 | 画面ごとの表。要確認事項の後ろに置き、章番号は動かさない。入力のある画面があるときだけ出る。処理の観点は従来どおり各処理の節 |
+| MCP: `designer__get_test_viewpoints` | 同じ表を AI が直接取得する (`screenIds` / `flowIds` で絞る、`format: csv` も可)。既定は json (入力値つき) |
 | `npm run export:tests -- <workspace> [--format csv\|json\|md] [--out <file>] [--screen <id>] [--flow <id>]` | 画面入力と処理をまとめた表。既定は CSV (UTF-8 BOM つきで Excel で開ける)。json は機械処理・AI の入力用 (入力値つき) |
 
 ## 5. テストコードの書き方 (AI)

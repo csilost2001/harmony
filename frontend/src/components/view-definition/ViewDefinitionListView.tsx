@@ -46,6 +46,9 @@ import { EditSessionBadge } from "../editing/EditSessionBadge";
 import { DraftHistoryModal } from "../editing/DraftHistoryModal";
 import "../../styles/table.css";
 import "../../styles/editMode.css";
+import { confirmDeletionImpact } from "../../utils/confirmDeletion";
+import { useQuickCreate } from "../../hooks/useQuickCreate";
+import { useReferencesDialog } from "../common/ReferencesButton";
 
 const STORAGE_KEY = "list-view-mode:view-definition-list";
 const TAB_ID = makeTabId("view-definition-list", "main");
@@ -77,6 +80,8 @@ export function ViewDefinitionListView() {
   const [query, setQuery] = useState("");
   const [viewMode, setViewMode] = usePersistentState<ViewMode>(STORAGE_KEY, "card");
   const [showAdd, setShowAdd] = useState(false);
+  // クイックオープン (Ctrl+K) の「新しく作る」から来たときは、追加ダイアログを開く
+  useQuickCreate("view-definition", () => setShowAdd(true));
   const [addName, setAddName] = useState("");
   const [addKind, setAddKind] = useState<ViewDefinitionKind>("list");
   const [addSourceTableId, setAddSourceTableId] = useState("");
@@ -89,6 +94,7 @@ export function ViewDefinitionListView() {
   const [tableList, setTableList] = useState<TableEntry[]>([]);
   const [tableNameMap, setTableNameMap] = useState<Map<string, string>>(new Map());
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
+  const references = useReferencesDialog();
   const [validationMap, setValidationMap] = useState<Map<string, ValidationSummary>>(new Map());
   // #893: draft history modal
   const [historyModal, setHistoryModal] = useState<{ resourceId: string } | null>(null);
@@ -424,7 +430,7 @@ export function ViewDefinitionListView() {
       },
       { key: "sep4", separator: true },
       {
-        key: "start-editing", label: "編集開始 (新規 EditSession)", icon: "bi-pencil",
+        key: "start-editing", label: "編集開始 (新しい編集セッション)", icon: "bi-pencil",
         disabled: items.length !== 1,
         disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
         onClick: () => {
@@ -432,7 +438,7 @@ export function ViewDefinitionListView() {
         },
       },
       {
-        key: "draft-sessions", label: "既存 EditSession 一覧", icon: "bi-layers",
+        key: "draft-sessions", label: "編集セッションの一覧", icon: "bi-layers",
         disabled: items.length !== 1,
         disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
         onClick: () => {
@@ -440,7 +446,15 @@ export function ViewDefinitionListView() {
         },
       },
       {
-        key: "history", label: "履歴 (過去の EditSession)", icon: "bi-clock-history",
+        key: "references", label: "参照元を見る", icon: "bi-diagram-3",
+        disabled: items.length !== 1,
+        disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
+        onClick: () => {
+          if (items.length === 1) references.show("viewDefinition", String(items[0].id), String(items[0].name ?? ""));
+        },
+      },
+      {
+        key: "history", label: "履歴 (過去の編集セッション)", icon: "bi-clock-history",
         disabled: items.length !== 1,
         disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
         onClick: () => {
@@ -484,8 +498,14 @@ export function ViewDefinitionListView() {
   });
 
   const handleSave = () => {
-    editor.save().catch(console.error);
-    selection.clearSelection();
+    // 削除する設計を、ほかの設計が参照していれば、保存の前に確認する
+    confirmDeletionImpact("viewDefinition", "ビュー定義", editor.deletedIds)
+      .then((ok) => {
+        if (!ok) return;
+        selection.clearSelection();
+        return editor.save();
+      })
+      .catch(console.error);
   };
 
   const handleReset = () => {
@@ -501,7 +521,7 @@ export function ViewDefinitionListView() {
       width: "32px",
       align: "center",
       render: (v) => hasDraft("view-definition", String(v.id))
-        ? <span className="list-item-draft-mark" title="未保存の編集中 draft があります">●</span>
+        ? <span className="list-item-draft-mark" title="未保存の下書きがあります">●</span>
         : null,
     },
     {
@@ -607,7 +627,7 @@ export function ViewDefinitionListView() {
           <MaturityBadge maturity={v.maturity} />
           <span className="seq-card-name">{v.name}</span>
           {hasDraft("view-definition", String(v.id)) && (
-            <span className="list-item-draft-mark" title="未保存の編集中 draft があります">●</span>
+            <span className="list-item-draft-mark" title="未保存の下書きがあります">●</span>
           )}
           <EditSessionBadge resourceType="view-definition" resourceId={String(v.id)} />
           {v.kind && (
@@ -825,6 +845,8 @@ export function ViewDefinitionListView() {
             </div>
           </div>
         )}
+
+        {references.dialog}
 
         {contextMenu && (
           <ListContextMenu

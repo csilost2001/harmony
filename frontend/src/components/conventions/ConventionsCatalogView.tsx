@@ -17,6 +17,7 @@ import { EditorHeader } from "../common/EditorHeader";
 import { ServerChangeBanner } from "../common/ServerChangeBanner";
 import { useResourceEditor } from "../../hooks/useResourceEditor";
 import { useEditSession } from "../../hooks/useEditSession";
+import { useSaveShortcut } from "../../hooks/useSaveShortcut";
 import { EditModeToolbar } from "../editing/EditModeToolbar";
 import { EditSessionDropdown } from "../editing/EditSessionDropdown";
 import {
@@ -127,7 +128,7 @@ export function ConventionsCatalogView() {
   const sessionId = mcpBridge.getSessionId();
 
   // #891 fix: useResourceEditor より前に呼び出し、viewerMode / viewerEditSessionId を渡せるようにする
-  const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions, attach, takeOver, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
+  const { editSession, mode, loading: sessionLoading, actions, attach, takeOver, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
     resourceType: "convention",
     resourceId: "singleton",
     sessionId,
@@ -209,6 +210,11 @@ export function ConventionsCatalogView() {
     await postSave();
   }, [isReadonly, isSaving, postSave, actions, editSession]);
 
+  // Ctrl+S で保存 (保存ボタンの title にも書いてある)
+  useSaveShortcut(() => {
+    if (isDirty && !isSaving && !isReadonly) handleSave().catch(console.error);
+  });
+
   const handleDiscard = useCallback(async () => {
     setShowDiscardDialog(false);
     await actions.discard();
@@ -234,8 +240,8 @@ export function ConventionsCatalogView() {
   // タブ dirty マーク
   useEffect(() => {
     const tabId = makeTabId("conventions-catalog", "singleton");
-    setTabDirty(tabId, isDirtyForTab || isDirty);
-  }, [isDirtyForTab, isDirty]);
+    setTabDirty(tabId, isDirty);
+  }, [isDirty]);
 
   // 復元ダイアログ (readonly + draft 存在時)
   useEffect(() => {
@@ -438,8 +444,8 @@ export function ConventionsCatalogView() {
         title={
           <span className="fw-semibold">
             規約カタログ
-            {isDirtyForTab && (
-              <span className="list-item-draft-mark" title="未保存の編集中 draft があります">●</span>
+            {isDirty && (
+              <span className="list-item-draft-mark" title="未保存の下書きがあります">●</span>
             )}
           </span>
         }

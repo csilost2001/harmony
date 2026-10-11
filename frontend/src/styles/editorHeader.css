@@ -192,3 +192,8 @@
     flex-wrap: wrap;
   }
 }
+
+/* 「ビュー編集: <code>」のように、見出しの後ろに続く識別子 (code) との間を空ける */
+.editor-header-title code {
+  margin-left: 4px;
+}

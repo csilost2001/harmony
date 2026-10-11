@@ -32,6 +32,8 @@ schema 変更は schema ガバナンス (#511) の対象であり、AI エージ
 
 保存時に検出した違反は、保存失敗ではなく validation 結果として保持し、一覧・カード・編集画面で可視化する。
 
+保存のたびに backend が schema 検査を行い、違反を `authoring.markers` に `kind: "validator"` の警告マーカーとして残す (本文は日本語: 「『/columns』の件数が少なすぎます (1 件以上)」のように、何がどう違うかを示す)。同じ違反 (`validatorCode` + `validatorPath`) は重複して増やさず、**直して保存すると、その警告は `resolvedAt` つきで解決済みになる** (未解決のまま残り続けない)。検査コードは `backend/src/ajvMessages.ts` (本文) と `projectStorage.ts` の `annotateValidationWarnings`。
+
 ### 2.3 読み込み時に検証
 
 各リソースは読み込み時に `validate<Resource>(item, allItems)` で検証する。単体項目だけで判定できない重複・参照整合性・リソース間関係は、必要な一覧を `allItems` として渡して判定する。

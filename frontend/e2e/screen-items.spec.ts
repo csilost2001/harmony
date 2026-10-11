@@ -149,12 +149,46 @@ test.describe("画面項目定義プロトタイプ (#318)", { tag: ["@regressio
     const labelInput = page.locator('.screen-items-table input[placeholder="例: メールアドレス"]').first();
     await labelInput.fill("ユーザー ID");
     // 必須 チェック
-    await page.locator('.screen-items-table input[type="checkbox"][aria-label="必須"]').first().check();
+    await page.locator('.screen-items-table input[type="checkbox"][aria-label$="の必須"]').first().check();
     // 保存 (EditorHeader 内の SaveResetButtons)
     const saveBtn = page.locator(".srb-btn-save");
     await expect(saveBtn).toBeEnabled();
     await saveBtn.click();
     await expect(saveBtn).toBeDisabled({ timeout: 3000 }); // isDirty 解消
+  });
+
+  test("Excel の項目定義の表を貼り付けて、画面項目をまとめて追加し、保存できる", async ({ page }) => {
+    await setup(page);
+    await page.getByTestId("paste-items-open").click();
+    await page.getByTestId("paste-items-text").fill(
+      "項目ID\tラベル\t型\t入出力\t必須\t最大長\ncustomer_name\t顧客名\t文字列\t入力\t○\t100\nbirthDate\t生年月日\t日付\t入力\t\t\n顧客コード\t日本語 ID\t文字列\t入力\t\t",
+    );
+    await expect(page.getByTestId("paste-items-preview")).toContainText("customerName");
+    await expect(page.getByTestId("paste-items-warnings")).toContainText("顧客コード");
+    await page.getByTestId("paste-items-add").click();
+    await expect(page.getByTestId("paste-items-dialog")).toHaveCount(0);
+    await expect(page.locator(".screen-items-table tbody tr")).toHaveCount(2);
+    await expect(page.locator('.screen-items-table input[placeholder="例: email"]').first()).toHaveValue("customerName");
+    const saveBtn = page.locator(".srb-btn-save");
+    await expect(saveBtn).toBeEnabled();
+    await saveBtn.click();
+    await expect(saveBtn).toBeDisabled({ timeout: 3000 });
+    const saved = await readScreenItemsFile(screenId1);
+    expect(saved?.items.map((i) => i.id)).toEqual(["customerName", "birthDate"]);
+    expect(saved?.items[0]).toMatchObject({ label: "顧客名", type: "string", direction: "in", required: true, maxLength: 100 });
+  });
+
+  test("入力欄に打ち込んだ直後 (欄を出る前) に Ctrl+S を押しても、その値が保存される", async ({ page }) => {
+    await setup(page);
+    await page.locator(".screen-items-view button:has-text('項目追加')").click();
+    await page.locator('.screen-items-table input[placeholder="例: email"]').first().fill("quickSave");
+    const label = page.locator('.screen-items-table input[placeholder="例: メールアドレス"]').first();
+    await label.fill("打ち込み直後");
+    await expect(label).toBeFocused();
+    await page.keyboard.press("Control+s");
+    await expect(page.locator(".srb-btn-save")).toBeDisabled({ timeout: 5000 });
+    const saved = await readScreenItemsFile(screenId1);
+    expect(saved?.items.find((i) => i.id === "quickSave")).toMatchObject({ label: "打ち込み直後" });
   });
 
   test("別画面の URL に移動すると別タブで開く", async ({ page }) => {

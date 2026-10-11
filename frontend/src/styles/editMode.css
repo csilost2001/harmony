@@ -122,7 +122,15 @@
   cursor: default;
 }
 
-.readonly-mode .btn:not(.edit-mode-toolbar .btn):not(.edit-mode-modal .btn) {
+/* 閲覧のみでは入力例は要らない (空欄に「例: …」が並んで本当の値と紛らわしい) */
+.readonly-mode input::placeholder,
+.readonly-mode textarea::placeholder {
+  color: transparent;
+}
+
+/* 本文の操作ボタンを止める。ヘッダー右の操作 (編集セッション一覧・参照元・AI レビュー等) は閲覧中も使う。
+   編集が必要なもの (id 変更など) は、ボタン自身の disabled で止めている */
+.readonly-mode .btn:not(.edit-mode-toolbar .btn):not(.edit-mode-modal .btn):not(.editor-header-extra .btn):not(.esd-root .btn) {
   pointer-events: none;
   opacity: 0.6;
 }

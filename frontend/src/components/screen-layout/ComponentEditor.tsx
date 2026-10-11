@@ -7,6 +7,7 @@
  * 仕様: docs/spec/layout-components.md
  */
 import { useCallback, useMemo, useRef, useState } from "react";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import {
   renameComponentParam, updateNode, validateComponentDefs, validateLayoutWithComponents, walkLayout,
   type LayoutComponentDef, type LayoutComponentParam, type LayoutComponentParamKind, type LayoutNode,
@@ -68,6 +69,8 @@ function fromDoc(next: LayoutDoc, prev: LayoutComponentDef): LayoutComponentDef 
 interface History { past: LayoutComponentDef[]; present: LayoutComponentDef; future: LayoutComponentDef[] }
 
 export function ComponentEditor({ initial, isNew, others, screens, onSave, onClose }: ComponentEditorProps) {
+  const trapRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(trapRef);
   // 保存済みの差し込み口の ID・種類は、使っている画面の args が参照するため変えられない
   const [lockedParams, setLockedParams] = useState<Set<string>>(() => new Set(isNew ? [] : initial.params.map((q) => q.id)));
   const histRef = useRef<History>({ past: [], present: initial, future: [] });
@@ -139,7 +142,7 @@ export function ComponentEditor({ initial, isNew, others, screens, onSave, onClo
 
   return (
     <div className="sld-modal-backdrop sld-modal-wide" role="presentation">
-      <div className="sld-modal sld-editor-modal" role="dialog" aria-modal="true" aria-label={`独自部品「${def.label}」の編集`} data-testid="component-editor">
+      <div ref={trapRef} className="sld-modal sld-editor-modal" role="dialog" aria-modal="true" aria-label={`独自部品「${def.label}」の編集`} data-testid="component-editor">
         <header className="sld-modal-head sld-editor-head">
           <div className="sld-editor-title">
             <i className="bi bi-puzzle" />

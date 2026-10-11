@@ -90,4 +90,19 @@ test.describe("クイックオープン", () => {
     await page.keyboard.press("Enter");
     await expect(page).toHaveURL(/\/document/);
   });
+
+  test("「新規 テーブル」で、テーブル一覧を開いて追加ダイアログまで出せる @regression", async ({ page }) => {
+    await ws.gotoActive(page, "/");
+    await page.keyboard.press("Control+k");
+    await page.getByTestId("quick-open-input").fill("新規 テーブル");
+    await expect(page.locator('[data-testid="quick-open-item"]').first()).toHaveAttribute("data-key", "create:table");
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(/\/table\/list/);
+    await expect(page.locator(".tbl-modal")).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(".tbl-modal")).toContainText("テーブル追加");
+    await page.keyboard.press("Escape").catch(() => undefined);
+    // 旗は 1 回で消える: 一覧を開き直しても、ダイアログは出ない
+    await ws.gotoActive(page, "/table/list");
+    await expect(page.locator(".tbl-modal")).toHaveCount(0);
+  });
 });

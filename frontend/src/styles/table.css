@@ -732,6 +732,13 @@
 
 .columns-selection-count {
   color: var(--hm-fg-2);
+  margin-right: auto;
+}
+
+.columns-warning {
+  margin-right: 12px;
+  color: var(--hm-warning);
+  font-weight: 600;
 }
 
 .columns-selection-actions {

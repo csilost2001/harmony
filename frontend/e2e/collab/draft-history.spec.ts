@@ -129,7 +129,7 @@ test.describe("draft history 7 日保持 UI (#893)", { tag: ["@regression"] }, (
     const card = page.locator('[data-testid="data-list-card"]').filter({ hasText: "履歴テストフロー" }).first();
     await expect(card).toBeVisible({ timeout: 10000 });
     await card.click({ button: "right" });
-    const historyMenuItem = page.getByText("履歴 (過去の EditSession)");
+    const historyMenuItem = page.getByText("履歴 (過去の編集セッション)");
     await expect(historyMenuItem).toBeVisible({ timeout: 5000 });
     await historyMenuItem.click();
     const modal = page.getByTestId("draft-history-modal");

@@ -11,7 +11,7 @@ import type { ScreenItem } from "../../types/v3/screen-item";
 import type { Table } from "../../types/v3/table";
 import type { DragPayload } from "./layoutDnd";
 import {
-  createNode, docDuplicate, docInsert, docRemove, itemFromColumn, newFieldWithItem, nodeForItem, type LayoutDoc,
+  createNode, docDuplicate, docInsert, docRemove, insertionPlace, itemFromColumn, newFieldWithItem, nodeForItem, type LayoutDoc, type Place,
 } from "./layoutModel";
 
 export interface LayoutOpsInput {
@@ -24,18 +24,11 @@ export interface LayoutOpsInput {
   setSelectedId: (id: string | null) => void;
 }
 
-export interface Place { parentId: string | null; index?: number }
-
 export function useLayoutOps({ apply, nodes, items, tables, components, selectedId, setSelectedId }: LayoutOpsInput) {
   const selected = selectedId ? findNode(nodes, selectedId) : null;
 
-  /** 新しい部品を置く場所: 選択中の容器の末尾、または選択中の部品の直後 */
-  const insertionPoint = useCallback((type: LayoutNodeType): Place => {
-    if (!selected) return { parentId: null };
-    if (selected.children !== undefined && type !== "column" && type !== "tab") return { parentId: selected.id };
-    const pos = findParent(nodes, selected.id);
-    return { parentId: pos?.parent?.id ?? null, index: (pos?.index ?? -1) + 1 };
-  }, [selected, nodes]);
+  /** 新しい部品を置く場所 (規則は insertionPlace) */
+  const insertionPoint = useCallback((type: LayoutNodeType): Place => insertionPlace(nodes, selected, type), [selected, nodes]);
 
   const addNode = useCallback((type: LayoutNodeType, at?: Place) => {
     const place = at ?? insertionPoint(type);

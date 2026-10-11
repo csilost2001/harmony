@@ -163,4 +163,47 @@ describe("EntityIdInput", () => {
     act(() => fireEvent.keyDown(input2, { key: "Enter" }));
     expect(onEnter).toHaveBeenCalledTimes(1);
   });
+
+  it("名前が英数字を含み ID が未入力のままなら、名前から作った ID を自動で入れ、名前の変更に追従する", () => {
+    function WithName() {
+      const [name, setName] = useState("Customer List");
+      const [id, setId] = useState("");
+      return (
+        <>
+          <input data-testid="name" value={name} onChange={(e) => setName(e.target.value)} />
+          <EntityIdInput value={id} onChange={setId} name={name} existingIds={[]} entityLabel="画面" />
+        </>
+      );
+    }
+    render(<WithName />);
+    const idInput = screen.getByTestId("entity-id-input") as HTMLInputElement;
+    expect(idInput.value).toBe("customer-list");
+    expect(screen.queryByTestId("entity-id-empty-hint")).toBeNull();
+    fireEvent.change(screen.getByTestId("name"), { target: { value: "Order Entry" } });
+    expect(idInput.value).toBe("order-entry");
+    fireEvent.change(screen.getByTestId("name"), { target: { value: "受注入力" } });
+    expect(idInput.value).toBe("");
+  });
+
+  it("利用者が ID を自分で触ったあとは自動入力しない。空にした場合は候補を「使う」で入れられる", () => {
+    render(<Wrapper name="Customer List" />);
+    const input = screen.getByTestId("entity-id-input") as HTMLInputElement;
+    fireEvent.change(input, { target: { value: "" } });
+    expect(input.value).toBe("");
+    fireEvent.click(screen.getByTestId("entity-id-use-candidate"));
+    expect(input.value).toBe("customer-list");
+  });
+
+  it("名前が日本語だけなら、保存できない理由を示し「仮の ID を付ける」で埋められる", () => {
+    render(<Wrapper name="顧客一覧" />);
+    expect(screen.getByTestId("entity-id-empty-hint").textContent).toContain("ID を入力すると保存できます");
+    expect(screen.queryByTestId("entity-id-use-candidate")).toBeNull();
+    fireEvent.click(screen.getByTestId("entity-id-use-temporary"));
+    expect((screen.getByTestId("entity-id-input") as HTMLInputElement).value).toMatch(/^screen-[0-9a-f]{8}$/);
+  });
+
+  it("名前が空のあいだは未入力の案内を出さない", () => {
+    render(<Wrapper name="" />);
+    expect(screen.queryByTestId("entity-id-empty-hint")).toBeNull();
+  });
 });

@@ -115,7 +115,9 @@ export interface DesignDocResult {
   issues: DocIssue[];
 }
 
-export interface DocIssue { severity: "error" | "warning" | "info"; section: string; message: string }
+/** 要確認事項の対象となる設計 (分かるものだけ)。画面から開く・設計書の該当節へ飛ぶために使う */
+export interface DocIssueRef { kind: "screen" | "table" | "businessFlow" | "report"; id: string }
+export interface DocIssue { severity: "error" | "warning" | "info"; section: string; message: string; ref?: DocIssueRef }
 
 // ── 小道具 ───────────────────────────────────────────────────────────────
 
@@ -365,10 +367,10 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
     const screenIdSet = new Set(input.screens.map((x) => x.id));
     const expandedNodes = s.layout ? (expandLayout(s.layout.nodes, defs).nodes as LayoutNode[]) : [];
     const layoutIssues = validateLayoutWithComponents(s.layout, items, defs, screenIdSet);
-    for (const li of layoutIssues.filter((x) => x.severity !== "info")) issues.push({ severity: li.severity, section: `画面 ${s.name ?? s.id}`, message: li.message });
+    for (const li of layoutIssues.filter((x) => x.severity !== "info")) issues.push({ severity: li.severity, section: `画面 ${s.name ?? s.id}`, message: li.message, ref: { kind: "screen", id: s.id } });
     const unplaced = layoutIssues.filter((x) => x.code === "unplaced-item").length;
-    if (s.layout && unplaced) issues.push({ severity: "info", section: `画面 ${s.name ?? s.id}`, message: `画面に配置されていない項目が ${unplaced} 件あります` });
-    if (!s.layout) issues.push({ severity: "warning", section: `画面 ${s.name ?? s.id}`, message: "画面レイアウト (業務部品) が未作成です" });
+    if (s.layout && unplaced) issues.push({ severity: "info", section: `画面 ${s.name ?? s.id}`, message: `画面に配置されていない項目が ${unplaced} 件あります`, ref: { kind: "screen", id: s.id } });
+    if (!s.layout) issues.push({ severity: "warning", section: `画面 ${s.name ?? s.id}`, message: "画面レイアウト (業務部品) が未作成です", ref: { kind: "screen", id: s.id } });
     const placed = s.layout ? collectItemRefs(expandedNodes) : new Set<string>();
     const events = items.flatMap((it) => (it.events ?? []).map((e) => [esc(it.label ?? it.id), esc(e.id ?? ""), e.handlerFlowId ? `<a href="#${anchor("flow", e.handlerFlowId)}">${esc(input.flows.find((f) => f.meta.id === e.handlerFlowId)?.meta.name ?? e.handlerFlowId)}</a>${e.handlerActionId ? ` / ${esc(e.handlerActionId)}` : ""}` : "", esc(e.description ?? "")]));
     let partsCount = 0;
@@ -459,7 +461,7 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
   });
 
   // 6. CRUD 図
-  for (const fnd of crud.findings) issues.push({ severity: "info", section: `CRUD ${tableName.get(fnd.tableId) ?? fnd.tableId}`, message: fnd.message });
+  for (const fnd of crud.findings) issues.push({ severity: "info", section: `CRUD ${tableName.get(fnd.tableId) ?? fnd.tableId}`, message: fnd.message, ref: { kind: "table", id: fnd.tableId } });
   sec("crud", "CRUD 図", 1, `
     <div class="hd-scroll"><table class="hd-table hd-crud"><thead><tr><th>処理フロー ＼ テーブル</th>${crud.tables.map((t) => `<th>${esc(t.name)}</th>`).join("")}</tr></thead><tbody>
     ${crud.rows.map((r) => `<tr><th><a href="#${anchor("flow", r.flowId)}">${esc(r.flowName)}</a></th>${crud.tables.map((t) => `<td class="hd-crud-cell">${(r.cells[t.id] ?? []).map((l) => `<span class="hd-crud-${l}">${l}</span>`).join("")}</td>`).join("")}</tr>`).join("")}
@@ -556,7 +558,7 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
     };
     for (const bf of bflows) {
       const found = validateBusinessFlow(bf, refs);
-      for (const x of found.filter((y) => y.severity !== "info")) issues.push({ severity: x.severity, section: `業務フロー ${bf.name}`, message: x.message });
+      for (const x of found.filter((y) => y.severity !== "info")) issues.push({ severity: x.severity, section: `業務フロー ${bf.name}`, message: x.message, ref: { kind: "businessFlow", id: bf.id } });
       const laneName = new Map(bf.lanes.map((l) => [l.id, l.name]));
       const stepName = new Map(bf.steps.map((st) => [st.id, st.name]));
       const flowLabel = (id: string) => `<a href="#${anchor("flow", id)}">${esc(input.flows.find((f) => f.meta.id === id)?.meta.name ?? id)}</a>`;
@@ -595,7 +597,7 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
       return `<code>${esc(src)}</code>`;
     };
     for (const rp of reports) {
-      for (const x of validateReport(rp, refs).filter((y) => y.severity !== "info")) issues.push({ severity: x.severity, section: `帳票 ${rp.name}`, message: x.message });
+      for (const x of validateReport(rp, refs).filter((y) => y.severity !== "info")) issues.push({ severity: x.severity, section: `帳票 ${rp.name}`, message: x.message, ref: { kind: "report", id: rp.id } });
       const t = rp.trigger;
       const kindLabel = { screen: "画面の操作", batch: "バッチ・定期", api: "外部からの要求" } as const;
       const flowLink = (id: string) => `<a href="#${anchor("flow", id)}">${esc(input.flows.find((f) => f.meta.id === id)?.meta.name ?? id)}</a>`;
@@ -665,7 +667,10 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
   // 要確認事項
   const sevLabel = { error: "エラー", warning: "警告", info: "情報" } as const;
   sec("issues", "要確認事項", 1, issues.length
-    ? table(["区分", "対象", "内容"], issues.map((x) => [`<span class="hd-sev hd-sev-${x.severity}">${sevLabel[x.severity]}</span>`, esc(x.section), esc(x.message)]))
+    ? table(["区分", "対象", "内容"], issues.map((x) => {
+      const a = x.ref ? `#${anchor(x.ref.kind === "businessFlow" ? "business-flow" : x.ref.kind, x.ref.id)}` : "";
+      return [`<span class="hd-sev hd-sev-${x.severity}">${sevLabel[x.severity]}</span>`, a ? `<a href="${a}">${esc(x.section)}</a>` : esc(x.section), esc(x.message)];
+    }))
     : `<p class="hd-empty">要確認事項はありません。</p>`, String(chap + 1));
 
   // 付録: テスト観点 (画面入力)。画面項目の制約から、正常・異常・境界値のケースを導いた一覧。入力のある画面があるときだけ (章番号を動かさないよう、要確認事項の後ろに置く)

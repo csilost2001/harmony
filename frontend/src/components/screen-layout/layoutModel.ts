@@ -6,7 +6,7 @@
  * - 部品と項目をまとめて扱う操作 (追加・削除・複製)
  */
 import {
-  findNode, insertNode, nextNodeId, removeNode, cloneNode, findParent, collectItemRefs, collectExpandedItemRefs, walkLayout, updateNode,
+  findNode, insertNode, nextNodeId, removeNode, cloneNode, findParent, canContain, collectItemRefs, collectExpandedItemRefs, walkLayout, updateNode,
   type LayoutComponentDef, type LayoutNode, type LayoutNodeType, type ScreenLayout,
 } from "@harmony/shared";
 import type { Column, DataType, Table } from "../../types/v3/table";
@@ -227,4 +227,24 @@ export function setComponentArg(nodes: readonly LayoutNode[], nodeId: string, pa
     if (Object.keys(args).length === 0) delete next.args;
     return next;
   });
+}
+
+export interface Place { parentId: string | null; index?: number }
+
+/**
+ * パレットをクリックして新しい部品を置く場所。ドラッグ & ドロップと同じ規則 (`canContain`) で決める。
+ * 選択中が、その部品を入れられる容器なら末尾。入れられないときは、選択中の部品の直後。
+ * そこにも置けなければ (例: ボタン群の中でフォームを足す)、置ける祖先まで上がって、その直後に置く。
+ */
+export function insertionPlace(nodes: readonly LayoutNode[], selected: LayoutNode | null, type: LayoutNodeType): Place {
+  if (!selected) return { parentId: null };
+  if (selected.children !== undefined && canContain(selected.type, type)) return { parentId: selected.id };
+  let node: LayoutNode = selected;
+  for (;;) {
+    const pos = findParent(nodes, node.id);
+    const parent = pos?.parent ?? null;
+    if (canContain(parent?.type ?? null, type)) return { parentId: parent?.id ?? null, index: (pos?.index ?? -1) + 1 };
+    if (!parent) return { parentId: null };
+    node = parent;
+  }
 }

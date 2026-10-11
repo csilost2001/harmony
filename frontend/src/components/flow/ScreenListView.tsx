@@ -36,6 +36,9 @@ import { handleRenameSuccess } from "../../utils/handleRenameSuccess";
 import "../../styles/flow.css";
 import "../../styles/screenList.css";
 import "../../styles/editMode.css";
+import { confirmDeletionImpact } from "../../utils/confirmDeletion";
+import { useQuickCreate } from "../../hooks/useQuickCreate";
+import { useReferencesDialog } from "../common/ReferencesButton";
 
 const STORAGE_KEY = "list-view-mode:screen-list";
 const TAB_ID = makeTabId("screen-list", "main");
@@ -63,6 +66,7 @@ export function ScreenListView() {
   const [viewMode, setViewMode] = usePersistentState<ViewMode>(STORAGE_KEY, "card");
   const [screenModal, setScreenModal] = useState<{ open: boolean; editId?: string; initial?: Partial<ScreenFormData> }>({ open: false });
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
+  const references = useReferencesDialog();
   const { hasDraft } = useDraftRegistry();
   // #1330: ScreenListView 起点の Screen rename refactor。完了後は一覧に留まる (singleton 起動)。
   const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null);
@@ -325,6 +329,9 @@ export function ScreenListView() {
     setScreenModal({ open: true });
   };
 
+  // クイックオープン (Ctrl+K) の「新しく作る」から来たときは、追加ダイアログを開く
+  useQuickCreate("screen", handleAddNew);
+
   // docs/spec/list-common.md §3.11: 右クリックメニュー項目を構築
   const buildMenuItems = (target: ScreenNode | null): ContextMenuItem[] => {
     const hasSelection = selection.selectedIds.size > 0 || target !== null;
@@ -394,6 +401,14 @@ export function ScreenListView() {
           : sortActive ? sortReason : undefined,
         onClick: () => {
           if (items.length === 1) setRenameTarget({ id: items[0].id, name: items[0].name });
+        },
+      },
+      {
+        key: "references", label: "参照元を見る", icon: "bi-diagram-3",
+        disabled: items.length !== 1,
+        disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
+        onClick: () => {
+          if (items.length === 1) references.show("screen", String(items[0].id), String(items[0].name ?? ""));
         },
       },
       { key: "sep3", separator: true },
@@ -466,8 +481,14 @@ export function ScreenListView() {
   };
 
   const handleSave = () => {
-    editor.save().catch(console.error);
-    selection.clearSelection();
+    // 削除する設計を、ほかの設計が参照していれば、保存の前に確認する
+    confirmDeletionImpact("screen", "画面", editor.deletedIds)
+      .then((ok) => {
+        if (!ok) return;
+        selection.clearSelection();
+        return editor.save();
+      })
+      .catch(console.error);
   };
 
   const handleReset = () => {
@@ -560,7 +581,7 @@ export function ScreenListView() {
         >
           <i className="bi bi-ui-checks-grid" />
           {hasDraft("screen-item", s.id) && (
-            <span className="list-item-draft-mark ms-1" title="未保存の編集中 draft があります">●</span>
+            <span className="list-item-draft-mark ms-1" title="未保存の下書きがあります">●</span>
           )}
         </button>
       ),
@@ -599,7 +620,7 @@ export function ScreenListView() {
           <i className="bi bi-ui-checks-grid me-1" />
           項目定義
           {hasDraft("screen-item", s.id) && (
-            <span className="list-item-draft-mark ms-1" title="未保存の編集中 draft があります">●</span>
+            <span className="list-item-draft-mark ms-1" title="未保存の下書きがあります">●</span>
           )}
         </button>
       </div>
@@ -717,6 +738,8 @@ export function ScreenListView() {
         onSave={(data) => { handleScreenSave(data).catch(console.error); }}
         onClose={() => setScreenModal({ open: false })}
       />
+
+      {references.dialog}
 
       {contextMenu && (
         <ListContextMenu

@@ -82,7 +82,22 @@
 
 
 
-<table><thead><tr><th>操作</th><th>手段</th><th>結果</th></tr></thead><tbody><tr><td>カラム追加</td><td>「カラム追加」</td><td>末尾に新規行、inline 編集</td></tr><tr><td>カラム編集</td><td>行のセルクリック</td><td>inline 編集モード</td></tr><tr><td>FK 追加</td><td>「外部キー」タブ → 「追加」</td><td>参照テーブル / カラム選択</td></tr><tr><td>Index 追加</td><td>「インデックス」タブ → 「追加」</td><td>対象カラム / unique / 名前を指定</td></tr><tr><td>カラム並び替え</td><td>行ドラッグ</td><td>renumber</td></tr><tr><td>カラム削除</td><td>行右クリック → 「削除」 / <code>Delete</code></td><td>参照ありは警告</td></tr><tr><td>rename refactor</td><td>右クリック → 「ID 変更…」 / <code>F2</code></td><td>RenameEntityDialog</td></tr><tr><td>保存 / 破棄</td><td><code>Ctrl+S</code> / 「破棄」</td><td>edit-session 経由</td></tr></tbody></table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>操作</th><th>手段</th><th>結果</th></tr></thead><tbody><tr><td>カラム追加</td><td>「カラム追加」</td><td>末尾に新規行、inline 編集</td></tr><tr><td>カラムをまとめて追加 (Excel から)</td><td>「表から貼り付け」、または Excel の表をコピーして画面の上で <code>Ctrl+V</code> (入力欄の中は、ふつうの貼り付け)</td><td>Excel・スプレッドシートの表 (タブ / カンマ区切り) を貼り付け、プレビューを見て追加。1 行目が見出し (物理名・表示名・データ型・長さ・NOT NULL・PK・UK・連番・デフォルト・備考) なら列の順は自由、なければこの順。型は <code>VARCHAR(100)</code> <code>int</code> <code>文字列</code> などの書き方を読む。既にある物理名の行は、既定では追加せず、「更新する」を選ぶと表にある項目だけを書き換える。ダイアログの「いまのカラムを、この形式の表としてコピー」で、いまの定義を Excel へ持ち出して編集し、貼り戻せる (既にある行は、「更新する」を選ぶと、表にある項目だけが書き換わる)</td></tr><tr><td>定義を Excel 用にコピー</td><td>ヘッダー右の表のアイコン</td><td>カラムを、貼り付け用と同じ形式 (見出し付き・タブ区切り) でコピー。Excel へ貼って編集できる。隣のクリップボードのアイコンは Markdown としてコピー</td></tr><tr><td>カラム編集</td><td>行のセルクリック</td><td>inline 編集モード</td></tr><tr><td>FK 追加</td><td>「外部キー」タブ → 「追加」</td><td>参照テーブル / カラム選択</td></tr><tr><td>Index 追加</td><td>「インデックス」タブ → 「追加」</td><td>対象カラム / unique / 名前を指定</td></tr><tr><td>カラム並び替え</td><td>行ドラッグ</td><td>renumber</td></tr><tr><td>カラム削除</td><td>行右クリック → 「削除」 / <code>Delete</code></td><td>参照ありは警告</td></tr><tr><td>参照元を見る</td><td>ヘッダー右の「参照元」</td><td>このテーブルを参照している処理フロー・ビューなどを一覧 (閲覧中も使える)</td></tr><tr><td>rename refactor</td><td>右クリック → 「ID 変更…」 / <code>F2</code></td><td>RenameEntityDialog</td></tr><tr><td>保存 / 破棄</td><td><code>Ctrl+S</code> / 「破棄」</td><td>edit-session 経由</td></tr></tbody></table>
 <h2 id="データ前提">データ前提</h2>
 <ul>
 <li><strong>空状態</strong>: カラム 0 件、最低 1 カラム (主キー) を入れた時点で意味を持つ</li>

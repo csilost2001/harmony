@@ -1,0 +1,25 @@
+/* backend との接続状態 (ヘッダー中央) */
+.connection-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* ヘッダーは両テーマとも暗色 (--hm-chrome-*) なので、その上で読める色にする */
+.connection-status--lost {
+  color: var(--hm-chrome-fg);
+  background: color-mix(in srgb, var(--hm-danger) 40%, var(--hm-chrome-bg));
+  border: 1px solid var(--hm-danger);
+}
+.connection-status--restored {
+  color: var(--hm-chrome-fg);
+  background: color-mix(in srgb, var(--hm-success) 35%, var(--hm-chrome-bg));
+  border: 1px solid var(--hm-success);
+}

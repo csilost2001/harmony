@@ -79,6 +79,12 @@ multi browser context の e2e で **Vite dev server (port 5173) が間欠 crash*
 - 検査: `npm run verify:colors` (repo root)。既存の直書きは `bash scripts/dev/apply-color-tokens.sh` で機械変換できる
 - ライト / ダークは `src/theme/appTheme.ts` が `<html data-theme>` を切り替える。上部ヘッダーのみ両テーマ共通の暗色 (`--hm-chrome-*`)
 
+## 失敗の知らせ方
+
+- 利用者にも知らせたい失敗は、`reportFailure(err, "操作の名前")` (`src/utils/failureToast.ts`) を使う (`.catch((e) => reportFailure(e, "保存"))`)。開発者向けのログは `console.error("説明", err)` (引数が複数のものは通知にしない)
+- 既存の `.catch(console.error)` (エラー 1 つだけ) は、`installFailureToasts` が通知に変えている。新しいコードでは使わず、`reportFailure` を使う
+- 保存・コピーなどの成功は `showToast("保存しました")` (`src/utils/toast.ts`)。保存 (編集セッション・一覧) は共通の処理が出すので、個別には出さない
+
 ## 画面デザインのキャンバス
 
 - 紙面は設計対象アプリの見本で、アプリのテーマに関係なく明色 (`styles/screenLayout.css` の `--pv-*`)。描画方式 (CSS フレームワーク等) は原本に持たない

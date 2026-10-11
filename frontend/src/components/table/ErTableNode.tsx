@@ -45,6 +45,8 @@ function ErTableNodeComponent({ data, selected }: NodeProps) {
     <>
       <Handle type="target" position={Position.Top} id="top" className="er-handle" />
       <Handle type="target" position={Position.Left} id="left" className="er-handle" />
+      <Handle type="target" position={Position.Right} id="right" className="er-handle" />
+      <Handle type="target" position={Position.Bottom} id="bottom" className="er-handle" />
 
       <div className={`er-table-node${selected ? " selected" : ""}`}>
         {/* Header: physicalName をメインに、display name をサブに */}
@@ -93,6 +95,8 @@ function ErTableNodeComponent({ data, selected }: NodeProps) {
 
       <Handle type="source" position={Position.Bottom} id="bottom" className="er-handle" />
       <Handle type="source" position={Position.Right} id="right" className="er-handle" />
+      <Handle type="source" position={Position.Top} id="top" className="er-handle" />
+      <Handle type="source" position={Position.Left} id="left" className="er-handle" />
     </>
   );
 }

@@ -5,6 +5,7 @@ import type { View, OutputColumn, PhysicalName, EntityId, Maturity, SemVer } fro
 import { loadView, saveView, listViews } from "../../store/viewStore";
 import { listTables } from "../../store/tableStore";
 import { RenameEntityDialog } from "../common/RenameEntityDialog";
+import { ReferencesButton } from "../common/ReferencesButton";
 import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
 import { useRenameEntityUndoToast } from "../common/useRenameEntityUndoToast";
 import { handleRenameSuccess } from "../../utils/handleRenameSuccess";
@@ -78,7 +79,7 @@ export function ViewEditor() {
 
   // P2-2 fix (#907): URL ?session= から復元した initialEditSessionId を渡す (URL 招待 attach 復活)
   // #891 fix: useResourceEditor より前に呼び出し、viewerMode / viewerEditSessionId を渡せるようにする
-  const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions, attach, takeOver, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
+  const { editSession, mode, loading: sessionLoading, actions, attach, takeOver, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
     resourceType: "view",
     resourceId: viewId ?? "",
     sessionId,
@@ -187,8 +188,8 @@ export function ViewEditor() {
   useEffect(() => {
     if (!viewId) return;
     const tabId = makeTabId("view", viewId);
-    setTabDirty(tabId, isDirtyForTab || isDirty);
-  }, [viewId, isDirtyForTab, isDirty]);
+    setTabDirty(tabId, isDirty);
+  }, [viewId, isDirty]);
 
   useEffect(() => {
     if (!viewId || sessionLoading) return;
@@ -366,7 +367,9 @@ export function ViewEditor() {
           onClick: () => navigate(wsPath("/view/list")),
         } satisfies EditorHeaderBackLink}
         extraRight={
-          // #1298 I-6 (RFC #1284): id rename refactor
+          <>
+            {viewId && <ReferencesButton entityType="view" id={viewId} name={view.physicalName || view.name || ""} />}
+            {/* #1298 I-6 (RFC #1284): id rename refactor */}
           <button
             type="button"
             className="btn btn-sm btn-outline-secondary"
@@ -383,6 +386,7 @@ export function ViewEditor() {
           >
             <i className="bi bi-tag" /> id 変更
           </button>
+          </>
         }
         saveReset={isReadonly ? undefined : {
           isDirty,

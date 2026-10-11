@@ -1,0 +1,192 @@
+/**
+ * Excel・スプレッドシートの項目定義の表 (タブ / カンマ区切り) から、画面項目 (ScreenItem) を読み取る。
+ * 規則は columnPaste.ts (テーブルのカラム) と同じ: 先頭行が見出しなら見出しの名前で列を対応づけ、
+ * なければ 項目 ID / ラベル / 型 / 入出力 / 必須 / 最大長 / 最小長 / パターン / 説明 の順とみなす。
+ */
+import type { ScreenItem } from "../types/v3/screen-item";
+import { UNCLOSED_QUOTE_WARNING, detectDelimiter, norm, parseBoolean, parseDataType, parseRowsChecked } from "./columnPaste";
+
+/** `labelEmpty` / `typeEmpty`: ラベル・型の欄が空だった (既定値を入れてある)。既存の行を更新するときは、書き換えない */
+export type ParsedItem = Pick<ScreenItem, "id" | "label" | "type"> & { labelEmpty?: true; typeEmpty?: true } &
+  Partial<Pick<ScreenItem, "direction" | "required" | "minLength" | "maxLength" | "min" | "max" | "pattern" | "description">>;
+
+export type ItemField = "label" | "type" | "direction" | "required" | "maxLength" | "minLength" | "min" | "max" | "pattern" | "description";
+/** `fields`: 貼り付けた表にある項目 (見出しなしなら、既定の順の全項目)。既存の行を更新するとき、この項目だけを書き換える */
+export interface ItemPasteResult { items: ParsedItem[]; warnings: string[]; headerDetected: boolean; fields: ItemField[] }
+
+type Field = "id" | "label" | "type" | "direction" | "required" | "maxLength" | "minLength" | "min" | "max" | "pattern" | "description";
+const DEFAULT_ORDER: Field[] = ["id", "label", "type", "direction", "required", "maxLength", "minLength", "pattern", "description"];
+
+const HEADER_ALIASES: Array<[Field, string[]]> = [
+  ["id", ["項目id", "id", "項目コード", "フィールド名", "identifier", "項目名(英)", "項目名英", "物理名", "name"]],
+  ["label", ["ラベル", "項目名", "表示名", "論理名", "名称", "label", "項目名称", "日本語名", "名前"]],
+  ["type", ["型", "データ型", "type", "属性", "データタイプ"]],
+  ["direction", ["入出力", "方向", "direction", "io", "i/o", "入力出力", "入出力区分"]],
+  ["required", ["必須", "required", "必須入力", "必須区分"]],
+  ["maxLength", ["最大長", "桁数", "最大桁", "maxlength", "最大文字数", "長さ", "桁", "文字数"]],
+  ["minLength", ["最小長", "最小桁", "minlength", "最小文字数"]],
+  ["min", ["最小値", "min", "下限"]],
+  ["max", ["最大値", "max", "上限"]],
+  ["pattern", ["パターン", "形式", "正規表現", "pattern", "入力書式", "書式"]],
+  ["description", ["説明", "備考", "補足", "description", "コメント", "memo", "メモ"]],
+];
+
+const TYPE_ALIASES: Record<string, ScreenItem["type"] & string> = {
+  string: "string", 文字列: "string", 文字: "string", テキスト: "string", text: "string", varchar: "string", char: "string",
+  integer: "integer", int: "integer", 整数: "integer", bigint: "integer", 数字: "integer",
+  number: "number", 数値: "number", 小数: "number", decimal: "number", float: "number", double: "number", 金額: "number",
+  boolean: "boolean", bool: "boolean", 真偽: "boolean", フラグ: "boolean", チェック: "boolean",
+  date: "date", 日付: "date", 年月日: "date",
+  datetime: "datetime", 日時: "datetime", timestamp: "datetime",
+  json: "json",
+};
+
+function headerField(cell: string): Field | null {
+  const n = norm(cell);
+  if (!n) return null;
+  for (const [f, aliases] of HEADER_ALIASES) if (aliases.some((a) => norm(a) === n)) return f;
+  return null;
+}
+
+/** 項目 ID を camelCase (英字で始まる英数字) に寄せる。寄せられなければ null */
+export function toItemId(raw: string): { value: string | null; changed: boolean } {
+  const t = raw.trim();
+  if (/^[a-z][A-Za-z0-9]*$/.test(t)) return { value: t, changed: false };
+  const parts = t.split(/[\s_\-.　]+/).filter(Boolean);
+  if (parts.length === 0 || !parts.every((p) => /^[A-Za-z0-9]+$/.test(p))) return { value: null, changed: false };
+  const camel = parts.map((p, i) => (i === 0 ? p.charAt(0).toLowerCase() + p.slice(1) : p.charAt(0).toUpperCase() + p.slice(1))).join("");
+  return /^[a-z][A-Za-z0-9]*$/.test(camel) ? { value: camel, changed: camel !== t } : { value: null, changed: false };
+}
+
+export function parseDirection(cell: string): ScreenItem["direction"] | undefined {
+  const t = norm(cell);
+  if (!t) return undefined;
+  if (["入出力", "both", "io", "双方向", "入力出力"].includes(t)) return "both";
+  if (["入力", "in", "i", "入"].includes(t)) return "in";
+  if (["出力", "表示", "out", "o", "出", "表示のみ", "参照"].includes(t)) return "out";
+  return undefined;
+}
+
+export function parseItemTable(text: string): ItemPasteResult {
+  const warnings: string[] = [];
+  const parsedRows = parseRowsChecked(text, detectDelimiter(text));
+  const numbered = parsedRows.rows.filter((r) => r.cells.some((c) => c.trim() !== ""));
+  if (parsedRows.unclosedQuote) warnings.push(UNCLOSED_QUOTE_WARNING);
+  if (numbered.length === 0) return { items: [], warnings, headerDetected: false, fields: [] };
+  const rows = numbered.map((r) => r.cells.map((c) => c.trim()));
+  const first = rows[0].map(headerField);
+  const headerDetected = first.filter((f) => f !== null).length >= 2;
+  const order: Array<Field | null> = headerDetected ? first : DEFAULT_ORDER;
+  const body = headerDetected ? rows.slice(1) : rows;
+  const bodyStart = headerDetected ? 1 : 0;
+  const lineNo = (i: number) => numbered[i + bodyStart].no;
+  if (headerDetected && !order.includes("id")) {
+    warnings.push("見出しに「項目 ID」の列が見つかりません。1 列目を項目 ID として読みます");
+    order[0] = "id";
+  }
+
+  const items: ParsedItem[] = [];
+  body.forEach((cells, i) => {
+    const get = (f: Field) => { const idx = order.indexOf(f); return idx >= 0 ? (cells[idx] ?? "") : ""; };
+    const idRaw = get("id");
+    if (!idRaw) { warnings.push(`${lineNo(i)} 行目: 項目 ID が空のため読み飛ばしました`); return; }
+    const id = toItemId(idRaw);
+    if (id.value === null) {
+      warnings.push(`${lineNo(i)} 行目: 項目 ID「${idRaw}」は英字で始まる英数字 (camelCase) にできないため読み飛ばしました。英語の ID を書いてください`);
+      return;
+    }
+    if (id.changed) warnings.push(`${lineNo(i)} 行目: 項目 ID「${idRaw}」を「${id.value}」にしました`);
+    const labelCell = get("label");
+    const item: ParsedItem = { id: id.value as ParsedItem["id"], label: (labelCell || id.value) as ParsedItem["label"], type: "string" };
+    if (!labelCell) item.labelEmpty = true;
+    if (!get("type")) item.typeEmpty = true;
+
+    const typeCell = get("type");
+    if (typeCell) {
+      // `varchar(100)` のように長さがついていれば、型と最大長に分ける
+      const dt = parseDataType(typeCell);
+      const t = TYPE_ALIASES[norm(typeCell)] ?? TYPE_ALIASES[norm(typeCell.replace(/[(（].*$/, ""))];
+      if (t) {
+        item.type = t;
+        if (dt.length !== undefined && item.maxLength === undefined && (t === "string")) item.maxLength = dt.length;
+      }
+      else warnings.push(`${lineNo(i)} 行目: 型「${typeCell}」が分からないため string にしました (文字列・整数・数値・真偽・日付・日時 など)`);
+    }
+    const dirCell = get("direction");
+    if (dirCell) {
+      const d = parseDirection(dirCell);
+      if (d) item.direction = d; else warnings.push(`${lineNo(i)} 行目: 入出力「${dirCell}」が分からないため読み飛ばしました (入力 / 出力 / 入出力)`);
+    }
+    const req = get("required");
+    if (req !== "") {
+      const b = parseBoolean(req);
+      if (b === undefined) warnings.push(`${lineNo(i)} 行目: 必須の値「${req}」が分からないため読み飛ばしました (○ か空で書いてください)`);
+      else if (b) item.required = true;
+    }
+    for (const f of ["maxLength", "minLength", "min", "max"] as const) {
+      const cell = get(f);
+      if (cell === "") continue;
+      const n = Number(cell.replace(/,/g, ""));
+      if (!Number.isFinite(n)) warnings.push(`${lineNo(i)} 行目: ${f === "maxLength" ? "最大長" : f === "minLength" ? "最小長" : f === "min" ? "最小値" : "最大値"}「${cell}」は数字ではないため読み飛ばしました`);
+      else item[f] = n;
+    }
+    const pat = get("pattern"); if (pat) item.pattern = pat;
+    const desc = get("description"); if (desc) item.description = desc as ParsedItem["description"];
+    items.push(item);
+  });
+
+  const seen = new Set<string>();
+  for (const it of items) {
+    if (seen.has(it.id)) warnings.push(`項目 ID「${it.id}」が貼り付けの中で重複しています`);
+    seen.add(it.id);
+  }
+  const present = new Set<Field>(order.filter((f): f is Field => f !== null));
+  const fields = (["label", "type", "direction", "required", "maxLength", "minLength", "min", "max", "pattern", "description"] as const).filter((f) => present.has(f));
+  return { items, warnings, headerDetected, fields };
+}
+
+/** 既存の項目と ID が重なるものを除く */
+export function splitDuplicateItems(parsed: readonly ParsedItem[], existing: readonly Pick<ScreenItem, "id">[]): { add: ParsedItem[]; duplicates: ParsedItem[] } {
+  const have = new Set(existing.map((c) => String(c.id)));
+  const add: ParsedItem[] = [], duplicates: ParsedItem[] = [];
+  for (const c of parsed) {
+    if (have.has(c.id)) duplicates.push(c);
+    else { add.push(c); have.add(c.id); }
+  }
+  return { add, duplicates };
+}
+
+const cell = (v: unknown) => String(v ?? "").replace(/[\t\r\n]+/g, " ");
+const DIRECTION_TEXT: Record<string, string> = { in: "入力", out: "出力", both: "入出力" };
+const TYPE_TEXT: Record<string, string> = { string: "文字列", integer: "整数", number: "数値", boolean: "真偽", date: "日付", datetime: "日時", json: "JSON" };
+
+/** 既存の画面項目を、貼り付けと同じ形式の表 (見出し付き・タブ区切り) にする。Excel へ貼って編集し、また貼り戻せる */
+export function itemsToTsv(items: readonly ScreenItem[]): string {
+  const head = ["項目ID", "ラベル", "型", "入出力", "必須", "最大長", "最小長", "最小値", "最大値", "パターン", "説明"].join("\t");
+  const rows = items.map((i) => [
+    cell(i.id), cell(i.label), typeof i.type === "string" ? (TYPE_TEXT[i.type] ?? i.type) : "", i.direction ? DIRECTION_TEXT[i.direction] : "",
+    i.required ? "○" : "", cell(i.maxLength), cell(i.minLength), cell(i.min), cell(i.max), cell(i.pattern), cell(i.description),
+  ].join("\t"));
+  return [head, ...rows].join("\n");
+}
+
+/**
+ * 貼り付けた行のうち、既にある項目 (同じ ID) を更新する内容を作る。表にある項目だけを書き換える
+ * (表に無い項目は既存のまま)。表にある項目で値が空なら、その項目を空にする (ラベル・型は、空なら既存のまま)。
+ */
+export function itemUpdates(parsed: readonly ParsedItem[], existing: readonly ScreenItem[], fields: readonly ItemField[]): Array<{ id: string; patch: Partial<ScreenItem> }> {
+  const out: Array<{ id: string; patch: Partial<ScreenItem> }> = [];
+  for (const p of parsed) {
+    const cur = existing.find((c) => String(c.id) === String(p.id));
+    if (!cur) continue;
+    const patch: Record<string, unknown> = {};
+    for (const f of fields) {
+      if (f === "label" || f === "type") { if (!(f === "label" ? p.labelEmpty : p.typeEmpty)) patch[f] = p[f]; continue; }
+      patch[f] = p[f];
+    }
+    const changed = Object.entries(patch).filter(([k, v]) => JSON.stringify((cur as unknown as Record<string, unknown>)[k]) !== JSON.stringify(v));
+    if (changed.length) out.push({ id: String(cur.id), patch: Object.fromEntries(changed) as Partial<ScreenItem> });
+  }
+  return out;
+}
+

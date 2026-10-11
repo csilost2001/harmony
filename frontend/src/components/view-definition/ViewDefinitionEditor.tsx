@@ -36,6 +36,7 @@ import type { FieldTypePrimitive } from "../../types/v3";
 import type { TableId, LocalId, Identifier } from "../../types/v3/common";
 import { loadViewDefinition, saveViewDefinition, listViewDefinitions } from "../../store/viewDefinitionStore";
 import { RenameEntityDialog } from "../common/RenameEntityDialog";
+import { ReferencesButton } from "../common/ReferencesButton";
 import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
 import { useRenameEntityUndoToast } from "../common/useRenameEntityUndoToast";
 import { handleRenameSuccess } from "../../utils/handleRenameSuccess";
@@ -133,7 +134,7 @@ export function ViewDefinitionEditor() {
 
   // P2-2 fix (#907): URL ?session= から復元した initialEditSessionId を渡す (URL 招待 attach 復活)
   // #891 fix: useResourceEditor より前に呼び出し、viewerMode / viewerEditSessionId を渡せるようにする
-  const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions, attach, takeOver, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
+  const { editSession, mode, loading: sessionLoading, actions, attach, takeOver, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
     resourceType: "view-definition",
     resourceId: viewDefinitionId ?? "",
     sessionId,
@@ -266,8 +267,8 @@ export function ViewDefinitionEditor() {
   useEffect(() => {
     if (!viewDefinitionId) return;
     const tabId = makeTabId("view-definition", viewDefinitionId);
-    setTabDirty(tabId, isDirtyForTab || isDirty);
-  }, [viewDefinitionId, isDirtyForTab, isDirty]);
+    setTabDirty(tabId, isDirty);
+  }, [viewDefinitionId, isDirty]);
 
   useEffect(() => {
     if (!viewDefinitionId || sessionLoading) return;
@@ -620,6 +621,7 @@ export function ViewDefinitionEditor() {
               onAttachAsView={attach}
               onTakeOver={takeOver}
             />
+            {viewDefinitionId && <ReferencesButton entityType="viewDefinition" id={viewDefinitionId} name={viewDefinition.name || ""} />}
             {/* #1298 I-6 (RFC #1284): id rename refactor */}
             <button
               type="button"

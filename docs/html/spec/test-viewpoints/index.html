@@ -122,7 +122,11 @@
 
 
 
-<table><thead><tr><th>出力</th><th>内容</th></tr></thead><tbody><tr><td>設計書の付録「テスト観点 (画面入力)」</td><td>画面ごとの表。要確認事項の後ろに置き、章番号は動かさない。入力のある画面があるときだけ出る。処理の観点は従来どおり各処理の節</td></tr><tr><td><code>npm run export:tests -- &#x3C;workspace> [--format csv|json|md] [--out &#x3C;file>] [--screen &#x3C;id>] [--flow &#x3C;id>]</code></td><td>画面入力と処理をまとめた表。既定は CSV (UTF-8 BOM つきで Excel で開ける)。json は機械処理・AI の入力用 (入力値つき)</td></tr></tbody></table>
+
+
+
+
+<table><thead><tr><th>出力</th><th>内容</th></tr></thead><tbody><tr><td>設計書の付録「テスト観点 (画面入力)」</td><td>画面ごとの表。要確認事項の後ろに置き、章番号は動かさない。入力のある画面があるときだけ出る。処理の観点は従来どおり各処理の節</td></tr><tr><td>MCP: <code>designer__get_test_viewpoints</code></td><td>同じ表を AI が直接取得する (<code>screenIds</code> / <code>flowIds</code> で絞る、<code>format: csv</code> も可)。既定は json (入力値つき)</td></tr><tr><td><code>npm run export:tests -- &#x3C;workspace> [--format csv|json|md] [--out &#x3C;file>] [--screen &#x3C;id>] [--flow &#x3C;id>]</code></td><td>画面入力と処理をまとめた表。既定は CSV (UTF-8 BOM つきで Excel で開ける)。json は機械処理・AI の入力用 (入力値つき)</td></tr></tbody></table>
 <h2 id="5-テストコードの書き方-ai">5. テストコードの書き方 (AI)</h2>
 <p><code>/generate-tests</code> のとき、<code>npm run export:tests -- &#x3C;workspace> --format json</code> の結果を入力にすると、観点と入力値・期待結果が決まっているため、画面の実装に合わせたセレクタを当てはめるだけで済む。テストの名前には観点表の ID を入れ、設計とテストを対応づける (<code>cart.addQuantity.max-over</code> など)。</p>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
       // Theme toggle (restore は <head> で先行実行済、FOUC 回避)

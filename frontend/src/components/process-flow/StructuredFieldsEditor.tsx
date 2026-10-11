@@ -315,7 +315,7 @@ export function StructuredFieldsEditor({ label, fields, onChange, onCommit, plac
               type="button"
               className="btn btn-sm btn-outline-primary structured-fields-add ms-2"
               onClick={addFieldFromScreenItem}
-              title="画面項目定義から選択して追加 (#321)"
+              title="画面項目定義から選択して追加"
             >
               <i className="bi bi-ui-checks-grid me-1" /> 画面項目から追加
             </button>

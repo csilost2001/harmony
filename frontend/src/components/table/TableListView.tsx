@@ -32,6 +32,9 @@ import { EditSessionBadge } from "../editing/EditSessionBadge";
 import { DraftHistoryModal } from "../editing/DraftHistoryModal";
 import "../../styles/table.css";
 import "../../styles/editMode.css";
+import { confirmDeletionImpact } from "../../utils/confirmDeletion";
+import { useQuickCreate } from "../../hooks/useQuickCreate";
+import { useReferencesDialog } from "../common/ReferencesButton";
 
 const STORAGE_KEY = "list-view-mode:table-list";
 const TAB_ID = makeTabId("table-list", "main");
@@ -57,6 +60,8 @@ export function TableListView() {
   const { hasDraft } = useDraftRegistry();
   const [viewMode, setViewMode] = usePersistentState<ViewMode>(STORAGE_KEY, "card");
   const [showAdd, setShowAdd] = useState(false);
+  // クイックオープン (Ctrl+K) の「新しく作る」から来たときは、追加ダイアログを開く
+  useQuickCreate("table", () => setShowAdd(true));
   const [addName, setAddName] = useState("");
   const [addLogical, setAddLogical] = useState("");
   const [addCategory, setAddCategory] = useState("");
@@ -66,6 +71,7 @@ export function TableListView() {
   const [exportDialect, setExportDialect] = useState<SqlDialect>("postgresql");
   const [showExport, setShowExport] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
+  const references = useReferencesDialog();
   const [validationMap, setValidationMap] = useState<Map<string, ValidationSummary>>(new Map());
   // #893: draft history modal
   const [historyModal, setHistoryModal] = useState<{ resourceId: string } | null>(null);
@@ -398,7 +404,7 @@ export function TableListView() {
       },
       { key: "sep4", separator: true },
       {
-        key: "start-editing", label: "編集開始 (新規 EditSession)", icon: "bi-pencil",
+        key: "start-editing", label: "編集開始 (新しい編集セッション)", icon: "bi-pencil",
         disabled: items.length !== 1,
         disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
         onClick: () => {
@@ -406,7 +412,7 @@ export function TableListView() {
         },
       },
       {
-        key: "draft-sessions", label: "既存 EditSession 一覧", icon: "bi-layers",
+        key: "draft-sessions", label: "編集セッションの一覧", icon: "bi-layers",
         disabled: items.length !== 1,
         disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
         onClick: () => {
@@ -414,7 +420,15 @@ export function TableListView() {
         },
       },
       {
-        key: "history", label: "履歴 (過去の EditSession)", icon: "bi-clock-history",
+        key: "references", label: "参照元を見る", icon: "bi-diagram-3",
+        disabled: items.length !== 1,
+        disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
+        onClick: () => {
+          if (items.length === 1) references.show("table", String(items[0].id), String(items[0].name ?? ""));
+        },
+      },
+      {
+        key: "history", label: "履歴 (過去の編集セッション)", icon: "bi-clock-history",
         disabled: items.length !== 1,
         disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
         onClick: () => {
@@ -481,8 +495,14 @@ export function TableListView() {
   };
 
   const handleSave = () => {
-    editor.save().catch(console.error);
-    selection.clearSelection();
+    // 削除する設計を、ほかの設計が参照していれば、保存の前に確認する
+    confirmDeletionImpact("table", "テーブル", editor.deletedIds)
+      .then((ok) => {
+        if (!ok) return;
+        selection.clearSelection();
+        return editor.save();
+      })
+      .catch(console.error);
   };
 
   const handleReset = () => {
@@ -498,7 +518,7 @@ export function TableListView() {
       width: "32px",
       align: "center",
       render: (t) => hasDraft("table", t.id)
-        ? <span className="list-item-draft-mark" title="未保存の編集中 draft があります">●</span>
+        ? <span className="list-item-draft-mark" title="未保存の下書きがあります">●</span>
         : null,
     },
     {
@@ -587,7 +607,7 @@ export function TableListView() {
           <span className="table-card-name">{t.physicalName ?? ""}</span>
           {t.category && <span className="table-card-category">{t.category}</span>}
           {hasDraft("table", t.id) && (
-            <span className="list-item-draft-mark" title="未保存の編集中 draft があります">●</span>
+            <span className="list-item-draft-mark" title="未保存の下書きがあります">●</span>
           )}
           <EditSessionBadge resourceType="table" resourceId={t.id} />
           {validation && (hasError || hasWarning) && (
@@ -762,6 +782,7 @@ export function TableListView() {
                   value={addId}
                   onChange={setAddId}
                   name={addLogical}
+                  idSource={addName}
                   existingIds={existingIds}
                   entityLabel="テーブル"
                   inputId="tbl-id-input"
@@ -812,6 +833,8 @@ export function TableListView() {
             </div>
           </div>
         )}
+
+        {references.dialog}
 
         {contextMenu && (
           <ListContextMenu

@@ -243,3 +243,29 @@ export function autoLayout(
 
   return positions;
 }
+
+export type ErHandleSide = "top" | "right" | "bottom" | "left";
+
+/**
+ * 参照する側 (source) と参照される側 (target) の位置から、線をつなぐ辺を決める。
+ * 縦に離れていれば上下の辺、近ければ左右の辺。向かい合う辺どうしにして、線が自分の側へ回り込まないようにする。
+ * 自分自身へのリレーションは、右から出て左へ入る。
+ */
+export function pickEdgeSides(
+  source: { x: number; y: number },
+  target: { x: number; y: number },
+  sameTable = false,
+): { sourceHandle: ErHandleSide; targetHandle: ErHandleSide } {
+  if (sameTable) return { sourceHandle: "right", targetHandle: "left" };
+  const dx = target.x - source.x;
+  const dy = target.y - source.y;
+  if (Math.abs(dy) > 90) {
+    return dy < 0
+      ? { sourceHandle: "top", targetHandle: "bottom" }
+      : { sourceHandle: "bottom", targetHandle: "top" };
+  }
+  return dx >= 0
+    ? { sourceHandle: "right", targetHandle: "left" }
+    : { sourceHandle: "left", targetHandle: "right" };
+}
+
