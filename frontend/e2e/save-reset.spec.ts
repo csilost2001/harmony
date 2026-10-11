@@ -244,4 +244,18 @@ test.describe("テーブルエディタ：保存/リセットボタン", { tag: 
     await expect(page.locator(".columns-tab").getByText("利用者の識別子").first()).toBeVisible();
     await expect(page.locator(".srb-btn-save")).toBeEnabled();
   });
+
+  test("Excel の表をそのまま貼り付けると (Ctrl+V)、「表から貼り付け」が表の内容つきで開く", async ({ page }) => {
+    await setupTableEditor(page);
+    await page.evaluate(() => {
+      const dt = new DataTransfer();
+      dt.setData("text/plain", "物理名\t表示名\tデータ型\nlast_login\t最終ログイン\ttimestamp");
+      document.querySelector(".columns-tab")?.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+    });
+    await expect(page.getByTestId("paste-columns-dialog")).toBeVisible();
+    await expect(page.getByTestId("paste-columns-text")).toHaveValue(/last_login/);
+    await expect(page.getByTestId("paste-columns-preview")).toContainText("TIMESTAMP");
+    await page.getByTestId("paste-columns-add").click();
+    await expect(page.locator(".columns-tab").getByText("last_login").first()).toBeVisible();
+  });
 });

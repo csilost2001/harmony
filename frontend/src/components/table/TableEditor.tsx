@@ -27,6 +27,7 @@ import { EditorHeader } from "../common/EditorHeader";
 import { RenameEntityDialog } from "../common/RenameEntityDialog";
 import { PasteColumnsDialog } from "./PasteColumnsDialog";
 import { showToast } from "../../utils/toast";
+import { isPasteIntoField, looksLikeSpreadsheet } from "../../utils/pasteDetect";
 import { columnsToTsv, type ParsedColumn } from "../../utils/columnPaste";
 import { ReferencesButton } from "../common/ReferencesButton";
 import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
@@ -433,7 +434,7 @@ export function TableEditor() {
       <div className="table-editor-content-area">
         <div className="table-editor-body">
           {tab === "columns" && (
-            <ColumnsTab table={table} update={isReadonly ? () => {} : updateWithDraft} />
+            <ColumnsTab table={table} update={isReadonly ? () => {} : updateWithDraft} isReadonly={isReadonly} />
           )}
           {tab === "constraints" && (
             <ConstraintsTab table={table} update={isReadonly ? () => {} : updateWithDraft} allTables={allTables} />
@@ -600,13 +601,16 @@ function TableMetaEditor({
 // ── カラムタブ ────────────────────────────────────────────────────────────────
 
 function ColumnsTab({
-  table, update,
+  table, update, isReadonly = false,
 }: {
   table: Table;
   update: (fn: (t: Table) => void) => void;
+  /** 閲覧中 (編集を始めていない)。追加の操作を止める */
+  isReadonly?: boolean;
 }) {
   const [showTemplates, setShowTemplates] = useState(false);
   const [showPaste, setShowPaste] = useState(false);
+  const [pasteInitial, setPasteInitial] = useState("");
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
   const [activeColId, setActiveColId] = useState<string | null>(null);
 
@@ -990,7 +994,18 @@ function ColumnsTab({
   const primaryKeyEmpty = !table.columns.some((column) => column.primaryKey);
 
   return (
-    <div className="columns-tab">
+    <div
+      className="columns-tab"
+      onPaste={(e) => {
+        // Excel の表を貼り付けたら、「表から貼り付け」を開く (アプリ内のコピーがあるとき・入力欄の中は、ふつうの貼り付け)
+        if (isReadonly || sortActive || isPasteIntoField(e.target) || clipboard.hasContent) return;
+        const text = e.clipboardData?.getData("text/plain");
+        if (!looksLikeSpreadsheet(text)) return;
+        e.preventDefault();
+        setPasteInitial(text ?? "");
+        setShowPaste(true);
+      }}
+    >
       <div className="columns-selection-bar">
         <span className="columns-selection-count">
           {anySelected ? `${selectedCount} 件選択中 (ダブルクリック/Enter で編集)` : "クリックで選択、ダブルクリックで編集"}
@@ -1075,31 +1090,31 @@ function ColumnsTab({
         <button
           className="tbl-btn tbl-btn-primary"
           onClick={handleAddBlank}
-          disabled={sortActive}
-          title={sortActive ? "ソート中は無効 (ソート解除で利用可能)" : undefined}
+          disabled={sortActive || isReadonly}
+          title={isReadonly ? "「編集開始」を押してから追加できます" : sortActive ? "ソート中は無効 (ソート解除で利用可能)" : undefined}
         >
           <i className="bi bi-plus-lg" /> カラム追加
         </button>
         <button
           className={`tbl-btn tbl-btn-secondary${showTemplates ? " active" : ""}`}
           onClick={() => setShowTemplates(!showTemplates)}
-          disabled={sortActive}
-          title={sortActive ? "ソート中は無効 (ソート解除で利用可能)" : undefined}
+          disabled={sortActive || isReadonly}
+          title={isReadonly ? "「編集開始」を押してから追加できます" : sortActive ? "ソート中は無効 (ソート解除で利用可能)" : undefined}
         >
           <i className="bi bi-collection" /> テンプレートから追加
         </button>
         <button
           className="tbl-btn tbl-btn-secondary"
           onClick={() => setShowPaste(true)}
-          disabled={sortActive}
-          title={sortActive ? "ソート中は無効 (ソート解除で利用可能)" : "Excel などの表を貼り付けて、カラムをまとめて追加"}
+          disabled={sortActive || isReadonly}
+          title={isReadonly ? "「編集開始」を押してから追加できます" : sortActive ? "ソート中は無効 (ソート解除で利用可能)" : "Excel などの表を貼り付けて、カラムをまとめて追加"}
           data-testid="paste-columns-open"
         >
           <i className="bi bi-clipboard-data" /> 表から貼り付け
         </button>
       </div>
       {showPaste && (
-        <PasteColumnsDialog existing={table.columns} onApply={handlePasteColumns} onClose={() => setShowPaste(false)} />
+        <PasteColumnsDialog existing={table.columns} onApply={handlePasteColumns} onClose={() => { setShowPaste(false); setPasteInitial(""); }} initialText={pasteInitial} />
       )}
 
       {contextMenu && (

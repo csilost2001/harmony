@@ -13,14 +13,16 @@ interface Props {
   /** 追加する項目と、(「既にある行も更新する」のとき) 既存項目の更新 */
   onApply: (add: ParsedItem[], updates: Array<{ id: string; patch: Partial<ScreenItem> }>) => void;
   onClose: () => void;
+  /** 開いたときに入れておく文 (クリップボードの表を貼り付けて開いたとき) */
+  initialText?: string;
 }
 
 const DIRECTION_LABEL: Record<string, string> = { in: "入力", out: "出力", both: "入出力" };
 
-export function PasteItemsDialog({ existing, onApply, onClose }: Props) {
+export function PasteItemsDialog({ existing, onApply, onClose, initialText = "" }: Props) {
   const trapRef = useRef<HTMLDivElement>(null);
   useFocusTrap(trapRef);
-  const [text, setText] = useState("");
+  const [text, setText] = useState(initialText);
   const [copied, setCopied] = useState(false);
   const [updateExisting, setUpdateExisting] = useState(false);
   const copyCurrent = () => {

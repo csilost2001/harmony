@@ -32,6 +32,7 @@ import { setDirty as setTabDirty, makeTabId } from "../../store/tabStore";
 import { RenameEntityDialog } from "../common/RenameEntityDialog";
 import { ReferencesButton } from "../common/ReferencesButton";
 import { PasteItemsDialog } from "./PasteItemsDialog";
+import { isPasteIntoField, looksLikeSpreadsheet } from "../../utils/pasteDetect";
 import type { ParsedItem } from "../../utils/itemPaste";
 import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
 import { useRenameEntityUndoToast } from "../common/useRenameEntityUndoToast";
@@ -143,6 +144,7 @@ export function ScreenItemsView() {
   // #1330: ScreenItemsView 起点の Screen rename refactor。完了後は Items 画面に留まる。
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [showPasteItems, setShowPasteItems] = useState(false);
+  const [pasteItemsInitial, setPasteItemsInitial] = useState("");
   const [allScreenIds, setAllScreenIds] = useState<string[]>([]);
   const [renameUndoToast, setRenameUndoToast] = useRenameEntityUndoToast(
     "screen",
@@ -814,7 +816,18 @@ export function ScreenItemsView() {
   const lockedByOther = mode.kind === "locked-by-other" ? mode : null;
 
   return (
-    <div className={`screen-items-view${isReadonly ? " readonly-mode" : ""}`}>
+    <div
+      className={`screen-items-view${isReadonly ? " readonly-mode" : ""}`}
+      onPaste={(e) => {
+        // Excel の項目定義の表を貼り付けたら、「表から貼り付け」を開く (入力欄の中は、ふつうの貼り付け)
+        if (isReadonly || isPasteIntoField(e.target)) return;
+        const text = e.clipboardData?.getData("text/plain");
+        if (!looksLikeSpreadsheet(text)) return;
+        e.preventDefault();
+        setPasteItemsInitial(text ?? "");
+        setShowPasteItems(true);
+      }}
+    >
       <TableSubToolbar />
 
       {serverChanged && (
@@ -1947,7 +1960,7 @@ export function ScreenItemsView() {
       )}
 
       {showPasteItems && (
-        <PasteItemsDialog existing={file?.items ?? []} onApply={handlePasteItems} onClose={() => setShowPasteItems(false)} />
+        <PasteItemsDialog existing={file?.items ?? []} onApply={handlePasteItems} onClose={() => { setShowPasteItems(false); setPasteItemsInitial(""); }} initialText={pasteItemsInitial} />
       )}
 
       {/* #1330: ScreenItemsView 起点の Screen rename refactor dialog */}

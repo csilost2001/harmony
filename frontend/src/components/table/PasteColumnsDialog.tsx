@@ -13,14 +13,16 @@ interface Props {
   /** 追加するカラムと、(「既にある行も更新する」のとき) 既存カラムの更新 */
   onApply: (add: ParsedColumn[], updates: Array<{ id: string; patch: Partial<Column> }>) => void;
   onClose: () => void;
+  /** 開いたときに入れておく文 (クリップボードの表を貼り付けて開いたとき) */
+  initialText?: string;
 }
 
 const FLAG = (v?: boolean) => (v ? "○" : "");
 
-export function PasteColumnsDialog({ existing, onApply, onClose }: Props) {
+export function PasteColumnsDialog({ existing, onApply, onClose, initialText = "" }: Props) {
   const trapRef = useRef<HTMLDivElement>(null);
   useFocusTrap(trapRef);
-  const [text, setText] = useState("");
+  const [text, setText] = useState(initialText);
   const [copied, setCopied] = useState(false);
   const [updateExisting, setUpdateExisting] = useState(false);
   const copyCurrent = () => {
