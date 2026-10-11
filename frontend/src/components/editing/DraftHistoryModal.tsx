@@ -183,7 +183,7 @@ export function DraftHistoryModal({
   // ── 復元 ─────────────────────────────────────────────────────────────────────
   const handleRestore = useCallback(
     async (entry: DraftHistoryEntry) => {
-      if (!window.confirm("このスナップショットから新規 EditSession を作成して復元しますか?")) {
+      if (!window.confirm("この時点の内容から新しい編集セッションを作って復元しますか?")) {
         return;
       }
       setRestoring(entry.historyId);

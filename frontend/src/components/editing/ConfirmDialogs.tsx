@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import "../../styles/editMode.css";
 import { friendlyLabel } from "../../utils/participantLabel";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 
 interface ModalProps {
   onClose: () => void;
@@ -22,6 +23,7 @@ function SimpleModal({ onClose, children, title }: ModalProps) {
   useEffect(() => {
     dialogRef.current?.focus();
   }, []);
+  useFocusTrap(dialogRef);
 
   return (
     <div
@@ -103,7 +105,7 @@ export function ForceReleaseConfirmDialog({
     <SimpleModal title="ロックを強制解除" onClose={onCancel}>
       <p>
         <strong>{label}</strong> が編集中のロックを強制解除しますか？
-        相手の編集内容は draft として保持されます。
+        相手の編集内容は下書きとして保持されます。
       </p>
       <div className="edit-mode-modal-footer">
         <button
@@ -174,7 +176,7 @@ export function ForcedOutChoiceDialog({ previousDraftExists, onChoice }: ForcedO
     <SimpleModal title="編集権限が解除されました" onClose={() => onChoice("discard")}>
       <p>
         他のユーザーがあなたの編集ロックを強制解除しました。
-        {previousDraftExists && " 編集内容は draft として保持されています。"}
+        {previousDraftExists && " 編集内容は下書きとして保持されています。"}
         どうしますか？
       </p>
       <div className="edit-mode-modal-footer">

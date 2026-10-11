@@ -404,7 +404,7 @@ export function TableListView() {
       },
       { key: "sep4", separator: true },
       {
-        key: "start-editing", label: "編集開始 (新規 EditSession)", icon: "bi-pencil",
+        key: "start-editing", label: "編集開始 (新しい編集セッション)", icon: "bi-pencil",
         disabled: items.length !== 1,
         disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
         onClick: () => {
@@ -412,7 +412,7 @@ export function TableListView() {
         },
       },
       {
-        key: "draft-sessions", label: "既存 EditSession 一覧", icon: "bi-layers",
+        key: "draft-sessions", label: "編集セッションの一覧", icon: "bi-layers",
         disabled: items.length !== 1,
         disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
         onClick: () => {
@@ -428,7 +428,7 @@ export function TableListView() {
         },
       },
       {
-        key: "history", label: "履歴 (過去の EditSession)", icon: "bi-clock-history",
+        key: "history", label: "履歴 (過去の編集セッション)", icon: "bi-clock-history",
         disabled: items.length !== 1,
         disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
         onClick: () => {
@@ -518,7 +518,7 @@ export function TableListView() {
       width: "32px",
       align: "center",
       render: (t) => hasDraft("table", t.id)
-        ? <span className="list-item-draft-mark" title="未保存の編集中 draft があります">●</span>
+        ? <span className="list-item-draft-mark" title="未保存の下書きがあります">●</span>
         : null,
     },
     {
@@ -607,7 +607,7 @@ export function TableListView() {
           <span className="table-card-name">{t.physicalName ?? ""}</span>
           {t.category && <span className="table-card-category">{t.category}</span>}
           {hasDraft("table", t.id) && (
-            <span className="list-item-draft-mark" title="未保存の編集中 draft があります">●</span>
+            <span className="list-item-draft-mark" title="未保存の下書きがあります">●</span>
           )}
           <EditSessionBadge resourceType="table" resourceId={t.id} />
           {validation && (hasError || hasWarning) && (

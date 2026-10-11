@@ -534,7 +534,7 @@ export function ProcessFlowListView() {
       },
       { key: "sep4", separator: true },
       {
-        key: "start-editing", label: "編集開始 (新規 EditSession)", icon: "bi-pencil",
+        key: "start-editing", label: "編集開始 (新しい編集セッション)", icon: "bi-pencil",
         disabled: items.length !== 1,
         disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
         onClick: () => {
@@ -542,7 +542,7 @@ export function ProcessFlowListView() {
         },
       },
       {
-        key: "draft-sessions", label: "既存 EditSession 一覧", icon: "bi-layers",
+        key: "draft-sessions", label: "編集セッションの一覧", icon: "bi-layers",
         disabled: items.length !== 1,
         disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
         onClick: () => {
@@ -558,7 +558,7 @@ export function ProcessFlowListView() {
         },
       },
       {
-        key: "history", label: "履歴 (過去の EditSession)", icon: "bi-clock-history",
+        key: "history", label: "履歴 (過去の編集セッション)", icon: "bi-clock-history",
         disabled: items.length !== 1,
         disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
         onClick: () => {
@@ -648,7 +648,7 @@ export function ProcessFlowListView() {
       width: "32px",
       align: "center",
       render: (g) => hasDraft("process-flow", g.id)
-        ? <span className="list-item-draft-mark" title="未保存の編集中 draft があります">●</span>
+        ? <span className="list-item-draft-mark" title="未保存の下書きがあります">●</span>
         : null,
     },
     {
@@ -757,7 +757,7 @@ export function ProcessFlowListView() {
           <MaturityBadge maturity={g.maturity} />
           <span className="process-flow-card-name">{g.name}</span>
           {hasDraft("process-flow", g.id) && (
-            <span className="list-item-draft-mark" title="未保存の編集中 draft があります">●</span>
+            <span className="list-item-draft-mark" title="未保存の下書きがあります">●</span>
           )}
           <EditSessionBadge resourceType="process-flow" resourceId={g.id} />
           {v && (hasError || hasWarning) && (

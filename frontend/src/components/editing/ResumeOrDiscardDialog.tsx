@@ -38,7 +38,7 @@ export function ResumeOrDiscardDialog({ onResume, onDiscard, onCancel }: ResumeO
       >
         <div className="edit-mode-modal-header">
           <h5 id="resume-or-discard-title" className="edit-mode-modal-title">
-            未保存の編集中 draft があります
+            前回の編集の続き (未保存の下書き) があります
           </h5>
           <button
             type="button"
@@ -48,7 +48,7 @@ export function ResumeOrDiscardDialog({ onResume, onDiscard, onCancel }: ResumeO
           />
         </div>
         <div className="edit-mode-modal-body">
-          <p>未保存の編集中があります。続きを編集しますか？</p>
+          <p>保存していない編集の下書きが残っています。続きを編集しますか？</p>
           <div className="edit-mode-modal-footer">
             <button
               type="button"

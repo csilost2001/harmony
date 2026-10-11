@@ -445,7 +445,7 @@ export function ConventionsCatalogView() {
           <span className="fw-semibold">
             規約カタログ
             {isDirty && (
-              <span className="list-item-draft-mark" title="未保存の編集中 draft があります">●</span>
+              <span className="list-item-draft-mark" title="未保存の下書きがあります">●</span>
             )}
           </span>
         }

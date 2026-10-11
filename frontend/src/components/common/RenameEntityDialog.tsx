@@ -11,7 +11,8 @@
  * 親 callback `onSuccess(newId, operationId)` で URL/tab migration + 5 分 TTL undo toast を
  * 表示する責務 (handleRenameSuccess helper 利用)。
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { EntityIdInput, type EntityIdValidationState } from "./EntityIdInput";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { getRenameEntityMeta, type RenameEntityType } from "../../utils/renameEntityMapping";
@@ -116,6 +117,8 @@ export function RenameEntityDialog({
 }: RenameEntityDialogProps) {
   const meta = getRenameEntityMeta(entityType);
   const label = entityLabel ?? meta.entityLabel;
+  const trapRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(trapRef);
 
   const [step, setStep] = useState<Step>("input");
   const [newId, setNewId] = useState("");
@@ -191,7 +194,7 @@ export function RenameEntityDialog({
 
   return (
     <div className="rename-entity-overlay" role="dialog" aria-modal="true" data-testid="rename-entity-dialog">
-      <div className="rename-entity-modal">
+      <div className="rename-entity-modal" ref={trapRef}>
         <div className="rename-entity-modal__header">
           <i className="bi bi-tag" />
           {label} の id を変更

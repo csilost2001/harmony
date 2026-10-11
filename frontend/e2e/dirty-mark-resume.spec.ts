@@ -84,7 +84,7 @@ test.describe("dirty マーク + 再オープン — TableEditor", { tag: ["@reg
     await ws.gotoActive(page, "/table/list");
     const draftMark = page.locator(".list-item-draft-mark").first();
     await expect(draftMark).toBeVisible({ timeout: 8000 });
-    await expect(draftMark).toHaveAttribute("title", "未保存の編集中 draft があります");
+    await expect(draftMark).toHaveAttribute("title", "未保存の下書きがあります");
   });
 
   test("シナリオ 2: 一覧 ● → 再 open → ResumeOrDiscardDialog → 「続ける」", async ({ page }) => {

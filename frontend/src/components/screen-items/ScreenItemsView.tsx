@@ -413,6 +413,13 @@ export function ScreenItemsView() {
         type: "string",
       });
     });
+    // 追加した行の項目 ID 欄へ移り、すぐ打ち込めるようにする (画面の外なら見える位置へ)
+    setTimeout(() => {
+      const rows = document.querySelectorAll<HTMLTableRowElement>(".screen-items-table tbody tr");
+      const input = rows[rows.length - 1]?.querySelector<HTMLInputElement>('input[placeholder="例: email"]');
+      input?.scrollIntoView?.({ block: "nearest" });
+      input?.focus();
+    }, 0);
   }, [updateWithDraft]);
 
   const handlePasteItems = useCallback((items: ParsedItem[], updates: Array<{ id: string; patch: Partial<ScreenItem> }>) => {

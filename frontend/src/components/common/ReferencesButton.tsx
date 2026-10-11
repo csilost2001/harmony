@@ -2,7 +2,8 @@
  * 「参照元」ボタンとダイアログ。その設計 (画面・テーブル・処理フローなど) を参照している設計を、
  * 種類ごとに一覧し、クリックで開く。改名・削除の前の影響確認、設計を辿る用。
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { useNavigate } from "react-router-dom";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
@@ -39,6 +40,8 @@ export function ReferencesButton({ entityType, id, name, className, compact }: P
 export function ReferencesDialog({ entityType, id, name, onClose }: Props & { onClose: () => void }) {
   const navigate = useNavigate();
   const { wsPath } = useWorkspacePath();
+  const trapRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(trapRef);
   const [result, setResult] = useState<ReferenceResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -61,7 +64,7 @@ export function ReferencesDialog({ entityType, id, name, onClose }: Props & { on
 
   return (
     <div className="references-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="references-modal" role="dialog" aria-modal="true" aria-label="参照元" data-testid="references-dialog">
+      <div ref={trapRef} className="references-modal" role="dialog" aria-modal="true" aria-label="参照元" data-testid="references-dialog">
         <div className="references-head">
           <h2><i className="bi bi-diagram-3" /> 参照元 <code>{id}</code>{name && name !== id ? <span className="references-name">{name}</span> : null}</h2>
           <button type="button" className="references-close" aria-label="閉じる" onClick={onClose}><i className="bi bi-x-lg" /></button>

@@ -399,7 +399,7 @@ export function SequenceListView() {
       width: "32px",
       align: "center",
       render: (s) => hasDraft("sequence", s.id)
-        ? <span className="list-item-draft-mark" title="未保存の編集中 draft があります">●</span>
+        ? <span className="list-item-draft-mark" title="未保存の下書きがあります">●</span>
         : null,
     },
     {
@@ -442,7 +442,7 @@ export function SequenceListView() {
       <div className="seq-card-header">
         <span className="seq-card-name">{s.name}</span>
         {hasDraft("sequence", s.id) && (
-          <span className="list-item-draft-mark" title="未保存の編集中 draft があります">●</span>
+          <span className="list-item-draft-mark" title="未保存の下書きがあります">●</span>
         )}
       </div>
       {s.physicalName && (

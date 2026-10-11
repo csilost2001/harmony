@@ -581,7 +581,7 @@ export function ScreenListView() {
         >
           <i className="bi bi-ui-checks-grid" />
           {hasDraft("screen-item", s.id) && (
-            <span className="list-item-draft-mark ms-1" title="未保存の編集中 draft があります">●</span>
+            <span className="list-item-draft-mark ms-1" title="未保存の下書きがあります">●</span>
           )}
         </button>
       ),
@@ -620,7 +620,7 @@ export function ScreenListView() {
           <i className="bi bi-ui-checks-grid me-1" />
           項目定義
           {hasDraft("screen-item", s.id) && (
-            <span className="list-item-draft-mark ms-1" title="未保存の編集中 draft があります">●</span>
+            <span className="list-item-draft-mark ms-1" title="未保存の下書きがあります">●</span>
           )}
         </button>
       </div>

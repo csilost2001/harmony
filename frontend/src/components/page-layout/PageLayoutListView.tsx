@@ -355,7 +355,7 @@ export function PageLayoutListView() {
         },
       },
       {
-        key: "history", label: "履歴 (過去の EditSession)", icon: "bi-clock-history",
+        key: "history", label: "履歴 (過去の編集セッション)", icon: "bi-clock-history",
         disabled: items.length !== 1,
         disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
         onClick: () => {
@@ -422,7 +422,7 @@ export function PageLayoutListView() {
       width: "32px",
       align: "center",
       render: (v) => hasDraft("page-layout", String(v.id))
-        ? <span className="list-item-draft-mark" title="未保存の編集中 draft があります">●</span>
+        ? <span className="list-item-draft-mark" title="未保存の下書きがあります">●</span>
         : null,
     },
     {
@@ -494,7 +494,7 @@ export function PageLayoutListView() {
         <MaturityBadge maturity={v.maturity} />
         <span className="seq-card-name">{v.name}</span>
         {hasDraft("page-layout", String(v.id)) && (
-          <span className="list-item-draft-mark" title="未保存の編集中 draft があります">●</span>
+          <span className="list-item-draft-mark" title="未保存の下書きがあります">●</span>
         )}
         <EditSessionBadge resourceType="page-layout" resourceId={String(v.id)} />
         {v.hasProcessFlow && (

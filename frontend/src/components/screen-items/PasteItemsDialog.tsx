@@ -2,7 +2,8 @@
  * 「表から貼り付け」ダイアログ (画面項目)。Excel・スプレッドシートで作った項目定義の表を貼り付けて、
  * 画面項目をまとめて追加する。読み取りの規則は utils/itemPaste.ts。
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { itemUpdates, itemsToTsv, parseItemTable, splitDuplicateItems, type ParsedItem } from "../../utils/itemPaste";
 import type { ScreenItem } from "../../types/v3/screen-item";
 import "../../styles/pasteColumns.css";
@@ -17,6 +18,8 @@ interface Props {
 const DIRECTION_LABEL: Record<string, string> = { in: "入力", out: "出力", both: "入出力" };
 
 export function PasteItemsDialog({ existing, onApply, onClose }: Props) {
+  const trapRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(trapRef);
   const [text, setText] = useState("");
   const [copied, setCopied] = useState(false);
   const [updateExisting, setUpdateExisting] = useState(false);
@@ -36,7 +39,7 @@ export function PasteItemsDialog({ existing, onApply, onClose }: Props) {
 
   return (
     <div className="paste-cols-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="paste-cols-modal" role="dialog" aria-modal="true" aria-label="表から貼り付け" data-testid="paste-items-dialog">
+      <div ref={trapRef} className="paste-cols-modal" role="dialog" aria-modal="true" aria-label="表から貼り付け" data-testid="paste-items-dialog">
         <div className="paste-cols-head">
           <h2><i className="bi bi-clipboard-data" /> 表から貼り付けて画面項目を追加</h2>
           <button type="button" className="paste-cols-close" aria-label="閉じる" onClick={onClose}><i className="bi bi-x-lg" /></button>

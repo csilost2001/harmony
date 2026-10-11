@@ -431,7 +431,7 @@ export function ViewListView() {
       width: "32px",
       align: "center",
       render: (v) => hasDraft("view", v.id)
-        ? <span className="list-item-draft-mark" title="未保存の編集中 draft があります">●</span>
+        ? <span className="list-item-draft-mark" title="未保存の下書きがあります">●</span>
         : null,
     },
     {
@@ -501,7 +501,7 @@ export function ViewListView() {
           <MaturityBadge maturity={v.maturity} />
           <span className="seq-card-name">{v.name}</span>
           {hasDraft("view", v.id) && (
-            <span className="list-item-draft-mark" title="未保存の編集中 draft があります">●</span>
+            <span className="list-item-draft-mark" title="未保存の下書きがあります">●</span>
           )}
           {validation && (hasError || hasWarning) && (
             <span className="view-validation-badges">

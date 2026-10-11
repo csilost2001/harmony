@@ -2,7 +2,8 @@
  * 「表から貼り付け」ダイアログ。Excel・スプレッドシートで作ったテーブル定義の表を貼り付けて、
  * カラムをまとめて追加する。読み取りの規則は utils/columnPaste.ts。
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { columnUpdates, columnsToTsv, parseColumnTable, splitDuplicates, type ParsedColumn } from "../../utils/columnPaste";
 import type { Column } from "../../types/v3/table";
 import "../../styles/pasteColumns.css";
@@ -17,6 +18,8 @@ interface Props {
 const FLAG = (v?: boolean) => (v ? "○" : "");
 
 export function PasteColumnsDialog({ existing, onApply, onClose }: Props) {
+  const trapRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(trapRef);
   const [text, setText] = useState("");
   const [copied, setCopied] = useState(false);
   const [updateExisting, setUpdateExisting] = useState(false);
@@ -36,7 +39,7 @@ export function PasteColumnsDialog({ existing, onApply, onClose }: Props) {
 
   return (
     <div className="paste-cols-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="paste-cols-modal" role="dialog" aria-modal="true" aria-label="表から貼り付け" data-testid="paste-columns-dialog">
+      <div ref={trapRef} className="paste-cols-modal" role="dialog" aria-modal="true" aria-label="表から貼り付け" data-testid="paste-columns-dialog">
         <div className="paste-cols-head">
           <h2><i className="bi bi-clipboard-data" /> 表から貼り付けてカラムを追加</h2>
           <button type="button" className="paste-cols-close" aria-label="閉じる" onClick={onClose}><i className="bi bi-x-lg" /></button>

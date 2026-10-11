@@ -3,21 +3,20 @@
  * 一覧画面・エディタ・画面デザイナで使えるキーが 1 か所で分かる。
  */
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { SHORTCUT_GROUPS, shouldOpenShortcutHelp } from "../../utils/shortcuts";
 import "../../styles/shortcutHelp.css";
 
 export function ShortcutHelp() {
   const [open, setOpen] = useState(false);
-  const closeRef = useRef<HTMLButtonElement>(null);
-  const returnFocusTo = useRef<HTMLElement | null>(null);
+  const trapRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(trapRef, open);
 
   const show = useCallback(() => {
-    returnFocusTo.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setOpen(true);
   }, []);
   const hide = useCallback(() => {
     setOpen(false);
-    returnFocusTo.current?.focus?.();
   }, []);
 
   useEffect(() => {
@@ -29,8 +28,6 @@ export function ShortcutHelp() {
     return () => document.removeEventListener("keydown", onKey);
   }, [open, show, hide]);
 
-  useEffect(() => { if (open) closeRef.current?.focus(); }, [open]);
-
   return (
     <>
       <button type="button" className="common-header-icon-btn" data-testid="shortcut-help-open"
@@ -39,10 +36,10 @@ export function ShortcutHelp() {
       </button>
       {open && (
         <div className="shortcut-help-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) hide(); }}>
-          <div className="shortcut-help-modal" role="dialog" aria-modal="true" aria-label="キーボードショートカット" data-testid="shortcut-help">
+          <div ref={trapRef} className="shortcut-help-modal" role="dialog" aria-modal="true" aria-label="キーボードショートカット" data-testid="shortcut-help">
             <div className="shortcut-help-head">
               <h2>キーボードショートカット</h2>
-              <button type="button" ref={closeRef} className="shortcut-help-close" aria-label="閉じる" onClick={hide}><i className="bi bi-x-lg" /></button>
+              <button type="button" className="shortcut-help-close" aria-label="閉じる" onClick={hide}><i className="bi bi-x-lg" /></button>
             </div>
             <div className="shortcut-help-body">
               {SHORTCUT_GROUPS.map((g) => (
