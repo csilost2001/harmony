@@ -6,7 +6,8 @@
 import type { ScreenItem } from "../types/v3/screen-item";
 import { UNCLOSED_QUOTE_WARNING, detectDelimiter, norm, parseBoolean, parseDataType, parseRowsChecked } from "./columnPaste";
 
-export type ParsedItem = Pick<ScreenItem, "id" | "label" | "type"> &
+/** `labelEmpty` / `typeEmpty`: ラベル・型の欄が空だった (既定値を入れてある)。既存の行を更新するときは、書き換えない */
+export type ParsedItem = Pick<ScreenItem, "id" | "label" | "type"> & { labelEmpty?: true; typeEmpty?: true } &
   Partial<Pick<ScreenItem, "direction" | "required" | "minLength" | "maxLength" | "min" | "max" | "pattern" | "description">>;
 
 export type ItemField = "label" | "type" | "direction" | "required" | "maxLength" | "minLength" | "min" | "max" | "pattern" | "description";
@@ -95,7 +96,10 @@ export function parseItemTable(text: string): ItemPasteResult {
       return;
     }
     if (id.changed) warnings.push(`${lineNo(i)} 行目: 項目 ID「${idRaw}」を「${id.value}」にしました`);
-    const item: ParsedItem = { id: id.value as ParsedItem["id"], label: (get("label") || id.value) as ParsedItem["label"], type: "string" };
+    const labelCell = get("label");
+    const item: ParsedItem = { id: id.value as ParsedItem["id"], label: (labelCell || id.value) as ParsedItem["label"], type: "string" };
+    if (!labelCell) item.labelEmpty = true;
+    if (!get("type")) item.typeEmpty = true;
 
     const typeCell = get("type");
     if (typeCell) {
@@ -177,7 +181,7 @@ export function itemUpdates(parsed: readonly ParsedItem[], existing: readonly Sc
     if (!cur) continue;
     const patch: Record<string, unknown> = {};
     for (const f of fields) {
-      if (f === "label" || f === "type") { if (p[f]) patch[f] = p[f]; continue; }
+      if (f === "label" || f === "type") { if (!(f === "label" ? p.labelEmpty : p.typeEmpty)) patch[f] = p[f]; continue; }
       patch[f] = p[f];
     }
     const changed = Object.entries(patch).filter(([k, v]) => JSON.stringify((cur as unknown as Record<string, unknown>)[k]) !== JSON.stringify(v));

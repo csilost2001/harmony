@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { failureToastText } from "./failureToast";
+import { vi } from "vitest";
+import { failureToastText, reportFailure } from "./failureToast";
+import { subscribeToasts } from "./toast";
 
 describe("failureToastText", () => {
   it("エラー 1 つだけ (.catch(console.error) の形) は通知にする", () => {
@@ -19,5 +21,18 @@ describe("failureToastText", () => {
     const abort = new Error("aborted"); abort.name = "AbortError";
     expect(failureToastText([abort])).toBeNull();
     expect(failureToastText([])).toBeNull();
+  });
+});
+
+describe("reportFailure (明示の経路)", () => {
+  it("操作の名前つきで、利用者に通知する。開発者向けのログも残す", () => {
+    const seen: string[] = [];
+    const off = subscribeToasts((t) => seen.push(t.text));
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    reportFailure(new Error("denied"), "テーブルの保存");
+    off();
+    expect(seen).toEqual(["テーブルの保存に失敗しました: denied"]);
+    expect(log).toHaveBeenCalled();
+    log.mockRestore();
   });
 });

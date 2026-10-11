@@ -9,10 +9,15 @@ const SHOWN_MS = 2600;
 
 export function ToastHost() {
   const [items, setItems] = useState<ToastMessage[]>([]);
-  useEffect(() => subscribeToasts((t) => {
-    setItems((cur) => [...cur.slice(-2), t]);
-    setTimeout(() => setItems((cur) => cur.filter((x) => x.id !== t.id)), SHOWN_MS);
-  }), []);
+  useEffect(() => {
+    const timers = new Set<ReturnType<typeof setTimeout>>();
+    const off = subscribeToasts((t) => {
+      setItems((cur) => [...cur.slice(-2), t]);
+      const timer = setTimeout(() => { timers.delete(timer); setItems((cur) => cur.filter((x) => x.id !== t.id)); }, SHOWN_MS);
+      timers.add(timer);
+    });
+    return () => { off(); timers.forEach(clearTimeout); };
+  }, []);
   if (items.length === 0) return <div className="toast-host" role="status" aria-live="polite" />;
   return (
     <div className="toast-host" role="status" aria-live="polite" data-testid="toast-host">

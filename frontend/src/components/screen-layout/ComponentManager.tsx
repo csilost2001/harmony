@@ -2,7 +2,8 @@
  * 独自部品の管理 (一覧・新規作成・編集・削除)。画面デザイナの「独自部品の管理…」から開く。
  * 一覧には、それぞれの部品を使っている画面・部品の数を出し、使用中の部品は削除前に確認する。
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { validateComponentDefs, type LayoutComponentDef } from "@harmony/shared";
 import {
   deleteLayoutComponent, findLayoutComponentUsages, saveLayoutComponent, useLayoutComponents, type LayoutComponentUsages,
@@ -17,6 +18,8 @@ export interface ComponentManagerProps {
 }
 
 export function ComponentManager({ initialEditId, screens, onClose }: ComponentManagerProps) {
+  const trapRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(trapRef);
   const { components, loaded } = useLayoutComponents();
   const [editing, setEditing] = useState<{ def: LayoutComponentDef; isNew: boolean } | null>(null);
   const [usages, setUsages] = useState<Record<string, LayoutComponentUsages>>({});
@@ -77,7 +80,7 @@ export function ComponentManager({ initialEditId, screens, onClose }: ComponentM
 
   return (
     <div className="sld-modal-backdrop" role="presentation" onClick={onClose}>
-      <div className="sld-modal sld-modal-lg" role="dialog" aria-modal="true" aria-labelledby="sld-mgr-title" onClick={(e) => e.stopPropagation()} data-testid="component-manager">
+      <div ref={trapRef} className="sld-modal sld-modal-lg" role="dialog" aria-modal="true" aria-labelledby="sld-mgr-title" onClick={(e) => e.stopPropagation()} data-testid="component-manager">
         <header className="sld-modal-head">
           <h3 id="sld-mgr-title"><i className="bi bi-puzzle" /> プロジェクト独自部品</h3>
           <button type="button" className="sld-icon-btn" onClick={onClose} aria-label="閉じる"><i className="bi bi-x-lg" /></button>

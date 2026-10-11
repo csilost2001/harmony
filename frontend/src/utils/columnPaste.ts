@@ -15,6 +15,8 @@ export interface ParsedColumn {
   dataType: string;
   /** 型の欄が空だった (dataType は既定の VARCHAR)。既存の行を更新するときは、型を書き換えない */
   typeEmpty?: true;
+  /** 表示名の欄が空だった (物理名を入れてある)。既存の行を更新するときは、書き換えない */
+  nameEmpty?: true;
   length?: number;
   scale?: number;
   notNull?: boolean;
@@ -195,6 +197,7 @@ export function parseColumnTable(text: string): ColumnPasteResult {
     }
 
     const col: ParsedColumn = { physicalName: phys.value, name: get("name") || phys.value, dataType: "VARCHAR" };
+    if (!get("name")) col.nameEmpty = true;
     const typeCell = get("dataType");
     if (typeCell) {
       const t = parseDataType(typeCell);
@@ -294,10 +297,12 @@ export function columnUpdates(parsed: readonly ParsedColumn[], existing: readonl
         continue;
       }
       if (f === "length") { patch.length = p.length; patch.scale = p.scale; continue; }
+      if (f === "name" && p.nameEmpty) continue;
       patch[f] = p[f];
     }
-    // 変わるものだけにする
-    const changed = Object.entries(patch).filter(([k, v]) => (cur as unknown as Record<string, unknown>)[k] !== v && !((cur as unknown as Record<string, unknown>)[k] === undefined && v === undefined));
+    // 変わるものだけにする (false と未設定は同じ扱い)
+    const same = (a: unknown, b: unknown) => a === b || ((typeof a === "boolean" || typeof b === "boolean") && (a ?? false) === (b ?? false));
+    const changed = Object.entries(patch).filter(([k, v]) => !same((cur as unknown as Record<string, unknown>)[k], v));
     if (changed.length) out.push({ id: String(cur.id), physicalName: p.physicalName, patch: Object.fromEntries(changed) as Partial<Column> });
   }
   return out;

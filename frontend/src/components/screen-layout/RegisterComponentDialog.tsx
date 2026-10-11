@@ -3,7 +3,8 @@
  * 名前・ID・分類・説明を決め、画面ごとに変えたい箇所 (画面項目・文言・遷移先) を
  * 「差し込み口」として選ぶ。登録すると、元の部品は独自部品の参照に置き換わる。
  */
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import {
   LAYOUT_NODE_LABELS, buildComponentDef, suggestParams, validateComponentDefs,
   type LayoutComponentDef, type LayoutItemLike, type LayoutNode, type ParamCandidate,
@@ -24,6 +25,8 @@ const KIND_LABEL = { item: "画面項目", text: "文言", screen: "遷移先画
 interface Row { candidate: ParamCandidate; on: boolean; paramId: string; label: string }
 
 export function RegisterComponentDialog({ node, items, existing, onRegister, onCancel }: RegisterComponentDialogProps) {
+  const trapRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(trapRef);
   const [label, setLabel] = useState("");
   const [id, setId] = useState(() => {
     const base = kebab(node.id) || "my-component";
@@ -79,7 +82,7 @@ export function RegisterComponentDialog({ node, items, existing, onRegister, onC
 
   return (
     <div className="sld-modal-backdrop" role="presentation" onClick={onCancel}>
-      <div className="sld-modal sld-modal-lg" role="dialog" aria-modal="true" aria-labelledby="sld-reg-title" onClick={(e) => e.stopPropagation()} data-testid="register-component-dialog">
+      <div ref={trapRef} className="sld-modal sld-modal-lg" role="dialog" aria-modal="true" aria-labelledby="sld-reg-title" onClick={(e) => e.stopPropagation()} data-testid="register-component-dialog">
         <header className="sld-modal-head">
           <h3 id="sld-reg-title"><i className="bi bi-puzzle" /> 独自部品として登録</h3>
           <button type="button" className="sld-icon-btn" onClick={onCancel} aria-label="閉じる"><i className="bi bi-x-lg" /></button>

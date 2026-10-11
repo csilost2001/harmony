@@ -41,3 +41,15 @@ export function installFailureToasts(): void {
     showToast(text.length > 120 ? `${text.slice(0, 120)}…` : text, "error");
   };
 }
+
+/**
+ * 操作の失敗を、利用者に知らせる (明示の経路)。`.catch(reportFailure)` のように使う。
+ * 開発者向けのログには `console.error(...)` (説明つき) を使い、利用者にも知らせたい失敗はこちらを使う。
+ * console.error の差し替え (installFailureToasts) に頼らない。
+ */
+export function reportFailure(e: unknown, what?: string): void {
+  const err = e instanceof Error ? e : new Error(String(e));
+  console.error(`[failure]${what ? ` ${what}` : ""}`, err);
+  const text = failureToastText([err]);
+  if (text) showToast(what ? `${what}に失敗しました: ${err.message}` : text, "error");
+}

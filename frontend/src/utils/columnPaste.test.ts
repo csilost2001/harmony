@@ -181,3 +181,16 @@ describe("既存カラムの更新 (同じ物理名の行)", () => {
     expect(columnUpdates(r.columns, existing, r.fields)).toEqual([]);
   });
 });
+
+describe("既存カラムの更新: 空欄の扱い", () => {
+  const existing = [{ id: "c1", physicalName: "name", name: "氏名", dataType: "VARCHAR", length: 50, notNull: false }] as never[];
+  it("表示名が空欄なら、既存の表示名は書き換えない", () => {
+    const r = parseColumnTable("物理名\t表示名\nname\t");
+    expect(columnUpdates(r.columns, existing, r.fields)).toEqual([]);
+  });
+  it("NOT NULL が false の既存と、空欄 (未設定) は、同じ扱い (変更として数えない)", () => {
+    const r = parseColumnTable("物理名\tNOT NULL\nname\t");
+    expect(columnUpdates(r.columns, existing, r.fields)).toEqual([]);
+  });
+});
+

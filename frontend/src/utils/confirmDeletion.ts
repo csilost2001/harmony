@@ -30,12 +30,15 @@ export function describeDeletionImpact(
 }
 
 /**
- * 削除を保存してよいか。参照されていなければ確認なしで true。調べられなかったときは確認せず true
- * (調べられないことで、保存を止めない)。
+ * 削除する設計を参照している設計があれば、その旨を確認する。`referenced` = 参照されていた (確認を出した)、
+ * `confirmed` = 削除してよいと答えた。参照されていなければ確認は出さず、`{ referenced: false, confirmed: true }`。
+ * 調べられなかったときも確認せず、保存を止めない。
  */
-export async function confirmDeletionImpact(entityType: ReferenceTargetType, label: string, deletedIds: Iterable<string>, ignoreKinds: readonly string[] = []): Promise<boolean> {
+export async function checkDeletionImpact(
+  entityType: ReferenceTargetType, label: string, deletedIds: Iterable<string>, ignoreKinds: readonly string[] = [], extraNote = "",
+): Promise<{ referenced: boolean; confirmed: boolean }> {
   const ids = [...deletedIds];
-  if (ids.length === 0) return true;
+  if (ids.length === 0) return { referenced: false, confirmed: true };
   try {
     // 1 件ずつ (同時に何本も全体走査を走らせない)
     const results: Array<{ id: string; result: ReferenceResult }> = [];
@@ -43,10 +46,15 @@ export async function confirmDeletionImpact(entityType: ReferenceTargetType, lab
       results.push({ id, result: (await mcpBridge.request("findEntityReferences", { entityType, id })) as ReferenceResult });
     }
     const base = describeDeletionImpact(results, label, ignoreKinds);
-    if (base === null) return true;
+    if (base === null) return { referenced: false, confirmed: true };
     const note = ids.length > MAX_CHECKED ? `\n\n(削除する ${ids.length} 件のうち、先頭の ${MAX_CHECKED} 件だけを調べました)` : "";
-    return window.confirm(base + note);
+    return { referenced: true, confirmed: window.confirm(base + (extraNote ? `\n\n${extraNote}` : "") + note) };
   } catch {
-    return true;
+    return { referenced: false, confirmed: true };
   }
+}
+
+/** 一覧の削除の保存前の確認: 参照されていなければ確認なしで true */
+export async function confirmDeletionImpact(entityType: ReferenceTargetType, label: string, deletedIds: Iterable<string>, ignoreKinds: readonly string[] = []): Promise<boolean> {
+  return (await checkDeletionImpact(entityType, label, deletedIds, ignoreKinds)).confirmed;
 }

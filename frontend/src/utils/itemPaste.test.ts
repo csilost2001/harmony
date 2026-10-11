@@ -104,3 +104,13 @@ describe("既存項目の更新 (同じ ID の行)", () => {
     expect(Object.keys(up[0].patch)).not.toContain("min");
   });
 });
+
+describe("既存項目の更新: 空欄の扱い", () => {
+  const existing = [{ id: "email", label: "メールアドレス", type: "integer", maxLength: 100 }] as never[];
+  it("ラベル・型が空欄なら、既存のラベル・型は書き換えない。ほかの欄 (最大長) が空欄なら空にする", () => {
+    const r = parseItemTable("項目ID\tラベル\t型\t最大長\nemail\t\t\t");
+    const up = itemUpdates(r.items, existing, r.fields);
+    expect(up).toEqual([{ id: "email", patch: { maxLength: undefined } }]);
+  });
+});
+

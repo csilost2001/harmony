@@ -82,7 +82,7 @@ import { useErrorDialog } from "../common/ErrorDialogProvider";
 import { acknowledgeServerMtime } from "../../utils/serverMtime";
 import "../../styles/flow.css";
 import "../../styles/editMode.css";
-import { confirmDeletionImpact } from "../../utils/confirmDeletion";
+import { checkDeletionImpact } from "../../utils/confirmDeletion";
 
 const nodeTypes = {
   screenNode: ScreenNodeComponent,
@@ -652,8 +652,9 @@ function FlowEditorInner() {
     pushUndoSnapshot();
     const screen = project.screens.find((s) => s.id === contextMenu.targetId);
     // ほかの設計 (業務フロー・帳票・処理フロー等) から参照されていれば、先に知らせる (画面フロー自身の遷移は参照に数えない)
-    if (screen && !(await confirmDeletionImpact("screen", "画面", [contextMenu.targetId], ["screenFlow"]))) return;
-    if (screen && confirm(`「${screen.name}」を削除しますか？\nデザインデータも削除されます。`)) {
+    // 参照されているときは、参照元の確認 1 回で済ませる (削除してよいかは、その確認で聞く)。参照がなければ、ふつうの確認
+    const impact = screen ? await checkDeletionImpact("screen", "画面", [contextMenu.targetId], ["screenFlow"], "画面のデザインデータも削除されます。") : null;
+    if (screen && impact && (impact.referenced ? impact.confirmed : confirm(`「${screen.name}」を削除しますか？\nデザインデータも削除されます。`))) {
       const draft = structuredClone(project);
       await removeScreen(draft, contextMenu.targetId);
       setProject(draft);

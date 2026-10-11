@@ -71,7 +71,7 @@ export function PasteItemsDialog({ existing, onApply, onClose, initialText = "" 
               <p>既にある項目と ID が同じ行: {duplicates.map((d) => d.id).join("、")}</p>
               <label className="paste-cols-update">
                 <input type="checkbox" checked={updateExisting} onChange={(e) => setUpdateExisting(e.target.checked)} data-testid="paste-items-update" />
-                {" "}これらも更新する (表にある項目だけを書き換えます。空欄にした項目は空になります)
+                {" "}これらも更新する (表にある項目だけを書き換えます。空欄にした項目は空になります。ただし、表示名・ラベル・型は、空欄なら既存のままです)
               </label>
               {updateExisting && (
                 <ul data-testid="paste-items-update-list">
