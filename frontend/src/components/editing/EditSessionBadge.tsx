@@ -71,7 +71,7 @@ export function EditSessionBadge({ resourceType, resourceId }: EditSessionBadgeP
 
   // broadcast event で再 fetch
   useEffect(() => {
-    const refresh = () => { invalidateSessionIndex(); void fetchSessions(); };
+    const refresh = (notice?: unknown) => { invalidateSessionIndex(notice); void fetchSessions(); };
     const unsubs = [
       mcpBridge.onBroadcast("editSession.created", (data) => {
         const d = data as { resourceType?: string; resourceId?: string };
@@ -79,20 +79,20 @@ export function EditSessionBadge({ resourceType, resourceId }: EditSessionBadgeP
           (!d.resourceType || d.resourceType === resourceType) &&
           (!d.resourceId || d.resourceId === resourceId)
         ) {
-          refresh();
+          refresh(data);
         }
       }),
       mcpBridge.onBroadcast("editSession.attached", (data) => {
         const d = data as { editSessionId?: string };
-        if (d.editSessionId) refresh();
+        if (d.editSessionId) refresh(data);
       }),
       mcpBridge.onBroadcast("editSession.detached", (data) => {
         const d = data as { editSessionId?: string };
-        if (d.editSessionId) refresh();
+        if (d.editSessionId) refresh(data);
       }),
       mcpBridge.onBroadcast("editSession.discarded", (data) => {
         const d = data as { editSessionId?: string };
-        if (d.editSessionId) refresh();
+        if (d.editSessionId) refresh(data);
       }),
     ];
     return () => unsubs.forEach((u) => u());

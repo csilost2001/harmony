@@ -2305,3 +2305,16 @@ describe("loop step collectionItemName boundVars 登録 (#729)", () => {
     expect(target).toHaveLength(0);
   });
 });
+
+describe("walkStepsInOrder — 配下の工程 (subSteps) は親の本体のあとに訪れる", () => {
+  it("親が繰り返しなら、本体 → 子の順 (実行順と同じ)", async () => {
+    const { walkStepsInOrder } = await import("./sqlOrderValidator");
+    const seen: string[] = [];
+    walkStepsInOrder([
+      { id: "p", kind: "loop", description: "", steps: [{ id: "body", kind: "compute", description: "" }], subSteps: [{ id: "child", kind: "compute", description: "" }] },
+      { id: "next", kind: "compute", description: "" },
+    ] as never, "steps", (s) => { seen.push(s.id as string); });
+    expect(seen).toEqual(["p", "body", "child", "next"]);
+  });
+});
+

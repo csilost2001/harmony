@@ -22,7 +22,7 @@
 import type { ProcessFlow, StepType } from "../../types/v3";
 import { addStep, createDefaultStep, removeStep, moveStep } from "../../store/processFlowStore";
 import { collectAllProcessFlowLocalIds } from "../../utils/localIdGenerator";
-import { locateStep } from "../../utils/stepTree";
+import { findStepDeep } from "../../utils/stepTree";
 
 // #1145 Phase-3 N-3: mismatch / silent no-op を診断 log 化。
 // 古い client / 誤った params 経由で来た mutation は production でも
@@ -55,7 +55,7 @@ export function applyProcessFlowMutation(
       }
       // 親の工程が指定されていれば、その配下 (subSteps) に入れる
       if (typeof p.parentStepId === "string" && p.parentStepId) {
-        const parent = locateStep(act.steps, p.parentStepId)?.list.find((s) => s.id === p.parentStepId);
+        const parent = findStepDeep(act.steps, p.parentStepId);
         if (!parent) {
           warnNoOp(type, `parentStepId not found: ${p.parentStepId}`, p);
           return;

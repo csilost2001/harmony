@@ -14,6 +14,9 @@ export interface UnregisteredEntity { kind: "screen" | "table" | "processFlow"; 
 
 type Entry = Record<string, unknown>;
 
+/** 次の並び番号 (登録済みの最大 + 1。欠番・飛び番があっても衝突しない) */
+const nextNo = (list: Entry[]): number => list.reduce((m, e) => Math.max(m, typeof e.no === "number" ? e.no : 0), list.length) + 1;
+
 function entryList(entities: Record<string, unknown>, key: string): Entry[] {
   const v = entities[key];
   return Array.isArray(v) ? (v as Entry[]) : [];
@@ -32,7 +35,7 @@ export async function mergeUnregisteredEntities(project: unknown, root: string):
     const e = await readScreenEntity(id, root).catch(() => null);
     if (!isRecord(e)) continue;
     screens.push({
-      id, no: screens.length + 1, name: str(e.name) ?? id,
+      id, no: nextNo(screens), name: str(e.name) ?? id,
       ...(str(e.kind) ? { kind: e.kind } : {}), ...(str(e.purpose) ? { purpose: e.purpose } : {}), ...(str(e.path) ? { path: e.path } : {}),
       ...(str(e.groupId) ? { groupId: e.groupId } : {}), ...(str(e.maturity) ? { maturity: e.maturity } : {}), ...(str(e.updatedAt) ? { updatedAt: e.updatedAt } : {}),
     });
@@ -47,7 +50,7 @@ export async function mergeUnregisteredEntities(project: unknown, root: string):
     const t = await readTable(id, root).catch(() => null);
     if (!isRecord(t) || typeof t.id !== "string") continue;
     tables.push({
-      id: t.id, no: tables.length + 1, name: str(t.name) ?? t.id, ...(str(t.physicalName) ? { physicalName: t.physicalName } : {}),
+      id: t.id, no: nextNo(tables), name: str(t.name) ?? t.id, ...(str(t.physicalName) ? { physicalName: t.physicalName } : {}),
       ...(str(t.category) ? { category: t.category } : {}), columnCount: Array.isArray(t.columns) ? t.columns.length : 0,
       ...(str(t.maturity) ? { maturity: t.maturity } : {}), ...(str(t.updatedAt) ? { updatedAt: t.updatedAt } : {}),
     });
@@ -63,7 +66,7 @@ export async function mergeUnregisteredEntities(project: unknown, root: string):
     const meta = isRecord(f) && isRecord(f.meta) ? f.meta : null;
     if (!meta || typeof meta.id !== "string") continue;
     flows.push({
-      id: meta.id, no: flows.length + 1, name: str(meta.name) ?? meta.id, ...(str(meta.flowType) ? { flowType: meta.flowType } : {}),
+      id: meta.id, no: nextNo(flows), name: str(meta.name) ?? meta.id, ...(str(meta.flowType) ? { flowType: meta.flowType } : {}),
       actionCount: Array.isArray((f as Record<string, unknown>).actions) ? ((f as Record<string, unknown>).actions as unknown[]).length : 0,
       ...(str(meta.maturity) ? { maturity: meta.maturity } : {}), ...(str(meta.updatedAt) ? { updatedAt: meta.updatedAt } : {}),
     });

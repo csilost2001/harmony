@@ -276,20 +276,13 @@ function walkSteps(
   stepIndex: Map<string, Step>,
   issues: IdentifierIssue[],
 ): void {
-  steps.forEach((step, i) => {
-    const path = `${basePath}[${i}]`;
+  const visitOne = (step: Step, path: string): void => {
     const available = new Set<string>([...known, ...loopItems]);
     checkStep(step, path, available, known, new Set(loopItems), actionInputs, stepIndex, envVarNames, issues);
 
     // outputBinding は StepBaseProps 共通フィールド。拡張 step も継承するため kind 関係なく known に追加
     const bindName = getBindingName(step.outputBinding);
     if (bindName) known.add(bindName);
-
-    // 配下の工程 (subSteps): 親の本体のあとに実行するので、親が宣言した変数は子から見える (loopItems も引き継ぐ)
-    if (step.subSteps?.length) {
-      if (isBuiltinStep(step) && step.kind === "validation" && step.fieldErrorsVar) known.add(step.fieldErrorsVar);
-      walkSteps(step.subSteps, `${path}.subSteps`, known, loopItems, envVarNames, actionInputs, stepIndex, issues);
-    }
 
     // 以下は組み込み step variant 固有の処理 (拡張 step は config 内の固有プロパティを持つため除外)
     if (!isBuiltinStep(step)) return;
@@ -365,6 +358,13 @@ function walkSteps(
         }
       });
     }
+  };
+  steps.forEach((step, i) => {
+    const path = `${basePath}[${i}]`;
+    visitOne(step, path);
+    // 配下の工程 (subSteps) は、親の本体 (分岐の枝・繰り返し・TX など) のあとに実行する。
+    // 親や本体が宣言した変数は子から見える (loopItems も引き継ぐ。TX の中の変数は txKnown の設計どおり見えない)
+    if (step.subSteps?.length) walkSteps(step.subSteps, `${path}.subSteps`, known, loopItems, envVarNames, actionInputs, stepIndex, issues);
   });
 }
 

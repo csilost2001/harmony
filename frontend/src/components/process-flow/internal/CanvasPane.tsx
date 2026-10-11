@@ -42,7 +42,7 @@ function topLevelStepId(steps: readonly Step[], id: string): string | null {
   const contains = (s: Step): boolean => {
     if (s.id === id) return true;
     const x = s as Step & { steps?: Step[]; branches?: Array<{ steps: Step[] }>; elseBranch?: { steps: Step[] }; onCommit?: Step[]; onRollback?: Step[] };
-    const kids = [...(x.steps ?? []), ...(x.branches ?? []).flatMap((b) => b.steps ?? []), ...(x.elseBranch?.steps ?? []), ...(x.onCommit ?? []), ...(x.onRollback ?? [])];
+    const kids = [...(x.steps ?? []), ...(x.subSteps ?? []), ...(x.branches ?? []).flatMap((b) => b.steps ?? []), ...(x.elseBranch?.steps ?? []), ...(x.onCommit ?? []), ...(x.onRollback ?? [])];
     return kids.some(contains);
   };
   return steps.find(contains)?.id ?? null;

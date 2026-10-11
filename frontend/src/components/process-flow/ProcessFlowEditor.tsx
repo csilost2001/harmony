@@ -532,32 +532,19 @@ export function ProcessFlowEditor() {
     closeContextMenu();
   }, [activeActionId, updateGroupWithDraft, closeContextMenu]);
 
+  /** 前の工程の配下へ (キーボードの Tab と同じ。utils/stepTree.ts) */
   const handleIndentStep = (stepId: string) => {
     updateGroupWithDraft((g) => {
       const act = g.actions.find((a) => a.id === activeActionId);
-      if (!act) return;
-      const idx = act.steps.findIndex((s) => s.id === stepId);
-      if (idx <= 0) return;
-      const stepToMove = act.steps[idx];
-      const target = { ...act.steps[idx - 1] } as StepWithSubSteps;
-      target.subSteps = [...(target.subSteps ?? []), stepToMove];
-      act.steps[idx - 1] = target as unknown as Step;
-      act.steps.splice(idx, 1);
+      if (act) indentStep(act.steps, stepId);
     });
   };
 
-  const handleOutdentSubStep = (parentStepId: string, subStepId: string) => {
+  /** 親の次の位置へ (キーボードの Shift+Tab と同じ。後ろの兄弟は配下へ引き継ぎ、実行順を変えない) */
+  const handleOutdentSubStep = (_parentStepId: string, subStepId: string) => {
     updateGroupWithDraft((g) => {
       const act = g.actions.find((a) => a.id === activeActionId);
-      if (!act) return;
-      const parentIdx = act.steps.findIndex((s) => s.id === parentStepId);
-      if (parentIdx < 0) return;
-      const parent = act.steps[parentIdx] as StepWithSubSteps;
-      const subIdx = (parent.subSteps ?? []).findIndex((s) => s.id === subStepId);
-      if (subIdx < 0) return;
-      const subStep = parent.subSteps![subIdx];
-      act.steps[parentIdx] = { ...parent, subSteps: parent.subSteps!.filter((s) => s.id !== subStepId) } as unknown as Step;
-      act.steps.splice(parentIdx + 1, 0, subStep);
+      if (act) outdentStep(act.steps, subStepId);
     });
   };
 

@@ -106,22 +106,23 @@ export function QuickOpen() {
   const nameHits = useMemo(() => (entries ? searchQuickOpen(entries, query, 50, recent) : []), [entries, query, recent]);
 
   // 本文の一致 (説明・カラム名・項目のラベル・工程の説明など)。2 文字以上で、入力が止まってから backend に尋ねる
-  const [contentHits, setContentHits] = useState<ContentSearchHit[]>([]);
+  const [content, setContent] = useState<{ query: string; hits: ContentSearchHit[] }>({ query: "", hits: [] });
   useEffect(() => {
     const q = query.trim();
-    if (!open || q.length < 2) { setContentHits([]); return; }
+    if (!open || q.length < 2) { setContent({ query: "", hits: [] }); return; }
     let alive = true;
     const timer = setTimeout(() => {
       mcpBridge.request("searchDesign", { query: q }).then((res) => {
-        if (alive) setContentHits(((res as { hits?: ContentSearchHit[] } | null)?.hits) ?? []);
-      }).catch(() => { if (alive) setContentHits([]); });
+        if (alive) setContent({ query: q, hits: ((res as { hits?: ContentSearchHit[] } | null)?.hits) ?? [] });
+      }).catch(() => { if (alive) setContent({ query: q, hits: [] }); });
     }, 250);
     return () => { alive = false; clearTimeout(timer); };
   }, [open, query]);
 
   const contentEntries = useMemo<QuickOpenContentEntry[]>(
-    () => contentHitsToEntries(contentHits, new Set(nameHits.map((h) => h.entry.key))),
-    [contentHits, nameHits],
+    // 入力を変えた直後は、前の入力の本文候補を出さない (応答が来るまでのあいだに Enter を押しても、合わない候補を開かない)
+    () => (content.query === query.trim() ? contentHitsToEntries(content.hits, new Set(nameHits.map((h) => h.entry.key))) : []),
+    [content, query, nameHits],
   );
   const hits = useMemo(
     () => [...nameHits.map((h) => ({ entry: h.entry as QuickOpenEntry | QuickOpenContentEntry })), ...contentEntries.map((entry) => ({ entry: entry as QuickOpenEntry | QuickOpenContentEntry }))],

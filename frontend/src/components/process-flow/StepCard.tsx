@@ -17,9 +17,10 @@ import {
 import type { ValidationError } from "../../utils/actionValidation";
 import { getBindingName, getBindingOperation } from "../../utils/outputBinding";
 import { isExtensionStep, type StepWithSubSteps } from "../../utils/actionUtils";
-import { createDefaultStep } from "../../store/processFlowStore";
+import { outdentStep } from "../../utils/stepTree";
+import { addSubStep } from "../../store/processFlowStore";
 // #1332 Codex 10 巡目 M1: sub step duplicate / 追加時の id 採番を LocalId に統一
-import { nextLocalId, collectAllProcessFlowLocalIds, collectStepSubtreeLocalIds } from "../../utils/localIdGenerator";
+import { nextLocalId, collectAllProcessFlowLocalIds } from "../../utils/localIdGenerator";
 import { MaturityBadge } from "./MaturityBadge";
 import { NotesPanel } from "./NotesPanel";
 import { StepAdvancedMetadataPanel } from "./StepAdvancedMetadataPanel";
@@ -152,32 +153,19 @@ export function StepCard({
 
   // ── サブステップ管理 ────────────────────────────────────────────────────────
 
+  /** 入れ子の中の工程にサブステップを追加する。振り分けは最上位と同じ (繰り返し・TX は本体 steps、それ以外は subSteps) */
   const handleSubAddSubStep = (parentSubIdx: number, type: StepType) => {
-    // #1332 Codex 10 巡目 M1: group context があれば全体衝突回避、無ければ subtree のみ。
-    const ids = group ? collectAllProcessFlowLocalIds(group) : collectStepSubtreeLocalIds(step);
-    const newSub = createDefaultStep(type, ids);
-    const arr = subSteps.slice();
-    const parentWithSubs = arr[parentSubIdx] as StepWithSubSteps;
-    arr[parentSubIdx] = {
-      ...arr[parentSubIdx],
-      subSteps: [...(parentWithSubs.subSteps ?? []), newSub],
-    } as unknown as Step;
+    const arr = structuredClone(subSteps);
+    addSubStep(arr[parentSubIdx], type, group ?? undefined);
     onChangeWithSubs({ subSteps: arr });
     onCommit?.();
   };
 
-  const handleOutdentFromSubSteps = (parentSubId: string, stepToOutdentId: string) => {
-    const arr = subSteps.slice();
-    const parentIdx = arr.findIndex((s: Step) => s.id === parentSubId);
-    if (parentIdx < 0) return;
-    const parent = { ...arr[parentIdx] } as StepWithSubSteps;
-    const outIdx = (parent.subSteps ?? []).findIndex((s: Step) => s.id === stepToOutdentId);
-    if (outIdx < 0) return;
-    const outStep = parent.subSteps![outIdx];
-    parent.subSteps = parent.subSteps!.filter((s: Step) => s.id !== stepToOutdentId);
-    arr[parentIdx] = parent as Step;
-    arr.splice(parentIdx + 1, 0, outStep);
-    onChangeWithSubs({ subSteps: arr });
+  /** 配下の工程を 1 つ外へ出す。キーボードの Shift+Tab と同じ意味 (後ろの兄弟は配下へ引き継ぎ、実行順を変えない) */
+  const handleOutdentFromSubSteps = (_parentSubId: string, stepToOutdentId: string) => {
+    const copy = structuredClone(subSteps);
+    if (!outdentStep(copy, stepToOutdentId)) return;
+    onChangeWithSubs({ subSteps: copy.length > 0 ? copy : undefined });
     onCommit?.();
   };
 
@@ -854,7 +842,7 @@ export function StepCard({
               <StepCard
                 step={sub}
                 index={si}
-                label={`${label}-${si + 1}`}
+                label={`${label}-S-${si + 1}`}
                 allSteps={allSteps}
                 tables={tables}
                 screens={screens}
@@ -881,7 +869,8 @@ export function StepCard({
                   onCommit?.();
                 } : undefined}
                 onDelete={() => {
-                  onChangeWithSubs({ subSteps: subSteps.filter((s: Step) => s.id !== sub.id) });
+                  const rest = subSteps.filter((s: Step) => s.id !== sub.id);
+                  onChangeWithSubs({ subSteps: rest.length > 0 ? rest : undefined }); // 空の配列は書かない
                   onCommit?.();
                 }}
                 onDuplicate={() => {

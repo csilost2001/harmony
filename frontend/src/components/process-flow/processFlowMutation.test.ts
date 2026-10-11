@@ -122,6 +122,14 @@ describe("applyProcessFlowMutation (browser-first v3, #1149 / #1332 M1)", () => 
       expect(root.subSteps).toHaveLength(2);
     });
 
+    it("parentStepId は、分岐の枝・繰り返しの本体の中の工程も探せる (backend の経路と同じ範囲)", () => {
+      const inner = { id: "step-03", kind: "log", description: "" };
+      const branch = { id: "step-01", kind: "branch", description: "", branches: [{ id: "br-01", code: "A", condition: { kind: "expression", expression: "x" }, steps: [inner] }] };
+      const g = makeProcessFlow([makeAction("act-001", [branch])]);
+      applyProcessFlowMutation(g, "designer__add_step", { actionId: "act-001", kind: "audit", description: "枝の中の配下", parentStepId: "step-03" });
+      expect((inner as { subSteps?: Array<{ description: string }> }).subSteps?.[0].description).toBe("枝の中の配下");
+    });
+
     it("v1/v2 旧 `type` field のみでは追加されない (kind 必須)", () => {
       const act = makeAction("act-001");
       const g = makeProcessFlow([act]);

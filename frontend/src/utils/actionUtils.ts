@@ -56,7 +56,7 @@ export type StepWithSubSteps = Step & { subSteps?: Step[] };
 export function getStepLabel(stepIndex: number, subStepIndex?: number): string {
   const major = stepIndex + 1;
   if (subStepIndex === undefined) return `${major}`;
-  return `${major}-${subStepIndex + 1}`;
+  return `${major}-S-${subStepIndex + 1}`;
 }
 
 /**
@@ -64,10 +64,10 @@ export function getStepLabel(stepIndex: number, subStepIndex?: number): string {
  */
 export function buildStepLabelMap(steps: Step[]): Map<string, string> {
   const map = new Map<string, string>();
-  // 配下の工程 (subSteps) は、親の番号に「-n」を続ける (1 → 1-1 → 1-1-1)
+  // 配下の工程 (subSteps) は、親の番号に「-S-n」を続ける (1 → 1-S-1 → 1-S-1-S-1)。繰り返しなどの本体の番号 (1-1) とは混ざらない。設計書の番号と同じ
   const walk = (list: Step[], prefix: string) => {
     list.forEach((step, i) => {
-      const label = prefix ? `${prefix}-${i + 1}` : String(i + 1);
+      const label = prefix ? `${prefix}-S-${i + 1}` : String(i + 1);
       map.set(step.id, label);
       if (step.subSteps?.length) walk(step.subSteps, label);
     });

@@ -282,18 +282,15 @@ function buildAtVarMap(sql: string): Map<number, string> {
  * @param steps   走査対象 step 列
  * @param visitor (step, path) → void コールバック (副作用あり)
  */
-function walkStepsInOrder(
+export function walkStepsInOrder(
   steps: Step[],
   basePath: string,
   visitor: (step: Step, path: string) => void,
   loopHooks?: { onEnter: (loop: LoopStep) => void; onExit: (loop: LoopStep) => void },
 ): void {
-  for (let i = 0; i < steps.length; i++) {
-    const step = steps[i];
-    const path = `${basePath}[${i}]`;
+  const visitOne = (step: Step, path: string): void => {
     visitor(step, path);
-    if (step.subSteps?.length) walkStepsInOrder(step.subSteps, `${path}.subSteps`, visitor, loopHooks);
-    if (!isBuiltinStep(step)) continue;
+    if (!isBuiltinStep(step)) return;
     if (step.kind === "branch") {
       step.branches.forEach((b, bi) =>
         walkStepsInOrder(b.steps, `${path}.branches[${bi}].steps`, visitor, loopHooks),
@@ -324,6 +321,13 @@ function walkStepsInOrder(
       walkStepsInOrder(step.inlineBranch.ok, `${path}.inlineBranch.ok`, visitor, loopHooks);
       walkStepsInOrder(step.inlineBranch.ng, `${path}.inlineBranch.ng`, visitor, loopHooks);
     }
+  };
+  for (let i = 0; i < steps.length; i++) {
+    const step = steps[i];
+    const path = `${basePath}[${i}]`;
+    visitOne(step, path);
+    // 配下の工程 (subSteps) は、親の本体 (分岐の枝・繰り返し・TX など) のあとに実行する (INSERT の順に影響する)
+    if (step.subSteps?.length) walkStepsInOrder(step.subSteps, `${path}.subSteps`, visitor, loopHooks);
   }
 }
 

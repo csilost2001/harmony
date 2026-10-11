@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { Step } from "../types/v3";
-import { canIndentStep, canOutdentStep, indentStep, locateStep, outdentStep } from "./stepTree";
+import { canIndentStep, canOutdentStep, findStepDeep, indentStep, locateStep, outdentStep } from "./stepTree";
 
 const s = (id: string, subSteps?: Step[]) => ({ id, kind: "compute", description: id, ...(subSteps ? { subSteps } : {}) }) as unknown as Step;
 const ids = (list: Step[]): unknown => list.map((x) => (x.subSteps?.length ? { [x.id]: ids(x.subSteps) } : x.id));
@@ -38,5 +38,18 @@ describe("stepTree", () => {
     indentStep(steps, "b");
     outdentStep(steps, "b");
     expect(ids(steps)).toEqual(["a", "b"]);
+  });
+});
+
+describe("findStepDeep", () => {
+  it("分岐の枝・繰り返しの本体・TX・subSteps の中も探せる", () => {
+    const deep = s("deep");
+    const steps = [
+      { id: "b", kind: "branch", branches: [{ steps: [{ id: "x", kind: "loop", steps: [{ id: "t", kind: "transactionScope", steps: [], onCommit: [deep] }] }] }] },
+      s("c", [s("c1")]),
+    ] as unknown as Step[];
+    expect(findStepDeep(steps, "deep")?.id).toBe("deep");
+    expect(findStepDeep(steps, "c1")?.id).toBe("c1");
+    expect(findStepDeep(steps, "none")).toBeNull();
   });
 });

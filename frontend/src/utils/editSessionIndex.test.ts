@@ -21,9 +21,9 @@ describe("editSessionIndex", () => {
   it("変更の通知のあとは、尋ね直す (一斉に尋ね直しても 1 回)", async () => {
     request.mockResolvedValue({ sessions: [] });
     await listActiveSessionsFor("table", "a");
-    await new Promise((r) => setTimeout(r, 60));
-    invalidateSessionIndex();
-    invalidateSessionIndex();
+    const notice = {};
+    invalidateSessionIndex(notice);
+    invalidateSessionIndex(notice); // 同じ通知を、各行が一斉に受けても 1 回
     await Promise.all([listActiveSessionsFor("table", "a"), listActiveSessionsFor("table", "b")]);
     expect(request).toHaveBeenCalledTimes(2);
   });
@@ -32,5 +32,16 @@ describe("editSessionIndex", () => {
     request.mockRejectedValueOnce(new Error("x")).mockResolvedValue({ sessions: [session("s1", "a")] });
     await expect(listActiveSessionsFor("table", "a")).rejects.toThrow("x");
     expect((await listActiveSessionsFor("table", "a")).map((s) => s.id)).toEqual(["s1"]);
+  });
+
+  it("別の通知は、直後でも古い結果を使わない (50 ms 以内の 2 つめの通知も取りこぼさない)", async () => {
+    request.mockResolvedValue({ sessions: [] });
+    await listActiveSessionsFor("table", "a");
+    invalidateSessionIndex({});
+    const second = listActiveSessionsFor("table", "a"); // 1 つめの通知のあとに始まった問い合わせ
+    invalidateSessionIndex({});                          // 2 つめの通知 (second の結果には含まれない)
+    await second;
+    await listActiveSessionsFor("table", "a");
+    expect(request).toHaveBeenCalledTimes(3);
   });
 });

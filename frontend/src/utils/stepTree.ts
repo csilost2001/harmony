@@ -60,3 +60,29 @@ export function outdentStep(steps: Step[], id: string): boolean {
   loc.parentList.splice(at + 1, 0, moved);
   return true;
 }
+
+/** 工程の中にある、工程の配列 (subSteps・分岐の枝・繰り返しの本体・TX・ワークフロー・入力チェックの枝・外部呼び出しの後処理) */
+function childLists(s: Step): Step[][] {
+  const x = s as unknown as Record<string, unknown>;
+  const lists: unknown[] = [x.subSteps, x.steps, x.onCommit, x.onRollback, x.onApproved, x.onRejected, x.onTimeout];
+  if (Array.isArray(x.branches)) for (const b of x.branches as Array<{ steps?: unknown }>) lists.push(b?.steps);
+  const eb = x.elseBranch as { steps?: unknown } | undefined;
+  if (eb) lists.push(eb.steps);
+  const ib = x.inlineBranch as { ok?: unknown; ng?: unknown } | undefined;
+  if (ib) lists.push(ib.ok, ib.ng);
+  const outcomes = ((x.errorHandling as { outcomes?: unknown } | undefined)?.outcomes ?? x.outcomes) as Record<string, { sideEffects?: unknown }> | undefined;
+  if (outcomes && typeof outcomes === "object") for (const o of Object.values(outcomes)) lists.push(o?.sideEffects);
+  return lists.filter((l): l is Step[] => Array.isArray(l));
+}
+
+/** 入れ子の種類を問わず (分岐の枝・繰り返し・TX の中も)、id の工程を探す。backend の `insertStepAt` が探せる範囲と同じ */
+export function findStepDeep(steps: readonly Step[], id: string): Step | null {
+  for (const s of steps) {
+    if (s.id === id) return s;
+    for (const list of childLists(s)) {
+      const hit = findStepDeep(list, id);
+      if (hit) return hit;
+    }
+  }
+  return null;
+}
