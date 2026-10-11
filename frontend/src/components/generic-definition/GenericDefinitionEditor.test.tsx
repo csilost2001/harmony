@@ -35,6 +35,7 @@ vi.mock("../../hooks/useWorkspacePath", () => ({
 vi.mock("../../store/tabStore", () => ({
   makeTabId: vi.fn(() => "tab-id"),
   openTab: vi.fn(),
+  setDirty: vi.fn(),
 }));
 
 vi.mock("../../store/genericDefinitionStore", () => ({
@@ -290,3 +291,29 @@ describe("GenericDefinitionEditor — #1368 editSession.save 経路統合", () =
     expect(saveCallsAfter.every((c) => !(c[1] as { force?: boolean })?.force)).toBe(true);
   });
 });
+
+describe("GenericDefinitionEditor — 未保存の変更の扱い", () => {
+  it("変更がないあいだは保存を押せず、変更すると押せる。変更点のボタンも変更後に出る", async () => {
+    await renderEditor();
+    const save = screen.getByRole("button", { name: "保存" }) as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+    expect(screen.queryByTestId("generic-definition-changes")).toBeNull();
+    fireEvent.change(screen.getByDisplayValue("initial purpose"), { target: { value: "edited purpose" } });
+    expect((screen.getByRole("button", { name: "保存" }) as HTMLButtonElement).disabled).toBe(false);
+    expect(screen.getByTestId("generic-definition-changes")).toBeTruthy();
+    // 元の値へ戻せば、また変更なし
+    fireEvent.change(screen.getByDisplayValue("edited purpose"), { target: { value: "initial purpose" } });
+    expect((screen.getByRole("button", { name: "保存" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("変更するとタブに未保存の印を付け、戻すと外す", async () => {
+    const { setDirty } = await import("../../store/tabStore");
+    vi.mocked(setDirty).mockClear();
+    await renderEditor();
+    fireEvent.change(screen.getByDisplayValue("initial purpose"), { target: { value: "x" } });
+    await waitFor(() => expect(setDirty).toHaveBeenLastCalledWith("tab-id", true));
+    fireEvent.change(screen.getByDisplayValue("x"), { target: { value: "initial purpose" } });
+    await waitFor(() => expect(setDirty).toHaveBeenLastCalledWith("tab-id", false));
+  });
+});
+
