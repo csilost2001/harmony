@@ -22,6 +22,7 @@ test.describe("テーブルのカラムのキーボード入力", () => {
     await page.getByTestId("edit-mode-start").click();
     await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 15000 });
     const rows = page.locator(".columns-data-list .data-list-row");
+    await expect(rows.first()).toBeVisible({ timeout: 10000 }); // 読み込みを待ってから数える
     const before = await rows.count();
 
     // 最後の行から Ctrl+Enter 連打で、新しいカラムが追加され、物理名の欄にカーソルが入る
@@ -58,6 +59,7 @@ test.describe("テーブルのカラムのキーボード入力", () => {
     await page.getByTestId("edit-mode-start").click();
     await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 15000 });
     const rows = page.locator(".screen-items-table tbody > tr").filter({ has: page.locator('input[aria-label$="のラベル"]') });
+    await expect(rows.first()).toBeVisible({ timeout: 10000 }); // 読み込みを待ってから数える
     const before = await rows.count();
     expect(before).toBeGreaterThan(2);
 

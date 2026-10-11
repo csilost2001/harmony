@@ -5,7 +5,7 @@
  * などで一覧に載っていない設計が、設計書・検査・一覧画面から黙って落ちないように、読み出すときに足す。
  * 足した分は、利用者が次に保存したとき (project の保存) に一覧へ書かれる。読み込みでは原本を書き換えない。
  */
-import { listAllTables, listExistingEntityIds, listProcessFlows, readProject, readScreenEntity } from "./projectStorage.js";
+import { listExistingEntityIds, readProcessFlow, readProject, readScreenEntity, readTable } from "./projectStorage.js";
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
 const str = (v: unknown): string | undefined => (typeof v === "string" && v ? v : undefined);
@@ -39,11 +39,13 @@ export async function mergeUnregisteredEntities(project: unknown, root: string):
     unregistered.push({ kind: "screen", id });
   }
 
-  // テーブル
+  // テーブル (ファイルの一覧は ls だけで取り、載っていないものだけを読む。読み込みのたびに全件を読まない)
   const tables = [...entryList(entities, "tables")];
   const tableIds = new Set(tables.map((e) => e.id));
-  for (const t of (await listAllTables(root).catch(() => [] as unknown[]))) {
-    if (!isRecord(t) || typeof t.id !== "string" || tableIds.has(t.id)) continue;
+  for (const id of (await listExistingEntityIds("table", root).catch(() => [] as string[])).sort()) {
+    if (tableIds.has(id)) continue;
+    const t = await readTable(id, root).catch(() => null);
+    if (!isRecord(t) || typeof t.id !== "string") continue;
     tables.push({
       id: t.id, no: tables.length + 1, name: str(t.name) ?? t.id, ...(str(t.physicalName) ? { physicalName: t.physicalName } : {}),
       ...(str(t.category) ? { category: t.category } : {}), columnCount: Array.isArray(t.columns) ? t.columns.length : 0,
@@ -55,9 +57,11 @@ export async function mergeUnregisteredEntities(project: unknown, root: string):
   // 処理フロー
   const flows = [...entryList(entities, "processFlows")];
   const flowIds = new Set(flows.map((e) => e.id));
-  for (const f of (await listProcessFlows(root).catch(() => [] as unknown[]))) {
+  for (const id of (await listExistingEntityIds("processFlow", root).catch(() => [] as string[])).sort()) {
+    if (flowIds.has(id)) continue;
+    const f = await readProcessFlow(id, root).catch(() => null);
     const meta = isRecord(f) && isRecord(f.meta) ? f.meta : null;
-    if (!meta || typeof meta.id !== "string" || flowIds.has(meta.id)) continue;
+    if (!meta || typeof meta.id !== "string") continue;
     flows.push({
       id: meta.id, no: flows.length + 1, name: str(meta.name) ?? meta.id, ...(str(meta.flowType) ? { flowType: meta.flowType } : {}),
       actionCount: Array.isArray((f as Record<string, unknown>).actions) ? ((f as Record<string, unknown>).actions as unknown[]).length : 0,

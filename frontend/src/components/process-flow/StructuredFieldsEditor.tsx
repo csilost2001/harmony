@@ -1,3 +1,4 @@
+import { useGridKeyboard } from "../../hooks/useGridKeyboard";
 import { useState } from "react";
 import type {
   ActionFields,
@@ -152,8 +153,11 @@ export function StructuredFieldsEditor({ label, fields, onChange, onCommit, plac
     onChange(next.length > 0 ? next : undefined);
   };
 
+  // Enter / ↑↓ で上下の行の同じ列へ移る
+  const gridKeys = useGridKeyboard();
+
   return (
-    <div className="structured-fields-editor">
+    <div className="structured-fields-editor" onKeyDown={gridKeys.onKeyDown}>
       <div className="structured-fields-header">
         <label className="form-label mb-0">{label}</label>
         <div className="btn-group btn-group-sm" role="group" aria-label="表示モード">
