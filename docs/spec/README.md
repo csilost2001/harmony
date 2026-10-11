@@ -19,7 +19,7 @@
 | [process-flow-variables.md](process-flow-variables.md) | 変数・入出力・outputBinding (Phase 1 基盤) | #151 / #152 |
 | [process-flow-extensions.md](process-flow-extensions.md) | HTTP 契約 / TX / Saga / 外部 outcomes / ValidationRule / compute / return (Phase B) | #151 / #182 |
 | [process-flow-sla.md](process-flow-sla.md) | SLA / Timeout 宣言 (ProcessFlow / ActionDefinition / StepBase) | #412 |
-| [process-flow-keyboard.md](process-flow-keyboard.md) | 処理フローのキーボード操作 (工程の移動・挿入・インデント) | - |
+| [process-flow-keyboard.md](process-flow-keyboard.md) | 処理フローのキーボード操作 (工程の移動・開閉・挿入。Tab のインデントは #1487 待ち) | - |
 | [grid-keyboard.md](grid-keyboard.md) | 表の入力のキーボード操作 (画面項目の行移動・カラムの編集パネルの連続入力) | - |
 | [process-flow-outline.md](process-flow-outline.md) | 処理フローのアウトライン (1 行 1 工程のテキスト) 編集 (試作) | - |
 | [process-flow-criterion.md](process-flow-criterion.md) | Criterion (ExternalSystemStep の `successCriteria`、Arazzo 1.0 互換、`$` Runtime Expression 推奨) | #427 |

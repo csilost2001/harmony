@@ -7,7 +7,7 @@
  *
  * - 工程の種類 (kind) と説明 (description) だけを文字で扱う。ほかの項目 (テーブル・条件・分岐の中身など) は、
  *   行末の `^id` で対応づけた既存の工程にそのまま残す。行を入れ替えれば工程の順序が変わり、行を消せば工程が消える。
- * - 説明の中の改行は `\n`、バックスラッシュは `\\` と書く。
+ * - 説明の中の改行は `\n`、バックスラッシュは `\\`、`^` は `\^` と書く (行末の `^id` と区別するため)。
  * - 入れ子 (インデント) は扱わない (スキーマに入れ子の置き場が無い。docs/spec/process-flow-keyboard.md)。
  * - 既存の工程の種類は、テキストから変えられない (行の `[種類]` を書き換えても無視して知らせる)。
  * 保存形式は今の JSON のまま。このモジュールは変換だけで、副作用を持たない。
@@ -29,8 +29,8 @@ export interface ParsedOutline { lines: OutlineLine[]; errors: OutlineError[] }
 const ID_SUFFIX = /\s\^([A-Za-z0-9][A-Za-z0-9._-]*)\s*$/;
 const KIND_PREFIX = /^\[([^\]]+)\]\s*(.*)$/;
 
-const escapeText = (s: string) => s.replace(/\\/g, "\\\\").replace(/\r?\n/g, "\\n");
-const unescapeText = (s: string) => s.replace(/\\(\\|n)/g, (_m, c: string) => (c === "n" ? "\n" : "\\"));
+const escapeText = (s: string) => s.replace(/\\/g, "\\\\").replace(/\^/g, "\\^").replace(/\r?\n/g, "\\n");
+const unescapeText = (s: string) => s.replace(/\\(\\|n|\^)/g, (_m, c: string) => (c === "n" ? "\n" : c));
 
 export function kindLabel(kind: string): string {
   return STEP_KIND_LABELS[kind] ?? kind;
@@ -47,7 +47,10 @@ export function resolveKind(label: string, kinds: readonly StepType[]): StepType
 
 export function stepsToOutline(steps: readonly Step[]): string {
   return steps
-    .map((s) => `[${kindLabel(s.kind)}] ${escapeText(s.description ?? "")} ^${s.id}`.replace(/\s+\^/, " ^"))
+    .map((s) => {
+      const d = escapeText(s.description ?? "");
+      return `[${kindLabel(s.kind)}]${d ? ` ${d}` : ""} ^${s.id}`;
+    })
     .join("\n");
 }
 

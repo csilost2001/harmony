@@ -24,6 +24,17 @@ describe("processFlowOutline", () => {
     expect(lines.map((l) => l.description)).toEqual(["a\nb\\c", ""]);
   });
 
+  it("説明の中の ^ は \\^ と書き、行末の ^id と間違えない。途中の連続空白は詰めない", () => {
+    const odd = [s("step-01", "compute", "a  ^b"), s("step-02", "compute", "x ^foo")];
+    const text = stepsToOutline(odd);
+    expect(text).toBe("[計算/代入] a  \\^b ^step-01\n[計算/代入] x \\^foo ^step-02");
+    const { lines, errors } = parseOutline(text, KINDS);
+    expect(errors).toEqual([]);
+    expect(lines.map((l) => [l.description, l.id])).toEqual([["a  ^b", "step-01"], ["x ^foo", "step-02"]]);
+    // 新しい行の説明が「 ^foo」で終わっても (エスケープ済みなら) 既存の id とは解釈されない
+    expect(parseOutline("[計算/代入] メモ \\^step-01", KINDS).lines[0]).toMatchObject({ description: "メモ ^step-01", id: null });
+  });
+
   it("書き換えなしなら、元の工程がそのまま (同じ参照) 返る", () => {
     const { lines } = parseOutline(stepsToOutline(steps), KINDS);
     const r = applyOutline(steps, lines, new Set(["step-01", "step-02"]));

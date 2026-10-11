@@ -8,12 +8,12 @@ function Harness({ h }: { h: StepKeyboardHandlers }) {
     <div className="process-flow-page">
       <div className="step-card-wrapper">
         <div className="step-card" data-step-id="a">
-          <div className="step-card-header" tabIndex={0} aria-expanded={false} data-testid="ha" />
+          <div className="step-card-header" tabIndex={0} data-expanded={false} data-testid="ha" />
         </div>
       </div>
       <div className="step-card-wrapper">
         <div className="step-card" data-step-id="b">
-          <div className="step-card-header" tabIndex={0} aria-expanded data-testid="hb" />
+          <div className="step-card-header" tabIndex={0} data-expanded data-testid="hb" />
           <div className="step-card-body">
             <textarea data-testid="fb" />
           </div>
@@ -22,7 +22,7 @@ function Harness({ h }: { h: StepKeyboardHandlers }) {
           <div className="mb-1">
             <div className="step-card-wrapper">
               <div className="step-card" data-step-id="b1">
-                <div className="step-card-header" tabIndex={0} aria-expanded={false} data-testid="hb1" />
+                <div className="step-card-header" tabIndex={0} data-expanded={false} data-testid="hb1" />
               </div>
             </div>
           </div>

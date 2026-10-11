@@ -206,9 +206,10 @@ export function StepCard({
         <div
           className="step-card-header"
           tabIndex={0}
-          role="button"
-          aria-expanded={expanded}
-          aria-label={`${label} ${STEP_TYPE_LABELS[step.kind]}`}
+          // 中にボタン (ドラッグ・メニュー等) があるので role="button" にはしない (入れ子の操作部品を避ける)。開閉は名前で伝える
+          role="group"
+          data-expanded={expanded}
+          aria-label={`${label} ${STEP_TYPE_LABELS[step.kind]} (${expanded ? "開いています" : "閉じています"})`}
           onClick={(e) => {
             if ((e.target as HTMLElement).closest("[data-drag-handle]")) return;
             if ((e.ctrlKey || e.metaKey || e.shiftKey) && onHeaderClick) {
@@ -281,6 +282,7 @@ export function StepCard({
                     <i className="bi bi-chat-dots-fill" />{markerKinds.chat}
                   </span>
                 )}
+                {/* 検査の警告マーカーは、いまは原本に書き込まない。古い原本に残っているものを、保存し直すまで見せる移行用の表示 */}
                 {markerKinds.validator > 0 && (
                   <span className="step-marker-chip kind-validator" title={`バリデーター ${markerKinds.validator} 件`}>
                     <i className="bi bi-shield-exclamation" />{markerKinds.validator}

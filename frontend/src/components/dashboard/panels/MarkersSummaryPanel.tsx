@@ -68,7 +68,7 @@ const KIND_LABEL: Record<MarkerKind, string> = {
   attention: "注目",
   todo: "TODO",
   question: "質問",
-  validator: "validator",
+  validator: "validator", // 古い原本に残るものの移行用 (新しくは書かれない)
 };
 const KIND_COLOR: Record<MarkerKind, string> = {
   chat: "#3b82f6",

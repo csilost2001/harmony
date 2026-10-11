@@ -40,3 +40,20 @@ describe("OutlineEditor", () => {
     expect((screen.getByTestId("pf-outline-text") as HTMLTextAreaElement).readOnly).toBe(true);
   });
 });
+
+describe("OutlineEditor — 元の内容が変わったとき", () => {
+  it("入力中の内容は、元の工程が変わったら破棄して知らせる (別のアクションの工程を置き換えない)", () => {
+    const onApply = vi.fn();
+    const other = [{ id: "step-09", kind: "commonProcess", description: "別アクションの工程" }] as unknown as Step[];
+    const { rerender } = render(<OutlineEditor steps={steps} kinds={KINDS} readonly={false} onApply={onApply} />);
+    // 削除を含む入力 (自動では反映されない)
+    fireEvent.change(screen.getByTestId("pf-outline-text"), { target: { value: "[入力チェック] 入力を検証する ^step-01" } });
+    expect(screen.getByRole("status").textContent).toContain("削除 1 件");
+    // 元の工程が別のもの (アクションの切り替え・元に戻す等) になった
+    rerender(<OutlineEditor steps={other} kinds={KINDS} readonly={false} onApply={onApply} />);
+    expect((screen.getByTestId("pf-outline-text") as HTMLTextAreaElement).value).toBe("[共通処理] 別アクションの工程 ^step-09");
+    expect(screen.getByTestId("pf-outline-stale")).toBeTruthy();
+    expect(screen.queryByTestId("pf-outline-apply")).toBeNull();
+    expect(onApply).not.toHaveBeenCalled();
+  });
+});

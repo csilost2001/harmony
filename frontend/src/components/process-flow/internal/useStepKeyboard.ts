@@ -90,7 +90,7 @@ export function useStepKeyboard(h: StepKeyboardHandlers): void {
             if (nid) cfg.onFocusStep(nid, parentStepIdOf(next) === null);
           }
         };
-        const expanded = target.getAttribute("aria-expanded") === "true";
+        const expanded = target.getAttribute("data-expanded") === "true";
         switch (e.key) {
           case "ArrowDown": e.preventDefault(); go(i + 1); return;
           case "ArrowUp": e.preventDefault(); go(i - 1); return;

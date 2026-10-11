@@ -39,7 +39,7 @@ export function UserNameButton() {
       {open && (
         <div className="common-header-user-pop" role="dialog" aria-label="利用者名の設定" data-testid="user-name-pop"
           onKeyDown={(e) => {
-            if (e.nativeEvent.isComposing) return;
+            if (e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) return;
             if (e.key === "Escape") { e.stopPropagation(); setOpen(false); }
             if (e.key === "Enter") { e.preventDefault(); commit(); }
           }}>

@@ -36,12 +36,15 @@ export function useDetailPanelKeyboard({ panelRef, resetKey, onNext, onPrev }: D
 
   const onKeyDown = useCallback((e: ReactKeyboardEvent<HTMLElement>) => {
     const target = e.target as HTMLElement;
-    if (e.nativeEvent.isComposing) return; // 変換の確定の Enter は無視
+    if (e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) return; // 変換の確定の Enter は無視
+    // 入力欄の部品 (候補・補完など) が自分で処理したキー、候補が開いているあいだの Enter / Esc は、その部品のもの
+    const handledByField = e.defaultPrevented || target.getAttribute("aria-expanded") === "true";
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       if (e.shiftKey) onPrev?.(); else onNext?.();
       return;
     }
+    if (handledByField) return;
     if (e.key === "Enter" && !e.shiftKey && !e.altKey && target instanceof HTMLInputElement && target.type !== "button" && target.type !== "submit") {
       e.preventDefault();
       const root = panelRef.current;

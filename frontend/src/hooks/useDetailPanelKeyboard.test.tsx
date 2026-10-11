@@ -56,4 +56,21 @@ describe("useDetailPanelKeyboard", () => {
     fireEvent.keyDown(getByTestId("a"), { key: "Escape" });
     expect(document.activeElement).toBe(document.body);
   });
+
+  it("部品が処理済み (preventDefault) の Enter / Esc や、候補が開いている欄では何もしない", () => {
+    const onNext = vi.fn();
+    const { getByTestId } = render(<Panel rowId="r1" onNext={onNext} />);
+    const a = getByTestId("a");
+    a.addEventListener("keydown", (ev) => ev.preventDefault()); // 部品が先に処理した
+    fireEvent.keyDown(a, { key: "Enter" });
+    expect(document.activeElement).toBe(a);
+    a.setAttribute("aria-expanded", "true"); // 候補が開いている
+    const b = getByTestId("b");
+    b.setAttribute("aria-expanded", "true");
+    b.focus();
+    fireEvent.keyDown(b, { key: "Enter" });
+    fireEvent.keyDown(b, { key: "Escape" });
+    expect(document.activeElement).toBe(b);
+    expect(onNext).not.toHaveBeenCalled();
+  });
 });

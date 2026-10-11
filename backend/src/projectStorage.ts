@@ -895,8 +895,9 @@ export async function readScreen(screenId: string, root: string): Promise<unknow
 
 /** screens/{screenId}.json を書き込み
  *
- * #1141 F-2: schema 違反は draft-state policy に従い `authoring.markers` (kind='validator')
- * として entity 側に記録した上で書き込みを許可する (throw しない)。
+ * schema 違反があっても書き込める (throw しない。draft-state policy)。違反は原本に記録せず、
+ * 過去の validator マーカー (authoring.markers の kind='validator') は取り除く。違反は読み込み時に
+ * `collectSchemaIssues` が検査して「要確認」に出す。
  */
 export async function writeScreen(screenId: string, data: unknown, root: string): Promise<void> {
   const r = root;
@@ -1355,8 +1356,9 @@ export async function readTable(tableId: string, root: string): Promise<unknown 
 
 /** tables/{tableId}.json を書き込み
  *
- * #1141 F-2: schema 違反は draft-state policy に従い `authoring.markers` (kind='validator')
- * として entity 側に記録した上で書き込みを許可する (throw しない)。
+ * schema 違反があっても書き込める (throw しない。draft-state policy)。違反は原本に記録せず、
+ * 過去の validator マーカー (authoring.markers の kind='validator') は取り除く。違反は読み込み時に
+ * `collectSchemaIssues` が検査して「要確認」に出す。
  */
 export async function writeTable(tableId: string, data: unknown, root: string): Promise<void> {
   const r = root;
@@ -1426,8 +1428,9 @@ export async function readProcessFlow(processFlowId: string, root: string): Prom
  * #1141: 新規作成時 (両 path に未存在) は v3 規範の `process-flows/<id>.json` に書く。
  * 既存があれば既存配置を維持 (legacy `actions/<id>.json` も互換のため対応)。
  *
- * #1141 F-2: schema 違反は draft-state policy に従い `authoring.markers` (kind='validator')
- * として entity 側に記録した上で書き込みを許可する (throw しない)。
+ * schema 違反があっても書き込める (throw しない。draft-state policy)。違反は原本に記録せず、
+ * 過去の validator マーカー (authoring.markers の kind='validator') は取り除く。違反は読み込み時に
+ * `collectSchemaIssues` が検査して「要確認」に出す。
  */
 export async function writeProcessFlow(processFlowId: string, data: unknown, root: string): Promise<void> {
   const r = root;

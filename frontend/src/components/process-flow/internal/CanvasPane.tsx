@@ -184,7 +184,7 @@ export function CanvasPane({
       </div>
       <div className="process-flow-content">
         {activeAction && view === "outline" ? (
-          <OutlineEditor steps={activeAction.steps} kinds={ALL_STEP_TYPES} readonly={isReadonly} onApply={onApplyOutline} />
+          <OutlineEditor key={activeAction.id} steps={activeAction.steps} kinds={ALL_STEP_TYPES} readonly={isReadonly} onApply={onApplyOutline} />
         ) : activeAction && view === "diagram" ? (
           <ProcessFlowDiagram action={activeAction} ctx={ctx} selectedStepIds={highlighted} onSelectStep={selectFromView} onOpenStep={openInCards} />
         ) : activeAction && view === "table" ? (
@@ -235,6 +235,7 @@ export function CanvasPane({
                             question: stepMarkers.filter((m) => m.kind === "question").length,
                             attention: stepMarkers.filter((m) => m.kind === "attention").length,
                             chat: stepMarkers.filter((m) => m.kind === "chat").length,
+                            // 検査の警告マーカーは新しく書かれない。古い原本に残るものの移行用の件数 (消すのは次の整理)
                             validator: stepMarkers.filter((m) => m.kind === "validator").length,
                           }
                         : undefined;

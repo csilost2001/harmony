@@ -22,7 +22,12 @@ interface Props {
 
 export function OutlineEditor({ steps, kinds, readonly, onApply }: Props) {
   const baseline = useMemo(() => stepsToOutline(steps), [steps]);
-  const [draft, setDraft] = useState<string | null>(null);
+  // 入力中の文字は、どの内容 (baseline) に対するものかと一緒に持つ。元の内容が変わったら (別のアクションへの切り替え・
+  // 元に戻す・ほかの人の更新)、古い入力を別の工程へ反映してしまわないよう、破棄して知らせる
+  const [pending, setPending] = useState<{ text: string; base: string } | null>(null);
+  const stale = pending !== null && pending.base !== baseline;
+  const draft = pending !== null && !stale ? pending.text : null;
+  const setDraft = (t: string | null) => setPending(t === null ? null : { text: t, base: baseline });
   const text = draft ?? baseline;
   const areaRef = useRef<HTMLTextAreaElement>(null);
   const [menu, setMenu] = useState<{ at: number } | null>(null);
@@ -90,7 +95,7 @@ export function OutlineEditor({ steps, kinds, readonly, onApply }: Props) {
         placeholder={readonly ? "" : "例: [入力チェック] 入力値を検証する"}
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={(e) => {
-          if (readonly || e.nativeEvent.isComposing) return;
+          if (readonly || e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) return;
           if (e.key === "/" && !e.ctrlKey && !e.metaKey && !e.altKey) {
             const el = e.currentTarget;
             const at = el.selectionStart;
@@ -105,6 +110,7 @@ export function OutlineEditor({ steps, kinds, readonly, onApply }: Props) {
         onBlur={() => { if (canApply && removedCount === 0 && !menu) apply(); }}
       />
       <div className="pf-outline-status" role="status">
+        {stale && <span className="pf-outline-warn" data-testid="pf-outline-stale">元の内容が変わったため、入力中の内容を破棄しました。</span>}
         {analysis === null ? (
           <span className="pf-outline-muted">{steps.length} 工程</span>
         ) : analysis.parsed.errors.length > 0 ? (

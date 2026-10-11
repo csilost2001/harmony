@@ -16,7 +16,7 @@
 <ul>
 <li><code>[種類]</code> は工程の種類の表示名 (入力チェック / DBアクセス / 共通処理 …) か、種類の英名 (<code>dbAccess</code>)。</li>
 <li>行末の <code>^step-01</code> は既存の工程との対応づけ (工程の目印)。<strong>無い行は新しい工程</strong>になる。</li>
-<li>説明の中の改行は <code>\n</code>、バックスラッシュは <code>\\</code>。</li>
+<li>説明の中の改行は <code>\n</code>、バックスラッシュは <code>\\</code>、<code>^</code> は <code>\^</code> と書く (行末の <code>^id</code> と区別するため。画面ではこの形で出る)。</li>
 <li>空行は無視する。行頭に空白がある行・<code>[種類]</code> が無い行・知らない種類は、行番号つきで知らせ、反映は止まる。</li>
 </ul>
 <h2 id="操作">操作</h2>

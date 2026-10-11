@@ -31,7 +31,7 @@ export interface GridKeyboardOptions {
 
 export function useGridKeyboard({ onAppendRow }: GridKeyboardOptions = {}) {
   const onKeyDown = useCallback((e: ReactKeyboardEvent<HTMLElement>) => {
-    if (e.defaultPrevented || e.nativeEvent.isComposing) return;
+    if (e.defaultPrevented || e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const target = e.target as HTMLElement;
     if (!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement)) return;
