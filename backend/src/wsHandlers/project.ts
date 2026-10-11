@@ -12,7 +12,6 @@
  */
 import { collectSchemaIssues } from "../schemaIssues.js";
 import {
-  readProject,
   writeProject,
   readScreen,
   readScreenEntity,
@@ -32,12 +31,13 @@ import {
   deleteReport,
 } from "../projectStorage.js";
 import { assertEntityId } from "../security/idValidator.js";
+import { readProjectWithUnregistered } from "../registryMerge.js";
 import type { RpcHandlerMap } from "./types.js";
 
 export const projectHandlers: RpcHandlerMap = {
   loadProject: async ({ root, respond }) => {
-    const project = await readProject(root());
-    respond(project);
+    // 一覧に載っていない設計 (手で置いたファイル等) も、一覧に出す (書き込まない。次に保存したときに一覧へ書かれる)
+    respond((await readProjectWithUnregistered(root())).project);
   },
 
   saveProject: async ({ params, root, wsId, clientId, respond, bridge }) => {

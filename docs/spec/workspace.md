@@ -236,6 +236,17 @@ backend が動作しているホスト OS 情報を返す。`AddWorkspaceDialog`
 
 ---
 
+## 一覧 (harmony.json の `entities`) と実体ファイル
+
+**原本は実体ファイル** (`screens/` `tables/` `process-flows/` の JSON)。`harmony.json` の `entities.<種類>` は、並び順 (`no`)・一覧画面に出す要約・画面フロー (`screenGroups` / `screenTransitions`) を持つ。
+
+- 実体ファイルが一覧に載っていなくても (手で置いた・AI が作った)、設計書・検査 (`check:design`)・スキーマ違反の検査・一覧画面は**黙って落とさず**、一覧の後ろに足して扱う。足すのは読み出すときだけで、`harmony.json` は書き換えない (`backend/src/registryMerge.ts`)。
+- 足した分は、利用者がその設計を保存したとき・プロジェクトを保存したときに一覧へ書かれる。
+- CLI (`scripts/lib/load-workspace.mjs`) は、載っていないものを「情報」で知らせる (設計書・検査には含める)。
+- 画面フローの内容 (`screenGroups` / `screenTransitions`) は一覧側にだけある原本で、ファイルからは導けない。
+
+---
+
 ## 4. lockdown モード
 
 ### 4.1 有効化条件

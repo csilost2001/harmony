@@ -46,13 +46,15 @@ export function loadWorkspaceInput(dir, warn = console.warn) {
     const ia = order.indexOf(a.id), ib = order.indexOf(b.id);
     return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib);
   });
-  // 処理フロー・テーブルは harmony.json に登録されたものを対象にする (アプリの設計書ビューと同じ)。
-  // 登録されていないファイルは警告だけ出す。
+  // 処理フロー・テーブルは、harmony.json の一覧の順に並べ、一覧に載っていないファイルも後ろに含める (ファイルが原本。
+  // アプリの設計書ビューと同じ)。載っていないものは、一覧に載せるよう知らせるだけ (情報)。
   const pickRegistered = (all, registry, label, idOf) => {
     if (!Array.isArray(registry)) return all;
     const ids = registry.map((e) => e.id);
-    for (const u of all.filter((x) => !ids.includes(idOf(x)))) report("warning", `${label}「${idOf(u)}」は harmony.json に登録されていないため設計書に含めません (検査もされません)`);
-    return ids.map((id) => all.find((x) => idOf(x) === id)).filter(Boolean);
+    const registered = ids.map((id) => all.find((x) => idOf(x) === id)).filter(Boolean);
+    const extra = all.filter((x) => !ids.includes(idOf(x))).sort((a, b) => String(idOf(a)).localeCompare(String(idOf(b))));
+    for (const u of extra) problems.push({ severity: "info", section: "読み込み", message: `${label}「${idOf(u)}」は harmony.json の一覧に載っていません (設計書・検査には含めました。アプリで保存すると一覧に載ります)` });
+    return [...registered, ...extra];
   };
   const flows = pickRegistered(listJson(path.join(dataDir, "process-flows")), harmony.entities?.processFlows, "処理フロー", (f) => f.meta?.id);
   const tables = pickRegistered(listJson(path.join(dataDir, "tables")), harmony.entities?.tables, "テーブル", (t) => t.id);

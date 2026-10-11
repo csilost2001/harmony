@@ -3,8 +3,9 @@
  * 以前は保存のたびに違反を原本の authoring.markers へ書き込んでいたが、機械が出した警告で原本が汚れ、
  * 差分にも混じるため、書き込まず、ここで計算して示す。draft-state: 違反があっても保存は妨げない。
  */
+import { readProjectWithUnregistered } from "./registryMerge.js";
 import { describeAjvError } from "./ajvMessages.js";
-import { listAllTables, listProcessFlows, readProject, readScreenEntity, validateEntitySchema } from "./projectStorage.js";
+import { listAllTables, listProcessFlows, readScreenEntity, validateEntitySchema } from "./projectStorage.js";
 
 export interface SchemaIssue {
   severity: "warning";
@@ -24,7 +25,7 @@ export async function collectSchemaIssues(root: string): Promise<SchemaIssue[]> 
     }
   };
 
-  const project = await readProject(root);
+  const project = (await readProjectWithUnregistered(root)).project;
   const screens = isRecord(project) && isRecord(project.entities) && Array.isArray(project.entities.screens) ? project.entities.screens as Array<{ id: string }> : [];
   for (const s of screens) {
     const e = await readScreenEntity(s.id, root).catch(() => null);

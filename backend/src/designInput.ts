@@ -5,9 +5,10 @@
  */
 import type { DesignDocInput } from "@harmony/shared";
 import {
-  readProject, readScreenEntity, listProcessFlows, listAllTables, readConventions,
+  readScreenEntity, listProcessFlows, listAllTables, readConventions,
   readLayoutComponents, listBusinessFlowsDetailed, listReportsDetailed,
 } from "./projectStorage.js";
+import { readProjectWithUnregistered } from "./registryMerge.js";
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
 
@@ -20,7 +21,8 @@ export interface LoadedDesignInput {
 
 export async function loadDesignInputFromRoot(root: string): Promise<LoadedDesignInput> {
   const skipped: string[] = [];
-  const raw = await readProject(root);
+  // 一覧 (harmony.json) に載っていない設計も、設計書・検査に含める (ファイルが原本)
+  const raw = (await readProjectWithUnregistered(root)).project;
   const project = isRecord(raw) ? raw : {};
   const entities = isRecord(project.entities) ? project.entities : {};
   const meta = isRecord(project.meta) ? project.meta : {};
@@ -34,7 +36,7 @@ export async function loadDesignInputFromRoot(root: string): Promise<LoadedDesig
     } catch { skipped.push(`画面「${s.id}」`); }
   }
 
-  // 処理フロー・テーブルは harmony.json に登録されたものを対象にする (設計書ビュー・CLI と同じ)
+  // 処理フロー・テーブルは、一覧の並び順 (登録簿 + 載っていないファイル) で並べる
   const registered = (list: unknown[], registry: unknown, idOf: (x: unknown) => string | undefined, label: string): unknown[] => {
     if (!Array.isArray(registry)) return list;
     const ids = (registry as Array<{ id: string }>).map((e) => e.id);
