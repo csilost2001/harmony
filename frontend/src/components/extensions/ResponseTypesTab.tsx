@@ -47,7 +47,7 @@ export function ResponseTypesTab({ bundle, saving, onSave, isReadonly }: Extensi
   return (
     <div className="extensions-response-types-tab">
       <div className="extensions-tab-toolbar">
-        <div className="extensions-namespace-field"><label className="form-label small fw-semibold">namespace</label><input className="form-control form-control-sm" value={namespace} onChange={(e) => setNamespace(e.target.value)} disabled={isReadonly} /></div>
+        <div className="extensions-namespace-field"><label className="form-label small fw-semibold">namespace</label><input className="form-control form-control-sm" aria-label="namespace" value={namespace} onChange={(e) => setNamespace(e.target.value)} disabled={isReadonly} /></div>
         <div className="extensions-toolbar-actions"><button className="btn btn-primary btn-sm" disabled={saving || isReadonly} onClick={() => void save()}>保存</button></div>
       </div>
       {error ? <div className="alert alert-danger py-2">JSON パース失敗: {error}</div> : null}

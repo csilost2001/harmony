@@ -219,9 +219,22 @@ export function insertStepAt(
   actionId: string,
   step: Step,
   position?: number,
+  /** 指定すると、その工程の配下 (subSteps) に入れる (docs/spec/process-flow-substeps.md) */
+  parentStepId?: string,
 ): void {
   const act = ag.actions.find((a) => a.id === actionId);
   if (!act) throw new Error(`action ${actionId} が見つかりません`);
+  if (parentStepId) {
+    let parent: Step | null = null;
+    walkSteps(act.steps ?? [], (s) => { if (s.id === parentStepId) { parent = s; return true; } });
+    if (!parent) throw new Error(`親の step ${parentStepId} がアクション ${actionId} に見つかりません`);
+    const p = parent as Step;
+    const list = p.subSteps ?? [];
+    const at = position === undefined || position < 0 || position > list.length ? list.length : position;
+    list.splice(at, 0, step);
+    p.subSteps = list;
+    return;
+  }
   const steps = act.steps ?? [];
   const idx = position === undefined || position < 0 || position > steps.length
     ? steps.length

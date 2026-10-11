@@ -557,7 +557,8 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
         description: typeof a.description === "string" ? a.description : "",
         ...detail,
       };
-      editInsertStepAt(pf, a.actionId as string, step, typeof a.position === "number" ? a.position : undefined);
+      if (a.parentStepId !== undefined) assertLocalIdMcp(a.parentStepId, "parentStepId");
+      editInsertStepAt(pf, a.actionId as string, step, typeof a.position === "number" ? a.position : undefined, typeof a.parentStepId === "string" ? a.parentStepId : undefined);
       await saveAndBroadcast(a.processFlowId, pf, root);
       return { content: [{ type: "text", text: `ステップ（${a.kind}）を追加しました（ID: ${stepId}）` }] };
     }

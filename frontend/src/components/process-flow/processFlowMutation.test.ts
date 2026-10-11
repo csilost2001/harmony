@@ -108,6 +108,20 @@ describe("applyProcessFlowMutation (browser-first v3, #1149 / #1332 M1)", () => 
       expect((parent as { steps?: unknown }).steps).toBeUndefined();
     });
 
+    it("parentStepId を指定すると、その工程の subSteps に追加される (入れ子の中の親も探す・繰り返しの本体には入れない)", () => {
+      const loop = { id: "step-01", kind: "loop", description: "", steps: [], subSteps: [{ id: "step-02", kind: "log", description: "" }] };
+      const g = makeProcessFlow([makeAction("act-001", [loop])]);
+      applyProcessFlowMutation(g, "designer__add_step", { actionId: "act-001", kind: "audit", description: "配下", parentStepId: "step-01" });
+      applyProcessFlowMutation(g, "designer__add_step", { actionId: "act-001", kind: "log", description: "孫", parentStepId: "step-02" });
+      const root = g.actions[0].steps[0] as unknown as { steps: unknown[]; subSteps: Array<{ id: string; description: string; subSteps?: Array<{ description: string }> }> };
+      expect(root.steps).toEqual([]);
+      expect(root.subSteps.map((s) => s.description)).toEqual(["", "配下"]);
+      expect(root.subSteps[0].subSteps?.[0].description).toBe("孫");
+      // 親が見つからなければ何もしない
+      applyProcessFlowMutation(g, "designer__add_step", { actionId: "act-001", kind: "log", description: "x", parentStepId: "step-99" });
+      expect(root.subSteps).toHaveLength(2);
+    });
+
     it("v1/v2 旧 `type` field のみでは追加されない (kind 必須)", () => {
       const act = makeAction("act-001");
       const g = makeProcessFlow([act]);

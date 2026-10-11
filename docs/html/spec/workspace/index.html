@@ -245,6 +245,15 @@
 </ol>
 <p><strong>実装</strong>: <code>backend/src/workspaceInit.ts:119-175</code></p>
 <hr>
+<h2 id="一覧-harmonyjson-の-entities-と実体ファイル">一覧 (harmony.json の <code>entities</code>) と実体ファイル</h2>
+<p><strong>原本は実体ファイル</strong> (<code>screens/</code> <code>tables/</code> <code>process-flows/</code> の JSON)。<code>harmony.json</code> の <code>entities.&#x3C;種類></code> は、並び順 (<code>no</code>)・一覧画面に出す要約・画面フロー (<code>screenGroups</code> / <code>screenTransitions</code>) を持つ。</p>
+<ul>
+<li>実体ファイルが一覧に載っていなくても (手で置いた・AI が作った)、設計書・検査 (<code>check:design</code>)・スキーマ違反の検査・一覧画面は<strong>黙って落とさず</strong>、一覧の後ろに足して扱う。足すのは読み出すときだけで、<code>harmony.json</code> は書き換えない (<code>backend/src/registryMerge.ts</code>)。</li>
+<li>足した分は、利用者がその設計を保存したとき・プロジェクトを保存したときに一覧へ書かれる。</li>
+<li>CLI (<code>scripts/lib/load-workspace.mjs</code>) は、載っていないものを「情報」で知らせる (設計書・検査には含める)。</li>
+<li>画面フローの内容 (<code>screenGroups</code> / <code>screenTransitions</code>) は一覧側にだけある原本で、ファイルからは導けない。</li>
+</ul>
+<hr>
 <h2 id="4-lockdown-モード">4. lockdown モード</h2>
 <h3 id="41-有効化条件">4.1 有効化条件</h3>
 <p>起動時に env <code>DESIGNER_DATA_DIR</code> が非空文字で定義されていれば lockdown 入り。

@@ -20,7 +20,9 @@
 // 巻き込まずに mutation ロジックを単体検証するため。
 
 import type { ProcessFlow, StepType } from "../../types/v3";
-import { addStep, removeStep, moveStep } from "../../store/processFlowStore";
+import { addStep, createDefaultStep, removeStep, moveStep } from "../../store/processFlowStore";
+import { collectAllProcessFlowLocalIds } from "../../utils/localIdGenerator";
+import { locateStep } from "../../utils/stepTree";
 
 // #1145 Phase-3 N-3: mismatch / silent no-op を診断 log 化。
 // 古い client / 誤った params 経由で来た mutation は production でも
@@ -50,6 +52,20 @@ export function applyProcessFlowMutation(
       if (!kind) {
         warnNoOp(type, "kind is missing (v3 requires `kind` discriminator)", p);
         return;
+      }
+      // 親の工程が指定されていれば、その配下 (subSteps) に入れる
+      if (typeof p.parentStepId === "string" && p.parentStepId) {
+        const parent = locateStep(act.steps, p.parentStepId)?.list.find((s) => s.id === p.parentStepId);
+        if (!parent) {
+          warnNoOp(type, `parentStepId not found: ${p.parentStepId}`, p);
+          return;
+        }
+        const sub = createDefaultStep(kind, collectAllProcessFlowLocalIds(g));
+        const list = (parent.subSteps ??= []);
+        list.splice(pos !== undefined && pos >= 0 && pos <= list.length ? pos : list.length, 0, sub);
+        if (p.description) sub.description = p.description as string;
+        Object.assign(sub, (p.detail ?? {}) as object);
+        break;
       }
       // #1332 Codex 10 巡目 M1: group context を渡して LocalId 衝突回避
       const step = addStep(act, kind, pos, g);
