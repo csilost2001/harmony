@@ -143,6 +143,38 @@ export function moveStep(ag: ProcessFlowDoc, stepId: string, newIndex: number): 
   ctx.parentArray.splice(clamped, 0, removed);
 }
 
+/**
+ * 工程の入れ子を動かす (docs/spec/process-flow-substeps.md)。
+ * indent: 直前の兄弟の subSteps の末尾へ。outdent: 親の次の位置へ (後ろの兄弟は、出した工程の配下へ引き継ぎ、実行順を変えない)。
+ * 動かせないとき (最初の工程・親が無い) はエラー。分岐の枝・繰り返しの本体の中の工程も動かせる。
+ */
+export function nestStep(ag: ProcessFlowDoc, stepId: string, direction: "indent" | "outdent"): void {
+  const ctx = findStepWithContext(ag, stepId);
+  if (!ctx) throw new Error(`step ${stepId} が見つかりません`);
+  if (direction === "indent") {
+    if (ctx.index === 0) throw new Error(`step ${stepId} は先頭の工程なので、インデントできません (直前の工程がありません)`);
+    const [moved] = ctx.parentArray.splice(ctx.index, 1);
+    const prev = ctx.parentArray[ctx.index - 1];
+    (prev.subSteps ??= []).push(moved);
+    return;
+  }
+  // outdent: この配列 (ctx.parentArray) を subSteps に持つ工程が親
+  let owner: Step | null = null;
+  for (const a of ag.actions) {
+    walkSteps(a.steps, (s) => { if (s.subSteps === ctx.parentArray) { owner = s; return true; } });
+    if (owner) break;
+  }
+  if (!owner) throw new Error(`step ${stepId} は入れ子の中にないので、アウトデントできません`);
+  const ownerStep = owner as Step;
+  const ownerCtx = findStepWithContext(ag, ownerStep.id);
+  if (!ownerCtx) throw new Error(`step ${stepId} の親が見つかりません`);
+  const [moved] = ctx.parentArray.splice(ctx.index, 1);
+  const followers = ctx.parentArray.splice(ctx.index);
+  if (followers.length > 0) moved.subSteps = [...(moved.subSteps ?? []), ...followers];
+  if (ctx.parentArray.length === 0) delete ownerStep.subSteps;
+  ownerCtx.parentArray.splice(ownerCtx.index + 1, 0, moved);
+}
+
 export function setMaturity(
   ag: ProcessFlowDoc,
   target: "group" | "action" | "step",

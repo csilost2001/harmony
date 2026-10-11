@@ -130,6 +130,18 @@ describe("applyProcessFlowMutation (browser-first v3, #1149 / #1332 M1)", () => 
       expect((inner as { subSteps?: Array<{ description: string }> }).subSteps?.[0].description).toBe("枝の中の配下");
     });
 
+    it("designer__nest_step: インデント / アウトデント (キーボードの Tab / Shift+Tab と同じ)", () => {
+      const a = { id: "step-01", kind: "log", description: "" };
+      const b = { id: "step-02", kind: "log", description: "" };
+      const g = makeProcessFlow([makeAction("act-001", [a, b])]);
+      applyProcessFlowMutation(g, "designer__nest_step", { stepId: "step-02", direction: "indent" });
+      expect(g.actions[0].steps).toHaveLength(1);
+      expect((a as { subSteps?: Array<{ id: string }> }).subSteps?.map((s) => s.id)).toEqual(["step-02"]);
+      applyProcessFlowMutation(g, "designer__nest_step", { stepId: "step-02", direction: "outdent" });
+      expect(g.actions[0].steps.map((s) => s.id)).toEqual(["step-01", "step-02"]);
+      expect((a as { subSteps?: unknown }).subSteps).toBeUndefined();
+    });
+
     it("v1/v2 旧 `type` field のみでは追加されない (kind 必須)", () => {
       const act = makeAction("act-001");
       const g = makeProcessFlow([act]);

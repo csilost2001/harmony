@@ -22,7 +22,7 @@
 import type { ProcessFlow, StepType } from "../../types/v3";
 import { addStep, createDefaultStep, removeStep, moveStep } from "../../store/processFlowStore";
 import { collectAllProcessFlowLocalIds } from "../../utils/localIdGenerator";
-import { findStepDeep } from "../../utils/stepTree";
+import { findStepDeep, indentStep, outdentStep } from "../../utils/stepTree";
 
 // #1145 Phase-3 N-3: mismatch / silent no-op を診断 log 化。
 // 古い client / 誤った params 経由で来た mutation は production でも
@@ -89,6 +89,19 @@ export function applyProcessFlowMutation(
       warnNoOp(type, `stepId not found: ${String(p.stepId)}`, p);
       break;
     }
+    case "designer__nest_step": {
+      // 入れ子 (subSteps) を動かす。キーボードの Tab / Shift+Tab と同じ (utils/stepTree.ts)
+      const stepId = String(p.stepId ?? "");
+      const act = g.actions.find((a) => a.steps.some((s) => findStepDeep([s], stepId)));
+      if (!act) {
+        warnNoOp(type, `stepId not found: ${stepId}`, p);
+        return;
+      }
+      const ok = p.direction === "outdent" ? outdentStep(act.steps, stepId) : indentStep(act.steps, stepId);
+      if (!ok) warnNoOp(type, `${String(p.direction)} できません (先頭の工程、または入れ子の外): ${stepId}`, p);
+      break;
+    }
+
     case "designer__move_step": {
       const newIndex = p.newIndex as number;
       for (const act of g.actions) {

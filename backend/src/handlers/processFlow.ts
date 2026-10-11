@@ -31,6 +31,7 @@ import {
   updateStep as editUpdateStep,
   removeStep as editRemoveStep,
   moveStep as editMoveStep,
+  nestStep as editNestStep,
   setMaturity as editSetMaturity,
   addStepNote as editAddStepNote,
   addCatalogEntry as editAddCatalogEntry,
@@ -636,6 +637,30 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       }
       await saveAndBroadcast(a.processFlowId, mvPf, root);
       return { content: [{ type: "text", text: `ステップ ${a.stepId} を位置 ${a.newIndex} に移動しました。` }] };
+    }
+
+    case "designer__nest_step": {
+      if (typeof a.processFlowId !== "string" || typeof a.stepId !== "string" || (a.direction !== "indent" && a.direction !== "outdent")) {
+        throw new McpError(ErrorCode.InvalidParams, "processFlowId, stepId, direction (indent / outdent) は必須です");
+      }
+      assertEntityIdMcp(a.processFlowId, "processFlowId");
+      assertLocalIdMcp(a.stepId, "stepId");
+      const nestApplied = await wsBridge.tryCommand("applyProcessFlowMutation", {
+        id: a.processFlowId, type: "designer__nest_step", params: a,
+      });
+      const label = a.direction === "indent" ? "インデント (直前の工程の配下へ)" : "アウトデント (親の次の位置へ)";
+      if (nestApplied) {
+        return { content: [{ type: "text", text: `ステップ ${a.stepId} を${label}ブラウザで動かしました（保存で確定）` }] };
+      }
+      const nestPf = await readProcessFlow(a.processFlowId, root) as ProcessFlowDoc | null;
+      if (!nestPf) throw new McpError(ErrorCode.InvalidParams, `処理フロー ${a.processFlowId} が見つかりません`);
+      try {
+        editNestStep(nestPf, a.stepId, a.direction);
+      } catch (e) {
+        throw new McpError(ErrorCode.InvalidParams, (e as Error).message);
+      }
+      await saveAndBroadcast(a.processFlowId, nestPf, root);
+      return { content: [{ type: "text", text: `ステップ ${a.stepId} を${label}動かしました。` }] };
     }
 
     case "designer__set_maturity": {

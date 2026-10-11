@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { insertStepAt, type ProcessFlowDoc } from "./processFlowEdits.js";
+import { insertStepAt, nestStep, type ProcessFlowDoc } from "./processFlowEdits.js";
 
 const doc = (): ProcessFlowDoc => ({
   meta: { id: "f" },
@@ -26,5 +26,25 @@ describe("insertStepAt — 親の工程の配下 (subSteps) へ", () => {
     expect(() => insertStepAt(d, "act-001", { id: "step-10", kind: "log", description: "" } as never, undefined, "step-99")).toThrow(/見つかりません/);
     insertStepAt(d, "act-001", { id: "step-10", kind: "log", description: "" } as never, 1);
     expect(d.actions[0].steps.map((s) => s.id)).toEqual(["step-01", "step-10", "step-03"]);
+  });
+});
+
+describe("nestStep — インデント / アウトデント", () => {
+  const ids = (list: Array<{ id: string; subSteps?: unknown[] }>): unknown => list.map((x) => (x.subSteps?.length ? { [x.id]: ids(x.subSteps as never) } : x.id));
+
+  it("indent: 直前の兄弟の配下の末尾へ。先頭の工程はエラー", () => {
+    const d = doc();
+    nestStep(d, "step-03", "indent");
+    expect(ids(d.actions[0].steps as never)).toEqual([{ "step-01": ["step-02", "step-03"] }]);
+    expect(() => nestStep(d, "step-01", "indent")).toThrow(/先頭/);
+  });
+
+  it("outdent: 親の次の位置へ。後ろの兄弟は配下へ引き継ぎ、空になった subSteps は消す。入れ子の外はエラー", () => {
+    const d = doc();
+    d.actions[0].steps[0].subSteps!.push({ id: "step-04", kind: "log", description: "" } as never);
+    nestStep(d, "step-02", "outdent");
+    expect(ids(d.actions[0].steps as never)).toEqual([ "step-01", { "step-02": ["step-04"] }, "step-03" ]);
+    expect(d.actions[0].steps[0].subSteps).toBeUndefined();
+    expect(() => nestStep(d, "step-03", "outdent")).toThrow(/入れ子の中にない/);
   });
 });
