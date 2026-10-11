@@ -13,12 +13,13 @@ export const MAX_CHECKED = 20;
 export function describeDeletionImpact(
   deleted: ReadonlyArray<{ id: string; result: ReferenceResult }>,
   label: string,
+  ignoreKinds: readonly string[] = [],
 ): string | null {
   const deletedSet = new Set(deleted.map((d) => d.id));
   const lines: string[] = [];
   for (const { id, result } of deleted) {
     // 同時に削除する設計どうしの参照は、気にしなくてよい
-    const live = result.referrers.filter((r) => !(r.kind === (result.entityType as string) && deletedSet.has(r.id)));
+    const live = result.referrers.filter((r) => !(r.kind === (result.entityType as string) && deletedSet.has(r.id)) && !ignoreKinds.includes(r.kind));
     if (live.length === 0) continue;
     const shown = live.slice(0, MAX_LISTED).map((r) => `${REFERRER_LABELS[r.kind]}「${r.name ?? r.id}」`);
     const more = live.length > MAX_LISTED ? ` ほか ${live.length - MAX_LISTED} 件` : "";
@@ -32,7 +33,7 @@ export function describeDeletionImpact(
  * 削除を保存してよいか。参照されていなければ確認なしで true。調べられなかったときは確認せず true
  * (調べられないことで、保存を止めない)。
  */
-export async function confirmDeletionImpact(entityType: ReferenceTargetType, label: string, deletedIds: Iterable<string>): Promise<boolean> {
+export async function confirmDeletionImpact(entityType: ReferenceTargetType, label: string, deletedIds: Iterable<string>, ignoreKinds: readonly string[] = []): Promise<boolean> {
   const ids = [...deletedIds];
   if (ids.length === 0) return true;
   try {
@@ -41,7 +42,7 @@ export async function confirmDeletionImpact(entityType: ReferenceTargetType, lab
     for (const id of ids.slice(0, MAX_CHECKED)) {
       results.push({ id, result: (await mcpBridge.request("findEntityReferences", { entityType, id })) as ReferenceResult });
     }
-    const base = describeDeletionImpact(results, label);
+    const base = describeDeletionImpact(results, label, ignoreKinds);
     if (base === null) return true;
     const note = ids.length > MAX_CHECKED ? `\n\n(削除する ${ids.length} 件のうち、先頭の ${MAX_CHECKED} 件だけを調べました)` : "";
     return window.confirm(base + note);

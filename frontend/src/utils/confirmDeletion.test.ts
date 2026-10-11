@@ -28,6 +28,12 @@ describe("削除の影響の文", () => {
     expect(m).toBeNull();
   });
 
+  it("指定した種類の参照元は数えない (画面フローの中で画面を消すとき、画面フロー自身の遷移など)", () => {
+    const r = res("cart", [{ kind: "screenFlow", id: "screen-flow", count: 3 }]);
+    expect(describeDeletionImpact([r], "画面", ["screenFlow"])).toBeNull();
+    expect(describeDeletionImpact([r], "画面")).not.toBeNull();
+  });
+
   it("多いときは省略する", () => {
     const many = Array.from({ length: 12 }, (_, i) => ({ kind: "processFlow" as const, id: `f${i}`, count: 1 }));
     expect(describeDeletionImpact([res("cart", many)], "画面")).toContain("ほか 4 件");
