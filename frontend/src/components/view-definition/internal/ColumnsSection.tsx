@@ -7,6 +7,7 @@
  * columns 操作 (addColumn / removeColumn / moveColumn / setColRefTable / setColRefColumn / updateColumn) は
  * 親コンポーネントが colRefTableIds state を保持しているため props 経由で受け取る。
  */
+import { useGridKeyboard } from "../../../hooks/useGridKeyboard";
 import type {
   ViewDefinition,
   ViewColumn,
@@ -68,8 +69,10 @@ export function ColumnsSection({
   colPath,
   getIssues,
 }: Props) {
+  const gridKeys = useGridKeyboard();
+
   return (
-    <section className="seq-editor-section">
+    <section className="seq-editor-section" onKeyDown={gridKeys.onKeyDown}>
       <h3 className="seq-editor-section-title">
         カラム定義
         <span className="vd-editor-col-count">

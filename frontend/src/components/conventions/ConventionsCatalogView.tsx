@@ -11,6 +11,7 @@
  * 共通部品は `internal/SharedRowParts.tsx` / `internal/sharedOptions.ts` / `internal/sharedTypes.ts` に集約。
  * 拡張カテゴリ read-only 表示は `internal/categories/ExtensionCategoriesPanel.tsx` に分離。
  */
+import { useGridKeyboard } from "../../hooks/useGridKeyboard";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TableSubToolbar } from "../table/TableSubToolbar";
 import { EditorHeader } from "../common/EditorHeader";
@@ -120,6 +121,8 @@ function countCategoryEntries(catalog: ConventionsCatalog, cat: Category): numbe
 }
 
 export function ConventionsCatalogView() {
+  // 表の入力欄で、Enter / ↑↓ で上下の行の同じ列へ移る
+  const gridKeys = useGridKeyboard();
   const [activeCategory, setActiveCategory] = useState<Category>("msg");
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [showForceReleaseDialog, setShowForceReleaseDialog] = useState(false);
@@ -353,7 +356,7 @@ export function ConventionsCatalogView() {
   );
 
   return (
-    <div className={`conventions-catalog-view${isReadonly ? " readonly-mode" : ""}`}>
+    <div className={`conventions-catalog-view${isReadonly ? " readonly-mode" : ""}`} onKeyDown={gridKeys.onKeyDown}>
       <TableSubToolbar />
 
       {serverChanged && (
