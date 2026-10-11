@@ -14,6 +14,7 @@
  * - Phase 6 (#903): useEditSessionLegacy 削除、旧 lock/draft 依存を完全除去
  */
 
+import { getUserName } from "../utils/userIdentity";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { showToast } from "../utils/toast";
 import { mcpBridge } from "../mcp/mcpBridge";
@@ -351,6 +352,7 @@ export function useEditSession(opts: UseEditSessionOptions): UseEditSessionResul
       const result = await mcpBridge.request("editSession.create", {
         resourceType,
         resourceId,
+        displayLabel: getUserName() || undefined,
       }) as { editSession: EditSessionData };
       const es = result.editSession;
       setEditSession(es);
@@ -381,6 +383,7 @@ export function useEditSession(opts: UseEditSessionOptions): UseEditSessionResul
       // (backend wsBridge が fetchCurrentPayload を自動的に呼び、response に含める)
       const result = await mcpBridge.request("editSession.attachAsView", {
         editSessionId: esId,
+        displayLabel: getUserName() || undefined,
       }) as {
         participant: ParticipantInfo;
         payload: unknown;

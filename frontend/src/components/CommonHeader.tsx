@@ -8,14 +8,14 @@ import { QuickOpen } from "./quick-open/QuickOpen";
 import { ShortcutHelp } from "./help/ShortcutHelp";
 import { ConnectionStatus } from "./common/ConnectionStatus";
 import { ToastHost } from "./common/ToastHost";
+import { UserNameButton } from "./common/UserNameButton";
 import "../styles/commonHeader.css";
 
 interface Props {
   notification?: ReactNode;
-  userName?: string;
 }
 
-export function CommonHeader({ notification, userName }: Props) {
+export function CommonHeader({ notification }: Props) {
   return (
     <header className="common-header">
       <div className="common-header-left">
@@ -33,10 +33,7 @@ export function CommonHeader({ notification, userName }: Props) {
         <ShortcutHelp />
         <ThemeToggle />
         <CodexIndicator />
-        <span className="common-header-user">
-          <i className="bi bi-person-circle" />
-          <span className="common-header-user-label">{userName ?? "ゲスト"}</span>
-        </span>
+        <UserNameButton />
       </div>
       <ToastHost />
       <ChangesHost />
