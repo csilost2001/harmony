@@ -91,6 +91,8 @@ export function QuickOpen() {
     if (!open) return;
     let alive = true;
     setEntries(null);
+    // 本文検索の読み込みを先に済ませておく (打ち始めてすぐ結果が出るように)。結果は使わない
+    mcpBridge.request("searchDesign", { query: "", warm: true }).catch(() => undefined);
     loadSources().then((src) => { if (alive) setEntries(buildQuickOpenEntries(src)); }).catch(() => { if (alive) setEntries([]); });
     inputRef.current?.focus();
     return () => { alive = false; };

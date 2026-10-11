@@ -25,7 +25,7 @@
 <p><img alt="汎用定義編集" loading="lazy" decoding="async" fetchpriority="auto" width="1280" height="792" src="../../../_astro/01-default.BIfq6YOK_1kTeRo.webp" ></p>
 <h3 id="主要エリア">主要エリア</h3>
 <ol>
-<li><strong>EditorHeader</strong> — 「&#x3C;kind 表示名>: <name>」 + id 変更 + 保存</name></li>
+<li><strong>EditorHeader</strong> — 「&#x3C;kind 表示名>: <name>」 + id 変更 (保存・変更点・破棄は上部の「編集中」の帯)</name></li>
 <li><strong>メタ情報</strong> — 名前 / 論理名 / 説明 / source / 成熟度</li>
 <li><strong>kind 固有 form</strong> — kind ごとに動的に出し分け
 <ul>
@@ -72,7 +72,12 @@
 
 
 
-<table><thead><tr><th>操作</th><th>手段</th><th>結果</th></tr></thead><tbody><tr><td>フィールド編集</td><td>各 form 要素</td><td>inline 編集</td></tr><tr><td>表型フィールド (data-contract / constants)</td><td>「行追加」 / 行ドラッグ / 「削除」</td><td>表編集 (<code>DataList</code> 共通 UI)</td></tr><tr><td>保存 / 破棄</td><td><code>Ctrl+S</code> / 「破棄」</td><td>edit-session 経由</td></tr><tr><td>rename</td><td>EditorHeader の id 変更</td><td>RenameEntityDialog (kind 内で unique)</td></tr></tbody></table>
+
+
+
+
+
+<table><thead><tr><th>操作</th><th>手段</th><th>結果</th></tr></thead><tbody><tr><td>編集を始める</td><td>上部の帯の「編集開始」</td><td>開いただけでは入力欄は触れない (他の画面と同じ「閲覧中 → 編集中」)。ほかの人も同時に編集を始められ、保存のときに衝突を検出する (あとから保存する人が、上書きするかを選ぶ)。「削除」も、編集中だけ押せる</td></tr><tr><td>フィールド編集</td><td>各 form 要素 (編集中のみ)</td><td>inline 編集</td></tr><tr><td>表型フィールド (data-contract / constants)</td><td>「行追加」 / 行ドラッグ / 「削除」</td><td>表編集 (<code>DataList</code> 共通 UI)</td></tr><tr><td>保存 / 変更点 / 破棄</td><td><code>Ctrl+S</code> (変更がないあいだは押せない) / 「変更点」(保存前に差を確かめる) / 「破棄」(最後に保存した内容へ戻って閲覧に戻る)</td><td>edit-session 経由。未保存の変更はタブの ● に出る</td></tr><tr><td>rename</td><td>EditorHeader の id 変更</td><td>RenameEntityDialog (kind 内で unique)</td></tr></tbody></table>
 <h2 id="データ前提">データ前提</h2>
 <ul>
 <li><strong>新規</strong>: 空フォーム、kind の必須フィールドを入れた時点で意味</li>

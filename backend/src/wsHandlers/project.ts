@@ -87,8 +87,8 @@ export const projectHandlers: RpcHandlerMap = {
 
   /** 設計の本文検索 (クイックオープン用)。説明・カラム名・項目のラベル・工程の説明などから探す。書き込まない */
   searchDesign: async ({ params, root, respond, respondError }) => {
-    const { query, limit } = (params ?? {}) as { query?: string; limit?: number };
-    try { respond({ hits: await searchDesign(root(), typeof query === "string" ? query.slice(0, 200) : "", typeof limit === "number" ? Math.min(limit, 100) : 30) }); }
+    const { query, limit, warm } = (params ?? {}) as { query?: string; limit?: number; warm?: boolean };
+    try { respond({ hits: await searchDesign(root(), typeof query === "string" ? query.slice(0, 200) : "", typeof limit === "number" ? Math.min(limit, 100) : 30, warm === true) }); }
     catch (e) { respondError(e instanceof Error ? e.message : String(e)); }
   },
 

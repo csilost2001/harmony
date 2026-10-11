@@ -5,7 +5,7 @@
 
 export type QuickOpenKind =
   | "screen" | "screen-items" | "table" | "process-flow" | "business-flow" | "report"
-  | "sequence" | "view" | "view-definition" | "page-layout" | "gadget" | "page" | "create";
+  | "sequence" | "view" | "view-definition" | "page-layout" | "gadget" | "generic-definition" | "page" | "create";
 
 export const QUICK_OPEN_KIND_LABELS: Record<QuickOpenKind, string> = {
   "screen": "画面",
@@ -19,6 +19,7 @@ export const QUICK_OPEN_KIND_LABELS: Record<QuickOpenKind, string> = {
   "view-definition": "ビュー定義",
   "page-layout": "ページレイアウト",
   "gadget": "ガジェット",
+  "generic-definition": "汎用定義",
   "page": "ページ",
   "create": "新規作成",
 };
@@ -35,6 +36,7 @@ export const QUICK_OPEN_KIND_ICONS: Record<QuickOpenKind, string> = {
   "view-definition": "bi-layout-text-window",
   "page-layout": "bi-layout-wtf",
   "gadget": "bi-puzzle",
+  "generic-definition": "bi-collection",
   "page": "bi-compass",
   "create": "bi-plus-circle",
 };
@@ -174,7 +176,8 @@ export function searchQuickOpen(entries: QuickOpenEntry[], query: string, limit 
 
 /** 本文検索 (backend の searchDesign) の 1 件 */
 export interface ContentSearchHit {
-  kind: "screen" | "table" | "process-flow" | "business-flow" | "report";
+  kind: "screen" | "table" | "process-flow" | "business-flow" | "report" | "sequence" | "view" | "view-definition" | "page-layout" | "generic-definition";
+  /** 汎用定義は「種類/名前」 */
   id: string;
   name: string;
   matches: { where: string; text: string }[];
@@ -191,6 +194,11 @@ const CONTENT_ROUTES: Record<ContentSearchHit["kind"], (id: string) => string> =
   "process-flow": (id) => `/process-flow/edit/${encodeURIComponent(id)}`,
   "business-flow": (id) => `/business-flow/edit/${encodeURIComponent(id)}`,
   "report": (id) => `/report/edit/${encodeURIComponent(id)}`,
+  "sequence": (id) => `/sequence/edit/${encodeURIComponent(id)}`,
+  "view": (id) => `/view/edit/${encodeURIComponent(id)}`,
+  "view-definition": (id) => `/view-definition/edit/${encodeURIComponent(id)}`,
+  "page-layout": (id) => `/page-layout/edit/${encodeURIComponent(id)}`,
+  "generic-definition": (id) => `/generic-definition/${id.split("/").map(encodeURIComponent).join("/")}`,
 };
 
 /**

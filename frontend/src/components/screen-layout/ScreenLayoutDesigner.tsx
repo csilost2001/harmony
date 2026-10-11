@@ -24,7 +24,7 @@ import { loadProject } from "../../store/flowStore";
 import { loadScreenEntity } from "../../store/screenStore";
 import { hasLegacyDesignContent } from "../../utils/legacyDesign";
 import { saveLayoutComponent, useLayoutComponents } from "../../store/layoutComponentStore";
-import { listTables, loadTable } from "../../store/tableStore";
+import { loadAllTables } from "../../store/tableStore";
 import { setDirty as setTabDirty, makeTabId } from "../../store/tabStore";
 import { extractGrapesHtml } from "../../utils/legacyDesign";
 import type { Table } from "../../types/v3/table";
@@ -127,8 +127,7 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
     let alive = true;
     loadProject().then((p) => { if (alive) setScreens(p.screens.map((s) => ({ id: s.id as string, name: s.name as string, path: (s as { path?: string }).path }))); }).catch(() => undefined);
     (async () => {
-      const metas = await listTables();
-      const full = (await Promise.all(metas.map((m) => loadTable(m.id)))).filter((t): t is Table => !!t);
+      const full = await loadAllTables(); // 全テーブルを 1 回の問い合わせで
       if (alive) setTables(full);
     })().catch(() => undefined);
     return () => { alive = false; };

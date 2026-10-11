@@ -24,9 +24,11 @@ import {
 import { ValidationBadge } from "../common/ValidationBadge";
 import { makeTabId, openTab, setDirty as setTabDirty } from "../../store/tabStore";
 import { useSaveShortcut } from "../../hooks/useSaveShortcut";
-import { registerChangeSource, requestShowChanges } from "../../utils/changeSource";
+import { registerChangeSource } from "../../utils/changeSource";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { SaveConflictDialog, type ConflictInfo } from "../editing/SaveConflictDialog";
+import { EditModeToolbar } from "../editing/EditModeToolbar";
+import { DiscardConfirmDialog } from "../editing/ConfirmDialogs";
 
 function isValidKind(k: string): k is GenericDefinitionKind {
   return (GENERIC_DEFINITION_KINDS as string[]).includes(k);
@@ -45,7 +47,16 @@ const RELATION_KIND_LABELS: Record<GenericRelationKind, string> = {
   appliesTo: "適用対象 (appliesTo)",
 };
 
+/**
+ * 定義ごとに作り直す (key)。別の汎用定義へ移る (例: Ctrl+K の本文検索) と、編集中・衝突ダイアログ・保存の通知などを持ち越さず、
+ * 移った先は閲覧中から始まる (開いただけでは編集できない)。
+ */
 export function GenericDefinitionEditor() {
+  const { kind = "", name = "" } = useParams<{ kind: string; name: string }>();
+  return <GenericDefinitionEditorBody key={`${kind}/${name}`} />;
+}
+
+function GenericDefinitionEditorBody() {
   const { kind: kindParam = "", name: nameParam = "" } = useParams<{ kind: string; name: string }>();
   const navigate = useNavigate();
   const { wsPath } = useWorkspacePath();
@@ -60,6 +71,10 @@ export function GenericDefinitionEditor() {
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  // 他の画面と同じ「閲覧中 → 編集開始 → 編集中」。編集開始まで、入力欄は触れない (開いただけで原本を書き換えない)
+  const [editing, setEditing] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const [showDiscard, setShowDiscard] = useState(false);
   // issues は def から純粋に派生する値のため useMemo で derive する
   // (React 19 `react-hooks/set-state-in-effect` 対応、宣言は L290 付近)。
   // #1368: 他 session が save した際の衝突情報 (spec §9.3 last-save-wins)。
@@ -359,9 +374,36 @@ export function GenericDefinitionEditor() {
     // #1331: save 成功後は EditSession を discard。target を snapshot して、await 中の
     // resource 切替で誤って新 session を消さないようにする (Codex Round 4 Must-fix)。
     const targetAtSave = currentResourceIdRef.current;
-    discardEditSession(targetAtSave).catch(() => { /* logged inside */ });
+    // 編集中のままなので、保存で閉じたセッションを作り直す (帯の「編集中」と、サーバ側のセッションが食い違わないように)
+    discardEditSession(targetAtSave)
+      .then(() => ensureEditSession())
+      .catch(() => { /* logged inside */ });
     setTimeout(() => setSaveSuccess(false), 3000);
-  }, [discardEditSession]);
+  }, [discardEditSession, ensureEditSession]);
+
+  /** 編集開始: 編集セッションを作ってから、入力欄を使えるようにする (作れなければ閲覧のまま。ほかの人が編集中でも始められ、保存のときに衝突を検出する) */
+  const startEditing = useCallback(async () => {
+    if (editing || starting) return;
+    setStarting(true);
+    try {
+      const id = await ensureEditSession();
+      if (id) setEditing(true);
+      else setSaveError("編集を開始できませんでした。通信を確認して、もう一度「編集開始」を押してください");
+    } finally {
+      setStarting(false);
+    }
+  }, [editing, starting, ensureEditSession]);
+
+  /** 破棄: 編集中の内容を捨てて、最後に保存した内容に戻し、閲覧に戻る */
+  const discardEditing = useCallback(async () => {
+    setShowDiscard(false);
+    await discardEditSession(currentResourceIdRef.current);
+    setEditing(false);
+    setSaveError("");
+    setSaveConflict(null);
+    setReloadBanner(false);
+    reload({ silent: true });
+  }, [discardEditSession, reload]);
 
   const handleSave = useCallback(async () => {
     if (!def) return;
@@ -465,7 +507,7 @@ export function GenericDefinitionEditor() {
   }, [def, reloadBanner, ensureEditSession, postSaveSuccess]);
 
   // Ctrl+S (入力欄の中でも効く)。変更がないときは何もしない
-  useSaveShortcut(() => { if (dirty) handleSave().catch(console.error); }, !!def);
+  useSaveShortcut(() => { if (dirty && editing) handleSave().catch(console.error); }, !!def && editing);
 
   const handleDelete = useCallback(async () => {
     if (!kind || !decodedName) return;
@@ -574,6 +616,16 @@ export function GenericDefinitionEditor() {
           </button>
         </div>
       )}
+      <EditModeToolbar
+        mode={editing ? { kind: "editing" } : { kind: "readonly" }}
+        onStartEditing={() => { void startEditing(); }}
+        onSave={() => { void handleSave(); }}
+        onDiscardClick={() => setShowDiscard(true)}
+        onForceReleaseClick={() => undefined}
+        saving={saving}
+        // 外部の更新を受けたあと (上の帯の「再読み込み」まで) は、保存を止める
+        dirty={dirty && !reloadBanner}
+      />
       <div style={{ padding: "12px 24px", borderBottom: "1px solid var(--hm-border)", display: "flex", alignItems: "center", gap: "12px" }}>
         <h2 style={{ margin: 0, fontSize: "1.1rem" }}>
           {GENERIC_DEFINITION_KIND_LABELS[kind]}編集
@@ -589,6 +641,8 @@ export function GenericDefinitionEditor() {
           <button
             className="btn btn-outline-danger btn-sm"
             onClick={() => setShowDeleteConfirm(true)}
+            disabled={!editing}
+            title={editing ? undefined : "削除は、「編集開始」を押してからできます"}
           >
             削除
           </button>
@@ -597,25 +651,6 @@ export function GenericDefinitionEditor() {
             onClick={() => navigate(wsPath(`/generic-definition/${kind}`))}
           >
             一覧に戻る
-          </button>
-          {dirty && (
-            <button
-              className="btn btn-outline-secondary btn-sm"
-              onClick={requestShowChanges}
-              title="保存する前に、何が変わったかを確かめる"
-              data-testid="generic-definition-changes"
-            >
-              <i className="bi bi-card-checklist" /> 変更点
-            </button>
-          )}
-          <button
-            className="btn btn-primary btn-sm"
-            onClick={handleSave}
-            disabled={saving || reloadBanner || !dirty}
-            title={dirty ? "保存 (Ctrl+S)" : "変更がないので、保存するものはありません"}
-            data-testid="generic-definition-save"
-          >
-            {saving ? "保存中..." : "保存"}
           </button>
         </div>
       </div>
@@ -632,7 +667,7 @@ export function GenericDefinitionEditor() {
         </div>
       )}
 
-      <div style={{ flex: 1, overflow: "auto", padding: "16px 24px" }}>
+      <fieldset disabled={!editing} data-testid="generic-definition-body" style={{ flex: 1, overflow: "auto", padding: "16px 24px", border: 0, margin: 0, minWidth: 0 }}>
         <section style={{ marginBottom: "24px" }}>
           <h3 style={{ fontSize: "1rem", marginBottom: "4px" }}>基本情報</h3>
           {renderSectionIssues(["purpose", "name", "kind"])}
@@ -1021,7 +1056,11 @@ export function GenericDefinitionEditor() {
             placeholder={'例:\n{\n  "backend.spring": "...",\n  "frontend.next": "..."\n}'}
           />
         </section>
-      </div>
+      </fieldset>
+
+      {showDiscard && (
+        <DiscardConfirmDialog onConfirm={() => { void discardEditing(); }} onCancel={() => setShowDiscard(false)} />
+      )}
 
       {showDeleteConfirm && (
         <div style={{

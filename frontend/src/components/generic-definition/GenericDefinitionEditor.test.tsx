@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom";
 import { GenericDefinitionEditor } from "./GenericDefinitionEditor";
 
 const saveGenericDefinition = vi.fn();
@@ -36,6 +36,7 @@ vi.mock("../../store/tabStore", () => ({
   makeTabId: vi.fn(() => "tab-id"),
   openTab: vi.fn(),
   setDirty: vi.fn(),
+  getActiveTabId: vi.fn(() => "tab-id"),
 }));
 
 vi.mock("../../store/genericDefinitionStore", () => ({
@@ -91,7 +92,14 @@ async function renderEditor() {
     </MemoryRouter>,
   );
   await screen.findByDisplayValue("initial purpose");
+  await beginEditing();
   return result;
+}
+
+/** 「編集開始」を押して、編集中 (保存ボタンが出る) になるまで待つ */
+async function beginEditing() {
+  fireEvent.click(await screen.findByTestId("edit-mode-start"));
+  await screen.findByTestId("edit-mode-save");
 }
 
 describe("GenericDefinitionEditor — Phase K stale save prevention", () => {
@@ -105,6 +113,7 @@ describe("GenericDefinitionEditor — Phase K stale save prevention", () => {
     );
 
     const purpose = await screen.findByDisplayValue("initial purpose");
+    await beginEditing();
     fireEvent.change(purpose, { target: { value: "dirty purpose" } });
     expect(broadcastHandler).not.toBeNull();
     act(() => broadcastHandler?.({ reload: true }));
@@ -297,10 +306,10 @@ describe("GenericDefinitionEditor — 未保存の変更の扱い", () => {
     await renderEditor();
     const save = screen.getByRole("button", { name: "保存" }) as HTMLButtonElement;
     expect(save.disabled).toBe(true);
-    expect(screen.queryByTestId("generic-definition-changes")).toBeNull();
+    expect(screen.queryByTestId("edit-mode-changes")).toBeNull();
     fireEvent.change(screen.getByDisplayValue("initial purpose"), { target: { value: "edited purpose" } });
     expect((screen.getByRole("button", { name: "保存" }) as HTMLButtonElement).disabled).toBe(false);
-    expect(screen.getByTestId("generic-definition-changes")).toBeTruthy();
+    expect(screen.getByTestId("edit-mode-changes")).toBeTruthy();
     // 元の値へ戻せば、また変更なし
     fireEvent.change(screen.getByDisplayValue("edited purpose"), { target: { value: "initial purpose" } });
     expect((screen.getByRole("button", { name: "保存" }) as HTMLButtonElement).disabled).toBe(true);
@@ -314,6 +323,47 @@ describe("GenericDefinitionEditor — 未保存の変更の扱い", () => {
     await waitFor(() => expect(setDirty).toHaveBeenLastCalledWith("tab-id", true));
     fireEvent.change(screen.getByDisplayValue("x"), { target: { value: "initial purpose" } });
     await waitFor(() => expect(setDirty).toHaveBeenLastCalledWith("tab-id", false));
+  });
+
+  it("編集開始までは入力欄を触れず、破棄で最後に保存した内容へ戻って閲覧に戻る", async () => {
+    render(
+      <MemoryRouter initialEntries={["/generic-definition/data-contract/Order"]}>
+        <Routes><Route path="/generic-definition/:kind/:name" element={<GenericDefinitionEditor />} /></Routes>
+      </MemoryRouter>,
+    );
+    const purpose = await screen.findByDisplayValue("initial purpose") as HTMLTextAreaElement;
+    expect(screen.getByTestId("generic-definition-body")).toHaveProperty("disabled", true);
+    expect(purpose.matches(":disabled")).toBe(true);
+    expect(mcpRequest.mock.calls.some((c) => c[0] === "editSession.create")).toBe(false); // 開いただけでは作らない
+    await beginEditing();
+    expect(purpose.matches(":disabled")).toBe(false);
+    fireEvent.change(purpose, { target: { value: "edited" } });
+    fireEvent.click(screen.getByTestId("edit-mode-discard"));
+    fireEvent.click(await screen.findByTestId("discard-confirm"));
+    await waitFor(() => expect(screen.getByTestId("edit-mode-start")).toBeTruthy());
+    await waitFor(() => expect((screen.getByTestId("generic-definition-body") as HTMLFieldSetElement).disabled).toBe(true));
+    expect(await screen.findByDisplayValue("initial purpose")).toBeTruthy();
+    expect(saveGenericDefinition).not.toHaveBeenCalled();
+  });
+
+  it("編集中に別の汎用定義へ移る (Ctrl+K など) と、移った先は閲覧中から始まる", async () => {
+    function GoOther() {
+      const navigate = useNavigate();
+      return <button type="button" data-testid="go-other" onClick={() => navigate("/generic-definition/data-contract/Other")}>移る</button>;
+    }
+    render(
+      <MemoryRouter initialEntries={["/generic-definition/data-contract/Order"]}>
+        <GoOther />
+        <Routes><Route path="/generic-definition/:kind/:name" element={<GenericDefinitionEditor />} /></Routes>
+      </MemoryRouter>,
+    );
+    await screen.findByDisplayValue("initial purpose");
+    await beginEditing();
+    expect(screen.getByTestId("edit-mode-save")).toBeTruthy();
+    fireEvent.click(screen.getByTestId("go-other"));
+    await waitFor(() => expect(screen.getByTestId("edit-mode-start")).toBeTruthy());
+    expect((screen.getByTestId("generic-definition-body") as HTMLFieldSetElement).disabled).toBe(true);
+    expect(screen.queryByTestId("edit-mode-save")).toBeNull();
   });
 });
 

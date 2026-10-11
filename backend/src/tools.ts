@@ -888,6 +888,20 @@ export const tools = [
     },
   },
   {
+    name: "designer__nest_step",
+    description:
+      "ステップの入れ子 (subSteps) を動かします。indent = 直前のステップの配下へ入れる (親の本体の処理のあと、配列順に実行される。親の runIf・失敗の扱いが及ぶ)、outdent = 親の次の位置へ出す (後ろにいた兄弟は、出したステップの配下へ引き継ぎ、実行順を変えない)。最初のステップは indent できない。ブラウザで開いている処理フローは、動かせなかったとき (先頭・入れ子の外) も成功を返すことがあるので、結果は処理フローを読んで確認すること。docs/spec/process-flow-substeps.md",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        processFlowId: { type: "string", description: "対象の処理フローの EntityId (kebab-case)" },
+        stepId: { type: "string", description: "動かすステップの LocalId (入れ子の中のステップも指定できる)" },
+        direction: { type: "string", enum: ["indent", "outdent"], description: "indent = 直前のステップの配下へ / outdent = 親の次の位置へ" },
+      },
+      required: ["processFlowId", "stepId", "direction"],
+    },
+  },
+  {
     name: "designer__move_step",
     description: "ステップを同一配列内で並び替えます。異なる親への移動は未対応。",
     inputSchema: {

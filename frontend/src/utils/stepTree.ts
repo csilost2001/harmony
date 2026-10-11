@@ -18,8 +18,8 @@ export function locateStep(steps: Step[], id: string, parent: Step | null = null
   for (let i = 0; i < steps.length; i++) {
     const s = steps[i];
     if (s.id === id) return { list: steps, index: i, parent, parentList };
-    if (s.subSteps?.length) {
-      const hit = locateStep(s.subSteps, id, s, steps);
+    for (const list of childLists(s)) {
+      const hit = locateStep(list, id, s, steps);
       if (hit) return hit;
     }
   }
@@ -34,7 +34,8 @@ export function canIndentStep(steps: Step[], id: string): boolean {
 
 /** 親がいれば、親の次の位置へ出せる */
 export function canOutdentStep(steps: Step[], id: string): boolean {
-  return !!locateStep(steps, id)?.parent;
+  const loc = locateStep(steps, id);
+  return !!loc?.parent && loc.parent.subSteps === loc.list; // 配下 (subSteps) の中にいるときだけ。分岐の枝・繰り返しの本体からは出せない
 }
 
 /** 直前の兄弟の subSteps の末尾へ移す (自分の subSteps も一緒に動く) */
@@ -50,7 +51,7 @@ export function indentStep(steps: Step[], id: string): boolean {
 /** 親の次の位置へ出す (親の subSteps が空になれば項目ごと消す)。自分より後ろの兄弟は、自分の配下へ引き継ぐ */
 export function outdentStep(steps: Step[], id: string): boolean {
   const loc = locateStep(steps, id);
-  if (!loc || !loc.parent || !loc.parentList) return false;
+  if (!loc || !loc.parent || !loc.parentList || loc.parent.subSteps !== loc.list) return false;
   const [moved] = loc.list.splice(loc.index, 1);
   // 後ろにいた兄弟は、動かした工程の配下にする (見た目の位置と実行順を変えないため)
   const followers = loc.list.splice(loc.index);

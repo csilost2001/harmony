@@ -5,7 +5,7 @@
  * などで一覧に載っていない設計が、設計書・検査・一覧画面から黙って落ちないように、読み出すときに足す。
  * 足した分は、利用者が次に保存したとき (project の保存) に一覧へ書かれる。読み込みでは原本を書き換えない。
  */
-import { listExistingEntityIds, readProcessFlow, readProject, readScreenEntity, readTable } from "./projectStorage.js";
+import { listExistingEntityIds, readEntityReadOnly, readProject, readScreenEntity } from "./projectStorage.js";
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
 const str = (v: unknown): string | undefined => (typeof v === "string" && v ? v : undefined);
@@ -32,7 +32,7 @@ export async function mergeUnregisteredEntities(project: unknown, root: string):
   const screenIds = new Set(screens.map((e) => e.id));
   for (const id of (await listExistingEntityIds("screen", root).catch(() => [] as string[])).sort()) {
     if (screenIds.has(id)) continue;
-    const e = await readScreenEntity(id, root).catch(() => null);
+    const e = (await readEntityReadOnly("screen", id, root)) ?? await readScreenEntity(id, root).catch(() => null);
     if (!isRecord(e)) continue;
     screens.push({
       id, no: nextNo(screens), name: str(e.name) ?? id,
@@ -47,7 +47,7 @@ export async function mergeUnregisteredEntities(project: unknown, root: string):
   const tableIds = new Set(tables.map((e) => e.id));
   for (const id of (await listExistingEntityIds("table", root).catch(() => [] as string[])).sort()) {
     if (tableIds.has(id)) continue;
-    const t = await readTable(id, root).catch(() => null);
+    const t = await readEntityReadOnly("table", id, root);
     if (!isRecord(t) || typeof t.id !== "string") continue;
     tables.push({
       id: t.id, no: nextNo(tables), name: str(t.name) ?? t.id, ...(str(t.physicalName) ? { physicalName: t.physicalName } : {}),
@@ -62,7 +62,7 @@ export async function mergeUnregisteredEntities(project: unknown, root: string):
   const flowIds = new Set(flows.map((e) => e.id));
   for (const id of (await listExistingEntityIds("processFlow", root).catch(() => [] as string[])).sort()) {
     if (flowIds.has(id)) continue;
-    const f = await readProcessFlow(id, root).catch(() => null);
+    const f = await readEntityReadOnly("processFlow", id, root);
     const meta = isRecord(f) && isRecord(f.meta) ? f.meta : null;
     if (!meta || typeof meta.id !== "string") continue;
     flows.push({

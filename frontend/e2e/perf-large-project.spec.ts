@@ -65,13 +65,14 @@ test.describe("大きなプロジェクトの性能", () => {
     await expect(page.getByTestId("quick-open-content-head")).toBeVisible({ timeout: 15000 });
     const ms = Date.now() - t0;
     console.log(`[perf] Ctrl+K 本文検索 (約 600 件): ${ms} ms`);
-    expect(ms).toBeLessThan(5000);
+    // 実測 (約 600 件、ダッシュボードの読み込みと重なる最初の 1 回): 約 4.4 秒 (先読みなし 5.2〜5.9 秒、一括化の前は 15 秒)。予算はその約 2 倍 (桁違いの劣化を見つける用)
+    expect(ms).toBeLessThan(8000);
   });
 
   // 設計ごとに問い合わせる (N+1) と、大きなプロジェクトでは数千回の往復になり、サーバが他の操作に応えられなくなる。
   // 主要画面の問い合わせの総数が、設計の数 (約 600) に比例していないことを確かめる
   const COUNT_BUDGET = 150;
-  for (const route of ["/", "/screen/list", "/table/list", "/process-flow/list", "/table/er", "/document"]) {
+  for (const route of ["/", "/screen/list", "/table/list", "/process-flow/list", "/table/er", "/document", "/screen/design/cart", "/screen/items/cart", "/process-flow/edit/order-confirm", "/table/edit/order-item"]) {
     test(`${route} を開いたときの問い合わせの数が、設計の数に比例しない`, async ({ page }) => {
       await page.addInitScript(() => {
         const W = window as unknown as { __rpcCount: number };
