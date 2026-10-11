@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
-import { writeTable, writeProcessFlow } from "./projectStorage.js";
+import { writeTable, writeProcessFlow, writeGenericDefinition } from "./projectStorage.js";
 import { searchDesign, normalizeForSearch } from "./designSearch.js";
 
 const ROOT = path.join(os.tmpdir(), `design-search-${process.pid}-${Date.now()}`);
@@ -28,6 +28,11 @@ beforeAll(async () => {
     ] }],
   }, ROOT);
 });
+beforeAll(async () => {
+  await writeGenericDefinition("OrderForm", "data-contract", {
+    kind: "data-contract", name: "OrderForm", purpose: "納品書の入力契約。引当に使う", responsibilities: ["入力を受ける"], targets: ["backend"],
+  }, ROOT);
+});
 afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true }); });
 
 describe("設計の本文検索", () => {
@@ -50,5 +55,11 @@ describe("設計の本文検索", () => {
     expect(await searchDesign(ROOT, "在")).toEqual([]);
     expect(await searchDesign(ROOT, "")).toEqual([]);
     expect(await searchDesign(ROOT, "注文確定")).toEqual([]);
+  });
+
+  it("汎用定義 (種類/名前) も、本文から探せる", async () => {
+    const hits = await searchDesign(ROOT, "引当に使う");
+    expect(hits.map((h) => `${h.kind}:${h.id}`)).toContain("generic-definition:data-contract/OrderForm");
+    expect(hits.find((h) => h.kind === "generic-definition")?.matches[0].text).toContain("引当に使う");
   });
 });
