@@ -253,6 +253,9 @@
 <li>CLI (<code>scripts/lib/load-workspace.mjs</code>) は、載っていないものを「情報」で知らせる (設計書・検査には含める)。</li>
 <li>画面フローの内容 (<code>screenGroups</code> / <code>screenTransitions</code>) は一覧側にだけある原本で、ファイルからは導けない。</li>
 </ul>
+<h3 id="uuid-の無いファイル">uuid の無いファイル</h3>
+<p>手で置いた・AI が作ったファイルに <code>uuid</code> が無くても、読んだだけ (開く・一覧・検索・設計書) ではファイルを書き換えない。<code>uuid</code> は<strong>種類 + id から決めた値</strong> (v4 の形) をメモリ上で補って返すので、何度読んでも同じ値になる。保存 (<code>writeX</code>) のとき、渡された <code>uuid</code> がそのままファイルに残る (<code>backend/src/projectStorage.ts</code> の <code>deriveStableUuid</code>)。</p>
+<p>読んだだけで原本が変わる例外は、<strong>旧形式 (GrapesJS) の画面の自動変換</strong>だけ (画面を読むと、旧デザインを <code>.design.json</code> へ退避し、新形式の実体を作る)。旧エディタの廃止に伴う移行のためで、新形式のファイルは読んでも変わらない。</p>
 <hr>
 <h2 id="4-lockdown-モード">4. lockdown モード</h2>
 <h3 id="41-有効化条件">4.1 有効化条件</h3>
