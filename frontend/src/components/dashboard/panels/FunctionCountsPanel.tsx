@@ -6,7 +6,7 @@
  */
 import { useEffect, useState } from "react";
 import { loadProject } from "../../../store/flowStore";
-import { loadAllTables } from "../../../store/tableStore";
+import { listTables, loadAllTables } from "../../../store/tableStore";
 import { mcpBridge } from "../../../mcp/mcpBridge";
 
 interface Counts {
@@ -24,8 +24,8 @@ async function fetchCounts(): Promise<Counts> {
   const processFlows = project.processFlows?.length ?? 0;
 
   // 全テーブルを 1 回の問い合わせでまとめて読む (1 件ずつ尋ねると、テーブルの数だけ往復する)
-  const allTables = await loadAllTables();
-  const tables = allTables.length;
+  const tables = (await listTables()).length;
+  const allTables = await loadAllTables().catch(() => []);
 
   // FK 数は各テーブル定義の Constraint.foreignKey を集計 (v3 で Column.foreignKey は廃止)
   let foreignKeys = 0;
