@@ -83,6 +83,11 @@ export function detectDelimiter(text: string): string {
  * カンマ区切りでは、型の `(10,2)` のカンマは区切りにしない。`no` は、その行が始まる行番号 (貼り付けた文のとおり)。
  */
 export function parseRows(text: string, delim: string): Array<{ cells: string[]; no: number }> {
+  return parseRowsChecked(text, delim).rows;
+}
+
+/** parseRows に加えて、閉じていない引用符 (`"` で始まって閉じないセル) があったかも返す */
+export function parseRowsChecked(text: string, delim: string): { rows: Array<{ cells: string[]; no: number }>; unclosedQuote: boolean } {
   const src = text.replace(/\r\n?/g, "\n");
   const rows: Array<{ cells: string[]; no: number }> = [];
   let cells: string[] = [], cur = "", inQ = false, depth = 0, atCellStart = true, line = 1, rowNo = 1;
@@ -105,7 +110,7 @@ export function parseRows(text: string, delim: string): Array<{ cells: string[];
     cur += ch;
   }
   if (cur !== "" || cells.length > 0 || inQ) endRow();
-  return rows;
+  return { rows, unclosedQuote: inQ };
 }
 
 /** 見出しの 1 セルが、どの項目か (分からなければ null) */
@@ -152,7 +157,9 @@ export function toPhysicalName(raw: string): { value: string; changed: boolean }
 export function parseColumnTable(text: string): ColumnPasteResult {
   const warnings: string[] = [];
   // 空行は読み飛ばすが、行番号は貼り付けた文のとおりに数える
-  const numbered = parseRows(text, detectDelimiter(text)).filter((r) => r.cells.some((c) => c.trim() !== ""));
+  const parsedRows = parseRowsChecked(text, detectDelimiter(text));
+  const numbered = parsedRows.rows.filter((r) => r.cells.some((c) => c.trim() !== ""));
+  if (parsedRows.unclosedQuote) warnings.push(UNCLOSED_QUOTE_WARNING);
   if (numbered.length === 0) return { columns: [], warnings, headerDetected: false };
   const rows = numbered.map((r) => r.cells.map((c) => c.trim()));
 
@@ -241,6 +248,8 @@ export function splitDuplicates(parsed: readonly ParsedColumn[], existing: reado
   }
   return { add, duplicates };
 }
+
+export const UNCLOSED_QUOTE_WARNING = "閉じていない引用符 (\") があります。そこから後ろの行が 1 つのセルとして読まれている可能性があります。貼り付けた表を確かめてください";
 
 const cell = (v: unknown) => String(v ?? "").replace(/[\t\r\n]+/g, " ");
 const flag = (v?: boolean) => (v ? "○" : "");

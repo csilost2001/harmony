@@ -80,3 +80,10 @@ describe("項目の型に長さがついた書き方", () => {
     expect(r.items[0].description).toBe("1 行目\n2 行目");
   });
 });
+
+describe("閉じていない引用符", () => {
+  it("警告を出す (以降の行が 1 セルに吸収されたことに気づけるように)", () => {
+    const r = parseItemTable('項目ID\ta\nx\t"閉じていない\ny\tz');
+    expect(r.warnings.join("")).toContain("閉じていない引用符");
+  });
+});

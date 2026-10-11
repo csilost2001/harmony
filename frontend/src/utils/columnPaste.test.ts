@@ -144,3 +144,10 @@ describe("「NULL」の見出し (NOT NULL と取り違えない)", () => {
     expect(headerField("NULL可")).toBe("nullable");
   });
 });
+
+describe("閉じていない引用符", () => {
+  it("警告を出す (以降の行が 1 セルに吸収されたことに気づけるように)", () => {
+    const r = parseColumnTable('物理名\ta\tb\nx\t"閉じていない\ny\tz');
+    expect(r.warnings.join("")).toContain("閉じていない引用符");
+  });
+});

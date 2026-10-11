@@ -4,7 +4,7 @@
  * なければ 項目 ID / ラベル / 型 / 入出力 / 必須 / 最大長 / 最小長 / パターン / 説明 の順とみなす。
  */
 import type { ScreenItem } from "../types/v3/screen-item";
-import { detectDelimiter, norm, parseBoolean, parseDataType, parseRows } from "./columnPaste";
+import { UNCLOSED_QUOTE_WARNING, detectDelimiter, norm, parseBoolean, parseDataType, parseRowsChecked } from "./columnPaste";
 
 export type ParsedItem = Pick<ScreenItem, "id" | "label" | "type"> &
   Partial<Pick<ScreenItem, "direction" | "required" | "minLength" | "maxLength" | "min" | "max" | "pattern" | "description">>;
@@ -66,7 +66,9 @@ export function parseDirection(cell: string): ScreenItem["direction"] | undefine
 
 export function parseItemTable(text: string): ItemPasteResult {
   const warnings: string[] = [];
-  const numbered = parseRows(text, detectDelimiter(text)).filter((r) => r.cells.some((c) => c.trim() !== ""));
+  const parsedRows = parseRowsChecked(text, detectDelimiter(text));
+  const numbered = parsedRows.rows.filter((r) => r.cells.some((c) => c.trim() !== ""));
+  if (parsedRows.unclosedQuote) warnings.push(UNCLOSED_QUOTE_WARNING);
   if (numbered.length === 0) return { items: [], warnings, headerDetected: false };
   const rows = numbered.map((r) => r.cells.map((c) => c.trim()));
   const first = rows[0].map(headerField);
