@@ -132,6 +132,13 @@ function TabItem({
 
 export function TabBar() {
   const { tabs, activeTabId } = useTabs();
+
+  // ブラウザのタブ名: 開いている設計の名前 (未保存の変更があれば「●」つき)。ブラウザのタブを複数開いていても見分けられる
+  useEffect(() => {
+    const active = tabs.find((t) => t.id === activeTabId);
+    document.title = active ? `${active.isDirty ? "● " : ""}${active.label} - Harmony` : "Harmony";
+    return () => { document.title = "Harmony"; };
+  }, [tabs, activeTabId]);
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);

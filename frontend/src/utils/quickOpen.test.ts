@@ -100,3 +100,15 @@ describe("新しく作る", () => {
     for (const c of creates) { expect(c.route.startsWith("/")).toBe(true); expect(c.label).toContain("新しく作る"); }
   });
 });
+
+describe("ページレイアウト・ガジェット", () => {
+  const es = buildQuickOpenEntries({
+    pageLayouts: [{ id: "main-layout", name: "メインレイアウト" }],
+    gadgets: [{ id: "global-header", name: "グローバルヘッダ" }],
+  });
+  it("検索の対象になり、それぞれのエディタを開く", () => {
+    expect(searchQuickOpen(es, "メインレイアウト")[0].entry).toMatchObject({ kind: "page-layout", route: "/page-layout/edit/main-layout" });
+    expect(searchQuickOpen(es, "ヘッダ")[0].entry).toMatchObject({ kind: "gadget", route: "/screen/design/global-header" });
+  });
+});
+

@@ -11,9 +11,11 @@ import { ErrorBoundary } from "./components/common/ErrorBoundary";
 import { AppErrorFallback } from "./components/common/ErrorFallback";
 import { ErrorDialogProvider } from "./components/common/ErrorDialogProvider";
 import { installGlobalErrorHandlers } from "./utils/errorLog";
+import { installFailureToasts } from "./utils/failureToast";
 import { initAppTheme } from "./theme/appTheme";
 
 installGlobalErrorHandlers();
+installFailureToasts();
 initAppTheme();
 
 createRoot(document.getElementById("root")!).render(

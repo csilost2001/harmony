@@ -73,7 +73,7 @@ export function GettingStartedPanel() {
         })}
       </ol>
       <p className="gsp-tips">
-        <i className="bi bi-search" /> <kbd>Ctrl</kbd>+<kbd>K</kbd> で、画面・テーブル・処理フローなどへすぐ移れます。
+        <i className="bi bi-search" /> <kbd>Ctrl</kbd>+<kbd>K</kbd> で、画面・テーブル・処理フローなどへすぐ移れます (「新規 テーブル」のように入れると新しく作れます)。<kbd>?</kbd> でショートカットの一覧。
         <br /><i className="bi bi-robot" /> AI (MCP) につないでいれば、「注文管理の画面とテーブルを作って」のように頼めます。
       </p>
     </div>

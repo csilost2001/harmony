@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { loadProject } from "../../store/flowStore";
 import { listBusinessFlows } from "../../store/businessFlowStore";
 import { listReports } from "../../store/reportStore";
+import { listPageLayouts } from "../../store/pageLayoutStore";
 import { clearActiveTab, getActiveTabId, getTabs } from "../../store/tabStore";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
 import { requestQuickCreate } from "../../hooks/useQuickCreate";
@@ -29,7 +30,7 @@ import "../../styles/quickOpen.css";
 const isWorkspaceScoped = (route: string) => !route.startsWith("/workspace/") && route !== "/ai-settings";
 
 async function loadSources(): Promise<QuickOpenSources> {
-  const [project, businessFlows, reports] = await Promise.allSettled([loadProject(), listBusinessFlows(), listReports()]);
+  const [project, businessFlows, reports, pageLayouts] = await Promise.allSettled([loadProject(), listBusinessFlows(), listReports(), listPageLayouts()]);
   const p = project.status === "fulfilled" ? project.value : null;
   return {
     screens: (p?.screens ?? []).filter((s) => s.purpose !== "gadget").map((s) => ({ id: s.id, name: s.name, path: s.path })),
@@ -39,6 +40,8 @@ async function loadSources(): Promise<QuickOpenSources> {
     views: (p?.views ?? []).map((v) => ({ id: v.id, name: v.name, physicalName: v.physicalName })),
     viewDefinitions: (p?.viewDefinitions ?? []).map((v) => ({ id: v.id, name: v.name })),
     businessFlows: businessFlows.status === "fulfilled" ? businessFlows.value.map((f) => ({ id: f.id, name: f.name })) : [],
+    pageLayouts: pageLayouts.status === "fulfilled" ? pageLayouts.value.map((l) => ({ id: String(l.id), name: String(l.name ?? l.id) })) : [],
+    gadgets: (p?.screens ?? []).filter((s) => s.purpose === "gadget").map((s) => ({ id: s.id, name: s.name })),
     reports: reports.status === "fulfilled" ? reports.value.map((r) => ({ id: r.id, name: r.name })) : [],
     pages: [DASHBOARD_ITEM, ...MENU_ITEMS].map((m) => ({ id: m.id, label: m.label, route: m.route })),
   };

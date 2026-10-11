@@ -5,7 +5,7 @@
 
 export type QuickOpenKind =
   | "screen" | "screen-items" | "table" | "process-flow" | "business-flow" | "report"
-  | "sequence" | "view" | "view-definition" | "page" | "create";
+  | "sequence" | "view" | "view-definition" | "page-layout" | "gadget" | "page" | "create";
 
 export const QUICK_OPEN_KIND_LABELS: Record<QuickOpenKind, string> = {
   "screen": "画面",
@@ -17,6 +17,8 @@ export const QUICK_OPEN_KIND_LABELS: Record<QuickOpenKind, string> = {
   "sequence": "シーケンス",
   "view": "ビュー",
   "view-definition": "ビュー定義",
+  "page-layout": "ページレイアウト",
+  "gadget": "ガジェット",
   "page": "ページ",
   "create": "新規作成",
 };
@@ -31,6 +33,8 @@ export const QUICK_OPEN_KIND_ICONS: Record<QuickOpenKind, string> = {
   "sequence": "bi-arrow-repeat",
   "view": "bi-eye",
   "view-definition": "bi-layout-text-window",
+  "page-layout": "bi-layout-wtf",
+  "gadget": "bi-puzzle",
   "page": "bi-compass",
   "create": "bi-plus-circle",
 };
@@ -59,6 +63,8 @@ export interface QuickOpenSources {
   sequences?: { id: string; name: string; physicalName?: string }[];
   views?: { id: string; name: string; physicalName?: string }[];
   viewDefinitions?: { id: string; name: string }[];
+  pageLayouts?: { id: string; name: string }[];
+  gadgets?: { id: string; name: string }[];
   pages?: { id: string; label: string; route: string }[];
 }
 
@@ -101,6 +107,8 @@ export function buildQuickOpenEntries(src: QuickOpenSources): QuickOpenEntry[] {
   for (const s of src.sequences ?? []) add("sequence", s.id, s.name, [s.physicalName], `/sequence/edit/${enc(s.id)}`);
   for (const v of src.views ?? []) add("view", v.id, v.name, [v.physicalName], `/view/edit/${enc(v.id)}`);
   for (const v of src.viewDefinitions ?? []) add("view-definition", v.id, v.name, [], `/view-definition/edit/${enc(v.id)}`);
+  for (const p of src.pageLayouts ?? []) add("page-layout", p.id, p.name, [], `/page-layout/edit/${enc(p.id)}`);
+  for (const g of src.gadgets ?? []) add("gadget", g.id, g.name, [], `/screen/design/${enc(g.id)}`);
   // 画面項目は画面と対になるが、検索語がないときの一覧が画面で埋まらないよう後ろにまとめる
   for (const s of src.screens ?? []) add("screen-items", s.id, `${s.name} (項目定義)`, [s.name], `/screen/items/${enc(s.id)}`);
   for (const p of src.pages ?? []) add("page", p.id, p.label, [], p.route);

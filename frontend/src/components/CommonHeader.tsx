@@ -6,6 +6,7 @@ import { ThemeToggle } from "./common/ThemeToggle";
 import { QuickOpen } from "./quick-open/QuickOpen";
 import { ShortcutHelp } from "./help/ShortcutHelp";
 import { ConnectionStatus } from "./common/ConnectionStatus";
+import { ToastHost } from "./common/ToastHost";
 import "../styles/commonHeader.css";
 
 interface Props {
@@ -36,6 +37,7 @@ export function CommonHeader({ notification, userName }: Props) {
           <span className="common-header-user-label">{userName ?? "ゲスト"}</span>
         </span>
       </div>
+      <ToastHost />
     </header>
   );
 }
