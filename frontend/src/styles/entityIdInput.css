@@ -4,6 +4,8 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  /* 下に続く項目 (説明など) のラベルとの間を空ける */
+  margin-bottom: 10px;
 }
 
 .entity-id-input__row {

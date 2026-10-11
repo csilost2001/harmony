@@ -26,7 +26,8 @@ import { useListSort } from "../../hooks/useListSort";
 import { EditorHeader } from "../common/EditorHeader";
 import { RenameEntityDialog } from "../common/RenameEntityDialog";
 import { PasteColumnsDialog } from "./PasteColumnsDialog";
-import type { ParsedColumn } from "../../utils/columnPaste";
+import { showToast } from "../../utils/toast";
+import { columnsToTsv, type ParsedColumn } from "../../utils/columnPaste";
 import { ReferencesButton } from "../common/ReferencesButton";
 import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
 import { useRenameEntityUndoToast } from "../common/useRenameEntityUndoToast";
@@ -375,11 +376,27 @@ export function TableEditor() {
               className="editor-header-undo-btn"
               onClick={() => {
                 const md = generateTableMarkdown(table);
-                navigator.clipboard.writeText(md);
+                navigator.clipboard.writeText(md)
+                  .then(() => showToast("Markdown をコピーしました"))
+                  .catch(() => showToast("コピーできませんでした (ブラウザが許可していません)", "error"));
               }}
               title="Markdown をコピー"
+              aria-label="Markdown をコピー"
             >
               <i className="bi bi-clipboard" />
+            </button>
+            <button
+              className="editor-header-undo-btn"
+              onClick={() => {
+                navigator.clipboard.writeText(columnsToTsv(table.columns))
+                  .then(() => showToast("Excel 用の表 (タブ区切り) をコピーしました"))
+                  .catch(() => showToast("コピーできませんでした (ブラウザが許可していません)", "error"));
+              }}
+              title="カラムを Excel 用の表 (タブ区切り) としてコピー"
+              aria-label="カラムを Excel 用の表としてコピー"
+              data-testid="copy-columns-tsv"
+            >
+              <i className="bi bi-file-earmark-spreadsheet" />
             </button>
           </>
         }
