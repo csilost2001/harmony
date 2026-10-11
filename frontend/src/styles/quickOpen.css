@@ -126,3 +126,15 @@
 .quick-open-modal code { font-size: 11px; color: var(--hm-fg-2); }
 
 .quick-open-recent { flex: 0 0 auto; color: var(--hm-fg-faint); font-size: 11px; }
+
+/* 本文の一致 */
+.quick-open-section { padding: 8px 10px 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; color: var(--hm-fg-muted); border-top: 1px solid var(--hm-border); margin-top: 4px; }
+.quick-open-detail {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--hm-fg-muted);
+  font-size: 12px;
+}

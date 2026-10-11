@@ -115,7 +115,27 @@
 
 
 
-<table><thead><tr><th>操作</th><th>手段</th><th>結果</th></tr></thead><tbody><tr><td>Step 追加</td><td>上部パレットの種別ボタンをクリック or Step 間の <code>StepInsertZone</code> をクリック</td><td><code>STEP_TEMPLATES</code> のテンプレで Step が挿入される</td></tr><tr><td>Step 削除</td><td>Step 右クリック → 「削除」 or <code>Delete</code> キー</td><td><code>clearJumpReferences</code> で参照を解除して削除</td></tr><tr><td>Step 並び替え</td><td>Step ヘッダをドラッグ</td><td><code>@dnd-kit</code> で並び順変更、保存後に永続化</td></tr><tr><td>Step 複製</td><td>右クリック → 「複製」or <code>Ctrl+D</code></td><td>LocalId を採番して clone</td></tr><tr><td>Action 追加</td><td>Step 内「+」ボタン → <code>AddActionModal</code></td><td>trigger / type / outputName 等を入力</td></tr><tr><td>SubStep 追加</td><td>loop / branch / try 系 Step 内「+」</td><td>内側 Step を追加</td></tr><tr><td>id 変更 (rename refactor)</td><td>EditorHeader の「id 変更」</td><td><code>RenameEntityDialog</code> で kebab-case 新 id を入力、全 ref 自動更新</td></tr><tr><td>編集破棄</td><td>EditModeToolbar の「破棄」</td><td>確認後サーバ状態に戻す</td></tr><tr><td>保存</td><td><code>Ctrl+S</code> or 「保存」</td><td>edit-session 経由でサーバへ commit</td></tr><tr><td>AI 部分生成</td><td>EditorHeader の AI ボタン (Codex 連携)</td><td><code>requestProcessFlowPartial</code> で Codex に部分生成を依頼</td></tr><tr><td>検証結果を開く</td><td>右側 WarningsPanel ヘッダクリック</td><td>エラー / 警告一覧、Step / Action にジャンプ可</td></tr><tr><td>マーカー追加</td><td>Step 上で右クリック → マーカー追加</td><td><code>/designer-work</code> で Claude Code が処理する指示を残す</td></tr></tbody></table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>操作</th><th>手段</th><th>結果</th></tr></thead><tbody><tr><td>Step 追加</td><td>上部パレットの種別ボタンをクリック or Step 間の <code>StepInsertZone</code> をクリック</td><td><code>STEP_TEMPLATES</code> のテンプレで Step が挿入される</td></tr><tr><td>Step 削除</td><td>Step 右クリック → 「削除」 or <code>Delete</code> キー</td><td><code>clearJumpReferences</code> で参照を解除して削除</td></tr><tr><td>Step 並び替え</td><td>Step ヘッダをドラッグ</td><td><code>@dnd-kit</code> で並び順変更、保存後に永続化</td></tr><tr><td>Step 複製</td><td>右クリック → 「複製」or <code>Ctrl+D</code></td><td>LocalId を採番して clone</td></tr><tr><td>Action 追加</td><td>Step 内「+」ボタン → <code>AddActionModal</code></td><td>trigger / type / outputName 等を入力</td></tr><tr><td>SubStep 追加</td><td>loop / branch / try 系 Step 内「+」</td><td>内側 Step を追加</td></tr><tr><td>id 変更 (rename refactor)</td><td>EditorHeader の「id 変更」</td><td><code>RenameEntityDialog</code> で kebab-case 新 id を入力、全 ref 自動更新</td></tr><tr><td>編集破棄</td><td>EditModeToolbar の「破棄」</td><td>確認後サーバ状態に戻す</td></tr><tr><td>保存</td><td><code>Ctrl+S</code> or 「保存」</td><td>edit-session 経由でサーバへ commit</td></tr><tr><td>AI 部分生成</td><td>EditorHeader の AI ボタン (Codex 連携)</td><td><code>requestProcessFlowPartial</code> で Codex に部分生成を依頼</td></tr><tr><td>検証結果を開く</td><td>右側 WarningsPanel ヘッダクリック</td><td>エラー / 警告一覧、Step / Action にジャンプ可</td></tr><tr><td>マーカー追加</td><td>Step 上で右クリック → マーカー追加</td><td><code>/designer-work</code> で Claude Code が処理する指示を残す</td></tr><tr><td>キーボードで工程を辿る</td><td>工程の見出しにカーソルを置き、<code>↑</code> <code>↓</code> (最初・最後は <code>Home</code> <code>End</code>)、<code>→</code> <code>←</code> で開閉、<code>Enter</code> で最初の入力欄へ、<code>Esc</code> で見出しへ戻る</td><td>矢印で移ると、その工程が選択される</td></tr><tr><td>キーボードで工程を挿入</td><td>見出しで <code>Insert</code> か <code>/</code> → 種類を打ち込んで <code>Enter</code></td><td>見出しの次に挿入され、新しい工程の入力欄へカーソルが入る</td></tr><tr><td>入れ子にする / 外す</td><td>見出しで <code>Tab</code> (直前の工程の配下へ) / <code>Shift</code>+<code>Tab</code> (親の次の位置へ)。工程カードの「›」「‹」ボタンでも同じ</td><td>配下の工程は <code>subSteps</code> に入り、親の処理のあとに順に実行される。<strong>親の実行条件 (runIf)・失敗の扱いが子にも及ぶので、兄弟だった工程の実行条件が変わる点に注意</strong>。最初の工程では Tab は通常のフォーカス移動</td></tr><tr><td>アウトラインで書く</td><td>表示切替の「アウトライン」。1 行 1 工程 (<code>[種類] 説明</code>)、行頭の <code>/</code> で種類選択、<code>Tab</code> で字下げ = 入れ子</td><td>欄を出ると反映 (削除を含むときは「反映」で確かめる)。仕様: <code>docs/spec/process-flow-outline.md</code></td></tr></tbody></table>
 <h2 id="データ前提">データ前提</h2>
 <ul>
 <li><strong>空フロー</strong>: Step が 0 件の場合 <code>EmptyFlowDropZone</code> が中央に表示され、ここに Step テンプレをドラッグ or パレットから追加</li>

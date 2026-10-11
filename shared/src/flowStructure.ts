@@ -222,6 +222,9 @@ export function buildOutline(steps: readonly FlowStep[], action: Pick<FlowAction
           walk(onRollback, `${no}-R`, depth + 2, false);
         }
       }
+      // 配下の工程 (subSteps)。親の本体 (分岐の枝・繰り返し・TX の中身) とは別に、番号は `<親>-S-n`
+      const subs = (s.subSteps as FlowStep[] | undefined) ?? [];
+      if (subs.length > 0) walk(subs, `${no}-S`, depth + 1, inTx);
     });
   };
   walk(steps, "", 0, false);
@@ -301,6 +304,17 @@ export function truncate(s: string, n: number): string {
   return s;
 }
 
+/** 各工程の直後に、その配下の工程 (subSteps、再帰) を並べた一覧 (実行順) */
+export function expandSubSteps(steps: readonly FlowStep[]): FlowStep[] {
+  const out: FlowStep[] = [];
+  for (const st of steps) {
+    out.push(st);
+    const subs = (st as AnyStep).subSteps as FlowStep[] | undefined;
+    if (subs?.length) out.push(...expandSubSteps(subs));
+  }
+  return out;
+}
+
 export function layoutFlow(action: FlowActionLike, ctx: FlowContext = NO_CTX): DiagramLayout {
   let seq = 0;
   const uid = (p: string) => `${p}-${seq++}`;
@@ -334,7 +348,9 @@ export function layoutFlow(action: FlowActionLike, ctx: FlowContext = NO_CTX): D
     };
   };
 
-  const seqBlock = (steps: readonly FlowStep[]): Block => {
+  const seqBlock = (rawSteps: readonly FlowStep[]): Block => {
+    // 配下の工程 (subSteps) は、親の次に続けて並べる (親の本体のあとに実行するため)
+    const steps = expandSubSteps(rawSteps);
     if (steps.length === 0) {
       return { w: 40, h: 12, cx: 20, terminates: false, place: () => undefined };
     }
@@ -497,7 +513,7 @@ export function deriveTestViewpoints(action: FlowActionLike): TestViewpoint[] {
   const out: Omit<TestViewpoint, "no">[] = [];
   const walk = (steps: readonly FlowStep[], prefix: string, conds: string[], inRollback: boolean): boolean => {
     let terminated = false;
-    steps.forEach((step, i) => {
+    const visit = (step: FlowStep, i: number) => {
       if (terminated) return;
       const no = prefix ? `${prefix}-${i + 1}` : String(i + 1);
       const s = step as Record<string, unknown>;
@@ -541,6 +557,16 @@ export function deriveTestViewpoints(action: FlowActionLike): TestViewpoint[] {
       }
       if (step.kind === "validation") {
         out.push({ category: "異常系", conditions: [...here, `入力チェックに違反 (${stepText(step)})`], expected: "入力チェックエラー (HTTP 400 想定)", status: 400, stepNo: no });
+      }
+    };
+    steps.forEach((step, i) => {
+      visit(step, i);
+      // 配下の工程 (subSteps) は、親の本体の処理のあとに実行する (親が終了していれば到達しない)
+      const subs = ((step as Record<string, unknown>).subSteps as FlowStep[] | undefined) ?? [];
+      if (!terminated && subs.length > 0) {
+        const no = prefix ? `${prefix}-${i + 1}` : String(i + 1);
+        const r = (step as Record<string, unknown>).runIf;
+        if (walk(subs, `${no}-S`, r ? [...conds, `実行条件: ${String(r)}`] : conds, inRollback)) terminated = true;
       }
     });
     return terminated;

@@ -1,4 +1,5 @@
 ﻿// #1186 Phase 2-C: types/action → types/v3 移行 (ProcessFlowType/StepType は v3 で ProcessFlowKind/StepKind に rename)
+import { mcpBridge } from "../mcp/mcpBridge";
 import type {
   ActionDefinition,
   ActionTrigger,
@@ -51,6 +52,19 @@ export async function loadProcessFlow(id: string): Promise<ProcessFlow | null> {
   const migrated = migrateProcessFlow(data);
   // uuid 補完は backend (readEntityAndEnsureUuid) 責務。frontend では補完しない。
   return migrated;
+}
+
+/** 全処理フローを、1 回の問い合わせでまとめて読む (一覧の検査用。1 件ずつ尋ねない)。id → 処理フロー */
+export async function loadAllProcessFlows(): Promise<Map<string, ProcessFlow>> {
+  const all = await mcpBridge.request("loadAllProcessFlows") as unknown[] | null;
+  const out = new Map<string, ProcessFlow>();
+  for (const raw of all ?? []) {
+    if (!raw || typeof raw !== "object") continue;
+    const flow = migrateProcessFlow(raw as ProcessFlow);
+    const id = (flow as { meta?: { id?: string } }).meta?.id;
+    if (id) out.set(id, flow);
+  }
+  return out;
 }
 
 export async function saveProcessFlow(group: ProcessFlow): Promise<void> {
@@ -173,22 +187,31 @@ export function moveStep(action: ActionDefinition, fromIndex: number, toIndex: n
   action.steps.splice(toIndex, 0, step);
 }
 
+/**
+ * 親の配下に工程を追加する。繰り返し・トランザクションは、本体 (`steps`) の末尾へ (従来どおり)。
+ * それ以外の種類は `subSteps` へ (docs/spec/process-flow-substeps.md)。
+ */
 export function addSubStep(parentStep: Step, kind: StepType, group?: ProcessFlow): Step {
   const existingIds = group
     ? collectAllProcessFlowLocalIds(group)
     : collectStepIdsFromActionSubtree({ id: "_tmp" as never, name: "", trigger: "click", steps: [parentStep] });
   const step = createDefaultStep(kind, existingIds);
-  const parent = parentStep as Step & { steps?: Step[] };
-  if (!Array.isArray(parent.steps)) parent.steps = [];
-  parent.steps.push(step);
+  if (parentStep.kind === "loop" || parentStep.kind === "transactionScope") {
+    const body = parentStep as Step & { steps?: Step[] };
+    if (!Array.isArray(body.steps)) body.steps = [];
+    body.steps.push(step);
+    return step;
+  }
+  if (!Array.isArray(parentStep.subSteps)) parentStep.subSteps = [];
+  parentStep.subSteps.push(step);
   return step;
 }
 
 export function removeSubStep(parentStep: Step, subStepId: string): void {
-  const parent = parentStep as Step & { steps?: Step[] };
-  if (!parent.steps) return;
-  const idx = parent.steps.findIndex((s) => s.id === subStepId);
-  if (idx >= 0) parent.steps.splice(idx, 1);
+  if (!parentStep.subSteps) return;
+  const idx = parentStep.subSteps.findIndex((s) => s.id === subStepId);
+  if (idx >= 0) parentStep.subSteps.splice(idx, 1);
+  if (parentStep.subSteps.length === 0) delete parentStep.subSteps;
 }
 
 /**
@@ -281,6 +304,7 @@ function countGroupNotes(group: ProcessFlow): number {
   const visit = (steps: Step[]) => {
     for (const s of steps) {
       count += s.notes?.length ?? 0;
+      if (s.subSteps) visit(s.subSteps);
       if (s.kind === "branch") {
         const branch = s as Step & { branches: { steps: Step[] }[]; elseBranch?: { steps: Step[] } };
         for (const b of branch.branches) visit(b.steps);

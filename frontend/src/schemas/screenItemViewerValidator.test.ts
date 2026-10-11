@@ -184,4 +184,21 @@ describe("screenItemViewerValidator — VIEWER_FLOW_VARIABLE_NOT_DECLARED", () =
     const found = issues.find((i) => i.code === "VIEWER_FLOW_VARIABLE_NOT_DECLARED");
     expect(found).toBeUndefined();
   });
+
+  it("negative: 配下の工程 (subSteps) の outputBinding で宣言した変数も、宣言ありとして扱う", () => {
+    const screen = makeScreen([
+      {
+        id: "propertyRows", label: "物件一覧", type: { kind: "array", itemType: "json" }, direction: "out",
+        presentation: { kind: "table", viewDefinitionId: VD_ID },
+        binding: { kind: "flowVariable", processFlowId: FLOW_ID, path: "rows" },
+      },
+    ]);
+    const flow = makeFlow([]);
+    (flow.actions[0] as unknown as { steps: unknown[] }).steps = [
+      { id: "step-01", kind: "compute", description: "", expression: "1", subSteps: [{ id: "step-02", kind: "compute", description: "", expression: "[]", outputBinding: { name: "rows" } }] },
+    ];
+    const issues = checkScreenItemViewer([screen], [flow], [makeVD()]);
+    expect(issues.find((i) => i.code === "VIEWER_FLOW_VARIABLE_NOT_DECLARED")).toBeUndefined();
+  });
 });
+

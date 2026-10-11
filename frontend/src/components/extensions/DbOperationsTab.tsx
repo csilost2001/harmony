@@ -17,7 +17,7 @@ export function DbOperationsTab({ bundle, saving, onSave, isReadonly }: Extensio
   return (
     <div className="extensions-simple-tab">
       <div className="extensions-tab-toolbar">
-        <div className="extensions-namespace-field"><label className="form-label small fw-semibold">namespace</label><input className="form-control form-control-sm" value={namespace} onChange={(e) => setNamespace(e.target.value)} disabled={isReadonly} /></div>
+        <div className="extensions-namespace-field"><label className="form-label small fw-semibold">namespace</label><input className="form-control form-control-sm" aria-label="namespace" value={namespace} onChange={(e) => setNamespace(e.target.value)} disabled={isReadonly} /></div>
         <div className="extensions-toolbar-actions"><button className="btn btn-primary btn-sm" disabled={saving || isReadonly} onClick={() => void onSave("dbOperations", { namespace, dbOperations: rows.filter((r) => r.value.trim() && r.label.trim()) })}>保存</button></div>
       </div>
       {rows.length === 0 ? <div className="extensions-empty">DB 操作は未登録です。</div> : null}

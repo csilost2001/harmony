@@ -24,7 +24,7 @@ import ErTableNodeComponent, { type ErTableNodeData } from "./ErTableNode";
 import { TableSubToolbar } from "./TableSubToolbar";
 import type { Table, ErLayout, LogicalRelation, PhysicalName, DisplayName, LocalId, TableId } from "../../types/v3";
 import { CARDINALITY_LABELS, type ErCardinality } from "../../utils/erUtils";
-import { listTables, loadTable, createTable } from "../../store/tableStore";
+import { loadAllTables, loadTable, createTable } from "../../store/tableStore";
 import { clearErLayoutPreview, loadErLayout, loadErLayoutCanonical, saveErLayoutCanonical, saveErLayoutPreview } from "../../store/erLayoutStore";
 import { loadProject } from "../../store/flowStore";
 import { getAllRelations, autoLayout, generateErMermaid, pickEdgeSides } from "../../utils/erUtils";
@@ -145,13 +145,8 @@ function ErDiagramInner() {
     (async () => {
       const p = await loadProject();
       setProjectName(p.name);
-      const metas = await listTables();
-      const allTables: Table[] = [];
-      for (const m of metas) {
-        const td = await loadTable(m.id);
-        if (td) allTables.push(td);
-      }
-      setTables(allTables);
+      // 全テーブルを 1 回の問い合わせでまとめて読む (1 件ずつ尋ねると、テーブルの数だけ往復する)
+      setTables(await loadAllTables());
       const ly = await loadErLayout();
       setLayout(ly);
       layoutRef.current = ly;

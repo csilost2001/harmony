@@ -337,11 +337,11 @@ function toSpecRelation(r: ErRelation): SpecRelation {
   };
 }
 
-function toSpecStep(s: Step, index: number): SpecStep {
+function toSpecStep(s: Step, index: number, number: string = getStepLabel(index)): SpecStep {
   const detail: Record<string, unknown> = {};
   if (isExtensionStep(s)) {
     if (s.config) detail.config = s.config;
-    return { number: getStepLabel(index), type: s.kind, description: s.description, detail };
+    return { number, type: s.kind, description: s.description, detail };
   }
   switch (s.kind) {
     case "validation":
@@ -440,8 +440,10 @@ function toSpecStep(s: Step, index: number): SpecStep {
       if (s.filter) detail.filter = s.filter;
       break;
   }
+  // 配下の工程は、番号 (<親>-S-n) つきの SpecStep として入れる
+  if (s.subSteps && s.subSteps.length > 0) detail.subSteps = s.subSteps.map((c, i) => toSpecStep(c, i, `${number}-S-${i + 1}`));
   return {
-    number: getStepLabel(index),
+    number,
     type: s.kind,
     description: s.description,
     detail,

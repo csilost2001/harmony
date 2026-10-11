@@ -195,6 +195,8 @@ function* iterSteps(steps: unknown[]): Generator<{ step: unknown }> {
   for (const s of steps) {
     yield { step: s };
     const sAny = s as Record<string, unknown>;
+    // 配下の工程 (subSteps)
+    if (Array.isArray(sAny.subSteps)) yield* iterSteps(sAny.subSteps);
     // TX scope: steps[] + onCommit[] + onRollback[] (schema #/$defs/TransactionScopeStep)
     if (sAny.kind === "transactionScope") {
       if (Array.isArray(sAny.steps)) yield* iterSteps(sAny.steps);

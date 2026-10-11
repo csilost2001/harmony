@@ -79,6 +79,12 @@ multi browser context の e2e で **Vite dev server (port 5173) が間欠 crash*
 - 検査: `npm run verify:colors` (repo root)。既存の直書きは `bash scripts/dev/apply-color-tokens.sh` で機械変換できる
 - ライト / ダークは `src/theme/appTheme.ts` が `<html data-theme>` を切り替える。上部ヘッダーのみ両テーマ共通の暗色 (`--hm-chrome-*`)
 
+## backend への問い合わせ (一覧・パネルで設計ごとに尋ねない)
+
+- 画面・テーブル・処理フローなどを**1 件ずつ**尋ねる (`for` / `Promise.all(map(load…))`) と、大きなプロジェクト (約 600 件) では数千回の往復になり、単一スレッドの backend が他の操作に応えられなくなる。まとめて返す RPC を使う: `loadAllTables` (テーブル) / `loadAllProcessFlows` / `loadAllScreenEntities` / `loadDesignInput` (設計書・検査の入力) / `recentEdits` / `searchDesign`。行ごとの印は `utils/editSessionIndex.ts` (種類ごとに 1 回)
+- 回帰の見張り: `cd frontend && npx playwright test e2e/perf-large-project.spec.ts` (主要画面の問い合わせの総数が設計の数に比例しないこと)
+- backend の重い読み出し (設計書の入力・スキーマ違反の検査) は `backend/src/dataSignature.ts` の `memoizeBySignature` で、データが変わるまで使い回す
+
 ## 失敗の知らせ方
 
 - 利用者にも知らせたい失敗は、`reportFailure(err, "操作の名前")` (`src/utils/failureToast.ts`) を使う (`.catch((e) => reportFailure(e, "保存"))`)。開発者向けのログは `console.error("説明", err)` (引数が複数のものは通知にしない)

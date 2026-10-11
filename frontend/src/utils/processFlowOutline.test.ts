@@ -85,8 +85,53 @@ describe("processFlowOutline", () => {
   });
 
   it("書式の誤りは行番号つきで知らせ、空行は無視する", () => {
-    const { lines, errors } = parseOutline("\n[入力チェック] ok\n説明だけ\n[ほげ] x\n  [DBアクセス] 字下げ\ndbAccess 英名なし\n[dbAccess] 英名は可", KINDS);
+    const { lines, errors } = parseOutline("\n[入力チェック] ok\n説明だけ\n[ほげ] x\n   [DBアクセス] 空白 3 つ\ndbAccess 英名なし\n[dbAccess] 英名は可\n\t[DBアクセス] タブ\n    [DBアクセス] 2 段深い", KINDS);
     expect(lines.map((l) => l.lineNo)).toEqual([2, 7]);
-    expect(errors.map((e) => e.lineNo)).toEqual([3, 4, 5, 6]);
+    expect(errors.map((e) => e.lineNo)).toEqual([3, 4, 5, 6, 8, 9]);
+  });
+
+  describe("入れ子 (subSteps)", () => {
+    const tree = [
+      s("step-01", "validation", "入力を検証する"),
+      s("step-02", "dbAccess", "カートを取得する", { subSteps: [s("step-03", "compute", "件数を数える", { subSteps: [s("step-04", "compute", "孫")] }), s("step-05", "compute", "合計")] }),
+    ];
+    const text = "[入力チェック] 入力を検証する ^step-01\n[DBアクセス] カートを取得する ^step-02\n  [計算/代入] 件数を数える ^step-03\n    [計算/代入] 孫 ^step-04\n  [計算/代入] 合計 ^step-05";
+
+    it("字下げ 2 つで、配下の工程を書く (往復で同じ)", () => {
+      expect(stepsToOutline(tree)).toBe(text);
+      const { lines, errors } = parseOutline(text, KINDS);
+      expect(errors).toEqual([]);
+      expect(lines.map((l) => l.depth)).toEqual([0, 0, 1, 2, 1]);
+      const r = applyOutline(tree, lines, new Set(["step-01", "step-02", "step-03", "step-04", "step-05"]));
+      expect(r.steps[1]).toBe(tree[1]); // 変更なしなら、元のオブジェクトのまま
+      expect([r.added, r.changed, r.removed.length, r.reordered]).toEqual([0, 0, 0, false]);
+    });
+
+    it("字下げを足す = 直前の工程の配下へ入れる (入れ子の位置の変更)", () => {
+      const flat = "[入力チェック] 入力を検証する ^step-01\n  [DBアクセス] カートを取得する ^step-02";
+      const flatSteps = [s("step-01", "validation", "入力を検証する"), s("step-02", "dbAccess", "カートを取得する")];
+      const r = applyOutline(flatSteps, parseOutline(flat, KINDS).lines, new Set(["step-01", "step-02"]));
+      expect(r.reordered).toBe(true);
+      expect(r.steps).toHaveLength(1);
+      expect(r.steps[0].subSteps?.map((x) => x.id)).toEqual(["step-02"]);
+      expect(r.changed).toBe(0);
+    });
+
+    it("子の行を消すと、その工程が消える。親だけ説明を変えても、子はそのまま", () => {
+      const lines = parseOutline("[入力チェック] 入力を検証する ^step-01\n[DBアクセス] 取得 ^step-02\n  [計算/代入] 件数を数える ^step-03\n    [計算/代入] 孫 ^step-04", KINDS).lines;
+      const r = applyOutline(tree, lines, new Set(["step-01", "step-02", "step-03", "step-04", "step-05"]));
+      expect(r.removed.map((x) => x.id)).toEqual(["step-05"]);
+      expect(r.changed).toBe(1);
+      expect(r.steps[1].subSteps).toHaveLength(1);
+      expect(r.steps[1].subSteps![0]).toBe(tree[1].subSteps![0]);
+    });
+
+    it("字下げした新しい行は、親の配下の新しい工程になる", () => {
+      const lines = parseOutline("[入力チェック] 入力を検証する ^step-01\n  [共通処理] 新しい子", KINDS).lines;
+      const r = applyOutline([tree[0]], lines, new Set(["step-01"]));
+      expect(r.added).toBe(1);
+      expect(r.steps[0].subSteps).toHaveLength(1);
+      expect(r.steps[0].subSteps![0]).toMatchObject({ kind: "commonProcess", description: "新しい子" });
+    });
   });
 });

@@ -112,3 +112,20 @@ describe("ページレイアウト・ガジェット", () => {
   });
 });
 
+describe("contentHitsToEntries (本文検索の結果)", () => {
+  const hit = (kind: "table" | "screen", id: string, matches: Array<{ where: string; text: string }>) => ({ kind, id, name: id, matches });
+
+  it("名前検索と同じ key・遷移先で、一致した場所つきの候補にする", async () => {
+    const { contentHitsToEntries } = await import("./quickOpen");
+    const [e] = contentHitsToEntries([hit("table", "order-item", [{ where: "カラム id", text: "サロゲートキー" }, { where: "カラム x", text: "y" }])]);
+    expect(e).toMatchObject({ key: "table:order-item", route: "/table/edit/order-item", detail: "カラム id: サロゲートキー (ほか 1 か所)" });
+    expect(contentHitsToEntries([hit("screen", "cart", [{ where: "項目 qty", text: "数量" }])])[0].route).toBe("/screen/design/cart");
+  });
+
+  it("名前検索ですでに出ているもの・一致のないものは除く", async () => {
+    const { contentHitsToEntries } = await import("./quickOpen");
+    const hits = [hit("table", "a", [{ where: "w", text: "t" }]), hit("table", "b", [{ where: "w", text: "t" }]), hit("table", "c", [])];
+    expect(contentHitsToEntries(hits, new Set(["table:a"])).map((e) => e.id)).toEqual(["b"]);
+  });
+});
+

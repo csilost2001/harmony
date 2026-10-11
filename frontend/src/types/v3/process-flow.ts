@@ -477,6 +477,8 @@ export interface StepBaseProps {
   /** Saga 補償対象の Step.id 参照。 */
   compensatesFor?: LocalId;
   externalChain?: ExternalChain;
+  /** 配下の工程 (入れ子)。親の本体の処理のあと配列順に実行。docs/spec/process-flow-substeps.md (#1487) */
+  subSteps?: Step[];
   /**
    * 失敗系挙動の集約 object (#1263 Phase X3 / #1254 件 2 案 D)。
    * step kind に応じて意味的に有効な subset のみ使用 (例: rollbackOn は transactionScope のみ、

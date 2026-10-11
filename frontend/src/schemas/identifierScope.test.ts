@@ -1170,3 +1170,31 @@ describe("checkIdentifierScopes — #1289 @var.<scope>.<name> grammar-aware", ()
     });
   });
 });
+
+describe("checkIdentifierScopes — 配下の工程 (subSteps) は親の本体のあとに走査する", () => {
+  it("親 (繰り返し) の本体で宣言した変数を、子が参照しても未宣言にならない", () => {
+    const issues = checkIdentifierScopes(makeGroup({
+      actions: [{
+        id: "a1", name: "f", trigger: "click",
+        steps: [
+          {
+            id: "s1", kind: "loop", description: "", loopKind: "count", countExpression: "3",
+            steps: [{ id: "s2", kind: "compute", description: "", expression: "1", outputBinding: { name: "acc" } }],
+            subSteps: [{ id: "s3", kind: "compute", description: "", expression: "@var.acc + 1" }],
+          },
+        ],
+      }],
+    }));
+    expect(issues.filter((i) => i.code === "UNKNOWN_IDENTIFIER")).toHaveLength(0);
+  });
+
+  it("子の中で、まだ宣言されていない変数を参照すれば、未宣言になる (入れ子の中も検査される)", () => {
+    const issues = checkIdentifierScopes(makeGroup({
+      actions: [{
+        id: "a1", name: "f", trigger: "click",
+        steps: [{ id: "s1", kind: "compute", description: "", expression: "1", subSteps: [{ id: "s3", kind: "compute", description: "", expression: "@var.nothing + 1" }] }],
+      }],
+    }));
+    expect(issues.some((i) => i.code === "UNKNOWN_IDENTIFIER" && i.identifier === "var.nothing")).toBe(true);
+  });
+});

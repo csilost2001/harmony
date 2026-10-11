@@ -5,9 +5,11 @@
  */
 import type { DesignDocInput } from "@harmony/shared";
 import {
-  readProject, readScreenEntity, listProcessFlows, listAllTables, readConventions,
+  readScreenEntity, listProcessFlows, listAllTables, readConventions,
   readLayoutComponents, listBusinessFlowsDetailed, listReportsDetailed,
 } from "./projectStorage.js";
+import { memoizeBySignature } from "./dataSignature.js";
+import { readProjectWithUnregistered } from "./registryMerge.js";
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
 
@@ -18,9 +20,10 @@ export interface LoadedDesignInput {
   counts: { screens: number; flows: number; tables: number; businessFlows: number; reports: number };
 }
 
-export async function loadDesignInputFromRoot(root: string): Promise<LoadedDesignInput> {
+async function computeDesignInput(root: string): Promise<LoadedDesignInput> {
   const skipped: string[] = [];
-  const raw = await readProject(root);
+  // 一覧 (harmony.json) に載っていない設計も、設計書・検査に含める (ファイルが原本)
+  const raw = (await readProjectWithUnregistered(root)).project;
   const project = isRecord(raw) ? raw : {};
   const entities = isRecord(project.entities) ? project.entities : {};
   const meta = isRecord(project.meta) ? project.meta : {};
@@ -34,7 +37,7 @@ export async function loadDesignInputFromRoot(root: string): Promise<LoadedDesig
     } catch { skipped.push(`画面「${s.id}」`); }
   }
 
-  // 処理フロー・テーブルは harmony.json に登録されたものを対象にする (設計書ビュー・CLI と同じ)
+  // 処理フロー・テーブルは、一覧の並び順 (登録簿 + 載っていないファイル) で並べる
   const registered = (list: unknown[], registry: unknown, idOf: (x: unknown) => string | undefined, label: string): unknown[] => {
     if (!Array.isArray(registry)) return list;
     const ids = (registry as Array<{ id: string }>).map((e) => e.id);
@@ -74,3 +77,6 @@ export async function loadDesignInputFromRoot(root: string): Promise<LoadedDesig
   };
   return { input, skipped, counts: { screens: screens.length, flows: flows.length, tables: tables.length, businessFlows: businessFlows.flows.length, reports: reports.reports.length } };
 }
+
+/** データが変わらないあいだは、読み直さず前の結果を使う (設計書・検査・ダッシュボードが同時に求めても 1 回で済む)。結果は書き換えないこと */
+export const loadDesignInputFromRoot: (root: string) => Promise<LoadedDesignInput> = memoizeBySignature(computeDesignInput);

@@ -67,6 +67,7 @@ export function MsgPanel({
               <td>
                 <input
                   className="form-control form-control-sm"
+                  aria-label={`${key} の説明`}
                   value={entry.description ?? ""}
                   onChange={(e) => onUpdate(key, { description: e.target.value || undefined })}
                   onBlur={onCommit}

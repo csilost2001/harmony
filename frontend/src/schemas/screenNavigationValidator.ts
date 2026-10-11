@@ -86,6 +86,7 @@ function walkAllSteps(
     const step = steps[i];
     const path = `${basePath}[${i}]`;
     visitor(step, path);
+    if (step.subSteps?.length) walkAllSteps(step.subSteps, `${path}.subSteps`, visitor);
     if (!isBuiltinStep(step)) continue;
     if (step.kind === "branch") {
       step.branches.forEach((b, bi) =>

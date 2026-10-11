@@ -482,6 +482,17 @@ function entityFilePathFor(kind: TopLevelEntityKind, dataRoot: string, id: strin
   return path.join(entityDirOf(kind, dataRoot), `${id}.json`);
 }
 
+/** 設計の実体ファイル (`<種類の dir>/<id>.json`) の更新時刻 (ms)。無ければ null。「最近編集したもの」用 */
+export async function entityFileMtime(kind: TopLevelEntityKind, id: string, root: string): Promise<number | null> {
+  try {
+    const dataRoot = await resolveDataRoot(root);
+    const st = await fs.stat(entityFilePathFor(kind, dataRoot, id));
+    return st.mtimeMs;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * 指定 entity kind の dir を読み、`<id>.json` 系のファイルから id 一覧を抽出する。
  * Screen は `<id>.json` (entity) と `<id>.design.json` (GrapesJS HTML) の両方が存在しうるため、

@@ -105,4 +105,17 @@ test.describe("クイックオープン", () => {
     await ws.gotoActive(page, "/table/list");
     await expect(page.locator(".tbl-modal")).toHaveCount(0);
   });
+
+  test("名前に合わなくても、説明・カラムの備考などの本文から探せる (一致した場所つき) @regression", async ({ page }) => {
+    await ws.gotoActive(page, "/");
+    await page.keyboard.press("Control+k");
+    await page.getByTestId("quick-open-input").fill("サロゲートキー");
+    await expect(page.getByTestId("quick-open-content-head")).toBeVisible({ timeout: 10000 });
+    const hit = page.locator('[data-testid="quick-open-item"][data-key="table:order-item"]');
+    await expect(hit).toBeVisible();
+    await expect(hit.getByTestId("quick-open-detail")).toContainText("カラム id");
+    await expect(hit.getByTestId("quick-open-detail")).toContainText("サロゲートキー");
+    await hit.click();
+    await expect(page).toHaveURL(/\/table\/edit\/order-item/);
+  });
 });

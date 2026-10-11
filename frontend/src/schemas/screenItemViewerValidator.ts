@@ -61,6 +61,7 @@ function collectFlowVariableNames(flow: ProcessFlow): Set<string> {
       }
       // ネスト steps (branch.branches[].steps / elseBranch.steps / loop.steps 等)
       if (Array.isArray(s.steps)) collectFromSteps(s.steps as unknown[]);
+      if (Array.isArray(s.subSteps)) collectFromSteps(s.subSteps as unknown[]);
       if (Array.isArray(s.branches)) {
         for (const br of s.branches as Array<Record<string, unknown>>) {
           if (Array.isArray(br.steps)) collectFromSteps(br.steps as unknown[]);

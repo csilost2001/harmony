@@ -851,7 +851,11 @@ export const tools = [
         },
         position: {
           type: "number",
-          description: "挿入位置 (0-based index)。省略時は末尾。",
+          description: "挿入位置 (0-based index)。省略時は末尾。parentStepId を指定したときは、その親の subSteps の中での位置。",
+        },
+        parentStepId: {
+          type: "string",
+          description: "指定すると、その工程の配下 (subSteps、入れ子) に追加する。親の本体の処理のあと、配列順に実行される (docs/spec/process-flow-substeps.md)。省略時はアクション直下。",
         },
       },
       required: ["processFlowId", "actionId", "kind", "description"],

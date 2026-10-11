@@ -100,6 +100,36 @@ describe("applyProcessFlowMutation (browser-first v3, #1149 / #1332 M1)", () => 
       expect((parent.steps as Array<{ id: string }>)[0].id).toBe("step-03");
     });
 
+    it("繰り返し以外の工程へのサブステップ追加は subSteps に入る", () => {
+      const parent = { id: "step-01", kind: "dbAccess", description: "" };
+      const g = makeProcessFlow([makeAction("act-001", [parent])]);
+      const sub = addSubStep(parent as never, "log", g);
+      expect((parent as { subSteps?: Array<{ id: string }> }).subSteps?.[0].id).toBe(sub.id);
+      expect((parent as { steps?: unknown }).steps).toBeUndefined();
+    });
+
+    it("parentStepId を指定すると、その工程の subSteps に追加される (入れ子の中の親も探す・繰り返しの本体には入れない)", () => {
+      const loop = { id: "step-01", kind: "loop", description: "", steps: [], subSteps: [{ id: "step-02", kind: "log", description: "" }] };
+      const g = makeProcessFlow([makeAction("act-001", [loop])]);
+      applyProcessFlowMutation(g, "designer__add_step", { actionId: "act-001", kind: "audit", description: "配下", parentStepId: "step-01" });
+      applyProcessFlowMutation(g, "designer__add_step", { actionId: "act-001", kind: "log", description: "孫", parentStepId: "step-02" });
+      const root = g.actions[0].steps[0] as unknown as { steps: unknown[]; subSteps: Array<{ id: string; description: string; subSteps?: Array<{ description: string }> }> };
+      expect(root.steps).toEqual([]);
+      expect(root.subSteps.map((s) => s.description)).toEqual(["", "配下"]);
+      expect(root.subSteps[0].subSteps?.[0].description).toBe("孫");
+      // 親が見つからなければ何もしない
+      applyProcessFlowMutation(g, "designer__add_step", { actionId: "act-001", kind: "log", description: "x", parentStepId: "step-99" });
+      expect(root.subSteps).toHaveLength(2);
+    });
+
+    it("parentStepId は、分岐の枝・繰り返しの本体の中の工程も探せる (backend の経路と同じ範囲)", () => {
+      const inner = { id: "step-03", kind: "log", description: "" };
+      const branch = { id: "step-01", kind: "branch", description: "", branches: [{ id: "br-01", code: "A", condition: { kind: "expression", expression: "x" }, steps: [inner] }] };
+      const g = makeProcessFlow([makeAction("act-001", [branch])]);
+      applyProcessFlowMutation(g, "designer__add_step", { actionId: "act-001", kind: "audit", description: "枝の中の配下", parentStepId: "step-03" });
+      expect((inner as { subSteps?: Array<{ description: string }> }).subSteps?.[0].description).toBe("枝の中の配下");
+    });
+
     it("v1/v2 旧 `type` field のみでは追加されない (kind 必須)", () => {
       const act = makeAction("act-001");
       const g = makeProcessFlow([act]);

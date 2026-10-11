@@ -200,7 +200,8 @@ export async function copyExampleWorkspace(
 
 export async function cleanupRealWorkspaces(keys: string[]): Promise<void> {
   await Promise.all(
-    keys.map((key) => fs.rm(tempWorkspacePath(key), { recursive: true, force: true })),
+    // 保存の直後は backend が (下書きの後始末などで) まだ書いていることがあり、ENOTEMPTY になる。少し待って再試行する
+    keys.map((key) => fs.rm(tempWorkspacePath(key), { recursive: true, force: true, maxRetries: 8, retryDelay: 250 })),
   );
 }
 

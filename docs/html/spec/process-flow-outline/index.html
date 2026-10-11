@@ -12,12 +12,14 @@
 <h2 id="書式">書式</h2>
 <pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>[入力チェック] 入力値を検証する ^step-01</span></span>
 <span class="line"><span>[DBアクセス] カートを取得する ^step-02</span></span>
-<span class="line"><span>[共通処理] 在庫を引き当てる</span></span></code></pre>
+<span class="line"><span>[共通処理] 在庫を引き当てる</span></span>
+<span class="line"><span>  [計算/代入] 引き当て数を数える ^step-07    ← 字下げ (空白 2 つ) = 直前の工程の配下</span></span></code></pre>
 <ul>
 <li><code>[種類]</code> は工程の種類の表示名 (入力チェック / DBアクセス / 共通処理 …) か、種類の英名 (<code>dbAccess</code>)。</li>
 <li>行末の <code>^step-01</code> は既存の工程との対応づけ (工程の目印)。<strong>無い行は新しい工程</strong>になる。</li>
 <li>説明の中の改行は <code>\n</code>、バックスラッシュは <code>\\</code>、<code>^</code> は <code>\^</code> と書く (行末の <code>^id</code> と区別するため。画面ではこの形で出る)。</li>
-<li>空行は無視する。行頭に空白がある行・<code>[種類]</code> が無い行・知らない種類は、行番号つきで知らせ、反映は止まる。</li>
+<li>字下げ (空白 2 つ単位) が入れ子 (<code>subSteps</code>)。すぐ上の行より 1 段までしか深くできない。タブ・奇数個の空白は誤り。</li>
+<li>空行は無視する。字下げの誤り・<code>[種類]</code> が無い行・知らない種類は、行番号つきで知らせ、反映は止まる。</li>
 </ul>
 <h2 id="操作">操作</h2>
 
@@ -61,11 +63,15 @@
 
 
 
-<table><thead><tr><th>操作</th><th>結果</th></tr></thead><tbody><tr><td>行頭で <code>/</code></td><td>種類を選ぶメニュー (挿入メニューと同じ)。Enter で <code>[種類] </code> を入れる</td></tr><tr><td>説明を書き換える</td><td>その工程の説明だけが変わる (テーブル・条件・分岐の中身など、ほかの項目は残る)</td></tr><tr><td>行を入れ替える</td><td>工程の順序が変わる</td></tr><tr><td>行を消す</td><td>工程が消える (「反映」で件数を確かめる。元に戻す操作で戻せる)</td></tr><tr><td><code>^id</code> の無い行を足す</td><td>種類ごとの既定値で新しい工程ができる</td></tr><tr><td><code>^id</code> ごと行をコピー</td><td>2 行目は新しい工程になる (元の工程は複製されない)</td></tr><tr><td>欄を出る (フォーカスが外れる)</td><td>問題がなく、削除を含まなければ自動で反映。それ以外は「反映」ボタン</td></tr><tr><td>Esc</td><td>欄から出る</td></tr></tbody></table>
+
+
+
+
+<table><thead><tr><th>操作</th><th>結果</th></tr></thead><tbody><tr><td>行頭で <code>/</code></td><td>種類を選ぶメニュー (挿入メニューと同じ)。Enter で <code>[種類] </code> を入れる</td></tr><tr><td>説明を書き換える</td><td>その工程の説明だけが変わる (テーブル・条件・分岐の中身など、ほかの項目は残る)</td></tr><tr><td>行を入れ替える</td><td>工程の順序が変わる</td></tr><tr><td><code>Tab</code> / <code>Shift</code>+<code>Tab</code></td><td>選んだ行を字下げ / 戻す (入れ子にする / 外す)。<code>Esc</code> で欄を出たあとの Tab は通常のフォーカス移動</td></tr><tr><td>行を消す</td><td>工程が消える (配下の行も、それぞれ消えた行なら消える。「反映」で件数を確かめる。元に戻す操作で戻せる)</td></tr><tr><td><code>^id</code> の無い行を足す</td><td>種類ごとの既定値で新しい工程ができる</td></tr><tr><td><code>^id</code> ごと行をコピー</td><td>2 行目は新しい工程になる (元の工程は複製されない)</td></tr><tr><td>欄を出る (フォーカスが外れる)</td><td>問題がなく、削除を含まなければ自動で反映。それ以外は「反映」ボタン</td></tr><tr><td>Esc</td><td>欄から出る</td></tr></tbody></table>
 <p>既存の工程の種類は、テキストから変えられない (種類を書き換えた行は無視して知らせる)。</p>
 <h2 id="できないこと-試作の範囲">できないこと (試作の範囲)</h2>
 <ul>
-<li><strong>入れ子 (インデント)</strong>: 工程の入れ子の置き場がスキーマに無いため (<code>subSteps</code> は v3 に無い。<a href="../../spec/process-flow-keyboard/">process-flow-keyboard.md</a>)。分岐・繰り返しなどの中身は、カード表示で編集する (アウトラインでは親の工程の行だけが出て、中身は変えずに残る)。</li>
+<li><strong>分岐の枝・繰り返しの本体などの入れ子</strong>: <code>subSteps</code> だけを扱う。ほかの入れ子は、カード表示で編集する (アウトラインでは親の工程の行だけが出て、中身は変えずに残る)。</li>
 <li>種類・テーブル・条件など、説明以外の詳細の編集 (カード表示で行う)。</li>
 <li>行ごとの補完 (参照先のテーブル名など)。</li>
 </ul>

@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWorkspacePath } from "../../../hooks/useWorkspacePath";
 import type { ProcessFlow, MarkerKind } from "../../../types/v3";
-import { listProcessFlows, loadProcessFlow } from "../../../store/processFlowStore";
+import { loadAllProcessFlows } from "../../../store/processFlowStore";
 import { mcpBridge } from "../../../mcp/mcpBridge";
 
 interface RecentMarker {
@@ -35,11 +35,10 @@ const INITIAL: Summary = {
 };
 
 async function fetchSummary(): Promise<Summary> {
-  const metas = await listProcessFlows();
+  // 全処理フローを 1 回の問い合わせでまとめて読む (1 件ずつ尋ねると、件数だけ往復する)
+  const all = await loadAllProcessFlows();
   const s: Summary = { total: 0, byKind: { chat: 0, attention: 0, todo: 0, question: 0, validator: 0 }, perGroup: [], recent: [] };
-  for (const meta of metas) {
-    const g: ProcessFlow | null = await loadProcessFlow(meta.id);
-    if (!g) continue;
+  for (const g of all.values() as IterableIterator<ProcessFlow>) {
     const unresolved = (g.authoring?.markers ?? []).filter((m) => !m.resolvedAt);
     if (unresolved.length === 0) continue;
     for (const m of unresolved) {

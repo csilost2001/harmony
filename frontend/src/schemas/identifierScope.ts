@@ -180,6 +180,7 @@ function buildStepIndex(steps: Step[]): Map<string, Step> {
   function walk(stepList: Step[]): void {
     for (const step of stepList) {
       if (step.id) index.set(step.id, step);
+      if (step.subSteps) walk(step.subSteps);
       if (!isBuiltinStep(step)) continue;
       if (step.kind === "branch") {
         step.branches.forEach((b) => walk(b.steps));
@@ -275,8 +276,7 @@ function walkSteps(
   stepIndex: Map<string, Step>,
   issues: IdentifierIssue[],
 ): void {
-  steps.forEach((step, i) => {
-    const path = `${basePath}[${i}]`;
+  const visitOne = (step: Step, path: string): void => {
     const available = new Set<string>([...known, ...loopItems]);
     checkStep(step, path, available, known, new Set(loopItems), actionInputs, stepIndex, envVarNames, issues);
 
@@ -358,6 +358,13 @@ function walkSteps(
         }
       });
     }
+  };
+  steps.forEach((step, i) => {
+    const path = `${basePath}[${i}]`;
+    visitOne(step, path);
+    // 配下の工程 (subSteps) は、親の本体 (分岐の枝・繰り返し・TX など) のあとに実行する。
+    // 親や本体が宣言した変数は子から見える (loopItems も引き継ぐ。TX の中の変数は txKnown の設計どおり見えない)
+    if (step.subSteps?.length) walkSteps(step.subSteps, `${path}.subSteps`, known, loopItems, envVarNames, actionInputs, stepIndex, issues);
   });
 }
 

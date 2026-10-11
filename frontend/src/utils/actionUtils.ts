@@ -45,9 +45,8 @@ export function isExtensionStep(s: Step): s is ExtensionStep {
 }
 
 /**
- * subSteps は StepBaseProps に未定義だが UI レイヤーで使用されている runtime プロパティ。
- * 型システム上は Step & { subSteps?: Step[] } として扱う。
- * `actionUtils` / `InlineStepList` / `ActionMetaTabBar` 等で共用。
+ * subSteps は StepBaseProps の共通項目 (docs/spec/process-flow-substeps.md)。
+ * 既存コードが使う別名として残している (Step と同じ)。
  */
 export type StepWithSubSteps = Step & { subSteps?: Step[] };
 
@@ -57,7 +56,7 @@ export type StepWithSubSteps = Step & { subSteps?: Step[] };
 export function getStepLabel(stepIndex: number, subStepIndex?: number): string {
   const major = stepIndex + 1;
   if (subStepIndex === undefined) return `${major}`;
-  return `${major}-${subStepIndex + 1}`;
+  return `${major}-S-${subStepIndex + 1}`;
 }
 
 /**
@@ -65,15 +64,15 @@ export function getStepLabel(stepIndex: number, subStepIndex?: number): string {
  */
 export function buildStepLabelMap(steps: Step[]): Map<string, string> {
   const map = new Map<string, string>();
-  for (let i = 0; i < steps.length; i++) {
-    const step = steps[i] as StepWithSubSteps;
-    map.set(step.id, getStepLabel(i));
-    if (step.subSteps) {
-      for (let j = 0; j < step.subSteps.length; j++) {
-        map.set(step.subSteps[j].id, getStepLabel(i, j));
-      }
-    }
-  }
+  // 配下の工程 (subSteps) は、親の番号に「-S-n」を続ける (1 → 1-S-1 → 1-S-1-S-1)。繰り返しなどの本体の番号 (1-1) とは混ざらない。設計書の番号と同じ
+  const walk = (list: Step[], prefix: string) => {
+    list.forEach((step, i) => {
+      const label = prefix ? `${prefix}-S-${i + 1}` : String(i + 1);
+      map.set(step.id, label);
+      if (step.subSteps?.length) walk(step.subSteps, label);
+    });
+  };
+  walk(steps, "");
   return map;
 }
 

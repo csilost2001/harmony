@@ -461,6 +461,11 @@
         "outputBinding": { "$ref": "#/$defs/OutputBinding" },
         "compensatesFor": { "$ref": "common.v3.schema.json#/$defs/LocalId", "description": "Saga 補償対象の Step.id 参照。" },
         "externalChain": { "$ref": "#/$defs/ExternalChain" },
+        "subSteps": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Step" },
+          "description": "配下の工程 (入れ子)。親の本体の処理が終わったあと、配列順に実行する。親の runIf が false、または親が失敗したときは実行しない。分岐の steps・繰り返しの本体 steps とは別 (docs/spec/process-flow-substeps.md、設計者承認 #1487)。"
+        },
         "errorHandling": { "$ref": "#/$defs/ErrorHandling", "description": "失敗系挙動の集約 object (#1263 Phase X3 / #1254 件 2 案 D)。`outcomes` (外部呼び出し / TX の成功/失敗/timeout 後挙動) / `rollbackOn` (TX rollback トリガー error code 集合) / `retryPolicy` (再試行ポリシー) / `onTimeout` (timeout 時挙動) を集約。各 field は step kind に応じて意味的に有効な subset のみ使用 (例: rollbackOn は transactionScope のみ、retryPolicy は外部呼び出し系のみ)。UI lifecycle 順表示で post セクション扱い。" }
       }
     },

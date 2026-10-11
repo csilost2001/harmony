@@ -8,7 +8,8 @@
  * - 工程の種類 (kind) と説明 (description) だけを文字で扱う。ほかの項目 (テーブル・条件・分岐の中身など) は、
  *   行末の `^id` で対応づけた既存の工程にそのまま残す。行を入れ替えれば工程の順序が変わり、行を消せば工程が消える。
  * - 説明の中の改行は `\n`、バックスラッシュは `\\`、`^` は `\^` と書く (行末の `^id` と区別するため)。
- * - 入れ子 (インデント) は扱わない (スキーマに入れ子の置き場が無い。docs/spec/process-flow-keyboard.md)。
+ * - 入れ子 (`subSteps`) は、空白 2 つの字下げで書く。字下げした行は、すぐ上の字下げの浅い行の配下の工程になる
+ *   (docs/spec/process-flow-substeps.md)。分岐の枝・繰り返しの本体など、ほかの入れ子はここでは扱わない。
  * - 既存の工程の種類は、テキストから変えられない (行の `[種類]` を書き換えても無視して知らせる)。
  * 保存形式は今の JSON のまま。このモジュールは変換だけで、副作用を持たない。
  */
@@ -18,6 +19,8 @@ import { createDefaultStep } from "../store/processFlowStore";
 
 export interface OutlineLine {
   lineNo: number;
+  /** 字下げの深さ (0 = 最上位。空白 2 つで 1) */
+  depth: number;
   kind: StepType;
   description: string;
   /** 行末の ^id (既存の工程との対応)。無ければ新しい工程 */
@@ -45,26 +48,34 @@ export function resolveKind(label: string, kinds: readonly StepType[]): StepType
   return null;
 }
 
-export function stepsToOutline(steps: readonly Step[]): string {
-  return steps
-    .map((s) => {
-      const d = escapeText(s.description ?? "");
-      return `[${kindLabel(s.kind)}]${d ? ` ${d}` : ""} ^${s.id}`;
-    })
-    .join("\n");
+export function stepsToOutline(steps: readonly Step[], depth = 0): string {
+  const rows: string[] = [];
+  for (const step of steps) {
+    const d = escapeText(step.description ?? "");
+    rows.push(`${"  ".repeat(depth)}[${kindLabel(step.kind)}]${d ? ` ${d}` : ""} ^${step.id}`);
+    if (step.subSteps?.length) rows.push(stepsToOutline(step.subSteps, depth + 1));
+  }
+  return rows.join("\n");
 }
 
 export function parseOutline(text: string, kinds: readonly StepType[]): ParsedOutline {
   const lines: OutlineLine[] = [];
   const errors: OutlineError[] = [];
+  let prevDepth = -1;
   text.split(/\r?\n/).forEach((raw, i) => {
     const lineNo = i + 1;
     if (raw.trim() === "") return;
-    if (/^\s/.test(raw)) {
-      errors.push({ lineNo, message: "行頭に空白があります。入れ子 (インデント) は、まだ使えません" });
+    const indent = /^[ \t]*/.exec(raw)![0];
+    if (indent.includes("\t") || indent.length % 2 !== 0) {
+      errors.push({ lineNo, message: "字下げは、空白 2 つ単位で書きます (タブは使えません)" });
       return;
     }
-    let body = raw.trimEnd();
+    const depth = indent.length / 2;
+    if (depth > prevDepth + 1) {
+      errors.push({ lineNo, message: "字下げが深すぎます (すぐ上の行より、1 段までです)" });
+      return;
+    }
+    let body = raw.trim();
     let id: string | null = null;
     const idMatch = ID_SUFFIX.exec(body);
     if (idMatch) { id = idMatch[1]; body = body.slice(0, idMatch.index); }
@@ -78,7 +89,8 @@ export function parseOutline(text: string, kinds: readonly StepType[]): ParsedOu
       errors.push({ lineNo, message: `[${m[1]}] という種類はありません` });
       return;
     }
-    lines.push({ lineNo, kind, description: unescapeText(m[2].trim()), id });
+    lines.push({ lineNo, depth, kind, description: unescapeText(m[2].trim()), id });
+    prevDepth = depth;
   });
   return { lines, errors };
 }
@@ -87,44 +99,72 @@ export interface OutlineApplyResult {
   steps: Step[];
   added: number;
   changed: number;
-  /** 順序が入れ替わった (内容の変更を除く) */
+  /** 順序や入れ子の位置が変わった (内容の変更を除く) */
   reordered: boolean;
   removed: Step[];
   /** 既存の工程で、行の種類が違っていたため無視した行 */
   kindIgnored: OutlineLine[];
 }
 
+interface Node { line: OutlineLine; base: Step; isNew: boolean; children: Node[] }
+
+/** 工程の木 (最上位 + subSteps の再帰) を、先行順に (工程, 親の id) で並べる */
+function flattenTree(steps: readonly Step[], parentId: string | null = null, out: Array<[string, string | null]> = []): Array<[string, string | null]> {
+  for (const st of steps) {
+    out.push([st.id as string, parentId]);
+    if (st.subSteps?.length) flattenTree(st.subSteps, st.id as string, out);
+  }
+  return out;
+}
+
 /**
  * アウトラインの行を、既存の工程の並びへ反映した結果を返す (steps は書き換えない)。
- * `usedIds` は新しい工程の id が衝突しないための既存 id の集合 (新しい id を足していく)。
+ * 行の字下げが入れ子 (subSteps)。`usedIds` は新しい工程の id が衝突しないための既存 id の集合 (新しい id を足していく)。
+ * 変わっていない工程は、元のオブジェクトをそのまま返す。
  */
 export function applyOutline(steps: readonly Step[], lines: readonly OutlineLine[], usedIds: Set<string>): OutlineApplyResult {
-  const byId = new Map(steps.map((s) => [s.id as string, s]));
+  const byId = new Map<string, Step>();
+  const collect = (list: readonly Step[]) => { for (const st of list) { byId.set(st.id as string, st); if (st.subSteps) collect(st.subSteps); } };
+  collect(steps);
+
   const taken = new Set<string>();
-  const next: Step[] = [];
   const kindIgnored: OutlineLine[] = [];
   let added = 0;
-  let changed = 0;
+  const roots: Node[] = [];
+  const stack: Node[] = [];
   for (const line of lines) {
     const existing = line.id ? byId.get(line.id) : undefined;
+    let node: Node;
     if (existing && !taken.has(existing.id as string)) {
       taken.add(existing.id as string);
       if (existing.kind !== line.kind) kindIgnored.push(line);
-      if ((existing.description ?? "") !== line.description) {
-        changed++;
-        next.push({ ...existing, description: line.description } as Step);
-      } else {
-        next.push(existing);
-      }
+      node = { line, base: existing, isNew: false, children: [] };
     } else {
-      const fresh = createDefaultStep(line.kind, usedIds);
-      next.push({ ...fresh, description: line.description } as Step);
+      node = { line, base: createDefaultStep(line.kind, usedIds), isNew: true, children: [] };
       added++;
     }
+    stack.length = line.depth;
+    (stack[line.depth - 1]?.children ?? roots).push(node);
+    stack[line.depth] = node;
   }
-  const removed = steps.filter((s) => !taken.has(s.id as string));
-  const keptOrder = steps.filter((s) => taken.has(s.id as string)).map((s) => s.id);
-  const newOrder = next.filter((s) => taken.has(s.id as string)).map((s) => s.id);
-  const reordered = keptOrder.some((id, i) => id !== newOrder[i]);
+
+  let changed = 0;
+  const build = (node: Node): Step => {
+    const kids = node.children.map(build);
+    const oldKids = node.base.subSteps ?? [];
+    const sameKids = !node.isNew && kids.length === oldKids.length && kids.every((k, i) => k === oldKids[i]);
+    const sameDesc = (node.base.description ?? "") === node.line.description;
+    if (!node.isNew && sameKids && sameDesc) return node.base;
+    if (!node.isNew && !sameDesc) changed++;
+    const copy = { ...node.base, description: node.line.description } as Step;
+    if (kids.length > 0) copy.subSteps = kids; else delete copy.subSteps;
+    return copy;
+  };
+  const next = roots.map(build);
+
+  const removed = [...byId.values()].filter((st) => !taken.has(st.id as string));
+  const before = flattenTree(steps).filter(([id]) => taken.has(id));
+  const after = flattenTree(next).filter(([id]) => taken.has(id));
+  const reordered = before.some(([id, parent], i) => id !== after[i]?.[0] || parent !== after[i]?.[1]);
   return { steps: next, added, changed, reordered, removed, kindIgnored };
 }
