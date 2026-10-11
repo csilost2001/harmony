@@ -21,8 +21,8 @@ describe("jsonDiff", () => {
     const changes = diffJson(before, after);
     const text = changes.map((c) => `${c.kind}:${describePath(c.path)}`);
     expect(text).toContain("changed:表示名");
-    expect(text).toContain("changed:カラム › 注文番号 (col-01) › 表示名");
-    expect(text).toContain("removed:カラム › 注文番号 (col-01) › NOT NULL");
+    expect(text).toContain("changed:カラム › 注文ID (col-01) › 表示名");
+    expect(text).toContain("removed:カラム › 注文ID (col-01) › NOT NULL");
     expect(text).toContain("added:カラム › 数量 (col-03)");
     expect(text).toContain("removed:カラム › 備考 (col-02)");
     expect(summarizeChanges(changes)).toEqual({ added: 1, removed: 2, changed: 2, reordered: 0 });

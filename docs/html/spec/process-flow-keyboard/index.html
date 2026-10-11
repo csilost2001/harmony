@@ -1,0 +1,106 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="../../favicon.svg" type="image/svg+xml"><title>process flow keyboard</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="../../_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="../../_astro/_slug_.XtJAgJeQ.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="../../" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="../../spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="../../user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="../../conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="../../setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="../../presentation/" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="../../spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="../../spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="../../spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="../../spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="../../spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="../../spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="../../spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="../../spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="../../spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="../../spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="../../spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="../../spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="../../spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="../../spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="../../spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="../../spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="../../spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="../../spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="../../spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="../../spec/spec-package/" class="sidebar-link"> @harmony/spec package </a> </li><li> <a href="../../spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="../../spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="../../spec/design-payload-storage/" class="sidebar-link"> Design payload storage </a> </li><li> <a href="../../spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="../../spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="../../spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="../../spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="../../spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="../../spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="../../spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="../../spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="../../spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="../../spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="../../spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="../../spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="../../spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="../../spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="../../spec/react-exporter/" class="sidebar-link"> React Exporter (designer__export_screen) </a> </li><li> <a href="../../spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="../../spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="../../spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="../../spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="../../spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="../../spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="../../spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="../../spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="../../spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="../../spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="../../spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="../../spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="../../spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="../../spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="../../spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="../../spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="../../spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="../../spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="処理フロー-キーボード操作">処理フロー: キーボード操作</h1>
+<p>マウスを使わず、キーボードだけで工程を辿る・挿入する・インデントする操作。編集の仕組み (編集中・保存・元に戻す) は従来のままで、操作の入口だけを増やす。原本 (JSON) とスキーマは変えない。</p>
+<h2 id="基本の考え方">基本の考え方</h2>
+<ul>
+<li>各工程の<strong>見出し</strong> (<code>.step-card-header</code>) がキーボードの足場。Tab で見出しにカーソルを置ける (<code>tabIndex=0</code>、<code>aria-expanded</code> で開閉を伝える)。</li>
+<li>見出しにカーソルが移ると、その工程が「選択」にもなる。既存の選択ショートカット (複製・削除・上下へ動かす 等) がそのまま使える。</li>
+<li>入力欄の中では、文字入力を妨げない (矢印・Tab は通常どおり)。Esc で見出しへ戻る。</li>
+</ul>
+<h2 id="操作">操作</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>キー</th><th>動作</th></tr></thead><tbody><tr><td>↑ / ↓</td><td>表示されている前後の工程へ。Home / End で最初・最後</td></tr><tr><td>→ / ←</td><td>工程を開く / 閉じる。Space で切り替え</td></tr><tr><td>Enter / F2</td><td>工程を開き、最初の入力欄 (textarea / input) へ</td></tr><tr><td>Insert または <code>/</code></td><td>工程の挿入メニューを開く。種類を入力して絞り込み、↑↓ + Enter で選ぶ。選ぶと見出しの次に挿入され、新しい工程の入力欄へカーソルが入る</td></tr><tr><td>Shift+Tab</td><td>古い形式の入れ子 (<code>subSteps</code>) の工程を、親の次の位置へ出す</td></tr><tr><td>Esc</td><td>入力欄 → 見出しへ戻る</td></tr><tr><td>Ctrl+Enter (入力欄の中)</td><td>次の工程を挿入</td></tr><tr><td>Insert (工程以外の場所)</td><td>末尾へ工程を挿入</td></tr></tbody></table>
+<p>編集中でないとき (閲覧) は、移動・開閉だけが使える。</p>
+<h3 id="インデント-tab-を入れていない理由">インデント (Tab) を入れていない理由</h3>
+<p>工程を別の工程の中へ入れる「インデント」は、<code>subSteps</code> という項目を書き込む。この項目は v3 スキーマ (<code>schemas/v3/process-flow.v3.schema.json</code>) の工程に定義がなく、書き込むと保存した原本がスキーマ違反 (「要確認」) になる。スキーマは設計者の専権なので、AI の判断で項目を足さない。入れ子の置き場 (工程の共通項目に <code>subSteps</code> を足す / 分岐・繰り返しの中身として表す 等) が決まったら、<code>useStepKeyboard</code> の <code>onIndent</code> を配線すれば Tab で入れ子にできる (フック側は対応済み)。マウスの「インデント」ボタン (StepCard) も同じ問題を持つ。設計者の判断待ち: #1487。</p>
+<h2 id="実装">実装</h2>
+<ul>
+<li><code>frontend/src/components/process-flow/internal/useStepKeyboard.ts</code> — DOM のイベントを見て、挿入・インデント・アウトデントを <code>ProcessFlowEditor</code> へ依頼するフック。</li>
+<li><code>frontend/src/components/process-flow/internal/StepInsertMenu.tsx</code> — 種類を絞り込む挿入メニュー (combobox)。</li>
+<li>古い形式の子の工程は親の <code>.step-card</code> の中ではなく、同じ <code>.step-card-wrapper</code> 内の <code>.sub-steps</code> に描画される。入れ子の判定はこの構造に依存する。</li>
+<li>ショートカット一覧 (<code>?</code> キー) は <code>frontend/src/utils/shortcuts.ts</code>。</li>
+</ul>
+<h2 id="今後-段階-2-以降">今後 (段階 2 以降)</h2>
+<ul>
+<li>表 (カラム・画面項目・帳票項目) をセル単位でキーボード編集する。</li>
+<li>Markdown / Notion のようなテキスト主体の編集 (アウトライン) の試作。保存は今の JSON のまま。</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

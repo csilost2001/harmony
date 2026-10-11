@@ -67,7 +67,7 @@ function walk(a: unknown, b: unknown, path: DiffSegment[], out: Change[]): void 
       for (const e of b) if (!aById.has(e.id)) out.push({ path: [...path, { key: e.id, label: elementLabel(e), isElement: true }], kind: "added", after: e });
       for (const e of b) {
         const old = aById.get(e.id);
-        if (old) walk(old, e, [...path, { key: e.id, label: elementLabel(e) ?? elementLabel(old), isElement: true }], out);
+        if (old) walk(old, e, [...path, { key: e.id, label: elementLabel(old) ?? elementLabel(e), isElement: true }], out);
       }
       const common = (arr: Array<{ id: string }>, other: Map<string, unknown>) => arr.filter((e) => other.has(e.id)).map((e) => e.id);
       const ca = common(a, bById);
