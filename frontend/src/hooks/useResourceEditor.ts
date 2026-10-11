@@ -7,6 +7,7 @@ import { setDirty as setTabDirty, makeTabId, type TabType } from "../store/tabSt
 import { mcpBridge } from "../mcp/mcpBridge";
 import type { DraftResourceType } from "../types/draft";
 import { isRenameInProgressByTabType } from "../utils/renameInProgress";
+import { registerChangeSource } from "../utils/changeSource";
 
 export interface UseResourceEditorOptions<T> {
   /** tabStore で使うタブ種別 */
@@ -132,6 +133,15 @@ export function useResourceEditor<T>(opts: UseResourceEditorOptions<T>): UseReso
 
   useUndoKeyboard(undo, redo, enableUndoKeyboard);
 
+  // 「変更点」の表示用: 読み込んだ (または最後に保存した) 内容を持っておく
+  const baselineRef = useRef<T | null>(null);
+  const stateRef = useRef<T | null>(null);
+  useEffect(() => { stateRef.current = state; }, [state]);
+  useEffect(() => {
+    if (!id) return;
+    return registerChangeSource(makeTabId(tabType, id), { getBefore: () => baselineRef.current, getAfter: () => stateRef.current });
+  }, [id, tabType]);
+
   const markDirty = useCallback(() => {
     if (!id) return;
     setIsDirty(true);
@@ -141,6 +151,7 @@ export function useResourceEditor<T>(opts: UseResourceEditorOptions<T>): UseReso
 
   const markClean = useCallback(() => {
     if (!id) return;
+    baselineRef.current = stateRef.current == null ? null : structuredClone(stateRef.current);
     clearDraft(draftKind, id);
     setIsDirty(false);
     isDirtyRef.current = false;
@@ -188,6 +199,7 @@ export function useResourceEditor<T>(opts: UseResourceEditorOptions<T>): UseReso
       onNotFoundRef.current?.();
       return;
     }
+    baselineRef.current = structuredClone(loaded);
     const draft = loadDraft<T>(draftKind, id);
     if (draft) {
       resetState(draft);
@@ -250,6 +262,7 @@ export function useResourceEditor<T>(opts: UseResourceEditorOptions<T>): UseReso
       onNotFoundRef.current?.();
       return;
     }
+    baselineRef.current = structuredClone(loaded);
     resetState(loaded);
     setIsDirty(false);
     isDirtyRef.current = false;

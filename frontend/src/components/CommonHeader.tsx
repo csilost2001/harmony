@@ -1,3 +1,4 @@
+import { ChangesHost } from "./editing/ChangesHost";
 import type { ReactNode } from "react";
 import { HeaderMenu } from "./HeaderMenu";
 import { WorkspaceIndicator } from "./workspace/WorkspaceIndicator";
@@ -38,6 +39,7 @@ export function CommonHeader({ notification, userName }: Props) {
         </span>
       </div>
       <ToastHost />
+      <ChangesHost />
     </header>
   );
 }

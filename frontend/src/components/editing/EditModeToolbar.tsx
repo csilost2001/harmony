@@ -1,6 +1,8 @@
 import type { EditMode } from "../../hooks/useEditSession";
 import "../../styles/editMode.css";
 import { friendlyLabel } from "../../utils/participantLabel";
+import { getActiveTabId } from "../../store/tabStore";
+import { getChangeSource, requestShowChanges } from "../../utils/changeSource";
 
 interface Props {
   mode: EditMode;
@@ -71,6 +73,19 @@ export function EditModeToolbar({
             </>
           )}
         </button>
+        {dirty === true && !!getChangeSource(getActiveTabId()) && (
+          <button
+            type="button"
+            className="edit-mode-btn edit-mode-btn-secondary"
+            onClick={requestShowChanges}
+            disabled={saving}
+            title="保存する前に、何が変わったかを確かめる"
+            data-testid="edit-mode-changes"
+          >
+            <i className="bi bi-card-checklist me-1" />
+            変更点
+          </button>
+        )}
         <button
           type="button"
           className="edit-mode-btn edit-mode-btn-secondary"
