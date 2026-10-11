@@ -47,7 +47,16 @@ const RELATION_KIND_LABELS: Record<GenericRelationKind, string> = {
   appliesTo: "適用対象 (appliesTo)",
 };
 
+/**
+ * 定義ごとに作り直す (key)。別の汎用定義へ移る (例: Ctrl+K の本文検索) と、編集中・衝突ダイアログ・保存の通知などを持ち越さず、
+ * 移った先は閲覧中から始まる (開いただけでは編集できない)。
+ */
 export function GenericDefinitionEditor() {
+  const { kind = "", name = "" } = useParams<{ kind: string; name: string }>();
+  return <GenericDefinitionEditorBody key={`${kind}/${name}`} />;
+}
+
+function GenericDefinitionEditorBody() {
   const { kind: kindParam = "", name: nameParam = "" } = useParams<{ kind: string; name: string }>();
   const navigate = useNavigate();
   const { wsPath } = useWorkspacePath();
@@ -365,18 +374,21 @@ export function GenericDefinitionEditor() {
     // #1331: save 成功後は EditSession を discard。target を snapshot して、await 中の
     // resource 切替で誤って新 session を消さないようにする (Codex Round 4 Must-fix)。
     const targetAtSave = currentResourceIdRef.current;
-    discardEditSession(targetAtSave).catch(() => { /* logged inside */ });
+    // 編集中のままなので、保存で閉じたセッションを作り直す (帯の「編集中」と、サーバ側のセッションが食い違わないように)
+    discardEditSession(targetAtSave)
+      .then(() => ensureEditSession())
+      .catch(() => { /* logged inside */ });
     setTimeout(() => setSaveSuccess(false), 3000);
-  }, [discardEditSession]);
+  }, [discardEditSession, ensureEditSession]);
 
-  /** 編集開始: 編集セッションを作ってから、入力欄を使えるようにする (他の人が編集中などで作れなければ、閲覧のまま) */
+  /** 編集開始: 編集セッションを作ってから、入力欄を使えるようにする (作れなければ閲覧のまま。ほかの人が編集中でも始められ、保存のときに衝突を検出する) */
   const startEditing = useCallback(async () => {
     if (editing || starting) return;
     setStarting(true);
     try {
       const id = await ensureEditSession();
       if (id) setEditing(true);
-      else setSaveError("編集を開始できませんでした (ほかの人が編集中の可能性があります)");
+      else setSaveError("編集を開始できませんでした。通信を確認して、もう一度「編集開始」を押してください");
     } finally {
       setStarting(false);
     }
@@ -388,6 +400,8 @@ export function GenericDefinitionEditor() {
     await discardEditSession(currentResourceIdRef.current);
     setEditing(false);
     setSaveError("");
+    setSaveConflict(null);
+    setReloadBanner(false);
     reload({ silent: true });
   }, [discardEditSession, reload]);
 
@@ -627,6 +641,8 @@ export function GenericDefinitionEditor() {
           <button
             className="btn btn-outline-danger btn-sm"
             onClick={() => setShowDeleteConfirm(true)}
+            disabled={!editing}
+            title={editing ? undefined : "削除は、「編集開始」を押してからできます"}
           >
             削除
           </button>

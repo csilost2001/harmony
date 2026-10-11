@@ -87,6 +87,23 @@ function walkSteps(
         if (oc?.sideEffects && walkSteps(oc.sideEffects, visit)) return true;
       }
     }
+    // ワークフローの承認・却下・タイムアウト時の工程、入力チェックの OK / NG の枝
+    for (const key of ["onApproved", "onRejected", "onTimeout"] as const) {
+      const list = s[key];
+      if (Array.isArray(list) && walkSteps(list as Step[], visit)) return true;
+    }
+    const inline = s.inlineBranch as { ok?: Step[]; ng?: Step[] } | undefined;
+    if (inline) {
+      if (inline.ok && walkSteps(inline.ok, visit)) return true;
+      if (inline.ng && walkSteps(inline.ng, visit)) return true;
+    }
+    // v3 の形: errorHandling.outcomes.<success|failure|timeout>.sideEffects
+    const ehOutcomes = (s.errorHandling as { outcomes?: Record<string, { sideEffects?: Step[] } | undefined> } | undefined)?.outcomes;
+    if (ehOutcomes) {
+      for (const oc of Object.values(ehOutcomes)) {
+        if (oc?.sideEffects && walkSteps(oc.sideEffects, visit)) return true;
+      }
+    }
   }
   return false;
 }

@@ -53,3 +53,42 @@ describe("findStepDeep", () => {
     expect(findStepDeep(steps, "none")).toBeNull();
   });
 });
+
+describe("入れ子の操作は、分岐の枝・繰り返しの本体の中の工程にも使える", () => {
+  const branchFlow = () => [{ id: "b", kind: "branch", branches: [{ steps: [s("a1"), s("a2")] }] }] as unknown as Step[];
+  const arm = (steps: Step[]) => ((steps[0] as unknown as { branches: Array<{ steps: Step[] }> }).branches[0].steps);
+
+  it("枝の中の 2 番目の工程をインデント → 1 番目の subSteps へ (枝の外へは出ない)", () => {
+    const steps = branchFlow();
+    expect(canIndentStep(steps, "a2")).toBe(true);
+    expect(indentStep(steps, "a2")).toBe(true);
+    expect(ids(arm(steps))).toEqual([{ a1: ["a2"] }]);
+    expect(steps).toHaveLength(1);
+    expect(canIndentStep(steps, "a1")).toBe(false);
+  });
+
+  it("枝・繰り返し本体の直下の工程は、アウトデントできない (subSteps の中にいるときだけ)", () => {
+    const steps = [...branchFlow(), { id: "l", kind: "loop", steps: [s("l1")] }] as unknown as Step[];
+    expect(canOutdentStep(steps, "a1")).toBe(false);
+    expect(outdentStep(steps, "a1")).toBe(false);
+    expect(canOutdentStep(steps, "l1")).toBe(false);
+    expect(outdentStep(steps, "l1")).toBe(false);
+  });
+
+  it("枝の中の subSteps の子をアウトデント → 枝の配列の、親の次へ", () => {
+    const steps = [{ id: "b", kind: "branch", branches: [{ steps: [s("a1", [s("c1")])] }] }] as unknown as Step[];
+    expect(canOutdentStep(steps, "c1")).toBe(true);
+    expect(outdentStep(steps, "c1")).toBe(true);
+    expect(ids(arm(steps))).toEqual(["a1", "c1"]);
+  });
+
+  it("findStepDeep の範囲 (ワークフロー・入力チェックの枝・外部呼び出しの後処理) も、backend と同じ", () => {
+    const steps = [
+      { id: "wf", kind: "workflow", onApproved: [s("w1")] },
+      { id: "v", kind: "validation", inlineBranch: { ok: [s("o1")], ng: [s("n1")] } },
+      { id: "x", kind: "externalSystem", errorHandling: { outcomes: { failure: { sideEffects: [s("e1")] } } } },
+    ] as unknown as Step[];
+    for (const id of ["w1", "o1", "n1", "e1"]) expect(findStepDeep(steps, id)?.id).toBe(id);
+  });
+});
+

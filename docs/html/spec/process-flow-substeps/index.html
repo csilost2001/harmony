@@ -38,6 +38,7 @@
 <li>工程のメニューの「サブステップ追加」は、<strong>繰り返し・トランザクションでは従来どおり本体 (<code>steps</code>) の末尾</strong>へ、それ以外の種類では <code>subSteps</code> へ追加する (入れ子の中の工程でも同じ振り分け)。</li>
 <li>マウスの「インデント」「アウトデント」(工程カードのボタン) も、キーボードと同じ意味 (アウトデントは、後ろの兄弟を外した工程の配下へ引き継ぎ、実行順を変えない。空になった <code>subSteps</code> は書かない)。</li>
 <li>インデントすると、親の実行条件 (<code>runIf</code>)・失敗の扱いが子にも及ぶ (親が実行されなければ子も実行されない)。兄弟だった工程の実行条件が変わることに注意する。</li>
+<li>AI (MCP): <code>designer__add_step</code> の <code>parentStepId</code> で配下に追加、<code>designer__nest_step</code> (<code>direction</code>: indent / outdent) で入れ子を動かす (キーボード・マウスと同じ意味)。</li>
 <li>アウトラインでは、字下げ (空白 2 つ) が入れ子 (<a href="../../spec/process-flow-outline/">process-flow-outline.md</a>)。</li>
 </ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
       // Theme toggle (restore は <head> で先行実行済、FOUC 回避)

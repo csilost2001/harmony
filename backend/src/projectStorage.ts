@@ -482,6 +482,57 @@ function entityFilePathFor(kind: TopLevelEntityKind, dataRoot: string, id: strin
   return path.join(entityDirOf(kind, dataRoot), `${id}.json`);
 }
 
+/**
+ * 設計の実体を、**読むだけ**で一覧にする (uuid の補完や形式の移行などの書き込みをしない。ディレクトリも作らない)。
+ * 検索・設計書の入力など、「開いただけ・打っただけ」で呼ばれる読み出し用。`.design.json` は含めない。
+ * 処理フローは、古い配置 (`actions/`) も含む (同じ id は新しい配置が優先)。
+ */
+export async function listEntitiesReadOnly(kind: TopLevelEntityKind, root: string): Promise<unknown[]> {
+  let dataRoot: string;
+  try { dataRoot = await resolveDataRoot(root); } catch { return []; }
+  const dirs = kind === "processFlow" ? [actionsDir(dataRoot), processFlowsDir(dataRoot)] : [entityDirOf(kind, dataRoot)];
+  const byKey = new Map<string, unknown>();
+  for (const dir of dirs) {
+    let files: string[];
+    try { files = await fs.readdir(dir); } catch { continue; }
+    for (const f of files.sort()) {
+      if (!f.endsWith(".json") || f.endsWith(".design.json")) continue;
+      const data = await readJSON<unknown>(path.join(dir, f));
+      if (!isRecord(data)) continue;
+      const id = kind === "processFlow" ? (isRecord(data.meta) ? data.meta.id : undefined) ?? data.id : data.id;
+      byKey.set(typeof id === "string" ? id : f.replace(/\.json$/, ""), data);
+    }
+  }
+  return [...byKey.values()];
+}
+
+/** 汎用定義 (種類ごと) を、読むだけで一覧にする (ディレクトリも作らない) */
+export async function listGenericDefinitionsReadOnly(root: string, kind: string): Promise<unknown[]> {
+  let dataRoot: string;
+  try { dataRoot = await resolveDataRoot(root); } catch { return []; }
+  let files: string[];
+  try { files = await fs.readdir(genericDefinitionsDir(dataRoot, kind)); } catch { return []; }
+  const out: unknown[] = [];
+  for (const f of files.sort()) {
+    if (!f.endsWith(".json")) continue;
+    const data = await readJSON<unknown>(path.join(genericDefinitionsDir(dataRoot, kind), f));
+    if (isRecord(data)) out.push(data);
+  }
+  return out;
+}
+
+/** 1 件を、読むだけで読む (書き込まない)。処理フローは古い配置も探す。無ければ null */
+export async function readEntityReadOnly(kind: TopLevelEntityKind, id: string, root: string): Promise<unknown | null> {
+  let dataRoot: string;
+  try { dataRoot = await resolveDataRoot(root); } catch { return null; }
+  const candidates = [entityFilePathFor(kind, dataRoot, id), ...(kind === "processFlow" ? [path.join(actionsDir(dataRoot), `${id}.json`)] : [])];
+  for (const p of candidates) {
+    const data = await readJSON<unknown>(p);
+    if (isRecord(data)) return data;
+  }
+  return null;
+}
+
 /** 設計の実体ファイル (`<種類の dir>/<id>.json`) の更新時刻 (ms)。無ければ null。「最近編集したもの」用 */
 export async function entityFileMtime(kind: TopLevelEntityKind, id: string, root: string): Promise<number | null> {
   try {

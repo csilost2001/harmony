@@ -2,11 +2,9 @@
  * 設計の本文検索。クイックオープン (Ctrl+K) が、名前・ID に合わないときでも「説明・カラム名・項目のラベル・工程の説明」
  * などの本文から探せるようにする。画面・テーブル・処理フロー・業務フロー・帳票を、設計書・検査と同じ入力 (loadDesignInputFromRoot。データが変わらないあいだは使い回す) から、文字列を走査する (書き込まない)。
  */
-import fs from "node:fs/promises";
-import path from "node:path";
 import { loadDesignInputFromRoot } from "./designInput.js";
 import { memoizeBySignature } from "./dataSignature.js";
-import { listAllGenericDefinitions, listAllPageLayouts, listAllSequences, listAllViewDefinitions, listAllViews, resolveDataRoot } from "./projectStorage.js";
+import { listEntitiesReadOnly, listGenericDefinitionsReadOnly } from "./projectStorage.js";
 
 export type SearchKind = "screen" | "table" | "process-flow" | "business-flow" | "report" | "sequence" | "view" | "view-definition" | "page-layout" | "generic-definition";
 
@@ -42,6 +40,12 @@ const ARRAY_LABELS: Record<string, string> = {
 };
 const MAX_MATCHES_PER_ENTITY = 3;
 
+/** 汎用定義の種類 (frontend の GENERIC_DEFINITION_KINDS、schemas/v3/generic-definitions/ と同じ。designSearch.test.ts が突き合わせる) */
+export const GENERIC_DEFINITION_KINDS = [
+  "data-contract", "domain-type", "exception-type", "application-rule", "validation-rule", "ui-behavior", "runtime-policy",
+  "component-definition", "constants", "message", "domain-event", "log-event", "log-config", "dialog", "message-area", "options", "global",
+] as const;
+
 interface SecondaryTarget { kind: SearchKind; id: string; name: string; entity: unknown }
 
 /** 設計書の入力に含まれない種類 (シーケンス・ビュー・ビュー定義・ページレイアウト・汎用定義)。データが変わるまで使い回す */
@@ -53,20 +57,17 @@ const loadSecondaryTargets = memoizeBySignature(async (root: string): Promise<Se
       if (isRecord(e) && typeof e.id === "string") out.push({ kind, id: e.id, name: nameOf(e, e.id), entity: e });
     }
   };
-  await addAll("sequence", listAllSequences(root));
-  await addAll("view", listAllViews(root));
-  await addAll("view-definition", listAllViewDefinitions(root));
-  await addAll("page-layout", listAllPageLayouts(root));
-  // 汎用定義は、種類ごとのフォルダにある (id は「種類/名前」。画面の遷移先 /generic-definition/<種類>/<名前> に対応)
-  try {
-    const dataRoot = await resolveDataRoot(root);
-    const kinds = (await fs.readdir(path.join(dataRoot, "generic-definitions"), { withFileTypes: true })).filter((d) => d.isDirectory()).map((d) => d.name);
-    for (const kind of kinds) {
-      for (const e of await listAllGenericDefinitions(root, kind).catch(() => [] as unknown[])) {
-        if (isRecord(e) && typeof e.name === "string") out.push({ kind: "generic-definition", id: `${kind}/${e.name}`, name: e.name, entity: e });
-      }
+  // 検索は読むだけ (uuid の補完など、原本を書き換える読み出しは使わない)
+  await addAll("sequence", listEntitiesReadOnly("sequence", root));
+  await addAll("view", listEntitiesReadOnly("view", root));
+  await addAll("view-definition", listEntitiesReadOnly("viewDefinition", root));
+  await addAll("page-layout", listEntitiesReadOnly("pageLayout", root));
+  // 汎用定義は、種類ごとのフォルダにある (id は「種類/名前」。画面の遷移先 /generic-definition/<種類>/<名前> に対応)。既知の種類だけ
+  for (const kind of GENERIC_DEFINITION_KINDS) {
+    for (const e of await listGenericDefinitionsReadOnly(root, kind)) {
+      if (isRecord(e) && typeof e.name === "string") out.push({ kind: "generic-definition", id: `${kind}/${e.name}`, name: e.name, entity: e });
     }
-  } catch { /* 汎用定義が無いプロジェクト */ }
+  }
   return out;
 });
 
@@ -114,7 +115,9 @@ function scan(entity: unknown, tokens: string[]): SearchMatch[] {
 }
 
 /** 名前・ID に合うものは、(クイックオープン側の) 名前検索が拾うので、本文の一致だけを返す */
-export async function searchDesign(root: string, query: string, limit = 30): Promise<SearchHit[]> {
+export async function searchDesign(root: string, query: string, limit = 30, warm = false): Promise<SearchHit[]> {
+  // 検索パネルを開いた時点の先読み: 結果は返さず、検索に使う読み込み (データが変わるまで使い回す) だけ済ませておく
+  if (warm) { await Promise.all([loadDesignInputFromRoot(root), loadSecondaryTargets(root)]); return []; }
   const tokens = normalizeForSearch(query).split(/\s+/).filter(Boolean);
   if (tokens.length === 0 || tokens.join("").length < 2) return [];
   const hits: SearchHit[] = [];

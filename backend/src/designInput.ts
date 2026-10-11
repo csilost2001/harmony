@@ -5,7 +5,7 @@
  */
 import type { DesignDocInput } from "@harmony/shared";
 import {
-  readScreenEntity, listProcessFlows, listAllTables, readConventions,
+  readScreenEntity, readEntityReadOnly, listEntitiesReadOnly, readConventions,
   readLayoutComponents, listBusinessFlowsDetailed, listReportsDetailed,
 } from "./projectStorage.js";
 import { memoizeBySignature } from "./dataSignature.js";
@@ -32,7 +32,7 @@ async function computeDesignInput(root: string): Promise<LoadedDesignInput> {
   const screens: unknown[] = [];
   for (const s of screenRefs) {
     try {
-      const e = await readScreenEntity(s.id, root);
+      const e = (await readEntityReadOnly("screen", s.id, root)) ?? await readScreenEntity(s.id, root); // 読むだけを先に (旧形式の画面だけ、従来の読み出し)
       if (e) screens.push(e); else skipped.push(`画面「${s.id}」`);
     } catch { skipped.push(`画面「${s.id}」`); }
   }
@@ -47,9 +47,9 @@ async function computeDesignInput(root: string): Promise<LoadedDesignInput> {
       return found ? [found] : [];
     });
   };
-  const flows = registered(await listProcessFlows(root), entities.processFlows,
+  const flows = registered(await listEntitiesReadOnly("processFlow", root), entities.processFlows,
     (x) => (isRecord(x) && isRecord(x.meta) ? (x.meta.id as string | undefined) : undefined), "処理フロー");
-  const tables = registered(await listAllTables(root), entities.tables,
+  const tables = registered(await listEntitiesReadOnly("table", root), entities.tables,
     (x) => (isRecord(x) ? (x.id as string | undefined) : undefined), "テーブル");
 
   const conventions = ((await readConventions(root).catch(() => null)) ?? {}) as Record<string, DesignDocInput["messages"] & Record<string, never>>;

@@ -227,13 +227,11 @@ export function SequenceEditor() {
 
       const opts: TableColumnOption[] = [];
       for (const td of await loadAllTables()) { // 全テーブルを 1 回の問い合わせで
-        {
-          opts.push({
-            tableId: td.id,
-            tableName: td.name || td.physicalName,
-            columns: td.columns.map((c) => ({ id: c.id, name: c.name || c.physicalName })),
-          });
-        }
+        opts.push({
+          tableId: td.id,
+          tableName: td.name || td.physicalName,
+          columns: td.columns.map((c) => ({ id: c.id, name: c.name || c.physicalName })),
+        });
       }
       setTableOptions(opts);
     })();
