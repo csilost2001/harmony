@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { fireEvent, render } from "@testing-library/react";
+import { cleanup, fireEvent, render } from "@testing-library/react";
 import { useStepKeyboard, type StepKeyboardHandlers } from "./useStepKeyboard";
 
 function Harness({ h }: { h: StepKeyboardHandlers }) {
@@ -33,7 +33,7 @@ function Harness({ h }: { h: StepKeyboardHandlers }) {
 }
 
 const mk = (over: Partial<StepKeyboardHandlers> = {}): StepKeyboardHandlers => ({
-  editing: true, onInsert: vi.fn(), onIndent: vi.fn(), onOutdent: vi.fn(), onFocusStep: vi.fn(), ...over,
+  editing: true, onInsert: vi.fn(), onIndent: vi.fn(() => true), onOutdent: vi.fn(() => true), onFocusStep: vi.fn(), ...over,
 });
 const key = (el: Element, k: string, init: KeyboardEventInit = {}) => fireEvent.keyDown(el, { key: k, ...init });
 
@@ -70,17 +70,21 @@ describe("useStepKeyboard", () => {
     expect(ro.onInsert).not.toHaveBeenCalled();
   });
 
-  it("Tab でインデント (最上位) / Shift+Tab でアウトデント (入れ子)。その逆は何もしない", () => {
+  it("Tab でインデント / Shift+Tab でアウトデント。できたときだけ通常の Tab を止める", () => {
     const h = mk();
     const { getByTestId } = render(<Harness h={h} />);
     key(getByTestId("hb"), "Tab");
     expect(h.onIndent).toHaveBeenCalledWith("b");
     key(getByTestId("hb1"), "Tab", { shiftKey: true });
-    expect(h.onOutdent).toHaveBeenCalledWith("b", "b1");
-    key(getByTestId("hb"), "Tab", { shiftKey: true });
-    key(getByTestId("hb1"), "Tab");
-    expect(h.onIndent).toHaveBeenCalledTimes(1);
-    expect(h.onOutdent).toHaveBeenCalledTimes(1);
+    expect(h.onOutdent).toHaveBeenCalledWith("b1");
+    // できなかった (false) ときは、通常のフォーカス移動のまま
+    const no = mk({ onIndent: vi.fn(() => false), onOutdent: vi.fn(() => false) });
+    cleanup();
+    const r = render(<Harness h={no} />);
+    const ev = new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true });
+    r.getByTestId("ha").dispatchEvent(ev);
+    expect(no.onIndent).toHaveBeenCalledWith("a");
+    expect(ev.defaultPrevented).toBe(false);
   });
 
   it("処理を渡さなければ Tab は何もしない (通常のフォーカス移動)", () => {

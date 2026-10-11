@@ -292,6 +292,7 @@ function walkStepsInOrder(
     const step = steps[i];
     const path = `${basePath}[${i}]`;
     visitor(step, path);
+    if (step.subSteps?.length) walkStepsInOrder(step.subSteps, `${path}.subSteps`, visitor, loopHooks);
     if (!isBuiltinStep(step)) continue;
     if (step.kind === "branch") {
       step.branches.forEach((b, bi) =>

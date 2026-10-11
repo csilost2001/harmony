@@ -123,7 +123,7 @@ function stepIdFromPath(path: string, group: ProcessFlow): string | null {
 
   // ネストしたセグメントを順次辿る
   // 例: ".branches[0].steps[1].outcomes.failure.sideEffects[0]"
-  const segmentRe = /^(?:\.branches\[(\d+)\]\.steps\[(\d+)\]|\.elseBranch\.steps\[(\d+)\]|\.steps\[(\d+)\]|\.outcomes\.(success|failure|timeout)\.sideEffects\[(\d+)\])/;
+  const segmentRe = /^(?:\.branches\[(\d+)\]\.steps\[(\d+)\]|\.elseBranch\.steps\[(\d+)\]|\.steps\[(\d+)\]|\.subSteps\[(\d+)\]|\.outcomes\.(success|failure|timeout)\.sideEffects\[(\d+)\])/;
 
   while (true) {
     const sm = rest.match(segmentRe);
@@ -150,11 +150,16 @@ function stepIdFromPath(path: string, group: ProcessFlow): string | null {
       } else {
         return currentStep.id;
       }
-    } else if (sm[5] !== undefined && sm[6] !== undefined) {
+    } else if (sm[5] !== undefined) {
+      // .subSteps[N]: 配下の工程 (全種類の工程が持てる)
+      const next = currentStep.subSteps?.[+sm[5]];
+      if (!next) return currentStep.id;
+      currentStep = next;
+    } else if (sm[6] !== undefined && sm[7] !== undefined) {
       if (!isBuiltinStep(currentStep) || currentStep.kind !== "externalSystem") return currentStep.id;
-      const outcome = currentStep.errorHandling?.outcomes?.[sm[5] as "success" | "failure" | "timeout"];
+      const outcome = currentStep.errorHandling?.outcomes?.[sm[6] as "success" | "failure" | "timeout"];
       if (!outcome?.sideEffects) return currentStep.id;
-      const next = outcome.sideEffects[+sm[6]];
+      const next = outcome.sideEffects[+sm[7]];
       if (!next) return currentStep.id;
       currentStep = next;
     }

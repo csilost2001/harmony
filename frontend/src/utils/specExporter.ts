@@ -440,6 +440,7 @@ function toSpecStep(s: Step, index: number): SpecStep {
       if (s.filter) detail.filter = s.filter;
       break;
   }
+  if (s.subSteps && s.subSteps.length > 0) detail.subSteps = s.subSteps;
   return {
     number: getStepLabel(index),
     type: s.kind,

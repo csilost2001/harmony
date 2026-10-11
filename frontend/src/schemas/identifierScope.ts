@@ -180,6 +180,7 @@ function buildStepIndex(steps: Step[]): Map<string, Step> {
   function walk(stepList: Step[]): void {
     for (const step of stepList) {
       if (step.id) index.set(step.id, step);
+      if (step.subSteps) walk(step.subSteps);
       if (!isBuiltinStep(step)) continue;
       if (step.kind === "branch") {
         step.branches.forEach((b) => walk(b.steps));
@@ -283,6 +284,12 @@ function walkSteps(
     // outputBinding は StepBaseProps 共通フィールド。拡張 step も継承するため kind 関係なく known に追加
     const bindName = getBindingName(step.outputBinding);
     if (bindName) known.add(bindName);
+
+    // 配下の工程 (subSteps): 親の本体のあとに実行するので、親が宣言した変数は子から見える (loopItems も引き継ぐ)
+    if (step.subSteps?.length) {
+      if (isBuiltinStep(step) && step.kind === "validation" && step.fieldErrorsVar) known.add(step.fieldErrorsVar);
+      walkSteps(step.subSteps, `${path}.subSteps`, known, loopItems, envVarNames, actionInputs, stepIndex, issues);
+    }
 
     // 以下は組み込み step variant 固有の処理 (拡張 step は config 内の固有プロパティを持つため除外)
     if (!isBuiltinStep(step)) return;

@@ -289,6 +289,7 @@ export function deriveCrud(flows: readonly DocFlow[], tables: readonly DocTable[
         }
         const x = s as Record<string, unknown>;
         walk((x.steps as FlowStep[]) ?? []);
+        walk((x.subSteps as FlowStep[]) ?? []);
         for (const b of (x.branches as Array<{ steps: FlowStep[] }>) ?? []) walk(b.steps ?? []);
         walk(((x.elseBranch as { steps?: FlowStep[] }) ?? {}).steps ?? []);
         walk((x.onCommit as FlowStep[]) ?? []);
@@ -497,6 +498,7 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
       if (st.kind === "eventPublish" && topic) (pub.get(topic) ?? pub.set(topic, new Set()).get(topic)!).add(f.meta.id);
       if (st.kind === "eventSubscribe" && topic) (subs.get(topic) ?? subs.set(topic, new Set()).get(topic)!).add(f.meta.id);
       visit((x.steps as FlowStep[]) ?? []);
+      visit((x.subSteps as FlowStep[]) ?? []);
       for (const b of (x.branches as Array<{ steps: FlowStep[] }>) ?? []) visit(b.steps ?? []);
       visit(((x.elseBranch as { steps?: FlowStep[] }) ?? {}).steps ?? []);
       visit((x.onCommit as FlowStep[]) ?? []);

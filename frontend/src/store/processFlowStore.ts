@@ -173,22 +173,31 @@ export function moveStep(action: ActionDefinition, fromIndex: number, toIndex: n
   action.steps.splice(toIndex, 0, step);
 }
 
+/**
+ * 親の配下に工程を追加する。繰り返し・トランザクションは、本体 (`steps`) の末尾へ (従来どおり)。
+ * それ以外の種類は `subSteps` へ (docs/spec/process-flow-substeps.md)。
+ */
 export function addSubStep(parentStep: Step, kind: StepType, group?: ProcessFlow): Step {
   const existingIds = group
     ? collectAllProcessFlowLocalIds(group)
     : collectStepIdsFromActionSubtree({ id: "_tmp" as never, name: "", trigger: "click", steps: [parentStep] });
   const step = createDefaultStep(kind, existingIds);
-  const parent = parentStep as Step & { steps?: Step[] };
-  if (!Array.isArray(parent.steps)) parent.steps = [];
-  parent.steps.push(step);
+  if (parentStep.kind === "loop" || parentStep.kind === "transactionScope") {
+    const body = parentStep as Step & { steps?: Step[] };
+    if (!Array.isArray(body.steps)) body.steps = [];
+    body.steps.push(step);
+    return step;
+  }
+  if (!Array.isArray(parentStep.subSteps)) parentStep.subSteps = [];
+  parentStep.subSteps.push(step);
   return step;
 }
 
 export function removeSubStep(parentStep: Step, subStepId: string): void {
-  const parent = parentStep as Step & { steps?: Step[] };
-  if (!parent.steps) return;
-  const idx = parent.steps.findIndex((s) => s.id === subStepId);
-  if (idx >= 0) parent.steps.splice(idx, 1);
+  if (!parentStep.subSteps) return;
+  const idx = parentStep.subSteps.findIndex((s) => s.id === subStepId);
+  if (idx >= 0) parentStep.subSteps.splice(idx, 1);
+  if (parentStep.subSteps.length === 0) delete parentStep.subSteps;
 }
 
 /**
@@ -281,6 +290,7 @@ function countGroupNotes(group: ProcessFlow): number {
   const visit = (steps: Step[]) => {
     for (const s of steps) {
       count += s.notes?.length ?? 0;
+      if (s.subSteps) visit(s.subSteps);
       if (s.kind === "branch") {
         const branch = s as Step & { branches: { steps: Step[] }[]; elseBranch?: { steps: Step[] } };
         for (const b of branch.branches) visit(b.steps);

@@ -119,3 +119,33 @@ describe("テスト観点 (deriveTestViewpoints)", () => {
     expect(vs).toEqual([expect.objectContaining({ category: "正常系", expected: "最後まで処理して正常終了" })]);
   });
 });
+
+describe("工程の入れ子 (subSteps): 親の本体のあとに、続けて実行する", () => {
+  const nested = {
+    id: "act-001",
+    steps: [
+      { id: "step-01", kind: "compute", description: "親", subSteps: [
+        { id: "step-02", kind: "compute", description: "子 1" },
+        { id: "step-03", kind: "return", description: "子 2: 400 を返す", subSteps: [{ id: "step-04", kind: "compute", description: "到達しない" }] },
+      ] },
+      { id: "step-05", kind: "compute", description: "次の工程" },
+    ],
+  } as unknown as ActionDefinition;
+
+  it("処理記述表: 子は <親>-S-n の番号で、親の下に 1 段深く出る", () => {
+    const rows = buildOutline(nested.steps, nested, ctx).filter((r) => r.type === "step");
+    expect(rows.map((r) => [r.no, r.depth])).toEqual([["1", 0], ["1-S-1", 1], ["1-S-2", 1], ["1-S-2-S-1", 2], ["2", 0]]);
+  });
+
+  it("図: 子は親の次に続けて並ぶ (親 → 子 1 → 子 2 → 孫 → 次の工程)", () => {
+    const nodes = layoutFlow(nested, ctx).nodes.map((n) => n.stepId).filter(Boolean);
+    expect(nodes.slice(0, 5)).toEqual(["step-01", "step-02", "step-03", "step-04", "step-05"]);
+  });
+
+  it("テスト観点: 子の中の終了も拾う", async () => {
+    const { deriveTestViewpoints } = await import("@harmony/shared");
+    const vs = deriveTestViewpoints(nested as never);
+    expect(vs.some((v) => v.stepNo === "1-S-2")).toBe(true);
+  });
+});
+

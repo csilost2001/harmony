@@ -735,6 +735,7 @@ function buildBrokenRefContext(flow: unknown, projectIndex?: ProjectCatalogIndex
         elseBranch?: { steps?: unknown[] };
         onCommit?: unknown[];
         onRollback?: unknown[];
+        subSteps?: unknown[];
         collectionItemName?: string;
         collectionIndexName?: string;
       };
@@ -742,6 +743,8 @@ function buildBrokenRefContext(flow: unknown, projectIndex?: ProjectCatalogIndex
         stepIds.add(sAny.id);
         if (sAny.kind === "transactionScope") txIds.add(sAny.id);
       }
+      // 配下の工程 (subSteps) は、親と同じ TX の内外で実行する
+      if (sAny.subSteps) walkVarBindings(sAny.subSteps, withinTx);
       const isTxStep = sAny.kind === "transactionScope";
       if (isTxStep) {
         // TX wrapper 自体の outputBinding (txResult 等) は action scope の expose 機構として varKeys へ
@@ -818,6 +821,7 @@ function walkSteps(steps: Step[], basePath: string, visit: StepVisitor, withinTx
   steps.forEach((step, i) => {
     const path = `${basePath}[${i}]`;
     visit(step, path, withinTx);
+    if (step.subSteps?.length) walkSteps(step.subSteps, `${path}.subSteps`, visit, withinTx);
     if (!isBuiltinStep(step)) return;
     if (step.kind === "branch") {
       (step.branches ?? []).forEach((b: { steps?: Step[] }, bi: number) =>

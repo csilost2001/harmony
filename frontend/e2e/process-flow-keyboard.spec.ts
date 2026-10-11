@@ -50,16 +50,27 @@ test.describe("処理フローのキーボード操作", () => {
     expect(focusedIsHeader).toBe(true);
   });
 
-  test("Tab は入れ子にせず、通常のフォーカス移動のまま (subSteps はスキーマに無いため) @regression", async ({ page }) => {
+  test("Tab で直前の工程の配下へ入れ、Shift+Tab で戻せる (最初の工程は Tab を奪わない) @regression", async ({ page }) => {
     await ws.gotoActive(page, "/process-flow/edit/order-confirm");
     await page.getByTestId("edit-mode-start").click();
     await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 15000 });
-    const second = page.locator(".step-card-wrapper:not(.sub-steps .step-card-wrapper) > .step-card > .step-card-header").nth(1);
+    const tops = page.locator(".step-card-wrapper:not(.sub-steps .step-card-wrapper) > .step-card > .step-card-header");
+    // 最初の工程では入れ子にできないので、Tab は通常のフォーカス移動 (保存は押せないまま)
+    await tops.first().focus();
+    await page.keyboard.press("Tab");
+    await expect(page.getByTestId("edit-mode-save")).toBeDisabled();
+
+    const second = tops.nth(1);
     await second.focus();
     const id = await second.evaluate((el) => el.closest(".step-card")?.getAttribute("data-step-id"));
     await page.keyboard.press("Tab");
-    await expect(page.locator(`.sub-steps .step-card[data-step-id="${id}"]`)).toHaveCount(0);
-    await expect(page.getByTestId("edit-mode-save")).toBeDisabled();
+    await expect(page.locator(`.sub-steps .step-card[data-step-id="${id}"]`)).toHaveCount(1, { timeout: 5000 });
+    await expect(page.locator(`.step-card[data-step-id="${id}"] > .step-card-header`)).toBeFocused({ timeout: 5000 });
+    await expect(page.getByTestId("edit-mode-save")).toBeEnabled();
+
+    await page.keyboard.press("Shift+Tab");
+    await expect(page.locator(`.sub-steps .step-card[data-step-id="${id}"]`)).toHaveCount(0, { timeout: 5000 });
+    await expect(page.locator(`.step-card[data-step-id="${id}"] > .step-card-header`)).toBeFocused({ timeout: 5000 });
   });
 
   test("アウトライン: 1 行 1 工程のテキストで、説明の変更・工程の追加・並べ替え・削除ができる @regression", async ({ page }) => {
@@ -109,5 +120,29 @@ test.describe("処理フローのキーボード操作", () => {
     // カードの表示に戻ると、追加した工程がある
     await page.getByTestId("pf-view-cards").click();
     await expect(page.locator(".step-card-wrapper:not(.sub-steps .step-card-wrapper)")).toHaveCount(cardsBefore + 1);
+  });
+
+  test("アウトライン: Tab で字下げすると入れ子 (subSteps) になり、保存してもスキーマ違反にならない @regression", async ({ page }) => {
+    await ws.gotoActive(page, "/process-flow/edit/order-confirm");
+    await page.getByTestId("edit-mode-start").click();
+    await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 15000 });
+    await page.getByTestId("pf-view-outline").click();
+    const area = page.getByTestId("pf-outline-text");
+    await area.focus();
+    await page.keyboard.press("Control+Home");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("Home");
+    await page.keyboard.press("Tab");
+    expect((await area.inputValue()).split("\n")[1].startsWith("  [")).toBe(true);
+    await page.getByTestId("pf-outline-apply").click();
+    await page.getByTestId("pf-view-cards").click();
+    await expect(page.locator(".sub-steps .step-card")).toHaveCount(1);
+    await page.getByTestId("edit-mode-save").click();
+    await expect(page.getByTestId("edit-mode-save")).toBeDisabled({ timeout: 10000 });
+    // 保存した原本はスキーマに合う: 設計書 (要確認) にスキーマ違反が出ない
+    await ws.gotoActive(page, "/document");
+    await expect(page.getByTestId("design-document-view")).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId("design-document-view")).not.toContainText("must NOT have unevaluated properties");
+    await expect(page.getByTestId("design-document-view")).not.toContainText("subSteps");
   });
 });

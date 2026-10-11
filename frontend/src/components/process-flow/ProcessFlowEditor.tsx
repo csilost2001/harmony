@@ -82,6 +82,7 @@ import { ALL_STEP_TYPES } from "./internal/stepCardConstants";
 import { StepInsertMenu } from "./internal/StepInsertMenu";
 import { focusStepHeader, useStepKeyboard } from "./internal/useStepKeyboard";
 import { applyOutline, type OutlineLine } from "../../utils/processFlowOutline";
+import { canIndentStep, canOutdentStep, indentStep, locateStep, outdentStep } from "../../utils/stepTree";
 import { getActionTriggerLabel } from "./internal/actionTriggerConstants";
 import { ProcessFlowDialogs } from "./internal/ProcessFlowDialogs";
 import { useProcessFlowCatalogs } from "./internal/useProcessFlowCatalogs";
@@ -798,11 +799,39 @@ export function ProcessFlowEditor() {
     enabled: !isReadonly && (selectedIds.size > 0 || clipboard !== null),
   });
 
-  // 工程の見出しを、キーボードだけで辿る・組み立てる (↑↓ / Enter / Insert ほか。インデントは、スキーマに入れ子の置き場が無いので配線しない)
+  // 工程の見出しを、キーボードだけで辿る・組み立てる (↑↓ / Enter / Insert / Tab ・ Shift+Tab ほか)
   useStepKeyboard({
     editing: !isReadonly,
     onInsert: (afterStepId) => setInsertMenu({ afterStepId }),
-    onOutdent: (parentId, id) => { handleOutdentSubStep(parentId, id); setTimeout(() => focusStepHeader(id), 60); },
+    // Tab: 直前の工程の配下へ (入れ子の中でも)。入った先が閉じていると見えないので、開いてからカーソルを戻す
+    onIndent: (id) => {
+      const steps = activeAction?.steps ?? [];
+      if (!canIndentStep(steps, id)) return false;
+      const loc = locateStep(steps, id);
+      const parentId = loc ? loc.list[loc.index - 1]?.id : null;
+      updateGroupWithDraft((g) => {
+        const act = g.actions.find((a) => a.id === activeActionId);
+        if (act) indentStep(act.steps, id);
+      });
+      setTimeout(() => {
+        if (parentId) {
+          const header = document.querySelector<HTMLElement>(`.step-card[data-step-id="${CSS.escape(String(parentId))}"] > .step-card-header`);
+          if (header && header.getAttribute("data-expanded") !== "true") header.click();
+        }
+        setTimeout(() => focusStepHeader(id), 60);
+      }, 60);
+      return true;
+    },
+    // Shift+Tab: 親の次の位置へ
+    onOutdent: (id) => {
+      if (!canOutdentStep(activeAction?.steps ?? [], id)) return false;
+      updateGroupWithDraft((g) => {
+        const act = g.actions.find((a) => a.id === activeActionId);
+        if (act) outdentStep(act.steps, id);
+      });
+      setTimeout(() => focusStepHeader(id), 60);
+      return true;
+    },
     onFocusStep: (id, topLevel) => setSelectedIds(topLevel ? new Set([id]) : new Set()),
   });
 

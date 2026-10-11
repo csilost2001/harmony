@@ -16,6 +16,7 @@ export interface ValidationError {
 function collectAllIds(steps: Step[], ids: Set<string>): void {
   for (const step of steps) {
     ids.add(step.id as string);
+    if (step.subSteps?.length) collectAllIds(step.subSteps, ids);
     if (!isBuiltinStep(step)) continue;
     if (step.kind === "branch") {
       for (const b of step.branches) collectAllIds(b.steps, ids);
@@ -37,6 +38,8 @@ function validateSteps(
   allIds: Set<string>,
 ): void {
   for (const step of steps) {
+    // 配下の工程 (subSteps) も、同じ繰り返しの深さで検査する
+    if (step.subSteps?.length) validateSteps(step.subSteps, loopDepth, errors, allIds);
     if (!isBuiltinStep(step)) continue;
     switch (step.kind) {
       case "loopBreak":

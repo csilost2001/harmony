@@ -188,6 +188,7 @@ function walkSteps(
   steps.forEach((step, i) => {
     const path = `${basePath}[${i}]`;
     visit(step, path);
+    if (step.subSteps?.length) walkSteps(step.subSteps, `${path}.subSteps`, visit);
     // 拡張 step は nested 走査スキップ (固有プロパティは config 内に閉じる仕様)
     if (!isBuiltinStep(step)) return;
     // ネストした steps を持つ variant

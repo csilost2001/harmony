@@ -197,6 +197,8 @@ function migrateStepInPlace(raw: unknown, ctx: MigrationContext): Step {
     delete step.branchB;
   }
 
+  if (Array.isArray(step.subSteps)) step.subSteps = step.subSteps.map((child) => migrateStepInPlace(child, ctx));
+
   if (step.kind === "loop") {
     step.steps = migrateStepArray(step.steps, ctx);
   }

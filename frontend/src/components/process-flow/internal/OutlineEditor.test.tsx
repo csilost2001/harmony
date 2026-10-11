@@ -57,3 +57,18 @@ describe("OutlineEditor — 元の内容が変わったとき", () => {
     expect(onApply).not.toHaveBeenCalled();
   });
 });
+
+describe("OutlineEditor — 字下げ (入れ子)", () => {
+  it("Tab で行を字下げ、Shift+Tab で戻す。字下げすると「入れ子の位置を変更」になる", () => {
+    render(<OutlineEditor steps={steps} kinds={KINDS} readonly={false} onApply={vi.fn()} />);
+    const area = screen.getByTestId("pf-outline-text") as HTMLTextAreaElement;
+    const secondLineStart = area.value.indexOf("\n") + 1;
+    area.focus();
+    area.setSelectionRange(secondLineStart + 2, secondLineStart + 2);
+    fireEvent.keyDown(area, { key: "Tab" });
+    expect(area.value.split("\n")[1].startsWith("  [DBアクセス]")).toBe(true);
+    expect(screen.getByRole("status").textContent).toContain("順序を変更");
+    fireEvent.keyDown(area, { key: "Tab", shiftKey: true });
+    expect(area.value.split("\n")[1].startsWith("[DBアクセス]")).toBe(true);
+  });
+});

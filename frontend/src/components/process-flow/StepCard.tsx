@@ -100,7 +100,6 @@ interface StepCardProps {
 
 export function StepCard({
   step,
-  index,
   label,
   allSteps,
   tables,
@@ -855,7 +854,7 @@ export function StepCard({
               <StepCard
                 step={sub}
                 index={si}
-                label={`${index + 1}-${si + 1}`}
+                label={`${label}-${si + 1}`}
                 allSteps={allSteps}
                 tables={tables}
                 screens={screens}

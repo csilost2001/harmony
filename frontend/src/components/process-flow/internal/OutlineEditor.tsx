@@ -4,6 +4,7 @@
  *
  * - 行頭で `/` を打つと、種類を選ぶメニューが開く (Enter で `[種類] ` を挿入)
  * - 行の入れ替え = 工程の並べ替え、行の削除 = 工程の削除、`^id` の無い行 = 新しい工程
+ * - Tab / Shift+Tab = 選んだ行の字下げ (入れ子 = subSteps)。Esc で欄を出ると、Tab は通常のフォーカス移動
  * - 欄を出ると (問題がなく、削除を含まなければ) 自動で反映する。削除を含むときは「反映」ボタンで確かめる
  */
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -33,13 +34,21 @@ export function OutlineEditor({ steps, kinds, readonly, onApply }: Props) {
   const [menu, setMenu] = useState<{ at: number } | null>(null);
   /** 描画のあとで、カーソルをここへ置く (メニューを閉じた直後に打ち込んでも、文字が欠けないように) */
   const pendingCaret = useRef<number | null>(null);
+  const pendingSelection = useRef<[number, number] | null>(null);
   useEffect(() => {
-    const at = pendingCaret.current;
     const el = areaRef.current;
-    if (at == null || !el) return;
-    pendingCaret.current = null;
-    el.focus();
-    el.setSelectionRange(at, at);
+    if (!el) return;
+    const at = pendingCaret.current;
+    if (at != null) {
+      pendingCaret.current = null;
+      el.focus();
+      el.setSelectionRange(at, at);
+    }
+    const sel = pendingSelection.current;
+    if (sel) {
+      pendingSelection.current = null;
+      el.setSelectionRange(sel[0], sel[1]);
+    }
   });
 
   const analysis = useMemo(() => {
@@ -61,6 +70,27 @@ export function OutlineEditor({ steps, kinds, readonly, onApply }: Props) {
     setDraft(null);
   };
 
+  /** 選んだ行 (カーソルのある行) の字下げを 1 段 (空白 2 つ) 増減する。選択も、字下げに合わせて動かす */
+  const shiftIndent = (el: HTMLTextAreaElement, dir: 1 | -1) => {
+    const v = el.value;
+    const start = v.lastIndexOf("\n", el.selectionStart - 1) + 1;
+    const endRaw = v.indexOf("\n", Math.max(el.selectionEnd - (el.selectionEnd > el.selectionStart && v[el.selectionEnd - 1] === "\n" ? 1 : 0), 0));
+    const end = endRaw < 0 ? v.length : endRaw;
+    const lines = v.slice(start, end).split("\n");
+    let firstDelta = 0;
+    const out = lines.map((ln, i) => {
+      const next = dir > 0 ? `  ${ln}` : ln.replace(/^ {1,2}/, "");
+      if (i === 0) firstDelta = next.length - ln.length;
+      return next;
+    });
+    const replaced = out.join("\n");
+    const nextText = v.slice(0, start) + replaced + v.slice(end);
+    const selStart = Math.max(start, el.selectionStart + firstDelta);
+    const selEnd = Math.max(selStart, el.selectionEnd + (replaced.length - (end - start)));
+    pendingSelection.current = [selStart, selEnd];
+    setDraft(nextText);
+  };
+
   const insertAtCaret = (kind: StepType) => {
     const el = areaRef.current;
     if (!el) return;
@@ -80,8 +110,8 @@ export function OutlineEditor({ steps, kinds, readonly, onApply }: Props) {
   return (
     <div className="pf-outline" data-testid="pf-outline">
       <p className="pf-outline-hint">
-        1 行が 1 工程です。行頭で <kbd>/</kbd> を打つと種類を選べます。行を入れ替えると順序が変わり、行を消すと工程が消えます。
-        行末の <code>^step-01</code> は工程の目印なので消さないでください (無い行は新しい工程になります)。種類・テーブル・条件などの詳細は、カード表示で編集します。
+        1 行が 1 工程です。行頭で <kbd>/</kbd> を打つと種類を選べます。<kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> で字下げすると、直前の工程の配下 (入れ子) になります。
+        行を入れ替えると順序が変わり、行を消すと工程が消えます。行末の <code>^step-01</code> は工程の目印なので消さないでください (無い行は新しい工程になります)。種類・テーブル・条件などの詳細は、カード表示で編集します。
       </p>
       <textarea
         ref={areaRef}
@@ -105,7 +135,11 @@ export function OutlineEditor({ steps, kinds, readonly, onApply }: Props) {
               setMenu({ at });
             }
           }
-          if (e.key === "Escape") { e.preventDefault(); e.currentTarget.blur(); }
+          if (e.key === "Escape") { e.preventDefault(); e.currentTarget.blur(); return; }
+          if (e.key === "Tab" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            e.preventDefault();
+            shiftIndent(e.currentTarget, e.shiftKey ? -1 : 1);
+          }
         }}
         onBlur={() => { if (canApply && removedCount === 0 && !menu) apply(); }}
       />

@@ -100,6 +100,14 @@ describe("applyProcessFlowMutation (browser-first v3, #1149 / #1332 M1)", () => 
       expect((parent.steps as Array<{ id: string }>)[0].id).toBe("step-03");
     });
 
+    it("繰り返し以外の工程へのサブステップ追加は subSteps に入る", () => {
+      const parent = { id: "step-01", kind: "dbAccess", description: "" };
+      const g = makeProcessFlow([makeAction("act-001", [parent])]);
+      const sub = addSubStep(parent as never, "log", g);
+      expect((parent as { subSteps?: Array<{ id: string }> }).subSteps?.[0].id).toBe(sub.id);
+      expect((parent as { steps?: unknown }).steps).toBeUndefined();
+    });
+
     it("v1/v2 旧 `type` field のみでは追加されない (kind 必須)", () => {
       const act = makeAction("act-001");
       const g = makeProcessFlow([act]);
