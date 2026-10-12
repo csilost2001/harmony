@@ -11,8 +11,8 @@ describe("processFlowOutline", () => {
     s("step-02", "dbAccess", "カートを取得する", { tableId: "cart", operation: "SELECT" }),
   ];
 
-  it("工程を 1 行 1 工程の文字にする (種類の表示名 + 説明 + ^id)", () => {
-    expect(stepsToOutline(steps)).toBe("[入力チェック] 入力を検証する ^step-01\n[DBアクセス] カートを取得する ^step-02");
+  it("工程を 1 行 1 工程の文字にする (種類の表示名 + 参照先 + 説明 + ^id)", () => {
+    expect(stepsToOutline(steps)).toBe("[入力チェック] 入力を検証する ^step-01\n[DBアクセス:cart] カートを取得する ^step-02");
   });
 
   it("改行・バックスラッシュを含む説明、空の説明も往復できる", () => {
@@ -132,6 +132,41 @@ describe("processFlowOutline", () => {
       expect(r.added).toBe(1);
       expect(r.steps[0].subSteps).toHaveLength(1);
       expect(r.steps[0].subSteps![0]).toMatchObject({ kind: "commonProcess", description: "新しい子" });
+    });
+  });
+
+  describe("参照先 ([種類:参照先])", () => {
+    it("参照先を持つ種類 (DB アクセス・共通処理・画面遷移・外部システム) は、行に書ける。往復で変わらない", () => {
+      const refs = [
+        s("a", "dbAccess", "取得", { tableId: "orders" }),
+        s("b", "commonProcess", "共通", { refId: "stock-check" }),
+        s("c", "screenTransition", "遷移", { targetScreenId: "cart" }),
+        s("d", "externalSystem", "外部", { systemRef: "payment" }),
+      ];
+      const text = stepsToOutline(refs);
+      expect(text.split("\n").map((l) => l.split("]")[0])).toEqual(["[DBアクセス:orders", "[共通処理:stock-check", "[画面遷移:cart", "[外部システム:payment"]);
+      const { lines, errors } = parseOutline(text, [...KINDS, "screenTransition", "externalSystem"] as StepType[]);
+      expect(errors).toEqual([]);
+      const r = applyOutline(refs, lines, new Set(["a", "b", "c", "d"]));
+      expect([r.changed, r.added, r.removed.length, r.reordered]).toEqual([0, 0, 0, false]);
+      expect(r.steps[0]).toBe(refs[0]);
+    });
+
+    it("参照先を書き換えると、その項目だけ変わる。書かれていなければ変えない。`[種類:]` は消す", () => {
+      const refs = [s("a", "dbAccess", "取得", { tableId: "orders", operation: "SELECT" })];
+      const k = KINDS;
+      const edit = (line: string) => applyOutline(refs, parseOutline(line, k).lines, new Set(["a"]));
+      const changed = edit("[DBアクセス:customers] 取得 ^a");
+      expect(changed.steps[0]).toMatchObject({ tableId: "customers", operation: "SELECT", description: "取得" });
+      expect(changed.changed).toBe(1);
+      expect(edit("[DBアクセス] 取得 ^a").steps[0]).toBe(refs[0]);
+      expect(edit("[DBアクセス:] 取得 ^a").steps[0]).toMatchObject({ tableId: "" });
+    });
+
+    it("新しい行にも参照先を書ける。参照先を持たない種類に書くと誤り", () => {
+      const r = applyOutline([], parseOutline("[DBアクセス:orders] 新しい取得", KINDS).lines, new Set());
+      expect(r.steps[0]).toMatchObject({ kind: "dbAccess", tableId: "orders", description: "新しい取得" });
+      expect(parseOutline("[入力チェック:x] 検証", KINDS).errors.map((e) => e.lineNo)).toEqual([1]);
     });
   });
 });

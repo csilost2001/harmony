@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { Step, StepType } from "../../../types/v3";
 import { OutlineEditor } from "./OutlineEditor";
 
@@ -70,5 +70,62 @@ describe("OutlineEditor — 字下げ (入れ子)", () => {
     expect(screen.getByRole("status").textContent).toContain("順序を変更");
     fireEvent.keyDown(area, { key: "Tab", shiftKey: true });
     expect(area.value.split("\n")[1].startsWith("[DBアクセス]")).toBe(true);
+  });
+});
+
+describe("OutlineEditor — 参照先の選択", () => {
+  it("[DBアクセス の直後の ':' でテーブルの候補が出て、選ぶと [DBアクセス:orders] になる", async () => {
+    const onApply = vi.fn();
+    render(<OutlineEditor steps={[]} kinds={["dbAccess", "validation"] as StepType[]} readonly={false} onApply={onApply}
+      refCandidates={{ dbAccess: [{ id: "orders", label: "注文" }, { id: "customers", label: "顧客" }] }} />);
+    const area = screen.getByTestId("pf-outline-text") as HTMLTextAreaElement;
+    fireEvent.change(area, { target: { value: "[DBアクセス" } });
+    area.setSelectionRange(area.value.length, area.value.length);
+    fireEvent.keyDown(area, { key: ":" });
+    expect(await screen.findByTestId("outline-ref-menu")).toBeTruthy();
+    expect(area.value).toBe("[DBアクセス:");
+    fireEvent.change(screen.getByTestId("outline-ref-input"), { target: { value: "注" } });
+    const items = screen.getAllByTestId("outline-ref-item");
+    expect(items).toHaveLength(1);
+    fireEvent.click(items[0]);
+    await waitFor(() => expect((screen.getByTestId("pf-outline-text") as HTMLTextAreaElement).value).toBe("[DBアクセス:orders] "));
+    expect(screen.getByRole("status").textContent).toContain("追加 1 件");
+  });
+
+  it("参照先を持たない種類では、':' で候補を出さない (候補が渡されていても、REF_FIELD の無い種類は出さない)", () => {
+    render(<OutlineEditor steps={[]} kinds={["dbAccess", "validation"] as StepType[]} readonly={false} onApply={vi.fn()}
+      refCandidates={{ dbAccess: [{ id: "a", label: "a" }], validation: [{ id: "v", label: "v" }] }} />);
+    const area = screen.getByTestId("pf-outline-text") as HTMLTextAreaElement;
+    fireEvent.change(area, { target: { value: "[入力チェック" } });
+    area.setSelectionRange(area.value.length, area.value.length);
+    fireEvent.keyDown(area, { key: ":" });
+    expect(screen.queryByTestId("outline-ref-menu")).toBeNull();
+  });
+
+  it("閲覧中 (readonly) は、':' を打っても候補を出さない", () => {
+    render(<OutlineEditor steps={[]} kinds={["dbAccess"] as StepType[]} readonly onApply={vi.fn()} refCandidates={{ dbAccess: [{ id: "a", label: "a" }] }} />);
+    const area = screen.getByTestId("pf-outline-text") as HTMLTextAreaElement;
+    area.setSelectionRange(0, 0);
+    fireEvent.keyDown(area, { key: ":" });
+    expect(screen.queryByTestId("outline-ref-menu")).toBeNull();
+  });
+
+  it("すでに [DBアクセス:old] とある行で ':' を打つと、選んだ参照先に置き換わる (] は重ならない)", async () => {
+    render(<OutlineEditor steps={[]} kinds={["dbAccess"] as StepType[]} readonly={false} onApply={vi.fn()}
+      refCandidates={{ dbAccess: [{ id: "orders", label: "注文" }] }} />);
+    const area = screen.getByTestId("pf-outline-text") as HTMLTextAreaElement;
+    fireEvent.change(area, { target: { value: "[DBアクセス:old] 取得" } });
+    area.setSelectionRange("[DBアクセス".length, "[DBアクセス".length);
+    fireEvent.keyDown(area, { key: ":" });
+    fireEvent.click((await screen.findAllByTestId("outline-ref-item"))[0]);
+    await waitFor(() => expect((screen.getByTestId("pf-outline-text") as HTMLTextAreaElement).value).toBe("[DBアクセス:orders] 取得"));
+  });
+
+  it("候補に無い参照先は、注意を出す (反映は止めない)", () => {
+    render(<OutlineEditor steps={[]} kinds={["dbAccess"] as StepType[]} readonly={false} onApply={vi.fn()} refCandidates={{ dbAccess: [{ id: "orders", label: "注文" }] }} />);
+    fireEvent.change(screen.getByTestId("pf-outline-text"), { target: { value: "[DBアクセス:typo] 取得\n[DBアクセス:orders] 取得 2" } });
+    expect(screen.getByTestId("pf-outline-unknown-ref").textContent).toContain("1 行目: 「typo」");
+    expect(screen.getByTestId("pf-outline-unknown-ref").textContent).not.toContain("2 行目");
+    expect((screen.getByTestId("pf-outline-apply") as HTMLButtonElement).disabled).toBe(false);
   });
 });

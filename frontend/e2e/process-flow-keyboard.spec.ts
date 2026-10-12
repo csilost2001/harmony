@@ -145,4 +145,29 @@ test.describe("処理フローのキーボード操作", () => {
     await expect(page.getByTestId("design-document-view")).not.toContainText("must NOT have unevaluated properties");
     await expect(page.getByTestId("design-document-view")).not.toContainText("subSteps");
   });
+
+  test("アウトライン: DB アクセスの行にテーブルが出て、[DBアクセス: のあとの : で参照先を選べる @regression", async ({ page }) => {
+    await ws.gotoActive(page, "/process-flow/edit/order-confirm");
+    await page.getByTestId("edit-mode-start").click();
+    await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 15000 });
+    await page.getByTestId("pf-view-outline").click();
+    const area = page.getByTestId("pf-outline-text");
+    expect(await area.inputValue()).toMatch(/\[DBアクセス:[a-z-]+\]/); // 既存の DB アクセスの行に、テーブルの id が出る
+
+    await area.focus();
+    await page.keyboard.press("Control+End");
+    await page.keyboard.press("Enter");
+    await page.keyboard.type("[DBアクセス");
+    await page.keyboard.type(":");
+    await expect(page.getByTestId("outline-ref-menu")).toBeVisible();
+    await page.getByTestId("outline-ref-input").fill("order");
+    await page.keyboard.press("Enter");
+    await expect(page.getByTestId("outline-ref-menu")).toHaveCount(0);
+    await expect(area).toBeFocused();
+    await page.keyboard.type("注文を確認する");
+    const last = (await area.inputValue()).split("\n").pop()!;
+    expect(last).toMatch(/^\[DBアクセス:[a-z-]*order[a-z-]*\] 注文を確認する$/);
+    await page.getByTestId("pf-outline-apply").click();
+    await expect(page.getByTestId("edit-mode-save")).toBeEnabled();
+  });
 });

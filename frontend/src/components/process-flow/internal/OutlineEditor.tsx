@@ -9,9 +9,10 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Step, StepType } from "../../../types/v3";
-import { applyOutline, kindLabel, parseOutline, stepsToOutline, type OutlineLine } from "../../../utils/processFlowOutline";
+import { applyOutline, kindLabel, parseOutline, REF_FIELD, resolveKind, stepsToOutline, type OutlineLine } from "../../../utils/processFlowOutline";
 import { collectAllProcessFlowLocalIds } from "../../../utils/localIdGenerator";
 import { StepInsertMenu } from "./StepInsertMenu";
+import { OutlineRefMenu, type RefCandidate } from "./OutlineRefMenu";
 import "../../../styles/processFlowOutline.css";
 
 interface Props {
@@ -19,9 +20,11 @@ interface Props {
   kinds: readonly StepType[];
   readonly: boolean;
   onApply: (lines: OutlineLine[]) => void;
+  /** 種類ごとの、参照先の候補 (`[DBアクセス:` のあとに出す)。無ければ、参照先の選択は出さない */
+  refCandidates?: Partial<Record<StepType, readonly RefCandidate[]>>;
 }
 
-export function OutlineEditor({ steps, kinds, readonly, onApply }: Props) {
+export function OutlineEditor({ steps, kinds, readonly, onApply, refCandidates }: Props) {
   const baseline = useMemo(() => stepsToOutline(steps), [steps]);
   // 入力中の文字は、どの内容 (baseline) に対するものかと一緒に持つ。元の内容が変わったら (別のアクションへの切り替え・
   // 元に戻す・ほかの人の更新)、古い入力を別の工程へ反映してしまわないよう、破棄して知らせる
@@ -32,6 +35,7 @@ export function OutlineEditor({ steps, kinds, readonly, onApply }: Props) {
   const text = draft ?? baseline;
   const areaRef = useRef<HTMLTextAreaElement>(null);
   const [menu, setMenu] = useState<{ at: number } | null>(null);
+  const [refMenu, setRefMenu] = useState<{ at: number; kind: StepType } | null>(null);
   /** 描画のあとで、カーソルをここへ置く (メニューを閉じた直後に打ち込んでも、文字が欠けないように) */
   const pendingCaret = useRef<number | null>(null);
   const pendingSelection = useRef<[number, number] | null>(null);
@@ -58,6 +62,15 @@ export function OutlineEditor({ steps, kinds, readonly, onApply }: Props) {
     const result = parsed.errors.length === 0 ? applyOutline(steps, parsed.lines, ids) : null;
     return { parsed, result };
   }, [draft, steps, kinds]);
+
+  // 候補に無い参照先 (入力ミスの可能性。反映は止めない)
+  const unknownRefs = useMemo(() => {
+    if (!analysis || !refCandidates) return [];
+    return analysis.parsed.lines.filter((l) => {
+      const list = refCandidates[l.kind];
+      return !!l.ref && !!list && !list.some((c) => c.id === l.ref);
+    });
+  }, [analysis, refCandidates]);
 
   const hasChange = !!analysis?.result && (analysis.result.added + analysis.result.changed + analysis.result.removed.length > 0 || analysis.result.reordered);
   const removedCount = analysis?.result?.removed.length ?? 0;
@@ -91,6 +104,20 @@ export function OutlineEditor({ steps, kinds, readonly, onApply }: Props) {
     setDraft(nextText);
   };
 
+  /** 参照先を、`[種類:` のあと (次の `]` まで) に入れる。`]` が無ければ閉じる */
+  const insertRef = (id: string) => {
+    if (!refMenu) return;
+    const at = refMenu.at;
+    const lineEndRaw = text.indexOf("\n", at);
+    const lineEnd = lineEndRaw < 0 ? text.length : lineEndRaw;
+    const close = text.indexOf("]", at);
+    const hasClose = close >= 0 && close < lineEnd;
+    const next = text.slice(0, at) + id + (hasClose ? text.slice(close) : "] " + text.slice(at, lineEnd) + text.slice(lineEnd));
+    pendingCaret.current = at + id.length + 1 + (hasClose ? 0 : 1);
+    setDraft(next);
+    setRefMenu(null);
+  };
+
   const insertAtCaret = (kind: StepType) => {
     const el = areaRef.current;
     if (!el) return;
@@ -110,7 +137,7 @@ export function OutlineEditor({ steps, kinds, readonly, onApply }: Props) {
   return (
     <div className="pf-outline" data-testid="pf-outline">
       <p className="pf-outline-hint">
-        1 行が 1 工程です。行頭で <kbd>/</kbd> を打つと種類を選べます。<kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> で字下げすると、直前の工程の配下 (入れ子) になります。
+        1 行が 1 工程です。行頭で <kbd>/</kbd> を打つと種類を選べます。<kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> で字下げすると、直前の工程の配下 (入れ子) になります。<code>[DBアクセス:</code> のあとの <kbd>:</kbd> で、テーブルなどの参照先を選べます (共通処理・画面遷移・外部システムも同様)。
         行を入れ替えると順序が変わり、行を消すと工程が消えます。行末の <code>^step-01</code> は工程の目印なので消さないでください (無い行は新しい工程になります)。種類・テーブル・条件などの詳細は、カード表示で編集します。
       </p>
       <textarea
@@ -135,13 +162,29 @@ export function OutlineEditor({ steps, kinds, readonly, onApply }: Props) {
               setMenu({ at });
             }
           }
+          if (e.key === ":" && !e.ctrlKey && !e.metaKey && !e.altKey && refCandidates) {
+            // `[DBアクセス` の直後の ":" で、参照先の選択を出す
+            const el = e.currentTarget;
+            const at = el.selectionStart;
+            const lineStart = el.value.lastIndexOf("\n", at - 1) + 1;
+            const m = /^\s*\[([^\]:]+)$/.exec(el.value.slice(lineStart, at));
+            const kind = m ? resolveKind(m[1], kinds) : null;
+            if (kind && REF_FIELD[kind] && refCandidates[kind]) {
+              e.preventDefault();
+              const next = el.value.slice(0, at) + ":" + el.value.slice(el.selectionEnd);
+              pendingCaret.current = at + 1;
+              setDraft(next);
+              setRefMenu({ at: at + 1, kind });
+              return;
+            }
+          }
           if (e.key === "Escape") { e.preventDefault(); e.currentTarget.blur(); return; }
           if (e.key === "Tab" && !e.ctrlKey && !e.metaKey && !e.altKey) {
             e.preventDefault();
             shiftIndent(e.currentTarget, e.shiftKey ? -1 : 1);
           }
         }}
-        onBlur={() => { if (canApply && removedCount === 0 && !menu) apply(); }}
+        onBlur={() => { if (canApply && removedCount === 0 && !menu && !refMenu) apply(); }}
       />
       <div className="pf-outline-status" role="status">
         {stale && <span className="pf-outline-warn" data-testid="pf-outline-stale">元の内容が変わったため、入力中の内容を破棄しました。</span>}
@@ -160,6 +203,9 @@ export function OutlineEditor({ steps, kinds, readonly, onApply }: Props) {
                 {analysis.result.reordered && "順序を変更 "}
                 {removedCount > 0 && <strong className="pf-outline-danger">削除 {removedCount} 件 </strong>}
                 {!hasChange && "変更はありません"}
+                {unknownRefs.length > 0 && (
+                  <em className="pf-outline-warn" data-testid="pf-outline-unknown-ref"> ({unknownRefs.map((l) => `${l.lineNo} 行目: 「${l.ref}」`).join(", ")} は、参照先の候補にありません)</em>
+                )}
                 {analysis.result.kindIgnored.length > 0 && (
                   <em className="pf-outline-warn"> ({analysis.result.kindIgnored.map((l) => l.lineNo).join(", ")} 行目: 既存の工程の種類は変えられないため、そのままにします)</em>
                 )}
@@ -174,6 +220,14 @@ export function OutlineEditor({ steps, kinds, readonly, onApply }: Props) {
           </span>
         )}
       </div>
+      {refMenu && !readonly && refCandidates?.[refMenu.kind] && (
+        <OutlineRefMenu
+          title={REF_FIELD[refMenu.kind]?.label ?? "参照先"}
+          candidates={refCandidates[refMenu.kind]!}
+          onPick={insertRef}
+          onClose={() => { setRefMenu(null); areaRef.current?.focus(); }}
+        />
+      )}
       {menu && !readonly && (
         <StepInsertMenu kinds={kinds} where="アウトラインの行に" onPick={insertAtCaret} onClose={() => { setMenu(null); areaRef.current?.focus(); }} />
       )}

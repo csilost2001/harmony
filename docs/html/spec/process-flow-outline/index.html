@@ -12,6 +12,7 @@
 <h2 id="書式">書式</h2>
 <pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>[入力チェック] 入力値を検証する ^step-01</span></span>
 <span class="line"><span>[DBアクセス] カートを取得する ^step-02</span></span>
+<span class="line"><span>[DBアクセス:orders] 注文を取得する    ← :の後が参照先 (テーブルの id)</span></span>
 <span class="line"><span>[共通処理] 在庫を引き当てる</span></span>
 <span class="line"><span>  [計算/代入] 引き当て数を数える ^step-07    ← 字下げ (空白 2 つ) = 直前の工程の配下</span></span></code></pre>
 <ul>
@@ -20,6 +21,40 @@
 <li>説明の中の改行は <code>\n</code>、バックスラッシュは <code>\\</code>、<code>^</code> は <code>\^</code> と書く (行末の <code>^id</code> と区別するため。画面ではこの形で出る)。</li>
 <li>字下げ (空白 2 つ単位) が入れ子 (<code>subSteps</code>)。すぐ上の行より 1 段までしか深くできない。タブ・奇数個の空白は誤り。</li>
 <li>空行は無視する。字下げの誤り・<code>[種類]</code> が無い行・知らない種類は、行番号つきで知らせ、反映は止まる。</li>
+</ul>
+<h3 id="参照先-種類参照先">参照先 (<code>[種類:参照先]</code>)</h3>
+<p>参照先を持つ種類は、<code>[種類:参照先]</code> と書ける。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>種類</th><th>参照先 (JSON の項目)</th></tr></thead><tbody><tr><td>DBアクセス</td><td>テーブルの id (<code>tableId</code>)</td></tr><tr><td>共通処理</td><td>処理フローの id (<code>refId</code>)</td></tr><tr><td>画面遷移</td><td>遷移先の画面の id (<code>targetScreenId</code>)</td></tr><tr><td>外部システム</td><td>システム名 (<code>systemRef</code>。<code>context.catalogs.externalSystems</code> のキー)</td></tr></tbody></table>
+<ul>
+<li>例: <code>[DBアクセス:orders] 注文を取得する ^step-02</code></li>
+<li>既存の工程で参照先が書かれていなければ、<strong>変えない</strong> (消すには <code>[DBアクセス:]</code> と書く)。新しい行では、書かなければ空のまま。</li>
+<li>参照先を持たない種類 (入力チェックなど) に書くと誤り。</li>
+<li>行頭の <code>[DBアクセス</code> のあとに <code>:</code> を打つと、候補 (テーブル・処理フロー・画面・外部システム) の選択が出る。ID・名前で絞り込み、↑↓ Enter で入れる。</li>
 </ul>
 <h2 id="操作">操作</h2>
 
@@ -72,13 +107,13 @@
 <h2 id="できないこと-試作の範囲">できないこと (試作の範囲)</h2>
 <ul>
 <li><strong>分岐の枝・繰り返しの本体などの入れ子</strong>: <code>subSteps</code> だけを扱う。ほかの入れ子は、カード表示で編集する (アウトラインでは親の工程の行だけが出て、中身は変えずに残る)。</li>
-<li>種類・テーブル・条件など、説明以外の詳細の編集 (カード表示で行う)。</li>
-<li>行ごとの補完 (参照先のテーブル名など)。</li>
+<li>種類・条件・SQL など、説明と参照先以外の詳細の編集 (カード表示で行う)。</li>
 </ul>
 <h2 id="実装">実装</h2>
 <ul>
 <li>変換: <code>frontend/src/utils/processFlowOutline.ts</code> (<code>stepsToOutline</code> / <code>parseOutline</code> / <code>applyOutline</code>。副作用なし、単体テストあり)</li>
 <li>表示: <code>frontend/src/components/process-flow/internal/OutlineEditor.tsx</code>、反映は <code>ProcessFlowEditor.handleApplyOutline</code></li>
+<li>参照先の候補: <code>internal/OutlineRefMenu.tsx</code> (選択メニュー)。候補は <code>CanvasPane</code> が <code>refCandidates</code> として渡す (テーブル・処理フロー・画面・外部システム)</li>
 </ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
       // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
       document.getElementById('theme-toggle')?.addEventListener('click', () => {
