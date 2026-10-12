@@ -144,7 +144,7 @@ export function CanvasPane({
     dbAccess: tables.map((t) => ({ id: t.id, label: t.name || t.physicalName })),
     commonProcess: commonGroups.map((c) => ({ id: c.id, label: c.name })),
     screenTransition: screens.map((s) => ({ id: s.id, label: s.name })),
-    externalSystem: Object.keys(((group?.context as { catalogs?: { externalSystems?: Record<string, unknown> } } | undefined)?.catalogs?.externalSystems) ?? {}).map((k) => ({ id: k, label: k })),
+    externalSystem: Object.keys(group?.context?.catalogs?.externalSystems ?? {}).map((k) => ({ id: k, label: k })),
   }), [tables, commonGroups, screens, group]);
   const highlighted = useMemo(() => new Set([...selectedIds, ...(focusId ? [focusId] : [])]), [selectedIds, focusId]);
   const selectFromView = useCallback((stepId: string) => {

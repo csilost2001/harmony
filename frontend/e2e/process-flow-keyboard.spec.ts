@@ -171,4 +171,3 @@ test.describe("処理フローのキーボード操作", () => {
     await expect(page.getByTestId("edit-mode-save")).toBeEnabled();
   });
 });
-

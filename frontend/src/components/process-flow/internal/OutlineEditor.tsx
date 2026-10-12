@@ -63,6 +63,15 @@ export function OutlineEditor({ steps, kinds, readonly, onApply, refCandidates }
     return { parsed, result };
   }, [draft, steps, kinds]);
 
+  // 候補に無い参照先 (入力ミスの可能性。反映は止めない)
+  const unknownRefs = useMemo(() => {
+    if (!analysis || !refCandidates) return [];
+    return analysis.parsed.lines.filter((l) => {
+      const list = refCandidates[l.kind];
+      return !!l.ref && !!list && !list.some((c) => c.id === l.ref);
+    });
+  }, [analysis, refCandidates]);
+
   const hasChange = !!analysis?.result && (analysis.result.added + analysis.result.changed + analysis.result.removed.length > 0 || analysis.result.reordered);
   const removedCount = analysis?.result?.removed.length ?? 0;
   const canApply = !readonly && hasChange;
@@ -194,6 +203,9 @@ export function OutlineEditor({ steps, kinds, readonly, onApply, refCandidates }
                 {analysis.result.reordered && "順序を変更 "}
                 {removedCount > 0 && <strong className="pf-outline-danger">削除 {removedCount} 件 </strong>}
                 {!hasChange && "変更はありません"}
+                {unknownRefs.length > 0 && (
+                  <em className="pf-outline-warn" data-testid="pf-outline-unknown-ref"> ({unknownRefs.map((l) => `${l.lineNo} 行目: 「${l.ref}」`).join(", ")} は、参照先の候補にありません)</em>
+                )}
                 {analysis.result.kindIgnored.length > 0 && (
                   <em className="pf-outline-warn"> ({analysis.result.kindIgnored.map((l) => l.lineNo).join(", ")} 行目: 既存の工程の種類は変えられないため、そのままにします)</em>
                 )}

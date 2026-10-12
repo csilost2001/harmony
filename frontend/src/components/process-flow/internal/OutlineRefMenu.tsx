@@ -57,6 +57,7 @@ export function OutlineRefMenu({ title, candidates, onPick, onClose }: Props) {
           role="combobox"
           aria-expanded="true"
           aria-controls="outline-ref-list"
+          aria-activedescendant={hits[cursor] ? `outline-ref-opt-${cursor}` : undefined}
           data-testid="outline-ref-input"
         />
         <ul className="step-insert-list" id="outline-ref-list" role="listbox" ref={listRef}>
@@ -64,6 +65,7 @@ export function OutlineRefMenu({ title, candidates, onPick, onClose }: Props) {
           {hits.map((c, i) => (
             <li
               key={c.id}
+              id={`outline-ref-opt-${i}`}
               data-index={i}
               role="option"
               aria-selected={i === cursor}

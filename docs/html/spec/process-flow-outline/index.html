@@ -12,6 +12,7 @@
 <h2 id="書式">書式</h2>
 <pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>[入力チェック] 入力値を検証する ^step-01</span></span>
 <span class="line"><span>[DBアクセス] カートを取得する ^step-02</span></span>
+<span class="line"><span>[DBアクセス:orders] 注文を取得する    ← :の後が参照先 (テーブルの id)</span></span>
 <span class="line"><span>[共通処理] 在庫を引き当てる</span></span>
 <span class="line"><span>  [計算/代入] 引き当て数を数える ^step-07    ← 字下げ (空白 2 つ) = 直前の工程の配下</span></span></code></pre>
 <ul>
@@ -112,6 +113,7 @@
 <ul>
 <li>変換: <code>frontend/src/utils/processFlowOutline.ts</code> (<code>stepsToOutline</code> / <code>parseOutline</code> / <code>applyOutline</code>。副作用なし、単体テストあり)</li>
 <li>表示: <code>frontend/src/components/process-flow/internal/OutlineEditor.tsx</code>、反映は <code>ProcessFlowEditor.handleApplyOutline</code></li>
+<li>参照先の候補: <code>internal/OutlineRefMenu.tsx</code> (選択メニュー)。候補は <code>CanvasPane</code> が <code>refCandidates</code> として渡す (テーブル・処理フロー・画面・外部システム)</li>
 </ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
       // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
       document.getElementById('theme-toggle')?.addEventListener('click', () => {

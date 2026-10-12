@@ -7,6 +7,7 @@
 ```
 [入力チェック] 入力値を検証する ^step-01
 [DBアクセス] カートを取得する ^step-02
+[DBアクセス:orders] 注文を取得する    ← :の後が参照先 (テーブルの id)
 [共通処理] 在庫を引き当てる
   [計算/代入] 引き当て数を数える ^step-07    ← 字下げ (空白 2 つ) = 直前の工程の配下
 ```
@@ -58,3 +59,4 @@
 
 - 変換: `frontend/src/utils/processFlowOutline.ts` (`stepsToOutline` / `parseOutline` / `applyOutline`。副作用なし、単体テストあり)
 - 表示: `frontend/src/components/process-flow/internal/OutlineEditor.tsx`、反映は `ProcessFlowEditor.handleApplyOutline`
+- 参照先の候補: `internal/OutlineRefMenu.tsx` (選択メニュー)。候補は `CanvasPane` が `refCandidates` として渡す (テーブル・処理フロー・画面・外部システム)
