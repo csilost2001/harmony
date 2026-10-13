@@ -56,6 +56,7 @@ import {
   ExtensionsPanel,
   ConventionsCatalogView,
   DesignDocumentView,
+  DesignAnalysisView,
   ScreenItemsView,
   SequenceListView,
   SequenceEditor,
@@ -287,6 +288,7 @@ export function AppShell() {
         <Route path="extensions" element={<ExtensionsPanel />} />
         <Route path="conventions/catalog" element={<ConventionsCatalogView />} />
         <Route path="document" element={<DesignDocumentView />} />
+        <Route path="analysis" element={<DesignAnalysisView />} />
         <Route path="screen/items/:screenId" element={<ScreenItemsView />} />
         <Route path="sequence/list" element={<SequenceListView />} />
         <Route path="sequence/edit/:sequenceId" element={<SequenceEditor />} />
@@ -888,6 +890,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       { path: `${wsPrefix}/extensions`,         type: "extensions",         label: "拡張管理" },
       { path: `${wsPrefix}/conventions/catalog`, type: "conventions-catalog", label: "規約カタログ" },
       { path: `${wsPrefix}/document`,           type: "design-document",    label: "設計書" },
+      { path: `${wsPrefix}/analysis`,           type: "design-analysis",    label: "設計の分析" },
       { path: `${wsPrefix}/sequence/list`,      type: "sequence-list",      label: "シーケンス一覧" },
       { path: `${wsPrefix}/business-flow/list`, type: "business-flow-list", label: "業務フロー" },
       { path: `${wsPrefix}/report/list`,        type: "report-list",        label: "帳票" },
@@ -961,6 +964,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       : activeTab.type === "extensions"       ? `${wp}/extensions`
       : activeTab.type === "conventions-catalog" ? `${wp}/conventions/catalog`
       : activeTab.type === "design-document"  ? `${wp}/document`
+      : activeTab.type === "design-analysis"  ? `${wp}/analysis`
       : activeTab.type === "screen-items"     ? `${wp}/screen/items/${activeTab.resourceId}`
       : activeTab.type === "sequence-list"    ? `${wp}/sequence/list`
       : activeTab.type === "view-list"              ? `${wp}/view/list`

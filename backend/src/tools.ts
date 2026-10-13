@@ -368,6 +368,47 @@ export const tools = [
         screenIds: { type: "array", items: { type: "string" }, description: "この画面だけに絞る (省略時は全画面)" },
         flowIds: { type: "array", items: { type: "string" }, description: "この処理フローだけに絞る (省略時は全処理)" },
         format: { type: "string", enum: ["json", "csv"], description: "既定は json (入力値つき)" },
+        scaffold: { type: "string", enum: ["vitest", "jest", "playwright"], description: "指定すると、観点からテストの雛形 (題名・入力・期待結果を持つ未実装のテスト) のファイル一覧を返す" },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "designer__analyze_design",
+    description:
+      "設計の分析を返します (読み取りのみ)。kind: impact (影響分析: 変えると連鎖して影響する設計。entityType と id が要る。テーブルは column で列に絞れる) / traceability (業務フロー→画面→処理→テーブル→テスト観点の対応表と欠け) / " +
+      "unused (未使用のテーブル・メッセージ・画面・処理ほか) / terms (用語の揺れ) / column-map (画面項目とカラムの対応) / messages (メッセージの使用箇所・重複) / operations (役割×画面×操作の権限) / " +
+      "sla (性能の目標の宣言) / jobs (バッチ・定期処理と依存) / external (外部システムの呼び出しと相手の OpenAPI の突き合わせ) / progress (成熟度の集計と推移) / suppressions (抑制中・期限切れの要確認)。仕様: docs/spec/design-analysis.md",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        kind: { type: "string", enum: ["impact", "traceability", "unused", "terms", "column-map", "messages", "operations", "sla", "jobs", "external", "progress", "suppressions"] },
+        entityType: { type: "string", enum: ["screen", "processFlow", "table", "businessFlow", "report", "component", "message", "regex", "limit", "genericDefinition"], description: "impact の対象の種類" },
+        id: { type: "string", description: "impact の対象の ID" },
+        column: { type: "string", description: "impact (table) で絞る列 (Column.id か物理名)" },
+        format: { type: "string", enum: ["json", "csv"], description: "traceability / column-map / operations / sla は csv にできる (既定は json)" },
+      },
+      required: ["kind"],
+    },
+  },
+  {
+    name: "designer__export_openapi",
+    description: "処理フローのアクションが持つ HTTP の契約 (メソッド・パス・入力・応答・認証) から、OpenAPI 3.0.3 の文書 (JSON) を作って返します。書き込みはしません。",
+    inputSchema: { type: "object" as const, properties: { title: { type: "string" }, version: { type: "string" } }, required: [] },
+  },
+  {
+    name: "designer__generate_test_data",
+    description:
+      "テーブルの定義 (型・長さ・NOT NULL・主キー・一意・外部キー・単純な CHECK) に沿ったテストデータを生成して返します。同じ seed・件数なら同じデータ。書き込みはしません。外部キーの親は先に作ります。",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        tableIds: { type: "array", items: { type: "string" }, description: "対象のテーブル (省略時は全テーブル)" },
+        rowsPerTable: { type: "number", description: "1 テーブルの行数 (既定 10、上限 1000)" },
+        seed: { type: "number" },
+        nulls: { type: "boolean", description: "NULL を許す列に、ときどき NULL を入れる" },
+        format: { type: "string", enum: ["json", "sql", "csv"], description: "既定は json。csv は tableIds で 1 つに絞ったときだけ" },
+        dialect: { type: "string", enum: ["standard", "mysql", "sqlserver"], description: "sql の識別子の引用の形式" },
       },
       required: [],
     },

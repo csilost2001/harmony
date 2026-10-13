@@ -35,7 +35,7 @@ import { assertEntityId } from "../security/idValidator.js";
 import { readProjectWithUnregistered } from "../registryMerge.js";
 import { searchDesign } from "../designSearch.js";
 import { recentEdits } from "../recentEdits.js";
-import { loadDesignInputFromRoot } from "../designInput.js";
+import { loadDesignInputFull } from "../designInput.js";
 import type { RpcHandlerMap } from "./types.js";
 
 export const projectHandlers: RpcHandlerMap = {
@@ -80,7 +80,7 @@ export const projectHandlers: RpcHandlerMap = {
   /** 設計書・検査の入力を、まとめて読んで返す (設計ごとの問い合わせの往復をなくす)。スキーマ違反の要確認も含める */
   loadDesignInput: async ({ root, respond, respondError }) => {
     try {
-      const { input, skipped } = await loadDesignInputFromRoot(root());
+      const { input, skipped } = await loadDesignInputFull(root());
       respond({ input: { ...input, extraIssues: await collectExtraIssues(root()) }, skipped });
     } catch (e) { respondError(e instanceof Error ? e.message : String(e)); }
   },

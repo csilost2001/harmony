@@ -11,6 +11,7 @@
 | E2E の無条件 skip | `scripts/verify/no-unconditional-e2e-skip.mjs` | 題名だけの常時 skip (`test.skip("題名", …)` / `test.describe.skip` / `test.fixme`) を失敗にする。条件つきの skip は可 |
 | 型検査の抑止 | `scripts/verify/no-type-suppression.mjs` | テスト以外の `@ts-nocheck` / `@ts-ignore` / `@ts-expect-error` を失敗にする |
 | frontend lint | `scripts/verify/check.mjs` | ESLint の警告は 18 件まで (`--max-warnings`)。増やさない |
+| 検査スクリプトの試験 | `scripts/verify/test.mjs` | `check-design.mjs` ほか、検査スクリプト自身の試験 (4 秒)。以前は `npm run check` に入っておらず、仕様の変更に追従していない試験が見つからなかった |
 
 ## 手で回す道具
 

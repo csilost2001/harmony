@@ -1,7 +1,8 @@
 /**
  * ddlGenerator.ts (v3, #556)
  * テーブル定義から DDL (CREATE TABLE) を生成するユーティリティ。
- * MySQL / PostgreSQL / Oracle / SQLite / 標準SQL に対応。
+ * MySQL / PostgreSQL / Oracle / SQL Server / SQLite / 標準SQL に対応。
+ * 版どうしの差分 (ALTER 文) は ddlAlter.ts。
  *
  * v3 schema (`schemas/v3/table.v3.schema.json`) に整合:
  * - Column.physicalName / Column.name (display) 分離
@@ -22,12 +23,13 @@ import type {
 } from "../types/v3";
 
 /** SQL ダイアレクト */
-export type SqlDialect = "mysql" | "postgresql" | "oracle" | "sqlite" | "standard";
+export type SqlDialect = "mysql" | "postgresql" | "oracle" | "sqlserver" | "sqlite" | "standard";
 
 export const SQL_DIALECT_LABELS: Record<SqlDialect, string> = {
   mysql: "MySQL",
   postgresql: "PostgreSQL",
   oracle: "Oracle",
+  sqlserver: "SQL Server",
   sqlite: "SQLite",
   standard: "標準SQL",
 };
@@ -36,12 +38,15 @@ export const SQL_DIALECT_LABELS: Record<SqlDialect, string> = {
 
 /**
  * SQL 識別子 (テーブル名・カラム名・インデックス名等) をダイアレクト対応でクォートする。
- * MySQL は `backtick`、その他はダブルクォートを使用。
+ * MySQL は `backtick`、SQL Server は [角括弧]、その他はダブルクォートを使用。
  * 識別子内のクォート文字は適切にエスケープされる。
  */
 export function quoteIdentifier(name: string, dialect: SqlDialect): string {
   if (dialect === "mysql") {
     return "`" + name.replace(/`/g, "``") + "`";
+  }
+  if (dialect === "sqlserver") {
+    return "[" + name.replace(/]/g, "]]") + "]";
   }
   return '"' + name.replace(/"/g, '""') + '"';
 }
@@ -92,7 +97,7 @@ const FK_ACTION_DDL: Record<FkAction, string> = {
 };
 
 /** Column.id (LocalId) を physicalName に解決。見つからなければ id 文字列をそのまま返す。 */
-function resolveColumnPhysical(table: Table, columnId: string): string {
+export function resolveColumnPhysical(table: Table, columnId: string): string {
   return table.columns.find((c) => c.id === columnId)?.physicalName ?? columnId;
 }
 
@@ -173,6 +178,18 @@ export function generateDdl(table: Table, dialect: SqlDialect, allTables: Table[
     }
   }
 
+  // SQL Server: テーブル / 列の説明 (拡張プロパティ)
+  if (dialect === "sqlserver") {
+    const prop = (level2: string | null, name: string, text: string) =>
+      `EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'${escapeSqlString(text)}', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'${escapeSqlString(table.physicalName)}'${level2 ? `, @level2type = N'COLUMN', @level2name = N'${escapeSqlString(name)}'` : ""};`;
+    const tableComment = table.comment || table.name;
+    if (tableComment) ddl += `\n\n${prop(null, "", tableComment)}`;
+    for (const col of table.columns) {
+      const cmt = col.comment || col.name;
+      if (cmt) ddl += `\n${prop("COLUMN", col.physicalName, cmt)}`;
+    }
+  }
+
   return ddl;
 }
 
@@ -248,18 +265,19 @@ export function generateAllTableMarkdown(tables: Table[], projectName: string): 
 
 // ── 内部ヘルパー ────────────────────────────────────────────────────────────
 
-function mapDataType(dt: string, length?: number, scale?: number, dialect?: SqlDialect): string {
+export function mapDataType(dt: string, length?: number, scale?: number, dialect?: SqlDialect): string {
   const d = dialect ?? "standard";
   switch (dt) {
-    case "VARCHAR": return `VARCHAR(${length ?? 255})`;
-    case "CHAR": return `CHAR(${length ?? 1})`;
-    case "TEXT": return d === "oracle" ? "CLOB" : "TEXT";
+    case "VARCHAR": return d === "sqlserver" ? `NVARCHAR(${length ?? 255})` : `VARCHAR(${length ?? 255})`;
+    case "CHAR": return d === "sqlserver" ? `NCHAR(${length ?? 1})` : `CHAR(${length ?? 1})`;
+    case "TEXT": return d === "oracle" ? "CLOB" : d === "sqlserver" ? "NVARCHAR(MAX)" : "TEXT";
     case "INTEGER": return d === "oracle" ? "NUMBER(10)" : "INTEGER";
     case "BIGINT": return d === "oracle" ? "NUMBER(19)" : "BIGINT";
     case "SMALLINT": return d === "oracle" ? "NUMBER(5)" : "SMALLINT";
     case "DECIMAL": return `DECIMAL(${length ?? 10}, ${scale ?? 2})`;
     case "FLOAT": return d === "oracle" ? "BINARY_FLOAT" : "FLOAT";
     case "BOOLEAN":
+      if (d === "sqlserver") return "BIT";
       if (d === "oracle") return "NUMBER(1)";
       if (d === "mysql") return "TINYINT(1)";
       return "BOOLEAN";
@@ -267,9 +285,11 @@ function mapDataType(dt: string, length?: number, scale?: number, dialect?: SqlD
     case "TIME": return d === "oracle" ? "DATE" : "TIME";
     case "TIMESTAMP":
       if (d === "mysql") return "DATETIME";
+      if (d === "sqlserver") return "DATETIME2";
       return "TIMESTAMP";
-    case "BLOB": return "BLOB";
+    case "BLOB": return d === "sqlserver" ? "VARBINARY(MAX)" : "BLOB";
     case "JSON":
+      if (d === "sqlserver") return "NVARCHAR(MAX)";
       if (d === "oracle") return "CLOB";
       if (d === "postgresql") return "JSONB";
       if (d === "mysql") return "JSON";
@@ -283,7 +303,7 @@ function mapDataType(dt: string, length?: number, scale?: number, dialect?: SqlD
   }
 }
 
-function indexToDdl(table: Table, idx: Index, dialect: SqlDialect): string {
+export function indexToDdl(table: Table, idx: Index, dialect: SqlDialect): string {
   const physical = quoteIdentifier(table.physicalName, dialect);
   const colList = idx.columns.map((ic) => {
     const phys = resolveColumnPhysical(table, ic.columnId);
@@ -299,7 +319,7 @@ function indexToDdl(table: Table, idx: Index, dialect: SqlDialect): string {
   return stmt + ";";
 }
 
-function constraintToDdl(
+export function constraintToDdl(
   table: Table,
   c: Constraint,
   dialect: SqlDialect,
@@ -367,6 +387,11 @@ function defaultToDdl(table: Table, def: DefaultDefinition, dialect: SqlDialect)
   if (dialect === "oracle") {
     return `ALTER TABLE ${physical} MODIFY (${colName} DEFAULT ${expr});`;
   }
+  if (dialect === "sqlserver") {
+    // SQL Server の既定値は、名前つきの制約として足す
+    const name = quoteIdentifier(`DF_${table.physicalName}_${resolveColumnPhysical(table, def.columnId)}`, dialect);
+    return `ALTER TABLE ${physical} ADD CONSTRAINT ${name} DEFAULT ${expr} FOR ${colName};`;
+  }
   return `ALTER TABLE ${physical} ALTER COLUMN ${colName} SET DEFAULT ${expr};`;
 }
 
@@ -395,6 +420,20 @@ function triggerToDdl(table: Table, trg: TriggerDefinition, dialect: SqlDialect)
       `FOR EACH ROW EXECUTE FUNCTION ${fnName}();`,
     ].join("\n");
   }
+  if (dialect === "sqlserver") {
+    // SQL Server のトリガーは、文単位 (AFTER / INSTEAD OF のみ。BEFORE は無い。WHEN 句も無い)
+    const note = timing === "BEFORE" ? "-- SQL Server に BEFORE トリガーは無いため、INSTEAD OF にしています。意味が変わるので確認してください\n" : "";
+    const tm = timing === "BEFORE" ? "INSTEAD OF" : timing;
+    return [
+      `${note}CREATE TRIGGER ${triggerName}`,
+      `ON ${physical}`,
+      `${tm} ${trg.events.join(", ")}`,
+      `AS`,
+      `BEGIN`,
+      `  ${trg.body.split("\n").join("\n  ")}`,
+      `END;`,
+    ].join("\n");
+  }
   return [
     `CREATE TRIGGER ${triggerName}`,
     `${timing} ${events} ON ${physical}${when}`,
@@ -405,11 +444,12 @@ function triggerToDdl(table: Table, trg: TriggerDefinition, dialect: SqlDialect)
   ].join("\n");
 }
 
-function autoIncrementType(dt: string, dialect: SqlDialect): string {
+export function autoIncrementType(dt: string, dialect: SqlDialect): string {
   switch (dialect) {
     case "mysql": return `${mapDataType(dt, undefined, undefined, dialect)} AUTO_INCREMENT`;
     case "postgresql": return dt === "BIGINT" ? "BIGSERIAL" : "SERIAL";
     case "oracle": return `${mapDataType(dt, undefined, undefined, dialect)} GENERATED ALWAYS AS IDENTITY`;
+    case "sqlserver": return `${mapDataType(dt, undefined, undefined, dialect)} IDENTITY(1,1)`;
     case "sqlite": return "INTEGER";
     default: return mapDataType(dt, undefined, undefined, dialect);
   }

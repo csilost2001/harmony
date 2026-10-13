@@ -138,6 +138,7 @@ export function classifyChangedPath(relPath: string): ChangeEvent | null {
   if (!file.endsWith(".json")) return null;
   if (segs.length === 1) {
     if (file === "layout-components.json") return { event: "layoutComponentsChanged", data: {} };
+    if (file === "design-check.json") return { event: "designCheckChanged", data: {} };
     return null;
   }
   const hit = DIR_EVENTS.find((d) => d.dir === segs[0]);

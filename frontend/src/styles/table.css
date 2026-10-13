@@ -2158,6 +2158,7 @@
   border-color: #7c6bff;
 }
 
+.ddl-diff-note { padding: 6px 10px; font-size: 0.82rem; color: var(--hm-fg-muted); }
 .ddl-preview {
   background: var(--hm-bg);
   border: 1px solid var(--hm-border);

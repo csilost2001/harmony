@@ -10,6 +10,7 @@ import { describeAjvError } from "./ajvMessages.js";
 import path from "node:path";
 import { entityDirOf, harmonyFile, listAllTables, listProcessFlows, readScreenEntity, resolveDataRoot, validateEntitySchema } from "./projectStorage.js";
 import { createFileMemo } from "./fileMemo.js";
+import { readCheckSettings } from "./designCheckSettings.js";
 
 export interface SchemaIssue {
   severity: "error" | "warning" | "info";
@@ -65,5 +66,8 @@ export const collectSchemaIssues: (root: string) => Promise<SchemaIssue[]> = mem
 export async function collectExtraIssues(root: string): Promise<SchemaIssue[]> {
   // 保守の案内 (uuid 未保存・一覧に載っていない) は、設計の内容の問題ではないので、設計書の要確認には出さない
   const health = (await scanWorkspaceHealth(root)).filter((i) => !i.maintenance).map(({ maintenance: _m, code: _c, ...rest }) => { void _m; void _c; return rest; });
-  return [...await collectSchemaIssues(root), ...health];
+  // 点検の設定 (design-check.json) の読めない項目・JSON の誤り。読めないまま黙っていると、抑制・独自ルールが効かないことに気づけない
+  const settingsProblems = (await readCheckSettings(root).catch(() => ({ problems: [] as string[] }))).problems
+    .map((message): SchemaIssue => ({ severity: "warning", section: "読み込み", message }));
+  return [...await collectSchemaIssues(root), ...health, ...settingsProblems];
 }

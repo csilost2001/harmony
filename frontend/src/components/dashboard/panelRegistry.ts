@@ -18,6 +18,7 @@ import { ProcessFlowMaturityPanel } from "./panels/ProcessFlowMaturityPanel";
 import { MarkersSummaryPanel } from "./panels/MarkersSummaryPanel";
 import { DesignIssuesPanel } from "./panels/DesignIssuesPanel";
 import { GettingStartedPanel } from "./panels/GettingStartedPanel";
+import { DesignProgressPanel } from "./panels/DesignProgressPanel";
 
 /** react-grid-layout の 1 パネルのレイアウト指定 */
 export interface PanelLayout {
@@ -77,6 +78,13 @@ export const dashboardPanels: DashboardPanel[] = [
     icon: "bi-clipboard2-check",
     defaultLayout: { w: 6, h: 4, minW: 4, minH: 3 },
     component: DesignIssuesPanel,
+  },
+  {
+    id: "design-progress",
+    title: "設計の完成度",
+    icon: "bi-bar-chart-steps",
+    defaultLayout: { w: 6, h: 4, minW: 4, minH: 3 },
+    component: DesignProgressPanel,
   },
   {
     id: "process-flow-maturity",
