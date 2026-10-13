@@ -39,6 +39,7 @@ import { EditSessionDropdown } from "../editing/EditSessionDropdown";
 import { SaveConflictDialog } from "../editing/SaveConflictDialog";
 import html2canvas from "html2canvas";
 import "../../styles/er.css";
+import { reportFailure } from "../../utils/failureToast";
 
 const nodeTypes = { erTableNode: ErTableNodeComponent };
 
@@ -104,7 +105,7 @@ function ErDiagramInner() {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
       if (!isReadonly && editSession?.id) {
-        mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: ly }).catch(console.error);
+        mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: ly }).catch((err) => reportFailure(err, "下書きの保存"));
       }
     }, 300);
   }, [editSession, isReadonly]);
@@ -217,7 +218,7 @@ function ErDiagramInner() {
 
   useEffect(() => {
     if (mode.kind === "editing" && editSession?.id && layoutRef.current) {
-      mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: layoutRef.current }).catch(console.error);
+      mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: layoutRef.current }).catch((err) => reportFailure(err, "下書きの保存"));
     }
   }, [mode.kind, editSession?.id]);
 
@@ -360,7 +361,7 @@ function ErDiagramInner() {
   }, [actions]);
 
   useSaveShortcut(() => {
-    if (!isReadonly) handleSave().catch(console.error);
+    if (!isReadonly) handleSave().catch((err) => reportFailure(err, "ER 図の保存"));
   });
 
   // Export Mermaid
@@ -416,10 +417,10 @@ function ErDiagramInner() {
       <div className="edit-mode-toolbar edit-mode-toolbar--readonly" style={{ justifyContent: "flex-end" }}>
         {mode.kind === "editing" && (
           <>
-            <button type="button" className="btn btn-success btn-sm" onClick={() => { handleSave().catch(console.error); }}>
+            <button type="button" className="btn btn-success btn-sm" onClick={() => { handleSave().catch((err) => reportFailure(err, "ER 図の保存")); }}>
               <i className="bi bi-check-lg me-1" /> 保存
             </button>
-            <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => { handleDiscard().catch(console.error); }}>
+            <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => { handleDiscard().catch((err) => reportFailure(err, "ER 図の破棄")); }}>
               <i className="bi bi-x-lg me-1" /> 破棄
             </button>
           </>

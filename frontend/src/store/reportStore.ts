@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { DOC_CONFLICT_MARK, DOC_EXISTS_MARK, type Report } from "@harmony/shared";
 import { mcpBridge } from "../mcp/mcpBridge";
+import { reportFailure } from "../utils/failureToast";
 
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((l) => l());
@@ -74,8 +75,8 @@ export function useReports(): { reports: Report[]; unreadable: string[]; loaded:
     }
   }, []);
   useEffect(() => {
-    reload().catch(console.error);
-    const onLocal = () => { reload().catch(console.error); };
+    reload().catch((err) => reportFailure(err, "帳票の読み込み"));
+    const onLocal = () => { reload().catch((err) => reportFailure(err, "帳票の読み込み")); };
     listeners.add(onLocal);
     const off = mcpBridge.onBroadcast("reportChanged", onLocal);
     return () => { listeners.delete(onLocal); off(); };

@@ -16,6 +16,7 @@ import { makeTabId, setDirty as setTabDirty, type TabType } from "../store/tabSt
 import type { MtimeKind } from "../utils/serverMtime";
 import type { DraftResourceType } from "../types/draft";
 import type { EditSessionChromeProps } from "../components/editing/EditSessionChrome";
+import { reportFailure } from "../utils/failureToast";
 
 export interface UseEditableDocumentOptions<T> {
   resourceType: DraftResourceType;
@@ -71,7 +72,7 @@ export function useEditableDocument<T extends object>(opts: UseEditableDocumentO
     if (draftTimer.current) clearTimeout(draftTimer.current);
     draftTimer.current = setTimeout(() => {
       const sid = editSessionIdRef.current;
-      if (sid && docRef.current) mcpBridge.request("editSession.update", { editSessionId: sid, payload: docRef.current }).catch(console.error);
+      if (sid && docRef.current) mcpBridge.request("editSession.update", { editSessionId: sid, payload: docRef.current }).catch((err) => reportFailure(err, "下書きの保存"));
     }, 300);
   }, []);
 
@@ -111,7 +112,7 @@ export function useEditableDocument<T extends object>(opts: UseEditableDocumentO
     if (conflicted) return;
     await postSave();
   }, [editable, isSaving, editSession, actions, postSave]);
-  useSaveShortcut(() => { save().catch(console.error); }, editable);
+  useSaveShortcut(() => { save().catch((err) => reportFailure(err, "保存")); }, editable);
 
   // ── 破棄・再開・強制解除のダイアログ ──
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -174,7 +175,7 @@ export function useEditableDocument<T extends object>(opts: UseEditableDocumentO
     showDiscard, showForceRelease, showResume,
     lockedByOther: lockedByOther ? { ownerSessionId: lockedByOther.ownerSessionId } : null,
     onStartEditing: actions.startEditing,
-    onSave: () => { save().catch(console.error); },
+    onSave: () => { save().catch((err) => reportFailure(err, "編集中の設計の保存")); },
     onDiscardClick: () => setShowDiscard(true),
     onForceReleaseClick: () => setShowForceRelease(true),
     onReloadServer: handleReset,

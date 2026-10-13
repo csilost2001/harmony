@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import { loadAllTables, onTableChange } from "../../../store/tableStore";
 import { mcpBridge } from "../../../mcp/mcpBridge";
 import type { TableDefinitionForView } from "../../../schemas/viewDefinitionValidator";
+import { reportFailure } from "../../../utils/failureToast";
 
 export function useTablesForValidator(): TableDefinitionForView[] {
   const [tables, setTables] = useState<TableDefinitionForView[]>([]);
@@ -23,10 +24,10 @@ export function useTablesForValidator(): TableDefinitionForView[] {
         setTables(valid as unknown as TableDefinitionForView[]);
       }
     }
-    refresh().catch(console.error);
+    refresh().catch((err) => reportFailure(err, "ビュー定義のテーブルの読み込み"));
     // #1001: 同一 client 内 SPA 遷移先での table 変更通知 + 他 client (mcpBridge broadcast) 両カバー
-    const unsubLocal = onTableChange(() => { refresh().catch(console.error); });
-    const unsubBroadcast = mcpBridge.onBroadcast("tableChanged", () => { refresh().catch(console.error); });
+    const unsubLocal = onTableChange(() => { refresh().catch((err) => reportFailure(err, "ビュー定義のテーブルの読み込み")); });
+    const unsubBroadcast = mcpBridge.onBroadcast("tableChanged", () => { refresh().catch((err) => reportFailure(err, "ビュー定義のテーブルの読み込み")); });
     return () => {
       cancelled = true;
       unsubLocal();
@@ -63,10 +64,10 @@ export function useTableOptions(): TableOption[] {
         );
       }
     }
-    refresh().catch(console.error);
+    refresh().catch((err) => reportFailure(err, "ビュー定義のテーブルの読み込み"));
     // #1001: 同一 client 内 SPA 遷移先での table 変更通知 + 他 client (mcpBridge broadcast) 両カバー
-    const unsubLocal = onTableChange(() => { refresh().catch(console.error); });
-    const unsubBroadcast = mcpBridge.onBroadcast("tableChanged", () => { refresh().catch(console.error); });
+    const unsubLocal = onTableChange(() => { refresh().catch((err) => reportFailure(err, "ビュー定義のテーブルの読み込み")); });
+    const unsubBroadcast = mcpBridge.onBroadcast("tableChanged", () => { refresh().catch((err) => reportFailure(err, "ビュー定義のテーブルの読み込み")); });
     return () => {
       cancelled = true;
       unsubLocal();

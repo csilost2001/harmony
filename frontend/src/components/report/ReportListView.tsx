@@ -19,6 +19,7 @@ import { makeDuplicatedEntityId } from "../../utils/entityIdSuggestion";
 import "../../styles/businessFlow.css";
 import "../../styles/report.css";
 import { useQuickCreate } from "../../hooks/useQuickCreate";
+import { reportFailure } from "../../utils/failureToast";
 
 const MATURITY: Record<string, string> = { draft: "作成中", provisional: "レビュー中", committed: "確定" };
 
@@ -37,7 +38,7 @@ export function ReportListView() {
 
   useEffect(() => {
     mcpBridge.startWithoutEditor();
-    const off = mcpBridge.onStatusChange((s) => { if (s === "connected") reload().catch(console.error); });
+    const off = mcpBridge.onStatusChange((s) => { if (s === "connected") reload().catch((err) => reportFailure(err, "帳票一覧の読み込み")); });
     return off;
   }, [reload]);
 
@@ -64,7 +65,7 @@ export function ReportListView() {
     if (addValidation.isInvalid || !addName.trim()) return;
     try {
       await saveReport(buildDefaultReport(addId, addName.trim()), { createOnly: true });
-    } catch (e) { setMessage(`作成できませんでした: ${errorText(e)}`); setShowAdd(false); reload().catch(console.error); return; }
+    } catch (e) { setMessage(`作成できませんでした: ${errorText(e)}`); setShowAdd(false); reload().catch((err) => reportFailure(err, "帳票一覧の読み込み")); return; }
     setShowAdd(false); setAddId(""); setAddName("");
     // 作成した直後は、自動で編集を始める (編集画面が受け取る)
     try { sessionStorage.setItem(`harmony-auto-edit:report:${addId}`, "1"); } catch { /* 使えなくても開くだけ */ }
@@ -80,7 +81,7 @@ export function ReportListView() {
       void _c; void _u;
       try {
         await saveReport({ ...rest, id, name: `${f.name} (コピー)` }, { createOnly: true });
-      } catch (e) { setMessage(`複製できませんでした: ${errorText(e)}`); reload().catch(console.error); return; }
+      } catch (e) { setMessage(`複製できませんでした: ${errorText(e)}`); reload().catch((err) => reportFailure(err, "帳票一覧の読み込み")); return; }
     }
     setMessage(`${items.length} 件を複製しました`);
   };

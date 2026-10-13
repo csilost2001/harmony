@@ -18,6 +18,7 @@ import { useListSort } from "../../hooks/useListSort";
 import { makeDuplicatedEntityId } from "../../utils/entityIdSuggestion";
 import "../../styles/businessFlow.css";
 import { useQuickCreate } from "../../hooks/useQuickCreate";
+import { reportFailure } from "../../utils/failureToast";
 
 const MATURITY: Record<string, string> = { draft: "作成中", provisional: "レビュー中", committed: "確定" };
 
@@ -36,7 +37,7 @@ export function BusinessFlowListView() {
 
   useEffect(() => {
     mcpBridge.startWithoutEditor();
-    const off = mcpBridge.onStatusChange((s) => { if (s === "connected") reload().catch(console.error); });
+    const off = mcpBridge.onStatusChange((s) => { if (s === "connected") reload().catch((err) => reportFailure(err, "業務フロー一覧の読み込み")); });
     return off;
   }, [reload]);
 
@@ -63,7 +64,7 @@ export function BusinessFlowListView() {
     if (addValidation.isInvalid || !addName.trim()) return;
     try {
       await saveBusinessFlow(buildDefaultBusinessFlow(addId, addName.trim()), { createOnly: true });
-    } catch (e) { setMessage(`作成できませんでした: ${errorText(e)}`); setShowAdd(false); reload().catch(console.error); return; }
+    } catch (e) { setMessage(`作成できませんでした: ${errorText(e)}`); setShowAdd(false); reload().catch((err) => reportFailure(err, "業務フロー一覧の読み込み")); return; }
     setShowAdd(false); setAddId(""); setAddName("");
     // 作成した直後は、自動で編集を始める (編集画面が受け取る)
     try { sessionStorage.setItem(`harmony-auto-edit:business-flow:${addId}`, "1"); } catch { /* 使えなくても開くだけ */ }
@@ -79,7 +80,7 @@ export function BusinessFlowListView() {
       void _c; void _u;
       try {
         await saveBusinessFlow({ ...rest, id, name: `${f.name} (コピー)` }, { createOnly: true });
-      } catch (e) { setMessage(`複製できませんでした: ${errorText(e)}`); reload().catch(console.error); return; }
+      } catch (e) { setMessage(`複製できませんでした: ${errorText(e)}`); reload().catch((err) => reportFailure(err, "業務フロー一覧の読み込み")); return; }
     }
     setMessage(`${items.length} 件を複製しました`);
   };

@@ -39,6 +39,7 @@ import "../../styles/editMode.css";
 import { confirmDeletionImpact } from "../../utils/confirmDeletion";
 import { useQuickCreate } from "../../hooks/useQuickCreate";
 import { useReferencesDialog } from "../common/ReferencesButton";
+import { reportFailure } from "../../utils/failureToast";
 
 const STORAGE_KEY = "list-view-mode:screen-list";
 const TAB_ID = makeTabId("screen-list", "main");
@@ -131,7 +132,7 @@ export function ScreenListView() {
 
   // PageLayout 一覧をロード (pageLayoutId 選択 dropdown 用, pl-4, #1025)
   useEffect(() => {
-    listPageLayouts().then(setPageLayouts).catch(console.error);
+    listPageLayouts().then(setPageLayouts).catch((err) => reportFailure(err, "画面一覧の読み込み"));
   }, []);
 
   // 画面 validation map のロード (Puck data 検証 + cross-resource ref 検証 #1090 Phase 2)
@@ -152,7 +153,7 @@ export function ScreenListView() {
         }
         setValidationMap(next);
       })
-      .catch(console.error);
+      .catch((err) => reportFailure(err, "画面一覧の読み込み"));
     return () => { cancelled = true; };
   }, [screens]);
 
@@ -380,7 +381,7 @@ export function ScreenListView() {
           const insertIndex = ids.length > 0
             ? Math.max(...ids.map((id) => allIds.indexOf(id))) + 1
             : null;
-          handlePaste(insertIndex).catch(console.error);
+          handlePaste(insertIndex).catch((err) => reportFailure(err, "画面一覧の貼り付け"));
         },
       },
       { key: "sep2", separator: true },
@@ -388,7 +389,7 @@ export function ScreenListView() {
         key: "duplicate", label: "複製", icon: "bi-copy", shortcut: "Ctrl+D",
         disabled: !hasSelection || sortActive,
         disabledReason: sortActive ? sortReason : undefined,
-        onClick: () => { if (items.length > 0) handleDuplicate(items).catch(console.error); },
+        onClick: () => { if (items.length > 0) handleDuplicate(items).catch((err) => reportFailure(err, "画面一覧の複製")); },
       },
       {
         // #1330: ScreenListView 起点 Screen rename (単一選択のみ有効)
@@ -447,10 +448,10 @@ export function ScreenListView() {
     layout: viewMode === "card" ? "grid" : "list",
     onActivate: handleActivate,
     onDelete: handleDelete,
-    onDuplicate: (items) => { handleDuplicate(items).catch(console.error); },
+    onDuplicate: (items) => { handleDuplicate(items).catch((err) => reportFailure(err, "画面一覧の複製")); },
     onMoveUp: (items) => moveBlock(items, "up"),
     onMoveDown: (items) => moveBlock(items, "down"),
-    onPaste: (idx) => { handlePaste(idx).catch(console.error); },
+    onPaste: (idx) => { handlePaste(idx).catch((err) => reportFailure(err, "画面一覧の貼り付け")); },
     onContextMenuKey: handleContextMenuKey,
   });
 
@@ -488,12 +489,12 @@ export function ScreenListView() {
         selection.clearSelection();
         return editor.save();
       })
-      .catch(console.error);
+      .catch((err) => reportFailure(err, "画面一覧の保存"));
   };
 
   const handleReset = () => {
     if (!confirm("未保存の変更を破棄してサーバの状態に戻しますか？")) return;
-    editor.reset().catch(console.error);
+    editor.reset().catch((err) => reportFailure(err, "画面一覧のリセット"));
     selection.clearSelection();
   };
 
@@ -735,7 +736,7 @@ export function ScreenListView() {
         isCreate={!screenModal.editId}
         pageLayouts={screenModal.editId ? pageLayouts : undefined}
         existingScreenIds={existingScreenIds}
-        onSave={(data) => { handleScreenSave(data).catch(console.error); }}
+        onSave={(data) => { handleScreenSave(data).catch((err) => reportFailure(err, "画面一覧の保存")); }}
         onClose={() => setScreenModal({ open: false })}
       />
 
@@ -781,7 +782,7 @@ export function ScreenListView() {
               originRoute: () => "/screen/list",
             });
             // 一覧の reflect は backend の screenChanged broadcast で reload される
-            editor.reload().catch(console.error);
+            editor.reload().catch((err) => reportFailure(err, "画面一覧の読み込み"));
             setRenameUndoToast({
               operationId, oldId: target.id, newId,
               ttlMs: extra?.ttlMs,
@@ -811,7 +812,7 @@ export function ScreenListView() {
               skipOpenNewTab: true,
               originRoute: () => "/screen/list",
             });
-            editor.reload().catch(console.error);
+            editor.reload().catch((err) => reportFailure(err, "画面一覧の読み込み"));
             setRenameUndoToast(null);
             setRenamedToastNewId("");
           }}

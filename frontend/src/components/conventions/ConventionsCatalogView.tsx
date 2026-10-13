@@ -59,6 +59,7 @@ import { NumberingPanel } from "./internal/categories/NumberingPanel";
 import { TxPanel } from "./internal/categories/TxPanel";
 import { ExternalOutcomeDefaultsPanel } from "./internal/categories/ExternalOutcomeDefaultsPanel";
 import { ExtensionCategoriesPanel } from "./internal/categories/ExtensionCategoriesPanel";
+import { reportFailure } from "../../utils/failureToast";
 
 type Category =
   | "msg" | "regex" | "limit"
@@ -173,7 +174,7 @@ export function ConventionsCatalogView() {
     draftUpdateTimer.current = setTimeout(() => {
       if (!catalogRef.current) return;
       if (editSession?.id) {
-        mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: catalogRef.current }).catch(console.error);
+        mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: catalogRef.current }).catch((err) => reportFailure(err, "下書きの保存"));
       }
     }, 300);
   }, [isReadonly, update, editSession]);
@@ -185,7 +186,7 @@ export function ConventionsCatalogView() {
     draftUpdateTimer.current = setTimeout(() => {
       if (!catalogRef.current) return;
       if (editSession?.id) {
-        mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: catalogRef.current }).catch(console.error);
+        mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: catalogRef.current }).catch((err) => reportFailure(err, "下書きの保存"));
       }
     }, 300);
   }, [isReadonly, updateSilent, editSession]);
@@ -215,7 +216,7 @@ export function ConventionsCatalogView() {
 
   // Ctrl+S で保存 (保存ボタンの title にも書いてある)
   useSaveShortcut(() => {
-    if (isDirty && !isSaving && !isReadonly) handleSave().catch(console.error);
+    if (isDirty && !isSaving && !isReadonly) handleSave().catch((err) => reportFailure(err, "規約カタログの保存"));
   });
 
   const handleDiscard = useCallback(async () => {
@@ -260,7 +261,7 @@ export function ConventionsCatalogView() {
         s.state === "Active" && !!s.participants?.[mySessionId],
       );
       if (hasMyActiveSession) setShowResumeDialog(true);
-    })().catch(console.error);
+    })().catch((err) => reportFailure(err, "編集セッションの確認"));
     return () => { cancelled = true; };
   }, [sessionLoading, mode.kind]);
 
@@ -366,7 +367,7 @@ export function ConventionsCatalogView() {
       <EditModeToolbar
         mode={mode}
         onStartEditing={actions.startEditing}
-        onSave={() => { handleSave().catch(console.error); }}
+        onSave={() => { handleSave().catch((err) => reportFailure(err, "規約カタログの保存")); }}
         onDiscardClick={() => setShowDiscardDialog(true)}
         onForceReleaseClick={() => setShowForceReleaseDialog(true)}
         saving={isSaving}

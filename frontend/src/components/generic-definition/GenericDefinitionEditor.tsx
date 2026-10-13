@@ -29,6 +29,7 @@ import { mcpBridge } from "../../mcp/mcpBridge";
 import { SaveConflictDialog, type ConflictInfo } from "../editing/SaveConflictDialog";
 import { EditModeToolbar } from "../editing/EditModeToolbar";
 import { DiscardConfirmDialog } from "../editing/ConfirmDialogs";
+import { reportFailure } from "../../utils/failureToast";
 
 function isValidKind(k: string): k is GenericDefinitionKind {
   return (GENERIC_DEFINITION_KINDS as string[]).includes(k);
@@ -507,7 +508,7 @@ function GenericDefinitionEditorBody() {
   }, [def, reloadBanner, ensureEditSession, postSaveSuccess]);
 
   // Ctrl+S (入力欄の中でも効く)。変更がないときは何もしない
-  useSaveShortcut(() => { if (dirty && editing) handleSave().catch(console.error); }, !!def && editing);
+  useSaveShortcut(() => { if (dirty && editing) handleSave().catch((err) => reportFailure(err, "汎用定義の保存")); }, !!def && editing);
 
   const handleDelete = useCallback(async () => {
     if (!kind || !decodedName) return;

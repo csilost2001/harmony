@@ -9,6 +9,7 @@ import {
 } from "../../store/workspaceStore";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { AddWorkspaceDialog } from "./WorkspaceListView";
+import { reportFailure } from "../../utils/failureToast";
 
 export function WorkspaceSelectView() {
   const navigate = useNavigate();
@@ -43,7 +44,7 @@ export function WorkspaceSelectView() {
         const { loading } = getState();
         if (!loading || isWorkspaceRequestInFlight()) return;
       }
-      loadWorkspaces().catch(console.error);
+      loadWorkspaces().catch((err) => reportFailure(err, "ワークスペースの選択の読み込み"));
     });
     return () => { unsubStatus(); };
   }, []);

@@ -30,6 +30,7 @@ import "../../styles/editMode.css";
 import { confirmDeletionImpact } from "../../utils/confirmDeletion";
 import { useQuickCreate } from "../../hooks/useQuickCreate";
 import { useReferencesDialog } from "../common/ReferencesButton";
+import { reportFailure } from "../../utils/failureToast";
 
 const STORAGE_KEY = "list-view-mode:view-list";
 const TAB_ID = makeTabId("view-list", "main");
@@ -114,7 +115,7 @@ export function ViewListView() {
         }
         setValidationMap(next);
       })
-      .catch(console.error);
+      .catch((err) => reportFailure(err, "ビュー一覧の読み込み"));
     return () => { cancelled = true; };
   }, [allViews]);
 
@@ -347,7 +348,7 @@ export function ViewListView() {
           const insertIndex = ids.length > 0
             ? Math.max(...ids.map((id) => allIds.indexOf(id))) + 1
             : null;
-          handlePaste(insertIndex).catch(console.error);
+          handlePaste(insertIndex).catch((err) => reportFailure(err, "ビュー一覧の貼り付け"));
         },
       },
       { key: "sep2", separator: true },
@@ -355,7 +356,7 @@ export function ViewListView() {
         key: "duplicate", label: "複製", icon: "bi-copy", shortcut: "Ctrl+D",
         disabled: !hasSelection || sortActive,
         disabledReason: sortActive ? sortReason : undefined,
-        onClick: () => { if (items.length > 0) handleDuplicate(items).catch(console.error); },
+        onClick: () => { if (items.length > 0) handleDuplicate(items).catch((err) => reportFailure(err, "ビュー一覧の複製")); },
       },
       {
         key: "references", label: "参照元を見る", icon: "bi-diagram-3",
@@ -400,10 +401,10 @@ export function ViewListView() {
     layout: viewMode === "card" ? "grid" : "list",
     onActivate: handleActivate,
     onDelete: handleDelete,
-    onDuplicate: (items) => { handleDuplicate(items).catch(console.error); },
+    onDuplicate: (items) => { handleDuplicate(items).catch((err) => reportFailure(err, "ビュー一覧の複製")); },
     onMoveUp: (items) => moveBlock(items, "up"),
     onMoveDown: (items) => moveBlock(items, "down"),
-    onPaste: (idx) => { handlePaste(idx).catch(console.error); },
+    onPaste: (idx) => { handlePaste(idx).catch((err) => reportFailure(err, "ビュー一覧の貼り付け")); },
     onContextMenuKey: handleContextMenuKey,
   });
 
@@ -415,12 +416,12 @@ export function ViewListView() {
         selection.clearSelection();
         return editor.save();
       })
-      .catch(console.error);
+      .catch((err) => reportFailure(err, "ビュー一覧の保存"));
   };
 
   const handleReset = () => {
     if (!confirm("未保存の変更を破棄してサーバの状態に戻しますか？")) return;
-    editor.reset().catch(console.error);
+    editor.reset().catch((err) => reportFailure(err, "ビュー一覧のリセット"));
     selection.clearSelection();
   };
 

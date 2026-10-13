@@ -18,6 +18,7 @@ import { loadExtensionsFromBundle, type LoadedExtensions } from "../../../schema
 import { loadConventions } from "../../../store/conventionsStore";
 import { listGenericDefinitions } from "../../../store/genericDefinitionStore";
 import { mcpBridge } from "../../../mcp/mcpBridge";
+import { reportFailure } from "../../../utils/failureToast";
 
 export interface ProcessFlowCatalogs {
   tables: { id: string; physicalName: string; name: string }[];
@@ -51,7 +52,7 @@ export function useProcessFlowCatalogs(): ProcessFlowCatalogs {
           agMetas.filter((a) => a.flowType === "common").map((a) => ({ id: a.id, name: a.name })),
         );
       })
-      .catch(console.error);
+      .catch((err) => reportFailure(err, "処理フローの参照先の読み込み"));
     listTables()
       .then(async (metas) => {
         setTables(
@@ -65,7 +66,7 @@ export function useProcessFlowCatalogs(): ProcessFlowCatalogs {
         } as ValidatorTableDef));
         setTableDefs(defs);
       })
-      .catch(console.error);
+      .catch((err) => reportFailure(err, "処理フローの参照先の読み込み"));
     loadConventions()
       .then((c) => setConventions(c as ConventionsCatalog | null))
       .catch(() => setConventions(null));

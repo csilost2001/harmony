@@ -21,6 +21,7 @@ import { SaveConflictDialog } from "../editing/SaveConflictDialog";
 import { setDirty as setTabDirty, makeTabId } from "../../store/tabStore";
 import "../../styles/extensions.css";
 import "../../styles/editMode.css";
+import { reportFailure } from "../../utils/failureToast";
 
 export type ExtensionKind = "steps" | "fieldTypes" | "triggers" | "dbOperations" | "responseTypes";
 
@@ -122,7 +123,7 @@ export function ExtensionsPanel() {
         s.state === "Active" && !!s.participants?.[mySessionId],
       );
       if (hasMyActiveSession) setShowResumeDialog(true);
-    })().catch(console.error);
+    })().catch((err) => reportFailure(err, "編集セッションの確認"));
     return () => { cancelled = true; };
   }, [active, sessionLoading, mode.kind]);
 

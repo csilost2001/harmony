@@ -32,6 +32,7 @@ import { useListSort } from "../../hooks/useListSort";
 import { usePersistentState } from "../../hooks/usePersistentState";
 import { BackendFolderPicker } from "./BackendFolderPicker";
 import "../../styles/table.css";
+import { reportFailure } from "../../utils/failureToast";
 
 const STORAGE_KEY = "list-view-mode:workspace-list";
 
@@ -771,7 +772,7 @@ export function WorkspaceListView() {
         const { loading } = getState();
         if (!loading || isWorkspaceRequestInFlight()) return;
       }
-      loadWorkspaces().catch(console.error);
+      loadWorkspaces().catch((err) => reportFailure(err, "ワークスペース一覧の読み込み"));
     });
     return () => { unsubStatus(); };
   }, []);
@@ -1079,7 +1080,7 @@ export function WorkspaceListView() {
         {showAdd && (
           <AddWorkspaceDialog
             onClose={() => setShowAdd(false)}
-            onAdded={() => { loadWorkspaces().catch(console.error); }}
+            onAdded={() => { loadWorkspaces().catch((err) => reportFailure(err, "ワークスペース一覧の読み込み")); }}
           />
         )}
 

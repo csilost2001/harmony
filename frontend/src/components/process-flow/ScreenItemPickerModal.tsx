@@ -11,6 +11,7 @@ import { loadScreenItems, type ScreenItemsDocument } from "../../store/screenIte
 import type { ScreenItem } from "../../types/v3";
 import type { ScreenItemPickResult } from "./StructuredFieldsEditor";
 import type { FieldType as V1FieldType } from "../../types/v3";
+import { reportFailure } from "../../utils/failureToast";
 
 interface Props {
   open: boolean;
@@ -38,13 +39,13 @@ export function ScreenItemPickerModal({ open, onClose, onPick }: Props) {
     if (!open) return;
     loadProject().then((p) => {
       setScreens(p.screens.map((s) => ({ id: s.id, name: s.name })));
-    }).catch(console.error);
+    }).catch((err) => reportFailure(err, "画面項目の選択の読み込み"));
   }, [open]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- clearing the selected screen immediately clears dependent items.
     if (!selectedScreenId) { setItemsFile(null); return; }
-    loadScreenItems(selectedScreenId).then(setItemsFile).catch(console.error);
+    loadScreenItems(selectedScreenId).then(setItemsFile).catch((err) => reportFailure(err, "画面項目の選択の読み込み"));
   }, [selectedScreenId]);
 
   if (!open) return null;

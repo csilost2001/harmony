@@ -93,6 +93,7 @@ import { InspectorPanel } from "./internal/InspectorPanel";
 import { CanvasPane } from "./internal/CanvasPane";
 import { EditorHeaderExtras } from "./internal/EditorHeaderExtras";
 import { useWorkspaceReferences } from "../../hooks/useWorkspaceReferences";
+import { reportFailure } from "../../utils/failureToast";
 
 export function ProcessFlowEditor() {
   const { processFlowId } = useParams<{ processFlowId: string }>();
@@ -273,7 +274,7 @@ export function ProcessFlowEditor() {
     draftUpdateTimer.current = setTimeout(() => {
       if (!processFlowId || !groupRef.current) return;
       if (editSession?.id) {
-        mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: groupRef.current }).catch(console.error);
+        mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: groupRef.current }).catch((err) => reportFailure(err, "下書きの保存"));
       }
     }, 300);
   }, [processFlowId, editSession]);
