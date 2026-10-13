@@ -66,7 +66,8 @@ export async function resolveStaticAsset(staticRoot: string, url: string): Promi
       kind: "file",
       filePath: candidate,
       contentType: MIME_TYPES[ext] ?? "application/octet-stream",
-      immutable: candidate.includes(`${path.sep}_astro${path.sep}`),
+      // ハッシュつきの成果物 (Astro の _astro/・Vite の assets/ の直下) は、内容が変わると名前が変わるので、長く使い回してよい
+      immutable: /^(_astro|assets)[\\/]/.test(path.relative(root, candidate)) || candidate.includes(`${path.sep}_astro${path.sep}`),
     };
   }
 
