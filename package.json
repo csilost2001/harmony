@@ -33,7 +33,10 @@
     "ui:audit": "node scripts/dev/theme-audit.mjs",
     "export:doc": "node scripts/export-design-doc.mjs",
     "check:design": "node scripts/check-design.mjs",
-    "migrate:schema": "tsx scripts/migrate-schema.ts",
+    "coverage": "node scripts/verify/changed-coverage.mjs --all",
+    "coverage:changed": "node scripts/verify/changed-coverage.mjs",
+    "e2e:report": "node scripts/verify/e2e-report.mjs",
+    "migrate:schema": "tsx scripts/migrate-schema.mts",
     "export:tests": "node scripts/export-test-viewpoints.mjs"
   },
   "devDependencies": {

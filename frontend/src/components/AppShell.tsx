@@ -1,38 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Routes, Route, useLocation, useNavigate, matchPath, useParams, Outlet, Navigate } from "react-router-dom";
-import { FlowEditor } from "./flow/FlowEditor";
-import { ScreenListView } from "./flow/ScreenListView";
-import { TableListView } from "./table/TableListView";
-import { TableEditor } from "./table/TableEditor";
-import { ErDiagram } from "./table/ErDiagram";
-import { ProcessFlowListView } from "./process-flow/ProcessFlowListView";
-import { ProcessFlowEditor } from "./process-flow/ProcessFlowEditor";
-import { ExtensionsPanel } from "./extensions/ExtensionsPanel";
-import { ConventionsCatalogView } from "./conventions/ConventionsCatalogView";
-import { DesignDocumentView } from "./document/DesignDocumentView";
-import { ScreenItemsView } from "./screen-items/ScreenItemsView";
-import { SequenceListView } from "./sequence/SequenceListView";
-import { SequenceEditor } from "./sequence/SequenceEditor";
-import { BusinessFlowListView } from "./business-flow/BusinessFlowListView";
-import { BusinessFlowEditor } from "./business-flow/BusinessFlowEditor";
-import { ReportListView } from "./report/ReportListView";
-import { ReportEditor } from "./report/ReportEditor";
-import { ViewListView } from "./view/ViewListView";
-import { ViewEditor } from "./view/ViewEditor";
-import { ViewDefinitionListView } from "./view-definition/ViewDefinitionListView";
-import { ViewDefinitionEditor } from "./view-definition/ViewDefinitionEditor";
-import { PageLayoutListView } from "./page-layout/PageLayoutListView";
-import { PageLayoutEditor } from "./page-layout/PageLayoutEditor";
-import { GadgetListView } from "./gadget/GadgetListView";
-import { GenericDefinitionCatalogView } from "./generic-definition/GenericDefinitionCatalogView";
-import { GenericDefinitionListView } from "./generic-definition/GenericDefinitionListView";
-import { GenericDefinitionEditor } from "./generic-definition/GenericDefinitionEditor";
-import { WorkspaceListView } from "./workspace/WorkspaceListView";
-import { WorkspaceSelectView } from "./workspace/WorkspaceSelectView";
-import { TechStackView } from "./project/TechStackView";
-import { DesignerTabHost } from "./DesignerTabHost";
-import { CodexSettingsView } from "./codex/CodexSettingsView";
-import { DashboardView } from "./dashboard/DashboardView";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Routes, Route, useLocation, useNavigate, matchPath, useParams, Outlet } from "react-router-dom";
 import { TabBar } from "./TabBar";
 import { CommonHeader } from "./CommonHeader";
 import { mcpBridge } from "../mcp/mcpBridge";
@@ -68,7 +35,7 @@ import {
 import { useTabKeyboard } from "../hooks/useTabKeyboard";
 import { ErrorBoundary } from "./common/ErrorBoundary";
 import { TabErrorFallback } from "./common/ErrorFallback";
-import { ResourceLoading } from "./common/ResourceLoading";
+import { ResourceLoading, ViewLoading } from "./common/ResourceLoading";
 import { useErrorDialog } from "./common/ErrorDialogProvider";
 import { recordError } from "../utils/errorLog";
 import { isValidUuid } from "../utils/entityIdValidation";
@@ -77,6 +44,44 @@ import { uiInfo, uiWarn, setupServerLogFlush } from "../utils/uiLog";
 import { evaluateRoutingGuard, isWorkspaceChildRouteReady } from "../routing/workspaceRouting";
 import { reportFailure } from "../utils/failureToast";
 import { installExternalChangeNotice } from "../utils/externalChangeNotice";
+import {
+  DashboardView,
+  FlowEditor,
+  ScreenListView,
+  TableListView,
+  TableEditor,
+  ErDiagram,
+  ProcessFlowListView,
+  ProcessFlowEditor,
+  ExtensionsPanel,
+  ConventionsCatalogView,
+  DesignDocumentView,
+  ScreenItemsView,
+  SequenceListView,
+  SequenceEditor,
+  BusinessFlowListView,
+  BusinessFlowEditor,
+  ReportListView,
+  ReportEditor,
+  ViewListView,
+  ViewEditor,
+  ViewDefinitionListView,
+  ViewDefinitionEditor,
+  PageLayoutListView,
+  PageLayoutEditor,
+  GadgetListView,
+  GenericDefinitionCatalogView,
+  GenericDefinitionListView,
+  GenericDefinitionEditor,
+  WorkspaceListView,
+  WorkspaceSelectView,
+  TechStackView,
+  CodexSettingsView,
+  DesignerTabHost,
+} from "../routing/lazyViews";
+import { PageLayoutDesignRedirect } from "./shell/PageLayoutDesignRedirect";
+import { RedirectGuardBanner } from "./shell/RedirectGuardBanner";
+import { ConnectionFailedView } from "./shell/ConnectionFailedView";
 
 function useTabs() {
   const [tabs, setTabs] = useState<readonly TabItem[]>(getTabs);
@@ -103,87 +108,6 @@ function useTabs() {
 function WorkspaceScopedShell() {
   const { wsId } = useParams<{ wsId: string }>();
   return <AppShellInner wsId={wsId} />;
-}
-
-function PageLayoutDesignRedirect() {
-  const { pageLayoutId } = useParams<{ pageLayoutId: string }>();
-  const targetId = pageLayoutId ? encodeURIComponent(decodeURIComponent(pageLayoutId)) : "";
-  return <Navigate to={`../edit/${targetId}`} replace relative="path" />;
-}
-
-// redirectGuard が trip した時、画面全体に被せる赤バナー (#750 review S-2)。
-// silently block すると見かけ上「画面が固まった」状態でユーザーが原因を理解できない。
-function RedirectGuardBanner({ summary }: { summary: readonly string[] }) {
-  return (
-    <div style={{
-      position: "fixed", top: 0, left: 0, right: 0, zIndex: 9999,
-      background: "#b71c1c", color: "var(--hm-on-solid)",
-      padding: "12px 16px", fontSize: 13,
-      borderBottom: "2px solid color-mix(in srgb, var(--hm-hue-red) 45%, var(--hm-surface))",
-      boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
-    }}>
-      <strong><i className="bi bi-exclamation-octagon-fill" /> リダイレクトループ検出 — 遷移を停止しました</strong>
-      <div style={{ marginTop: 4, fontSize: 12, opacity: 0.9 }}>
-        サーバ保護のため、これ以降のページ遷移を全てブロックしています。
-        ブラウザを手動で再読み込み (F5) してください。
-      </div>
-      {summary.length > 0 && (
-        <details style={{ marginTop: 6, fontSize: 11, fontFamily: "monospace" }}>
-          <summary style={{ cursor: "pointer" }}>直近の遷移先 (バグ報告用)</summary>
-          <ol style={{ margin: "4px 0 0 16px", padding: 0 }}>
-            {summary.map((p, i) => (<li key={i}>{p}</li>))}
-          </ol>
-        </details>
-      )}
-    </div>
-  );
-}
-
-// backend 接続失敗エラー画面 (#795-C)
-// splash で永遠に止まらず、サーバ未起動 / half-dead / network 障害を明示的に伝える
-function ConnectionFailedView({ onRetry }: { onRetry: () => void }) {
-  return (
-    <div style={{
-      display: "flex", alignItems: "center", justifyContent: "center",
-      height: "100vh", flexDirection: "column", gap: "16px", padding: "24px",
-      color: "var(--muted-text, #ccc)",
-      backgroundColor: "var(--bg-color, #1a1a1a)",
-    }}>
-      <div style={{ fontSize: "3rem", color: "color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg))" }}>
-        <i className="bi bi-plug-fill" />
-      </div>
-      <h2 style={{ margin: 0, fontSize: "1.25rem", color: "var(--text-color, #fff)" }}>
-        backend サーバに接続できません
-      </h2>
-      <div style={{
-        maxWidth: 480, fontSize: "0.875rem", lineHeight: 1.6,
-        color: "var(--muted-text, #aaa)", textAlign: "center",
-      }}>
-        <p style={{ marginTop: 0 }}>
-          backend サーバ (port 5179) が起動しているか確認してください。
-        </p>
-        <pre style={{
-          background: "var(--hm-surface-2)", padding: "12px 16px", borderRadius: 6,
-          fontSize: "0.8125rem", textAlign: "left", margin: "12px auto",
-        }}>cd backend{"\n"}npm run dev</pre>
-        <p style={{ margin: "12px 0 0" }}>
-          すでに起動している場合は、port 5179 を別プロセスが握っている可能性があります。
-        </p>
-      </div>
-      <button
-        type="button"
-        onClick={onRetry}
-        style={{
-          padding: "8px 24px", fontSize: "0.9375rem",
-          background: "#0d6efd", color: "var(--hm-on-solid)", border: "none", borderRadius: 6,
-          cursor: "pointer", marginTop: 8,
-        }}
-      >
-        <i className="bi bi-arrow-clockwise" style={{ marginRight: 6 }} />
-        再試行
-      </button>
-    </div>
-  );
 }
 
 // ルートレベルの AppShell: /workspace/* と /w/:wsId/* に分岐
@@ -338,6 +262,7 @@ export function AppShell() {
   return (
     <>
       {guardTripped !== null && <RedirectGuardBanner summary={guardTripped} />}
+    <Suspense fallback={<ViewLoading />}>
     <Routes>
       {/* /w/:wsId 配下の全ルートを **nested Routes** で宣言。
           React Router v7 ではこの書き方で初めて
@@ -398,6 +323,7 @@ export function AppShell() {
         </div>
       } />
     </Routes>
+    </Suspense>
     </>
   );
 }
@@ -1129,11 +1055,13 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
           >
             {/* RFC #1021 pl-6 (Codex C-1): DesignerTabHost で pageLayout + gadget の design HTML を
                 pre-load して composition preview modal を有効化 */}
-            <DesignerTabHost
-              screenId={tab.resourceId}
-              screenName={tab.label}
-              isActive={activeTabId === tab.id}
-            />
+            <Suspense fallback={<ViewLoading />}>
+              <DesignerTabHost
+                screenId={tab.resourceId}
+                screenName={tab.label}
+                isActive={activeTabId === tab.id}
+              />
+            </Suspense>
           </ErrorBoundary>
         </div>
       ))}
@@ -1163,7 +1091,9 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
               />
             )}
           >
-            <Outlet />
+            <Suspense fallback={<ViewLoading />}>
+              <Outlet />
+            </Suspense>
           </ErrorBoundary>
         </div>
       )}

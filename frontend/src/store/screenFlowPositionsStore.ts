@@ -9,6 +9,7 @@
  * 業務情報 (Screen entity / ScreenTransitionEntry / ScreenGroupEntry) は
  * harmony.json + <dataDir>/screens/<id>.json で管理する。本 store は UI 座標のみ。
  */
+import { shareInflight } from "../utils/sharedInflight";
 import type { Position, ScreenFlowPositions, Timestamp, TransitionLayout } from "../types/v3";
 
 export interface ScreenFlowPositionsStorageBackend {
@@ -45,8 +46,11 @@ function createEmptyLayout(): ScreenFlowPositions {
   };
 }
 
+/** 同時に出た読み出しを 1 回にまとめる (utils/sharedInflight.ts) */
+const readPositionsShared = shareInflight(() => requireBackend().loadScreenFlowPositions());
+
 export async function loadScreenFlowPositions(): Promise<ScreenFlowPositions> {
-  const data = await requireBackend().loadScreenFlowPositions();
+  const data = await readPositionsShared();
   const canonical = data ? data as ScreenFlowPositions : createEmptyLayout();
   const preview = loadScreenFlowPositionsPreview();
   if (!preview) return canonical;
@@ -80,12 +84,13 @@ export function clearScreenFlowPositionsPreview(): void {
 }
 
 export async function loadScreenFlowPositionsCanonical(): Promise<ScreenFlowPositions> {
-  const data = await requireBackend().loadScreenFlowPositions();
+  const data = await readPositionsShared();
   if (data) return data as ScreenFlowPositions;
   return createEmptyLayout();
 }
 
 export async function saveScreenFlowPositionsCanonical(layout: ScreenFlowPositions): Promise<void> {
+  readPositionsShared.invalidate();
   const toSave: ScreenFlowPositions = {
     ...layout,
     $schema: SCREEN_FLOW_POSITIONS_SCHEMA_REF,

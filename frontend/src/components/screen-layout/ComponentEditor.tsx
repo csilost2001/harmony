@@ -6,7 +6,8 @@
  * パレットの「項目」からドラッグして入力欄・一覧・ボタンに割り当てる。
  * 仕様: docs/spec/layout-components.md
  */
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useUndoableState } from "../../hooks/useUndoableState";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import {
   renameComponentParam, updateNode, validateComponentDefs, validateLayoutWithComponents, walkLayout,
@@ -67,46 +68,29 @@ function fromDoc(next: LayoutDoc, prev: LayoutComponentDef): LayoutComponentDef 
   return { ...prev, params, nodes: (next.layout?.nodes ?? []).map(swap) };
 }
 
-interface History { past: LayoutComponentDef[]; present: LayoutComponentDef; future: LayoutComponentDef[] }
-
 export function ComponentEditor({ initial, isNew, others, screens, onSave, onClose }: ComponentEditorProps) {
   const trapRef = useRef<HTMLDivElement>(null);
   useFocusTrap(trapRef);
   // 保存済みの差し込み口の ID・種類は、使っている画面の args が参照するため変えられない
   const [lockedParams, setLockedParams] = useState<Set<string>>(() => new Set(isNew ? [] : initial.params.map((q) => q.id)));
-  const histRef = useRef<History>({ past: [], present: initial, future: [] });
-  const pendingBase = useRef<LayoutComponentDef | null>(null);
-  const [, rerender] = useState(0);
   const [savedSnapshot, setSavedSnapshot] = useState(initial);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const def = histRef.current.present;
+  // 元に戻す・やり直す付きの編集状態 (入力途中は履歴に積まず、確定したとき 1 件積む)
+  const { state: def, update, updateAndCommit, commit, undo, redo, canUndo, canRedo } = useUndoableState<LayoutComponentDef>(initial);
   const dirty = JSON.stringify(def) !== JSON.stringify(savedSnapshot);
 
-  const setHist = (h: History) => { histRef.current = h; rerender((x) => x + 1); };
+  // 変更の関数は、その場で (同期で) 適用する。呼び出し側が、関数の中で決まる値 (新しい部品の id など) を、すぐあとで使う (選択など)。
+  // 元に戻す・やり直すで state が変わったときは、effect で追従する
+  const defRef = useRef(def);
+  useEffect(() => { defRef.current = def; }, [def]);
   /** commitNow=false は入力途中 (履歴に積まない)。確定時に編集前の状態を 1 件積む */
   const applyDef = useCallback((fn: (d: LayoutComponentDef) => LayoutComponentDef, commitNow = true) => {
-    const h = histRef.current;
-    const next = fn(h.present);
-    if (!commitNow) {
-      if (!pendingBase.current) pendingBase.current = h.present;
-      setHist({ ...h, present: next });
-      return;
-    }
-    const base = pendingBase.current ?? h.present;
-    pendingBase.current = null;
-    setHist({ past: [...h.past, base], present: next, future: [] });
-  }, []);
-  const commit = useCallback(() => {
-    const h = histRef.current;
-    if (!pendingBase.current) return;
-    const base = pendingBase.current;
-    pendingBase.current = null;
-    setHist({ past: [...h.past, base], present: h.present, future: [] });
-  }, []);
-  const undo = () => { const h = histRef.current; if (!h.past.length) return; setHist({ past: h.past.slice(0, -1), present: h.past[h.past.length - 1], future: [h.present, ...h.future] }); };
-  const redo = () => { const h = histRef.current; if (!h.future.length) return; setHist({ past: [...h.past, h.present], present: h.future[0], future: h.future.slice(1) }); };
+    const next = fn(defRef.current);
+    defRef.current = next;
+    if (commitNow) updateAndCommit(() => next); else update(() => next);
+  }, [update, updateAndCommit]);
 
   const doc = useMemo(() => toDoc(def), [def]);
   const apply = useCallback((fn: (d: LayoutDoc) => LayoutDoc, commitNow = true) => {
@@ -151,8 +135,8 @@ export function ComponentEditor({ initial, isNew, others, screens, onSave, onClo
             <code title="部品 ID">{def.id}</code>
           </div>
           <div className="sld-editor-actions">
-            <button type="button" className="sld-icon-btn" title="元に戻す" disabled={!histRef.current.past.length} onClick={undo}><i className="bi bi-arrow-counterclockwise" /></button>
-            <button type="button" className="sld-icon-btn" title="やり直す" disabled={!histRef.current.future.length} onClick={redo}><i className="bi bi-arrow-clockwise" /></button>
+            <button type="button" className="sld-icon-btn" title="元に戻す" disabled={!canUndo} onClick={undo}><i className="bi bi-arrow-counterclockwise" /></button>
+            <button type="button" className="sld-icon-btn" title="やり直す" disabled={!canRedo} onClick={redo}><i className="bi bi-arrow-clockwise" /></button>
             <button type="button" className="sld-btn sld-btn-primary" disabled={saving || !dirty || blocking.length > 0 || !def.label.trim()} onClick={() => { save().catch((err) => reportFailure(err, "独自部品の保存")); }} data-testid="component-save">
               <i className="bi bi-check2" /> {saving ? "保存中…" : dirty ? "保存" : "保存済み"}
             </button>

@@ -7,7 +7,7 @@
  * 参考: schemas/v3/screen.v3.schema.json
  */
 
-import type { Authoring, EntityMeta, ScreenGroupId, ScreenId } from "./common";
+import type { Authoring, EntityMeta, PageLayoutId, ProcessFlowId, ScreenGroupId, ScreenId } from "./common";
 import type { ScreenItem } from "./screen-item";
 import type { ScreenLayout } from "@harmony/shared";
 
@@ -77,6 +77,15 @@ export interface Screen extends EntityMeta {
   path: string;
   /** 認証要件。未指定は required 相当。 */
   auth?: "required" | "optional" | "none";
+  /**
+   * 画面の用途 (RFC #1021)。`page` (既定) = 画面遷移図の対象で URL を持つ / `gadget` = 画面遷移図の対象外で、PageLayout の region に割り当てる自律部品。
+   * schemas/v3/screen.v3.schema.json#/$defs/Screen/properties/purpose
+   */
+  purpose?: "page" | "gadget";
+  /** 本画面が使う PageLayout の ID (purpose = page のときのみ意味を持つ)。 */
+  pageLayoutId?: PageLayoutId;
+  /** 本画面に紐付く ProcessFlow の ID (1 画面 = 1 処理フロー + 複数アクション)。 */
+  processFlowId?: ProcessFlowId;
   /** 所属画面グループ ID。 */
   groupId?: ScreenGroupId;
   /** 画面項目定義一覧 (フォーム要素・表示要素)。 */

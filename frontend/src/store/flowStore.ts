@@ -13,6 +13,7 @@
  * localStorage fallback は廃止)。`_backend` 未設定で load/save を呼ぶと throw する。ただし
  * 既存ユーザーの旧 localStorage データを backend 接続時に 1 度きり救済する migration は維持。
  */
+import { shareInflight } from "../utils/sharedInflight";
 import type {
   FlowProject,
   ScreenNode,
@@ -634,9 +635,12 @@ function hasPersistedData(project: Harmony | null | undefined): boolean {
  * 即座に backend に書き戻していた。これが race condition でデータ消失を引き起こしていたため
  * 今後は null を受け取っても backend への書き戻しは行わない。
  */
+/** 同時に出た loadProject の backend への問い合わせを 1 回にまとめる (utils/sharedInflight.ts) */
+const readProjectShared = shareInflight(() => requireBackend().loadProject());
+
 export async function loadProject(): Promise<FlowProject> {
   const backend = requireBackend();
-  const data = await backend.loadProject();
+  const data = await readProjectShared();
   if (data) {
     const persisted = normalizePersisted(data);
     if (!((data as Record<string, unknown>).schemaVersion === "v3")) {
@@ -676,7 +680,7 @@ export async function loadProject(): Promise<FlowProject> {
  * techStack field は FlowProject には含まれないため、本関数で取得する (#793 子 5 / #826)。
  */
 export async function loadRawProject(): Promise<Harmony> {
-  const data = await requireBackend().loadProject();
+  const data = await readProjectShared();
   if (data) return normalizePersisted(data);
   // backend が空応答の場合のみ、旧 localStorage データを 1 度きり救済として読み出す
   const local = loadPersistedFromLocalStorage();
@@ -722,6 +726,7 @@ async function persistFlowProject(project: FlowProject): Promise<void> {
  * !!! データ消失防止ガード (2026-04-22) !!!
  */
 export async function saveProject(project: FlowProject): Promise<void> {
+  readProjectShared.invalidate(); // 進行中の読み出しは、保存前の内容なので、保存のあとの呼び出しでは使わない
   project.updatedAt = nowTs();
   if (_draftMode) {
     saveDraft(FLOW_DRAFT_KIND, FLOW_DRAFT_ID, project);

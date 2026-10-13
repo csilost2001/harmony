@@ -43,7 +43,7 @@ type Field = "physicalName" | "name" | "dataType" | "length" | "nullable" | "not
 
 const DEFAULT_ORDER: Field[] = ["physicalName", "name", "dataType", "length", "notNull", "primaryKey", "unique", "autoIncrement", "defaultValue", "comment"];
 
-export const norm = (s: string) => s.replace(/[\s　_\-・\/()（）]/g, "").toLowerCase();
+export const norm = (s: string) => s.replace(/[\s\u3000_\-・/()（）]/g, "").toLowerCase();
 
 const HEADER_ALIASES: Array<[Field, string[]]> = [
   ["physicalName", ["物理名", "物理カラム名", "カラム名", "列名", "column", "columnname", "physicalname", "フィールド名", "項目名物理"]],
@@ -141,7 +141,7 @@ export function parseDataType(cell: string): { dataType: string; length?: number
   const raw = cell.trim();
   const m = raw.match(/^([^(（\s]+)\s*[(（]\s*(\d+)\s*(?:[,，]\s*(\d+)\s*)?[)）]\s*$/);
   const base = (m ? m[1] : raw).trim();
-  const key = base.toLowerCase().replace(/[\s　]/g, "");
+  const key = base.toLowerCase().replace(/[\s\u3000]/g, "");
   const mapped = TYPE_ALIASES[key] ?? TYPE_ALIASES[base];
   const dataType = mapped ?? base.toUpperCase();
   return {
@@ -157,7 +157,7 @@ export function toPhysicalName(raw: string): { value: string; changed: boolean }
   const trimmed = raw.trim();
   const snake = trimmed
     .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
-    .replace(/[\s\-.　]+/g, "_")
+    .replace(/[\s\-.\u3000]+/g, "_")
     .toLowerCase();
   return { value: snake, changed: snake !== trimmed };
 }

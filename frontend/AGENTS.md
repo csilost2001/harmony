@@ -39,6 +39,13 @@ npm run lint       # ESLint
 を許容する。`<feature>/` 配下に JSX を持ち込まない (testing-library の jest-dom 等の
 セットアップ衝突を避けるため)。
 
+## 画面の追加 (遅延読み込み)
+
+- 画面 (route の element) は `src/routing/lazyViews.ts` 経由で `React.lazy` 読み込みにする。`AppShell.tsx` などから画面を静的に import すると、最初に読む JS が膨らむ (`npm run check` の「ビルドサイズの予算」が止める。入口 850 kB / 他の 1 チャンク 400 kB)。待ち表示は `ViewLoading`
+- `mcpBridge` ⇄ `codexClient` は循環している。新しい import は既存の import 行の後ろに足す (`importCycle.test.ts`)
+- RPC の名前は `shared/src/rpcMethods.ts` の台帳に足してから使う (`mcpBridge.request` は `RpcMethod` 型)
+- 詳細: [../docs/conventions/quality-and-performance-tooling.md](../docs/conventions/quality-and-performance-tooling.md)
+
 ## Data Flow
 
 - **Save:** 画面デザイナの保存 (編集セッション `screen-item`) → mcpBridge (WS) → wsBridge → active workspace の `<workspace>/<dataDir>/screens/{id}.json` (例: `workspaces/my-app/harmony/screens/{id}.json`、path は `harmony.json` の `dataDir` 設定に依存、#856 で `data/` 直書きから移行済)

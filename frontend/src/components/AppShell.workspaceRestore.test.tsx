@@ -58,7 +58,7 @@ vi.mock("./TabBar", () => ({ TabBar: () => <div /> }));
 vi.mock("./CommonHeader", () => ({ CommonHeader: () => <div /> }));
 vi.mock("./common/ErrorBoundary", () => ({ ErrorBoundary: ({ children }: { children: ReactNode }) => <>{children}</> }));
 vi.mock("./common/ErrorFallback", () => ({ TabErrorFallback: () => <div /> }));
-vi.mock("./common/ResourceLoading", () => ({ ResourceLoading: () => <div /> }));
+vi.mock("./common/ResourceLoading", () => ({ ResourceLoading: () => <div />, ViewLoading: () => <div /> }));
 vi.mock("./common/ErrorDialogProvider", () => ({ useErrorDialog: () => ({ showError: vi.fn() }) }));
 vi.mock("../hooks/useTabKeyboard", () => ({ useTabKeyboard: vi.fn() }));
 vi.mock("../store/flowStore", () => ({ loadProject: vi.fn() }));

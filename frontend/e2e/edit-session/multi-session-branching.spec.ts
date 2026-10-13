@@ -143,7 +143,8 @@ test.describe("spec §9 複数 EditSession 並存 (A 案 / B 案)", { tag: ["@re
       // bob: 一覧
       await seedTabsForWorkspace(pageB, ws.wsId, [dummyTab], dummyTab.id);
       await ws.gotoActive(pageB, "/process-flow/list");
-      await expect(pageB.getByText("A 案 / B 案 並行編集テスト")).toBeVisible({ timeout: 10000 });
+      // タブのラベルにも同じ名前が出る (タブを開いたまま一覧を開く) ので、一覧のカードに絞る
+      await expect(pageB.getByTestId("data-list-card").getByText("A 案 / B 案 並行編集テスト")).toBeVisible({ timeout: 10000 });
       // EditSessionBadge が表示される
       await expect(pageB.locator('[data-testid="edit-session-badge"]').first()).toBeVisible({ timeout: 10000 });
 

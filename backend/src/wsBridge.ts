@@ -25,6 +25,7 @@ import { checkRequestOrigin } from "./security/originCheck.js";
 import { ExternalChangeWatcher } from "./externalChanges.js";
 import { authFailureDelayMs, checkAuthToken, configuredToken } from "./security/authToken.js";
 import { ensureRecovered } from "./operationJournal.js";
+import { schedulePrewarm } from "./prewarm.js";
 import { RateLimiter, checkContentLength, maxWsPayloadBytes, maxWsRequestsPer10s } from "./security/requestLimits.js";
 
 type Command = { id: string; method: string; params?: unknown };
@@ -761,6 +762,7 @@ export class WsBridge extends EventEmitter {
     if (activePath) {
       void this.externalWatcher.ensure(activePath);
       this.pruneExternalWatcher();
+      schedulePrewarm(activePath); // 設計書・検査・検索の最初の計算を、あいたところで済ませておく
     }
     try {
       // 前回、複数ファイルの操作の途中で止まっていれば、最初の要求のときに元へ戻す

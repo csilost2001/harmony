@@ -73,6 +73,7 @@ import {
 import type { GenericDefinitionKind } from "../types/v3";
 import type { RawExtensionsBundle } from "../schemas/loadExtensions";
 import { backendWebSocketUrl } from "./backendEndpoint";
+import type { RpcMethod } from "@harmony/shared";
 import { getAuthToken, isUnauthorizedClose, setAuthToken, wsUrlWithToken } from "./authToken";
 
 export type McpStatus = "disconnected" | "connecting" | "connected" | "failed";
@@ -260,7 +261,7 @@ class McpBridgeImpl {
    * wsBridge へリクエストを送信し、サーバーファイル操作の結果を受け取る。
    * { type: "request", id, method, params } → { type: "response", id, result/error }
    */
-  request(method: string, params?: unknown): Promise<unknown> {
+  request(method: RpcMethod, params?: unknown): Promise<unknown> {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       return Promise.reject(new Error("wsBridge に接続されていません"));
     }
