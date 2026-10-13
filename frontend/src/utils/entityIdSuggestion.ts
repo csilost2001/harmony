@@ -15,7 +15,6 @@
 import { isValidEntityId } from "./entityIdValidation";
 import { generateUUID } from "./uuid";
 import type { CodexBrowserClient } from "../codex/codexClient";
-import { codexClient as defaultCodexClient } from "../codex/codexClient";
 import type { CodexNotification } from "../codex/types";
 
 const MAX_ENTITY_ID_LENGTH = 64;
@@ -182,9 +181,12 @@ export async function requestAiSuggestedEntityId(
     name,
     entityLabel,
     existingIds = [],
-    client = defaultCodexClient,
     timeoutMs = AI_SUGGESTION_TIMEOUT_MS,
   } = opts;
+  // 既定の Codex クライアントは、使うときに読み込む。静的に import すると
+  // mcpBridge → flowStore → entityIdSuggestion → codexClient → mcpBridge の循環になり、
+  // モジュールの読み込み順が少し変わっただけで「mcpBridge を初期化する前に使った」エラーで起動できなくなる。
+  const client = opts.client ?? (await import("../codex/codexClient")).codexClient;
 
   const trimmedName = name.trim();
   if (!trimmedName) throw new Error("提案元の名前が空です");

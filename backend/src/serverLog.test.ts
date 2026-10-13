@@ -101,4 +101,39 @@ describe("serverLog", () => {
     else fs.rmSync(tmpRoot, { recursive: true, force: true });
     expect(() => logError("test", "msg after rm")).not.toThrow();
   });
+  it("シークレットはログに残らない (API キー・Bearer・?token=・パスワード・接続トークン)", () => {
+    log("info", "test", "secrets", {
+      header: "Authorization: Bearer abc123.def-456",
+      url: "ws://localhost:5179/?token=s3cretTOKEN&x=1",
+      key: "sk-ant-api03-ABCDEFGHIJKLMNOP",
+      env: "HARMONY_AUTH_TOKEN=topsecretvalue",
+      body: { password: "hunter2", apiKey: "k-12345678" },
+    });
+    const out = readLatestLogFile();
+    for (const leaked of ["abc123.def-456", "s3cretTOKEN", "ABCDEFGHIJKLMNOP", "topsecretvalue", "hunter2", "k-12345678"]) {
+      expect(out, leaked).not.toContain(leaked);
+    }
+    expect(out).toContain("***");
+  });
+
+  it("保持日数: 既定は 7 日、DESIGNER_LOG_RETENTION_DAYS で変えられる (不正な値は既定)", () => {
+    const logDir = path.join(tmpRoot, "logs");
+    const name = (daysAgo: number) => {
+      const d = new Date(Date.now() - daysAgo * 86400_000);
+      return `harmony-mcp-${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}.log`;
+    };
+    const touch = () => { for (const d of [1, 4, 10]) fs.writeFileSync(path.join(logDir, name(d)), "x"); };
+    const exists = (d: number) => fs.existsSync(path.join(logDir, name(d)));
+
+    touch(); initServerLog(tmpRoot);
+    expect([exists(1), exists(4), exists(10)]).toEqual([true, true, false]);
+
+    process.env.DESIGNER_LOG_RETENTION_DAYS = "2";
+    try { touch(); initServerLog(tmpRoot); expect([exists(1), exists(4), exists(10)]).toEqual([true, false, false]); }
+    finally { delete process.env.DESIGNER_LOG_RETENTION_DAYS; }
+
+    process.env.DESIGNER_LOG_RETENTION_DAYS = "abc";
+    try { touch(); initServerLog(tmpRoot); expect([exists(1), exists(4), exists(10)]).toEqual([true, true, false]); }
+    finally { delete process.env.DESIGNER_LOG_RETENTION_DAYS; }
+  });
 });

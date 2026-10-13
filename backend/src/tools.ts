@@ -257,6 +257,68 @@ export const tools = [
     },
   },
   {
+    name: "designer__list_versions",
+    description:
+      "設計 1 件の「上書きされる前の版」の一覧 (新しい順、最大 20 件) を返します。保存・AI の書き込みのたびに、上書き直前の内容が自動で残ります。" +
+      "誤って消した・壊した設計を戻す前の確認に使います。対応: table / process-flow / view / view-definition / sequence / business-flow / report。仕様: docs/spec/file-backup.md",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        resourceType: { type: "string", enum: ["table", "process-flow", "view", "view-definition", "sequence", "business-flow", "report"], description: "設計の種類" },
+        id: { type: "string", description: "設計の ID" },
+      },
+      required: ["resourceType", "id"],
+    },
+  },
+  {
+    name: "designer__restore_version",
+    description:
+      "designer__list_versions の版を、設計に書き戻します。現在の内容も版として残るので、取り消せます (もう一度この tool で戻す)。" +
+      "ほかの人・AI が編集中の設計には書き戻せません。",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        resourceType: { type: "string", enum: ["table", "process-flow", "view", "view-definition", "sequence", "business-flow", "report"], description: "設計の種類" },
+        id: { type: "string", description: "設計の ID" },
+        versionId: { type: "string", description: "designer__list_versions の versions[].id" },
+      },
+      required: ["resourceType", "id", "versionId"],
+    },
+  },
+  {
+    name: "designer__repair_registry",
+    description:
+      "プロジェクトの一覧 (harmony.json) とファイルの食い違いを直します: ファイルはあるが一覧に載っていない設計を一覧に足し、一覧にあるがファイルが無い項目を外します。" +
+      "既定は予行 (書かずに、足す・外す設計だけを返す)。実行するには apply: true を付けます。",
+    inputSchema: {
+      type: "object" as const,
+      properties: { apply: { type: "boolean", description: "true で実際に書く (既定は予行)" } },
+      required: [],
+    },
+  },
+  {
+    name: "designer__persist_uuids",
+    description:
+      "uuid がファイルに保存されていない設計に、読み出しで補っている値 (種類と id から決めた値) を書いて固定します。" +
+      "既定は予行 (書かずに、対象のファイルだけを返す)。実行するには apply: true を付けます。",
+    inputSchema: {
+      type: "object" as const,
+      properties: { apply: { type: "boolean", description: "true で実際に書く (既定は予行)" } },
+      required: [],
+    },
+  },
+  {
+    name: "designer__migrate_schema",
+    description:
+      "設計データを、最新のスキーマの版へ移行します (スキーマの版が上がったあとに使う)。既定は予行 (書かずに、書き換わるファイルと変わる項目を返す)。実行するには apply: true を付けます。" +
+      "書き換える前の内容は世代として残ります。編集中のセッションがあるときは実行できません。移行が不要なら、その旨を返します。",
+    inputSchema: {
+      type: "object" as const,
+      properties: { apply: { type: "boolean", description: "true で実際に書く (既定は予行)" } },
+      required: [],
+    },
+  },
+  {
     name: "designer__find_references",
     description:
       "ある設計 (画面・テーブル・処理フロー・シーケンス・ビュー・ビュー定義・ページレイアウト) を参照している設計の一覧 (参照元) を返します。" +

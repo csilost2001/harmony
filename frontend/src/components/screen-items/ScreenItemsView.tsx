@@ -89,6 +89,7 @@ import {
 } from "./internal/screenItemsConstants";
 import { OutputFields } from "./internal/sections/OutputFields";
 import { reportFailure } from "../../utils/failureToast";
+import { useResyncDraftOnReconnect } from "../../hooks/useResyncDraftOnReconnect";
 
 type ScreenMeta = { id: string; name: string };
 
@@ -336,6 +337,11 @@ export function ScreenItemsView() {
       }
     }, 300);
   }, [isReadonly, updateSilent, screenId, editSession]);
+
+  // 接続が切れて戻ったとき、編集中の内容を下書きへ送り直す
+  useResyncDraftOnReconnect(!isReadonly && !!editSession?.id, isDirty, () => {
+    if (editSession?.id && fileRef.current) mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: fileRef.current }).catch((err) => reportFailure(err, "下書きの保存"));
+  });
 
   const handleSave = useCallback(async () => {
     if (isReadonly || isSaving) return;

@@ -76,6 +76,7 @@ import { checkRedirect, subscribeRedirectGuardTrip, isRedirectGuardTripped } fro
 import { uiInfo, uiWarn, setupServerLogFlush } from "../utils/uiLog";
 import { evaluateRoutingGuard, isWorkspaceChildRouteReady } from "../routing/workspaceRouting";
 import { reportFailure } from "../utils/failureToast";
+import { installExternalChangeNotice } from "../utils/externalChangeNotice";
 
 function useTabs() {
   const [tabs, setTabs] = useState<readonly TabItem[]>(getTabs);
@@ -407,6 +408,8 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
   const navigate = useNavigate();
   const { showError } = useErrorDialog();
   useTabKeyboard();
+  // 設計ファイルが外部で書き換えられたときの全体の知らせ (1 回だけ登録する)
+  useEffect(() => { installExternalChangeNotice(); }, []);
 
   // ワークスペース状態管理
   const [workspaceState, setWorkspaceState] = useState(getWorkspaceState());

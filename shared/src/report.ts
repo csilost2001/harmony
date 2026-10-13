@@ -179,23 +179,23 @@ export interface ReportHtmlOptions {
 export function reportToHtml(report: Pick<Report, "sections" | "output" | "name">, opts: ReportHtmlOptions = {}): string {
   const paper = report.output?.paper ?? "A4";
   const orient = report.output?.orientation ?? "portrait";
-  const [w, h] = REPORT_PAPER_MM[paper];
+  const [w, h] = REPORT_PAPER_MM[paper] ?? REPORT_PAPER_MM.A4;
   const pw = orient === "landscape" ? h : w, ph = orient === "landscape" ? w : h;
   const rows = opts.detailRows ?? 3;
   const inter = opts.interactive;
   const parts: string[] = [];
-  parts.push(`<div class="rp-paper rp-${paper} rp-${orient}" style="aspect-ratio:${pw} / ${ph}" data-paper="${paper}" data-orientation="${orient}">`);
+  parts.push(`<div class="rp-paper rp-${esc(paper)} rp-${esc(orient)}" style="aspect-ratio:${pw} / ${ph}" data-paper="${esc(paper)}" data-orientation="${esc(orient)}">`);
   if (!report.sections.length) parts.push(`<p class="rp-empty">部がありません。</p>`);
   for (const s of report.sections) {
     const widths = fieldWidths(s.fields);
     const sel = inter && opts.selected?.sectionId === s.id && !opts.selected.fieldId;
-    const label = `${REPORT_SECTION_LABELS[s.kind]}${s.name ? `: ${s.name}` : ""}${s.groupBy ? ` (${s.groupBy} ごと)` : ""}`;
+    const label = `${REPORT_SECTION_LABELS[s.kind] ?? s.kind}${s.name ? `: ${s.name}` : ""}${s.groupBy ? ` (${s.groupBy} ごと)` : ""}`;
     const cell = (f: ReportField, i: number, value: string, head = false) => {
       const fsel = inter && opts.selected?.fieldId === f.id && opts.selected.sectionId === s.id;
       const attrs = inter && !head ? ` data-section="${esc(s.id)}" data-field="${esc(f.id)}" data-testid="rp-field-${esc(f.id)}" tabindex="0" role="button" draggable="true"` : "";
-      return `<div class="rp-cell rp-${f.align ?? "left"} rp-k-${f.kind}${head ? " rp-head" : ""}${fsel ? " rp-selected" : ""}" style="flex:0 0 ${Math.round(widths[i] * 100) / 100}%"${attrs}>${esc(value)}</div>`;
+      return `<div class="rp-cell rp-${esc(f.align ?? "left")} rp-k-${esc(f.kind)}${head ? " rp-head" : ""}${fsel ? " rp-selected" : ""}" style="flex:0 0 ${Math.round(widths[i] * 100) / 100}%"${attrs}>${esc(value)}</div>`;
     };
-    parts.push(`<section class="rp-section rp-s-${s.kind}${sel ? " rp-selected" : ""}"${inter ? ` data-section="${esc(s.id)}" data-testid="rp-section-${esc(s.id)}"` : ""}><span class="rp-tag">${esc(label)}</span>`);
+    parts.push(`<section class="rp-section rp-s-${esc(s.kind)}${sel ? " rp-selected" : ""}"${inter ? ` data-section="${esc(s.id)}" data-testid="rp-section-${esc(s.id)}"` : ""}><span class="rp-tag">${esc(label)}</span>`);
     if (!s.fields.length) parts.push(`<div class="rp-row"><span class="rp-empty">項目がありません</span></div>`);
     else if (s.kind === "detail") {
       parts.push(`<div class="rp-row rp-labels">${s.fields.map((f, i) => cell(f, i, f.label || f.id, true)).join("")}</div>`);

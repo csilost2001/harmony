@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useUndoableState } from "./useUndoableState";
 import { useUndoKeyboard } from "./useUndoKeyboard";
 import { saveDraft, loadDraft, clearDraft, hasDraft } from "../utils/draftStorage";
+import { onApplyVersion } from "../utils/applyVersionBus";
 import { acknowledgeServerMtime, hasServerBeenUpdated, type MtimeKind } from "../utils/serverMtime";
 import { setDirty as setTabDirty, makeTabId, type TabType } from "../store/tabStore";
 import { mcpBridge } from "../mcp/mcpBridge";
@@ -327,6 +328,21 @@ export function useResourceEditor<T>(opts: UseResourceEditorOptions<T>): UseReso
       }
     });
   }, [id, broadcastName, broadcastIdField, autoReloadOnClean, reload]);
+
+  // 保存前の版 (履歴の画面から) を、編集状態へ読み込む。編集中のときだけ受け取る (保存するまで原本は変わらない)。
+  // 読み込んだ内容は、編集中の未保存の変更として扱う (保存・変更点の確認・破棄ができる)
+  useEffect(() => {
+    if (!id || !viewerResourceType || viewerMode !== "editing") return;
+    return onApplyVersion((req) => {
+      if (req.resourceType !== viewerResourceType || req.resourceId !== id) return false;
+      // いまの編集状態と同じ内容なら、何もしない (変更なしのまま。保存後に編集セッションへ入り直したときなど)
+      if (JSON.stringify(stateRef.current) === JSON.stringify(req.snapshot)) return true;
+      resetState(structuredClone(req.snapshot) as T);
+      saveDraft(draftKind, id, req.snapshot);
+      markDirty();
+      return true;
+    });
+  }, [id, viewerResourceType, viewerMode, draftKind, resetState, markDirty]);
 
   // MCP 接続復帰時の自動リロード（dirty でなければ）
   useEffect(() => {

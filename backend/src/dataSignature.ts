@@ -12,6 +12,8 @@ async function sigOfDir(dir: string, out: string[]): Promise<void> {
   try { entries = await fs.readdir(dir, { withFileTypes: true }); } catch { return; }
   const stats = await Promise.all(entries.map(async (e) => {
     const p = path.join(dir, e.name);
+    // 隠しフォルダ (.harmony-backups / .harmony-journal など。設計のデータではない) は署名に入れない
+    if (e.isDirectory() && e.name.startsWith(".")) return "";
     if (e.isDirectory()) { const sub: string[] = []; await sigOfDir(p, sub); return sub.join("|"); }
     try { const st = await fs.stat(p); return `${e.name}:${st.size}:${Math.round(st.mtimeMs)}`; } catch { return `${e.name}:?`; }
   }));

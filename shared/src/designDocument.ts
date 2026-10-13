@@ -134,7 +134,7 @@ export function prose(s: unknown): string {
     .replace(/`([^`]+?)`/g, "<code>$1</code>");
 }
 
-const anchor = (kind: string, id: string) => `${kind}-${id.replace(/[^A-Za-z0-9_-]/g, "_")}`;
+const anchor = (kind: string, id: string) => `${String(kind).replace(/[^A-Za-z0-9_-]/g, "_")}-${String(id).replace(/[^A-Za-z0-9_-]/g, "_")}`;
 
 function typeText(t: unknown): string {
   if (typeof t === "string") {
@@ -166,6 +166,9 @@ function infoGrid(pairs: Array<[string, string]>): string {
 
 // ── 画面レイアウトの静的描画 ──────────────────────────────────────────────
 
+/** 数のはずの値 (props の level / columns / span) を、数にして出す。文字列が来ても (スキーマ違反でも保存できる)、属性に混ぜない */
+const num = (v: unknown, fallback: number): number => (typeof v === "number" || typeof v === "string") && v !== "" && Number.isFinite(Number(v)) ? Number(v) : fallback;
+
 export function layoutToHtml(layout: ScreenLayout | undefined, items: readonly DocScreenItem[], defs: readonly LayoutComponentDef[] = []): string {
   if (!layout || layout.nodes.length === 0) return `<p class="hd-empty">（レイアウト未作成）</p>`;
   const byId = new Map(items.map((i) => [i.id, i]));
@@ -193,13 +196,13 @@ export function layoutToHtml(layout: ScreenLayout | undefined, items: readonly D
     const p = n.props ?? {};
     const kids = (n.children ?? []).map(render).join("");
     switch (n.type) {
-      case "heading": return `<div class="lv-h lv-h${p.level ?? 2}">${esc(p.text)}</div>`;
-      case "text": return `<p class="lv-text lv-tone-${p.tone ?? "normal"}">${esc(p.text)}</p>`;
+      case "heading": return `<div class="lv-h lv-h${num(p.level, 2)}">${esc(p.text)}</div>`;
+      case "text": return `<p class="lv-text lv-tone-${esc(p.tone ?? "normal")}">${esc(p.text)}</p>`;
       case "field": return field(n);
       case "table": return tbl(n);
       case "button": {
         const it = n.itemRef ? byId.get(n.itemRef) : undefined;
-        return `<span class="lv-btn lv-btn-${p.variant ?? "secondary"}">${esc(p.label ?? it?.label ?? "ボタン")}</span>`;
+        return `<span class="lv-btn lv-btn-${esc(p.variant ?? "secondary")}">${esc(p.label ?? it?.label ?? "ボタン")}</span>`;
       }
       case "link": return `<span class="lv-link">${esc(p.label ?? "リンク")}</span>`;
       case "message-area": return `<div class="lv-message">メッセージ表示領域</div>`;
@@ -208,10 +211,10 @@ export function layoutToHtml(layout: ScreenLayout | undefined, items: readonly D
       case "html": return `<div class="lv-html">自由 HTML</div>`;
       case "form":
       case "search-panel":
-        return `<div class="lv-box lv-${n.type}">${p.title || n.type === "search-panel" ? `<div class="lv-box-title">${esc(p.title ?? "検索条件")}</div>` : ""}<div class="lv-grid lv-cols-${p.columns ?? 1}">${kids}</div></div>`;
+        return `<div class="lv-box lv-${esc(n.type)}">${p.title || n.type === "search-panel" ? `<div class="lv-box-title">${esc(p.title ?? "検索条件")}</div>` : ""}<div class="lv-grid lv-cols-${num(p.columns, 1)}">${kids}</div></div>`;
       case "section": return `<div class="lv-box lv-section">${p.title ? `<div class="lv-box-title">${esc(p.title)}</div>` : ""}<div class="lv-stack">${kids}</div></div>`;
       case "columns": return `<div class="lv-columns">${kids}</div>`;
-      case "column": return `<div class="lv-stack" style="flex:${p.span ?? 6} 1 0">${kids}</div>`;
+      case "column": return `<div class="lv-stack" style="flex:${num(p.span, 6)} 1 0">${kids}</div>`;
       case "tabs": return `<div class="lv-tabs"><div class="lv-tab-strip">${(n.children ?? []).map((t, i) => `<span class="${i === 0 ? "active" : ""}">${esc(t.props?.title ?? `タブ ${i + 1}`)}</span>`).join("")}</div>${n.children?.[0] ? render(n.children[0]) : ""}</div>`;
       case "tab": return `<div class="lv-stack">${kids}</div>`;
       case "component": {
@@ -219,7 +222,7 @@ export function layoutToHtml(layout: ScreenLayout | undefined, items: readonly D
         if (!def) return `<div class="lv-missing">独自部品「${esc(n.componentRef ?? "")}」の定義が見つかりません</div>`;
         return `<div class="lv-component"><div class="lv-component-tag">独自部品 ${esc(def.label)}</div>${expandComponentNode(n, defs).nodes.map((x) => render(x as LayoutNode)).join("")}</div>`;
       }
-      case "button-bar": return `<div class="lv-bar lv-align-${p.align ?? "left"}">${kids}</div>`;
+      case "button-bar": return `<div class="lv-bar lv-align-${esc(p.align ?? "left")}">${kids}</div>`;
       default: return "";
     }
   };
@@ -231,16 +234,16 @@ export function layoutToHtml(layout: ScreenLayout | undefined, items: readonly D
 export function diagramToSvg(lay: DiagramLayout, title: string): string {
   const parts: string[] = [];
   for (const f of lay.frames) {
-    parts.push(`<g class="fd-frame fd-frame-${f.kind}"><rect x="${f.x}" y="${f.y}" width="${f.w}" height="${f.h}" rx="8"/><text x="${f.x + 10}" y="${f.y + 16}" class="fd-frame-label">${esc(f.label)}</text></g>`);
+    parts.push(`<g class="fd-frame fd-frame-${esc(f.kind)}"><rect x="${f.x}" y="${f.y}" width="${f.w}" height="${f.h}" rx="8"/><text x="${f.x + 10}" y="${f.y + 16}" class="fd-frame-label">${esc(f.label)}</text></g>`);
   }
   for (const e of lay.edges) {
     const d = e.points.map(([x, y], i) => `${i ? "L" : "M"}${x},${y}`).join(" ");
     const marker = e.arrow ? ` marker-end="url(#fd-arrow${e.tone === "error" ? "-err" : ""})"` : "";
     const label = e.label && e.points.length >= 4 ? `<text x="${e.points[3][0] + 6}" y="${(e.points[2][1] + e.points[3][1]) / 2 + 4}" class="fd-edge-label">${esc(e.label)}</text>` : "";
-    parts.push(`<g class="fd-edge fd-edge-${e.tone ?? "normal"}"><path d="${d}"${marker}/>${label}</g>`);
+    parts.push(`<g class="fd-edge fd-edge-${esc(e.tone ?? "normal")}"><path d="${d}"${marker}/>${label}</g>`);
   }
   for (const n of lay.nodes) {
-    const cls = `fd-node fd-tone-${n.tone}${n.conditional ? " fd-cond" : ""}`;
+    const cls = `fd-node fd-tone-${esc(n.tone)}${n.conditional ? " fd-cond" : ""}`;
     if (n.shape === "diamond") {
       const cx = n.x + n.w / 2, cy = n.y + n.h / 2;
       parts.push(`<g class="${cls}"><polygon points="${cx},${n.y} ${n.x + n.w},${cy} ${cx},${n.y + n.h} ${n.x},${cy}"/><text x="${cx}" y="${cy - 3}" text-anchor="middle" class="fd-caption">${esc(n.caption)}</text><text x="${cx}" y="${cy + 13}" text-anchor="middle" class="fd-text">${esc(n.text)}</text></g>`);
@@ -539,7 +542,7 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
       sec(anchor("component", c.id), `${c.label}（${c.id}）`, 2, `
         ${c.description ? `<p class="hd-desc">${prose(c.description)}</p>` : ""}
         <h4 class="hd-sub">差し込み口<small>${c.params.length} 件</small></h4>
-        ${table(["差し込み口", "ID", "種類", "既定値"], c.params.map((q) => [esc(q.label), `<code>${esc(q.id)}</code>`, KIND[q.kind] ?? q.kind, esc(q.default ?? "")]))}
+        ${table(["差し込み口", "ID", "種類", "既定値"], c.params.map((q) => [esc(q.label), `<code>${esc(q.id)}</code>`, esc(KIND[q.kind] ?? q.kind), esc(q.default ?? "")]))}
         <h4 class="hd-sub">見た目</h4>
         ${preview}
         <h4 class="hd-sub">使っている画面<small>${users.length} 画面</small></h4>
@@ -674,7 +677,7 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
   sec("issues", "要確認事項", 1, issues.length
     ? table(["区分", "対象", "内容"], issues.map((x) => {
       const a = x.ref ? `#${anchor(x.ref.kind === "businessFlow" ? "business-flow" : x.ref.kind === "processFlow" ? "flow" : x.ref.kind, x.ref.id)}` : "";
-      return [`<span class="hd-sev hd-sev-${x.severity}">${sevLabel[x.severity]}</span>`, a ? `<a href="${a}">${esc(x.section)}</a>` : esc(x.section), esc(x.message)];
+      return [`<span class="hd-sev hd-sev-${esc(x.severity)}">${esc(sevLabel[x.severity] ?? x.severity)}</span>`, a ? `<a href="${a}">${esc(x.section)}</a>` : esc(x.section), esc(x.message)];
     }))
     : `<p class="hd-empty">要確認事項はありません。</p>`, String(chap + 1));
 

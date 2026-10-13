@@ -52,6 +52,7 @@ import { setDirty as setTabDirty, makeTabId } from "../../store/tabStore";
 import "../../styles/table.css";
 import "../../styles/editMode.css";
 import { reportFailure } from "../../utils/failureToast";
+import { useResyncDraftOnReconnect } from "../../hooks/useResyncDraftOnReconnect";
 
 type TabId = "columns" | "constraints" | "indexes" | "triggers" | "comment";
 
@@ -148,6 +149,11 @@ export function TableEditor() {
       }
     }, 300);
   }, [isReadonly, update, tableId, editSession]);
+
+  // 接続が切れて戻ったとき、編集中の内容を下書きへ送り直す
+  useResyncDraftOnReconnect(!isReadonly && !!editSession?.id, isDirty, () => {
+    if (editSession?.id && tableRef.current) mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: tableRef.current }).catch((err) => reportFailure(err, "下書きの保存"));
+  });
 
   const handleSave = useCallback(async () => {
     if (isReadonly || isSaving) return;

@@ -33,6 +33,7 @@
     "ui:audit": "node scripts/dev/theme-audit.mjs",
     "export:doc": "node scripts/export-design-doc.mjs",
     "check:design": "node scripts/check-design.mjs",
+    "migrate:schema": "tsx scripts/migrate-schema.ts",
     "export:tests": "node scripts/export-test-viewpoints.mjs"
   },
   "devDependencies": {

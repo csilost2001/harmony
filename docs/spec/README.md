@@ -11,6 +11,11 @@
 | [layout-components.md](layout-components.md) | プロジェクト独自部品 (登録・差し込み口・展開・管理 UI) | 再設計 2026-10 |
 | [test-viewpoints.md](test-viewpoints.md) | テスト観点表 (画面入力の正常・異常・境界値を項目の制約から導出、処理の観点に ID を付与。CSV / JSON / Markdown に書き出し) | 再設計 2026-10 |
 | [references.md](references.md) | 参照元 (その設計を参照している設計の一覧。改名・削除の前の影響確認。UI の「参照元」/ MCP `designer__find_references`) | 再設計 2026-10 |
+| [file-backup.md](file-backup.md) | 保存前の版 (上書きされる前の内容を世代で残す・画面と MCP からの確認・読み込み) | 第 1 弾 |
+| [external-change-detection.md](external-change-detection.md) | 外部で書き換えられた設計ファイルの検知 (ファイル監視・画面への反映・自分の書き込みの除外) | 第 1 弾 |
+| [workspace-health.md](workspace-health.md) | ワークスペースの健全性 (壊れた JSON・食い違いの検査、一覧・uuid の保守、複数ファイル操作の復旧、旧形式の画面の扱い) | 第 1 弾 |
+| [server-security.md](server-security.md) | サーバの守り (Origin・パス・ログのマスク、接続トークン、要求の上限、MCP の権限) | 第 1 弾 |
+| [schema-migration.md](schema-migration.md) | スキーマの版の移行の枠組み (予行・世代・冪等) | 第 1 弾 |
 | [quick-open.md](quick-open.md) | クイックオープン (Ctrl+K。画面・テーブル・処理フロー等を ID・名前で探して開く) | 再設計 2026-10 |
 | [report.md](report.md) | 帳票 (出力・契機・出力条件・部と項目・用紙の見本図・検証・編集 UI・MCP) | 再設計 2026-10 段階 4 |
 | [business-flow.md](business-flow.md) | 業務フロー (スイムレーン。レーン・工程・自動配置・検証・編集 UI・MCP) | 再設計 2026-10 段階 4 |

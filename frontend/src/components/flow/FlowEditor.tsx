@@ -84,6 +84,7 @@ import "../../styles/flow.css";
 import "../../styles/editMode.css";
 import { checkDeletionImpact } from "../../utils/confirmDeletion";
 import { reportFailure } from "../../utils/failureToast";
+import { useResyncDraftOnReconnect } from "../../hooks/useResyncDraftOnReconnect";
 
 const nodeTypes = {
   screenNode: ScreenNodeComponent,
@@ -426,6 +427,11 @@ function FlowEditorInner() {
       }
     }, 300);
   }, [project, isReadonly, editSession]);
+
+  // 接続が切れて戻ったとき、編集中の内容を下書きへ送り直す
+  useResyncDraftOnReconnect(!isReadonly && !!editSession?.id, isDirty, () => {
+    if (editSession?.id && project) mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: project }).catch((err) => reportFailure(err, "下書きの保存"));
+  });
 
   const onNodeDragStop = useCallback((_: unknown, node: RFNode) => {
     if (!project) return;

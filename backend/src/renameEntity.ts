@@ -12,6 +12,8 @@
  * 参考: backend/src/renameScreenItem.ts (#332) の countRefsInValue / renameRefsInValue を
  * generic 化。entity 種別ごとに ref field 名は entity-meta-driven で扱う。
  */
+import { openJournal, planFromAbsolute } from "./operationJournal.js";
+import { backupBeforeOverwrite } from "./fileBackup.js";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as crypto from "node:crypto";
@@ -2350,10 +2352,23 @@ async function _renameEntityIdImpl(
   const writtenFiles: string[] = []; // rollback 対象 (新規 write した path)
   const restoreActions: Array<{ absPath: string; originalContent: string }> = [];
 
+  // 途中でプロセスが止まっても元に戻せるよう、書き換える前の内容を記録しておく (終わったら消す。operationJournal.ts)
+  const journal = await openJournal(root, planFromAbsolute(
+    root,
+    `rename ${entityType} ${oldId} -> ${newId}`,
+    [
+      ...[...refScan.perFileUpdate].map(([absPath, entry]) => ({ absPath, content: entry.original })),
+      ...fileRenameSnapshots.map((snap) => ({ absPath: path.join(dataRoot, snap.from), content: snap.originalContent })),
+    ],
+    // 作るファイル。delete-only (旧配置の重複の削除) は from === to で、元の内容へ戻す側なので、消す対象に入れない
+    filePlans.filter((plan) => plan.to !== plan.from).map((plan) => plan.to),
+  ));
+
   try {
     // (a) 参照側 update を全 file write
     for (const [absPath, entry] of refScan.perFileUpdate) {
       restoreActions.push({ absPath, originalContent: entry.original });
+      await backupBeforeOverwrite(absPath, entry.updated); // 保存前の版 (docs/spec/file-backup.md)。改名の参照元の書き換えも残す
       await writeFileContent(absPath, entry.updated);
     }
 
@@ -2430,18 +2445,20 @@ async function _renameEntityIdImpl(
     // rollback: 新規 write した file を消す + 参照側を元に戻す
     // Phase F M-6: 加えて、commit phase の旧ファイル削除が部分的に成功している可能性があるため、
     // fileRenameSnapshots の from (旧 path) も snapshot content で書き戻す (byte-identical 復元)。
+    let rollbackComplete = true; // 戻せないものがあれば、復旧用の記録を残す (次の復旧で、もう一度戻す)
     for (const abs of writtenFiles) {
-      await tryUnlink(abs);
+      try { await fs.unlink(abs); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") rollbackComplete = false; }
     }
     for (const r of restoreActions) {
-      try { await writeFileContent(r.absPath, r.originalContent); } catch { /* best effort */ }
+      try { await writeFileContent(r.absPath, r.originalContent); } catch { rollbackComplete = false; }
     }
     // 旧ファイル復元 (commit phase の strictUnlink で一部削除されたケースをカバー)
     for (const snap of fileRenameSnapshots) {
       try {
         await writeFileContent(path.join(dataRoot, snap.from), snap.originalContent);
-      } catch { /* best effort */ }
+      } catch { rollbackComplete = false; }
     }
+    if (rollbackComplete) await journal().catch(() => undefined); // 元に戻し終えたので、記録は不要
     // Phase J SF-γ: rollback audit log
     try {
       logError("rename", "rename.execute.rollback", {
@@ -2453,6 +2470,8 @@ async function _renameEntityIdImpl(
     } catch { /* ignore */ }
     throw err;
   }
+  // 成功: 復旧用の記録を消す (消せなくても、成功した改名は巻き戻さない。記録は、持ち主のプロセスが終われば次の起動で扱う)
+  await journal().catch(() => undefined);
 
   // Phase J Must-fix A (#1298 round 5 Codex M-1): commit 直後の new path bytes を read-back
   // して snapshot に格納する。undo で post-update edit (rename 後の新 id 編集) を byte 比較で

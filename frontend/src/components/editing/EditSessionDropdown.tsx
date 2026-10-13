@@ -20,6 +20,8 @@ import type { DraftResourceType } from "../../types/draft";
 import type { EditMode } from "../../hooks/useEditSession";
 import type { EditSessionData, ParticipantInfo } from "../../hooks/useEditSession";
 import { DraftHistoryModal } from "./DraftHistoryModal";
+import { requestApplyVersionWhenReady } from "../../utils/applyVersionBus";
+import { showToast } from "../../utils/toast";
 import "../../styles/editSessionDropdown.css";
 
 // ── 型 ──────────────────────────────────────────────────────────────────────
@@ -363,6 +365,28 @@ export function EditSessionDropdown({
     [fetchSessions],
   );
 
+  // ── 保存前の版を、編集画面へ読み込む ─────────────────────────────────────────
+  // 編集中でなければ、先に編集を始めてから読み込む (読み込んだ内容は未保存の変更になる)
+  const pendingVersion = useRef<{ snapshot: unknown } | null>(null);
+  const dispatchVersion = useCallback((snapshot: unknown) => {
+    // 編集画面が受け取りを登録するのは、この画面の反映のあと。受け取れるまで頼み直す
+    requestApplyVersionWhenReady({ resourceType, resourceId, snapshot }, () => {
+      showToast("この画面には読み込めませんでした。編集を始めてから、もう一度試してください", "error");
+    });
+  }, [resourceType, resourceId]);
+  const applyVersion = useCallback((snapshot: unknown) => {
+    if (currentMode.kind === "editing") { dispatchVersion(snapshot); return; }
+    pendingVersion.current = { snapshot };
+    onStartEditing?.();
+  }, [currentMode.kind, dispatchVersion, onStartEditing]);
+  useEffect(() => {
+    if (currentMode.kind === "editing" && pendingVersion.current) {
+      const { snapshot } = pendingVersion.current;
+      pendingVersion.current = null;
+      dispatchVersion(snapshot);
+    }
+  }, [currentMode.kind, dispatchVersion]);
+
   // ── [+ 新規 draft を作成] ─────────────────────────────────────────────────
   const handleNewDraft = useCallback(async () => {
     if (onStartEditing) {
@@ -458,8 +482,14 @@ export function EditSessionDropdown({
         onClose={() => setHistoryModalOpen(false)}
         onRestore={(editSessionId) => {
           setHistoryModalOpen(false);
-          onHistoryRestore?.(editSessionId);
+          if (onHistoryRestore) { onHistoryRestore(editSessionId); return; }
+          // 既定: 復元した編集セッションで、この画面を開き直す (画面は、開くときに URL の ?session= の編集セッションへ入る。
+          // 編集者として入ると、そのセッションの内容が編集状態に入る)
+          const url = new URL(window.location.href);
+          url.searchParams.set("session", editSessionId);
+          window.location.assign(url.toString());
         }}
+        onApplyVersion={applyVersion}
       />
     </div>
   );

@@ -4,23 +4,24 @@
  * 差分にも混じるため、書き込まず、ここで計算して示す。draft-state: 違反があっても保存は妨げない。
  */
 import { memoizeBySignature } from "./dataSignature.js";
+import { scanWorkspaceHealth } from "./workspaceHealth.js";
 import { readProjectWithUnregistered } from "./registryMerge.js";
 import { describeAjvError } from "./ajvMessages.js";
 import { listAllTables, listProcessFlows, readScreenEntity, validateEntitySchema } from "./projectStorage.js";
 
 export interface SchemaIssue {
-  severity: "warning";
+  severity: "error" | "warning" | "info";
   /** 「テーブル 顧客」のような、設計書の要確認と同じ形の対象名 */
   section: string;
   message: string;
-  ref: { kind: "screen" | "table" | "processFlow"; id: string };
+  ref?: { kind: "screen" | "table" | "processFlow"; id: string };
 }
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
 
 async function computeSchemaIssues(root: string): Promise<SchemaIssue[]> {
   const out: SchemaIssue[] = [];
-  const push = async (kind: SchemaIssue["ref"]["kind"], label: string, id: string, name: string | undefined, data: unknown) => {
+  const push = async (kind: NonNullable<SchemaIssue["ref"]>["kind"], label: string, id: string, name: string | undefined, data: unknown) => {
     for (const err of await validateEntitySchema(kind, data)) {
       out.push({ severity: "warning", section: `${label} ${name || id}`, message: `スキーマ: ${describeAjvError(err)}`, ref: { kind, id } });
     }
@@ -43,3 +44,14 @@ async function computeSchemaIssues(root: string): Promise<SchemaIssue[]> {
 
 /** データが変わらないあいだは、検査し直さず前の結果を使う (大きなプロジェクトでは、検査に数秒かかる) */
 export const collectSchemaIssues: (root: string) => Promise<SchemaIssue[]> = memoizeBySignature(computeSchemaIssues);
+
+/**
+ * 設計書・設計の点検 (check_design) の「要確認」に足す、設計の外で検出した点:
+ * スキーマ違反 (collectSchemaIssues) + ファイルの健全性 (読めない・大きすぎる・ファイル名と id の食い違い・一覧にあるのにファイルが無い。workspaceHealth)。
+ * 保守の案内 (uuid 未保存・一覧に載っていない) は含めない (RPC `workspace.getHealth` で、ダッシュボードの保守ボタンに出す)。
+ */
+export async function collectExtraIssues(root: string): Promise<SchemaIssue[]> {
+  // 保守の案内 (uuid 未保存・一覧に載っていない) は、設計の内容の問題ではないので、設計書の要確認には出さない
+  const health = (await scanWorkspaceHealth(root)).filter((i) => !i.maintenance).map(({ maintenance: _m, code: _c, ...rest }) => { void _m; void _c; return rest; });
+  return [...await collectSchemaIssues(root), ...health];
+}

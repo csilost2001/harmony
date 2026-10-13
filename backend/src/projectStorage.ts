@@ -14,6 +14,8 @@
  * - resolveDataRoot(root) が on-demand で harmony.json を読み dataDir を解決する
  * - ensureDataDir(root, dataDirVal) で呼び出し側が dataDir 値を渡す設計
  */
+import { backupBeforeOverwrite } from "./fileBackup.js";
+import { explainWriteError } from "./writeErrors.js";
 import { selectAjvErrors } from "./ajvMessages.js";
 import fs from "fs/promises";
 import fsSync from "fs";
@@ -96,7 +98,7 @@ export async function resolveDataRoot(root: string): Promise<string> {
 
 const screensDir       = (dataRoot: string) => path.join(dataRoot, "screens");
 const tablesDir        = (dataRoot: string) => path.join(dataRoot, "tables");
-const actionsDir       = (dataRoot: string) => path.join(dataRoot, "actions");
+export const actionsDir       = (dataRoot: string) => path.join(dataRoot, "actions");
 const processFlowsDir  = (dataRoot: string) => path.join(dataRoot, "process-flows");
 const catalogsDir      = (dataRoot: string) => path.join(dataRoot, "catalogs");
 const conventionsDir   = (dataRoot: string) => path.join(dataRoot, "conventions");
@@ -393,10 +395,12 @@ async function writeJSON(filePath: string, data: unknown): Promise<void> {
   const tmp = path.join(path.dirname(filePath), `.${path.basename(filePath)}.${process.pid}.${crypto.randomUUID()}.tmp`);
   try {
     await fs.writeFile(tmp, json, "utf-8");
+    // 上書きの直前の内容を世代で残す (失敗しても保存は止めない)
+    await backupBeforeOverwrite(filePath, json);
     await fs.rename(tmp, filePath);
   } catch (e) {
     await fs.rm(tmp, { force: true }).catch(() => undefined);
-    throw e;
+    throw explainWriteError(e, filePath);
   }
 }
 
@@ -433,7 +437,7 @@ const projectSaltCache = new Map<string, string>();
  * 派生 uuid に混ぜる、プロジェクト固有の値 (harmony.json の meta.uuid、無ければ meta.id)。
  * 別のプロジェクトで同じ id の設計が、同じ uuid にならないようにする。見つからなければ空。
  */
-async function projectSaltFor(filePath: string): Promise<string> {
+export async function projectSaltFor(filePath: string): Promise<string> {
   const start = path.dirname(filePath);
   let dir = start;
   for (let i = 0; i < 6; i++) {
@@ -467,7 +471,7 @@ export type TopLevelEntityKind =
   | "pageLayout";
 
 /** 各 entity kind の dir resolver (uniqueness check / id 列挙用) */
-function entityDirOf(kind: TopLevelEntityKind, dataRoot: string): string {
+export function entityDirOf(kind: TopLevelEntityKind, dataRoot: string): string {
   switch (kind) {
     case "screen":         return screensDir(dataRoot);
     case "table":          return tablesDir(dataRoot);
@@ -507,7 +511,10 @@ export async function listEntitiesReadOnly(kind: TopLevelEntityKind, root: strin
     try { files = await fs.readdir(dir); } catch { continue; }
     for (const f of files.sort()) {
       if (!f.endsWith(".json") || f.endsWith(".design.json")) continue;
-      const data = await readJSON<unknown>(path.join(dir, f));
+      let data = await readJSON<unknown>(path.join(dir, f));
+      if (!isRecord(data)) continue;
+      // 旧形式の画面は、メモリ上で現在の形に変換して返す (ファイルは書き換えない)
+      if (kind === "screen" && isLegacyGrapesScreen(data)) data = (await migrateScreenIfNeeded(f.replace(/\.json$/, ""), root, false)) ?? data;
       if (!isRecord(data)) continue;
       const id = kind === "processFlow" ? (isRecord(data.meta) ? data.meta.id : undefined) ?? data.id : data.id;
       byKey.set(typeof id === "string" ? id : f.replace(/\.json$/, ""), data);
@@ -538,9 +545,26 @@ export async function readEntityReadOnly(kind: TopLevelEntityKind, id: string, r
   const candidates = [entityFilePathFor(kind, dataRoot, id), ...(kind === "processFlow" ? [path.join(actionsDir(dataRoot), `${id}.json`)] : [])];
   for (const p of candidates) {
     const data = await readJSON<unknown>(p);
-    if (isRecord(data)) return data;
+    if (!isRecord(data)) continue;
+    // 旧形式の画面は、メモリ上で現在の形に変換して返す (ファイルは書き換えない)
+    if (kind === "screen" && isLegacyGrapesScreen(data)) return (await migrateScreenIfNeeded(id, root, false)) ?? data;
+    return data;
   }
   return null;
+}
+
+/**
+ * 画面の id を、旧形式 (GrapesJS) と旧配置 (`<id>.design.json` / `screen-items/<id>.json` だけが残っていて、実体 `<id>.json` が無い)
+ * も含めて返す。旧配置の画面は、読み出しでは実体に変換して扱う (書かない) ので、「ある画面」として数える。
+ */
+export async function listScreenIdsIncludingLegacy(root: string): Promise<string[]> {
+  const ids = new Set(await listExistingEntityIds("screen", root).catch(() => [] as string[]));
+  let dataRoot: string;
+  try { dataRoot = await resolveDataRoot(root); } catch { return [...ids]; }
+  for (const [dir, suffix] of [[screensDir(dataRoot), ".design.json"], [screenItemsDir(dataRoot), ".json"]] as const) {
+    try { for (const f of await fs.readdir(dir)) if (f.endsWith(suffix) && !f.startsWith(".")) ids.add(f.slice(0, -suffix.length)); } catch { /* 無い */ }
+  }
+  return [...ids];
 }
 
 /** 設計の実体ファイル (`<種類の dir>/<id>.json`) の更新時刻 (ms)。無ければ null。「最近編集したもの」用 */
@@ -798,7 +822,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function isLegacyGrapesScreen(value: unknown): boolean {
+/** 旧形式 (GrapesJS) の画面か (`pages` / `frames` / `component` / `styles` を持つ)。旧形式は、保存するまでファイルのまま残る */
+export function isLegacyGrapesScreen(value: unknown): boolean {
   if (!isRecord(value)) return false;
   return Array.isArray(value.pages) || "frames" in value || "component" in value || "styles" in value;
 }
@@ -852,8 +877,12 @@ function buildDefaultScreenEntity(
   entry: Record<string, unknown> | null,
   items: unknown[],
   dataRoot: string,
+  /** 指定すると、uuid が無いとき乱数ではなく、種類 + id から決めた値 (deriveStableUuid) にする。旧形式の読み出し (書かない) で、何度読んでも同じ値にするため */
+  uuidSalt?: string,
+  /** 指定すると、更新日時の既定を、現在時刻ではなくこの時刻にする (旧形式の読み出しで、読むたびに値が変わらないように、旧ファイルの更新時刻を使う) */
+  fixedTime?: string,
 ): Record<string, unknown> {
-  const ts = new Date().toISOString();
+  const ts = fixedTime ?? new Date().toISOString();
   const updatedAt = typeof entry?.updatedAt === "string" ? entry.updatedAt : ts;
   // #1294 I-2 (review fix Should-fix #1, RFC #1284): entry に uuid があれば継承、
   // 無ければここで採番する。_migrateScreenCore の writeJSON 経路は preserveOrAssignUuid を
@@ -861,7 +890,7 @@ function buildDefaultScreenEntity(
   const uuid =
     typeof entry?.uuid === "string" && entry.uuid.length > 0
       ? entry.uuid
-      : crypto.randomUUID();
+      : uuidSalt !== undefined ? deriveStableUuid("screen", screenId, uuidSalt) : crypto.randomUUID();
   return {
     $schema: screenSchemaRef(dataRoot),
     id: screenId,
@@ -882,28 +911,46 @@ function buildDefaultScreenEntity(
  * key を dataRoot::screenId にすることで、workspace 切替後も別 root の migration と独立に動く。 */
 const _inflightMigrations = new Map<string, Promise<Record<string, unknown> | null>>();
 
-async function _migrateScreenCore(screenId: string, root: string): Promise<Record<string, unknown> | null> {
-  const dataRoot = await ensureDataDirFromRoot(root);
+/**
+ * 画面の旧形式 (GrapesJS) / 旧配置 (screen-items/) を、現在の形 (画面の実体 `<id>.json`) にそろえる。
+ *
+ * persist が false (読み出し) のときは、メモリ上で変換した結果を返すだけで、ファイルを書き換えない
+ * (画面を開いただけ・一覧を見ただけで原本が変わらない。AGENTS.md 必ず守ること 4)。
+ * persist が true (保存・削除など、これから書き込む操作) のときだけ、旧形式を `<id>.design.json` へ退避して実体を書く。
+ */
+async function _migrateScreenCore(screenId: string, root: string, persist: boolean): Promise<Record<string, unknown> | null> {
+  const dataRoot = persist ? await ensureDataDirFromRoot(root) : await resolveDataRoot(root);
   const entityPath = path.join(screensDir(dataRoot), `${screenId}.json`);
   const designPath = path.join(screensDir(dataRoot), `${screenId}.design.json`);
   const legacyItemsPath = path.join(screenItemsDir(dataRoot), `${screenId}.json`);
   const current = await readEntityAndEnsureUuid("screen", entityPath);
+  // 読み出し (書かない) のときの日時は、旧ファイルの更新時刻にする (読むたびに「いま」へ変わらないように)
+  const legacyTime = persist ? undefined : await (async () => {
+    for (const f of [entityPath, designPath, legacyItemsPath]) {
+      try { return new Date((await fs.stat(f)).mtimeMs).toISOString(); } catch { /* 次 */ }
+    }
+    return undefined;
+  })();
 
   if (isScreenEntity(current) && !isLegacyGrapesScreen(current)) {
     return current as Record<string, unknown>;
   }
 
   if (isLegacyGrapesScreen(current)) {
-    try {
-      await fs.rename(entityPath, designPath);
-    } catch {
-      await writeJSON(designPath, current);
+    if (persist) {
+      try {
+        await fs.rename(entityPath, designPath);
+      } catch {
+        await writeJSON(designPath, current);
+      }
     }
     const project = await readProject(root);
     const itemsFile = await readJSON<unknown>(legacyItemsPath);
-    const entity = buildDefaultScreenEntity(screenId, getScreenEntry(project, screenId), extractItems(itemsFile), dataRoot);
-    await writeJSON(entityPath, entity);
-    try { await fs.unlink(legacyItemsPath); } catch { /* ignore */ }
+    const entity = buildDefaultScreenEntity(screenId, getScreenEntry(project, screenId), extractItems(itemsFile), dataRoot, await projectSaltFor(entityPath), legacyTime);
+    if (persist) {
+      await writeJSON(entityPath, entity);
+      try { await fs.unlink(legacyItemsPath); } catch { /* ignore */ }
+    }
     return entity;
   }
 
@@ -911,21 +958,23 @@ async function _migrateScreenCore(screenId: string, root: string): Promise<Recor
   const itemsFile = await readJSON<unknown>(legacyItemsPath);
   if (design || itemsFile) {
     const project = await readProject(root);
-    const entity = buildDefaultScreenEntity(screenId, getScreenEntry(project, screenId), extractItems(itemsFile), dataRoot);
-    await writeJSON(entityPath, entity);
-    try { await fs.unlink(legacyItemsPath); } catch { /* ignore */ }
+    const entity = buildDefaultScreenEntity(screenId, getScreenEntry(project, screenId), extractItems(itemsFile), dataRoot, await projectSaltFor(entityPath), legacyTime);
+    if (persist) {
+      await writeJSON(entityPath, entity);
+      try { await fs.unlink(legacyItemsPath); } catch { /* ignore */ }
+    }
     return entity;
   }
 
   return null;
 }
 
-async function migrateScreenIfNeeded(screenId: string, root: string): Promise<Record<string, unknown> | null> {
-  const key = `${root}::${screenId}`;
+async function migrateScreenIfNeeded(screenId: string, root: string, persist = false): Promise<Record<string, unknown> | null> {
+  const key = `${root}::${screenId}::${persist ? "w" : "r"}`;
   const existing = _inflightMigrations.get(key);
   if (existing) return existing;
 
-  const promise = _migrateScreenCore(screenId, root).finally(() => {
+  const promise = _migrateScreenCore(screenId, root, persist).finally(() => {
     _inflightMigrations.delete(key);
   });
   _inflightMigrations.set(key, promise);
@@ -969,7 +1018,12 @@ export async function readScreen(screenId: string, root: string): Promise<unknow
   const filePath = path.join(screensDir(dataRoot), `${screenId}.design.json`);
   assertPathContained(filePath, dataRoot); // defense-in-depth
   await migrateScreenIfNeeded(screenId, r);
-  const data = await readJSON<unknown>(filePath);
+  let data = await readJSON<unknown>(filePath);
+  if (data === null) {
+    // 旧形式の画面は、保存するまで `<id>.json` に旧形式のまま残っている (読み出しでは書き換えない)
+    const entity = await readJSON<unknown>(path.join(screensDir(dataRoot), `${screenId}.json`));
+    if (isLegacyGrapesScreen(entity)) data = entity;
+  }
   if (data === null) return null;
   return inflateDesignComponents(data, screensDir(dataRoot));
 }
@@ -986,7 +1040,7 @@ export async function writeScreen(screenId: string, data: unknown, root: string)
   assertPathContained(path.join(screensDir(dataRoot), `${screenId}.design.json`), dataRoot); // defense-in-depth
   // #1294 I-2 review Must-fix #1: 新規 create (entity .json 不在) のとき uniqueness check
   await ensureUniqueOnCreate("screen", screenId, path.join(screensDir(dataRoot), `${screenId}.json`), r);
-  let entity = await migrateScreenIfNeeded(screenId, r);
+  let entity = await migrateScreenIfNeeded(screenId, r, true);
   if (!entity) {
     const project = await readProject(r);
     entity = buildDefaultScreenEntity(screenId, getScreenEntry(project, screenId), [], dataRoot);
@@ -1060,6 +1114,8 @@ export async function writeScreenEntity(screenId: string, data: unknown, root: s
   assertPathContained(path.join(screensDir(dataRoot), `${screenId}.json`), dataRoot); // defense-in-depth
   // #1294 I-2 review Must-fix #1: 新規 create (entity .json 不在) のとき uniqueness check
   await ensureUniqueOnCreate("screen", screenId, path.join(screensDir(dataRoot), `${screenId}.json`), r);
+  // 旧形式 (GrapesJS) の画面を上書きする前に、旧形式を `<id>.design.json` へ退避する (保存は明示的な書き込みなので、ここで移行してよい)
+  await migrateScreenIfNeeded(screenId, r, true);
   const current = isRecord(data) ? data : {};
   const project = await readProject(r);
   const entry = getScreenEntry(project, screenId);
@@ -1592,7 +1648,7 @@ export async function writeScreenItems(screenId: string, data: unknown, root: st
   const r = root;
   const dataRoot = await resolveDataRoot(r);
   assertPathContained(path.join(screenItemsDir(dataRoot), `${screenId}.json`), dataRoot); // defense-in-depth
-  const current = (await migrateScreenIfNeeded(screenId, r)) as Record<string, unknown> | null;
+  const current = (await migrateScreenIfNeeded(screenId, r, true)) as Record<string, unknown> | null;
   const project = await readProject(r);
   const items = extractItems(data);
   // 業務部品デザイナは items と layout を同じ編集セッションで保存する。layout を持たない
@@ -1634,7 +1690,7 @@ export async function deleteScreenItems(screenId: string, root: string): Promise
   const r = root;
   const dataRoot = await resolveDataRoot(r);
   assertPathContained(path.join(screenItemsDir(dataRoot), `${screenId}.json`), dataRoot); // defense-in-depth
-  const current = (await migrateScreenIfNeeded(screenId, r)) as Record<string, unknown> | null;
+  const current = (await migrateScreenIfNeeded(screenId, r, true)) as Record<string, unknown> | null;
   if (current) {
     await writeScreenEntity(screenId, { ...current, items: [] }, r);
   }
@@ -1940,3 +1996,6 @@ export async function listProcessFlows(root: string): Promise<unknown[]> {
     return [];
   }
 }
+
+/** 1 ファイルを安全に (一時ファイル → rename、上書き前の内容は世代で保持) 書く。ワークスペースの保守処理 (workspaceHealth) 用 */
+export const writeJsonFile = writeJSON;

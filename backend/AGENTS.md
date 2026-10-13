@@ -44,6 +44,16 @@ npm run build      # shared rebuild → Compile to dist/
 |---|---|---|
 | `DESIGNER_MCP_LOG_LEVEL` | 物理ログの最小レベル (`debug` / `info` / `warn` / `error`) | `info` |
 | `DESIGNER_LOG_DIR` | 出力先ディレクトリ上書き (デフォルトは projectRoot/logs) | unset |
+| `DESIGNER_LOG_RETENTION_DAYS` | ログの保持日数 (正の整数。不正な値は既定) | `7` |
+
+### セキュリティ・上限の環境変数 (詳細: [../docs/spec/server-security.md](../docs/spec/server-security.md))
+
+| env | 効果 | デフォルト |
+|---|---|---|
+| `HARMONY_AUTH_TOKEN` | 設定すると、トークンを持たない HTTP / WebSocket 接続を拒否 (`Authorization: Bearer` / `?token=`) | unset (認証なし) |
+| `HARMONY_MCP_MODE` | `readonly` で、AI (MCP) は読み取りの tool だけ | `full` |
+| `HARMONY_MCP_DENY` | 使わせない MCP tool の名前 (カンマ区切り。`designer__` は省略可) | unset |
+| `HARMONY_MAX_WS_PAYLOAD_BYTES` / `HARMONY_MAX_HTTP_BODY_BYTES` / `HARMONY_MAX_WS_REQUESTS_PER_10S` | WebSocket 1 メッセージ / HTTP 本文 / 1 接続の 10 秒あたりの要求数の上限 | 32 MiB / 8 MiB / 3000 |
 
 ### バグ報告フロー
 
@@ -56,7 +66,7 @@ npm run build      # shared rebuild → Compile to dist/
 
 ### ログ保持
 
-- 起動時に 7 日以上前のログを自動削除 (retention rotation)
+- 起動時に保持日数 (既定 7 日。`DESIGNER_LOG_RETENTION_DAYS`) より古いログを自動削除 (retention rotation)。シークレット (API キー・Bearer・`?token=`・パスワード・接続トークン) はマスクして書く
 - ログサイズ上限なし (1 日 1 ファイル運用前提)
 - gitignore 済 (`logs/`)
 
