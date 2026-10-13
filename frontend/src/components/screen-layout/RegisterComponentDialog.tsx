@@ -10,6 +10,7 @@ import {
   type LayoutComponentDef, type LayoutItemLike, type LayoutNode, type ParamCandidate,
 } from "@harmony/shared";
 import { toCamel } from "./layoutModel";
+import { reportFailure } from "../../utils/failureToast";
 
 export interface RegisterComponentDialogProps {
   node: LayoutNode;
@@ -142,7 +143,7 @@ export function RegisterComponentDialog({ node, items, existing, onRegister, onC
         </div>
         <footer className="sld-modal-foot">
           <button type="button" className="sld-btn" onClick={onCancel}>キャンセル</button>
-          <button type="button" className="sld-btn sld-btn-primary" disabled={!canSave} onClick={() => { submit().catch(console.error); }} data-testid="register-submit">
+          <button type="button" className="sld-btn sld-btn-primary" disabled={!canSave} onClick={() => { submit().catch((e) => reportFailure(e, "独自部品の登録の追加")); }} data-testid="register-submit">
             <i className="bi bi-check2" /> 登録して置き換える
           </button>
         </footer>

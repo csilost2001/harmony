@@ -83,6 +83,7 @@ import { acknowledgeServerMtime } from "../../utils/serverMtime";
 import "../../styles/flow.css";
 import "../../styles/editMode.css";
 import { checkDeletionImpact } from "../../utils/confirmDeletion";
+import { reportFailure } from "../../utils/failureToast";
 
 const nodeTypes = {
   screenNode: ScreenNodeComponent,
@@ -251,7 +252,7 @@ function FlowEditorInner() {
     setNodes(toRFNodesWithGroups(prev.screens.filter((s) => s.purpose !== "gadget"), prev.groups ?? [], screenEntitiesRef.current));
     setEdges(toRFEdges(prev.edges));
     setProjectName(prev.name);
-    saveProject(prev).catch(console.error);
+    saveProject(prev).catch((e) => reportFailure(e, "画面フローの保存"));
     setCanUndo(undoStackRef.current.length > 0);
     setCanRedo(true);
   }, [project, setNodes, setEdges]);
@@ -266,7 +267,7 @@ function FlowEditorInner() {
     setNodes(toRFNodesWithGroups(next.screens.filter((s) => s.purpose !== "gadget"), next.groups ?? [], screenEntitiesRef.current));
     setEdges(toRFEdges(next.edges));
     setProjectName(next.name);
-    saveProject(next).catch(console.error);
+    saveProject(next).catch((e) => reportFailure(e, "画面フローの保存"));
     setCanUndo(true);
     setCanRedo(redoStackRef.current.length > 0);
   }, [project, setNodes, setEdges]);
@@ -322,7 +323,7 @@ function FlowEditorInner() {
         markExternalChangeForBanner();
       } else {
         // clean: 自動 reload
-        reloadProject().catch(console.error);
+        reloadProject().catch((e) => reportFailure(e, "画面フローの読み込み"));
       }
     };
     const unsubScreen = mcpBridge.onBroadcast("screenChanged", handleExternalChange);
@@ -357,7 +358,7 @@ function FlowEditorInner() {
         s.state === "Active" && !!s.participants?.[mySessionId],
       );
       if (hasMyActiveSession) setShowResumeDialog(true);
-    })().catch(console.error);
+    })().catch((e) => reportFailure(e, "編集セッションの確認"));
     return () => { cancelled = true; };
   }, [sessionLoading, mode.kind]);
 
@@ -402,7 +403,7 @@ function FlowEditorInner() {
 
   // PageLayout 一覧をロード (pageLayoutId 選択 dropdown 用, pl-4, #1025)
   useEffect(() => {
-    listPageLayouts().then(setPageLayouts).catch(console.error);
+    listPageLayouts().then(setPageLayouts).catch((e) => reportFailure(e, "画面フローの読み込み"));
   }, []);
 
   // ノード位置変更時の保存デバウンス。
@@ -417,10 +418,10 @@ function FlowEditorInner() {
     if (saveDebounceRef.current) clearTimeout(saveDebounceRef.current);
     saveDebounceRef.current = setTimeout(() => {
       if (!isReadonly) {
-        saveProject(effective).catch(console.error);
+        saveProject(effective).catch((e) => reportFailure(e, "画面フローの保存"));
         // ドラフト更新 (edit-session-draft)
         if (editSession?.id) {
-          mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: effective }).catch(console.error);
+          mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: effective }).catch((e) => reportFailure(e, "下書きの保存"));
         }
       }
     }, 300);
@@ -470,7 +471,7 @@ function FlowEditorInner() {
         labelBgPadding: [6, 4] as [number, number],
         labelBgBorderRadius: 4,
       }, eds));
-    }).catch(console.error);
+    }).catch((e) => reportFailure(e, "画面フローの読み込み"));
     // #1388 Codex Round 1 Must-fix: project / pushUndoSnapshot を deps に追加し旧
     // eslint suppression directive を削除した。useRef 時代は `projectRef.current` が常に最新値を
     // 返すため deps から外せたが、useState 化後は closure capture pattern になるため deps 必須。
@@ -881,7 +882,7 @@ function FlowEditorInner() {
     storeUpdateEdge(draft, oldEdge.id, {
       sourceHandle: (newConnection.sourceHandle ?? oldEdge.sourceHandle ?? "bottom") as HandlePosition,
       targetHandle: (newConnection.targetHandle ?? oldEdge.targetHandle ?? "top") as HandlePosition,
-    }).then(() => setProject(draft)).catch(console.error);
+    }).then(() => setProject(draft)).catch((e) => reportFailure(e, "画面フローの読み込み"));
   }, [project, setEdges]);
 
   const onEdgesDelete = useCallback((deletedEdges: RFEdge[]) => {
@@ -889,7 +890,7 @@ function FlowEditorInner() {
     const draft = structuredClone(project);
     Promise.all(deletedEdges.map((e) => storeRemoveEdge(draft, e.id)))
       .then(() => setProject(draft))
-      .catch(console.error);
+      .catch((e) => reportFailure(e, "画面フローの読み込み"));
   }, [project]);
 
   const onNodesDelete = useCallback((deletedNodes: RFNode[]) => {
@@ -908,7 +909,7 @@ function FlowEditorInner() {
       }
       return Promise.resolve(false);
     });
-    Promise.all(promises).then(() => setProject(draft)).catch(console.error);
+    Promise.all(promises).then(() => setProject(draft)).catch((e) => reportFailure(e, "画面フローの読み込み"));
   }, [project, setNodes]);
 
   // ── Project-level Actions ──
@@ -928,7 +929,7 @@ function FlowEditorInner() {
     const draft = structuredClone(project);
     // スナップショットを取ってから削除（removeScreen が配列を変更するため）
     for (const s of [...draft.screens]) {
-      await removeScreen(draft, s.id).catch(console.error);
+      await removeScreen(draft, s.id).catch((e) => reportFailure(e, "画面フローの削除"));
     }
     setProject(draft);
     setNodes([]);
@@ -1173,11 +1174,11 @@ function FlowEditorInner() {
         screenCount={screenCount}
         zoomLevel={zoomLevel}
         onAddScreen={handleOpenAddScreen}
-        onAddGroup={() => { handleAddGroup().catch(console.error); }}
-        onRenameProject={(name) => { handleRenameProject(name).catch(console.error); }}
-        onClearAll={() => { handleClearAll().catch(console.error); }}
+        onAddGroup={() => { handleAddGroup().catch((e) => reportFailure(e, "画面フローの追加")); }}
+        onRenameProject={(name) => { handleRenameProject(name).catch((e) => reportFailure(e, "画面フローの名前の変更")); }}
+        onClearAll={() => { handleClearAll().catch((e) => reportFailure(e, "画面フローの削除")); }}
         onExportJSON={handleExportJSON}
-        onImportJSON={(json) => { handleImportJSON(json).catch(console.error); }}
+        onImportJSON={(json) => { handleImportJSON(json).catch((e) => reportFailure(e, "画面フローの取り込み")); }}
         onCopyMermaid={handleCopyMermaid}
         onExportMarkdown={handleExportMarkdown}
         onZoomChange={handleZoomChange}
@@ -1188,9 +1189,9 @@ function FlowEditorInner() {
         canRedo={canRedo}
         isDirty={isDirty}
         isSaving={isSaving}
-        onSave={() => { handleSave().catch(console.error); }}
-        onReset={() => { handleReset().catch(console.error); }}
-        onToggleMarkerPanel={() => { handleToggleMarkerPanel().catch(console.error); }}
+        onSave={() => { handleSave().catch((e) => reportFailure(e, "画面フローの保存")); }}
+        onReset={() => { handleReset().catch((e) => reportFailure(e, "画面フローのリセット")); }}
+        onToggleMarkerPanel={() => { handleToggleMarkerPanel().catch((e) => reportFailure(e, "画面フローのマーカーの表示")); }}
         markerPanelOpen={markerPanelOpen}
       />
 
@@ -1270,11 +1271,11 @@ function FlowEditorInner() {
         >
           {contextMenu.type === "group" ? (
             <>
-              <button className="flow-context-menu-item" onClick={() => { handleRenameGroup().catch(console.error); }}>
+              <button className="flow-context-menu-item" onClick={() => { handleRenameGroup().catch((e) => reportFailure(e, "画面フローの名前の変更")); }}>
                 <i className="bi bi-pencil" /> グループ名を変更
               </button>
               <div className="flow-context-menu-separator" />
-              <button className="flow-context-menu-item danger" onClick={() => { handleDeleteGroup().catch(console.error); }}>
+              <button className="flow-context-menu-item danger" onClick={() => { handleDeleteGroup().catch((e) => reportFailure(e, "画面フローの削除")); }}>
                 <i className="bi bi-trash" /> グループを削除
               </button>
             </>
@@ -1286,7 +1287,7 @@ function FlowEditorInner() {
               <button className="flow-context-menu-item" onClick={handleEditNode}>
                 <i className="bi bi-gear" /> プロパティ編集
               </button>
-              <button className="flow-context-menu-item" onClick={() => { handleDuplicateNode().catch(console.error); }}>
+              <button className="flow-context-menu-item" onClick={() => { handleDuplicateNode().catch((e) => reportFailure(e, "画面フローの複製")); }}>
                 <i className="bi bi-copy" /> 複製
               </button>
               <button className="flow-context-menu-item" onClick={handleRenameNode} data-testid="flow-node-rename-id-btn">
@@ -1300,7 +1301,7 @@ function FlowEditorInner() {
                   return (
                     <>
                       <div className="flow-context-menu-separator" />
-                      <button className="flow-context-menu-item" onClick={() => { handleUnassignGroup().catch(console.error); }}>
+                      <button className="flow-context-menu-item" onClick={() => { handleUnassignGroup().catch((e) => reportFailure(e, "画面フローの削除")); }}>
                         <i className="bi bi-collection" /> グループから外す
                       </button>
                     </>
@@ -1311,7 +1312,7 @@ function FlowEditorInner() {
                     <>
                       <div className="flow-context-menu-separator" />
                       {groups.map((g) => (
-                        <button key={g.id} className="flow-context-menu-item" onClick={() => { handleAssignGroup(g.id).catch(console.error); }}>
+                        <button key={g.id} className="flow-context-menu-item" onClick={() => { handleAssignGroup(g.id).catch((e) => reportFailure(e, "画面フローのグループへの割り当て")); }}>
                           <i className="bi bi-collection" /> 「{g.name}」に追加
                         </button>
                       ))}
@@ -1321,7 +1322,7 @@ function FlowEditorInner() {
                 return null;
               })()}
               <div className="flow-context-menu-separator" />
-              <button className="flow-context-menu-item danger" onClick={() => { handleDeleteNode().catch(console.error); }}>
+              <button className="flow-context-menu-item danger" onClick={() => { handleDeleteNode().catch((e) => reportFailure(e, "画面フローの削除")); }}>
                 <i className="bi bi-trash" /> 削除
               </button>
             </>
@@ -1331,7 +1332,7 @@ function FlowEditorInner() {
                 <i className="bi bi-pencil" /> 遷移を編集
               </button>
               <div className="flow-context-menu-separator" />
-              <button className="flow-context-menu-item danger" onClick={() => { handleDeleteEdge().catch(console.error); }}>
+              <button className="flow-context-menu-item danger" onClick={() => { handleDeleteEdge().catch((e) => reportFailure(e, "画面フローの削除")); }}>
                 <i className="bi bi-trash" /> 遷移を削除
               </button>
             </>
@@ -1347,7 +1348,7 @@ function FlowEditorInner() {
         isCreate={!screenModal.editId}
         pageLayouts={screenModal.editId ? pageLayouts : undefined}
         existingScreenIds={project?.screens.map((s) => s.id) ?? []}
-        onSave={(data) => { handleScreenSave(data).catch(console.error); }}
+        onSave={(data) => { handleScreenSave(data).catch((e) => reportFailure(e, "画面フローの保存")); }}
         onClose={() => setScreenModal({ open: false })}
       />
 
@@ -1355,8 +1356,8 @@ function FlowEditorInner() {
       <EdgeEditModal
         open={edgeModal.open}
         initial={edgeModal.initial}
-        onSave={(data) => { handleEdgeSave(data).catch(console.error); }}
-        onDelete={edgeModal.editId ? () => { handleEdgeDeleteFromModal().catch(console.error); } : undefined}
+        onSave={(data) => { handleEdgeSave(data).catch((e) => reportFailure(e, "画面フローの保存")); }}
+        onDelete={edgeModal.editId ? () => { handleEdgeDeleteFromModal().catch((e) => reportFailure(e, "画面フローの削除")); } : undefined}
         onClose={() => setEdgeModal({ open: false })}
       />
 
@@ -1428,7 +1429,7 @@ function FlowEditorInner() {
                 source: e.source === target.id ? newId : e.source,
                 target: e.target === target.id ? newId : e.target,
               })));
-            }).catch(console.error);
+            }).catch((e) => reportFailure(e, "画面フローの読み込み"));
             setRenameUndoToast({
               operationId, oldId: target.id, newId,
               ttlMs: extra?.ttlMs,
@@ -1470,7 +1471,7 @@ function FlowEditorInner() {
                 source: e.source === oldId ? newId : e.source,
                 target: e.target === oldId ? newId : e.target,
               })));
-            }).catch(console.error);
+            }).catch((e) => reportFailure(e, "画面フローの読み込み"));
             setRenameUndoToast(null);
             setRenamedToastNewId("");
           }}

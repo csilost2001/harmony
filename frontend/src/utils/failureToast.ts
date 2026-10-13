@@ -23,6 +23,15 @@ export function failureToastText(args: readonly unknown[]): string | null {
   return msg ? `操作に失敗しました: ${msg}` : "操作に失敗しました";
 }
 
+/** 同じ文言の通知を続けて出さない (サーバが落ちているときに、同時に何件も失敗しても 1 回だけ) */
+const lastShown = new Map<string, number>();
+function showFailureToast(text: string): void {
+  const now = Date.now();
+  if (now - (lastShown.get(text) ?? 0) < SAME_MESSAGE_MS) return;
+  lastShown.set(text, now);
+  showToast(text.length > 120 ? `${text.slice(0, 120)}…` : text, "error");
+}
+
 let installed = false;
 
 /** main.tsx から一度だけ呼ぶ */
@@ -30,15 +39,10 @@ export function installFailureToasts(): void {
   if (installed || typeof console === "undefined") return;
   installed = true;
   const original = console.error.bind(console);
-  const last = new Map<string, number>();
   console.error = (...args: unknown[]) => {
     original(...args);
     const text = failureToastText(args);
-    if (!text) return;
-    const now = Date.now();
-    if (now - (last.get(text) ?? 0) < SAME_MESSAGE_MS) return;
-    last.set(text, now);
-    showToast(text.length > 120 ? `${text.slice(0, 120)}…` : text, "error");
+    if (text) showFailureToast(text);
   };
 }
 
@@ -51,5 +55,7 @@ export function reportFailure(e: unknown, what?: string): void {
   const err = e instanceof Error ? e : new Error(String(e));
   console.error(`[failure]${what ? ` ${what}` : ""}`, err);
   const text = failureToastText([err]);
-  if (text) showToast(what ? `${what}に失敗しました: ${err.message}` : text, "error");
+  if (!text) return; // 中断など、通知にしない失敗
+  // 接続できない失敗は、どの操作でも同じ案内 (サーバの状態) を出す。ほかは、操作の名前つき
+  showFailureToast(what && !isConnectionError(err) ? `${what}に失敗しました: ${err.message}` : text);
 }

@@ -12,6 +12,7 @@ import { addDefault, removeDefault, addTrigger, removeTrigger } from "../../stor
 import { listSequences } from "../../store/sequenceStore";
 import { loadConventions } from "../../store/conventionsStore";
 import type { ConventionsCatalog } from "../../schemas/conventionsValidator";
+import { reportFailure } from "../../utils/failureToast";
 
 // v3 DefaultDefinition.kind: literal / function / sequence / convention (旧 conventionRef → convention)
 type DefaultKind = DefaultDefinition["kind"];
@@ -42,8 +43,8 @@ export function TriggersDefaultsTab({ table, update }: Props) {
   const [conventions, setConventions] = useState<ConventionsCatalog | null>(null);
 
   useEffect(() => {
-    listSequences().then(setSequences).catch(console.error);
-    loadConventions().then(setConventions).catch(console.error);
+    listSequences().then(setSequences).catch((e) => reportFailure(e, "テーブルのトリガー・既定値の読み込み"));
+    loadConventions().then(setConventions).catch((e) => reportFailure(e, "テーブルのトリガー・既定値の読み込み"));
   }, []);
 
   const numberingKeys = useMemo(() => {

@@ -77,6 +77,7 @@ import { ColumnsSection } from "./internal/ColumnsSection";
 import { SortDefaultsSection } from "./internal/SortDefaultsSection";
 import { FilterDefaultsSection } from "./internal/FilterDefaultsSection";
 import { MiscSection } from "./internal/MiscSection";
+import { reportFailure } from "../../utils/failureToast";
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
@@ -205,7 +206,7 @@ export function ViewDefinitionEditor() {
     draftUpdateTimer.current = setTimeout(() => {
       if (!viewDefinitionId || !viewDefRef.current) return;
       if (editSession?.id) {
-        mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: viewDefRef.current }).catch(console.error);
+        mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: viewDefRef.current }).catch((e) => reportFailure(e, "下書きの保存"));
       }
     }, 300);
   }, [isReadonly, update, viewDefinitionId, editSession]);
@@ -217,7 +218,7 @@ export function ViewDefinitionEditor() {
     draftUpdateTimer.current = setTimeout(() => {
       if (!viewDefinitionId || !viewDefRef.current) return;
       if (editSession?.id) {
-        mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: viewDefRef.current }).catch(console.error);
+        mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: viewDefRef.current }).catch((e) => reportFailure(e, "下書きの保存"));
       }
     }, 300);
   }, [isReadonly, updateSilent, viewDefinitionId, editSession]);
@@ -283,7 +284,7 @@ export function ViewDefinitionEditor() {
         s.state === "Active" && !!s.participants?.[mySessionId],
       );
       if (hasMyActiveSession) setShowResumeDialog(true);
-    })().catch(console.error);
+    })().catch((e) => reportFailure(e, "編集セッションの確認"));
     return () => { cancelled = true; };
   }, [viewDefinitionId, sessionLoading, mode.kind]);
 

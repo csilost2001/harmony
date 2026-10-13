@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { LayoutComponentDef } from "@harmony/shared";
 import { mcpBridge } from "../mcp/mcpBridge";
+import { reportFailure } from "../utils/failureToast";
 
 export interface LayoutComponentUsages { screens: string[]; components: string[] }
 
@@ -47,8 +48,8 @@ export function useLayoutComponents(): { components: LayoutComponentDef[]; loade
     }
   }, []);
   useEffect(() => {
-    reload().catch(console.error);
-    const onLocal = () => { reload().catch(console.error); };
+    reload().catch((e) => reportFailure(e, "独自部品の読み込み"));
+    const onLocal = () => { reload().catch((e) => reportFailure(e, "独自部品の読み込み")); };
     listeners.add(onLocal);
     const off = mcpBridge.onBroadcast("layoutComponentsChanged", onLocal);
     return () => { listeners.delete(onLocal); off(); };

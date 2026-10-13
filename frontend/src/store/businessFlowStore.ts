@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { DOC_CONFLICT_MARK, DOC_EXISTS_MARK, type BusinessFlow } from "@harmony/shared";
 import { mcpBridge } from "../mcp/mcpBridge";
+import { reportFailure } from "../utils/failureToast";
 
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((l) => l());
@@ -74,8 +75,8 @@ export function useBusinessFlows(): { flows: BusinessFlow[]; unreadable: string[
     }
   }, []);
   useEffect(() => {
-    reload().catch(console.error);
-    const onLocal = () => { reload().catch(console.error); };
+    reload().catch((e) => reportFailure(e, "業務フローの読み込み"));
+    const onLocal = () => { reload().catch((e) => reportFailure(e, "業務フローの読み込み")); };
     listeners.add(onLocal);
     const off = mcpBridge.onBroadcast("businessFlowChanged", onLocal);
     return () => { listeners.delete(onLocal); off(); };

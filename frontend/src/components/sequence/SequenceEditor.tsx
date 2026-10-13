@@ -33,6 +33,7 @@ import { generateSequenceDdl } from "./generateSequenceDdl";
 import type { NumberingEntry } from "../../types/v3";
 import "../../styles/table.css";
 import "../../styles/editMode.css";
+import { reportFailure } from "../../utils/failureToast";
 
 interface TableColumnOption {
   tableId: string;
@@ -143,7 +144,7 @@ export function SequenceEditor() {
     draftUpdateTimer.current = setTimeout(() => {
       if (!sequenceId || !seqRef.current) return;
       if (editSession?.id) {
-        mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: seqRef.current }).catch(console.error);
+        mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: seqRef.current }).catch((e) => reportFailure(e, "下書きの保存"));
       }
     }, 300);
   }, [isReadonly, update, sequenceId, editSession]);
@@ -209,7 +210,7 @@ export function SequenceEditor() {
         s.state === "Active" && !!s.participants?.[mySessionId],
       );
       if (hasMyActiveSession) setShowResumeDialog(true);
-    })().catch(console.error);
+    })().catch((e) => reportFailure(e, "編集セッションの確認"));
     return () => { cancelled = true; };
   }, [sequenceId, sessionLoading, mode.kind]);
 

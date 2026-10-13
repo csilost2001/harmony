@@ -75,6 +75,7 @@ import { isValidUuid } from "../utils/entityIdValidation";
 import { checkRedirect, subscribeRedirectGuardTrip, isRedirectGuardTripped } from "../utils/redirectGuard";
 import { uiInfo, uiWarn, setupServerLogFlush } from "../utils/uiLog";
 import { evaluateRoutingGuard, isWorkspaceChildRouteReady } from "../routing/workspaceRouting";
+import { reportFailure } from "../utils/failureToast";
 
 function useTabs() {
   const [tabs, setTabs] = useState<readonly TabItem[]>(getTabs);
@@ -268,7 +269,7 @@ export function AppShell() {
           clearTimeout(failTimerRef.current);
           failTimerRef.current = null;
         }
-        loadWorkspaces().catch(console.error);
+        loadWorkspaces().catch((e) => reportFailure(e, "画面の読み込み"));
       } else if (s === "failed") {
         setConnectionFailed(true);
       }

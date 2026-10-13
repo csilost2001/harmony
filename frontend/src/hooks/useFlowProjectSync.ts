@@ -6,6 +6,7 @@ import {
 } from "../store/flowStore";
 import { hasDraft } from "../utils/draftStorage";
 import { acknowledgeServerMtime, hasServerBeenUpdated } from "../utils/serverMtime";
+import { reportFailure } from "../utils/failureToast";
 
 interface UseFlowProjectSyncOptions {
   reload: () => Promise<void>;
@@ -61,7 +62,7 @@ export function useFlowProjectSync({
       if (isDirtyRef.current) {
         setServerChanged(true);
       } else {
-        reload().catch(console.error);
+        reload().catch((e) => reportFailure(e, "画面フローの読み込み"));
       }
     };
 
@@ -75,7 +76,7 @@ export function useFlowProjectSync({
         if (isDirtyRef.current) {
           setServerChanged(true);
         } else {
-          reload().catch(console.error);
+          reload().catch((e) => reportFailure(e, "画面フローの読み込み"));
         }
       }
     });
@@ -90,7 +91,7 @@ export function useFlowProjectSync({
       } else {
         await acknowledgeServerMtime("project");
       }
-    }).catch(console.error);
+    }).catch((e) => reportFailure(e, "画面フローの読み込み"));
 
     return () => {
       mounted = false;

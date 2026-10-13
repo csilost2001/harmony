@@ -35,4 +35,27 @@ describe("reportFailure (明示の経路)", () => {
     expect(log).toHaveBeenCalled();
     log.mockRestore();
   });
+
+  it("同じ失敗が続けて来ても、通知は 1 回 (サーバが落ちて、同時に何件も失敗したとき)。中断は通知しない", () => {
+    const seen: string[] = [];
+    const off = subscribeToasts((t) => seen.push(t.text));
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    for (let i = 0; i < 5; i++) reportFailure(new Error("重複確認の失敗"), "重複確認の保存");
+    const abort = new Error("aborted"); abort.name = "AbortError";
+    reportFailure(abort, "中断の保存");
+    off();
+    log.mockRestore();
+    expect(seen).toEqual(["重複確認の保存に失敗しました: 重複確認の失敗"]);
+  });
+
+  it("接続できない失敗は、操作の名前に関わらず、サーバの状態の案内を出す", () => {
+    const seen: string[] = [];
+    const off = subscribeToasts((t) => seen.push(t.text));
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    reportFailure(new Error("wsBridge に接続されていません"), "接続の保存");
+    off();
+    log.mockRestore();
+    expect(seen).toEqual(["サーバに接続できないため、操作できませんでした"]);
+  });
 });
+

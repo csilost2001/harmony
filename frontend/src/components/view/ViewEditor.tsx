@@ -30,6 +30,7 @@ import { setDirty as setTabDirty, makeTabId } from "../../store/tabStore";
 import { generateViewDdl } from "./generateViewDdl";
 import "../../styles/table.css";
 import "../../styles/editMode.css";
+import { reportFailure } from "../../utils/failureToast";
 
 interface TableOption {
   id: string;
@@ -138,7 +139,7 @@ export function ViewEditor() {
     draftUpdateTimer.current = setTimeout(() => {
       if (!viewId || !viewRef.current) return;
       if (editSession?.id) {
-        mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: viewRef.current }).catch(console.error);
+        mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: viewRef.current }).catch((e) => reportFailure(e, "下書きの保存"));
       }
     }, 300);
   }, [isReadonly, update, viewId, editSession]);
@@ -204,7 +205,7 @@ export function ViewEditor() {
         s.state === "Active" && !!s.participants?.[mySessionId],
       );
       if (hasMyActiveSession) setShowResumeDialog(true);
-    })().catch(console.error);
+    })().catch((e) => reportFailure(e, "編集セッションの確認"));
     return () => { cancelled = true; };
   }, [viewId, sessionLoading, mode.kind]);
 
