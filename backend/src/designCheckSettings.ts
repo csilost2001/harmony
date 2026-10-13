@@ -38,13 +38,14 @@ export interface SuppressInput { key: string; reason: string; expiresOn?: string
 /** 要確認を、理由つきで抑制する (同じ key は上書き)。理由は必須 */
 export async function suppressIssue(root: string, input: SuppressInput, now = new Date()): Promise<LoadedCheckSettings> {
   if (typeof input.reason !== "string" || !input.reason.trim()) throw new Error("抑制する理由を書いてください");
+  if (input.reason.length > 2000) throw new Error("理由が長すぎます (2000 文字まで)");
   if (typeof input.key !== "string" || !/^i-[0-9a-f]{16}$/.test(input.key)) throw new Error("抑制する指摘の印が正しくありません");
   // 印は、重大度・対象・内容から決まる。送られた内容と印が合わないものは受け付けない (別の指摘を止めてしまわないように)
   if (issueKey({ severity: input.severity, section: input.section, message: input.message }) !== input.key) throw new Error("指摘の内容と印が合いません。画面を読み込み直してください");
   if (input.expiresOn !== undefined && input.expiresOn !== "" && !isValidDate(input.expiresOn)) throw new Error("期限は YYYY-MM-DD の日付で書いてください");
   return update(root, (s) => {
     const entry = {
-      key: input.key, reason: input.reason.trim(), at: now.toISOString(), severity: input.severity, section: input.section, message: input.message,
+      key: input.key, reason: input.reason.trim(), at: now.toISOString(), severity: input.severity, section: String(input.section).slice(0, 2000), message: String(input.message).slice(0, 2000), // 印は全文から決まる。表示用の控えは、長ければ切る
       ...(input.expiresOn ? { expiresOn: input.expiresOn } : {}), ...(input.by?.trim() ? { by: input.by.trim() } : {}),
     };
     return { ...s, suppressions: [...s.suppressions.filter((x) => x.key !== input.key), entry] };

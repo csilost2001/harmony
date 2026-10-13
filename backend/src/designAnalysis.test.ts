@@ -83,6 +83,15 @@ describe("点検の設定: 抑制", () => {
     await fs.rm(file);
   });
 
+  it("長すぎる理由は拒否し、長い指摘は、控えを切って抑制できる", async () => {
+    await expect(suppressIssue(ROOT, { ...input, reason: "あ".repeat(2001) })).rejects.toThrow("長すぎます");
+    const long = { severity: "warning" as const, section: "テーブル 長い", message: "スキーマ: ".concat("x".repeat(3000)) };
+    const r = await suppressIssue(ROOT, { ...long, key: issueKey(long), reason: "長いエラーの文面だが、意図どおり" });
+    expect(r.settings.suppressions[0].message).toHaveLength(2000);
+    expect(r.settings.suppressions[0].key).toBe(issueKey(long)); // 印は、全文から決まったまま
+    await unsuppressIssue(ROOT, issueKey(long));
+  });
+
   it("まとめて外せる", async () => {
     await suppressIssue(ROOT, input);
     const b = { severity: "info" as const, section: "B", message: "もう一つ" };
