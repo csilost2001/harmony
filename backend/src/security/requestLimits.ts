@@ -42,3 +42,26 @@ export class RateLimiter {
 
   forget(key: string): void { this.hits.delete(key); }
 }
+
+/** 本文が上限を超えた (Content-Length が無い chunked 転送でも、読みながら数えて打ち切る) */
+export class BodyTooLargeError extends Error {
+  readonly code = "BODY_TOO_LARGE";
+  constructor(limit: number) { super(`リクエストが大きすぎます (上限 ${Math.round(limit / 1024 / 1024)} MB)`); }
+}
+
+/** HTTP の本文を、上限つきで読む。超えたら読むのをやめて BodyTooLargeError */
+export function readLimitedBody(req: IncomingMessage, limit = maxHttpBodyBytes()): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    let size = 0;
+    let done = false;
+    req.on("data", (c: Buffer) => {
+      if (done) return;
+      size += c.length;
+      if (size > limit) { done = true; chunks.length = 0; reject(new BodyTooLargeError(limit)); return; } // 応答を返せるよう、接続は切らず、残りは捨てる
+      chunks.push(c);
+    });
+    req.on("end", () => { if (!done) { done = true; resolve(Buffer.concat(chunks).toString("utf-8")); } });
+    req.on("error", (e) => { if (!done) { done = true; reject(e); } });
+  });
+}

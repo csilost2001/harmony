@@ -212,7 +212,7 @@ export function DraftHistoryModal({
   // ── 復元 ─────────────────────────────────────────────────────────────────────
   const handleRestore = useCallback(
     async (entry: DraftHistoryEntry) => {
-      if (!window.confirm("この時点の内容から新しい編集セッションを作って復元しますか?")) {
+      if (!window.confirm("この時点の内容から新しい編集セッションを作って復元しますか?\n(画面を開き直すため、いまの画面の未保存の変更は失われます)")) {
         return;
       }
       setRestoring(entry.historyId);

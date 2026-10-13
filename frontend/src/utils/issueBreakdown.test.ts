@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { DocIssue } from "@harmony/shared";
-import { issueBreakdown, REGISTRY_MISMATCH_PATTERN } from "./issueBreakdown";
+import { issueBreakdown } from "./issueBreakdown";
 
 const issue = (section: string, severity: DocIssue["severity"], message = "m"): DocIssue => ({ section, severity, message });
 
@@ -16,10 +16,5 @@ describe("要確認の内訳", () => {
   it("種類が分からないものは「その他」にまとめ、あるときだけ出す", () => {
     const rows = issueBreakdown([issue("設計ファイル business-flows/x.json", "error"), issue("独自部品 x", "warning")]);
     expect(rows.at(-1)).toEqual({ label: "その他", error: 1, warning: 1 });
-  });
-  it("一覧とファイルの食い違いの指摘を見分ける", () => {
-    expect(REGISTRY_MISMATCH_PATTERN.test("一覧 (harmony.json) にありますが、ファイル (tables/x.json) が見つかりません")).toBe(true);
-    expect(REGISTRY_MISMATCH_PATTERN.test("一覧 (harmony.json) に載っていない設計ファイルが 2 件あります")).toBe(true);
-    expect(REGISTRY_MISMATCH_PATTERN.test("スキーマ: 必須項目がありません")).toBe(false);
   });
 });

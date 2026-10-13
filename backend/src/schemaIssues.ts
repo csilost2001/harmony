@@ -52,6 +52,6 @@ export const collectSchemaIssues: (root: string) => Promise<SchemaIssue[]> = mem
  */
 export async function collectExtraIssues(root: string): Promise<SchemaIssue[]> {
   // 保守の案内 (uuid 未保存・一覧に載っていない) は、設計の内容の問題ではないので、設計書の要確認には出さない
-  const health = (await scanWorkspaceHealth(root)).filter((i) => !i.maintenance).map(({ maintenance: _m, ...rest }) => { void _m; return rest; });
+  const health = (await scanWorkspaceHealth(root)).filter((i) => !i.maintenance).map(({ maintenance: _m, code: _c, ...rest }) => { void _m; void _c; return rest; });
   return [...await collectSchemaIssues(root), ...health];
 }

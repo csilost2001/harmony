@@ -4,7 +4,7 @@
  * - HARMONY_MCP_MODE=readonly   読み取りの tool だけを使える (設計を読む・点検する用途。書き込み・削除・改名・保存はできない)
  * - HARMONY_MCP_DENY=a,b        使わせない tool の名前 (`designer__` は省略できる。例: `remove_table,rename_entity`)
  *
- * 使えない tool は、一覧 (tools/list) にも出さず、呼ばれても拒否する。仕様: docs/spec/server-security.md
+ * 使えない tool は、一覧 (tools/list) にも出さず、呼ばれても拒否する。読み取り専用で通すのは、許可リスト (READ_ONLY_TOOLS) の tool だけ。仕様: docs/spec/server-security.md
  */
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 
@@ -20,10 +20,20 @@ export function deniedTools(env: NodeJS.ProcessEnv = process.env): Set<string> {
   return new Set(raw.split(",").map((s) => s.trim()).filter(Boolean).map((s) => (s.includes("__") ? s : `designer__${s}`)));
 }
 
-/** 読み取りだけで、データを変えない tool か (名前の規則 + 明示した例外) */
-const READ_NAME = /^designer__(list|get|find|check|generate|export)_/;
-const READ_EXACT = new Set([
-  "designer__workspace_list", "designer__workspace_status", "designer__workspace_inspect",
+/**
+ * 読み取りだけで、データを変えない tool (許可リスト)。名前の規則 (`get_` で始まる など) では決めない:
+ * 将来、`get_` で始まる書き込みの tool が増えても、読み取り専用の環境で通ってしまわないように、足すときに 1 件ずつ中身を確かめて、ここへ足す。
+ */
+const READ_ONLY_TOOLS: ReadonlySet<string> = new Set([
+  "designer__check_design", "designer__check_screen_item_refs", "designer__export_arazzo", "designer__export_spec",
+  "designer__find_all_markers", "designer__find_references", "designer__generate_ddl", "designer__generate_er_mermaid",
+  "designer__get_business_flow", "designer__get_er_diagram", "designer__get_extension_package", "designer__get_flow", "designer__get_page_layout",
+  "designer__get_process_flow", "designer__get_rename_context", "designer__get_report", "designer__get_response_type_extension",
+  "designer__get_screen_layout", "designer__get_table", "designer__get_test_viewpoints",
+  "designer__list_business_flows", "designer__list_extension_packages", "designer__list_extensions", "designer__list_layout_components",
+  "designer__list_markers", "designer__list_page_layouts", "designer__list_process_flows", "designer__list_reports",
+  "designer__list_response_type_extensions", "designer__list_screens", "designer__list_tables", "designer__list_tabs", "designer__list_versions",
+  "designer__workspace_inspect", "designer__workspace_list", "designer__workspace_status",
   // 作業するワークスペースの切り替え (データは変えない。init: true の新規作成だけは、isToolAllowed で除く)
   "designer__workspace_open", "designer__workspace_close",
   // 画面 (ブラウザ) のタブ・移動の操作。設計のデータは変えない
@@ -31,7 +41,7 @@ const READ_EXACT = new Set([
   "editSession__list", "editSession__fetch_payload",
 ]);
 export function isReadOnlyTool(name: string): boolean {
-  return READ_EXACT.has(name) || READ_NAME.test(name);
+  return READ_ONLY_TOOLS.has(name);
 }
 
 export function isToolAllowed(name: string, env: NodeJS.ProcessEnv = process.env, args?: Record<string, unknown>): boolean {

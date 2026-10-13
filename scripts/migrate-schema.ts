@@ -4,7 +4,7 @@
  *
  * 使い方:
  *   npm run migrate:schema -- <workspace-dir> [--apply]
- *     既定は予行 (書かずに、書き換わるファイルと変わる項目を表示する)。--apply を付けると書く
+ *     既定は予行 (書かずに、書き換わるファイルと変わる項目を表示する)。--apply を付けると書く (backend が動いているときは拒否。--even-if-running で実行)
  *     書き換える前の内容は、<workspace-dir>/.harmony-backups/ に世代で残る (戻せる)
  *
  * 終了コード: 0 = 移行は不要、または予行・適用に成功 / 2 = 使い方・読み込みの失敗
@@ -20,6 +20,17 @@ if (!dir) {
   process.exit(2);
 }
 const apply = args.includes("--apply");
+
+// backend が動いていると、編集中の画面が古い内容で上書き保存して、移行を巻き戻すことがある。動いているあいだは、--apply しない
+// (MCP の designer__migrate_schema は、編集中のセッションが無いことを確かめてから実行する)
+if (apply && !args.includes("--even-if-running")) {
+  const port = process.env.DESIGNER_MCP_PORT ?? "5179";
+  const running = await fetch(`http://127.0.0.1:${port}/health`, { signal: AbortSignal.timeout(800) }).then((r) => r.ok, () => false);
+  if (running) {
+    console.error(`backend (port ${port}) が動いています。編集中の画面がないことを確かめて backend を止めてから実行するか、MCP の designer__migrate_schema を使ってください (確かめた上で、このまま実行するなら --even-if-running を付けます)`);
+    process.exit(2);
+  }
+}
 
 try {
   const report = await migrateWorkspace(path.resolve(dir), { apply });

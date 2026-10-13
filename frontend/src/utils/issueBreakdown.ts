@@ -21,6 +21,3 @@ export function issueBreakdown(issues: readonly DocIssue[]): BreakdownRow[] {
   // その他は、あるときだけ出す
   return [...rows.values()].filter((r) => r.label !== "その他" || r.error + r.warning > 0);
 }
-
-/** harmony.json の一覧とファイルの食い違い (一覧にあるのにファイルが無い / ファイルがあるのに一覧に載っていない) の指摘 (backend の workspaceHealth の文言) */
-export const REGISTRY_MISMATCH_PATTERN = /一覧 \(harmony\.json\) に(ありますが|載っていない)/;

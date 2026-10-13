@@ -10,6 +10,9 @@
 - AI (MCP): `designer__migrate_schema` (`apply: true` で実行。編集中のセッションがあるときは実行できない)
 - 書き換える前の内容は、保存と同じ世代 ([file-backup.md](file-backup.md)) に残るので、戻せる
 - 移行は冪等にする。各設計を先に書き、最後に `harmony.json` の `schemaVersion` を上げるので、途中で止まっても、もう一度実行できる
+- **読めないファイルがあるとき、apply は実行しない** (版を上げると、そのファイルは旧版のまま、あとから移行されなくなるため)。予行は、飛ばしたファイルを知らせる
+- 対象は、設計の実体 (画面・テーブル・処理フロー・シーケンス・ビュー・ビュー定義・ページレイアウト) のほか、業務フロー・帳票・画面項目 (`screen-items`)・汎用定義・規約 (`conventions/catalog.json`)・独自部品 (`layout-components.json`)・`harmony.json`。`targets` で種類を絞れる (`businessFlow` / `report` / `screenItems` / `genericDefinition` / `conventions` / `layoutComponents` / `project`)
+- コマンドの `--apply` は、backend が動いているあいだは拒否する (編集中の画面が古い内容で上書きして、移行を巻き戻さないため。確かめた上で実行するなら `--even-if-running`)。MCP の `designer__migrate_schema` は、編集中のセッションが無いことを確かめてから実行する
 
 ## 移行を足すとき
 

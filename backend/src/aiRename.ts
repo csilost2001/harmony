@@ -8,6 +8,7 @@
  * stream-json を readline で parse しながら aiRenameProgress を対象 clientId へ送信する。
  * 完了後に FINAL_MAPPING: {...} 行から mapping を抽出して返す。
  */
+import { BodyTooLargeError, readLimitedBody } from "./security/requestLimits.js";
 import { execFileSync, spawn } from "node:child_process";
 import { createInterface } from "node:readline";
 import * as fs from "node:fs/promises";
@@ -55,14 +56,8 @@ function jsonBody(res: ServerResponse, status: number, body: unknown, req?: Inco
   res.end(json);
 }
 
-async function readBody(req: IncomingMessage): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const chunks: Buffer[] = [];
-    req.on("data", (c: Buffer) => chunks.push(c));
-    req.on("end", () => resolve(Buffer.concat(chunks).toString("utf-8")));
-    req.on("error", reject);
-  });
-}
+/** 本文を、上限つきで読む (Content-Length が無い chunked 転送でも、溜め込まない。security/requestLimits.ts) */
+const readBody = (req: IncomingMessage): Promise<string> => readLimitedBody(req);
 
 /** claude auth status で認証確認 */
 function checkAuth(): boolean {
@@ -112,7 +107,8 @@ export async function handlePropose(req: IncomingMessage, res: ServerResponse): 
   let body: { screenId?: string; clientId?: string; sessionId?: string };
   try {
     body = JSON.parse(await readBody(req)) as { screenId?: string; clientId?: string; sessionId?: string };
-  } catch {
+  } catch (e) {
+    if (e instanceof BodyTooLargeError) { jsonBody(res, 413, { error: e.message }, req); return; }
     jsonBody(res, 400, { error: "リクエストボディが不正です" }, req);
     return;
   }

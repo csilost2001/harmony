@@ -511,7 +511,10 @@ export async function listEntitiesReadOnly(kind: TopLevelEntityKind, root: strin
     try { files = await fs.readdir(dir); } catch { continue; }
     for (const f of files.sort()) {
       if (!f.endsWith(".json") || f.endsWith(".design.json")) continue;
-      const data = await readJSON<unknown>(path.join(dir, f));
+      let data = await readJSON<unknown>(path.join(dir, f));
+      if (!isRecord(data)) continue;
+      // 旧形式の画面は、メモリ上で現在の形に変換して返す (ファイルは書き換えない)
+      if (kind === "screen" && isLegacyGrapesScreen(data)) data = (await migrateScreenIfNeeded(f.replace(/\.json$/, ""), root, false)) ?? data;
       if (!isRecord(data)) continue;
       const id = kind === "processFlow" ? (isRecord(data.meta) ? data.meta.id : undefined) ?? data.id : data.id;
       byKey.set(typeof id === "string" ? id : f.replace(/\.json$/, ""), data);
@@ -542,9 +545,26 @@ export async function readEntityReadOnly(kind: TopLevelEntityKind, id: string, r
   const candidates = [entityFilePathFor(kind, dataRoot, id), ...(kind === "processFlow" ? [path.join(actionsDir(dataRoot), `${id}.json`)] : [])];
   for (const p of candidates) {
     const data = await readJSON<unknown>(p);
-    if (isRecord(data)) return data;
+    if (!isRecord(data)) continue;
+    // 旧形式の画面は、メモリ上で現在の形に変換して返す (ファイルは書き換えない)
+    if (kind === "screen" && isLegacyGrapesScreen(data)) return (await migrateScreenIfNeeded(id, root, false)) ?? data;
+    return data;
   }
   return null;
+}
+
+/**
+ * 画面の id を、旧形式 (GrapesJS) と旧配置 (`<id>.design.json` / `screen-items/<id>.json` だけが残っていて、実体 `<id>.json` が無い)
+ * も含めて返す。旧配置の画面は、読み出しでは実体に変換して扱う (書かない) ので、「ある画面」として数える。
+ */
+export async function listScreenIdsIncludingLegacy(root: string): Promise<string[]> {
+  const ids = new Set(await listExistingEntityIds("screen", root).catch(() => [] as string[]));
+  let dataRoot: string;
+  try { dataRoot = await resolveDataRoot(root); } catch { return [...ids]; }
+  for (const [dir, suffix] of [[screensDir(dataRoot), ".design.json"], [screenItemsDir(dataRoot), ".json"]] as const) {
+    try { for (const f of await fs.readdir(dir)) if (f.endsWith(suffix) && !f.startsWith(".")) ids.add(f.slice(0, -suffix.length)); } catch { /* 無い */ }
+  }
+  return [...ids];
 }
 
 /** 設計の実体ファイル (`<種類の dir>/<id>.json`) の更新時刻 (ms)。無ければ null。「最近編集したもの」用 */
@@ -802,7 +822,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function isLegacyGrapesScreen(value: unknown): boolean {
+/** 旧形式 (GrapesJS) の画面か (`pages` / `frames` / `component` / `styles` を持つ)。旧形式は、保存するまでファイルのまま残る */
+export function isLegacyGrapesScreen(value: unknown): boolean {
   if (!isRecord(value)) return false;
   return Array.isArray(value.pages) || "frames" in value || "component" in value || "styles" in value;
 }

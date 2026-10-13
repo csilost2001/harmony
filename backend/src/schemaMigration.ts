@@ -17,7 +17,8 @@ import path from "node:path";
 /** この backend が書くスキーマの版 (harmony.json の schemaVersion の最新) */
 export const LATEST_SCHEMA_VERSION = "v3";
 
-export type MigrationTarget = TopLevelEntityKind | "project";
+/** 移行の対象。`project` は harmony.json。種類を持つ設計 (TopLevelEntityKind) のほか、業務フロー・帳票・画面項目・汎用定義・規約・独自部品の定義も含む */
+export type MigrationTarget = TopLevelEntityKind | "project" | "businessFlow" | "report" | "screenItems" | "genericDefinition" | "conventions" | "layoutComponents";
 
 export interface SchemaMigration {
   /** 一意の名前 (例: `v3-to-v4/table-column-type`) */
@@ -96,31 +97,48 @@ export async function migrateWorkspace(root: string, opts: { apply?: boolean; mi
 
   const writes: Array<{ file: string; abs: string; data: Record<string, unknown> }> = [];
   const dataRoot = await resolveDataRoot(root);
+
+  /** 1 ファイルに移行を当てる。読めない・オブジェクトでないものは skipped */
+  const visit = async (abs: string, target: MigrationTarget, id: string): Promise<void> => {
+    const rel = path.relative(dataRoot, abs).split(path.sep).join("/");
+    let data: unknown;
+    try { data = JSON.parse(await fs.readFile(abs, "utf-8")); } catch { report.skipped.push(rel); return; }
+    if (!isRecord(data)) { report.skipped.push(rel); return; }
+    const next = run(data, target, id);
+    const keys = changedKeys(data, next);
+    if (keys.length) {
+      report.files.push({ file: rel, target, id, changedKeys: keys });
+      writes.push({ file: rel, abs, data: next });
+    }
+  };
+  const jsonFiles = async (dir: string, skipDesign = false): Promise<string[]> => {
+    try { return (await fs.readdir(dir)).filter((f) => f.endsWith(".json") && !(skipDesign && f.endsWith(".design.json")) && !f.startsWith(".")).sort(); } catch { return []; }
+  };
+  const idOf = (f: string) => f.replace(/\.json$/, "");
+
   for (const kind of KINDS) {
     const dirs = kind === "processFlow" ? [actionsDir(dataRoot), entityDirOf(kind, dataRoot)] : [entityDirOf(kind, dataRoot)];
-    for (const dir of dirs) {
-      let files: string[] = [];
-      try { files = (await fs.readdir(dir)).filter((f) => f.endsWith(".json") && !f.endsWith(".design.json") && !f.startsWith(".")).sort(); } catch { continue; }
-      for (const f of files) {
-        const abs = path.join(dir, f);
-        const rel = path.relative(dataRoot, abs).split(path.sep).join("/");
-        let data: unknown;
-        try { data = JSON.parse(await fs.readFile(abs, "utf-8")); } catch { report.skipped.push(rel); continue; }
-        if (!isRecord(data)) { report.skipped.push(rel); continue; }
-        const next = run(data, kind, f.replace(/\.json$/, ""));
-        const keys = changedKeys(data, next);
-        if (keys.length) {
-          report.files.push({ file: rel, target: kind, id: f.replace(/\.json$/, ""), changedKeys: keys });
-          writes.push({ file: rel, abs, data: next });
-        }
-      }
+    for (const dir of dirs) for (const f of await jsonFiles(dir, true)) await visit(path.join(dir, f), kind, idOf(f));
+  }
+  // 設計の実体のほかのデータ (業務フロー・帳票・画面項目・汎用定義・規約・独自部品)。版が上がったのに、これらだけ旧版のまま残らないようにする
+  for (const [dirName, target] of [["business-flows", "businessFlow"], ["reports", "report"], ["screen-items", "screenItems"]] as const) {
+    for (const f of await jsonFiles(path.join(dataRoot, dirName))) await visit(path.join(dataRoot, dirName, f), target, idOf(f));
+  }
+  try {
+    for (const k of (await fs.readdir(path.join(dataRoot, "generic-definitions"), { withFileTypes: true })).filter((e) => e.isDirectory() && !e.name.startsWith(".")).map((e) => e.name).sort()) {
+      for (const f of await jsonFiles(path.join(dataRoot, "generic-definitions", k))) await visit(path.join(dataRoot, "generic-definitions", k, f), "genericDefinition", `${k}/${idOf(f)}`);
     }
+  } catch { /* 汎用定義が無い */ }
+  for (const [rel, target] of [["conventions/catalog.json", "conventions"], ["layout-components.json", "layoutComponents"]] as const) {
+    if (await fs.access(path.join(dataRoot, ...rel.split("/"))).then(() => true, () => false)) await visit(path.join(dataRoot, ...rel.split("/")), target, idOf(path.basename(rel)));
   }
   const projectNext = run(project, "project", "harmony");
   const projectKeys = changedKeys(project, projectNext);
   if (projectKeys.length) report.files.push({ file: "harmony.json", target: "project", id: "harmony", changedKeys: projectKeys });
 
   if (opts.apply) {
+    // 読めずに飛ばしたファイルがあると、そのファイルだけ旧版のまま残り (版が上がるので、あとから移行されない)。先に直してもらう
+    if (report.skipped.length) throw new Error(`読めないファイルがあるため、移行を実行しません (版を上げると、そのファイルは移行されないまま残ります): ${report.skipped.join(", ")}`);
     // 先に各設計を書き、最後に harmony.json (schemaVersion を上げる)。途中で止まっても、版が上がっていないので、もう一度実行できる (移行は冪等にする)
     for (const w of writes) await writeJsonFile(w.abs, w.data);
     await writeProject({ ...projectNext, schemaVersion: latest }, root);

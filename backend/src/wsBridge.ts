@@ -501,7 +501,7 @@ export class WsBridge extends EventEmitter {
         return;
       }
       // 接続トークン (HARMONY_AUTH_TOKEN を設定したときだけ)
-      const authError = checkAuthToken(req);
+      const authError = checkAuthToken(req, process.env, true);
       if (authError) {
         logWarn("ws-bridge", "WebSocket connection rejected: auth failed", { reason: authError });
         ws.close(1008, "Unauthorized");
@@ -605,6 +605,7 @@ export class WsBridge extends EventEmitter {
           }
           // per-session context を削除 (#700 R-2)
           workspaceContextManager.disconnect(clientId);
+          this.pruneExternalWatcher();
           logInfo("ws-bridge", "Client disconnected", { clientId: clientId.substring(0, 8), remaining: this.clients.size });
           if (this.clients.size === 0) {
             this.emit("disconnected");
@@ -622,6 +623,11 @@ export class WsBridge extends EventEmitter {
     this.wss.on("error", (err: NodeJS.ErrnoException) => {
       logError("ws-bridge", "Server runtime error", { error: err.message, code: err.code });
     });
+  }
+
+  /** どの画面も開いていないワークスペースの、外部更新の監視を止める */
+  private pruneExternalWatcher(): void {
+    this.externalWatcher.prune((root) => workspaceContextManager.getClientIdsByPath(root).length > 0);
   }
 
   /** 特定クライアントへイベントを送信 */
@@ -748,7 +754,10 @@ export class WsBridge extends EventEmitter {
     const wsId = (): string | null => workspaceContextManager.getActivePath(clientId);
 
     const activePath = workspaceContextManager.getActivePath(clientId);
-    if (activePath) void this.externalWatcher.ensure(activePath);
+    if (activePath) {
+      void this.externalWatcher.ensure(activePath);
+      this.pruneExternalWatcher();
+    }
     try {
       // 前回、複数ファイルの操作の途中で止まっていれば、最初の要求のときに元へ戻す
       if (activePath) await ensureRecovered(activePath);

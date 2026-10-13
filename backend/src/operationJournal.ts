@@ -20,8 +20,10 @@ export interface JournalPlan {
   label: string;
   /** 元の内容に戻すファイル (ワークスペースからの相対パス → 元の内容) */
   restore: Array<{ rel: string; content: string }>;
-  /** 操作で新しく作るファイル (復旧では消す。ワークスペースからの相対パス) */
+  /** 操作で新しく作るファイル (復旧では消す。ワークスペースからの相対パス)。restore に入っているものは消さない */
   remove: string[];
+  /** 記録を書いたプロセス。生きているあいだは、進行中の操作なので復旧しない (別のプロセス・別の経路で開いた場合に、巻き戻さないため) */
+  pid?: number;
 }
 
 const toRel = (root: string, abs: string): string => path.relative(root, abs).split(path.sep).join("/");
@@ -43,7 +45,7 @@ export async function openJournal(root: string, plan: JournalPlan): Promise<() =
   await fs.writeFile(path.join(dir, ".gitignore"), "*\n", { flag: "wx" }).catch(() => undefined);
   const file = path.join(dir, `${Date.now()}-${crypto.randomUUID()}.json`);
   const tmp = `${file}.tmp`;
-  await fs.writeFile(tmp, JSON.stringify(plan), "utf-8");
+  await fs.writeFile(tmp, JSON.stringify({ ...plan, pid: process.pid }), "utf-8");
   await fs.rename(tmp, file); // 書き終えた記録だけが、復旧の対象になる
   return async () => { await fs.rm(file, { force: true }); };
 }
@@ -55,7 +57,12 @@ function contained(root: string, rel: string): string {
   return abs;
 }
 
-/** 残っている記録を、元の内容に戻す。戻したファイルの数を返す */
+function isAlive(pid: number): boolean {
+  if (pid === process.pid) return true;
+  try { process.kill(pid, 0); return true; } catch (e) { return (e as NodeJS.ErrnoException).code === "EPERM"; }
+}
+
+/** 残っている記録 (持ち主のプロセスが終わっているもの) を、元の内容に戻す。戻したファイルの数を返す */
 export async function recoverJournals(root: string): Promise<{ journals: number; restored: number }> {
   const dir = path.join(root, JOURNAL_DIR);
   let files: string[];
@@ -65,13 +72,17 @@ export async function recoverJournals(root: string): Promise<{ journals: number;
     const file = path.join(dir, f);
     try {
       const plan = JSON.parse(await fs.readFile(file, "utf-8")) as JournalPlan;
+      // 持ち主のプロセスが生きている記録は、進行中の操作。巻き戻さない
+      if (plan.pid !== undefined && isAlive(plan.pid)) continue;
+      const restoring = new Set(plan.restore.map((r) => r.rel));
       for (const r of plan.restore) {
         const abs = contained(root, r.rel);
         await fs.mkdir(path.dirname(abs), { recursive: true });
         await fs.writeFile(abs, r.content, "utf-8");
         restored++;
       }
-      for (const rel of plan.remove) await fs.rm(contained(root, rel), { force: true });
+      // 元の内容へ戻したファイルは、消さない (同じパスが「戻す」と「消す」の両方に入っていても、戻したまま)
+      for (const rel of plan.remove) if (!restoring.has(rel)) await fs.rm(contained(root, rel), { force: true });
       logWarn("journal", "journal.recovered", { label: plan.label, restored: plan.restore.length, removed: plan.remove.length });
       await fs.rm(file, { force: true });
     } catch (e) {

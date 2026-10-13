@@ -6,7 +6,7 @@
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
-import { buildDesignDocument, renderStandaloneDesignDoc, type DesignDocInput } from "@harmony/shared";
+import { buildDesignDocument, layoutToHtml, renderStandaloneDesignDoc, type DesignDocInput } from "@harmony/shared";
 
 const root = path.resolve(__dirname, "../../../../examples/retail");
 const readDir = (d: string, f = (n: string) => n.endsWith(".json")) => {
@@ -85,5 +85,24 @@ describe("設計書 HTML の XSS (すべての文字列を悪意のある値に�
   it("画面項目・処理フローの工程・テーブルのカラムなど、深い入れ子の値も同様", () => {
     const html = buildDesignDocument(taint({ ...base, flows: base.flows.slice(0, 5), screens: base.screens.slice(0, 5), tables: base.tables.slice(0, 5) })).html;
     expect(leaks(html)).toEqual([]);
+  });
+
+  it("画面レイアウト: すべての種類の部品に、すべての props (数のはずの level / columns / span も) を悪意のある値で与えても、タグ・属性が突き抜けない", () => {
+    const P = (i: number) => PAYLOADS[i % PAYLOADS.length];
+    const props = Object.fromEntries(["text", "title", "label", "tone", "variant", "align", "alt", "level", "columns", "span"].map((k, i) => [k, P(i)]));
+    const TYPES = ["heading", "text", "field", "table", "button", "link", "message-area", "image", "divider", "html", "form", "search-panel", "section", "columns", "column", "tabs", "tab", "button-bar", "component"];
+    const node = (type: string, n: number, children: unknown[] = []) => ({ id: `n${n}`, type, itemRef: P(n), componentRef: P(n + 1), props, children });
+    const leaves = TYPES.map((t, i) => node(t, i));
+    // 入れ子の中でも描かれるよう、容器の中にも全種類を置く
+    const nodes = [...leaves, ...["form", "search-panel", "section", "columns", "column", "tabs", "tab", "button-bar"].map((t, i) => node(t, 100 + i, leaves))];
+    const items = [{ id: P(0), label: P(1), type: "string", direction: "in" as const }];
+    const html = layoutToHtml({ version: 1, nodes } as never, items as never, []);
+    expect(html.length).toBeGreaterThan(500);
+    expect(leaks(html)).toEqual([]);
+    // 数のはずの値は、数として出る (文字列は混ざらない)
+    expect(html).toMatch(/lv-h2\b/);
+    expect(html).toMatch(/lv-cols-1\b/);
+    expect(html).toMatch(/flex:6 1 0/);
+    expect(html).not.toMatch(/lv-cols-[^\d"\s]/);
   });
 });

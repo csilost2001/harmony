@@ -13,17 +13,18 @@ backend (port 5179、MCP + WebSocket + HTTP) の、接続・要求・AI の権�
 
 `HARMONY_AUTH_TOKEN=<文字列>` を付けて backend を起動すると、トークンを持たない接続を拒否する (HTTP は 401、WebSocket は close 1008 `Unauthorized`)。未設定なら認証なし。
 
-- HTTP (MCP など): `Authorization: Bearer <トークン>` (`.mcp.json` の `headers` に書く)
-- WebSocket (画面): 接続 URL の `?token=<トークン>`。画面は、拒否されると**トークンを聞く**入力を出し、このブラウザの localStorage (`harmony.authToken`) にだけ保存する (設計データ・サーバには送らない)
+- HTTP (MCP など): `Authorization: Bearer <トークン>` (`.mcp.json` の `headers` に書く)。HTTP は `?token=` を**受けない** (URL がログ・履歴に残りやすいため)
+- WebSocket (画面): 接続 URL の `?token=<トークン>` (ブラウザの WebSocket はヘッダーを付けられないため、ここだけ受ける)。画面は、拒否されると**トークンを聞く**入力を出し、このブラウザの localStorage (`harmony.authToken`) にだけ保存する (設計データ・サーバには送らない)
 - `/health` と画面の静的ファイル (`HARMONY_STATIC_DIR`) は、トークンなしで見える (画面を開くため)。設計データ・MCP・WebSocket は、トークンが要る
 - 比較は、時間で推測されない方法 (`timingSafeEqual`)
+- **総当たりへの対策**: 同じ送信元から、違うトークンが 10 回 (60 秒の窓) 続くと、60 秒のあいだ、正しいトークンでも断る。トークンが無い要求 (画面を開いただけ) は、数えない
 
 ## 要求の上限
 
 | 設定 | 既定 | 内容 |
 |---|---|---|
 | `HARMONY_MAX_WS_PAYLOAD_BYTES` | 32 MiB | WebSocket の 1 メッセージ。超えると接続を切る (ws の `maxPayload`) |
-| `HARMONY_MAX_HTTP_BODY_BYTES` | 8 MiB | HTTP の 1 リクエストの本文 (`Content-Length` が超えれば 413)。MCP の SDK は別に 4 MB で打ち切る |
+| `HARMONY_MAX_HTTP_BODY_BYTES` | 8 MiB | HTTP の 1 リクエストの本文。`Content-Length` が超えれば 413。chunked 転送 (Content-Length なし) は、本文を読みながら数えて打ち切る (`readLimitedBody`。AI 命名のルートで使用)。MCP の SDK は別に 4 MB で打ち切る |
 | `HARMONY_MAX_WS_REQUESTS_PER_10S` | 3000 | 1 つの接続が 10 秒間に出せる要求の数。超えた要求は「要求が多すぎます」で断る (単一スレッドの backend が占有されないように) |
 
 不正な値 (正の整数でない) は、既定に戻る。
@@ -35,10 +36,11 @@ backend (port 5179、MCP + WebSocket + HTTP) の、接続・要求・AI の権�
 | `HARMONY_MCP_MODE=readonly` | 読み取りの tool だけを使える (設計を読む・点検する用途)。書き込み・削除・改名・保存・編集セッションの作成はできない。tools/list にも出ない。`designer__workspace_open` は通る (新規作成の `init: true` を除く) |
 | `HARMONY_MCP_DENY=a,b` | 使わせない tool の名前 (`designer__` は省略できる。例: `remove_table,rename_entity`) |
 
-読み取りの tool は、名前の規則 (`list_` / `get_` / `find_` / `check_` / `generate_` / `export_`) と明示した例外で決める (`security/mcpAccess.ts`)。新しい tool を足したとき、読み取り扱いになる一覧はテスト (`hardening.test.ts`) で固定してあり、意図せず書き込みの tool が読み取り扱いにならないよう、足すときに中身を確かめる。
+読み取りの tool は、**許可リスト** (`security/mcpAccess.ts` の `READ_ONLY_TOOLS`) で決める。名前の規則では決めない (将来 `get_` で始まる書き込みの tool が増えても、読み取り専用の環境で通ってしまわないように、足すときに 1 件ずつ中身を確かめて足す)。リストに無い tool は、読み取り専用では使えない。リストはテスト (`hardening.test.ts`) でも固定している。
 
 ## 限界 (正直に)
 
+- WebSocket の 1 メッセージが上限を超えると、接続が切れる (close 1009)。画面は再接続するが、そのとき超えた内容を保存できていない (20 MB を超える設計 JSON は、健全性の検査でも「大きすぎる」と知らせる)。上限は `HARMONY_MAX_WS_PAYLOAD_BYTES` で上げられる
 - 通信は暗号化しない (`ws://` / `http://`)。公開するなら、前段にリバースプロキシ (TLS) を置く
 - 接続トークンは 1 つの共通の値。利用者ごとの権限・監査はない ([ロードマップ] 第 5 弾)
 - 待ち受けは `0.0.0.0` のまま (WSL2 の経路のため)。外に公開しない環境では、ファイアウォール・コンテナの公開ポートの設定で絞る

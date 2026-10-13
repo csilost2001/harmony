@@ -5,7 +5,9 @@
  */
 import fs from "node:fs/promises";
 import path from "node:path";
-import { actionsDir, resolveDataRoot, writeJsonFile } from "./projectStorage.js";
+import {
+  actionsDir, resolveDataRoot, writeBusinessFlow, writeProcessFlow, writeReport, writeSequence, writeTable, writeView, writeViewDefinition,
+} from "./projectStorage.js";
 import { listBackupVersions, readBackupVersion, versionIdToIso, type BackupVersion } from "./fileBackup.js";
 import { assertSafeName } from "./security/idValidator.js";
 
@@ -55,10 +57,28 @@ export async function readEntityVersion(root: string, resourceType: string, reso
   return data;
 }
 
-/** AI 用: 版をそのまま書き戻す (現在の内容は、書き戻しの前に世代として残る) */
+/** 通常の保存と同じ書き込み (uuid の不変・保存時の整理・一意性の検査を通る)。呼ぶときに引く (読み込み時に storage の関数を束ねない) */
+const writerFor = (resourceType: string): ((id: string, data: unknown, root: string) => Promise<unknown>) | undefined => ({
+  "table": writeTable,
+  "process-flow": writeProcessFlow,
+  "view": writeView,
+  "view-definition": writeViewDefinition,
+  "sequence": writeSequence,
+  "business-flow": (id: string, data: unknown, root: string) => writeBusinessFlow(id, data, root),
+  "report": (id: string, data: unknown, root: string) => writeReport(id, data, root),
+} as Record<string, (id: string, data: unknown, root: string) => Promise<unknown>>)[resourceType];
+
+/**
+ * AI 用: 版を、通常の保存と同じ経路で書き戻す (現在の内容は、書き戻しの前に世代として残る)。
+ * uuid は、いまの設計のものを保つ (版が、削除→作り直しの前の別の uuid でも、設計の同一性は変えない)。
+ */
 export async function restoreEntityVersionToFile(root: string, resourceType: string, resourceId: string, versionId: string): Promise<{ restoredFrom: string }> {
-  const data = await readEntityVersion(root, resourceType, resourceId, versionId);
-  const rel = await versionedRelPath(root, resourceType, resourceId);
-  await writeJsonFile(path.join(root, ...rel.split("/")), data);
+  const data = await readEntityVersion(root, resourceType, resourceId, versionId) as Record<string, unknown>;
+  const write = writerFor(resourceType);
+  if (!write) throw new Error(`この種類 (${resourceType}) は、保存前の版に対応していません`);
+  const next = structuredClone(data);
+  delete next.uuid;
+  if (resourceType === "process-flow" && next.meta && typeof next.meta === "object") delete (next.meta as Record<string, unknown>).uuid;
+  await write(resourceId, next, root);
   return { restoredFrom: versionIdToIso(versionId) };
 }

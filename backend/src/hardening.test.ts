@@ -3,7 +3,7 @@
  * 保存前の版・書き込みエラーの案内・ワークスペースの健全性・外部変更の検知・複数ファイル操作の復旧・認証・要求の上限・MCP の権限。
  * 実 fs (os.tmpdir() 配下のワークスペース) を使う。
  */
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from "vitest";
 import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
@@ -14,10 +14,10 @@ import { listEntityVersions, readEntityVersion, restoreEntityVersionToFile, vers
 import { explainWriteError } from "./writeErrors.js";
 import { describeJsonError, findJsonErrorOffset, MAX_JSON_BYTES, persistDerivedUuids, repairRegistry, scanWorkspaceHealth } from "./workspaceHealth.js";
 import { collectExtraIssues } from "./schemaIssues.js";
-import { ExternalChangeWatcher, SELF_WINDOW_MS, classifyChangedPath, installSelfWriteTracking, isSelfWritePath, markSelfWrite } from "./externalChanges.js";
+import { ExternalChangeWatcher, RETRY_AFTER_MS, SELF_WINDOW_MS, classifyChangedPath, installSelfWriteTracking, isSelfWritePath, markSelfWrite } from "./externalChanges.js";
 import { openJournal, planFromAbsolute, recoverJournals, JOURNAL_DIR } from "./operationJournal.js";
 import { renameEntityId } from "./renameEntity.js";
-import { checkAuthToken } from "./security/authToken.js";
+import { FAILURE_WINDOW_MS, LOCK_MS, MAX_FAILURES, _resetAuthThrottleForTest, checkAuthToken } from "./security/authToken.js";
 import { RateLimiter, checkContentLength, maxHttpBodyBytes, maxWsPayloadBytes } from "./security/requestLimits.js";
 import { assertToolAllowed, filterTools, isReadOnlyTool, isToolAllowed } from "./security/mcpAccess.js";
 import { tools } from "./tools.js";
@@ -67,13 +67,18 @@ describe("保存前の版 (fileBackup / fileVersions)", () => {
     expect((await readEntityVersion(root, "table", "many", versions[0].id) as { name: string }).name).toBe(`v${BACKUP_KEEP + 3}`);
   });
 
-  it("版へ書き戻せる。書き戻す前の内容も版として残る (取り消せる)", async () => {
+  it("版へ書き戻せる。書き戻す前の内容も版として残る (取り消せる)。uuid は、いまの設計のものを保つ", async () => {
     const root = await makeWs();
     await writeTable("t1", table("t1", "最初"), root);
+    const uuid = (await read(path.join(root, "harmony", "tables", "t1.json"))).uuid;
     await writeTable("t1", table("t1", "変更後"), root);
+    // 別の uuid を持つ古い版 (削除 → 作り直しの前の版など) を、版の置き場へ置く
     const [prev] = await listEntityVersions(root, "table", "t1");
+    const vf = path.join(root, ".harmony-backups", "harmony", "tables", "t1.json", `${prev.id}.json`);
+    await fs.writeFile(vf, JSON.stringify({ ...(await read(vf)), uuid: "99999999-9999-4999-8999-999999999999" }));
     await restoreEntityVersionToFile(root, "table", "t1", prev.id);
     expect((await read(path.join(root, "harmony", "tables", "t1.json"))).name).toBe("最初");
+    expect((await read(path.join(root, "harmony", "tables", "t1.json"))).uuid).toBe(uuid);
     const after = await listEntityVersions(root, "table", "t1");
     const names = await Promise.all(after.map(async (v) => (await readEntityVersion(root, "table", "t1", v.id) as { name: string }).name));
     expect(names).toContain("変更後");
@@ -188,7 +193,7 @@ describe("ワークスペースの健全性 (workspaceHealth)", () => {
     const root = await makeWs();
     await writeTable("loose-one", table("loose-one", "手で置いた"), root);
     const issues = await scanWorkspaceHealth(root);
-    const hit = issues.find((i) => i.section === "一覧");
+    const hit = issues.find((i) => i.code === "registry-unregistered");
     expect(hit?.severity).toBe("info");
     expect(hit?.message).toContain("table:loose-one");
   });
@@ -198,12 +203,12 @@ describe("ワークスペースの健全性 (workspaceHealth)", () => {
     await fs.writeFile(path.join(root, "harmony", "tables", "nouuid2.json"), JSON.stringify({ id: "nouuid2", name: "x", columns: [] }));
     await fs.writeFile(path.join(root, "harmony", "tables", "broken2.json"), "{ not json");
     const all = await scanWorkspaceHealth(root);
-    expect(all.some((i) => i.maintenance && i.section === "uuid")).toBe(true);
-    expect(all.some((i) => i.maintenance && i.section === "一覧")).toBe(true);
+    expect(all.some((i) => i.maintenance && i.code === "uuid-unsaved")).toBe(true);
+    expect(all.some((i) => i.maintenance && i.code === "registry-unregistered")).toBe(true);
     const extra = await collectExtraIssues(root);
     expect(extra.some((i) => i.section === "uuid" || i.section === "一覧")).toBe(false);
     expect(extra.some((i) => i.section.includes("broken2.json") && i.severity === "error")).toBe(true);
-    expect(extra.every((i) => !("maintenance" in i))).toBe(true);
+    expect(extra.every((i) => !("maintenance" in i) && !("code" in i))).toBe(true);
   });
 
   it("repairRegistry: 予行は書かず、apply で足す・外す。もう一度やると何も起きない", async () => {
@@ -267,14 +272,35 @@ describe("外部変更の検知 (externalChanges)", () => {
     }
   });
 
-  it("自分の書き込みの記録: 覚えた直後だけ「自分」。ほかのパスは外部", () => {
-    const p = path.join(TMP, "marked.json");
+  it("自分の書き込みの記録: 書き終えた状態と同じ間は「自分」(通知が遅れても)。外で書き換えられたら (書いた直後でも) 外部", async () => {
+    installSelfWriteTracking();
+    const dir = path.join(TMP, "marks");
+    await fs.mkdir(dir, { recursive: true });
+    const p = path.join(dir, "marked.json");
     expect(isSelfWritePath(p)).toBe(false);
-    markSelfWrite(p, 1_000);
-    expect(isSelfWritePath(p, 1_000 + SELF_WINDOW_MS - 1)).toBe(true);
-    expect(isSelfWritePath(p, 1_000 + SELF_WINDOW_MS + 1)).toBe(false);
-    expect(isSelfWritePath(path.join(TMP, "other.json"), 1_000)).toBe(false);
+    await fs.writeFile(p, "AB"); // 包み (installSelfWriteTracking) を通る書き込み
+    // 書いてから 2 秒たって (backend が重い処理で塞がっていて通知が遅れた) 届いても、自分の書き込み
+    expect(isSelfWritePath(p, Date.now() + 2_000)).toBe(true);
+    // 別のプロセスが書き換えた (状態が変わった) ら、書いた直後でも外部
+    const { execFileSync } = await import("node:child_process");
+    execFileSync("node", ["-e", `require("fs").writeFileSync(${JSON.stringify(p)}, "外で書き換え")`]);
+    expect(isSelfWritePath(p)).toBe(false);
+    // 書く途中 (状態がまだ決まっていない) は、短い間だけ「自分」
+    const q = path.join(dir, "writing.json");
+    markSelfWrite(q, false, 1_000);
+    expect(isSelfWritePath(q, 1_000 + SELF_WINDOW_MS - 1)).toBe(true);
+    expect(isSelfWritePath(q, 1_000 + SELF_WINDOW_MS + 1)).toBe(false);
     markSelfWrite(undefined); markSelfWrite(42 as unknown); // パスでないものは無視
+  });
+
+  it("自分が消したフォルダの下のファイルの削除通知は、自分のものとして除く", async () => {
+    installSelfWriteTracking();
+    const dir = path.join(TMP, "rmdir-case");
+    await fs.mkdir(path.join(dir, "sub"), { recursive: true });
+    await fs.writeFile(path.join(dir, "sub", "a.json"), "{}");
+    await fs.rm(dir, { recursive: true, force: true });
+    expect(isSelfWritePath(path.join(dir, "sub", "a.json"))).toBe(true);
+    expect(isSelfWritePath(path.join(TMP, "other-dir", "a.json"))).toBe(false);
   });
 
   it("fs の書き込み系を包んでも、動作 (戻り値・エラー・同期版) は変わらず、書いたパスが記録される", async () => {
@@ -297,38 +323,94 @@ describe("外部変更の検知 (externalChanges)", () => {
     await fs.rm(dir, { recursive: true, force: true });
   });
 
-  it("外でファイルを書き換えると通知が出る。backend 自身の書き込みは通知しない (要求が続いていても、外部の変更は見逃さない)", async () => {
+  const waitFor = async (cond: () => boolean, ms = 5_000): Promise<boolean> => {
+    const start = Date.now();
+    while (Date.now() - start < ms) { if (cond()) return true; await new Promise((r) => setTimeout(r, 25)); }
+    return cond();
+  };
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+  it("外でファイルを書き換えると通知が出る (書いた直後でも)。backend 自身の書き込みは、通知が遅れても通知しない", async () => {
     installSelfWriteTracking();
     const root = await makeWs();
     await writeTable("watched", table("watched", "監視"), root);
     const file = path.join(root, "harmony", "tables", "watched.json");
     const got: Array<{ evs: string[]; paths: string[] }> = [];
     const w = new ExternalChangeWatcher((_r, evs, paths) => got.push({ evs: evs.map((e) => `${e.event}:${JSON.stringify(e.data)}`), paths }));
+    const { execFileSync } = await import("node:child_process");
+    const externalWrite = (name: string) => execFileSync("node", ["-e", `require("fs").writeFileSync(${JSON.stringify(file)}, ${JSON.stringify(JSON.stringify(table("watched", name)))})`]);
     try {
       await w.ensure(root);
-      // 準備で自分が書いた直後の余韻 (SELF_WINDOW_MS) が過ぎるのを待つ
-      await new Promise((r) => setTimeout(r, SELF_WINDOW_MS + 200));
-
-      // 外部の書き込み: backend の fs を通さない (別プロセスに相当する書き込みは、記録されない経路で行う)
-      const { execFileSync } = await import("node:child_process");
-      execFileSync("node", ["-e", `require("fs").writeFileSync(${JSON.stringify(file)}, ${JSON.stringify(JSON.stringify(table("watched", "外で編集")))})`]);
-      await new Promise((r) => setTimeout(r, 900));
-      expect(got.length).toBe(1);
+      // 外部の書き込み (別プロセス)。直前に backend が書いた (writeTable) 直後でも、状態が違うので検知する
+      externalWrite("外で編集");
+      expect(await waitFor(() => got.length === 1)).toBe(true);
       expect(got[0].evs).toEqual(['tableChanged:{"tableId":"watched"}']);
 
-      // backend 自身の保存は、通知しない
+      // backend 自身の保存は通知しない。保存の直後に backend が 2 秒塞がって、通知が遅れて届いても
       got.length = 0;
-      await new Promise((r) => setTimeout(r, SELF_WINDOW_MS + 200));
       await writeTable("watched", table("watched", "自分で保存"), root);
-      await new Promise((r) => setTimeout(r, 900));
+      const t = Date.now(); while (Date.now() - t < 2_000) { /* イベントループを塞ぐ */ }
+      await sleep(900);
       expect(got).toEqual([]);
+
+      // 自分が保存したあとの、外部の書き換えも検知する
+      externalWrite("また外で編集");
+      expect(await waitFor(() => got.length === 1)).toBe(true);
     } finally {
       w.closeAll();
     }
-  }, 20_000);
+  }, 30_000);
+
+  it("あとから作られたフォルダ (generic-definitions/<種類>) も監視する。使われなくなったワークスペースの監視は止める", async () => {
+    installSelfWriteTracking();
+    const root = await makeWs();
+    const got: string[] = [];
+    const w = new ExternalChangeWatcher((_r, evs) => got.push(...evs.map((e) => e.event)));
+    try {
+      await w.ensure(root);
+      const kindDir = path.join(root, "harmony", "generic-definitions", "message");
+      const { execFileSync } = await import("node:child_process");
+      execFileSync("node", ["-e", `const fs=require("fs");fs.mkdirSync(${JSON.stringify(kindDir)},{recursive:true})`]);
+      await sleep(300);
+      execFileSync("node", ["-e", `require("fs").writeFileSync(${JSON.stringify(path.join(kindDir, "m1.json"))}, "{}")`]);
+      expect(await waitFor(() => got.includes("genericDefinitionChanged"))).toBe(true);
+      w.prune(() => false);
+      expect((w as unknown as { watching: Map<string, unknown> }).watching.size).toBe(0);
+    } finally {
+      w.closeAll();
+    }
+  }, 30_000);
+
+  it("監視を始められなかったワークスペースは、しばらく試し直さない (要求のたびに警告ログを出さない)", async () => {
+    const root = path.join(TMP, "no-harmony-json");
+    await fs.mkdir(root, { recursive: true });
+    const w = new ExternalChangeWatcher(() => undefined);
+    const watching = (w as unknown as { watching: Map<string, unknown>; failedAt: Map<string, number> });
+    await w.ensure(root, 1_000);
+    expect(watching.failedAt.get(root)).toBe(1_000);
+    // ワークスペースが整ったあとでも、待ちの間は試さない。待ちが過ぎれば始める
+    await fs.writeFile(harmonyFile(root), JSON.stringify({ schemaVersion: "v3", dataDir: "harmony", meta: { id: "x", name: "x", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" }, entities: {} }));
+    await ensureDataDir(root, "harmony");
+    await w.ensure(root, 1_000 + RETRY_AFTER_MS - 1);
+    expect(watching.watching.size).toBe(0);
+    await w.ensure(root, 1_000 + RETRY_AFTER_MS + 1);
+    expect(watching.watching.size).toBe(1);
+    w.closeAll();
+  });
 });
 
 describe("複数ファイル操作の復旧 (operationJournal)", () => {
+  /** 持ち主のプロセスが終わった記録にする (強制終了のあとの残骸。生きているプロセスの記録は、進行中の操作として復旧しない) */
+  async function orphan(root: string): Promise<void> {
+    const { spawnSync } = await import("node:child_process");
+    const deadPid = spawnSync("node", ["-e", "process.exit(0)"]).pid!;
+    const dir = path.join(root, JOURNAL_DIR);
+    for (const f of (await fs.readdir(dir)).filter((x) => x.endsWith(".json"))) {
+      const j = JSON.parse(await fs.readFile(path.join(dir, f), "utf-8"));
+      await fs.writeFile(path.join(dir, f), JSON.stringify({ ...j, pid: deadPid }));
+    }
+  }
+
   it("途中で止まった記録は、元の内容に戻し、新しく作ったファイルを消す", async () => {
     const root = await makeWs();
     const a = path.join(root, "harmony", "tables", "a.json");
@@ -337,12 +419,36 @@ describe("複数ファイル操作の復旧 (operationJournal)", () => {
     await openJournal(root, planFromAbsolute(root, "test", [{ absPath: a, content: "ORIGINAL" }], [created])); // commit しない = 途中で止まった
     await fs.writeFile(a, "HALF-WRITTEN");
     await fs.writeFile(created, "NEW");
+    await orphan(root);
     const res = await recoverJournals(root);
     expect(res).toEqual({ journals: 1, restored: 1 });
     expect(await fs.readFile(a, "utf-8")).toBe("ORIGINAL");
     await expect(fs.access(created)).rejects.toThrow();
     expect(await fs.readdir(path.join(root, JOURNAL_DIR))).toEqual([".gitignore"]);
     expect(await recoverJournals(root)).toEqual({ journals: 0, restored: 0 });
+  });
+
+  it("持ち主のプロセスが生きている記録は、進行中の操作なので巻き戻さない", async () => {
+    const root = await makeWs();
+    const a = path.join(root, "harmony", "tables", "live.json");
+    await fs.writeFile(a, "ORIGINAL");
+    await openJournal(root, planFromAbsolute(root, "live", [{ absPath: a, content: "ORIGINAL" }], []));
+    await fs.writeFile(a, "IN-PROGRESS");
+    expect(await recoverJournals(root)).toEqual({ journals: 1, restored: 0 });
+    expect(await fs.readFile(a, "utf-8")).toBe("IN-PROGRESS");
+    expect((await fs.readdir(path.join(root, JOURNAL_DIR))).filter((f) => f.endsWith(".json"))).toHaveLength(1);
+  });
+
+  it("「戻す」と「消す」が同じパスにあっても、戻したファイルは消さない (旧配置の重複の削除の計画)", async () => {
+    const root = await makeWs();
+    const legacy = path.join(root, "harmony", "actions", "dup.json");
+    await fs.mkdir(path.dirname(legacy), { recursive: true });
+    await fs.writeFile(legacy, "LEGACY");
+    await openJournal(root, planFromAbsolute(root, "dup", [{ absPath: legacy, content: "LEGACY" }], [legacy]));
+    await fs.rm(legacy);
+    await orphan(root);
+    await recoverJournals(root);
+    expect(await fs.readFile(legacy, "utf-8")).toBe("LEGACY");
   });
 
   it("終わった (commit した) 記録は残らず、復旧しても何も戻らない", async () => {
@@ -368,32 +474,54 @@ describe("複数ファイル操作の復旧 (operationJournal)", () => {
     expect((await fs.readdir(dir)).includes("1-evil.json")).toBe(true);
   });
 
-  it("改名が成功したら、記録は残らない", async () => {
+  it("改名が成功したら、記録は残らない。参照元の書き換え前の内容は、保存前の版に残る", async () => {
     const root = await makeWs();
     await writeTable("before-name", table("before-name", "表"), root);
+    await writeProcessFlow("ref-flow", {
+      meta: { id: "ref-flow", name: "参照元", flowType: "common", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" },
+      actions: [{ id: "a1", name: "a", steps: [{ id: "s1", kind: "dbAccess", description: "d", tableId: "before-name", operation: "SELECT" }] }],
+    }, root);
     await renameEntityId("table", "before-name", "after-name", root);
     const left = await fs.readdir(path.join(root, JOURNAL_DIR)).catch(() => [] as string[]);
     expect(left.filter((f) => f.endsWith(".json"))).toEqual([]);
     await expect(fs.access(path.join(root, "harmony", "tables", "after-name.json"))).resolves.toBeUndefined();
+    const versions = await listEntityVersions(root, "process-flow", "ref-flow");
+    expect(versions.length).toBeGreaterThan(0);
+    expect(JSON.stringify(await readEntityVersion(root, "process-flow", "ref-flow", versions[0].id))).toContain("before-name");
   });
 });
 
 const req = (headers: Record<string, string> = {}, url = "/mcp"): IncomingMessage => ({ headers, url } as unknown as IncomingMessage);
 
 describe("接続トークン (authToken)", () => {
+  beforeEach(() => _resetAuthThrottleForTest());
+
   it("HARMONY_AUTH_TOKEN が未設定なら、何も要求しない", () => {
     expect(checkAuthToken(req(), {})).toBeNull();
     expect(checkAuthToken(req(), { HARMONY_AUTH_TOKEN: "  " })).toBeNull();
   });
-  it("設定されていれば、Bearer ヘッダーまたは ?token= が合うときだけ通す", () => {
+  it("設定されていれば、Bearer ヘッダーが合うときだけ通す。?token= は WebSocket (allowQuery) だけ", () => {
     const env = { HARMONY_AUTH_TOKEN: "s3cret" };
     expect(checkAuthToken(req(), env)).toMatch(/ありません/);
     expect(checkAuthToken(req({ authorization: "Bearer wrong" }), env)).toMatch(/違います/);
     expect(checkAuthToken(req({ authorization: "Bearer s3cret" }), env)).toBeNull();
     expect(checkAuthToken(req({ authorization: "bearer   s3cret " }), env)).toBeNull();
-    expect(checkAuthToken(req({}, "/?token=s3cret"), env)).toBeNull();
-    expect(checkAuthToken(req({}, "/?token=nope"), env)).toMatch(/違います/);
+    expect(checkAuthToken(req({}, "/?token=s3cret"), env)).toMatch(/ありません/); // HTTP は ?token= を受けない
+    expect(checkAuthToken(req({}, "/?token=s3cret"), env, true)).toBeNull();
+    expect(checkAuthToken(req({}, "/?token=nope"), env, true)).toMatch(/違います/);
     expect(checkAuthToken(req({ authorization: "Basic s3cret" }), env)).toMatch(/ありません/);
+  });
+  it("違うトークンが MAX_FAILURES 回続くと、LOCK_MS のあいだ、正しいトークンでも断る。トークンなしは数えない。窓が過ぎれば数え直す", () => {
+    const env = { HARMONY_AUTH_TOKEN: "s3cret" };
+    const good = req({ authorization: "Bearer s3cret" });
+    for (let i = 0; i < 50; i++) checkAuthToken(req(), env, false, 1_000); // トークンなし (画面を開いただけ) は失敗に数えない
+    expect(checkAuthToken(good, env, false, 1_000)).toBeNull();
+    for (let i = 0; i < MAX_FAILURES; i++) checkAuthToken(req({ authorization: `Bearer bad${i}` }), env, false, 2_000);
+    expect(checkAuthToken(good, env, false, 2_001)).toMatch(/しばらく/);
+    expect(checkAuthToken(good, env, false, 2_000 + LOCK_MS + 1)).toBeNull();
+    // 窓を過ぎた失敗は、数え直す
+    for (let i = 0; i < MAX_FAILURES - 1; i++) checkAuthToken(req({ authorization: `Bearer bad${i}` }), env, false, 200_000);
+    expect(checkAuthToken(good, env, false, 200_000 + FAILURE_WINDOW_MS + 1)).toBeNull();
   });
 });
 
@@ -535,7 +663,34 @@ describe("スキーマの版の移行の枠組み (schemaMigration)", () => {
     // 書き換える前の内容は、版に残っている
     const versions = await listEntityVersions(root, "table", "mig");
     expect((await readEntityVersion(root, "table", "mig", versions[0].id) as { name: string }).name).toBe("旧名");
+    // 設計の実体のほか、業務フロー・規約なども対象 (版だけ上がって、旧版のまま残らない)
     // 版が最新になったので、もう一度実行しても何も起きない
     expect(await migrateWorkspace(root, { migrations: [m1, m2], latest: "v5", apply: true })).toMatchObject({ migrations: [], files: [], applied: false });
+  });
+
+  it("読めないファイルがあるときは、apply を拒否する (版を上げると、そのファイルは移行されないまま残るため)。予行は、飛ばしたファイルを知らせる", async () => {
+    const root = await makeWs();
+    await writeTable("ok-one", table("ok-one", "良い"), root);
+    await fs.writeFile(path.join(root, "harmony", "tables", "bad-one.json"), "{ not json");
+    const dry = await migrateWorkspace(root, { migrations: [m1, m2], latest: "v5" });
+    expect(dry.skipped).toEqual(["tables/bad-one.json"]);
+    await expect(migrateWorkspace(root, { migrations: [m1, m2], latest: "v5", apply: true })).rejects.toThrow(/読めないファイル/);
+    expect(((await readProject(root)) as { schemaVersion: string }).schemaVersion).toBe("v3");
+  });
+
+  it("業務フロー・帳票・規約・独自部品・汎用定義・画面項目も、移行の対象", async () => {
+    const root = await makeWs();
+    const d = path.join(root, "harmony");
+    await fs.mkdir(path.join(d, "business-flows"), { recursive: true });
+    await fs.mkdir(path.join(d, "reports"), { recursive: true });
+    await fs.mkdir(path.join(d, "generic-definitions", "message"), { recursive: true });
+    await fs.writeFile(path.join(d, "business-flows", "bf.json"), JSON.stringify({ id: "bf", lanes: [], steps: [] }));
+    await fs.writeFile(path.join(d, "reports", "rp.json"), JSON.stringify({ id: "rp", sections: [] }));
+    await fs.writeFile(path.join(d, "generic-definitions", "message", "m1.json"), JSON.stringify({ name: "m1" }));
+    await fs.writeFile(path.join(d, "layout-components.json"), JSON.stringify({ version: 1, components: [] }));
+    const flag: SchemaMigration = { id: "v3-to-v4/flag", from: "v3", to: "v4", description: "flag", migrate: (data) => ({ ...data, flag: true }) };
+    const rep = await migrateWorkspace(root, { migrations: [flag], latest: "v4" });
+    const byTarget = Object.fromEntries(rep.files.map((f) => [f.target, f.file]));
+    expect(byTarget).toMatchObject({ businessFlow: "business-flows/bf.json", report: "reports/rp.json", genericDefinition: "generic-definitions/message/m1.json", layoutComponents: "layout-components.json", project: "harmony.json" });
   });
 });

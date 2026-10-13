@@ -11,7 +11,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import {
-  actionsDir, deriveStableUuid, entityDirOf, listExistingEntityIds, projectSaltFor, readProject, resolveDataRoot,
+  actionsDir, deriveStableUuid, entityDirOf, isLegacyGrapesScreen, listExistingEntityIds, listScreenIdsIncludingLegacy, projectSaltFor, readProject, resolveDataRoot,
   writeJsonFile, writeProject, type TopLevelEntityKind,
 } from "./projectStorage.js";
 import { mergeUnregisteredEntities } from "./registryMerge.js";
@@ -20,7 +20,11 @@ import { memoizeBySignature } from "./dataSignature.js";
 /** これを超える JSON は、読み込みを避けて「大きすぎる」として知らせる */
 export const MAX_JSON_BYTES = 20 * 1024 * 1024;
 
+export type HealthCode = "unreadable-file" | "unreadable-json" | "too-large" | "not-object" | "id-mismatch" | "registry-missing-file" | "registry-unregistered" | "uuid-unsaved";
+
 export interface HealthIssue {
+  /** 画面の出し分け (保守ボタンなど) に使う種類。文言を変えても動くよう、文言では判定しない */
+  code: HealthCode;
   severity: "error" | "warning" | "info";
   section: string;
   message: string;
@@ -132,32 +136,38 @@ async function probeFile(dir: string, p: Probe, dataRoot: string, issues: Health
   let st;
   try { st = await fs.stat(full); } catch { return; }
   if (st.size > MAX_JSON_BYTES) {
-    issues.push({ severity: "warning", section, message: `ファイルが大きすぎます (${Math.round(st.size / 1024 / 1024)} MB。上限 ${MAX_JSON_BYTES / 1024 / 1024} MB)。読み込みを避けているため、一覧・検査に含まれません。分割するか、不要なデータを減らしてください` });
+    issues.push({ code: "too-large", severity: "warning", section, message: `ファイルが大きすぎます (${Math.round(st.size / 1024 / 1024)} MB。上限 ${MAX_JSON_BYTES / 1024 / 1024} MB)。読み込みを避けているため、一覧・検査に含まれません。分割するか、不要なデータを減らしてください` });
     return;
   }
   let raw: string;
   try { raw = await fs.readFile(full, "utf-8"); } catch (e) {
-    issues.push({ severity: "error", section, message: `ファイルを読めません: ${(e as NodeJS.ErrnoException).code ?? (e as Error).message}` });
+    issues.push({ code: "unreadable-file", severity: "error", section, message: `ファイルを読めません: ${(e as NodeJS.ErrnoException).code ?? (e as Error).message}` });
     return;
   }
   let data: unknown;
   try { data = JSON.parse(raw); } catch (e) {
-    issues.push({ severity: "error", section, message: `${describeJsonError(raw, e)}。このままでは一覧・検査・設計書に含まれません。直すか、バックアップ (.harmony-backups) から戻してください` });
+    issues.push({ code: "unreadable-json", severity: "error", section, message: `${describeJsonError(raw, e)}。このままでは一覧・検査・設計書に含まれません。直すか、バックアップ (.harmony-backups) から戻してください` });
     return;
   }
   if (!p.kind || p.file.endsWith(".design.json")) return;
+  // 旧形式 (GrapesJS) の画面は、保存するまで旧形式のまま (id・uuid を持たない)。読み出しでは変換して扱うので、ここでは検査しない
+  if (p.kind === "screen" && isLegacyGrapesScreen(data)) return;
   if (!isRecord(data)) {
-    issues.push({ severity: "error", section, message: "ファイルの中身がオブジェクトではありません" });
+    issues.push({ code: "not-object", severity: "error", section, message: "ファイルの中身がオブジェクトではありません" });
     return;
   }
   const holder = p.kind === "processFlow" ? (isRecord(data.meta) ? data.meta : null) : data;
   const base = p.file.replace(/\.json$/, "");
   const id = holder && typeof holder.id === "string" ? holder.id : undefined;
   if (id !== undefined && id !== base) {
-    issues.push({ severity: "warning", section, message: `ファイル名 (${base}) と中の id (${id}) が違います。一覧・参照はどちらかが見つからなくなります`, ref: p.ref });
+    issues.push({ code: "id-mismatch", severity: "warning", section, message: `ファイル名 (${base}) と中の id (${id}) が違います。一覧・参照はどちらかが見つからなくなります`, ref: p.ref });
   }
   if (holder && !holder.uuid) uuidless.count++;
 }
+
+/** 実体のある設計の id (画面は、旧形式・旧配置も「ある」として数える) */
+const existingIdsFor = (kind: "screen" | "table" | "processFlow", root: string): Promise<string[]> =>
+  kind === "screen" ? listScreenIdsIncludingLegacy(root) : listExistingEntityIds(kind, root).catch(() => [] as string[]);
 
 async function computeScan(root: string): Promise<HealthIssue[]> {
   const issues: HealthIssue[] = [];
@@ -196,11 +206,11 @@ async function computeScan(root: string): Promise<HealthIssue[]> {
     ];
     for (const c of checks) {
       const list = Array.isArray(entities[c.key]) ? entities[c.key] as unknown[] : [];
-      const existing = new Set(await listExistingEntityIds(c.kind, root).catch(() => [] as string[]));
+      const existing = new Set(await existingIdsFor(c.kind, root));
       for (const e of list) {
         if (!isRecord(e) || typeof e.id !== "string") continue;
         if (!existing.has(e.id)) {
-          issues.push({ severity: "warning", section: `${c.label} ${typeof e.name === "string" && e.name ? e.name : e.id}`, message: `一覧 (harmony.json) にありますが、ファイル (${c.kind === "table" ? "tables" : c.kind === "screen" ? "screens" : "process-flows"}/${e.id}.json) が見つかりません。一覧から外すには「一覧の食い違いを直す」(AI: designer__repair_registry) を使ってください`, ref: { kind: c.kind, id: e.id } });
+          issues.push({ code: "registry-missing-file", severity: "warning", section: `${c.label} ${typeof e.name === "string" && e.name ? e.name : e.id}`, message: `一覧 (harmony.json) にありますが、ファイル (${c.kind === "table" ? "tables" : c.kind === "screen" ? "screens" : "process-flows"}/${e.id}.json) が見つかりません。一覧から外すには「一覧の食い違いを直す」(AI: designer__repair_registry) を使ってください`, ref: { kind: c.kind, id: e.id } });
         }
       }
     }
@@ -209,11 +219,11 @@ async function computeScan(root: string): Promise<HealthIssue[]> {
   if (isRecord(project)) {
     const { unregistered } = await mergeUnregisteredEntities(project, root).catch(() => ({ unregistered: [] as Array<{ kind: string; id: string }> }));
     if (unregistered.length > 0) {
-      issues.push({ severity: "info", maintenance: true, section: "一覧", message: `一覧 (harmony.json) に載っていない設計ファイルが ${unregistered.length} 件あります (${unregistered.slice(0, 3).map((u) => `${u.kind}:${u.id}`).join("、")}${unregistered.length > 3 ? " ほか" : ""})。読み出しでは一覧に足して扱っています。一覧へ書くには「一覧の食い違いを直す」(AI: designer__repair_registry) を使ってください` });
+      issues.push({ code: "registry-unregistered", severity: "info", maintenance: true, section: "一覧", message: `一覧 (harmony.json) に載っていない設計ファイルが ${unregistered.length} 件あります (${unregistered.slice(0, 3).map((u) => `${u.kind}:${u.id}`).join("、")}${unregistered.length > 3 ? " ほか" : ""})。読み出しでは一覧に足して扱っています。一覧へ書くには「一覧の食い違いを直す」(AI: designer__repair_registry) を使ってください` });
     }
   }
   if (uuidless.count > 0) {
-    issues.push({ severity: "info", maintenance: true, section: "uuid", message: `uuid がファイルに保存されていない設計が ${uuidless.count} 件あります (読み出しでは、種類と id から決めた値で補っています。保存したときに固定されます)。いま固定するには designer__persist_uuids を使ってください` });
+    issues.push({ code: "uuid-unsaved", severity: "info", maintenance: true, section: "uuid", message: `uuid がファイルに保存されていない設計が ${uuidless.count} 件あります (読み出しでは、種類と id から決めた値で補っています。保存したときに固定されます)。いま固定するには designer__persist_uuids を使ってください` });
   }
   return issues;
 }
@@ -240,7 +250,7 @@ export async function repairRegistry(root: string, apply: boolean): Promise<Regi
   const remove: Array<{ kind: string; id: string }> = [];
   for (const c of [{ key: "screens", kind: "screen" }, { key: "tables", kind: "table" }, { key: "processFlows", kind: "processFlow" }] as const) {
     const list = Array.isArray(entities[c.key]) ? entities[c.key] as unknown[] : [];
-    const existing = new Set(await listExistingEntityIds(c.kind, root).catch(() => [] as string[]));
+    const existing = new Set(await existingIdsFor(c.kind, root));
     const kept = list.filter((e) => {
       if (!isRecord(e) || typeof e.id !== "string") return true;
       if (existing.has(e.id)) return true;
@@ -279,6 +289,7 @@ export async function persistDerivedUuids(root: string, apply: boolean): Promise
         let data: unknown;
         try { data = JSON.parse(await fs.readFile(full, "utf-8")); } catch { continue; }
         if (!isRecord(data)) continue;
+        if (kind === "screen" && isLegacyGrapesScreen(data)) continue; // 旧形式は、保存のときに変換して uuid が付く
         const holder = kind === "processFlow" ? (isRecord(data.meta) ? data.meta : null) : data;
         if (!holder || holder.uuid) continue;
         const id = typeof holder.id === "string" && holder.id ? holder.id : file.replace(/\.json$/, "");
