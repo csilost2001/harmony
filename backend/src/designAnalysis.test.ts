@@ -1,7 +1,7 @@
 /**
  * 設計の分析 (第 3 弾): 点検の設定 (抑制・独自ルール)・外部システムの OpenAPI の読み込み・完成度の記録・MCP の分析 tool。
  */
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
@@ -13,6 +13,9 @@ import { readProgressHistory, recordProgress, sanitizeHistory } from "./progress
 import { classifyChangedPath } from "./externalChanges.js";
 import { writeScreenEntity, writeTable } from "./projectStorage.js";
 import { loadDesignInputFromRoot } from "./designInput.js";
+import { analysisHandlers } from "./wsHandlers/analysis.js";
+import { projectHandlers } from "./wsHandlers/project.js";
+import type { RpcContext } from "./wsHandlers/types.js";
 
 const ROOT = path.join(os.tmpdir(), `design-analysis-${process.pid}-${Date.now()}`);
 const call = async (name: string, args: Record<string, unknown> = {}) => {
@@ -222,5 +225,51 @@ describe("MCP: designer__analyze_design ほか", () => {
 describe("ファイル監視の分類", () => {
   it("design-check.json の変更を、点検の設定の変更として通知する", () => {
     expect(classifyChangedPath("design-check.json")).toEqual({ event: "designCheckChanged", data: {} });
+  });
+});
+
+describe("RPC (画面からの要求)", () => {
+  const broadcast = vi.fn();
+  const call = async (handlers: Record<string, (c: RpcContext) => unknown>, method: string, params: unknown = {}) => {
+    let response: unknown, error: string | null = null;
+    const ctx = { params, clientId: "c1", root: () => ROOT, wsId: () => "ws1", respond: (r: unknown) => { response = r; }, respondError: (m: string) => { error = m; }, bridge: { broadcast } } as unknown as RpcContext;
+    await handlers[method](ctx);
+    return { response: response as Record<string, any>, error: error as string | null };
+  };
+
+  it("抑制・外す・ルールの保存は、結果を返し、ほかの画面へ変更を通知する (自分は除く)。拒否は理由つきのエラー", async () => {
+    broadcast.mockClear();
+    const issue = { severity: "info" as const, section: "RPC", message: "試験" };
+    const ok = await call(analysisHandlers, "designCheck.suppress", { ...issue, key: issueKey(issue), reason: "r" });
+    expect(ok.response.settings.suppressions).toHaveLength(1);
+    expect(broadcast).toHaveBeenCalledWith({ wsId: "ws1", event: "designCheckChanged", data: {}, excludeClientId: "c1" });
+    expect((await call(analysisHandlers, "designCheck.load")).response.settings.suppressions).toHaveLength(1);
+    const bad = await call(analysisHandlers, "designCheck.suppress", { ...issue, key: "x", reason: "r" });
+    expect(bad.error).toContain("印が正しくありません");
+    const gone = await call(analysisHandlers, "designCheck.unsuppress", { keys: [issueKey(issue)] });
+    expect(gone.response.settings.suppressions).toHaveLength(0);
+    const one = await call(analysisHandlers, "designCheck.suppress", { ...issue, key: issueKey(issue), reason: "r" });
+    expect(one.error).toBeNull();
+    expect((await call(analysisHandlers, "designCheck.unsuppress", { key: issueKey(issue) })).response.settings.suppressions).toHaveLength(0);
+    expect((await call(analysisHandlers, "designCheck.saveRules", { rules: "x" })).error).toContain("形が正しくありません");
+    expect((await call(analysisHandlers, "designCheck.saveRules", { rules: [] })).error).toBeNull();
+  });
+
+  it("design.progress: 記録を求められたら残し、record: false なら読むだけ", async () => {
+    await fs.rm(path.join(ROOT, ".harmony-progress"), { recursive: true, force: true });
+    const ro = await call(analysisHandlers, "design.progress", { record: false });
+    expect(ro.response.history).toEqual([]);
+    expect(ro.response.summary.overall.total).toBeGreaterThan(0);
+    const rec = await call(analysisHandlers, "design.progress", { record: true });
+    expect(rec.response.history).toHaveLength(1);
+    expect((await call(analysisHandlers, "design.progress")).response.history).toHaveLength(1); // 既定は記録する (同じ日・同じ件数なので増えない)
+  });
+
+  it("loadDesignInput は、点検の設定と外部システムの OpenAPI の要約も返す", async () => {
+    const r = await call(projectHandlers, "loadDesignInput");
+    expect(r.error).toBeNull();
+    expect(r.response.input.checkSettings.version).toBe(1);
+    expect(r.response.input.genericDefinitions).toEqual([]);
+    expect(Array.isArray(r.response.input.extraIssues)).toBe(true);
   });
 });

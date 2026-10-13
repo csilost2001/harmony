@@ -291,6 +291,35 @@ describe("ルール", () => {
     expect(n).toContain("未設定");
   });
 
+  it("条件の種類 (候補・範囲・形式) と、適用の条件・無効・削除を編集でき、保存する内容に反映される", async () => {
+    rpc["designCheck.saveRules"] = () => ({ settings, problems: [] });
+    await open("rules");
+    fireEvent.click(screen.getByTestId("an-rule-add"));
+    fireEvent.change(screen.getByTestId("an-rule-name"), { target: { value: "種別は決まった値" } });
+    fireEvent.change(screen.getByTestId("an-rule-path"), { target: { value: "meta.flowType" } });
+    fireEvent.change(screen.getByLabelText("対象"), { target: { value: "processFlow" } });
+    fireEvent.change(screen.getByTestId("an-rule-check"), { target: { value: "oneOf" } });
+    fireEvent.change(screen.getByPlaceholderText("例: draft,committed"), { target: { value: " screen, batch ,," } });
+    fireEvent.change(screen.getByPlaceholderText("例: meta.maturity (省略 = すべてに適用)"), { target: { value: "meta.flowType" } });
+    fireEvent.change(screen.getByPlaceholderText("例: committed (空 = 値がある場合)"), { target: { value: "common" } });
+    fireEvent.change(screen.getByLabelText("重大度"), { target: { value: "error" } });
+    fireEvent.click(screen.getByLabelText("有効"));
+    expect(screen.getByTestId("an-rules-preview").textContent).toContain("0 件の違反"); // 無効なので動かない
+    fireEvent.click(screen.getByLabelText("有効"));
+    expect(screen.getByTestId("an-rules-preview").textContent).toContain("1 件の違反"); // common の「迷子」だけ
+    fireEvent.click(screen.getByTestId("an-rules-save"));
+    await waitFor(() => expect(request).toHaveBeenCalledWith("designCheck.saveRules", { rules: [expect.objectContaining({
+      target: "processFlow", path: "meta.flowType", check: { type: "oneOf", values: ["screen", "batch"] }, severity: "error", when: { path: "meta.flowType", equals: "common" },
+    })] }));
+    fireEvent.change(screen.getByTestId("an-rule-check"), { target: { value: "range" } });
+    const [min, max] = screen.getAllByRole("spinbutton");
+    fireEvent.change(min, { target: { value: "5" } });
+    fireEvent.change(max, { target: { value: "1" } });
+    expect(screen.getByTestId("an-rules-problems").textContent).toContain("最小が最大より大きい");
+    fireEvent.click(screen.getByRole("button", { name: "削除" }));
+    expect(screen.queryAllByTestId("an-rule")).toHaveLength(0);
+  });
+
   it("保存済みのルールがあれば、最初から一覧に出る", async () => {
     settings = { version: 1, suppressions: [], rules: [{ id: "r1", name: "既存のルール", target: "table", path: "description", check: { type: "required" }, severity: "info" }] };
     await open("rules");
