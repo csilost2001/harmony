@@ -17,6 +17,7 @@ import type { MtimeKind } from "../utils/serverMtime";
 import type { DraftResourceType } from "../types/draft";
 import type { EditSessionChromeProps } from "../components/editing/EditSessionChrome";
 import { reportFailure } from "../utils/failureToast";
+import { useResyncDraftOnReconnect } from "./useResyncDraftOnReconnect";
 
 export interface UseEditableDocumentOptions<T> {
   resourceType: DraftResourceType;
@@ -75,6 +76,9 @@ export function useEditableDocument<T extends object>(opts: UseEditableDocumentO
       if (sid && docRef.current) mcpBridge.request("editSession.update", { editSessionId: sid, payload: docRef.current }).catch((err) => reportFailure(err, "下書きの保存"));
     }, 300);
   }, []);
+
+  // 接続が切れて戻ったとき、編集中の内容を下書きへ送り直す
+  useResyncDraftOnReconnect(editable, isDirty, syncDraft);
 
   /**
    * 文書を変更する。変更の関数は、複製した文書を直接書き換えるか、新しい文書を返す。結果が同じなら何もしない。

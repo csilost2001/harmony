@@ -36,6 +36,16 @@ interface DraftHistoryEntry {
   snapshot: unknown;
 }
 
+/** 保存前の版 (上書きされる前のファイルの内容。backend の fileBackup) */
+interface FileVersion { id: string; savedAt: string; size: number }
+
+/** 保存前の版を引ける設計の種類 (backend の fileVersions.VERSIONED_RESOURCE_TYPES と同じ) */
+const VERSIONED_TYPES = new Set(["table", "process-flow", "view", "view-definition", "sequence", "business-flow", "report"]);
+
+function formatSize(bytes: number): string {
+  return bytes < 1024 ? `${bytes} B` : bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
 export interface DraftHistoryModalProps {
   resourceType: DraftResourceType;
   resourceId: string;
@@ -43,6 +53,11 @@ export interface DraftHistoryModalProps {
   onClose: () => void;
   /** 復元完了後の callback。新規作成された editSessionId を渡す */
   onRestore: (editSessionId: string) => void;
+  /**
+   * 保存前の版 (上書きされる前の内容) を、開いている編集画面の編集状態へ読み込む。渡されたときだけ、保存前の版の一覧を出す
+   * (編集画面の中から開いたとき)。読み込んだ内容は未保存の変更になり、保存するまで原本は変わらない。
+   */
+  onApplyVersion?: (snapshot: unknown) => void;
 }
 
 // ── ユーティリティ ────────────────────────────────────────────────────────────
@@ -128,8 +143,10 @@ export function DraftHistoryModal({
   isOpen,
   onClose,
   onRestore,
+  onApplyVersion,
 }: DraftHistoryModalProps) {
   const [history, setHistory] = useState<DraftHistoryEntry[]>([]);
+  const [versions, setVersions] = useState<FileVersion[]>([]);
   const [loading, setLoading] = useState(false);
   const [restoring, setRestoring] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -145,6 +162,18 @@ export function DraftHistoryModal({
         resourceId,
       }) as { history: DraftHistoryEntry[] };
       setHistory(result.history ?? []);
+      // 保存前の版 (上書きされる前の内容)。対応しない種類・取得に失敗したときは、出さないだけ (draft 履歴は出す)
+      if (onApplyVersion && VERSIONED_TYPES.has(resourceType)) {
+        try {
+          const v = await mcpBridge.request("fileVersions.list", { resourceType, resourceId }) as { versions: FileVersion[] };
+          setVersions(v.versions ?? []);
+        } catch (e) {
+          console.warn("[DraftHistoryModal] fileVersions.list failed:", e);
+          setVersions([]);
+        }
+      } else {
+        setVersions([]);
+      }
     } catch (e) {
       console.warn("[DraftHistoryModal] listHistory failed:", e);
       setError("履歴の取得に失敗しました。");
@@ -152,7 +181,7 @@ export function DraftHistoryModal({
     } finally {
       setLoading(false);
     }
-  }, [resourceType, resourceId]);
+  }, [resourceType, resourceId, onApplyVersion]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -208,6 +237,26 @@ export function DraftHistoryModal({
     [onClose, onRestore],
   );
 
+  // ── 保存前の版を、編集画面へ読み込む (保存するまで原本は変わらない) ─────────────────
+  const handleApplyVersion = useCallback(
+    async (v: FileVersion) => {
+      if (!onApplyVersion) return;
+      if (!window.confirm("この版の内容を編集画面に読み込みますか? (いまの編集内容は置き換わります。保存するまで、原本は変わりません)")) return;
+      setRestoring(v.id);
+      try {
+        const res = await mcpBridge.request("fileVersions.get", { resourceType, resourceId, versionId: v.id }) as { snapshot: unknown };
+        onClose();
+        onApplyVersion(res.snapshot);
+      } catch (e) {
+        console.error("[DraftHistoryModal] apply version failed:", e);
+        setError("読み込みに失敗しました: " + (e instanceof Error ? e.message : String(e)));
+      } finally {
+        setRestoring(null);
+      }
+    },
+    [resourceType, resourceId, onApplyVersion, onClose],
+  );
+
   if (!isOpen) return null;
 
   return (
@@ -256,7 +305,7 @@ export function DraftHistoryModal({
             </div>
           )}
 
-          {!loading && !error && history.length === 0 && (
+          {!loading && !error && history.length === 0 && versions.length === 0 && (
             <p className="text-muted text-center py-3">
               <i className="bi bi-inbox me-2" />
               履歴がありません。
@@ -316,6 +365,44 @@ export function DraftHistoryModal({
             </ul>
           )}
         </div>
+
+        {/* 保存前の版 */}
+        {!loading && !!onApplyVersion && versions.length > 0 && (
+          <div className="edit-mode-modal-body" style={{ overflowY: "auto", borderTop: "1px solid var(--hm-border)" }} data-testid="file-versions">
+            <h6 className="small fw-semibold mb-1">
+              <i className="bi bi-archive me-1" />保存前の版 (上書きされる前の内容。直近 {versions.length} 件)
+            </h6>
+            <ul className="list-group list-group-flush">
+              {versions.map((v) => (
+                <li key={v.id} className="list-group-item px-2 py-2" data-testid={`file-version-${v.id}`}>
+                  <div className="d-flex align-items-center gap-2">
+                    <span className="small flex-grow-1" title={new Date(v.savedAt).toLocaleString()}>
+                      {relativeTime(v.savedAt)}に上書きされた内容
+                      <span className="text-muted ms-2">{formatSize(v.size)}</span>
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-primary flex-shrink-0"
+                      onClick={() => void handleApplyVersion(v)}
+                      disabled={restoring !== null}
+                      title="この版の内容を編集画面に読み込む"
+                      data-testid={`file-version-restore-${v.id}`}
+                    >
+                      {restoring === v.id ? (
+                        <span className="spinner-border spinner-border-sm" role="status" />
+                      ) : (
+                        <>
+                          <i className="bi bi-arrow-counterclockwise me-1" />
+                          この版を読み込む
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* フッター */}
         <div className="edit-mode-modal-footer">

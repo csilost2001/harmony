@@ -31,7 +31,11 @@ export interface LogEntry {
 }
 
 const LEVEL_ORDER: Record<LogLevel, number> = { debug: 0, info: 1, warn: 2, error: 3 };
-const RETENTION_DAYS = 7;
+/** ログの保持日数 (既定 7 日)。DESIGNER_LOG_RETENTION_DAYS で変えられる (正の整数。不正な値は既定) */
+function retentionDays(): number {
+  const n = Number(process.env.DESIGNER_LOG_RETENTION_DAYS);
+  return Number.isInteger(n) && n > 0 ? n : 7;
+}
 
 let _logDir: string | null = null;
 let _minLevel: LogLevel = "info";
@@ -48,7 +52,11 @@ function maskSecrets(json: string): string {
     // Anthropic / OpenAI / 汎用 APIキー (sk-... / ant-... / claude-...)
     .replace(/\b(sk|ant|claude)-[A-Za-z0-9_-]{8,}/g, "***")
     // Bearer トークン (Authorization ヘッダ値等)
-    .replace(/(Bearer\s+)\S+/gi, "$1***")
+    .replace(/(Bearer\s+)[^\s"',}]+/gi, "$1***")
+    // URL の ?token= / &token= (接続トークン。WebSocket の接続 URL に付く)
+    .replace(/([?&](?:token|access_token|auth)=)[^&\s"',}\\]+/gi, "$1***")
+    // 接続トークンそのもの (HARMONY_AUTH_TOKEN)
+    .replace(/(HARMONY_AUTH_TOKEN["']?\s*[:=]\s*)["']?[^"',}\s]+["']?/gi, "$1***")
     // パスワード・シークレットフィールド (JSON の key:value 形式)
     .replace(/(["']?(?:password|passwd|secret|apiKey|api_key|token)["']?\s*[:=]\s*)["']?[^"',}\s]+["']?/gi, "$1***");
 }
@@ -75,7 +83,7 @@ function _rotateRetention(): void {
   if (!_logDir) return;
   try {
     const files = fs.readdirSync(_logDir).filter((f) => f.startsWith("harmony-mcp-") && f.endsWith(".log"));
-    const cutoff = Date.now() - RETENTION_DAYS * 86400_000;
+    const cutoff = Date.now() - retentionDays() * 86400_000;
     for (const f of files) {
       const m = f.match(/harmony-mcp-(\d{4})-(\d{2})-(\d{2})\.log/);
       if (!m) continue;

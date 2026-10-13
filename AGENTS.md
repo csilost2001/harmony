@@ -11,6 +11,7 @@ Claude Code 固有の補足は `CLAUDE.md`、Codex 固有の設定は `.codex/co
 | docs-site (HTML 仕様書) と AI ブラウザ確認 | [docs/conventions/docs-site-and-browser-smoke.md](docs/conventions/docs-site-and-browser-smoke.md) |
 | 完了判定 (回帰テストの trace 照合) | [docs/conventions/completion-gate.md](docs/conventions/completion-gate.md) |
 | 進行中の再設計計画と設計者判断 | [docs/plans/redesign-2026-10.md](docs/plans/redesign-2026-10.md) |
+| サーバの守り (接続トークン・要求の上限・MCP の権限)・保存前の版・外部更新の検知・ファイルの健全性 | [server-security.md](docs/spec/server-security.md) / [file-backup.md](docs/spec/file-backup.md) / [external-change-detection.md](docs/spec/external-change-detection.md) / [workspace-health.md](docs/spec/workspace-health.md) |
 
 ## Project Overview
 
@@ -52,6 +53,7 @@ npm run kill           # 5173 / 5179 を握るプロセスを停止
 | テスト観点表の書き出し (画面入力の境界値・処理の分岐。ID つき。テストコード生成の入力) | `npm run export:tests -- examples/<project-id> --format json` |
 | 設計書 HTML の書き出し | `npm run export:doc -- examples/<project-id> --out .tmp/doc.html` |
 | 大きなプロジェクトでの性能 (画面 約 300 / 処理フロー 約 150 / テーブル 約 170。回帰には含めない) | `cd frontend && npx playwright test e2e/perf-large-project.spec.ts` (大きなワークスペースは `scripts/dev/make-large-workspace.mjs` が作る) |
+| スキーマの版の移行 (予行が既定。`--apply` で書く。登録された移行はいまは空) | `npm run migrate:schema -- <workspace-dir> [--apply]` ([schema-migration.md](docs/spec/schema-migration.md)) |
 | AI (MCP) から: 設計の点検・参照元・改名・テスト観点 | `designer__check_design` (設計を直したら、完了報告の前に呼び error / warning 0 件にする) / `designer__find_references` (誰が参照しているか) / `designer__rename_entity` (既定は予行、`apply: true` で実行) と `designer__undo_rename` / `designer__get_test_viewpoints` |
 
 - E2E は自前で起動した backend を再利用すると E2E 用環境変数が効かず失敗する。E2E 実行前は `npm run kill` して Playwright にサーバを起動させる。
@@ -82,6 +84,7 @@ AI Agent ──(http://localhost:5179/mcp)──┐
 
 - active workspace の `harmony.json` の `dataDir` 配下に `screens/` `process-flows/` `tables/` 等の JSON を保存する
 - 編集中の作業コピーはサーバ側 `data/.drafts/<wsId>/` に置き、ロックで排他する: [docs/spec/edit-session-draft.md](docs/spec/edit-session-draft.md)
+- 上書きされる前の設計ファイルは `<ワークスペース>/.harmony-backups/` に世代で残る (`.harmony-journal/` は複数ファイル操作の復旧用)。どちらも自分の `.gitignore` を持つ。backend の外での書き換えはファイル監視で検知して画面へ知らせる
 - 設計途中でも保存でき、schema 違反は UI で警告表示する (draft-state): [docs/spec/draft-state-policy.md](docs/spec/draft-state-policy.md)
 - ワークスペース: [docs/spec/workspace.md](docs/spec/workspace.md) / 同時並行編集: [docs/spec/workspace-multi.md](docs/spec/workspace-multi.md)
 

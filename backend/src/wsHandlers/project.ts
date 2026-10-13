@@ -10,7 +10,7 @@
  * 旧エディタ (GrapesJS / Puck) の廃止に伴い、デザイン本体・Puck データ・カスタムブロックの
  * 書き込み系は無い (docs/plans/redesign-2026-10.md)。
  */
-import { collectSchemaIssues } from "../schemaIssues.js";
+import { collectExtraIssues, collectSchemaIssues } from "../schemaIssues.js";
 import {
   writeProject,
   listExistingEntityIds,
@@ -81,7 +81,7 @@ export const projectHandlers: RpcHandlerMap = {
   loadDesignInput: async ({ root, respond, respondError }) => {
     try {
       const { input, skipped } = await loadDesignInputFromRoot(root());
-      respond({ input: { ...input, extraIssues: await collectSchemaIssues(root()) }, skipped });
+      respond({ input: { ...input, extraIssues: await collectExtraIssues(root()) }, skipped });
     } catch (e) { respondError(e instanceof Error ? e.message : String(e)); }
   },
 

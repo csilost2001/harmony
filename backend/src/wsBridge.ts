@@ -22,6 +22,10 @@ import { resolveRoot } from "./projectStorage.js";
 import { rpcHandlerMap, type RpcContext } from "./wsHandlers/index.js";
 import { logInfo, logWarn, logError } from "./serverLog.js";
 import { checkRequestOrigin } from "./security/originCheck.js";
+import { ExternalChangeWatcher } from "./externalChanges.js";
+import { checkAuthToken } from "./security/authToken.js";
+import { ensureRecovered } from "./operationJournal.js";
+import { RateLimiter, checkContentLength, maxWsPayloadBytes, maxWsRequestsPer10s } from "./security/requestLimits.js";
 
 type Command = { id: string; method: string; params?: unknown };
 type Response = { id: string; result?: unknown; error?: string };
@@ -60,6 +64,13 @@ export class WsBridge extends EventEmitter {
   private lastMessageAt: number | null = null;
   /** プロセス起動時刻 (ms) */
   private readonly startedAt: number = Date.now();
+  /** 1 接続あたりの要求の頻度の上限 (HARMONY_MAX_WS_REQUESTS_PER_10S) */
+  private readonly rateLimiter = new RateLimiter(maxWsRequestsPer10s(), 10_000);
+  /** 設計ファイルが backend の外で書き換えられたことを検知して、画面へ知らせる (docs/spec/external-change-detection.md) */
+  private readonly externalWatcher = new ExternalChangeWatcher((root, evs, paths) => {
+    for (const ev of evs) this.broadcast({ wsId: root, event: ev.event, data: { ...ev.data, external: true } });
+    this.broadcast({ wsId: root, event: "externalFilesChanged", data: { paths } });
+  });
   // ── EditSession service (#906 / #1144 Phase-2) ───────────────────────────
   // 内部実装は wsBridge/editSessionService.ts に分離。wsBridge は broadcast 関数を inject し、
   // editSession.* RPC handler は ctx.bridge.editSession* (adapter) 経由で呼ぶ。
@@ -314,6 +325,7 @@ export class WsBridge extends EventEmitter {
   async stop(): Promise<void> {
     presenceStopCleanupInterval();
     this.stopEditSessionCleanup();
+    this.externalWatcher.closeAll();
     // Close Codex connection if it was opened (#867)
     // 孫プロセス (codex app-server) の終了を必ず待つ (#1400)。
     // shutdown context では graceful 5s/10s を待たず、短縮 timer で確実に kill する
@@ -342,7 +354,7 @@ export class WsBridge extends EventEmitter {
     return new Promise((resolve, reject) => {
       // HTTP サーバに WS をアタッチ (同一 port で HTTP + WS を提供 — #302)
       const httpServer = createServer((req, res) => this._handleHttp(req, res));
-      const wss = new WebSocketServer({ server: httpServer });
+      const wss = new WebSocketServer({ server: httpServer, maxPayload: maxWsPayloadBytes() });
 
       const onError = async (err: NodeJS.ErrnoException) => {
         httpServer.off("listening", onListening);
@@ -403,6 +415,20 @@ export class WsBridge extends EventEmitter {
           logWarn("ws-bridge", "HTTP request rejected: origin check failed", { url, reason: originError });
           res.writeHead(403, { "Content-Type": "text/plain" });
           res.end("Forbidden");
+          return;
+        }
+        const authError = checkAuthToken(req);
+        if (authError) {
+          logWarn("ws-bridge", "HTTP request rejected: auth failed", { url: url.split("?")[0], reason: authError });
+          res.writeHead(401, { "Content-Type": "text/plain", "WWW-Authenticate": "Bearer" });
+          res.end("Unauthorized");
+          return;
+        }
+        const sizeError = checkContentLength(req);
+        if (sizeError) {
+          logWarn("ws-bridge", "HTTP request rejected: too large", { url: url.split("?")[0], reason: sizeError });
+          res.writeHead(413, { "Content-Type": "text/plain" });
+          res.end("Payload Too Large");
           return;
         }
         try {
@@ -472,6 +498,13 @@ export class WsBridge extends EventEmitter {
       if (originError) {
         logWarn("ws-bridge", "WebSocket connection rejected: origin check failed", { reason: originError });
         ws.close(1008, "Forbidden");
+        return;
+      }
+      // 接続トークン (HARMONY_AUTH_TOKEN を設定したときだけ)
+      const authError = checkAuthToken(req);
+      if (authError) {
+        logWarn("ws-bridge", "WebSocket connection rejected: auth failed", { reason: authError });
+        ws.close(1008, "Unauthorized");
         return;
       }
 
@@ -553,6 +586,7 @@ export class WsBridge extends EventEmitter {
       });
 
       ws.on("close", () => {
+        this.rateLimiter.forget(clientId);
         if (this.clients.get(clientId) === ws) {
           this.clients.delete(clientId);
           const idx = this.clientOrder.indexOf(clientId);
@@ -679,6 +713,15 @@ export class WsBridge extends EventEmitter {
   ): Promise<void> {
     const { id, method, params } = req;
 
+    // 短時間に大量の要求を出す接続は、backend (単一スレッド) を占有しないよう断る
+    if (!this.rateLimiter.allow(clientId)) {
+      logWarn("ws-bridge", "Browser request rejected: rate limit", { method, clientId: clientId.substring(0, 8) });
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "response", id, error: "要求が多すぎます。少し待ってから、もう一度操作してください" }));
+      }
+      return;
+    }
+
     const respond = (result: unknown): void => {
       if (ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: "response", id, result }));
@@ -704,7 +747,11 @@ export class WsBridge extends EventEmitter {
     // workspace 操作中に active が変わる可能性を避けるため lazy 評価する。
     const wsId = (): string | null => workspaceContextManager.getActivePath(clientId);
 
+    const activePath = workspaceContextManager.getActivePath(clientId);
+    if (activePath) void this.externalWatcher.ensure(activePath);
     try {
+      // 前回、複数ファイルの操作の途中で止まっていれば、最初の要求のときに元へ戻す
+      if (activePath) await ensureRecovered(activePath);
       const handler = rpcHandlerMap.get(method);
       if (handler) {
         const ctx: RpcContext = {

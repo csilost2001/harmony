@@ -9,6 +9,9 @@ import {
   McpError,
 } from "@modelcontextprotocol/sdk/types.js";
 import { wsBridge } from "./wsBridge.js";
+import { installSelfWriteTracking } from "./externalChanges.js";
+import { ensureRecovered } from "./operationJournal.js";
+import { assertToolAllowed, filterTools } from "./security/mcpAccess.js";
 import { tools } from "./tools.js";
 import { handleAuthCheck, handlePropose } from "./aiRename.js";
 import { createStaticAssetHandler } from "./staticAssets.js";
@@ -45,6 +48,8 @@ import { handleEditSessionTool } from "./handlers/editSession.js";
 // projectRoot = backend の親 (= repo root)。env DESIGNER_LOG_DIR で上書き可能。
 const projectRoot = process.env.DESIGNER_LOG_DIR ?? path.resolve(process.cwd(), "..");
 initServerLog(projectRoot);
+// backend 自身のファイルの書き込みを記録する (外部変更の検知から除く。externalChanges.ts)
+installSelfWriteTracking();
 
 // 常駐バックエンドなので停止 signal (SIGTERM/SIGINT/disconnect) のみ監視。
 // stdin は監視しない (#302: HTTP transport に統一、stdio 廃止)。
@@ -155,14 +160,16 @@ function createMcpServer(sessionId: string): Server {
 
   // ツール一覧
   server.setRequestHandler(ListToolsRequestSchema, async () => {
-    return { tools };
+    return { tools: filterTools(tools) };
   });
 
   // ツール呼び出し (#1144 Phase-1: ハンドラ群を機能領域別に handlers/*.ts へ分離。
   // index.ts はディスパッチャと共通エラーハンドリングのみを担う)。
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
+    // 読み取り専用・拒否リストの設定 (HARMONY_MCP_MODE / HARMONY_MCP_DENY) で使えない tool は、ここで拒否する
     const argRecord = (args ?? {}) as Record<string, unknown>;
+    assertToolAllowed(name, process.env, argRecord);
     // MCP tool 内で resolveRoot を呼ぶために sessionId を使う (#700 R-2)
     const mcpRoot = (): string => workspaceContextManager.requireActivePath(sessionId);
 
@@ -173,6 +180,7 @@ function createMcpServer(sessionId: string): Server {
       // root は eager に解決される (workspace 未選択時は WorkspaceUnsetError、
       // 下の catch で McpError に変換)。
       const root = mcpRoot();
+      await ensureRecovered(root); // 前回、複数ファイルの操作の途中で止まっていれば、元へ戻す
       const dispatchers = [
         handleMarkerTool,
         handleProcessFlowTool,

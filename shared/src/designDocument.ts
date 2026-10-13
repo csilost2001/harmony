@@ -134,7 +134,7 @@ export function prose(s: unknown): string {
     .replace(/`([^`]+?)`/g, "<code>$1</code>");
 }
 
-const anchor = (kind: string, id: string) => `${kind}-${id.replace(/[^A-Za-z0-9_-]/g, "_")}`;
+const anchor = (kind: string, id: string) => `${String(kind).replace(/[^A-Za-z0-9_-]/g, "_")}-${String(id).replace(/[^A-Za-z0-9_-]/g, "_")}`;
 
 function typeText(t: unknown): string {
   if (typeof t === "string") {
@@ -539,7 +539,7 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
       sec(anchor("component", c.id), `${c.label}（${c.id}）`, 2, `
         ${c.description ? `<p class="hd-desc">${prose(c.description)}</p>` : ""}
         <h4 class="hd-sub">差し込み口<small>${c.params.length} 件</small></h4>
-        ${table(["差し込み口", "ID", "種類", "既定値"], c.params.map((q) => [esc(q.label), `<code>${esc(q.id)}</code>`, KIND[q.kind] ?? q.kind, esc(q.default ?? "")]))}
+        ${table(["差し込み口", "ID", "種類", "既定値"], c.params.map((q) => [esc(q.label), `<code>${esc(q.id)}</code>`, esc(KIND[q.kind] ?? q.kind), esc(q.default ?? "")]))}
         <h4 class="hd-sub">見た目</h4>
         ${preview}
         <h4 class="hd-sub">使っている画面<small>${users.length} 画面</small></h4>
@@ -674,7 +674,7 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
   sec("issues", "要確認事項", 1, issues.length
     ? table(["区分", "対象", "内容"], issues.map((x) => {
       const a = x.ref ? `#${anchor(x.ref.kind === "businessFlow" ? "business-flow" : x.ref.kind === "processFlow" ? "flow" : x.ref.kind, x.ref.id)}` : "";
-      return [`<span class="hd-sev hd-sev-${x.severity}">${sevLabel[x.severity]}</span>`, a ? `<a href="${a}">${esc(x.section)}</a>` : esc(x.section), esc(x.message)];
+      return [`<span class="hd-sev hd-sev-${esc(x.severity)}">${esc(sevLabel[x.severity] ?? x.severity)}</span>`, a ? `<a href="${a}">${esc(x.section)}</a>` : esc(x.section), esc(x.message)];
     }))
     : `<p class="hd-empty">要確認事項はありません。</p>`, String(chap + 1));
 

@@ -20,6 +20,7 @@ import { showToast } from "../utils/toast";
 import { mcpBridge } from "../mcp/mcpBridge";
 import type { DraftResourceType } from "../types/draft";
 import { reportFailure } from "../utils/failureToast";
+import { requestApplyVersionWhenReady } from "../utils/applyVersionBus";
 
 // ── 新 API 型定義 (spec §15.2) ─────────────────────────────────────────────────
 
@@ -391,6 +392,12 @@ export function useEditSession(opts: UseEditSessionOptions): UseEditSessionResul
         sequence: number;
       };
 
+      // 編集者として入り直したとき (履歴からの復元・再開) は、そのセッションの内容を編集状態へ入れる。
+      // 閲覧者 (View) は、broadcast の payload で表示する (useResourceEditor の viewer モード)
+      if (result.participant?.role === "Edit" && result.payload != null) {
+        requestApplyVersionWhenReady({ resourceType, resourceId, snapshot: result.payload });
+      }
+
       // initial payload を即座に表示 (broadcast 待ちでない — §13.3 根本欠陥の解消)
       setPayload(result.payload);
       lastSeqRef.current = result.sequence ?? 0;
@@ -403,7 +410,7 @@ export function useEditSession(opts: UseEditSessionOptions): UseEditSessionResul
     } finally {
       setLoading(false);
     }
-  }, [refreshEditSessionState]);
+  }, [refreshEditSessionState, resourceType, resourceId]);
 
   // ── takeOver ─────────────────────────────────────────────────────────────────
 

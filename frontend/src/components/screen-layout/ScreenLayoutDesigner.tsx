@@ -48,6 +48,7 @@ import { docReplaceNode, docUpdateItem, emptyLayout, setComponentArg, type Layou
 import "../../styles/editMode.css";
 import "../../styles/screenLayout.css";
 import { reportFailure } from "../../utils/failureToast";
+import { useResyncDraftOnReconnect } from "../../hooks/useResyncDraftOnReconnect";
 
 const VIEWPORTS: Array<{ key: string; label: string; icon: string; width: number }> = [
   { key: "pc", label: "PC", icon: "bi-display", width: 1200 },
@@ -151,6 +152,11 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
       }
     }, 300);
   }, [editSession]);
+
+  // 接続が切れて戻ったとき、編集中の内容を下書きへ送り直す
+  useResyncDraftOnReconnect(editable && !!editSession?.id, isDirty, () => {
+    if (editSession?.id && docRef.current) mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: docRef.current }).catch((err) => reportFailure(err, "下書きの保存"));
+  });
 
   const apply = useCallback((fn: (d: LayoutDoc) => LayoutDoc, commitNow = true) => {
     if (!editable) return;

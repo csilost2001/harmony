@@ -12,6 +12,7 @@
  * 参考: backend/src/renameScreenItem.ts (#332) の countRefsInValue / renameRefsInValue を
  * generic 化。entity 種別ごとに ref field 名は entity-meta-driven で扱う。
  */
+import { openJournal, planFromAbsolute } from "./operationJournal.js";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as crypto from "node:crypto";
@@ -2350,6 +2351,17 @@ async function _renameEntityIdImpl(
   const writtenFiles: string[] = []; // rollback 対象 (新規 write した path)
   const restoreActions: Array<{ absPath: string; originalContent: string }> = [];
 
+  // 途中でプロセスが止まっても元に戻せるよう、書き換える前の内容を記録しておく (終わったら消す。operationJournal.ts)
+  const journal = await openJournal(root, planFromAbsolute(
+    root,
+    `rename ${entityType} ${oldId} -> ${newId}`,
+    [
+      ...[...refScan.perFileUpdate].map(([absPath, entry]) => ({ absPath, content: entry.original })),
+      ...fileRenameSnapshots.map((snap) => ({ absPath: path.join(dataRoot, snap.from), content: snap.originalContent })),
+    ],
+    filePlans.map((plan) => plan.to),
+  ));
+
   try {
     // (a) 参照側 update を全 file write
     for (const [absPath, entry] of refScan.perFileUpdate) {
@@ -2426,6 +2438,7 @@ async function _renameEntityIdImpl(
         await fs.rmdir(path.join(dataRoot, "screens", oldId));
       } catch { /* directory が空でない、もしくは存在しない: ignore */ }
     }
+    await journal();
   } catch (err) {
     // rollback: 新規 write した file を消す + 参照側を元に戻す
     // Phase F M-6: 加えて、commit phase の旧ファイル削除が部分的に成功している可能性があるため、
@@ -2442,6 +2455,7 @@ async function _renameEntityIdImpl(
         await writeFileContent(path.join(dataRoot, snap.from), snap.originalContent);
       } catch { /* best effort */ }
     }
+    await journal().catch(() => undefined); // 元に戻し終えたので、記録は不要
     // Phase J SF-γ: rollback audit log
     try {
       logError("rename", "rename.execute.rollback", {

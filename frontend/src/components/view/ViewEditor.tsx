@@ -31,6 +31,7 @@ import { generateViewDdl } from "./generateViewDdl";
 import "../../styles/table.css";
 import "../../styles/editMode.css";
 import { reportFailure } from "../../utils/failureToast";
+import { useResyncDraftOnReconnect } from "../../hooks/useResyncDraftOnReconnect";
 
 interface TableOption {
   id: string;
@@ -143,6 +144,11 @@ export function ViewEditor() {
       }
     }, 300);
   }, [isReadonly, update, viewId, editSession]);
+
+  // 接続が切れて戻ったとき、編集中の内容を下書きへ送り直す
+  useResyncDraftOnReconnect(!isReadonly && !!editSession?.id, isDirty, () => {
+    if (editSession?.id && viewRef.current) mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: viewRef.current }).catch((err) => reportFailure(err, "下書きの保存"));
+  });
 
   const handleSave = useCallback(async () => {
     if (isReadonly || isSaving) return;

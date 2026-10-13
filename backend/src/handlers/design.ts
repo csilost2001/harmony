@@ -9,7 +9,10 @@
 import { buildDesignDocument, deriveTestViewpointSheet, testViewpointSheetToCsv } from "@harmony/shared";
 import { loadDesignInputFromRoot } from "../designInput.js";
 import { findReferences } from "../references.js";
-import { collectSchemaIssues } from "../schemaIssues.js";
+import { collectExtraIssues } from "../schemaIssues.js";
+import { listEntityVersions, restoreEntityVersionToFile } from "../fileVersions.js";
+import { persistDerivedUuids, repairRegistry } from "../workspaceHealth.js";
+import { migrateWorkspace } from "../schemaMigration.js";
 import { assertEntityIdMcp } from "../mcpHelpers.js";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import type { RenameEntityType } from "../renameEntity.js";
@@ -28,7 +31,7 @@ export const handleDesignTool: ToolHandler = async (name, args, root, sessionId)
   switch (name) {
     case "designer__check_design": {
       const { input, skipped, counts } = await loadDesignInputFromRoot(root);
-      const { issues } = buildDesignDocument({ ...input, extraIssues: await collectSchemaIssues(root) });
+      const { issues } = buildDesignDocument({ ...input, extraIssues: await collectExtraIssues(root) });
       const all = [
         ...skipped.map((s) => ({ severity: "error" as const, section: "読み込み", message: `${s} を読めない (または見つからない) ため、検査に含まれていません` })),
         ...issues,
@@ -105,6 +108,53 @@ export const handleDesignTool: ToolHandler = async (name, args, root, sessionId)
       const { result, broadcastReload } = await runEntityUndo(wsBridge, a.operationId, root, sessionId);
       broadcastReload();
       return json({ undone: true, ...result });
+    }
+
+    case "designer__list_versions": {
+      assertEntityIdMcp(a.id, "id");
+      return json({ versions: await listEntityVersions(root, String(a.resourceType), a.id as string) });
+    }
+
+    case "designer__restore_version": {
+      assertEntityIdMcp(a.id, "id");
+      if (typeof a.versionId !== "string" || !a.versionId) throw new McpError(ErrorCode.InvalidParams, "versionId を指定してください");
+      const wsId = workspaceContextManager.getActivePath(sessionId);
+      // ほかの人・AI が編集中の設計に書き戻すと、その人の保存で巻き戻される。編集セッションがあるあいだは書き戻さない
+      if (wsId) {
+        const sessions = wsBridge.editSessionListByResource(wsId, String(a.resourceType) as never, a.id as string);
+        if (sessions.some((s) => s.state === "Active")) {
+          throw new McpError(ErrorCode.InvalidRequest, `${a.id} は編集中のセッションがあるため、書き戻せません。編集を保存または破棄してからにしてください`);
+        }
+      }
+      const res = await restoreEntityVersionToFile(root, String(a.resourceType), a.id as string, a.versionId);
+      const ev = ({ "table": "tableChanged", "process-flow": "processFlowChanged", "view": "viewChanged", "view-definition": "viewDefinitionChanged", "sequence": "sequenceChanged", "business-flow": "businessFlowChanged", "report": "reportChanged" } as Record<string, string>)[String(a.resourceType)];
+      const idField = ({ "table": "tableId", "process-flow": "processFlowId", "view": "viewId", "view-definition": "viewDefinitionId", "sequence": "sequenceId", "business-flow": "flowId", "report": "reportId" } as Record<string, string>)[String(a.resourceType)];
+      if (ev) wsBridge.broadcast({ wsId, event: ev, data: { [idField]: a.id } });
+      return json({ restored: true, ...res, note: "書き戻す前の内容も版として残しています (designer__list_versions)" });
+    }
+
+    case "designer__repair_registry": {
+      const plan = await repairRegistry(root, a.apply === true);
+      if (plan.applied) wsBridge.broadcast({ wsId: workspaceContextManager.getActivePath(sessionId), event: "projectChanged", data: { reload: true } });
+      return json({ ...plan, note: plan.applied ? "一覧を直しました" : "予行です。実行するには apply: true を付けて、もう一度呼んでください" });
+    }
+
+    case "designer__migrate_schema": {
+      const apply = a.apply === true;
+      if (apply) {
+        // 移行は複数の設計を書き換える。編集中の画面が古い内容で上書き保存して、移行を巻き戻さないようにする
+        const active = (wsBridge.editSessionList(sessionId).sessions as Array<{ state?: string }>).filter((s) => s.state === "Active");
+        if (active.length) throw new McpError(ErrorCode.InvalidRequest, `編集中のセッションが ${active.length} 件あるため、移行を実行できません。編集を保存または破棄してからにしてください`);
+      }
+      const report = await migrateWorkspace(root, { apply });
+      if (report.applied) wsBridge.broadcast({ wsId: workspaceContextManager.getActivePath(sessionId), event: "projectChanged", data: { reload: true } });
+      return json({ ...report, note: report.migrations.length === 0 ? "移行は不要です (スキーマの版は最新です)" : report.applied ? "移行しました" : "予行です。実行するには apply: true を付けて、もう一度呼んでください" });
+    }
+
+    case "designer__persist_uuids": {
+      const res = await persistDerivedUuids(root, a.apply === true);
+      if (res.applied) wsBridge.broadcast({ wsId: workspaceContextManager.getActivePath(sessionId), event: "projectChanged", data: { reload: true } });
+      return json({ ...res, note: res.applied ? "uuid を固定しました" : "予行です。実行するには apply: true を付けて、もう一度呼んでください" });
     }
 
     default:

@@ -73,6 +73,7 @@ import {
 import type { GenericDefinitionKind } from "../types/v3";
 import type { RawExtensionsBundle } from "../schemas/loadExtensions";
 import { backendWebSocketUrl } from "./backendEndpoint";
+import { getAuthToken, isUnauthorizedClose, setAuthToken, wsUrlWithToken } from "./authToken";
 
 export type McpStatus = "disconnected" | "connecting" | "connected" | "failed";
 export type ThemeIdLike = "standard" | "card" | "compact" | "dark";
@@ -295,7 +296,7 @@ class McpBridgeImpl {
     this._setStatus("connecting");
     uiInfo("ws-broadcast", `mcpBridge connecting to ${WS_URL} (attempt ${this.connectAttempts})`);
 
-    const ws = new WebSocket(WS_URL);
+    const ws = new WebSocket(wsUrlWithToken(WS_URL, getAuthToken()));
     this.ws = ws;
 
     ws.addEventListener("open", () => {
@@ -311,9 +312,26 @@ class McpBridgeImpl {
       this._handleMessage(event.data as string);
     });
 
-    ws.addEventListener("close", () => {
+    ws.addEventListener("close", (ev: CloseEvent) => {
       if (this.ws !== ws) return;
       this.ws = null;
+      // サーバが接続トークンを要求して切断した (HARMONY_AUTH_TOKEN)。トークンを聞いて、つなぎ直す
+      if (isUnauthorizedClose(ev)) {
+        this._setStatus("failed");
+        for (const [id, handler] of this.pendingRequests.entries()) {
+          clearTimeout(handler.timer);
+          handler.reject(new Error("接続トークンが必要です"));
+          this.pendingRequests.delete(id);
+        }
+        const token = typeof window !== "undefined" && typeof window.prompt === "function"
+          ? window.prompt(getAuthToken() ? "接続トークンが違います。サーバの接続トークン (HARMONY_AUTH_TOKEN) を入力してください" : "このサーバは接続トークンが必要です。サーバの接続トークン (HARMONY_AUTH_TOKEN) を入力してください")
+          : null;
+        if (token && token.trim() && !this.stopped) {
+          setAuthToken(token.trim());
+          this.retryTimer = setTimeout(() => { this.retryTimer = null; this._connect(); }, 0);
+        }
+        return;
+      }
       uiWarn("ws-broadcast", `mcpBridge disconnected, retrying in ${RETRY_DELAY_MS}ms`);
       // 切断中も store の backend 参照は残し、再接続まで request 失敗 → 上位 UI で loading
       // 表示を維持する。localStorage fallback は #923 シリーズで廃止 (spec D-8)。

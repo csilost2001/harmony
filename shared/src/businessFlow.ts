@@ -301,7 +301,7 @@ export function businessFlowToSvg(flow: Pick<BusinessFlow, "lanes" | "steps" | "
   parts.push(`<defs><marker id="bf-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="bf-arrowhead"/></marker></defs>`);
   lay.lanes.forEach((pl, i) => {
     const kind = pl.lane.kind ?? "person";
-    parts.push(`<g class="bf-lane bf-lane-${kind}${i % 2 ? " bf-lane-alt" : ""}" data-lane="${escXml(pl.lane.id)}">`
+    parts.push(`<g class="bf-lane bf-lane-${escXml(kind)}${i % 2 ? " bf-lane-alt" : ""}" data-lane="${escXml(pl.lane.id)}">`
       + `<rect class="bf-lane-bg" x="0" y="${pl.y}" width="${lay.width}" height="${pl.h}"/>`
       + `<rect class="bf-lane-head" x="0" y="${pl.y}" width="${L.laneLabelW}" height="${pl.h}"/>`
       + wrapLabel(pl.lane.name, 7, 4).map((t, k, arr) => `<text class="bf-lane-name" x="${L.laneLabelW / 2}" y="${pl.y + pl.h / 2 + (k - (arr.length - 1) / 2) * 15 + 4}" text-anchor="middle">${escXml(t)}</text>`).join("")
@@ -315,7 +315,7 @@ export function businessFlowToSvg(flow: Pick<BusinessFlow, "lanes" | "steps" | "
   for (const p of lay.steps) {
     const s = p.step;
     const cx = p.x + p.w / 2, cy = p.y + p.h / 2;
-    const cls = ["bf-step", `bf-${s.kind}`, opts.selectedId === s.id ? "bf-selected" : "", opts.problemIds?.has(s.id) ? "bf-problem" : ""].filter(Boolean).join(" ");
+    const cls = ["bf-step", `bf-${escXml(s.kind)}`, opts.selectedId === s.id ? "bf-selected" : "", opts.problemIds?.has(s.id) ? "bf-problem" : ""].filter(Boolean).join(" ");
     const attrs = opts.interactive ? ` data-testid="bf-step-${escXml(s.id)}" data-step="${escXml(s.id)}" tabindex="0" role="button"` : ` data-step="${escXml(s.id)}"`;
     let shape: string;
     if (s.kind === "decision") shape = `<polygon class="bf-shape" points="${cx},${p.y} ${p.x + p.w},${cy} ${cx},${p.y + p.h} ${p.x},${cy}"/>`;
