@@ -6,7 +6,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import {
-  actionsDir, resolveDataRoot, writeBusinessFlow, writeProcessFlow, writeReport, writeSequence, writeTable, writeView, writeViewDefinition,
+  actionsDir, readEntityReadOnly, readProject, resolveDataRoot, writeProject, writeBusinessFlow, writeProcessFlow, writeReport, writeSequence, writeTable, writeView, writeViewDefinition,
 } from "./projectStorage.js";
 import { listBackupVersions, readBackupVersion, versionIdToIso, type BackupVersion } from "./fileBackup.js";
 import { assertSafeName } from "./security/idValidator.js";
@@ -80,5 +80,35 @@ export async function restoreEntityVersionToFile(root: string, resourceType: str
   delete next.uuid;
   if (resourceType === "process-flow" && next.meta && typeof next.meta === "object") delete (next.meta as Record<string, unknown>).uuid;
   await write(resourceId, next, root);
+  await syncRegistryEntry(root, resourceType, resourceId); // 一覧の名前・列数・更新日時を、書き戻した内容に合わせる (画面の保存・update_table と同じ)
   return { restoredFrom: versionIdToIso(versionId) };
+}
+
+const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
+const pick = (src: Record<string, unknown>, keys: string[]): Record<string, unknown> =>
+  Object.fromEntries(keys.filter((k) => src[k] !== undefined).map((k) => [k, src[k]]));
+
+/** 一覧 (harmony.json の entities.<種類>) に載せる要約。画面・MCP の保存 (tableStore の syncTableMeta など) と同じ項目 */
+const REGISTRY: Record<string, { key: string; kind: "table" | "processFlow" | "view" | "viewDefinition" | "sequence"; summary: (d: Record<string, unknown>) => Record<string, unknown> }> = {
+  "table": { key: "tables", kind: "table", summary: (d) => ({ ...pick(d, ["name", "physicalName", "category", "maturity", "updatedAt"]), columnCount: Array.isArray(d.columns) ? d.columns.length : 0 }) },
+  "process-flow": { key: "processFlows", kind: "processFlow", summary: (d) => { const m = isRecord(d.meta) ? d.meta : {}; return { ...pick(m, ["name", "flowType", "maturity", "updatedAt"]), actionCount: Array.isArray(d.actions) ? d.actions.length : 0 }; } },
+  "view": { key: "views", kind: "view", summary: (d) => pick(d, ["name", "physicalName", "maturity", "updatedAt"]) },
+  "view-definition": { key: "viewDefinitions", kind: "viewDefinition", summary: (d) => ({ ...pick(d, ["name", "kind", "sourceTableId", "maturity", "updatedAt"]), columnCount: Array.isArray(d.columns) ? d.columns.length : 0 }) },
+  "sequence": { key: "sequences", kind: "sequence", summary: (d) => pick(d, ["name", "physicalName", "conventionRef", "maturity", "updatedAt"]) },
+};
+
+/** 書き戻した設計の要約を、一覧 (harmony.json) の項目へ反映する (一覧に載っている項目だけ。並び番号は保つ)。業務フロー・帳票は、一覧に載らない */
+async function syncRegistryEntry(root: string, resourceType: string, id: string): Promise<void> {
+  const r = REGISTRY[resourceType];
+  if (!r) return;
+  const project = await readProject(root);
+  if (!isRecord(project) || !isRecord(project.entities) || !Array.isArray(project.entities[r.key])) return;
+  const list = project.entities[r.key] as unknown[];
+  const idx = list.findIndex((e) => isRecord(e) && e.id === id);
+  if (idx < 0) return;
+  const saved = await readEntityReadOnly(r.kind, id, root);
+  if (!isRecord(saved)) return;
+  const next = [...list];
+  next[idx] = { ...(list[idx] as Record<string, unknown>), ...r.summary(saved) };
+  await writeProject({ ...project, entities: { ...project.entities, [r.key]: next } }, root);
 }

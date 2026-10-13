@@ -23,7 +23,7 @@ import { rpcHandlerMap, type RpcContext } from "./wsHandlers/index.js";
 import { logInfo, logWarn, logError } from "./serverLog.js";
 import { checkRequestOrigin } from "./security/originCheck.js";
 import { ExternalChangeWatcher } from "./externalChanges.js";
-import { authFailureDelayMs, checkAuthToken } from "./security/authToken.js";
+import { authFailureDelayMs, checkAuthToken, configuredToken } from "./security/authToken.js";
 import { ensureRecovered } from "./operationJournal.js";
 import { RateLimiter, checkContentLength, maxWsPayloadBytes, maxWsRequestsPer10s } from "./security/requestLimits.js";
 
@@ -289,6 +289,8 @@ export class WsBridge extends EventEmitter {
       await delay(500);
     }
     await this._bind();
+    const token = configuredToken();
+    if (token && token.length < 32) logWarn("ws-bridge", "HARMONY_AUTH_TOKEN が短すぎます。推測できない長さ (32 文字以上の乱数) にしてください", { length: token.length });
 
     // Phase 7 (#885): abandoned entry の定期 cleanup を開始
     presenceStartCleanupInterval((wsId, resourceType, resourceId, entries) => {

@@ -15,7 +15,7 @@ import { explainWriteError } from "./writeErrors.js";
 import { describeJsonError, findJsonErrorOffset, MAX_JSON_BYTES, persistDerivedUuids, repairRegistry, scanWorkspaceHealth } from "./workspaceHealth.js";
 import { collectExtraIssues } from "./schemaIssues.js";
 import { ExternalChangeWatcher, RETRY_AFTER_MS, SELF_WINDOW_MS, classifyChangedPath, installSelfWriteTracking, isSelfWritePath, markSelfWrite } from "./externalChanges.js";
-import { openJournal, planFromAbsolute, recoverJournals, isOwnerAlive, FOREIGN_STALE_MS, JOURNAL_DIR } from "./operationJournal.js";
+import { openJournal, planFromAbsolute, recoverJournals, isOwnerAlive, ensureRecovered, _resetRecoveredForTest, FOREIGN_STALE_MS, JOURNAL_DIR } from "./operationJournal.js";
 import { renameEntityId } from "./renameEntity.js";
 import { FAILURE_WINDOW_MS, FREE_FAILURES, MAX_DELAY_MS, _resetAuthThrottleForTest, authFailureDelayMs, checkAuthToken } from "./security/authToken.js";
 import { BodyTooLargeError, RateLimiter, checkContentLength, maxHttpBodyBytes, maxWsPayloadBytes, readLimitedBody } from "./security/requestLimits.js";
@@ -82,6 +82,24 @@ describe("保存前の版 (fileBackup / fileVersions)", () => {
     const after = await listEntityVersions(root, "table", "t1");
     const names = await Promise.all(after.map(async (v) => (await readEntityVersion(root, "table", "t1", v.id) as { name: string }).name));
     expect(names).toContain("変更後");
+  });
+
+  it("書き戻すと、一覧 (harmony.json) の要約 (名前・列数) も、書き戻した内容に合わせる。一覧に載っていなければ足さない", async () => {
+    const root = await makeWs();
+    const proj = (await readProject(root)) as Record<string, unknown>;
+    await fs.writeFile(harmonyFile(root), JSON.stringify({ ...proj, entities: { tables: [{ id: "reg", no: 7, name: "旧名", physicalName: "reg", columnCount: 5, updatedAt: "2026-01-01T00:00:00.000Z" }] } }, null, 2));
+    await writeTable("reg", { id: "reg", name: "最初の名前", columns: [{ id: "c1", no: 1, physicalName: "c1", name: "C1", dataType: "INTEGER" }] }, root);
+    await writeTable("reg", { id: "reg", name: "あとの名前", columns: [] }, root);
+    const [prev] = await listEntityVersions(root, "table", "reg");
+    await restoreEntityVersionToFile(root, "table", "reg", prev.id);
+    const entry = ((await readProject(root)) as { entities: { tables: Array<Record<string, unknown>> } }).entities.tables[0];
+    expect(entry).toMatchObject({ id: "reg", no: 7, name: "最初の名前", columnCount: 1 });
+    // 一覧に載っていない設計は、足さない (一覧の読み出しが補う)
+    await writeTable("unreg", table("unreg", "a"), root);
+    await writeTable("unreg", table("unreg", "b"), root);
+    const [pv] = await listEntityVersions(root, "table", "unreg");
+    await restoreEntityVersionToFile(root, "table", "unreg", pv.id);
+    expect(((await readProject(root)) as { entities: { tables: Array<{ id: string }> } }).entities.tables.map((t) => t.id)).toEqual(["reg"]);
   });
 
   it("id が違う版・存在しない版・対応しない種類は戻せない / .gitignore を置く / 隠しフォルダは対象外", async () => {
@@ -402,6 +420,39 @@ describe("外部変更の検知 (externalChanges)", () => {
     }
   }, 30_000);
 
+  it("フォルダが作り直され、続けてファイルが書かれても、監視を張り直す前に書かれた分を取りこぼさない (git checkout のような入れ替え)", async () => {
+    installSelfWriteTracking();
+    const root = await makeWs();
+    await writeTable("keep", table("keep", "x"), root);
+    const got: Array<{ evs: string[]; paths: string[] }> = [];
+    const w = new ExternalChangeWatcher((_r, evs, paths) => got.push({ evs: evs.map((e) => `${e.event}:${JSON.stringify(e.data)}`), paths }));
+    try {
+      await w.ensure(root);
+      const dir = path.join(root, "harmony", "tables");
+      const { execFileSync } = await import("node:child_process");
+      // 同じプロセスが、フォルダを消す → 作る → 中のファイルを続けて書く
+      execFileSync("node", ["-e", `const fs=require("fs");const d=${JSON.stringify(dir)};fs.rmSync(d,{recursive:true});fs.mkdirSync(d);for(let i=0;i<3;i++)fs.writeFileSync(d+"/c"+i+".json","{}")`]);
+      expect(await waitFor(() => got.flatMap((g) => g.evs).filter((e) => e.startsWith("tableChanged")).length >= 3)).toBe(true);
+      const ids = got.flatMap((g) => g.evs).sort();
+      expect(ids).toEqual(expect.arrayContaining(['tableChanged:{"tableId":"c0"}', 'tableChanged:{"tableId":"c1"}', 'tableChanged:{"tableId":"c2"}']));
+    } finally {
+      w.closeAll();
+    }
+  }, 30_000);
+
+  it("自分が消したあと、外部が作り直して消しても、削除を検知する (「無し」の記録が外部の変化を隠さない)", async () => {
+    installSelfWriteTracking();
+    const root = await makeWs();
+    const file = path.join(root, "harmony", "tables", "c.json");
+    await fs.writeFile(file, "{}");
+    await fs.unlink(file); // 自分が消した (状態 = 無し)
+    const { execFileSync } = await import("node:child_process");
+    execFileSync("node", ["-e", `require("fs").writeFileSync(${JSON.stringify(file)}, "{}")`]);
+    expect(isSelfWritePath(file)).toBe(false); // 外部の作り直し
+    execFileSync("node", ["-e", `require("fs").unlinkSync(${JSON.stringify(file)})`]);
+    expect(isSelfWritePath(file)).toBe(false); // 続く外部の削除も、隠さない
+  });
+
   it("自分が消して作り直したファイルを、外で消したら検知する (「自分が消した」記録が残らない)", async () => {
     installSelfWriteTracking();
     const root = await makeWs();
@@ -465,11 +516,11 @@ describe("複数ファイル操作の復旧 (operationJournal)", () => {
     await fs.writeFile(created, "NEW");
     await orphan(root);
     const res = await recoverJournals(root);
-    expect(res).toEqual({ journals: 1, restored: 1 });
+    expect(res).toEqual({ journals: 1, restored: 1, skipped: 0 });
     expect(await fs.readFile(a, "utf-8")).toBe("ORIGINAL");
     await expect(fs.access(created)).rejects.toThrow();
     expect(await fs.readdir(path.join(root, JOURNAL_DIR))).toEqual([".gitignore"]);
-    expect(await recoverJournals(root)).toEqual({ journals: 0, restored: 0 });
+    expect(await recoverJournals(root)).toEqual({ journals: 0, restored: 0, skipped: 0 });
   });
 
   it("持ち主のプロセスが生きている記録は、進行中の操作なので巻き戻さない", async () => {
@@ -478,7 +529,7 @@ describe("複数ファイル操作の復旧 (operationJournal)", () => {
     await fs.writeFile(a, "ORIGINAL");
     await openJournal(root, planFromAbsolute(root, "live", [{ absPath: a, content: "ORIGINAL" }], []));
     await fs.writeFile(a, "IN-PROGRESS");
-    expect(await recoverJournals(root)).toEqual({ journals: 1, restored: 0 });
+    expect(await recoverJournals(root)).toEqual({ journals: 1, restored: 0, skipped: 1 });
     expect(await fs.readFile(a, "utf-8")).toBe("IN-PROGRESS");
     expect((await fs.readdir(path.join(root, JOURNAL_DIR))).filter((f) => f.endsWith(".json"))).toHaveLength(1);
   });
@@ -495,7 +546,7 @@ describe("複数ファイル操作の復旧 (operationJournal)", () => {
       const j = JSON.parse(await fs.readFile(path.join(dir, f), "utf-8"));
       await fs.writeFile(path.join(dir, f), JSON.stringify({ ...j, instanceId: "previous-run" }));
     }
-    expect(await recoverJournals(root)).toEqual({ journals: 1, restored: 1 });
+    expect(await recoverJournals(root)).toEqual({ journals: 1, restored: 1, skipped: 0 });
     expect(await fs.readFile(a, "utf-8")).toBe("ORIGINAL");
   });
 
@@ -525,6 +576,33 @@ describe("複数ファイル操作の復旧 (operationJournal)", () => {
     expect(await fs.readFile(legacy, "utf-8")).toBe("LEGACY");
   });
 
+  it("別ホストの新しい記録を飛ばしたときは、その記録が残骸になる時間のあと、最初の要求で 1 回だけ試し直す", async () => {
+    const root = await makeWs();
+    const a = path.join(root, "harmony", "tables", "foreign.json");
+    await fs.writeFile(a, "ORIGINAL");
+    await openJournal(root, planFromAbsolute(root, "foreign", [{ absPath: a, content: "ORIGINAL" }], []));
+    await fs.writeFile(a, "HALF");
+    const dir = path.join(root, JOURNAL_DIR);
+    for (const f of (await fs.readdir(dir)).filter((x) => x.endsWith(".json"))) {
+      const j = JSON.parse(await fs.readFile(path.join(dir, f), "utf-8"));
+      await fs.writeFile(path.join(dir, f), JSON.stringify({ ...j, instanceId: "other-container-run", host: "another-container" }));
+    }
+    _resetRecoveredForTest();
+    const t0 = Date.now();
+    await ensureRecovered(root, t0);
+    expect(await fs.readFile(a, "utf-8")).toBe("HALF"); // 別ホストの新しい記録は、進行中とみなして飛ばす
+    await ensureRecovered(root, t0 + 1_000); // 待ちの間は、試し直さない
+    expect(await fs.readFile(a, "utf-8")).toBe("HALF");
+    // 記録を、残骸になる時間より古くする
+    for (const f of (await fs.readdir(dir)).filter((x) => x.endsWith(".json"))) {
+      const old = new Date(Date.now() - FOREIGN_STALE_MS - 5_000);
+      await fs.utimes(path.join(dir, f), old, old);
+    }
+    await ensureRecovered(root, t0 + FOREIGN_STALE_MS + 2_000);
+    expect(await fs.readFile(a, "utf-8")).toBe("ORIGINAL");
+    expect((await fs.readdir(dir)).filter((x) => x.endsWith(".json"))).toEqual([]);
+  });
+
   it("終わった (commit した) 記録は残らず、復旧しても何も戻らない", async () => {
     const root = await makeWs();
     const a = path.join(root, "harmony", "tables", "a.json");
@@ -532,7 +610,7 @@ describe("複数ファイル操作の復旧 (operationJournal)", () => {
     const commit = await openJournal(root, planFromAbsolute(root, "done", [{ absPath: a, content: "X" }], []));
     await fs.writeFile(a, "Y");
     await commit();
-    expect(await recoverJournals(root)).toEqual({ journals: 0, restored: 0 });
+    expect(await recoverJournals(root)).toEqual({ journals: 0, restored: 0, skipped: 0 });
     expect(await fs.readFile(a, "utf-8")).toBe("Y");
   });
 

@@ -75,6 +75,8 @@ export function isSelfWritePath(abs: string, now = Date.now()): boolean {
   if (m) {
     if (m.sig === undefined) { if (now - m.t < SELF_WINDOW_MS) return true; }
     else if (now - m.t < SELF_KEEP_MS && sigOf(key) === m.sig) return true;
+    // 外部の変化 (状態が覚えているものと違う) を検知したので、記録は捨てる (残すと、続く外部の変化 (作り直し → 削除など) を隠す)
+    if (m.sig !== undefined) selfMarks.delete(key);
   }
   // 自分が消したフォルダの下のファイルが、無くなった通知
   if (sigOf(key) === "-") {
@@ -195,7 +197,8 @@ export class ExternalChangeWatcher {
   }
 
   /** 監視するフォルダのうち、まだ監視していないもの (あとから作られたフォルダ) を足す */
-  private syncDirs(root: string, w: Watching, force: ReadonlySet<string> = new Set()): void {
+  private syncDirs(root: string, w: Watching, force: ReadonlySet<string> = new Set()): string[] {
+    const watched: string[] = [];
     const rels = [...WATCH_DIRS];
     try {
       for (const e of readdirSync(path.join(w.dataRoot, "generic-definitions"), { withFileTypes: true })) {
@@ -223,11 +226,13 @@ export class ExternalChangeWatcher {
         });
         w.dirs.set(rel, fsw);
         w.inodes.set(rel, ino);
+        watched.push(rel);
       } catch (e) {
         if (rel === "") throw e; // データフォルダ自身を監視できなければ、この環境では使えない
         logWarn("external-change", "watch.dir.failed", { dir: rel, error: e instanceof Error ? e.message : String(e) });
       }
     }
+    return watched;
   }
 
   private onEvent(root: string, w: Watching, rel: string, name: string | Buffer | null): void {
@@ -236,9 +241,24 @@ export class ExternalChangeWatcher {
     // フォルダが作られた・消えた (generic-definitions/<種類> など) 可能性: 監視を足す
     if (rel === "" || rel === "generic-definitions") {
       const child = rel ? `${rel}/${name.toString()}` : name.toString();
-      this.syncDirs(root, w, new Set([child, ...(child === "generic-definitions" ? [...w.dirs.keys()].filter((k) => k.startsWith("generic-definitions/")) : [])]));
+      const watched = this.syncDirs(root, w, new Set([child, ...(child === "generic-definitions" ? [...w.dirs.keys()].filter((k) => k.startsWith("generic-definitions/")) : [])]));
+      // 張り直したフォルダ (消えて作り直された・あとから作られた) には、監視を張る前に書かれたファイルがある。その分は通知されないので、中身を見て補う
+      for (const d of watched) this.announceExisting(root, w, d);
     }
-    if (isSelfWritePath(path.join(w.dataRoot, ...relPath.split("/")))) return; // backend 自身の書き込み
+    this.queue(root, w, relPath);
+  }
+
+  /** 張り直したフォルダの、いまあるファイルを、変化として知らせる (自分の書き込みを除く) */
+  private announceExisting(root: string, w: Watching, rel: string): void {
+    if (!rel || rel === "generic-definitions") return;
+    let names: string[] = [];
+    try { names = readdirSync(path.join(w.dataRoot, ...rel.split("/"))); } catch { return; }
+    for (const name of names) this.queue(root, w, `${rel}/${name}`);
+  }
+
+  /** 変化したパスを溜めて、まとめて通知する (自分の書き込み・設計でないファイルは除く) */
+  private queue(root: string, w: Watching, relPath: string): void {
+    if (isSelfWritePath(path.join(w.dataRoot, ...relPath.split("/")))) return;
     const ev = classifyChangedPath(relPath);
     if (!ev) return;
     w.pending.set(relPath, ev);

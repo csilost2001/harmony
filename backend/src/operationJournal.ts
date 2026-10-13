@@ -82,11 +82,12 @@ export function isOwnerAlive(plan: JournalPlan, fileMtimeMs: number, now = Date.
 }
 
 /** 残っている記録 (持ち主が終わっているもの) を、元の内容に戻す。戻したファイルの数を返す */
-export async function recoverJournals(root: string): Promise<{ journals: number; restored: number }> {
+export async function recoverJournals(root: string): Promise<{ journals: number; restored: number; skipped: number }> {
   const dir = path.join(root, JOURNAL_DIR);
   let files: string[];
-  try { files = (await fs.readdir(dir)).filter((f) => f.endsWith(".json")).sort(); } catch { return { journals: 0, restored: 0 }; }
+  try { files = (await fs.readdir(dir)).filter((f) => f.endsWith(".json")).sort(); } catch { return { journals: 0, restored: 0, skipped: 0 }; }
   let restored = 0;
+  let skipped = 0;
   for (const f of files) {
     const file = path.join(dir, f);
     try {
@@ -95,6 +96,7 @@ export async function recoverJournals(root: string): Promise<{ journals: number;
       const st = await fs.stat(file).catch(() => null);
       if (isOwnerAlive(plan, st?.mtimeMs ?? 0)) {
         logWarn("journal", "journal.skipped.owner-alive", { label: plan.label, pid: plan.pid, host: plan.host });
+        skipped++;
         continue;
       }
       const restoring = new Set(plan.restore.map((r) => r.rel));
@@ -113,13 +115,27 @@ export async function recoverJournals(root: string): Promise<{ journals: number;
       logWarn("journal", "journal.recover.failed", { file: f, error: e instanceof Error ? e.message : String(e) });
     }
   }
-  return { journals: files.length, restored };
+  return { journals: files.length, restored, skipped };
 }
 
-const recovered = new Map<string, Promise<unknown>>();
-/** プロセスの中で、ワークスペースごとに 1 回だけ復旧する (最初の要求のとき。以降は同じ結果を待つ) */
-export function ensureRecovered(root: string): Promise<unknown> {
-  let p = recovered.get(root);
-  if (!p) { p = recoverJournals(root).catch(() => undefined); recovered.set(root, p); }
-  return p;
+interface RecoverState { promise: Promise<unknown>; retryAt?: number; retried: boolean }
+const recovered = new Map<string, RecoverState>();
+/**
+ * プロセスの中で、ワークスペースごとに最初の要求のときに復旧する (以降は同じ結果を待つ)。
+ * 持ち主が生きているとみなして飛ばした記録があるときは、別ホストの記録が残骸になる時間 (FOREIGN_STALE_MS) を過ぎたあとの最初の要求で、
+ * もう 1 回だけ試す (コンテナを作り直した直後の記録を、そのプロセスの間ずっと放置しない)。
+ */
+export function ensureRecovered(root: string, now = Date.now()): Promise<unknown> {
+  const cur = recovered.get(root);
+  if (cur && !(cur.retryAt !== undefined && now >= cur.retryAt && !cur.retried)) return cur.promise;
+  const retried = cur !== undefined;
+  const st: RecoverState = { promise: Promise.resolve(), retried };
+  st.promise = recoverJournals(root)
+    .then((r) => { if (!retried && r.skipped > 0) st.retryAt = Date.now() + FOREIGN_STALE_MS + 1_000; return r; })
+    .catch(() => undefined);
+  recovered.set(root, st);
+  return st.promise;
 }
+
+/** テスト用: 復旧の記憶を消す */
+export function _resetRecoveredForTest(): void { recovered.clear(); }
