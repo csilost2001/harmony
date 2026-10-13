@@ -316,7 +316,7 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
     } finally {
       setConverting(false);
     }
-  }, [screenId, ensureEditing]);
+  }, [screenId, ensureEditing, setConverting, setConvertMessage, setPendingInit]);
 
   const lockedByOther = mode.kind === "locked-by-other" ? mode : null;
   const hasLayout = !!doc?.layout;

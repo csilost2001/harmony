@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
  * check — コミット前の一括検証。各工程を順に実行し、最後に結果を一覧表示する。
- *   1. shared build  2. frontend 型検査  3. backend 型検査  4. 直書き色検査  4b. CSS 未定義クラス検査 (Bootstrap 風のクラス)  4c. エラー通知の書き方の検査 (.catch(console.error) を増やさない)
- *   5. サンプル設計の要確認 (examples/ 全件が警告なし)  6. frontend 単体テスト  7. backend 単体テスト
+ *   1. shared build  2. frontend 型検査  2b. frontend lint (エラー 0・警告を増やさない)  3. backend 型検査  4. 直書き色検査  4b. CSS 未定義クラス検査 (Bootstrap 風のクラス)  4c. エラー通知の書き方の検査 (.catch(console.error) を増やさない)
+ *   5. サンプル設計の要確認 (examples/ 全件が警告なし)  5b. ビルドサイズの予算 (入口を小さく保つ)  6. frontend 単体テスト  7. backend 単体テスト
  * 使い方: npm run check   (--skip-tests でテスト工程を省略)
  */
 import fs from "node:fs";
@@ -16,15 +16,22 @@ const skipTests = process.argv.includes("--skip-tests");
 const sampleDirs = fs.readdirSync(path.join(root, "examples"), { withFileTypes: true })
   .filter((d) => d.isDirectory() && fs.existsSync(path.join(root, "examples", d.name, "harmony.json")))
   .map((d) => path.join("examples", d.name));
+const LINT_MAX_WARNINGS = 18;
 const steps = [
   ["shared build", "npm", ["run", "build", "--workspace=@harmony/shared"], root],
   ["frontend 型検査", "npx", ["tsc", "-b"], path.join(root, "frontend")],
+  // ESLint: エラーは 0、警告は増やさない (この数を下げたら、ここも下げる。react-hooks の新しい規則の警告が残っている)
+  ["E2E の skip の検査", "node", ["scripts/verify/no-unconditional-e2e-skip.mjs"], root],
+  ["型検査の抑止の検査", "node", ["scripts/verify/no-type-suppression.mjs"], root],
+  ["frontend lint", "npx", ["eslint", ".", "--max-warnings", String(LINT_MAX_WARNINGS)], path.join(root, "frontend")],
   ["backend 型検査", "npx", ["tsc", "--noEmit"], path.join(root, "backend")],
   ["直書き色検査", "node", ["scripts/verify/no-raw-colors.mjs"], root],
   ["入力例の表記検査", "node", ["scripts/dev/prefix-placeholders.mjs", "--check"], root],
   ["エラー通知の書き方の検査", "node", ["scripts/verify/no-new-bare-catch-console-error.mjs"], root],
+  ["スキーマと型の食い違い検査", "node", ["scripts/verify/types-drift.mjs"], root],
   ["CSS 未定義クラス検査", "node", ["scripts/verify/no-undefined-bootstrap-classes.mjs"], root],
   ["サンプル設計の要確認", "node", ["scripts/check-design.mjs", ...sampleDirs, "--strict"], root],
+  ["ビルドサイズの予算", "node", ["scripts/verify/bundle-budget.mjs"], root],
   ...(skipTests ? [] : [
     ["frontend 単体テスト", "npx", ["vitest", "run", "--reporter=dot"], path.join(root, "frontend")],
     ["backend 単体テスト", "npx", ["vitest", "run", "--reporter=dot"], path.join(root, "backend")],

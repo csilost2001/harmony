@@ -10,6 +10,8 @@ beforeEach(async () => {
   root = await mkdtemp(path.join(os.tmpdir(), "harmony-static-"));
   await mkdir(path.join(root, "_astro"), { recursive: true });
   await writeFile(path.join(root, "index.html"), "<!doctype html><div id=\"root\"></div>");
+  await mkdir(path.join(root, "assets"), { recursive: true });
+  await writeFile(path.join(root, "assets", "index-abc123.js"), "console.log('vite');");
   await writeFile(path.join(root, "_astro", "app.js"), "console.log('ok');");
 });
 
@@ -18,6 +20,14 @@ afterEach(async () => {
 });
 
 describe("resolveStaticAsset", () => {
+  it("Vite のハッシュつきの成果物 (assets/ 直下) は immutable。index.html は違う", async () => {
+    const asset = await resolveStaticAsset(root, "/assets/index-abc123.js");
+    expect(asset.kind === "file" && asset.immutable).toBe(true);
+    const index = await resolveStaticAsset(root, "/index.html");
+    expect(index.kind === "file" && index.immutable).toBe(false);
+  });
+
+
   it("serves concrete static files", async () => {
     const resolved = await resolveStaticAsset(root, "/_astro/app.js");
 

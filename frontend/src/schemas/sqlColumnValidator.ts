@@ -9,7 +9,7 @@
  *
  * node-sql-parser v5 ベース。複雑な CTE / window / サブクエリは best-effort。
  */
-import { Parser } from "node-sql-parser";
+import { Parser } from "node-sql-parser/build/postgresql";
 import type { ProcessFlow, DbAccessStep, Step } from "../types/v3";
 import { isBuiltinStep } from "./stepGuards";
 

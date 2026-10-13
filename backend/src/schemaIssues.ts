@@ -7,7 +7,9 @@ import { memoizeBySignature } from "./dataSignature.js";
 import { scanWorkspaceHealth } from "./workspaceHealth.js";
 import { readProjectWithUnregistered } from "./registryMerge.js";
 import { describeAjvError } from "./ajvMessages.js";
-import { listAllTables, listProcessFlows, readScreenEntity, validateEntitySchema } from "./projectStorage.js";
+import path from "node:path";
+import { entityDirOf, harmonyFile, listAllTables, listProcessFlows, readScreenEntity, resolveDataRoot, validateEntitySchema } from "./projectStorage.js";
+import { createFileMemo } from "./fileMemo.js";
 
 export interface SchemaIssue {
   severity: "error" | "warning" | "info";
@@ -19,25 +21,35 @@ export interface SchemaIssue {
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
 
+/** ファイルごとの検査結果 (ファイルの状態が変わらないあいだ使い回す。1 件の保存で、全件を検査し直さない) */
+const issueMemo = createFileMemo<SchemaIssue[]>();
+
 async function computeSchemaIssues(root: string): Promise<SchemaIssue[]> {
   const out: SchemaIssue[] = [];
-  const push = async (kind: NonNullable<SchemaIssue["ref"]>["kind"], label: string, id: string, name: string | undefined, data: unknown) => {
-    for (const err of await validateEntitySchema(kind, data)) {
-      out.push({ severity: "warning", section: `${label} ${name || id}`, message: `スキーマ: ${describeAjvError(err)}`, ref: { kind, id } });
-    }
-  };
+  const dataRoot = await resolveDataRoot(root);
+  const issuesOf = async (kind: NonNullable<SchemaIssue["ref"]>["kind"], label: string, id: string, name: string | undefined, data: unknown): Promise<SchemaIssue[]> =>
+    (await validateEntitySchema(kind, data)).map((err) => ({ severity: "warning" as const, section: `${label} ${name || id}`, message: `スキーマ: ${describeAjvError(err)}`, ref: { kind, id } }));
+  const fileOf = (kind: "screen" | "table" | "processFlow", id: string) => path.join(entityDirOf(kind, dataRoot), `${id}.json`);
 
   const project = (await readProjectWithUnregistered(root)).project;
   const screens = isRecord(project) && isRecord(project.entities) && Array.isArray(project.entities.screens) ? project.entities.screens as Array<{ id: string }> : [];
   for (const s of screens) {
-    const e = await readScreenEntity(s.id, root).catch(() => null);
-    if (isRecord(e)) await push("screen", "画面", s.id, e.name as string | undefined, e);
+    // 旧形式の画面は、旧デザイン・画面項目のファイルと、登録簿 (harmony.json の名前) からも組み立てるので、それらの状態も印に入れる
+    const file = fileOf("screen", s.id);
+    const extras = [path.join(path.dirname(file), `${s.id}.design.json`), path.join(dataRoot, "screen-items", `${s.id}.json`), harmonyFile(root)];
+    out.push(...await issueMemo.get(file, async () => {
+      const e = await readScreenEntity(s.id, root).catch(() => null);
+      return isRecord(e) ? issuesOf("screen", "画面", s.id, e.name as string | undefined, e) : [];
+    }, extras));
   }
   for (const t of await listAllTables(root)) {
-    if (isRecord(t) && typeof t.id === "string") await push("table", "テーブル", t.id, t.name as string | undefined, t);
+    if (isRecord(t) && typeof t.id === "string") out.push(...await issueMemo.get(fileOf("table", t.id), () => issuesOf("table", "テーブル", t.id as string, t.name as string | undefined, t)));
   }
   for (const f of await listProcessFlows(root)) {
-    if (isRecord(f) && isRecord(f.meta) && typeof f.meta.id === "string") await push("processFlow", "処理フロー", f.meta.id, f.meta.name as string | undefined, f);
+    if (isRecord(f) && isRecord(f.meta) && typeof f.meta.id === "string") {
+      const id = f.meta.id;
+      out.push(...await issueMemo.get(fileOf("processFlow", id), () => issuesOf("processFlow", "処理フロー", id, f.meta && isRecord(f.meta) ? f.meta.name as string | undefined : undefined, f)));
+    }
   }
   return out;
 }

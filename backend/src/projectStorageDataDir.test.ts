@@ -342,16 +342,15 @@ describe("旧 project.json 参照の撤廃確認", () => {
     expect(content).not.toMatch(/export\s+(const|function)\s+projectFile\b/);
   });
 
-  it("projectStorage.ts に 'harmonyFile' export が存在すること", async () => {
-    const filePath = path.resolve(import.meta.dirname, "projectStorage.ts");
-    const content = await fs.readFile(filePath, "utf-8");
-    expect(content).toContain("export const harmonyFile");
+  it("projectStorage.ts に 'harmonyFile' export が存在すること (storageCore.ts へ分けたので、モジュールの export で確かめる)", async () => {
+    const mod = await import("./projectStorage.js");
+    expect(typeof mod.harmonyFile).toBe("function");
+    expect(mod.harmonyFile("/ws")).toBe(path.join("/ws", "harmony.json"));
   });
 
-  it("projectStorage.ts に 'resolveDataRoot' export が存在すること", async () => {
-    const filePath = path.resolve(import.meta.dirname, "projectStorage.ts");
-    const content = await fs.readFile(filePath, "utf-8");
-    expect(content).toContain("export async function resolveDataRoot");
+  it("projectStorage.ts に 'resolveDataRoot' export が存在すること (モジュールの export で確かめる)", async () => {
+    const mod = await import("./projectStorage.js");
+    expect(typeof mod.resolveDataRoot).toBe("function");
   });
 });
 

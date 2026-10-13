@@ -9,6 +9,7 @@ Claude Code 固有の補足は `CLAUDE.md`、Codex 固有の設定は `.codex/co
 |---|---|
 | ISSUE 起票・PR 作成・レビュー・シリーズ PR の詳細 | [docs/conventions/issue-and-pr-policy.md](docs/conventions/issue-and-pr-policy.md) |
 | docs-site (HTML 仕様書) と AI ブラウザ確認 | [docs/conventions/docs-site-and-browser-smoke.md](docs/conventions/docs-site-and-browser-smoke.md) |
+| 品質・性能の検査と道具 (ビルドサイズ予算 / 型の食い違い / カバレッジ / E2E 報告 / 使い回し) | [docs/conventions/quality-and-performance-tooling.md](docs/conventions/quality-and-performance-tooling.md) |
 | 完了判定 (回帰テストの trace 照合) | [docs/conventions/completion-gate.md](docs/conventions/completion-gate.md) |
 | 進行中の再設計計画と設計者判断 | [docs/plans/redesign-2026-10.md](docs/plans/redesign-2026-10.md) |
 | サーバの守り (接続トークン・要求の上限・MCP の権限)・保存前の版・外部更新の検知・ファイルの健全性 | [server-security.md](docs/spec/server-security.md) / [file-backup.md](docs/spec/file-backup.md) / [external-change-detection.md](docs/spec/external-change-detection.md) / [workspace-health.md](docs/spec/workspace-health.md) |
@@ -53,6 +54,8 @@ npm run kill           # 5173 / 5179 を握るプロセスを停止
 | テスト観点表の書き出し (画面入力の境界値・処理の分岐。ID つき。テストコード生成の入力) | `npm run export:tests -- examples/<project-id> --format json` |
 | 設計書 HTML の書き出し | `npm run export:doc -- examples/<project-id> --out .tmp/doc.html` |
 | 大きなプロジェクトでの性能 (画面 約 300 / 処理フロー 約 150 / テーブル 約 170。回帰には含めない) | `cd frontend && npx playwright test e2e/perf-large-project.spec.ts` (大きなワークスペースは `scripts/dev/make-large-workspace.mjs` が作る) |
+| 差分の行のカバレッジ (PR 本文に載せる) / E2E の遅い試験・flake の一覧 | `npm run coverage:changed` / `npm run e2e:report` ([quality-and-performance-tooling.md](docs/conventions/quality-and-performance-tooling.md)) |
+| backend の重い読み出しの時間 (規模を増やしたときの確認) | `npx tsx scripts/dev/bench-backend.mts <workspace-dir>` (同上) |
 | スキーマの版の移行 (予行が既定。`--apply` で書く。登録された移行はいまは空) | `npm run migrate:schema -- <workspace-dir> [--apply]` ([schema-migration.md](docs/spec/schema-migration.md)) |
 | AI (MCP) から: 設計の点検・参照元・改名・テスト観点 | `designer__check_design` (設計を直したら、完了報告の前に呼び error / warning 0 件にする) / `designer__find_references` (誰が参照しているか) / `designer__rename_entity` (既定は予行、`apply: true` で実行) と `designer__undo_rename` / `designer__get_test_viewpoints` |
 

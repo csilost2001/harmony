@@ -31,7 +31,8 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   // #930: @endurance はデフォルトで除外、明示 grep または E2E_INCLUDE_ENDURANCE=1 で実行
   grepInvert: includeEndurance ? undefined : /@endurance/,
-  retries: process.env.CI ? 1 : 0,
+  // 再試行: 既定は CI で 1、ほかは 0。HARMONY_E2E_RETRIES で変えられる (flake の検出には 1 以上にして、`npm run e2e:report` で、再試行で通った試験を一覧する)
+  retries: Number.isInteger(Number(process.env.HARMONY_E2E_RETRIES)) && process.env.HARMONY_E2E_RETRIES !== undefined ? Number(process.env.HARMONY_E2E_RETRIES) : (process.env.CI ? 1 : 0),
   // #1359 Phase 3: 並列 worker 数を 2 に既定化 (旧: workers: 1)。
   // Phase 1 (固定 path → worker prefix 化) + Phase 2 (recentStore atomic write による
   // workers > 1 race 解消) + tab-management の dispatchEvent fallback 整備で workers=2
@@ -40,8 +41,10 @@ export default defineConfig({
   // 偶発 flake×1) で本シリーズスコープ外。`undefined` で CPU 数依存 auto-detect ではなく
   // 明示 `2` を採用したのは、開発機 CPU 数によるばらつきを排し runtime 性質を再現可能に
   // するため。CI 化される将来は `process.env.CI ? 4 : 2` 等への調整余地あり。
-  workers: 2,
-  reporter: "list",
+  // 並列数は HARMONY_E2E_WORKERS で変えられる (既定 2)
+  workers: Number(process.env.HARMONY_E2E_WORKERS) > 0 ? Number(process.env.HARMONY_E2E_WORKERS) : 2,
+  // 結果は、画面 (list) と、あとで集計する JSON (.tmp/e2e-results.json。遅い試験・再試行で通った試験の一覧: `npm run e2e:report`)
+  reporter: [["list"], ["json", { outputFile: "../.tmp/e2e-results.json" }]],
   use: {
     baseURL: BASE_URL,
     trace: "on-first-retry",
@@ -49,6 +52,14 @@ export default defineConfig({
   },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    // 他のブラウザ (任意)。HARMONY_CROSS_BROWSER=1 のときだけ、@smoke の試験を実行する (cd frontend && npm run e2e:cross-browser)。
+    // 要: `npx playwright install --with-deps firefox webkit` (システムのライブラリ。この開発コンテナには入っていない)
+    ...(process.env.HARMONY_CROSS_BROWSER === "1"
+      ? [
+          { name: "firefox", use: { ...devices["Desktop Firefox"] }, grep: /@smoke/ },
+          { name: "webkit", use: { ...devices["Desktop Safari"] }, grep: /@smoke/ },
+        ]
+      : []),
   ],
   // テスト前に dev サーバーを自動起動
   // edit-session e2e (#904) では backend も必要。

@@ -16,7 +16,7 @@ import { LATEST_SCHEMA_VERSION, migrateWorkspace } from "../backend/src/schemaMi
 const args = process.argv.slice(2);
 const dir = args.find((a) => !a.startsWith("--"));
 if (!dir) {
-  console.error("usage: migrate-schema.ts <workspace-dir> [--apply]");
+  console.error("usage: migrate-schema.mts <workspace-dir> [--apply]");
   process.exit(2);
 }
 const apply = args.includes("--apply");

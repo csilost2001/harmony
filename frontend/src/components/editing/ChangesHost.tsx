@@ -70,7 +70,7 @@ export function ChangesHost() {
   // Esc は、画面の側の Esc (パネルを閉じる等) より先に受けて、このダイアログだけを閉じる。
   // 画面の側の listener は、あとから登録されるので、ここは開く前から (マウント時に) 登録しておく
   const openRef = useRef(false);
-  openRef.current = changes !== null;
+  useEffect(() => { openRef.current = changes !== null; }, [changes]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape" || !openRef.current) return;

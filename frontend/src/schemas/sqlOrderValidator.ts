@@ -30,7 +30,7 @@
  * 観点 5 (TX_CIRCULAR_DEPENDENCY) → #642
  */
 
-import { Parser } from "node-sql-parser";
+import { Parser } from "node-sql-parser/build/postgresql";
 import type { ProcessFlow, LoopStep, Step, TransactionScopeStep } from "../types/v3";
 import { isBuiltinStep } from "./stepGuards";
 

@@ -68,7 +68,7 @@ export function useEditableDocument<T extends object>(opts: UseEditableDocumentO
   // ── 変更: 元に戻せる変更 + サーバ側の下書きへ (少し間をおいて) 送る ──
   const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const editSessionIdRef = useRef<string | undefined>(undefined);
-  editSessionIdRef.current = editSession?.id;
+  useEffect(() => { editSessionIdRef.current = editSession?.id; }, [editSession?.id]);
   const syncDraft = useCallback(() => {
     if (draftTimer.current) clearTimeout(draftTimer.current);
     draftTimer.current = setTimeout(() => {
@@ -195,7 +195,7 @@ export function useEditableDocument<T extends object>(opts: UseEditableDocumentO
     onForceReleaseCancel: () => setShowForceRelease(false),
     onSaveConflictOverwrite: async () => { try { await onSaveConflictOverwrite(); await postSave(); } catch (e) { console.error("[useEditableDocument] 上書き保存に失敗:", e); } },
     onSaveConflictCancel,
-  }), [mode, isSaving, isDirty, serverChanged, saveError, saveConflict, showDiscard, showForceRelease, showResume, lockedByOther, actions, save, handleReset, dismissServerBanner, postSave, onSaveConflictOverwrite, onSaveConflictCancel]);
+  }), [mode, isSaving, isDirty, serverChanged, saveError, saveConflict, showDiscard, showForceRelease, showResume, lockedByOther, actions, save, handleReset, dismissServerBanner, postSave, onSaveConflictOverwrite, onSaveConflictCancel, setSaveError, setShowDiscard, setShowForceRelease, setShowResume]);
 
   return {
     doc, editable, mode, sessionLoading, dirty: isDirty, isSaving,

@@ -16,6 +16,7 @@ import {
 } from "./projectStorage.js";
 import { mergeUnregisteredEntities } from "./registryMerge.js";
 import { memoizeBySignature } from "./dataSignature.js";
+import { createFileMemo } from "./fileMemo.js";
 
 /** これを超える JSON は、読み込みを避けて「大きすぎる」として知らせる */
 export const MAX_JSON_BYTES = 20 * 1024 * 1024;
@@ -129,32 +130,39 @@ async function listJsonFiles(dir: string): Promise<string[]> {
 
 interface Probe { file: string; label: string; ref?: HealthIssue["ref"]; kind?: TopLevelEntityKind }
 
-async function probeFile(dir: string, p: Probe, dataRoot: string, issues: HealthIssue[], uuidless: { count: number }): Promise<void> {
+interface ProbeResult { issues: HealthIssue[]; uuidless: boolean }
+/** ファイルごとの検査結果 (ファイルの状態が変わらないあいだ使い回す。1 件の保存で、全件を読み直さない) */
+const probeMemo = createFileMemo<ProbeResult>();
+
+const probeFile = (dir: string, p: Probe, dataRoot: string): Promise<ProbeResult> => probeMemo.get(path.join(dir, p.file), () => probeFileUncached(dir, p, dataRoot));
+
+async function probeFileUncached(dir: string, p: Probe, dataRoot: string): Promise<ProbeResult> {
+  const issues: HealthIssue[] = [];
   const full = path.join(dir, p.file);
   const rel = path.relative(dataRoot, full).split(path.sep).join("/");
   const section = `${p.label} ${rel}`;
   let st;
-  try { st = await fs.stat(full); } catch { return; }
+  try { st = await fs.stat(full); } catch { return { issues, uuidless: false }; }
   if (st.size > MAX_JSON_BYTES) {
     issues.push({ code: "too-large", severity: "warning", section, message: `ファイルが大きすぎます (${Math.round(st.size / 1024 / 1024)} MB。上限 ${MAX_JSON_BYTES / 1024 / 1024} MB)。読み込みを避けているため、一覧・検査に含まれません。分割するか、不要なデータを減らしてください` });
-    return;
+    return { issues, uuidless: false };
   }
   let raw: string;
   try { raw = await fs.readFile(full, "utf-8"); } catch (e) {
     issues.push({ code: "unreadable-file", severity: "error", section, message: `ファイルを読めません: ${(e as NodeJS.ErrnoException).code ?? (e as Error).message}` });
-    return;
+    return { issues, uuidless: false };
   }
   let data: unknown;
   try { data = JSON.parse(raw); } catch (e) {
     issues.push({ code: "unreadable-json", severity: "error", section, message: `${describeJsonError(raw, e)}。このままでは一覧・検査・設計書に含まれません。直すか、バックアップ (.harmony-backups) から戻してください` });
-    return;
+    return { issues, uuidless: false };
   }
-  if (!p.kind || p.file.endsWith(".design.json")) return;
+  if (!p.kind || p.file.endsWith(".design.json")) return { issues, uuidless: false };
   // 旧形式 (GrapesJS) の画面は、保存するまで旧形式のまま (id・uuid を持たない)。読み出しでは変換して扱うので、ここでは検査しない
-  if (p.kind === "screen" && isLegacyGrapesScreen(data)) return;
+  if (p.kind === "screen" && isLegacyGrapesScreen(data)) return { issues, uuidless: false };
   if (!isRecord(data)) {
     issues.push({ code: "not-object", severity: "error", section, message: "ファイルの中身がオブジェクトではありません" });
-    return;
+    return { issues, uuidless: false };
   }
   const holder = p.kind === "processFlow" ? (isRecord(data.meta) ? data.meta : null) : data;
   const base = p.file.replace(/\.json$/, "");
@@ -162,7 +170,7 @@ async function probeFile(dir: string, p: Probe, dataRoot: string, issues: Health
   if (id !== undefined && id !== base) {
     issues.push({ code: "id-mismatch", severity: "warning", section, message: `ファイル名 (${base}) と中の id (${id}) が違います。一覧・参照はどちらかが見つからなくなります`, ref: p.ref });
   }
-  if (holder && !holder.uuid) uuidless.count++;
+  return { issues, uuidless: !!holder && !holder.uuid };
 }
 
 /** 実体のある設計の id (画面は、旧形式・旧配置も「ある」として数える) */
@@ -180,13 +188,13 @@ async function computeScan(root: string): Promise<HealthIssue[]> {
       for (const file of await listJsonFiles(dir)) {
         const id = file.replace(/\.json$/, "").replace(/\.design$/, "");
         const ref = kind === "screen" || kind === "table" || kind === "processFlow" ? { kind, id } : undefined;
-        await probeFile(dir, { file, label, kind, ref }, dataRoot, issues, uuidless);
+        { const r = await probeFile(dir, { file, label, kind, ref }, dataRoot); issues.push(...r.issues); if (r.uuidless) uuidless.count++; }
       }
     }
   }
   for (const d of EXTRA_DIRS) {
     const dir = path.join(dataRoot, d);
-    for (const file of await listJsonFiles(dir)) await probeFile(dir, { file, label: "設計ファイル" }, dataRoot, issues, uuidless);
+    for (const file of await listJsonFiles(dir)) { const r = await probeFile(dir, { file, label: "設計ファイル" }, dataRoot); issues.push(...r.issues); if (r.uuidless) uuidless.count++; }
   }
   // 汎用定義 (種類ごとのフォルダ)
   const genRoot = path.join(dataRoot, "generic-definitions");
@@ -194,7 +202,7 @@ async function computeScan(root: string): Promise<HealthIssue[]> {
   try { kinds = (await fs.readdir(genRoot, { withFileTypes: true })).filter((e) => e.isDirectory() && !e.name.startsWith(".")).map((e) => e.name); } catch { /* 無い */ }
   for (const k of kinds.sort()) {
     const dir = path.join(genRoot, k);
-    for (const file of await listJsonFiles(dir)) await probeFile(dir, { file, label: "汎用定義" }, dataRoot, issues, uuidless);
+    for (const file of await listJsonFiles(dir)) { const r = await probeFile(dir, { file, label: "汎用定義" }, dataRoot); issues.push(...r.issues); if (r.uuidless) uuidless.count++; }
   }
 
   // 一覧 (harmony.json) にあるのに、ファイルが無い項目

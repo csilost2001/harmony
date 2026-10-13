@@ -29,3 +29,15 @@ export function ResourceLoading({ kind }: Props) {
     </div>
   );
 }
+
+/** 画面の部品 (遅延読み込み) を読み込んでいる間の表示 */
+export function ViewLoading() {
+  return (
+    <div className="resource-loading" role="status" aria-live="polite" data-testid="view-loading">
+      <div className="resource-loading-inner">
+        <div className="resource-loading-spinner" aria-hidden="true" />
+        <p>読み込んでいます…</p>
+      </div>
+    </div>
+  );
+}

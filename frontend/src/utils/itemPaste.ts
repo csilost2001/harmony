@@ -52,7 +52,7 @@ function headerField(cell: string): Field | null {
 export function toItemId(raw: string): { value: string | null; changed: boolean } {
   const t = raw.trim();
   if (/^[a-z][A-Za-z0-9]*$/.test(t)) return { value: t, changed: false };
-  const parts = t.split(/[\s_\-.　]+/).filter(Boolean);
+  const parts = t.split(/[\s_\-.\u3000]+/).filter(Boolean);
   if (parts.length === 0 || !parts.every((p) => /^[A-Za-z0-9]+$/.test(p))) return { value: null, changed: false };
   const camel = parts.map((p, i) => (i === 0 ? p.charAt(0).toLowerCase() + p.slice(1) : p.charAt(0).toUpperCase() + p.slice(1))).join("");
   return /^[a-z][A-Za-z0-9]*$/.test(camel) ? { value: camel, changed: camel !== t } : { value: null, changed: false };

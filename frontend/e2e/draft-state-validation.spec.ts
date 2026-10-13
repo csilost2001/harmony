@@ -339,12 +339,9 @@ test.describe("draft-state validation 表示 — 領域 11 網羅", { tag: ["@re
     await expect(page.locator(".validation-badge.error").first().locator(".bi-x-circle-fill")).toBeVisible();
   });
 
-  // (Conventions / Extensions) draft-state policy 対象外のため恒久 skip
+  // (Conventions / Extensions) は draft-state policy の対象外 (テストを置かない)。
   // Conventions / Extensions はフレームワーク基盤側であり業務リソースではないため対象外。
   // 詳細: docs/spec/draft-state-policy.md § 7.4
-  test.skip("(P2-Conventions) Conventions ListView ValidationBadge", async ({ page }) => {
-    void page;
-  });
 
   // ──────────────────────────────────────────────
   // 原則 3 (maturity 循環): MaturityBadge クリックで循環
@@ -383,12 +380,9 @@ test.describe("draft-state validation 表示 — 領域 11 網羅", { tag: ["@re
     await expect(badge).not.toHaveClass(/editable/);
   });
 
-  // (P3-block) ListView commit 阻止は by design 未実装のため恒久 skip
+  // (P3-block) ListView での commit 阻止は、by design 実装しない (テストを置かない)。
   // ListView の MaturityBadge は view-only であり、commit 阻止 UI は Editor 側のみで実装する方針。
   // 詳細: docs/spec/draft-state-policy.md § 2.5
-  test.skip("(P3-block) Table committed 遷移時に error があれば阻止される", async ({ page }) => {
-    void page;
-  });
 
   // ──────────────────────────────────────────────
   // 原則 4 (severity 境界): error vs warning

@@ -53,3 +53,4 @@ export * from "./designDocument.js";
 export * from "./businessFlow.js";
 export * from "./report.js";
 export * from "./testViewpoints.js";
+export { RPC_METHODS, isRpcMethod, type RpcMethod } from "./rpcMethods.js";
