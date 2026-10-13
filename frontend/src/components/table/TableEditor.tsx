@@ -458,6 +458,7 @@ export function TableEditor() {
           dialect={ddlDialect}
           onDialectChange={setDdlDialect}
           defaultOpen={ddlOpen}
+          diff={{ table, allTables }}
         />
       </div>
 

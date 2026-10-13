@@ -543,15 +543,31 @@ group("check-design", () => {
     assert("警告だけなら既定は終了コード 0", run(ws).status === 0);
     assert("警告は --strict で終了コード 1", run(ws, "--strict").status === 1);
 
-    // harmony.json に登録されていないテーブルは、設計書にも検査にも載らないので、warning として出す (--strict で失敗)
+    // harmony.json に登録されていないテーブルは、設計書・検査に含めたうえで、情報として知らせる (#1487。警告ではないので --strict でも失敗にしない)
     writeFileSync(join(ws, "harmony/reports/delivery-note.json"), JSON.stringify(JSON.parse(readFileSync(join(repo, "examples/retail/harmony/reports/delivery-note.json"), "utf8"))));
     const hj = JSON.parse(readFileSync(join(ws, "harmony.json"), "utf8"));
     const droppedTable = hj.entities.tables.shift();
     writeFileSync(join(ws, "harmony.json"), JSON.stringify(hj));
-    const unreg = run(ws, "--strict");
-    assert("未登録のテーブルは --strict で終了コード 1 (理由が出る)", unreg.status === 1 && unreg.stdout.includes(droppedTable.id) && unreg.stdout.includes("登録されていない"), unreg.stdout);
+    const unreg = run(ws, "--strict", "--info");
+    assert("未登録のテーブルは、検査に含めたうえで、情報として理由が出る (--strict でも失敗にしない)", unreg.status === 0 && unreg.stdout.includes(droppedTable.id) && unreg.stdout.includes("一覧に載っていません"), unreg.stdout);
     hj.entities.tables.unshift(droppedTable);
     writeFileSync(join(ws, "harmony.json"), JSON.stringify(hj));
+
+    // design-check.json: 抑制は要確認を外し、独自ルールの違反は要確認に出る。読めない項目は警告、JSON が壊れていれば error
+    const checkFile = join(ws, "harmony/design-check.json");
+    const issueMsg = JSON.parse(run(ws, "--json", "--info").stdout).issues.find((i) => i.section.startsWith("CRUD"));
+    assert("(前提) CRUD の所見がある", !!issueMsg);
+    const rules = { version: 1, suppressions: [], rules: [{ id: "tbl-prefix", name: "テーブルは zz_ で始める", target: "table", path: "physicalName", check: { type: "pattern", pattern: "^zz_" }, severity: "warning" }] };
+    writeFileSync(checkFile, JSON.stringify(rules));
+    const ruled = run(ws, "--strict");
+    assert("独自ルールの違反は要確認に出て、--strict で終了コード 1", ruled.status === 1 && ruled.stdout.includes("ルール「テーブルは zz_ で始める」"), ruled.stdout);
+    writeFileSync(checkFile, JSON.stringify({ version: 1, suppressions: [{ key: "i-0000000000000000", reason: "", at: "x", severity: "warning" }], rules: [] }));
+    const bad = run(ws, "--strict");
+    assert("読めない項目 (理由が空の抑制) は、警告として知らせる", bad.status === 1 && bad.stdout.includes("design-check.json: 抑制 1 件目"), bad.stdout);
+    writeFileSync(checkFile, "{ not json");
+    const broken2 = run(ws);
+    assert("design-check.json が壊れていたら、error (終了コード 1)", broken2.status === 1 && broken2.stdout.includes("design-check.json を読めない"), broken2.stdout);
+    rmSync(checkFile);
 
     // 規約カタログ・独自部品の JSON が壊れていたら、原因 (ファイルが壊れている) を error として示す
     const lc = join(ws, "harmony/layout-components.json");

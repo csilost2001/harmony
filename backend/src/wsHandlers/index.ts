@@ -8,6 +8,7 @@
  * key 重複 (同じ method 名が複数 file に存在) は development time に検出可能
  * (TypeScript の object literal spread は後勝ち、test で全 method の uniqueness を担保)。
  */
+import { analysisHandlers } from "./analysis.js";
 import { codexHandlers } from "./codex.js";
 import { editSessionHandlers } from "./editSession.js";
 import { miscHandlers } from "./misc.js";
@@ -38,6 +39,7 @@ export const allRpcHandlers: RpcHandlerMap = {
   ...editSessionHandlers,
   ...codexHandlers,
   ...versionHandlers,
+  ...analysisHandlers,
 };
 
 /** Map 形式 (wsBridge での lookup 用)。 */

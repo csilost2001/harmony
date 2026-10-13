@@ -6,8 +6,14 @@
  *
  * 仕様: docs/spec/design-document.md / docs/spec/test-viewpoints.md
  */
-import { buildDesignDocument, deriveTestViewpointSheet, testViewpointSheetToCsv } from "@harmony/shared";
-import { loadDesignInputFromRoot } from "../designInput.js";
+import {
+  analyzeImpact, analyzeMessages, applySuppressions, buildDesignDocument, buildDesignGraph, buildOpenApi, checkExternalContracts, columnMapToCsv, deriveColumnMap, deriveJobs,
+  deriveOperationMatrix, deriveSla, deriveTestViewpointSheet, deriveTraceability, findTermInconsistencies, findUnused, generateTestData, operationMatrixToCsv, overallTrend,
+  scaffoldTests, slaToCsv, summarizeProgress, testDataTableToCsv, testDataToInsertSql, testViewpointSheetToCsv, traceabilityToCsv, usesPermissionModel,
+  type NodeKind, type SqlQuote, type TestFramework,
+} from "@harmony/shared";
+import { loadDesignInputFromRoot, loadDesignInputFull } from "../designInput.js";
+import { readProgressHistory } from "../progressStore.js";
 import { findReferences } from "../references.js";
 import { collectExtraIssues } from "../schemaIssues.js";
 import { listEntityVersions, restoreEntityVersionToFile } from "../fileVersions.js";
@@ -31,7 +37,7 @@ export const handleDesignTool: ToolHandler = async (name, args, root, sessionId)
   switch (name) {
     case "designer__check_design": {
       const { input, skipped, counts } = await loadDesignInputFromRoot(root);
-      const { issues } = buildDesignDocument({ ...input, extraIssues: await collectExtraIssues(root) });
+      const { issues, suppression } = buildDesignDocument({ ...input, extraIssues: await collectExtraIssues(root) });
       const all = [
         ...skipped.map((s) => ({ severity: "error" as const, section: "読み込み", message: `${s} を読めない (または見つからない) ため、検査に含まれていません` })),
         ...issues,
@@ -44,6 +50,8 @@ export const handleDesignTool: ToolHandler = async (name, args, root, sessionId)
         counts,
         summary: sum,
         ok: sum.error === 0 && sum.warning === 0,
+        // 理由つきで抑制している要確認の数 (抑制は設計の分析の画面か design-check.json で行う。AI が黙らせるための tool は無い)
+        suppressed: suppression?.suppressed.length ?? 0,
         issues: all.filter((i) => includeInfo || i.severity !== "info"),
       });
     }
@@ -58,7 +66,35 @@ export const handleDesignTool: ToolHandler = async (name, args, root, sessionId)
         flows: pick(input.flows, onlyFlows, (f) => f.meta.id),
       });
       if (a.format === "csv") return { content: [{ type: "text" as const, text: testViewpointSheetToCsv(sheet) }] };
+      if (typeof a.scaffold === "string") {
+        if (!["vitest", "jest", "playwright"].includes(a.scaffold)) throw new McpError(ErrorCode.InvalidParams, "scaffold は vitest / jest / playwright のどれかです");
+        return json({ files: scaffoldTests(sheet, a.scaffold as TestFramework) });
+      }
       return json(sheet);
+    }
+
+    case "designer__analyze_design": return analyzeDesign(a, root);
+
+    case "designer__export_openapi": {
+      const { input } = await loadDesignInputFromRoot(root);
+      return json(buildOpenApi(input, { ...(typeof a.title === "string" ? { title: a.title } : {}), ...(typeof a.version === "string" ? { version: a.version } : {}) }));
+    }
+
+    case "designer__generate_test_data": {
+      const { input } = await loadDesignInputFromRoot(root);
+      const tableIds = asIds(a.tableIds);
+      const unknown = tableIds.filter((id) => !input.tables.some((t) => t.id === id));
+      if (unknown.length) throw new McpError(ErrorCode.InvalidParams, `見つからないテーブル: ${unknown.join(", ")}`);
+      const res = generateTestData(input, {
+        ...(tableIds.length ? { tableIds } : {}), ...(typeof a.rowsPerTable === "number" ? { rowsPerTable: a.rowsPerTable } : {}),
+        ...(typeof a.seed === "number" ? { seed: a.seed } : {}), nulls: a.nulls === true,
+      });
+      if (a.format === "sql") return { content: [{ type: "text" as const, text: testDataToInsertSql(res, (["mysql", "sqlserver"].includes(String(a.dialect)) ? a.dialect : "standard") as SqlQuote) }] };
+      if (a.format === "csv") {
+        if (res.tables.length !== 1) throw new McpError(ErrorCode.InvalidParams, "csv は tableIds でテーブルを 1 つに絞ってください");
+        return { content: [{ type: "text" as const, text: testDataTableToCsv(res.tables[0]) }] };
+      }
+      return json(res);
     }
 
     case "designer__find_references": {
@@ -161,3 +197,42 @@ export const handleDesignTool: ToolHandler = async (name, args, root, sessionId)
       return null;
   }
 };
+
+const NODE_KINDS = ["screen", "processFlow", "table", "businessFlow", "report", "component", "message", "regex", "limit", "genericDefinition"];
+
+/** 設計の分析 (読み取りのみ)。画面と同じ shared の関数で計算する */
+async function analyzeDesign(a: Record<string, unknown>, root: string) {
+  const { input } = await loadDesignInputFull(root);
+  const csv = a.format === "csv";
+  const text = (t: string) => ({ content: [{ type: "text" as const, text: t }] });
+  switch (a.kind) {
+    case "impact": {
+      if (!NODE_KINDS.includes(String(a.entityType))) throw new McpError(ErrorCode.InvalidParams, `entityType は ${NODE_KINDS.join(" / ")} のどれかです`);
+      assertEntityIdMcp(a.id, "id");
+      return json(analyzeImpact(input, a.entityType as NodeKind, a.id as string, typeof a.column === "string" ? { column: a.column } : {}));
+    }
+    case "traceability": { const r = deriveTraceability(input); return csv ? text(traceabilityToCsv(r)) : json(r); }
+    case "unused": return json({ items: findUnused(input) });
+    case "terms": return json({ issues: findTermInconsistencies(input) });
+    case "column-map": { const r = deriveColumnMap(input); return csv ? text(columnMapToCsv(r)) : json(r); }
+    case "messages": return json(analyzeMessages(input));
+    case "operations": {
+      const m = deriveOperationMatrix(input);
+      return csv ? text(operationMatrixToCsv(m, (id) => input.roles?.[id]?.name ?? id)) : json({ ...m, permissionModel: usesPermissionModel(input) });
+    }
+    case "sla": { const rows = deriveSla(input); return csv ? text(slaToCsv(rows)) : json({ rows }); }
+    case "jobs": return json({ jobs: deriveJobs(input) });
+    case "external": return json({ systems: checkExternalContracts(input) });
+    case "progress": {
+      const summary = summarizeProgress(input);
+      const history = await readProgressHistory(root); // 読み取りでは記録しない (記録は画面を開いたとき)
+      return json({ summary, history, trend: overallTrend(history) });
+    }
+    case "suppressions": {
+      const { issues } = buildDesignDocument({ ...input, extraIssues: await collectExtraIssues(root), checkSettings: { version: 1, rules: input.checkSettings?.rules ?? [], suppressions: [] } });
+      const { status } = applySuppressions(issues, input.checkSettings?.suppressions ?? [], new Date().toISOString().slice(0, 10));
+      return json(status);
+    }
+    default: throw new McpError(ErrorCode.InvalidParams, "kind が正しくありません");
+  }
+}

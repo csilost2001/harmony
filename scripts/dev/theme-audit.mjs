@@ -45,7 +45,9 @@ const routes = [
   ["page-layout-list", "/page-layout/list"], ["page-layout-edit", `/page-layout/edit/${firstId("page-layouts")}`],
   ["gadget-list", "/gadget/list"], ["generic-definition", "/generic-definition"],
   ["generic-definition-list", "/generic-definition/message"], ["conventions", "/conventions/catalog"],
-  ["extensions", "/extensions"], ["tech-stack", "/project/tech-stack"], ["document", "/document"],
+  ["extensions", "/extensions"], ["tech-stack", "/project/tech-stack"], ["document", "/document"], ["analysis", "/analysis"],
+  // 設計の分析の各タブ (開くタブは localStorage で決まる。第 3 要素 = 先に入れる localStorage の [キー, 値])
+  ...["impact", "maps", "cleanup", "ops", "progress", "rules", "export"].map((t) => [`analysis-${t}`, "/analysis", ["harmony.analysis.tab", t]]),
   ["report-list", "/report/list"], ["report-edit", `/report/edit/${firstId("reports") ?? "delivery-note"}`],
   ["business-flow-list", "/business-flow/list"], ["business-flow-edit", `/business-flow/edit/${firstId("business-flows") ?? "order-to-shipment"}`],
 ].filter(([n]) => !only || only.has(n));
@@ -133,7 +135,8 @@ for (const theme of themes) {
   await page.locator(".tbl-modal .tbl-btn-primary").click();
   await page.waitForURL(/\/w\/[^/]+\//, { timeout: 15000 });
   const wsPrefix = (await page.evaluate(() => location.pathname)).match(/^\/w\/[^/]+/)[0];
-  for (const [name, route] of routes) {
+  for (const [name, route, ls] of routes) {
+    if (ls) await page.evaluate(([k, v]) => { try { localStorage.setItem(k, v); } catch { /* ignore */ } }, ls);
     await page.evaluate((p) => { window.history.pushState({}, "", p); window.dispatchEvent(new PopStateEvent("popstate")); }, `${wsPrefix}${route}`);
     await page.waitForTimeout(1200);
     await page.evaluate(() => (document.querySelector('[data-testid="resume-discard"]'))?.click());

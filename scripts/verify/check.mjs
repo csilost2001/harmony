@@ -33,6 +33,7 @@ const steps = [
   ["サンプル設計の要確認", "node", ["scripts/check-design.mjs", ...sampleDirs, "--strict"], root],
   ["ビルドサイズの予算", "node", ["scripts/verify/bundle-budget.mjs"], root],
   ...(skipTests ? [] : [
+    ["検査スクリプトの試験", "node", ["scripts/verify/test.mjs"], root],
     ["frontend 単体テスト", "npx", ["vitest", "run", "--reporter=dot"], path.join(root, "frontend")],
     ["backend 単体テスト", "npx", ["vitest", "run", "--reporter=dot"], path.join(root, "backend")],
   ]),

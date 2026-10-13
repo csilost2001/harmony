@@ -10,6 +10,7 @@ Claude Code 固有の補足は `CLAUDE.md`、Codex 固有の設定は `.codex/co
 | ISSUE 起票・PR 作成・レビュー・シリーズ PR の詳細 | [docs/conventions/issue-and-pr-policy.md](docs/conventions/issue-and-pr-policy.md) |
 | docs-site (HTML 仕様書) と AI ブラウザ確認 | [docs/conventions/docs-site-and-browser-smoke.md](docs/conventions/docs-site-and-browser-smoke.md) |
 | 品質・性能の検査と道具 (ビルドサイズ予算 / 型の食い違い / カバレッジ / E2E 報告 / 使い回し) | [docs/conventions/quality-and-performance-tooling.md](docs/conventions/quality-and-performance-tooling.md) |
+| 設計の分析 (影響分析・対応表・未使用・用語・命名規約・SLA / ジョブ・外部契約・進捗・テスト雛形 / データ・OpenAPI) と、点検の設定 (抑制・独自ルール) | [design-analysis.md](docs/spec/design-analysis.md) / [design-check.md](docs/spec/design-check.md) |
 | 完了判定 (回帰テストの trace 照合) | [docs/conventions/completion-gate.md](docs/conventions/completion-gate.md) |
 | 進行中の再設計計画と設計者判断 | [docs/plans/redesign-2026-10.md](docs/plans/redesign-2026-10.md) |
 | サーバの守り (接続トークン・要求の上限・MCP の権限)・保存前の版・外部更新の検知・ファイルの健全性 | [server-security.md](docs/spec/server-security.md) / [file-backup.md](docs/spec/file-backup.md) / [external-change-detection.md](docs/spec/external-change-detection.md) / [workspace-health.md](docs/spec/workspace-health.md) |
@@ -57,7 +58,7 @@ npm run kill           # 5173 / 5179 を握るプロセスを停止
 | 差分の行のカバレッジ (PR 本文に載せる) / E2E の遅い試験・flake の一覧 | `npm run coverage:changed` / `npm run e2e:report` ([quality-and-performance-tooling.md](docs/conventions/quality-and-performance-tooling.md)) |
 | backend の重い読み出しの時間 (規模を増やしたときの確認) | `npx tsx scripts/dev/bench-backend.mts <workspace-dir>` (同上) |
 | スキーマの版の移行 (予行が既定。`--apply` で書く。登録された移行はいまは空) | `npm run migrate:schema -- <workspace-dir> [--apply]` ([schema-migration.md](docs/spec/schema-migration.md)) |
-| AI (MCP) から: 設計の点検・参照元・改名・テスト観点 | `designer__check_design` (設計を直したら、完了報告の前に呼び error / warning 0 件にする) / `designer__find_references` (誰が参照しているか) / `designer__rename_entity` (既定は予行、`apply: true` で実行) と `designer__undo_rename` / `designer__get_test_viewpoints` |
+| AI (MCP) から: 設計の点検・参照元・改名・テスト観点 | `designer__check_design` (設計を直したら、完了報告の前に呼び error / warning 0 件にする。要確認は、画面か design-check.json で人が理由つきで抑制するもので、AI は黙らせない) / `designer__analyze_design` (影響分析・対応表・未使用・用語ほか。読み取りのみ) / `designer__find_references` (誰が参照しているか) / `designer__rename_entity` (既定は予行、`apply: true` で実行) と `designer__undo_rename` / `designer__get_test_viewpoints` |
 
 - E2E は自前で起動した backend を再利用すると E2E 用環境変数が効かず失敗する。E2E 実行前は `npm run kill` して Playwright にサーバを起動させる。
 - AI が検証のために dev server を起動した場合は、作業の終わりに必ず `npm run kill` で止める。

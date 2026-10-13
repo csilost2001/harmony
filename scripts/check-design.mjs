@@ -9,6 +9,7 @@
  *     --strict  警告 (warning) も失敗として扱う (既定は error のみ失敗)
  *     --info    情報 (info) も表示する (既定は error / warning のみ)
  *     --json    JSON で出力する (他のツールに渡す用)
+ * 抑制・独自ルールは、データフォルダの design-check.json から読む (docs/spec/design-check.md)
  *
  * 終了コード: 0 = 問題なし (--strict なら警告もなし) / 1 = error (または --strict の warning) あり / 2 = 使い方・読み込みの失敗
  */
@@ -31,12 +32,12 @@ function check(dir) {
   // 読めないファイルや未登録のファイルは、設計書に載らないだけで気づきにくいので、問題として先頭に出す
   const loaded = loadWorkspaceInput(dir, () => undefined);
   if (!loaded) return null;
-  const { issues } = buildDesignDocument(loaded.input);
+  const { issues, suppression } = buildDesignDocument(loaded.input);
   const all = [...loaded.problems, ...issues];
   const count = (sev) => all.filter((i) => i.severity === sev).length;
   const summary = { error: count("error"), warning: count("warning"), info: count("info") };
   const failed = summary.error > 0 || (flag("--strict") && summary.warning > 0);
-  return { dir, name: loaded.input.project.name, counts: loaded.counts, summary, issues: all, failed };
+  return { dir, name: loaded.input.project.name, counts: loaded.counts, summary, suppressed: suppression?.suppressed.length ?? 0, expiredSuppressions: suppression?.expired.length ?? 0, issues: all, failed };
 }
 
 const results = [];
@@ -61,6 +62,6 @@ for (const r of results) {
     console.log(`  ${MARK[sev]} ${LABEL[sev]} (${list.length} 件)`);
     for (const i of list) console.log(`    [${i.section}] ${i.message}`);
   }
-  console.log(`  要確認: エラー ${r.summary.error} / 警告 ${r.summary.warning} / 情報 ${r.summary.info}${flag("--info") ? "" : " (情報は --info で表示)"} → ${r.failed ? "要対応" : "問題なし"}\n`);
+  console.log(`  要確認: エラー ${r.summary.error} / 警告 ${r.summary.warning} / 情報 ${r.summary.info}${flag("--info") ? "" : " (情報は --info で表示)"} → ${r.failed ? "要対応" : "問題なし"}${r.suppressed ? ` (理由つきで抑制中 ${r.suppressed} 件)` : ""}\n`);
 }
 process.exit(failed ? 1 : 0);

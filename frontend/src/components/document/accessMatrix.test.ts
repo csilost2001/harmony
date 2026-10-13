@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
-import { buildDesignDocument, deriveAccessMatrix, effectivePermissions, normalizePermissionKey, type DesignDocInput } from "@harmony/shared";
+import { buildDesignDocument, deriveAccessMatrix, effectivePermissions, normalizePermissionKey, parseCheckSettings, type DesignDocInput } from "@harmony/shared";
 
 const roles = {
   staff: { name: "店員", permissions: ["a:view"] },
@@ -82,7 +82,15 @@ describe("設計書の「権限」の章 (retail 実データ)", () => {
     const d = buildDesignDocument({ ...base, roles: {}, permissions: {}, screens: base.screens.map((s) => ({ ...s, permissions: [] })), flows: base.flows.map((f) => ({ ...f, actions: f.actions.map((a) => ({ ...a, requiredPermissions: [] })) })) });
     expect(d.toc.map((t) => t.id)).not.toContain("access");
   });
-  it("retail の権限定義に不整合は無い", () => {
-    expect(doc.issues.filter((i) => /権限|役割/.test(i.section + i.message) && i.severity === "warning")).toEqual([]);
+  it("retail の権限定義に不整合は無い。権限の無い更新操作 (ログアウト) は、サンプルの design-check.json が理由つきで抑制している", () => {
+    const perm = (d: typeof doc) => d.issues.filter((i) => /権限|役割/.test(i.section + i.message) && i.severity === "warning");
+    // 抑制の設定を読まないと、権限が決まっていない更新操作として出る
+    expect(perm(doc).map((i) => i.message)).toEqual([expect.stringContaining("ログアウト処理")]);
+    const raw = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../../../../examples/retail/harmony/design-check.json"), "utf-8"));
+    const { settings, problems } = parseCheckSettings(raw);
+    expect(problems).toEqual([]);
+    const withSettings = buildDesignDocument({ ...base, checkSettings: settings });
+    expect(perm(withSettings)).toEqual([]);
+    expect(withSettings.suppression?.suppressed.map((s) => s.suppression.reason)).toEqual([expect.stringContaining("ログアウト")]);
   });
 });

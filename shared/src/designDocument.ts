@@ -18,6 +18,13 @@ import {
 import { deriveAccessMatrix, type AccessPermission, type AccessRole } from "./accessMatrix.js";
 import { deriveScreenInputCases } from "./testViewpoints.js";
 import { expandComponentNode, expandLayout, validateLayoutWithComponents, type LayoutComponentDef } from "./layoutComponents.js";
+import type { CheckSettings } from "./analysis/settings.js";
+import type { ExternalSpecSummary } from "./analysis/externalContract.js";
+import { opLetters, type CrudLetter } from "./analysis/common.js";
+import { applySuppressions, issueKey, type SuppressionStatus } from "./analysis/suppress.js";
+import { namingIssues } from "./analysis/naming.js";
+import { deriveOperationMatrix } from "./analysis/accessOps.js";
+import { customRuleIssues } from "./analysis/customRules.js";
 
 // ── 入力 (原本 JSON の必要部分だけを構造的に受け取る) ─────────────────────
 
@@ -57,13 +64,15 @@ export interface DocScreen {
 }
 
 export interface DocFlow {
-  meta: { id: string; name?: string; description?: string; flowType?: string; screenId?: string; maturity?: string };
-  context?: { catalogs?: { events?: Record<string, { description?: string }> } };
+  meta: { id: string; name?: string; description?: string; flowType?: string; screenId?: string; maturity?: string; sla?: unknown };
+  context?: { catalogs?: { events?: Record<string, { description?: string }>; externalSystems?: Record<string, { name?: string; baseUrl?: string; openApiSpec?: string }> } };
   actions: Array<FlowActionLike & {
     id?: string;
     description?: string;
     requiredPermissions?: string[];
-    httpRoute?: { method?: string; path?: string };
+    sla?: unknown;
+    httpRoute?: { method?: string; path?: string; auth?: string };
+    responses?: Array<{ id: string; status: number; contentType?: string; description?: string; when?: string; bodySchema?: { typeRef?: string; schema?: unknown } }>;
     inputs?: Array<{ name: string; type?: unknown; required?: boolean; description?: string }>;
     outputs?: Array<{ name: string; type?: unknown; description?: string }>;
   }>;
@@ -75,8 +84,11 @@ export interface DocTable {
   physicalName?: string;
   category?: string;
   description?: string;
+  maturity?: string;
   columns?: Array<{ id?: string; physicalName: string; name?: string; dataType?: string; length?: number; scale?: number; notNull?: boolean; primaryKey?: boolean; unique?: boolean; autoIncrement?: boolean; defaultValue?: string; comment?: string; description?: string }>;
   indexes?: Array<{ physicalName?: string; columns?: Array<{ columnId: string }>; unique?: boolean }>;
+  /** 制約 (主キー・一意・CHECK・外部キー)。外部キーは影響分析・テストデータの生成が使う */
+  constraints?: Array<{ id?: string; kind: string; columnIds?: string[]; referencedTableId?: string; referencedColumnIds?: string[]; expression?: string; noConstraint?: boolean }>;
 }
 
 export interface DesignDocInput {
@@ -98,6 +110,14 @@ export interface DesignDocInput {
   regex?: Record<string, { pattern?: string; exampleValid?: string[]; exampleInvalid?: string[] }>;
   /** プロジェクト独自部品の定義 (画面レイアウトの展開と「独自部品」の章に使う) */
   layoutComponents?: LayoutComponentDef[];
+  /** DB 規約 (`@conv.db.*`)。命名規約の既定 (namingConvention) と、更新日時・論理削除の列に使う */
+  db?: Record<string, { namingConvention?: string; default?: boolean; timestampColumns?: string[]; logicalDeleteColumn?: string }>;
+  /** 汎用定義 (種類と名前だけ。未使用の検出と影響分析が使う。中身も、参照の走査に使う) */
+  genericDefinitions?: Array<{ kind: string; name: string; [k: string]: unknown }>;
+  /** 外部システムの定義 (OpenAPI) の要約。キーは `externalSystems[].openApiSpec` の値。呼び出し側と提供側の突き合わせに使う */
+  externalSpecs?: Record<string, ExternalSpecSummary>;
+  /** 点検の設定 (抑制・独自ルール)。`<データフォルダ>/design-check.json` */
+  checkSettings?: CheckSettings;
   /** 設計の外で検出した要確認 (スキーマに合っていない点など)。要確認事項に加える */
   extraIssues?: DocIssue[];
   /** 表紙に出す版 (例: git の短縮 SHA) */
@@ -114,12 +134,19 @@ export interface DesignDocResult {
   toc: TocEntry[];
   /** 本文用 CSS (.hd-doc 配下に閉じている) */
   css: string;
+  /** 要確認事項 (抑制中のものは含まない) */
   issues: DocIssue[];
+  /** 抑制の状況 (効いているもの・期限切れ・該当がなくなったもの) */
+  suppression?: SuppressionStatus;
 }
 
 /** 要確認事項の対象となる設計 (分かるものだけ)。画面から開く・設計書の該当節へ飛ぶために使う */
 export interface DocIssueRef { kind: "screen" | "table" | "processFlow" | "businessFlow" | "report"; id: string }
-export interface DocIssue { severity: "error" | "warning" | "info"; section: string; message: string; ref?: DocIssueRef }
+export interface DocIssue {
+  severity: "error" | "warning" | "info"; section: string; message: string; ref?: DocIssueRef;
+  /** 同じ指摘を同じと見分ける印 (重大度・対象・内容から決まる)。抑制の対象を決める */
+  key?: string;
+}
 
 // ── 小道具 ───────────────────────────────────────────────────────────────
 
@@ -258,22 +285,12 @@ export function diagramToSvg(lay: DiagramLayout, title: string): string {
 
 // ── CRUD ─────────────────────────────────────────────────────────────────
 
-export type CrudLetter = "C" | "R" | "U" | "D";
+export type { CrudLetter };
 
 export interface CrudMatrix {
   tables: Array<{ id: string; name: string }>;
   rows: Array<{ flowId: string; flowName: string; cells: Record<string, CrudLetter[]> }>;
   findings: Array<{ tableId: string; message: string }>;
-}
-
-function opLetters(op: string): CrudLetter[] {
-  const o = op.toUpperCase();
-  if (o.includes("UPSERT") || o.includes("MERGE")) return ["C", "U"];
-  if (o.startsWith("SELECT")) return ["R"];
-  if (o === "INSERT" || o.includes("INSERT")) return ["C"];
-  if (o === "UPDATE" || o.includes("UPDATE") || o.includes("DECREMENT") || o.includes("INCREMENT")) return ["U"];
-  if (o === "DELETE" || o.includes("DELETE") || o.includes("CLEAR")) return ["D"];
-  return ["R"];
 }
 
 /** 処理フローの DB アクセスから CRUD 図を導出する */
@@ -642,6 +659,7 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
   if (Object.keys(roles).length || Object.keys(permDefs).length || screenSubjects.length || actionSubjects.length) {
     const am = deriveAccessMatrix({ roles, permissions: permDefs, screens: screenSubjects, flows: actionSubjects });
     for (const x of am.issues) issues.push({ severity: x.severity, section: x.target, message: x.message });
+    issues.push(...deriveOperationMatrix(input).issues);
     const roleLabel = (id: string) => esc(roles[id]?.name ?? id);
     const mark = (ok: boolean) => (ok ? `<span class="hd-ok">○</span>` : "");
     const matrix = (rows: typeof am.screens, linkOf: (id: string) => string, head: string) => rows.length ? `<div class="hd-scroll"><table class="hd-table hd-crud"><thead><tr><th>${head}</th><th>必要な権限</th>${am.roleIds.map((r) => `<th>${roleLabel(r)}</th>`).join("")}</tr></thead><tbody>
@@ -671,8 +689,13 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
     msgs.map(([k, m], i) => [String(i + 1), `<code>@conv.msg.${esc(k)}</code>`, esc(m.template ?? ""), esc(m.description ?? "")]),
   ), String(chap));
 
-  // 要確認事項 (設計の外で検出したものも含める)
+  // 要確認事項 (設計の外で検出したものも含める)。命名規約・独自ルールの違反も加え、理由つきで抑制されたものを除く
   for (const x of input.extraIssues ?? []) issues.push(x);
+  issues.push(...namingIssues(input), ...customRuleIssues(input));
+  for (const x of issues) x.key = issueKey(x);
+  const { active, status: suppression } = applySuppressions(issues, input.checkSettings?.suppressions ?? [], date);
+  issues.length = 0;
+  issues.push(...active);
   const sevLabel = { error: "エラー", warning: "警告", info: "情報" } as const;
   sec("issues", "要確認事項", 1, issues.length
     ? table(["区分", "対象", "内容"], issues.map((x) => {
@@ -680,6 +703,7 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
       return [`<span class="hd-sev hd-sev-${esc(x.severity)}">${esc(sevLabel[x.severity] ?? x.severity)}</span>`, a ? `<a href="${a}">${esc(x.section)}</a>` : esc(x.section), esc(x.message)];
     }))
     : `<p class="hd-empty">要確認事項はありません。</p>`, String(chap + 1));
+  if (suppression.suppressed.length) out.splice(out.length - 1, 1, out[out.length - 1].replace(/<\/section>$/, `<p class="hd-note">理由つきで抑制している要確認が ${suppression.suppressed.length} 件あります (設計の分析の「要確認」で確認できます)。</p></section>`));
 
   // 付録: テスト観点 (画面入力)。画面項目の制約から、正常・異常・境界値のケースを導いた一覧。入力のある画面があるときだけ (章番号を動かさないよう、要確認事項の後ろに置く)
   const inputCases = pages.map((s) => ({ s, cases: deriveScreenInputCases(s, { limits: input.limits, regex: input.regex, messages: input.messages }) })).filter((x) => x.cases.length);
@@ -696,7 +720,7 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
     </section>`);
   }
 
-  return { html: `<article class="hd-doc">${out.join("\n")}</article>`, toc, css: DESIGN_DOC_CSS, issues };
+  return { html: `<article class="hd-doc">${out.join("\n")}</article>`, toc, css: DESIGN_DOC_CSS, issues, suppression };
 }
 
 /** 単体の HTML ファイル (CSS 同梱、目次付き) にする */

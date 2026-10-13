@@ -15,7 +15,7 @@ import { issueBreakdown } from "../../../utils/issueBreakdown";
 
 const SHOWN = 6;
 const RELOAD_EVENTS = [
-  "projectChanged", "screenChanged", "screenItemsChanged", "processFlowChanged", "tableChanged", "businessFlowChanged", "reportChanged", "layoutComponentsChanged",
+  "projectChanged", "screenChanged", "screenItemsChanged", "processFlowChanged", "tableChanged", "businessFlowChanged", "reportChanged", "layoutComponentsChanged", "designCheckChanged",
 ] as const;
 
 const SEV_ICON: Record<DocIssue["severity"], string> = { error: "bi-x-octagon-fill", warning: "bi-exclamation-triangle-fill", info: "bi-info-circle" };
@@ -26,6 +26,7 @@ export function DesignIssuesPanel() {
   const { wsPath } = useWorkspacePath();
   const [issues, setIssues] = useState<DocIssue[] | null>(null);
   const [skipped, setSkipped] = useState<string[]>([]);
+  const [suppressed, setSuppressed] = useState(0);
   const [empty, setEmpty] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -43,7 +44,7 @@ export function DesignIssuesPanel() {
         const health = await mcpBridge.request("workspace.getHealth").then((r) => (r as { issues?: Array<{ code?: string }> }).issues ?? []).catch(() => []);
         if (!cancelled) {
           setMaintenance({ registry: health.some((i) => i.code === "registry-missing-file" || i.code === "registry-unregistered"), uuid: health.some((i) => i.code === "uuid-unsaved") });
-          setIssues(doc.issues); setSkipped(sk); setError(null);
+          setIssues(doc.issues); setSkipped(sk); setSuppressed(doc.suppression?.suppressed.length ?? 0); setError(null);
           setEmpty(input.screens.length + input.flows.length + input.tables.length + (input.businessFlows?.length ?? 0) + (input.reports?.length ?? 0) === 0);
         }
       } catch (e) {
@@ -161,6 +162,11 @@ export function DesignIssuesPanel() {
             </li>
           ))}
         </ul>
+      )}
+      {suppressed > 0 && (
+        <div style={{ marginTop: 6, fontSize: "0.8rem", color: "var(--hm-fg-muted)" }} data-testid="design-issues-suppressed">
+          <i className="bi bi-eye-slash me-1" />理由つきで抑制中 {suppressed} 件 (<button type="button" className="dip-issue-link" onClick={() => navigate(wsPath("/analysis"))}>設計の分析で見直す</button>)
+        </div>
       )}
       <button type="button" className="dip-open" onClick={go} data-testid="design-issues-open">
         設計書で全件を見る{counts.error + counts.warning > SHOWN ? ` (ほか ${counts.error + counts.warning - SHOWN} 件)` : ""}
