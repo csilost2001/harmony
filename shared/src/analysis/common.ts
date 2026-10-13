@@ -80,3 +80,20 @@ export function opLetters(op: string): CrudLetter[] {
   if (o === "DELETE" || o.includes("DELETE") || o.includes("CLEAR")) return ["D"];
   return ["R"];
 }
+
+/** 行の終わりとして扱われる文字 (改行・垂直タブ・改ページ・NEL・U+2028・U+2029) */
+const LINE_BREAKS = new RegExp(`[\\r\\n${String.fromCharCode(0x0b, 0x0c, 0x85, 0x2028, 0x2029)}]+`, "g");
+
+/**
+ * 設計の文字列を、コメントの 1 行にする。出力 (SQL の `--`・JS の `//`) へ、設計の表示名・物理名を入れるとき、
+ * 改行で、コメントの外へ抜けて、次の行が実行されるのを防ぐ。
+ */
+export function oneLine(s: unknown): string {
+  return String(s ?? "").replace(LINE_BREAKS, " ");
+}
+
+/** この環境のローカル日付 (YYYY-MM-DD) */
+export function localDate(now = new Date()): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`;
+}

@@ -86,17 +86,123 @@ export function isValidRulePath(p: string): boolean {
 }
 
 /**
- * 利用者が書く正規表現の安全性の簡易検査。入れ子の繰り返し (`(a+)+` など) と後方参照は、
- * 入力しだいで極端に遅くなる (ReDoS) ので受け付けない。長さにも上限を置く。
+ * 利用者が書く正規表現の安全性の検査 (ReDoS を避ける)。許す形を絞る:
+ *  - 後方参照・先読み / 後読みは使えない。長さは 200 文字まで。フラグは i m s u だけ
+ *  - 「終わりのない繰り返し」(`*` `+` `{n,}`) は 3 つまで
+ *  - 繰り返し (`*` `+` `{n,}`、または上限が 5 を超える `{n,m}`) をつけたグループは、区切りの文字 (`_` `-` `.` `/` `:`) で始まり、
+ *    選択 (`|`)・入れ子のグループを含まず、残りが区切りの文字を含まない文字 (リテラル・`\d`・区切りを含まない文字クラス) だけの形に限る。
+ *    例: `(_[a-z0-9]+)*` は可 (区切りで必ず切れるので、どこで繰り返しが終わるかが 1 通りに決まる)。`(a|aa)+`・`(a+)+`・`([a-z])+` は不可
+ * これで、入力の長さに対して指数的に遅くなる式を除く (3 つまでの繰り返しの重なりによる、多項式の遅さは残るので、検査する値の長さを抑える)。
  */
 export function checkRegexSafety(pattern: string, flags?: string): string | null {
   if (pattern.length === 0) return "正規表現が空です";
   if (pattern.length > 200) return "正規表現が長すぎます (200 文字まで)";
   if (flags !== undefined && !/^[imsu]*$/.test(flags)) return "正規表現のフラグは i / m / s / u だけ使えます";
   if (/\\[1-9]|\\k</.test(pattern)) return "後方参照は使えません";
-  // 繰り返しのついたグループの中に、さらに繰り返しがある
-  if (/\((?:[^()\\]|\\.)*[*+}](?:[^()\\]|\\.)*\)[*+{]/.test(pattern)) return "繰り返しの入れ子 (例: (a+)+) は使えません";
+  if (/\(\?(?:=|!|<=|<!)/.test(pattern)) return "先読み・後読みは使えません";
   try { new RegExp(pattern, flags); } catch (e) { return `正規表現として読めません: ${e instanceof Error ? e.message : String(e)}`; }
+  return structuralRegexProblem(pattern);
+}
+
+const DELIMITERS = "_-./:";
+interface Atom { kind: "lit" | "esc" | "class" | "any" | "group"; ch?: string; body?: string; negated?: boolean; group?: Grp; quantified?: boolean }
+interface Grp { alt: boolean; hasGroup: boolean; atoms: Atom[] }
+
+/** 文字クラス (`[...]` の中身) が、その 1 文字を含むか。判断できない書き方 (\w \W \D \S の否定形など) は、含むとみなす */
+function classContains(body: string, ch: string): boolean {
+  const code = ch.charCodeAt(0);
+  let i = 0;
+  while (i < body.length) {
+    let c = body[i];
+    if (c === "\\") {
+      const e = body[i + 1] ?? "";
+      if (e === "w" || e === "W" || e === "D" || e === "S") return true; // \w は _ を含む。否定形は、広い
+      if (e === "d" || e === "s") { i += 2; continue; }
+      c = e; i += 2;
+    } else i += 1;
+    if (body[i] === "-" && i + 1 < body.length) {
+      let hi = body[i + 1];
+      i += 2;
+      if (hi === "\\") { hi = body[i] ?? ""; i += 1; }
+      if (code >= c.charCodeAt(0) && code <= hi.charCodeAt(0)) return true;
+    } else if (c === ch) return true;
+  }
+  return false;
+}
+
+function delimiterGroupOk(g: Grp): boolean {
+  if (g.alt || g.hasGroup || g.atoms.length === 0) return false;
+  const first = g.atoms[0];
+  const delim = first.kind === "lit" || first.kind === "esc" ? first.ch : undefined;
+  if (!delim || delim.length !== 1 || !DELIMITERS.includes(delim) || first.quantified) return false;
+  return g.atoms.slice(1).every((a) => {
+    if (a.kind === "lit") return a.ch !== delim;
+    if (a.kind === "esc") return a.ch === "d" || (a.ch !== undefined && /^[^A-Za-z0-9]$/.test(a.ch) && a.ch !== delim);
+    if (a.kind === "class") return !a.negated && !classContains(a.body ?? "", delim);
+    return false; // . と、入れ子のグループ
+  });
+}
+
+function structuralRegexProblem(p: string): string | null {
+  const root: Grp = { alt: false, hasGroup: false, atoms: [] };
+  const stack: Grp[] = [root];
+  let unbounded = 0;
+  let i = 0;
+  const cur = () => stack[stack.length - 1];
+  while (i < p.length) {
+    const c = p[i];
+    if (c === "\\") { cur().atoms.push({ kind: "esc", ch: p[i + 1] }); i += 2; continue; }
+    if (c === "[") {
+      let j = i + 1;
+      const negated = p[j] === "^";
+      if (negated) j++;
+      const start = j;
+      if (p[j] === "]") j++; // 先頭の ] は文字
+      while (j < p.length && p[j] !== "]") j += p[j] === "\\" ? 2 : 1;
+      cur().atoms.push({ kind: "class", body: p.slice(start, j), negated });
+      i = j + 1; continue;
+    }
+    if (c === "(") {
+      cur().hasGroup = true;
+      if (p.startsWith("(?:", i)) i += 3;
+      else if (p[i + 1] === "?" && p[i + 2] === "<") i = p.indexOf(">", i) + 1 || p.length; // 名前つき
+      else i += 1;
+      stack.push({ alt: false, hasGroup: false, atoms: [] });
+      continue;
+    }
+    if (c === ")") {
+      if (stack.length > 1) { const g = stack.pop()!; cur().atoms.push({ kind: "group", group: g }); }
+      i += 1; continue;
+    }
+    if (c === "|") { cur().alt = true; i += 1; continue; }
+    if (c === "^" || c === "$") { i += 1; continue; }
+    if (c === "*" || c === "+" || c === "?" || c === "{") {
+      let unb = c === "*" || c === "+";
+      let max = c === "?" ? 1 : Infinity;
+      let len = 1;
+      if (c === "{") {
+        const m = /^\{(\d+)(?:(,)(\d*))?\}/.exec(p.slice(i));
+        if (!m) { cur().atoms.push({ kind: "lit", ch: c }); i += 1; continue; } // 量指定ではない {
+        len = m[0].length;
+        unb = !!m[2] && m[3] === "";
+        max = m[2] ? (m[3] === "" ? Infinity : Number(m[3])) : Number(m[1]);
+      }
+      const last = cur().atoms[cur().atoms.length - 1];
+      if (last) {
+        last.quantified = true;
+        if (unb) unbounded++;
+        if (last.kind === "group" && last.group && (unb || max > 5) && !delimiterGroupOk(last.group)) {
+          return "繰り返しのグループは、区切りの文字 (_ - . / :) で始まり、選択・入れ子を含まない形 (例: (_[a-z0-9]+)*) だけ使えます (入力しだいで、極端に遅くなる式を避けるため)";
+        }
+      }
+      i += len;
+      if (p[i] === "?") i += 1; // 最短一致
+      continue;
+    }
+    cur().atoms.push(c === "." ? { kind: "any" } : { kind: "lit", ch: c });
+    i += 1;
+  }
+  if (unbounded > 3) return "終わりのない繰り返し (* + {n,}) が多すぎます (3 つまで)";
   return null;
 }
 

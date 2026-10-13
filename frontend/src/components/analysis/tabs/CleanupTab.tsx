@@ -37,6 +37,7 @@ function Unused({ input, graph }: { input: DesignDocInput; graph: ReturnType<typ
           <AnTable testId={`an-unused-${kind}`} headers={["名前", "理由"]} rows={list.map((i) => [i.ref ? <EntityLink key="l" kind={i.ref.kind} id={i.ref.id}>{i.name}</EntityLink> : i.name, i.reason])} />
         </div>
       ))}
+      <p className="an-hint">シーケンス・ビュー・ビュー定義・ページレイアウトから使われているかは見ていません (そこからだけ使われているものも、ここには出ます)。消す前に、参照元 (設計の「参照元」) で確かめてください。</p>
       <p className="an-hint">汎用定義は、参照の形が決まっている種類 (component-definition / exception-type / global) だけを対象にしています。</p>
     </Section>
   );

@@ -3,7 +3,7 @@
  * 使われているかどうかは、参照のつながり (graph.ts) で決める。
  */
 import type { DesignDocInput, DocIssueRef } from "../designDocument.js";
-import { buildDesignGraph, NODE_KIND_LABELS, type DesignGraph, type NodeKind } from "./graph.js";
+import { buildDesignGraph, NODE_KIND_LABELS, OWN_FLOW_LABEL, type DesignGraph, type NodeKind } from "./graph.js";
 import { forEachStep } from "./common.js";
 
 export interface UnusedItem {
@@ -38,7 +38,9 @@ export function findUnused(input: DesignDocInput, graph: DesignGraph = buildDesi
 
   // 画面: 画面遷移・業務フロー・帳票・処理の画面遷移のどれからも辿れない (入口の画面なら、問題ありません)
   for (const s of input.screens.filter((x) => x.purpose !== "gadget")) {
-    if (!used(`screen:${s.id}`)) push("screen", s.id, s.name ?? s.id, "どの画面遷移・業務フロー・帳票からも辿れません (入口の画面なら問題ありません)");
+    // その画面の処理 (meta.screenId) が結び付いているだけでは、使われているとは言えない
+    const usedBy = (graph.dependents.get(`screen:${s.id}`) ?? []).some((e) => e.label !== OWN_FLOW_LABEL);
+    if (!usedBy) push("screen", s.id, s.name ?? s.id, "どの画面遷移・業務フロー・帳票からも辿れません (入口の画面なら問題ありません)");
   }
   // 処理: 画面のイベント・業務フロー・共通処理・購読から呼ばれない。バッチ・定期・外部から呼ぶもの (httpRoute) は除く
   const entry = (f: DesignDocInput["flows"][number]) => f.meta.flowType === "batch" || f.meta.flowType === "scheduled" || f.actions.some((a) => a.httpRoute) || !!f.meta.screenId;

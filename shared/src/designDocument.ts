@@ -20,7 +20,7 @@ import { deriveScreenInputCases } from "./testViewpoints.js";
 import { expandComponentNode, expandLayout, validateLayoutWithComponents, type LayoutComponentDef } from "./layoutComponents.js";
 import type { CheckSettings } from "./analysis/settings.js";
 import type { ExternalSpecSummary } from "./analysis/externalContract.js";
-import { opLetters, type CrudLetter } from "./analysis/common.js";
+import { localDate, opLetters, type CrudLetter } from "./analysis/common.js";
 import { applySuppressions, issueKey, type SuppressionStatus } from "./analysis/suppress.js";
 import { namingIssues } from "./analysis/naming.js";
 import { deriveOperationMatrix } from "./analysis/accessOps.js";
@@ -299,7 +299,8 @@ export function deriveCrud(flows: readonly DocFlow[], tables: readonly DocTable[
   const rows: CrudMatrix["rows"] = [];
   const used = new Set<string>();
   for (const f of flows) {
-    const cells: Record<string, Set<CrudLetter>> = {};
+    // テーブル ID をキーにするので、`__proto__` でも壊れないよう、プロトタイプの無いオブジェクトにする
+    const cells: Record<string, Set<CrudLetter>> = Object.create(null);
     const walk = (steps: readonly FlowStep[]) => {
       for (const s of steps) {
         if (s.kind === "dbAccess" && typeof s.tableId === "string") {
@@ -693,7 +694,7 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
   for (const x of input.extraIssues ?? []) issues.push(x);
   issues.push(...namingIssues(input), ...customRuleIssues(input));
   for (const x of issues) x.key = issueKey(x);
-  const { active, status: suppression } = applySuppressions(issues, input.checkSettings?.suppressions ?? [], date);
+  const { active, status: suppression } = applySuppressions(issues, input.checkSettings?.suppressions ?? [], input.generatedAt ? date : localDate()); // 期限の判定は、利用者の (この環境の) 日付で
   issues.length = 0;
   issues.push(...active);
   const sevLabel = { error: "エラー", warning: "警告", info: "情報" } as const;

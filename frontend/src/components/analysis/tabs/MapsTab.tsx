@@ -65,7 +65,7 @@ function Columns({ input }: { input: DesignDocInput }) {
       <Section title={`存在しない列を指す項目 (${r.brokenBindings.length} 件)`} testId="an-col-broken">
         <AnTable headers={["画面", "項目", "内容"]} empty="存在しない列を指している項目はありません。" rows={r.brokenBindings.map((x) => [<EntityLink key="s" kind="screen" id={x.screen.id}>{x.screen.name}</EntityLink>, `${x.item.label} (${x.item.id})`, x.note ?? ""])} />
       </Section>
-      <Section title={`どこからも使われていない列 (${r.unusedColumns.length} 件)`} hint="画面項目・処理の SQL・帳票のどれにも出てこない列です (主キー・外部キー・更新日時などは除く)。" testId="an-col-unused">
+      <Section title={`どこからも使われていない列 (${r.unusedColumns.length} 件)`} hint="画面項目・処理の SQL・帳票のどれにも出てこない列です (主キー・外部キー・更新日時などは除く。ビュー・シーケンスから使われているかは見ていません)。" testId="an-col-unused">
         <AnTable headers={["テーブル", "列"]} empty="使われていない列はありません。" rows={r.unusedColumns.map((u) => [<EntityLink key="t" kind="table" id={u.table.id}>{u.table.name}</EntityLink>, `${u.column.name ?? ""} (${u.column.physicalName})`])} />
       </Section>
       <Section title={`対応表 (${rows.length} 行)`} testId="an-col-map"

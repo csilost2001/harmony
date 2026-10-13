@@ -11,6 +11,7 @@ import { designCheckFile, readCheckSettings, removeSuppressions, saveRules, supp
 import { loadDesignInputFull, loadExternalSpec, MAX_SPEC_BYTES } from "./designInput.js";
 import { readProgressHistory, recordProgress, sanitizeHistory } from "./progressStore.js";
 import { classifyChangedPath } from "./externalChanges.js";
+import { collectExtraIssues } from "./schemaIssues.js";
 import { writeScreenEntity, writeTable } from "./projectStorage.js";
 import { loadDesignInputFromRoot } from "./designInput.js";
 import { analysisHandlers } from "./wsHandlers/analysis.js";
@@ -95,6 +96,25 @@ describe("点検の設定: 抑制", () => {
     await unsuppressIssue(ROOT, issueKey(long));
   });
 
+  it("JSON として壊れたファイルは、空とは読まず、理由を返し、書き換えない (抑制・ルールが消えない)。要確認にも警告が出る", async () => {
+    const file = designCheckFile(path.join(ROOT, "harmony"));
+    const broken = '{ "version": 1, "suppressions": [], "rules": [ { "id": "r1", "name": "n", "target": "table", "path": "name", "check": { "type": "required" }, "severity": "info" }, ], }'; // 末尾のカンマ
+    await fs.writeFile(file, broken);
+    const loaded = await readCheckSettings(ROOT);
+    expect(loaded.problems).toHaveLength(1);
+    expect(loaded.problems[0]).toContain("JSON として読めません");
+    expect(loaded.settings.rules).toEqual([]);
+    await expect(suppressIssue(ROOT, input)).rejects.toThrow("書き換えません");
+    await expect(saveRules(ROOT, [])).rejects.toThrow("書き換えません");
+    await expect(unsuppressIssue(ROOT, input.key)).rejects.toThrow("書き換えません");
+    expect(await fs.readFile(file, "utf-8")).toBe(broken); // 元のまま
+    const extra = await collectExtraIssues(ROOT);
+    expect(extra.some((i) => i.severity === "warning" && i.message.includes("JSON として読めません"))).toBe(true);
+    await fs.writeFile(file, ""); // 空のファイルは、空の設定
+    expect((await readCheckSettings(ROOT)).problems).toEqual([]);
+    await fs.rm(file);
+  });
+
   it("まとめて外せる", async () => {
     await suppressIssue(ROOT, input);
     const b = { severity: "info" as const, section: "B", message: "もう一つ" };
@@ -109,7 +129,7 @@ describe("点検の設定: 独自ルール", () => {
   it("検証に通るルールだけ保存でき、壊れたルールは理由つきで拒否する (保存済みの内容は変えない)", async () => {
     await saveRules(ROOT, [rule]);
     expect((await readCheckSettings(ROOT)).settings.rules).toHaveLength(1);
-    await expect(saveRules(ROOT, [rule, { ...rule, id: "r2", check: { type: "pattern", pattern: "(a+)+" } }])).rejects.toThrow("繰り返しの入れ子");
+    await expect(saveRules(ROOT, [rule, { ...rule, id: "r2", check: { type: "pattern", pattern: "(a+)+" } }])).rejects.toThrow("繰り返しのグループ");
     await expect(saveRules(ROOT, [{ ...rule, path: "__proto__.x" }])).rejects.toThrow("英数字と .");
     await expect(saveRules(ROOT, "x")).rejects.toThrow("形が正しくありません");
     expect((await readCheckSettings(ROOT)).settings.rules).toHaveLength(1);
@@ -141,6 +161,33 @@ describe("外部システムの OpenAPI の読み込み", () => {
     expect((await loadExternalSpec(ROOT, "specs/broken.json")).error).toContain("JSON として読めません");
     expect((await loadExternalSpec(ROOT, "specs/none.json")).error).toContain("見つかりません");
   });
+  it("ワークスペースの外を指すリンク・通常のファイルでないもの (/dev/zero) は読まない。中を指すリンクは読める", async () => {
+    const outside = path.join(os.tmpdir(), `outside-spec-${process.pid}.json`);
+    await fs.writeFile(outside, JSON.stringify({ openapi: "3.0.0", paths: { "/secret": { get: {} } } }));
+    await fs.symlink(outside, path.join(ROOT, "specs", "link-out.json")).catch(() => undefined);
+    await fs.symlink("/dev/zero", path.join(ROOT, "specs", "zero.json")).catch(() => undefined);
+    await fs.symlink(path.join(ROOT, "specs", "pay.json"), path.join(ROOT, "specs", "link-in.json")).catch(() => undefined);
+    try {
+      expect((await loadExternalSpec(ROOT, "specs/link-out.json")).error).toContain("外を指すリンク");
+      expect((await loadExternalSpec(ROOT, "specs/link-out.json")).operations).toEqual([]);
+      const t = Date.now();
+      expect((await loadExternalSpec(ROOT, "specs/zero.json")).error).toContain("外を指すリンク"); // /dev/zero はワークスペースの外
+      expect(Date.now() - t).toBeLessThan(1000);
+      expect((await loadExternalSpec(ROOT, "specs/link-in.json")).operations).toHaveLength(1);
+    } finally { await fs.rm(outside, { force: true }); }
+  });
+
+  it("通常のファイルでないものは、大きさの申告 (0) を信じず、読まない", async () => {
+    // ワークスペースの中にある FIFO (名前つきパイプ) のような、通常のファイルでないもの
+    const fifo = path.join(ROOT, "specs", "pipe.json");
+    const { spawnSync } = await import("node:child_process");
+    if (spawnSync("mkfifo", [fifo]).status === 0) {
+      const t = Date.now();
+      expect((await loadExternalSpec(ROOT, "specs/pipe.json")).error).toContain("通常のファイルではありません");
+      expect(Date.now() - t).toBeLessThan(1000);
+    }
+  });
+
   it("大きすぎる定義は読まない", async () => {
     await fs.writeFile(path.join(ROOT, "specs", "big.json"), JSON.stringify({ openapi: "3.0.0", paths: {}, pad: "x".repeat(MAX_SPEC_BYTES) }));
     expect((await loadExternalSpec(ROOT, "specs/big.json")).error).toContain("大きすぎます");
@@ -191,6 +238,11 @@ describe("MCP: designer__analyze_design ほか", () => {
     expect(r.levels[0].hits.map((h: { node: { key: string } }) => h.node.key).sort()).toEqual(["screen:entry", "table:order"]);
     await expect(call("designer__analyze_design", { kind: "impact", entityType: "nope", id: "cust" })).rejects.toThrow("entityType");
     await expect(call("designer__analyze_design", { kind: "impact", entityType: "table", id: "../x" })).rejects.toThrow();
+    // メッセージ・正規表現・上限値・汎用定義は、kebab-case でない鍵・名前でも指せる (安全な文字だけ)
+    expect((await J("designer__analyze_design", { kind: "impact", entityType: "message", id: "stockShortage" })).target).toBeNull(); // 無い鍵は、対象なし
+    expect((await J("designer__analyze_design", { kind: "impact", entityType: "genericDefinition", id: "component-definition/Button" })).total).toBe(0);
+    await expect(call("designer__analyze_design", { kind: "impact", entityType: "message", id: "a/../b" })).rejects.toThrow("英数字");
+    await expect(call("designer__analyze_design", { kind: "impact", entityType: "regex", id: "x y" })).rejects.toThrow("英数字");
     await expect(call("designer__analyze_design", { kind: "zzz" })).rejects.toThrow("kind");
   });
   it("各種の分析が読み取りで動く (csv も)", async () => {

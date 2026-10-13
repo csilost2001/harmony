@@ -80,7 +80,7 @@ describe("版の差分から ALTER", () => {
     const next = table({ columns: [col("c1", "id", { dataType: "INTEGER", primaryKey: true, notNull: true }), col("c2", "memo", { length: 5 }), col("c3", "qty", { dataType: "INTEGER" })] });
     const r = generateAlterDdl(table(), next, "postgresql");
     expect(r.destructive).toBe(1);
-    expect(r.statements[0]).toContain("長さが縮みます");
+    expect(r.statements[0]).toContain("狭くなります");
   });
 
   it("インデックス・制約: 増えたものは作り、消えたものは外し、変わったものは作り直す", () => {

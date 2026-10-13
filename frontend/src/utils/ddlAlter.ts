@@ -6,6 +6,7 @@
  * - 主キーの構成の変更・方言が対応しない変更は、実行しない注意書き (コメント) にする。実行前に、必ず内容を確かめること
  * データは移行されない (列の削除・型の縮小は、データを失いうる)。出力の各文の前に、注意があれば `-- ` で添える。
  */
+import { oneLine } from "@harmony/shared";
 import type { Column, Constraint, Index, Table } from "../types/v3";
 import { autoIncrementType, constraintToDdl, generateDdl, indexToDdl, mapDataType, quoteIdentifier, resolveColumnPhysical, sanitizeDefaultValue, type SqlDialect } from "./ddlGenerator";
 
@@ -17,6 +18,9 @@ export interface AlterResult {
   /** データを失う・失いうる変更の数 */
   destructive: number;
 }
+
+/** 注意書きの 1 行 (設計の名前に改行があっても、コメントの外へ抜けて、次の行が実行されないように 1 行にする) */
+const note = (text: string): string => `-- ${oneLine(text)}`;
 
 const colKey = (c: Column) => c.id || c.physicalName;
 const q = quoteIdentifier;
@@ -30,6 +34,26 @@ function fullColumnDef(c: Column, dialect: SqlDialect): string {
   if (c.notNull) def += " NOT NULL";
   if (c.defaultValue && !c.autoIncrement) def += ` DEFAULT ${sanitizeDefaultValue(c.defaultValue)}`;
   return def;
+}
+
+const FAMILY: Record<string, [string, number]> = {
+  SMALLINT: ["int", 1], INTEGER: ["int", 2], BIGINT: ["int", 3], DECIMAL: ["num", 1], FLOAT: ["num", 2],
+  CHAR: ["text", 1], VARCHAR: ["text", 2], TEXT: ["text", 3], DATE: ["time", 1], TIMESTAMP: ["time", 2],
+};
+
+/** 型の変更が、データを失う (切り捨て・変換できない) 方向か。同じ種類の中で狭くなる・種類が変わって数・日時・真偽などになる、は狭い。整数 → 小数、何か → 文字列は、広い */
+function narrowing(prev: Column, c: Column): boolean {
+  const a = Object.hasOwn(FAMILY, prev.dataType) ? FAMILY[prev.dataType] : undefined, b = Object.hasOwn(FAMILY, c.dataType) ? FAMILY[c.dataType] : undefined;
+  if (prev.dataType === c.dataType) {
+    if (!a) return false;
+    if (a[0] === "text" && c.dataType !== "TEXT") return (c.length ?? Infinity) < (prev.length ?? 0);
+    if (c.dataType === "DECIMAL") return (c.length ?? 10) < (prev.length ?? 10) || (c.scale ?? 2) < (prev.scale ?? 2);
+    return false;
+  }
+  if (a && b && a[0] === b[0]) return b[1] < a[1];
+  if (b?.[0] === "text") return false; // 何か → 文字列
+  if (a?.[0] === "int" && b?.[0] === "num") return false; // 整数 → 小数
+  return true;
 }
 
 const typeSig = (c: Column) => `${c.dataType}|${c.length ?? ""}|${c.scale ?? ""}|${c.autoIncrement ? "ai" : ""}`;
@@ -79,10 +103,10 @@ function modifyColumn(oldC: Column, c: Column, t: Table, d: SqlDialect, out: str
       break;
     case "sqlserver":
       if (typeChanged || nullChanged) out.push(`ALTER TABLE ${table} ALTER COLUMN ${name} ${columnType(c, d)}${c.notNull ? " NOT NULL" : " NULL"};`);
-      if (defChanged) out.push(`-- 既定値の変更: SQL Server は名前つきの既定値の制約を、消して作り直します (既存の制約名を確かめてください)\n${c.defaultValue ? `ALTER TABLE ${table} ADD CONSTRAINT ${q(`DF_${t.physicalName}_${c.physicalName}`, d)} DEFAULT ${sanitizeDefaultValue(c.defaultValue)} FOR ${name};` : `-- ALTER TABLE ${table} DROP CONSTRAINT <既定値の制約名>;`}`);
+      if (defChanged) out.push(`${note("既定値の変更: SQL Server は名前つきの既定値の制約を、消して作り直します (既存の制約名を確かめてください)")}\n${c.defaultValue ? `ALTER TABLE ${table} ADD CONSTRAINT ${q(`DF_${t.physicalName}_${c.physicalName}`, d)} DEFAULT ${sanitizeDefaultValue(c.defaultValue)} FOR ${name};` : note(`ALTER TABLE ${table} DROP CONSTRAINT <既定値の制約名>;`)}`);
       break;
     case "sqlite":
-      out.push(`-- SQLite は列の変更 (型・NOT NULL・既定値) に対応していません。テーブルを作り直して、データを移してください: ${t.physicalName}.${c.physicalName}`);
+      out.push(note(`SQLite は列の変更 (型・NOT NULL・既定値) に対応していません。テーブルを作り直して、データを移してください: ${t.physicalName}.${c.physicalName}`));
       break;
     default: // postgresql / standard
       if (typeChanged) out.push(`ALTER TABLE ${table} ALTER COLUMN ${name} ${d === "postgresql" ? "TYPE" : "SET DATA TYPE"} ${columnType(c, d)};`);
@@ -125,14 +149,14 @@ export function generateAlterDdl(oldTable: Table | null, newTable: Table | null,
   const oldCols = new Map(o.columns.map((c) => [colKey(c), c]));
   const newCols = new Map(n.columns.map((c) => [colKey(c), c]));
   for (const c of o.columns) if (!newCols.has(colKey(c))) {
-    out.push(`-- 列「${c.physicalName}」を削除します。この列のデータは失われます`);
+    out.push(note(`列「${c.physicalName}」を削除します。この列のデータは失われます`));
     out.push(`ALTER TABLE ${table} DROP COLUMN ${q(c.physicalName, dialect)};`);
     destructive++;
   }
   for (const c of n.columns) {
     const prev = oldCols.get(colKey(c));
     if (!prev) {
-      if (c.notNull && !c.defaultValue && !c.autoIncrement) out.push(`-- NOT NULL で既定値の無い列です。行がある表では失敗します。既定値を付けるか、いったん NULL を許してから埋めてください: ${c.physicalName}`);
+      if (c.notNull && !c.defaultValue && !c.autoIncrement) out.push(note(`NOT NULL で既定値の無い列です。行がある表では失敗します。既定値を付けるか、いったん NULL を許してから埋めてください: ${c.physicalName}`));
       out.push(dialect === "oracle" ? `ALTER TABLE ${table} ADD (${fullColumnDef(c, dialect)});` : dialect === "sqlserver" ? `ALTER TABLE ${table} ADD ${fullColumnDef(c, dialect)};` : `ALTER TABLE ${table} ADD COLUMN ${fullColumnDef(c, dialect)};`);
       continue;
     }
@@ -142,10 +166,14 @@ export function generateAlterDdl(oldTable: Table | null, newTable: Table | null,
     // 列の変更 (改名後の名前で)
     const before = out.length;
     modifyColumn(prev, c, n, dialect, out);
-    const shrinks = prev.dataType === c.dataType && (c.length ?? Infinity) < (prev.length ?? 0);
-    if (out.length > before && (prev.dataType !== c.dataType || shrinks)) { out.splice(before, 0, `-- 列「${c.physicalName}」の型が変わります。既存のデータが変換できないと失敗します${shrinks ? " (長さが縮みます: 切り捨て・失敗の恐れ)" : ""}`); if (shrinks) destructive++; }
-    if (!!prev.primaryKey !== !!c.primaryKey) out.push(`-- 列「${c.physicalName}」の主キーの指定が変わりました。主キーの付け替えは自動では作りません。手で確認してください`);
-    if (!!prev.unique !== !!c.unique && !c.primaryKey) out.push(`-- 列「${c.physicalName}」の一意の指定が変わりました。${c.unique ? `ALTER TABLE ${table} ADD CONSTRAINT ${q(`uq_${n.physicalName}_${c.physicalName}`, dialect)} UNIQUE (${q(c.physicalName, dialect)});` : "既存の一意の制約を、名前を確かめて消してください。"}`);
+    const lossy = typeSig(prev) !== typeSig(c) && narrowing(prev, c);
+    if (out.length > before && typeSig(prev) !== typeSig(c)) {
+      out.splice(before, 0, note(`列「${c.physicalName}」の型が変わります。既存のデータが変換できないと失敗します${lossy ? " (長さ・精度・型が狭くなります: 切り捨て・失敗の恐れ)" : ""}`));
+      if (lossy) destructive++;
+    }
+    if (!prev.notNull && c.notNull && !c.autoIncrement && !c.defaultValue) out.push(note(`列「${c.physicalName}」を NOT NULL にします。NULL の行があると失敗します。先に値を埋めてください`));
+    if (!!prev.primaryKey !== !!c.primaryKey) out.push(note(`列「${c.physicalName}」の主キーの指定が変わりました。主キーの付け替えは自動では作りません。手で確認してください`));
+    if (!!prev.unique !== !!c.unique && !c.primaryKey) out.push(note(`列「${c.physicalName}」の一意の指定が変わりました。${c.unique ? `ALTER TABLE ${table} ADD CONSTRAINT ${q(`uq_${n.physicalName}_${c.physicalName}`, dialect)} UNIQUE (${q(c.physicalName, dialect)});` : "既存の一意の制約を、名前を確かめて消してください。"}`));
   }
 
   // 制約・インデックスの追加 (列の後)

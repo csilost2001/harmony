@@ -7,7 +7,7 @@
  * 仕様: docs/spec/design-document.md / docs/spec/test-viewpoints.md
  */
 import {
-  analyzeImpact, analyzeMessages, applySuppressions, buildDesignDocument, buildDesignGraph, buildOpenApi, checkExternalContracts, columnMapToCsv, deriveColumnMap, deriveJobs,
+  analyzeImpact, analyzeMessages, applySuppressions, buildDesignDocument, buildDesignGraph, buildOpenApi, localDate, checkExternalContracts, columnMapToCsv, deriveColumnMap, deriveJobs,
   deriveOperationMatrix, deriveSla, deriveTestViewpointSheet, deriveTraceability, findTermInconsistencies, findUnused, generateTestData, operationMatrixToCsv, overallTrend,
   scaffoldTests, slaToCsv, summarizeProgress, testDataTableToCsv, testDataToInsertSql, testViewpointSheetToCsv, traceabilityToCsv, usesPermissionModel,
   type NodeKind, type SqlQuote, type TestFramework,
@@ -208,7 +208,9 @@ async function analyzeDesign(a: Record<string, unknown>, root: string) {
   switch (a.kind) {
     case "impact": {
       if (!NODE_KINDS.includes(String(a.entityType))) throw new McpError(ErrorCode.InvalidParams, `entityType は ${NODE_KINDS.join(" / ")} のどれかです`);
-      assertEntityIdMcp(a.id, "id");
+      // 設計 (画面・テーブルなど) は kebab-case の ID。メッセージ・正規表現・上限値の鍵と、汎用定義 (種類/名前) は、安全な文字だけ
+      if (["screen", "processFlow", "table", "businessFlow", "report", "component"].includes(String(a.entityType))) assertEntityIdMcp(a.id, "id");
+      else if (typeof a.id !== "string" || !/^[A-Za-z0-9][A-Za-z0-9_.\-/]{0,127}$/.test(a.id) || a.id.includes("..")) throw new McpError(ErrorCode.InvalidParams, "id は、英数字・_ . - / だけの 128 文字までで指定してください");
       return json(analyzeImpact(input, a.entityType as NodeKind, a.id as string, typeof a.column === "string" ? { column: a.column } : {}));
     }
     case "traceability": { const r = deriveTraceability(input); return csv ? text(traceabilityToCsv(r)) : json(r); }
@@ -230,7 +232,7 @@ async function analyzeDesign(a: Record<string, unknown>, root: string) {
     }
     case "suppressions": {
       const { issues } = buildDesignDocument({ ...input, extraIssues: await collectExtraIssues(root), checkSettings: { version: 1, rules: input.checkSettings?.rules ?? [], suppressions: [] } });
-      const { status } = applySuppressions(issues, input.checkSettings?.suppressions ?? [], new Date().toISOString().slice(0, 10));
+      const { status } = applySuppressions(issues, input.checkSettings?.suppressions ?? [], localDate());
       return json(status);
     }
     default: throw new McpError(ErrorCode.InvalidParams, "kind が正しくありません");

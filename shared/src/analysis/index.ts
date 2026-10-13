@@ -1,4 +1,4 @@
-export { toCsv, csvCell, normalizeTerm, normalizeIdentifier } from "./common.js";
+export { toCsv, csvCell, normalizeTerm, normalizeIdentifier, oneLine, localDate } from "./common.js";
 export * from "./settings.js";
 export * from "./suppress.js";
 export * from "./graph.js";

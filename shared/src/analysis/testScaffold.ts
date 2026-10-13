@@ -3,6 +3,7 @@
  * 画面・処理ごとのファイルとして作る。中身 (操作と検証) は、技術スタックと実装に合わせて書き足す。
  */
 import type { FlowTestCase, ScreenInputCase, TestViewpointSheet } from "../testViewpoints.js";
+import { oneLine } from "./common.js";
 
 export type TestFramework = "vitest" | "jest" | "playwright";
 export const TEST_FRAMEWORK_LABELS: Record<TestFramework, string> = { vitest: "Vitest (単体)", jest: "Jest (単体)", playwright: "Playwright (E2E)" };
@@ -18,7 +19,7 @@ export interface ScaffoldOptions {
 /** 文字列リテラルにする (引用符・改行・バッククォート・`${` を安全に) */
 const lit = (s: unknown) => JSON.stringify(String(s ?? "")).split(String.fromCharCode(0x2028)).join("\\u2028").split(String.fromCharCode(0x2029)).join("\\u2029");
 /** コメントの 1 行にする (改行と、コメントを閉じる文字列を除く) */
-const cm = (s: unknown) => String(s ?? "").replace(/[\r\n]+/g, " ").replace(/\*\//g, "* /");
+const cm = (s: unknown) => oneLine(s).replace(/\*\//g, "* /");
 const fileSafe = (s: string) => s.replace(/[^A-Za-z0-9._-]/g, "_");
 
 function header(framework: TestFramework): string {

@@ -83,16 +83,30 @@ export function loadWorkspaceInput(dir, warn = console.warn) {
     } catch { report("error", "design-check.json を読めない (JSON が壊れている) ため、抑制・独自ルールを適用しません"); }
   }
   // 外部システムの OpenAPI の定義 (ワークスペース内の JSON だけ。URL は取りに行かない)
-  const externalSpecs = {};
+  const externalSpecs = Object.create(null); // キーは設計の値。`__proto__` で Object.prototype を触らない
   for (const f of flows) {
     for (const e of Object.values(f.context?.catalogs?.externalSystems ?? {})) {
       const src = typeof e?.openApiSpec === "string" ? e.openApiSpec.trim() : "";
-      if (!src || externalSpecs[src]) continue;
+      if (!src || Object.hasOwn(externalSpecs, src)) continue;
       if (/^[a-z][a-z0-9+.-]*:\/\//i.test(src)) { externalSpecs[src] = { source: src, skipped: "url", operations: [] }; continue; }
-      const file = [path.resolve(dir, src), path.resolve(dataDir, src)].find((c) => (c === path.resolve(dir) || c.startsWith(path.resolve(dir) + path.sep)) && fs.existsSync(c));
-      if (!file) { externalSpecs[src] = { source: src, error: "ファイルが見つかりません (ワークスペースの外は読みません)", operations: [] }; continue; }
-      if (!/\.json$/i.test(file)) { externalSpecs[src] = { source: src, error: "JSON 形式の OpenAPI だけ読めます (YAML は照合していません)", operations: [] }; continue; }
-      try { externalSpecs[src] = summarizeOpenApi(src, JSON.parse(fs.readFileSync(file, "utf8"))); } catch { externalSpecs[src] = { source: src, error: "JSON として読めません", operations: [] }; }
+      const root = path.resolve(dir);
+      let real = null;
+      try {
+        const base = fs.realpathSync(root);
+        for (const c of [path.resolve(dir, src), path.resolve(dataDir, src)]) {
+          if (c !== root && !c.startsWith(root + path.sep)) continue; // 文字列として外を指す
+          if (!fs.existsSync(c)) continue;
+          const r = fs.realpathSync(c); // リンクをたどった先も、ワークスペースの中でなければ読まない
+          if (r === base || r.startsWith(base + path.sep)) { real = r; break; }
+        }
+      } catch { real = null; }
+      if (!real) { externalSpecs[src] = { source: src, error: "ファイルが見つかりません (ワークスペースの外は読みません)", operations: [] }; continue; }
+      if (!/\.json$/i.test(real)) { externalSpecs[src] = { source: src, error: "JSON 形式の OpenAPI だけ読めます (YAML は照合していません)", operations: [] }; continue; }
+      try {
+        const st = fs.statSync(real);
+        if (!st.isFile() || st.size > 5 * 1024 * 1024) { externalSpecs[src] = { source: src, error: st.isFile() ? "ファイルが大きすぎます (5 MB まで)" : "通常のファイルではありません", operations: [] }; continue; }
+        externalSpecs[src] = summarizeOpenApi(src, JSON.parse(fs.readFileSync(real, "utf8")));
+      } catch { externalSpecs[src] = { source: src, error: "JSON として読めません", operations: [] }; }
     }
   }
 
@@ -113,7 +127,7 @@ export function loadWorkspaceInput(dir, warn = console.warn) {
     db: conventions?.db ?? {},
     genericDefinitions,
     ...(checkSettings ? { checkSettings } : {}),
-    ...(Object.keys(externalSpecs).length ? { externalSpecs } : {}),
+    ...(Object.keys(externalSpecs).length ? { externalSpecs: { ...externalSpecs } } : {}),
   };
   return { input, dataDir, problems, counts: { screens: screens.length, flows: flows.length, tables: tables.length, businessFlows: businessFlows.length, reports: reports.length } };
 }

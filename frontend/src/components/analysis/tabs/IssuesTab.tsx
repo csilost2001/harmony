@@ -17,7 +17,7 @@ function IssueCell({ issue }: { issue: Pick<DocIssue, "section" | "ref"> }) {
 }
 
 export function IssuesTab({ input, skipped, reload }: { input: DesignDocInput; skipped: string[]; reload: () => void }) {
-  const doc = useMemo(() => buildDesignDocument({ ...input, generatedAt: new Date().toISOString() }), [input]);
+  const doc = useMemo(() => buildDesignDocument(input), [input]);
   const [sev, setSev] = useState<"all" | "error" | "warning" | "info">("all");
   const [q, setQ] = useState("");
   const [editing, setEditing] = useState<string | null>(null);

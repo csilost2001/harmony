@@ -67,8 +67,9 @@ export function deriveOperationMatrix(input: DesignDocInput): OperationMatrix {
           roles: roleIds.filter((r) => need.every((p) => effective[r]?.includes(p))),
           open: need.length === 0,
         });
-        // 権限が決まっていない更新操作: 画面の権限でも操作の権限でも守られていない
-        if (writes && need.length === 0) {
+        // 権限が決まっていない更新操作: 画面の権限でも操作の権限でも守られていない。人が呼ぶ入口 (画面・HTTP の契約) のあるものだけ
+        // (バッチ・イベントの購読・共通処理は、呼び出し元の画面・API の権限で守られる)
+        if (writes && need.length === 0 && (sub || http)) {
           issues.push({
             severity: "warning",
             section: `処理フロー ${f.meta.name ?? f.meta.id}`,

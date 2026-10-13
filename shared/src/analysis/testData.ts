@@ -4,7 +4,7 @@
  * CHECK 式は、単純な比較 (`col > 0` / `col IN ('a','b')` / `col BETWEEN 1 AND 9`) だけを考慮し、読めない式は警告する。
  */
 import type { DesignDocInput, DocTable } from "../designDocument.js";
-import { toCsv } from "./common.js";
+import { oneLine, toCsv } from "./common.js";
 
 export type Cell = string | number | boolean | null;
 export interface GeneratedTable {
@@ -38,6 +38,21 @@ function mulberry32(seed: number): () => number {
 
 interface Bounds { min?: number; max?: number; oneOf?: string[] }
 
+/** 括弧が釣り合って全体を包んでいるときだけ、外側の括弧を除く (`c IN ('a')` の `)` は除かない) */
+function stripOuterParens(s: string): string {
+  let t = s;
+  while (t.startsWith("(") && t.endsWith(")")) {
+    let depth = 0, wraps = true;
+    for (let i = 0; i < t.length; i++) {
+      if (t[i] === "(") depth++;
+      else if (t[i] === ")") { depth--; if (depth === 0 && i < t.length - 1) { wraps = false; break; } }
+    }
+    if (!wraps) break;
+    t = t.slice(1, -1).trim();
+  }
+  return t;
+}
+
 /** CHECK 式から、列ごとの範囲・候補を読む (単純な比較だけ) */
 function parseChecks(t: DocTable, warnings: string[]): Map<string, Bounds> {
   const out = new Map<string, Bounds>();
@@ -46,7 +61,7 @@ function parseChecks(t: DocTable, warnings: string[]): Map<string, Bounds> {
     if (c.kind !== "check" || !c.expression) continue;
     let handled = false;
     for (const part of c.expression.split(/\s+AND\s+/i)) {
-      const p = part.trim().replace(/^\(|\)$/g, "");
+      const p = stripOuterParens(part.trim());
       let m: RegExpExecArray | null;
       if ((m = /^"?([A-Za-z_]\w*)"?\s*(>=|<=|>|<)\s*(-?\d+(?:\.\d+)?)$/.exec(p)) && colOf(m[1])) {
         const b = out.get(colOf(m[1])!) ?? {}; const n = Number(m[3]);
@@ -203,12 +218,20 @@ export function generateTestData(input: DesignDocInput, options: TestDataOptions
 
 export type SqlQuote = "standard" | "mysql" | "sqlserver";
 const quoteId = (s: string, q: SqlQuote) => (q === "mysql" ? `\`${s.replace(/`/g, "``")}\`` : q === "sqlserver" ? `[${s.replace(/]/g, "]]")}]` : `"${s.replace(/"/g, '""')}"`);
-const lit = (v: Cell, q: SqlQuote): string => (v === null ? "NULL" : typeof v === "number" ? String(v) : typeof v === "boolean" ? (q === "sqlserver" || q === "mysql" ? (v ? "1" : "0") : v ? "TRUE" : "FALSE") : `${q === "sqlserver" && /[^\x00-\x7f]/.test(v) ? "N" : ""}'${v.replace(/'/g, "''")}'`);
+/**
+ * 文字列の値。引用符は 2 つにする。`\` は、MySQL では引用符のエスケープの印になり、ほかでは値の文字なので、方言で意味が分かれる:
+ * MySQL は `\` を 2 つにして値として入れ、ほかの方言は `\` を除く (標準の出力が、MySQL へ流し込まれても、引用符の外へ抜けないように)。サンプルの値なので、除いても困らない。
+ */
+const strLit = (v: string, q: SqlQuote): string => {
+  const body = (q === "mysql" ? v.replace(/\\/g, "\\\\") : v.replace(/\\/g, "")).replace(/'/g, "''").replace(/\0/g, "");
+  return `${q === "sqlserver" && /[^\x00-\x7f]/.test(v) ? "N" : ""}'${body}'`;
+};
+const lit = (v: Cell, q: SqlQuote): string => (v === null ? "NULL" : typeof v === "number" ? String(v) : typeof v === "boolean" ? (q === "sqlserver" || q === "mysql" ? (v ? "1" : "0") : v ? "TRUE" : "FALSE") : strLit(v, q));
 
 export function testDataToInsertSql(r: TestDataResult, quote: SqlQuote = "standard"): string {
   return r.tables.map((t) => {
     const head = `INSERT INTO ${quoteId(t.table.physicalName, quote)} (${t.columns.map((c) => quoteId(c, quote)).join(", ")}) VALUES`;
-    return `-- ${t.table.name} (${t.rows.length} 件)\n${head}\n${t.rows.map((row) => `  (${row.map((v) => lit(v, quote)).join(", ")})`).join(",\n")};\n`;
+    return `-- ${oneLine(t.table.name)} (${t.rows.length} 件)\n${head}\n${t.rows.map((row) => `  (${row.map((v) => lit(v, quote)).join(", ")})`).join(",\n")};\n`;
   }).join("\n");
 }
 

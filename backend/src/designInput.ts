@@ -118,22 +118,34 @@ async function readGenericDefinitions(root: string): Promise<NonNullable<DesignD
 export const MAX_SPEC_BYTES = 5 * 1024 * 1024;
 const specMemo = createFileMemo<ExternalSpecSummary>(200);
 
-/** `externalSystems[].openApiSpec` の値から、照合用の要約を作る。URL は取りに行かない。ワークスペースの外のファイルは読まない。JSON だけ */
+/** `externalSystems[].openApiSpec` の値から、照合用の要約を作る。URL は取りに行かない。ワークスペースの外 (シンボリックリンクの先を含む) は読まない。通常のファイルの JSON だけ */
 export async function loadExternalSpec(root: string, source: string): Promise<ExternalSpecSummary> {
   if (/^[a-z][a-z0-9+.-]*:\/\//i.test(source)) return { source, skipped: "url", operations: [] };
   const fail = (error: string): ExternalSpecSummary => ({ source, error, operations: [] });
   let dataRoot: string | null = null;
   try { dataRoot = await resolveDataRoot(root); } catch { /* データフォルダが無くても、ワークスペース直下は探せる */ }
-  const base = path.resolve(root);
-  const candidates = [path.resolve(base, source), ...(dataRoot ? [path.resolve(dataRoot, source)] : [])];
-  for (const file of candidates) {
-    if (file !== base && !file.startsWith(base + path.sep)) return fail("ワークスペースの外のファイルは読みません");
-    try { await fs.access(file); } catch { continue; }
-    if (!/\.json$/i.test(file)) return fail("JSON 形式の OpenAPI だけ読めます (YAML は照合していません)");
-    return specMemo.get(file, async () => {
-      const st = await fs.stat(file);
+  let base: string;
+  try { base = await fs.realpath(path.resolve(root)); } catch { return fail("ワークスペースを開けません"); }
+  for (const candidate of [path.resolve(root, source), ...(dataRoot ? [path.resolve(dataRoot, source)] : [])]) {
+    // 先に、文字列として外を指すものを断る (存在を確かめる前に)。そのあと、リンクをたどった先も、中にあるかを確かめる
+    const lexical = path.resolve(candidate);
+    if (lexical !== path.resolve(root) && !lexical.startsWith(path.resolve(root) + path.sep)) return fail("ワークスペースの外のファイルは読みません");
+    let real: string;
+    try { real = await fs.realpath(candidate); } catch { continue; }
+    if (real !== base && !real.startsWith(base + path.sep)) return fail("ワークスペースの外を指すリンクは読みません");
+    if (!/\.json$/i.test(real) && !/\.json$/i.test(candidate)) return fail("JSON 形式の OpenAPI だけ読めます (YAML は照合していません)");
+    return specMemo.get(real, async () => {
+      const st = await fs.stat(real);
+      if (!st.isFile()) return fail("通常のファイルではありません");
       if (st.size > MAX_SPEC_BYTES) return fail(`ファイルが大きすぎます (${Math.round(st.size / 1024 / 1024)} MB。${MAX_SPEC_BYTES / 1024 / 1024} MB まで)`);
-      try { return summarizeOpenApi(source, JSON.parse(await fs.readFile(file, "utf-8"))); } catch { return fail("JSON として読めません"); }
+      // 大きさの申告 (stat) を信じず、上限までしか読まない
+      const fh = await fs.open(real, "r");
+      try {
+        const buf = Buffer.alloc(MAX_SPEC_BYTES + 1);
+        const { bytesRead } = await fh.read(buf, 0, buf.length, 0);
+        if (bytesRead > MAX_SPEC_BYTES) return fail(`ファイルが大きすぎます (${MAX_SPEC_BYTES / 1024 / 1024} MB まで)`);
+        try { return summarizeOpenApi(source, JSON.parse(buf.subarray(0, bytesRead).toString("utf-8"))); } catch { return fail("JSON として読めません"); }
+      } finally { await fh.close(); }
     });
   }
   return fail("ファイルが見つかりません");
@@ -148,7 +160,8 @@ export async function loadDesignInputFull(root: string): Promise<LoadedDesignInp
   const sources = new Set<string>();
   for (const f of base.input.flows) for (const e of Object.values(f.context?.catalogs?.externalSystems ?? {})) if (e?.openApiSpec?.trim()) sources.add(e.openApiSpec.trim());
   if (!sources.size) return base;
-  const externalSpecs: Record<string, ExternalSpecSummary> = {};
+  // キーは設計の値 (openApiSpec)。`__proto__` で Object.prototype を触らないよう、プロトタイプの無いオブジェクトにする
+  const externalSpecs: Record<string, ExternalSpecSummary> = Object.create(null);
   for (const src of sources) externalSpecs[src] = await loadExternalSpec(root, src);
   return { ...base, input: { ...base.input, externalSpecs } };
 }

@@ -29,7 +29,12 @@ export interface DesignEdge {
   label: string;
   /** 列単位のつながり (列の Column.id か物理名) */
   column?: string;
+  /** 列単位のつながり (複数の列。外部キーが指す親の列) */
+  columns?: string[];
 }
+
+/** 画面 ← その画面の処理 (`meta.screenId`) の辺のラベル。画面が「使われている」ことには数えない */
+export const OWN_FLOW_LABEL = "この画面の処理";
 
 export interface DesignGraph {
   nodes: Map<string, DesignNode>;
@@ -58,12 +63,12 @@ export function buildDesignGraph(input: DesignDocInput): DesignGraph {
 
   const edges: DesignEdge[] = [];
   const seen = new Set<string>();
-  const link = (from: string, to: string, label: string, column?: string) => {
+  const link = (from: string, to: string, label: string, column?: string, columns?: string[]) => {
     if (from === to || !nodes.has(from) || !nodes.has(to)) return;
-    const k = `${from}\u0000${to}\u0000${label}\u0000${column ?? ""}`;
+    const k = `${from}\u0000${to}\u0000${label}\u0000${column ?? ""}\u0000${(columns ?? []).join(",")}`;
     if (seen.has(k)) return;
     seen.add(k);
-    edges.push({ from, to, label, ...(column ? { column } : {}) });
+    edges.push({ from, to, label, ...(column ? { column } : {}), ...(columns?.length ? { columns } : {}) });
   };
   const tableNameOf = (id: string) => nodes.get(nodeKey("table", id))?.name ?? id;
 
@@ -84,7 +89,7 @@ export function buildDesignGraph(input: DesignDocInput): DesignGraph {
   const subscribers: Array<{ flow: string; topic: string }> = [];
   for (const f of input.flows) {
     const me = nodeKey("processFlow", flowIdOf(f));
-    if (f.meta.screenId) link(me, nodeKey("screen", f.meta.screenId), "この画面の処理");
+    if (f.meta.screenId) link(me, nodeKey("screen", f.meta.screenId), OWN_FLOW_LABEL);
     const visit = (st: FlowStep) => {
       const x = st as Record<string, unknown>;
       if (st.kind === "dbAccess" && typeof x.tableId === "string") link(me, nodeKey("table", x.tableId), `${String(x.operation ?? "アクセス")} で使う`);
@@ -101,7 +106,7 @@ export function buildDesignGraph(input: DesignDocInput): DesignGraph {
   // テーブル (外部キー)
   for (const t of input.tables) {
     for (const c of t.constraints ?? []) {
-      if (c.kind === "foreignKey" && c.referencedTableId) link(nodeKey("table", t.id), nodeKey("table", c.referencedTableId), "外部キーで参照している");
+      if (c.kind === "foreignKey" && c.referencedTableId) link(nodeKey("table", t.id), nodeKey("table", c.referencedTableId), "外部キーで参照している", undefined, c.referencedColumnIds);
     }
   }
 

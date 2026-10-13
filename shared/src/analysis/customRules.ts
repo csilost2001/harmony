@@ -6,7 +6,8 @@
 import type { DesignDocInput, DocIssue, DocIssueRef } from "../designDocument.js";
 import { RULE_TARGET_LABELS, type CustomRule, type RuleCheck, type RuleTarget } from "./settings.js";
 
-const MAX_VALUE_LENGTH = 1000;
+/** 正規表現に当てる値の長さの上限 (繰り返しが重なる式の、多項式の遅さを抑える) */
+const MAX_VALUE_LENGTH = 300;
 
 function getPath(obj: unknown, path: string): unknown {
   let cur: unknown = obj;

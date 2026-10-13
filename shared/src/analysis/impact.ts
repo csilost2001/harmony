@@ -50,13 +50,13 @@ export function analyzeImpact(input: DesignDocInput, kind: DesignNode["kind"], i
   const maxDepth = options.maxDepth ?? 12;
 
   // 列で絞るときの 1 段目: その列を指す辺だけ
-  let columnFilter: ((e: { column?: string; from: string }) => boolean) | null = null;
+  let columnFilter: ((e: { column?: string; columns?: string[]; from: string }) => boolean) | null = null;
   if (options.column && kind === "table") {
     const t = input.tables.find((x) => x.id === id);
     const col = (t?.columns ?? []).find((c) => c.id === options.column || c.physicalName === options.column);
     const ids = new Set([options.column, col?.id, col?.physicalName].filter((x): x is string => !!x));
     const mentioning = col ? flowsMentioningColumn(input, id, col.physicalName) : new Set<string>();
-    columnFilter = (e) => (e.column ? ids.has(e.column) : mentioning.has(e.from));
+    columnFilter = (e) => (e.columns ? e.columns.some((c) => ids.has(c)) : e.column ? ids.has(e.column) : mentioning.has(e.from));
   }
 
   const visited = new Set<string>([key]);

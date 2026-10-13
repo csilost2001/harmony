@@ -66,7 +66,7 @@ export function checkExternalContracts(input: DesignDocInput): ExternalSystemRep
       if (st.kind !== "externalSystem") return;
       const x = st as Record<string, unknown>;
       const systemRef = String(x.systemRef ?? "");
-      const entry = catalog[systemRef];
+      const entry = Object.hasOwn(catalog, systemRef) ? catalog[systemRef] : undefined;
       const source = entry?.openApiSpec?.trim() || null;
       const rep = reportFor(source, entry?.name ?? systemRef);
       const http = (x.httpCall ?? {}) as { method?: string; path?: string };
@@ -76,7 +76,7 @@ export function checkExternalContracts(input: DesignDocInput): ExternalSystemRep
       const operationId = typeof x.operationId === "string" ? x.operationId : undefined;
       const call: ExternalCall = { flow: { id: f.meta.id, name: f.meta.name ?? f.meta.id }, systemRef, ...(method ? { method } : {}), ...(path ? { path } : {}), ...(operationId ? { operationId } : {}), result: "not-checked" };
       rep.calls.push(call);
-      const spec = source ? specs[source] : undefined;
+      const spec = source && Object.hasOwn(specs, source) ? specs[source] : undefined;
       if (!source) return;
       if (!spec) return;
       if (spec.skipped === "url") { rep.status = "url-skipped"; return; }
@@ -104,7 +104,7 @@ export function checkExternalContracts(input: DesignDocInput): ExternalSystemRep
   }
   for (const r of reports.values()) {
     if (r.source === null) { r.status = "no-spec"; continue; }
-    const spec = specs[r.source];
+    const spec = Object.hasOwn(specs, r.source) ? specs[r.source] : undefined;
     if (!spec) { r.status = "error"; r.error = "この定義のファイルを読み込めていません"; continue; }
     if (spec.skipped === "url") r.status = "url-skipped";
     else if (spec.error) { r.status = "error"; r.error = spec.error; }

@@ -4,17 +4,35 @@
  * (手で書き換えた 1 行の誤りで、点検全体を止めない)。書き込むときは、検証に通らなければ書かずにエラーにする。
  * 仕様: docs/spec/design-check.md
  */
+import fs from "node:fs/promises";
 import path from "node:path";
 import { emptyCheckSettings, isValidDate, issueKey, parseCheckSettings, type CheckSettings, type IssueSeverity, type CustomRule } from "@harmony/shared";
-import { ensureDataDirFromRoot, readJSON, resolveDataRoot, withFileLock, writeJSON } from "./storageCore.js";
+import { ensureDataDirFromRoot, resolveDataRoot, withFileLock, writeJSON } from "./storageCore.js";
 
 export const designCheckFile = (dataRoot: string): string => path.join(dataRoot, "design-check.json");
 
 export interface LoadedCheckSettings { settings: CheckSettings; problems: string[] }
 
+/**
+ * ファイルを読んで、検証する。「無い」(空の設定) と「JSON として壊れている」を区別する。
+ * 壊れているファイルを空として読むと、抑制・ルールが黙って効かなくなり、次の保存で内容が消えるため、問題として返す (書き込みはしない)。
+ */
+async function readAndParse(file: string): Promise<LoadedCheckSettings> {
+  let text: string;
+  try { text = await fs.readFile(file, "utf-8"); } catch (e) {
+    if ((e as NodeJS.ErrnoException).code === "ENOENT") return { settings: emptyCheckSettings(), problems: [] };
+    return { settings: emptyCheckSettings(), problems: [`design-check.json を読めません (${e instanceof Error ? e.message : String(e)})`] };
+  }
+  if (!text.trim()) return { settings: emptyCheckSettings(), problems: [] };
+  let raw: unknown;
+  try { raw = JSON.parse(text); } catch (e) {
+    return { settings: emptyCheckSettings(), problems: [`design-check.json が JSON として読めません (${e instanceof Error ? e.message : String(e)})。抑制・独自ルールは適用されていません。ファイルを直してください`] };
+  }
+  return parseCheckSettings(raw);
+}
+
 export async function readCheckSettings(root: string): Promise<LoadedCheckSettings> {
-  const dataRoot = await resolveDataRoot(root);
-  return parseCheckSettings(await readJSON<unknown>(designCheckFile(dataRoot)));
+  return readAndParse(designCheckFile(await resolveDataRoot(root)));
 }
 
 async function update(root: string, mutate: (s: CheckSettings) => CheckSettings): Promise<LoadedCheckSettings> {
@@ -22,7 +40,7 @@ async function update(root: string, mutate: (s: CheckSettings) => CheckSettings)
   const file = designCheckFile(dataRoot);
   return withFileLock(file, async () => {
     // 読み込みで捨てられる項目 (手書きの誤り) があるまま書くと、その項目が消えてしまう。直すまで、書き換えない
-    const loaded = parseCheckSettings(await readJSON<unknown>(file));
+    const loaded = await readAndParse(file);
     if (loaded.problems.length) throw new Error(`design-check.json に読めない項目があるため、書き換えません。ファイルを直してください: ${loaded.problems.join(" / ")}`);
     const next = mutate(structuredClone(loaded.settings));
     // 書く前に、もう一度検証する (利用者の入力の誤りは、書かずにエラーにする)

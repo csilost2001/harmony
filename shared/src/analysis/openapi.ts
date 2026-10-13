@@ -46,8 +46,9 @@ export const toOpenApiPath = (path: string): string => path.replace(/:([A-Za-z_]
 
 export function buildOpenApi(input: DesignDocInput, options: { title?: string; version?: string } = {}): OpenApiResult {
   const warnings: string[] = [];
-  const paths: Record<string, Record<string, Json>> = {};
-  const schemas: Record<string, Json> = {};
+  // 設計の値 (パス・型の名前) をキーにするので、`__proto__` などで Object.prototype を触らないよう、プロトタイプの無いオブジェクトにする
+  const paths: Record<string, Record<string, Json>> = Object.create(null);
+  const schemas: Record<string, Json> = Object.create(null);
   const seenIds = new Set<string>();
   let operations = 0, skipped = 0, needsAuth = false;
 
@@ -56,6 +57,7 @@ export function buildOpenApi(input: DesignDocInput, options: { title?: string; v
       const route = a.httpRoute;
       if (!route?.method || !route.path) { skipped++; continue; }
       const method = route.method.toLowerCase();
+      if (!route.path.startsWith("/")) { warnings.push(`パス「${route.path}」は / で始まっていないため、書き出しませんでした (処理フロー「${f.meta.name ?? f.meta.id}」)`); skipped++; continue; }
       const path = toOpenApiPath(route.path);
       if (paths[path]?.[method]) { warnings.push(`${route.method} ${route.path} が重複しています (処理フロー「${f.meta.name ?? f.meta.id}」)。最初のものだけ書き出しました`); continue; }
       const actionId = a.id ?? `action${ai + 1}`;
@@ -113,7 +115,7 @@ export function buildOpenApi(input: DesignDocInput, options: { title?: string; v
       if ((a.requiredPermissions ?? []).length) op["x-required-permissions"] = a.requiredPermissions;
       op["x-harmony"] = { processFlowId: f.meta.id, actionId };
 
-      (paths[path] ??= {})[method] = op;
+      (paths[path] ??= Object.create(null) as Record<string, Json>)[method] = op;
       operations++;
     }
   }

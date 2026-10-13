@@ -269,7 +269,7 @@ describe("ルール", () => {
     fireEvent.change(screen.getByTestId("an-rule-name"), { target: { value: "x" } });
     fireEvent.change(screen.getByTestId("an-rule-check"), { target: { value: "pattern" } });
     fireEvent.change(screen.getByPlaceholderText("例: ^[a-z]+$"), { target: { value: "(a+)+" } });
-    expect(screen.getByTestId("an-rules-problems").textContent).toContain("繰り返しの入れ子");
+    expect(screen.getByTestId("an-rules-problems").textContent).toContain("繰り返しのグループ");
     expect((screen.getByTestId("an-rules-save") as HTMLButtonElement).disabled).toBe(true);
   });
 

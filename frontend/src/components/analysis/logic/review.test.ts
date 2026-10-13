@@ -109,7 +109,7 @@ describe("命名規約", () => {
     input.regex = { namingTable: { pattern: "^(a+)+$" } } as DesignDocInput["regex"];
     const issues = namingIssues(input);
     expect(issues).toHaveLength(1);
-    expect(issues[0].message).toContain("繰り返しの入れ子");
+    expect(issues[0].message).toContain("繰り返しのグループ");
   });
 
   it("規約が無ければ何も指摘しない", () => {
@@ -118,8 +118,8 @@ describe("命名規約", () => {
 
   it("正規表現の安全性の検査", () => {
     expect(checkRegexSafety("^[a-z]+$")).toBeNull();
-    expect(checkRegexSafety("(a+)+")).toContain("入れ子");
-    expect(checkRegexSafety("(a*)*b")).toContain("入れ子");
+    expect(checkRegexSafety("(a+)+")).toContain("繰り返しのグループ");
+    expect(checkRegexSafety("(a*)*b")).toContain("繰り返しのグループ");
     expect(checkRegexSafety("(a)\\1")).toContain("後方参照");
     expect(checkRegexSafety("[")).toContain("読めません");
     expect(checkRegexSafety("a".repeat(201))).toContain("長すぎ");
@@ -195,7 +195,7 @@ describe("設定の読み込み", () => {
     expect(problems.join("\n")).toContain("key・理由・日時・重大度");
     expect(problems.join("\n")).toContain("期限は YYYY-MM-DD");
     expect(problems.join("\n")).toContain("英数字と . だけ");
-    expect(problems.join("\n")).toContain("繰り返しの入れ子");
+    expect(problems.join("\n")).toContain("繰り返しのグループ");
     expect(problems.join("\n")).toContain("重複しています");
   });
 
