@@ -166,7 +166,7 @@ export function ProcessFlowListView() {
         columns: (full.columns ?? []).map((c) => ({ name: c.physicalName })),
       } as ValidatorTableDef));
       if (!cancelled) setTableDefs(defs);
-    }).catch((e) => reportFailure(e, "処理フロー一覧の読み込み"));
+    }).catch((err) => reportFailure(err, "処理フロー一覧の読み込み"));
     // 規約カタログは wsBridge / localStorage 経由で取得 (#317)
     loadConventions()
       .then((c) => { if (!cancelled) setConventions(c as ConventionsCatalog | null); })
@@ -517,7 +517,7 @@ export function ProcessFlowListView() {
           const insertIndex = ids.length > 0
             ? Math.max(...ids.map((id) => allIds.indexOf(id))) + 1
             : null;
-          handlePaste(insertIndex).catch((e) => reportFailure(e, "処理フロー一覧の貼り付け"));
+          handlePaste(insertIndex).catch((err) => reportFailure(err, "処理フロー一覧の貼り付け"));
         },
       },
       { key: "sep2", separator: true },
@@ -525,7 +525,7 @@ export function ProcessFlowListView() {
         key: "duplicate", label: "複製", icon: "bi-copy", shortcut: "Ctrl+D",
         disabled: !hasSelection || sortActive,
         disabledReason: sortActive ? sortReason : undefined,
-        onClick: () => { if (items.length > 0) handleDuplicate(items).catch((e) => reportFailure(e, "処理フロー一覧の複製")); },
+        onClick: () => { if (items.length > 0) handleDuplicate(items).catch((err) => reportFailure(err, "処理フロー一覧の複製")); },
       },
       { key: "sep3", separator: true },
       {
@@ -595,10 +595,10 @@ export function ProcessFlowListView() {
     layout: viewMode === "card" ? "grid" : "list",
     onActivate: handleActivate,
     onDelete: handleDelete,
-    onDuplicate: (items) => { handleDuplicate(items).catch((e) => reportFailure(e, "処理フロー一覧の複製")); },
+    onDuplicate: (items) => { handleDuplicate(items).catch((err) => reportFailure(err, "処理フロー一覧の複製")); },
     onMoveUp: (items) => moveBlock(items, "up"),
     onMoveDown: (items) => moveBlock(items, "down"),
-    onPaste: (idx) => { handlePaste(idx).catch((e) => reportFailure(e, "処理フロー一覧の貼り付け")); },
+    onPaste: (idx) => { handlePaste(idx).catch((err) => reportFailure(err, "処理フロー一覧の貼り付け")); },
     onContextMenuKey: handleContextMenuKey,
   });
 
@@ -610,12 +610,12 @@ export function ProcessFlowListView() {
         selection.clearSelection();
         return editor.save();
       })
-      .catch((e) => reportFailure(e, "処理フロー一覧の保存"));
+      .catch((err) => reportFailure(err, "処理フロー一覧の保存"));
   };
 
   const handleReset = () => {
     if (!confirm("未保存の変更を破棄してサーバの状態に戻しますか？")) return;
-    editor.reset().catch((e) => reportFailure(e, "処理フロー一覧のリセット"));
+    editor.reset().catch((err) => reportFailure(err, "処理フロー一覧のリセット"));
     selection.clearSelection();
   };
 

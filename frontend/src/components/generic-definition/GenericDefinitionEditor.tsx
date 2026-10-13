@@ -508,7 +508,7 @@ function GenericDefinitionEditorBody() {
   }, [def, reloadBanner, ensureEditSession, postSaveSuccess]);
 
   // Ctrl+S (入力欄の中でも効く)。変更がないときは何もしない
-  useSaveShortcut(() => { if (dirty && editing) handleSave().catch((e) => reportFailure(e, "保存")); }, !!def && editing);
+  useSaveShortcut(() => { if (dirty && editing) handleSave().catch((err) => reportFailure(err, "汎用定義の保存")); }, !!def && editing);
 
   const handleDelete = useCallback(async () => {
     if (!kind || !decodedName) return;

@@ -336,13 +336,13 @@ export function GadgetListView() {
   });
 
   const handleSave = () => {
-    editor.save().catch((e) => reportFailure(e, "ガジェット一覧の保存"));
+    editor.save().catch((err) => reportFailure(err, "ガジェット一覧の保存"));
     selection.clearSelection();
   };
 
   const handleReset = () => {
     if (!confirm("未保存の変更を破棄してサーバの状態に戻しますか？")) return;
-    editor.reset().catch((e) => reportFailure(e, "ガジェット一覧のリセット"));
+    editor.reset().catch((err) => reportFailure(err, "ガジェット一覧のリセット"));
     selection.clearSelection();
   };
 
@@ -569,7 +569,7 @@ export function GadgetListView() {
                     className={`form-control${addNameError ? " is-invalid" : ""}`}
                     value={addName}
                     onChange={(e) => { setAddName(e.target.value); if (addNameError) setAddNameError(""); }}
-                    onKeyDown={(e) => { if (e.key === "Enter") handleAddSave().catch((e) => reportFailure(e, "ガジェット一覧の保存")); }}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleAddSave().catch((err) => reportFailure(err, "ガジェット一覧の保存")); }}
                     placeholder="例: ヘッダー、フッター、サイドバー"
                     autoFocus
                   />
@@ -597,7 +597,7 @@ export function GadgetListView() {
                     existingIds={existingIds}
                     entityLabel="ガジェット"
                     inputId="gadget-id-input"
-                    onEnter={() => handleAddSave().catch((e) => reportFailure(e, "ガジェット一覧の保存"))}
+                    onEnter={() => handleAddSave().catch((err) => reportFailure(err, "ガジェット一覧の保存"))}
                     onValidationChange={setAddIdValidation}
                   />
                 </div>
@@ -609,7 +609,7 @@ export function GadgetListView() {
                 <button
                   type="button"
                   className="btn btn-primary"
-                  onClick={() => handleAddSave().catch((e) => reportFailure(e, "ガジェット一覧の保存"))}
+                  onClick={() => handleAddSave().catch((err) => reportFailure(err, "ガジェット一覧の保存"))}
                   disabled={!addName.trim() || addIdValidation.isInvalid}
                 >
                   <i className="bi bi-plus-lg me-1" />作成

@@ -648,7 +648,7 @@ export function useEditSession(opts: UseEditSessionOptions): UseEditSessionResul
     if (!initialEditSessionId) return;
     // 既に同じ editSession に attach 済みなら再 attach しない
     if (editSessionRef.current?.id === initialEditSessionId) return;
-    attach(initialEditSessionId).catch((e) => reportFailure(e, "編集セッションの読み込み"));
+    attach(initialEditSessionId).catch((err) => reportFailure(err, "編集セッションの読み込み"));
   // attach は useCallback で安定しているので initialEditSessionId の変化のみ追跡
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialEditSessionId]);

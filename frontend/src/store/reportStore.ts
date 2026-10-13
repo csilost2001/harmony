@@ -75,8 +75,8 @@ export function useReports(): { reports: Report[]; unreadable: string[]; loaded:
     }
   }, []);
   useEffect(() => {
-    reload().catch((e) => reportFailure(e, "帳票の読み込み"));
-    const onLocal = () => { reload().catch((e) => reportFailure(e, "帳票の読み込み")); };
+    reload().catch((err) => reportFailure(err, "帳票の読み込み"));
+    const onLocal = () => { reload().catch((err) => reportFailure(err, "帳票の読み込み")); };
     listeners.add(onLocal);
     const off = mcpBridge.onBroadcast("reportChanged", onLocal);
     return () => { listeners.delete(onLocal); off(); };

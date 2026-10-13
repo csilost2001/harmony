@@ -184,7 +184,7 @@ export function PageLayoutEditor() {
         mcpBridge.request("editSession.update", {
           editSessionId: editSession.id,
           payload: plRef.current,
-        }).catch((e) => reportFailure(e, "下書きの保存"));
+        }).catch((err) => reportFailure(err, "下書きの保存"));
       }
     }, 300);
   }, [isReadonly, update, pageLayoutId, editSession]);
@@ -253,7 +253,7 @@ export function PageLayoutEditor() {
         s.state === "Active" && !!s.participants?.[mySessionId],
       );
       if (hasMyActiveSession) setShowResumeDialog(true);
-    })().catch((e) => reportFailure(e, "編集セッションの確認"));
+    })().catch((err) => reportFailure(err, "編集セッションの確認"));
     return () => { cancelled = true; };
   }, [pageLayoutId, sessionLoading, mode.kind]);
 
@@ -268,7 +268,7 @@ export function PageLayoutEditor() {
       setPageScreens(screens
         .filter((s) => (s.purpose ?? "page") === "page")
         .map((s) => ({ id: String(s.id), name: String(s.name) })));
-    }).catch((e) => reportFailure(e, "ページレイアウトの読み込み"));
+    }).catch((err) => reportFailure(err, "ページレイアウトの読み込み"));
   }, []);
 
   useEffect(() => {

@@ -10,6 +10,13 @@ import { showToast } from "./toast";
 /** 同じ内容の通知を続けて出さない間隔 */
 const SAME_MESSAGE_MS = 5000;
 
+/** 失敗の中身 (利用者向け)。サーバ側の ID 検査の英語のメッセージは、日本語にする。中身が無ければ空 */
+function failureDetail(e: Error): string {
+  const msg = (e.message || "").trim();
+  if (/^Invalid \w+: must be kebab-case/.test(msg)) return "ID の形式が正しくありません (英小文字で始まり、英小文字・数字・ハイフンだけ。64 字まで)";
+  return msg;
+}
+
 /** 通知にする失敗の文言。通知にしない失敗 (中断など) は null */
 export function failureToastText(args: readonly unknown[]): string | null {
   if (args.length !== 1) return null;
@@ -17,17 +24,19 @@ export function failureToastText(args: readonly unknown[]): string | null {
   if (!(e instanceof Error)) return null;
   if (e.name === "AbortError") return null;
   if (isConnectionError(e)) return "サーバに接続できないため、操作できませんでした";
-  const msg = (e.message || "").trim();
-  // サーバ側の ID 検査の英語のメッセージは、日本語にする
-  if (/^Invalid \w+: must be kebab-case/.test(msg)) return "操作に失敗しました: ID の形式が正しくありません (英小文字で始まり、英小文字・数字・ハイフンだけ。64 字まで)";
-  return msg ? `操作に失敗しました: ${msg}` : "操作に失敗しました";
+  const detail = failureDetail(e);
+  return detail ? `操作に失敗しました: ${detail}` : "操作に失敗しました";
 }
+
+/** テスト用: 通知の重複抑制を初期化する */
+export function _resetFailureToastDedupe(): void { lastShown.clear(); }
 
 /** 同じ文言の通知を続けて出さない (サーバが落ちているときに、同時に何件も失敗しても 1 回だけ) */
 const lastShown = new Map<string, number>();
 function showFailureToast(text: string): void {
   const now = Date.now();
   if (now - (lastShown.get(text) ?? 0) < SAME_MESSAGE_MS) return;
+  if (lastShown.size > 200) lastShown.clear(); // 文言に ID や件数が入ると種類が増えるので、溜め込まない
   lastShown.set(text, now);
   showToast(text.length > 120 ? `${text.slice(0, 120)}…` : text, "error");
 }
@@ -57,5 +66,6 @@ export function reportFailure(e: unknown, what?: string): void {
   const text = failureToastText([err]);
   if (!text) return; // 中断など、通知にしない失敗
   // 接続できない失敗は、どの操作でも同じ案内 (サーバの状態) を出す。ほかは、操作の名前つき
-  showFailureToast(what && !isConnectionError(err) ? `${what}に失敗しました: ${err.message}` : text);
+  const detail = failureDetail(err);
+  showFailureToast(what && !isConnectionError(err) ? (detail ? `${what}に失敗しました: ${detail}` : `${what}に失敗しました`) : text);
 }

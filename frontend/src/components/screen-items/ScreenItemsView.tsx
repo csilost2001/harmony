@@ -180,7 +180,7 @@ export function ScreenItemsView() {
 
   // 規約カタログをロード (初回のみ)
   useEffect(() => {
-    loadConventions().then(setConventions).catch((e) => reportFailure(e, "画面項目の読み込み"));
+    loadConventions().then(setConventions).catch((err) => reportFailure(err, "画面項目の読み込み"));
   }, []);
 
   // 拡張定義をロード (type 列 extensionRef 補完用、#1260 Phase 4)
@@ -227,17 +227,17 @@ export function ScreenItemsView() {
 
   // 処理フロー・テーブル・ビュー一覧をロード (binding セレクタ用、列まで含む完全形)
   useEffect(() => {
-    listProcessFlows().then(setProcessFlows).catch((e) => reportFailure(e, "画面項目の読み込み"));
+    listProcessFlows().then(setProcessFlows).catch((err) => reportFailure(err, "画面項目の読み込み"));
     (async () => {
       // 全テーブルを 1 回の問い合わせでまとめて読む (1 件ずつ尋ねない)
       setTables(await loadAllTables());
-    })().catch((e) => reportFailure(e, "画面項目の読み込み"));
+    })().catch((err) => reportFailure(err, "画面項目の読み込み"));
     (async () => {
       const viewMetas = await listViews();
       const viewsFull = (await Promise.all(viewMetas.map((m) => loadView(m.id))))
         .filter((v): v is View => v !== null);
       setViews(viewsFull);
-    })().catch((e) => reportFailure(e, "画面項目の読み込み"));
+    })().catch((err) => reportFailure(err, "画面項目の読み込み"));
   }, []);
 
   // 画面一覧をロード (初回 + MCP 接続復帰時)。onNotFound ハンドリング用に画面一覧も保持。
@@ -254,7 +254,7 @@ export function ScreenItemsView() {
         if (screenId && !metas.some((m) => m.id === screenId)) {
           navigate(wsPath("/screen/list"), { replace: true });
         }
-      }).catch((e) => reportFailure(e, "画面項目の読み込み"));
+      }).catch((err) => reportFailure(err, "画面項目の読み込み"));
     };
     mcpBridge.startWithoutEditor();
     doLoad();
@@ -320,7 +320,7 @@ export function ScreenItemsView() {
     draftUpdateTimer.current = setTimeout(() => {
       if (!screenId || !fileRef.current) return;
       if (editSession?.id) {
-        mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: fileRef.current }).catch((e) => reportFailure(e, "下書きの保存"));
+        mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: fileRef.current }).catch((err) => reportFailure(err, "下書きの保存"));
       }
     }, 300);
   }, [isReadonly, update, screenId, editSession]);
@@ -332,7 +332,7 @@ export function ScreenItemsView() {
     draftUpdateTimer.current = setTimeout(() => {
       if (!screenId || !fileRef.current) return;
       if (editSession?.id) {
-        mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: fileRef.current }).catch((e) => reportFailure(e, "下書きの保存"));
+        mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: fileRef.current }).catch((err) => reportFailure(err, "下書きの保存"));
       }
     }, 300);
   }, [isReadonly, updateSilent, screenId, editSession]);
@@ -356,7 +356,7 @@ export function ScreenItemsView() {
 
   // Ctrl+S で保存 (保存ボタンの title にも書いてある)
   useSaveShortcut(() => {
-    if (isDirty && !isSaving && !isReadonly) handleSave().catch((e) => reportFailure(e, "下書きの保存"));
+    if (isDirty && !isSaving && !isReadonly) handleSave().catch((err) => reportFailure(err, "画面項目の保存"));
   });
 
   const handleDiscard = useCallback(async () => {
@@ -403,7 +403,7 @@ export function ScreenItemsView() {
         s.state === "Active" && !!s.participants?.[mySessionId],
       );
       if (hasMyActiveSession) setShowResumeDialog(true);
-    })().catch((e) => reportFailure(e, "編集セッションの確認"));
+    })().catch((err) => reportFailure(err, "編集セッションの確認"));
     return () => { cancelled = true; };
   }, [sessionLoading, mode.kind, screenId]);
 
@@ -840,7 +840,7 @@ export function ScreenItemsView() {
       <EditModeToolbar
         mode={mode}
         onStartEditing={actions.startEditing}
-        onSave={() => { handleSave().catch((e) => reportFailure(e, "画面項目の保存")); }}
+        onSave={() => { handleSave().catch((err) => reportFailure(err, "画面項目の保存")); }}
         onDiscardClick={() => setShowDiscardDialog(true)}
         onForceReleaseClick={() => setShowForceReleaseDialog(true)}
         saving={isSaving}

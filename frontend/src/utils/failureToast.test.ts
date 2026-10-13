@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { vi } from "vitest";
-import { failureToastText, reportFailure } from "./failureToast";
+import { _resetFailureToastDedupe, failureToastText, reportFailure } from "./failureToast";
 import { subscribeToasts } from "./toast";
 
 describe("failureToastText", () => {
@@ -25,6 +25,8 @@ describe("failureToastText", () => {
 });
 
 describe("reportFailure (明示の経路)", () => {
+  beforeEach(() => _resetFailureToastDedupe());
+
   it("操作の名前つきで、利用者に通知する。開発者向けのログも残す", () => {
     const seen: string[] = [];
     const off = subscribeToasts((t) => seen.push(t.text));
@@ -56,6 +58,17 @@ describe("reportFailure (明示の経路)", () => {
     off();
     log.mockRestore();
     expect(seen).toEqual(["サーバに接続できないため、操作できませんでした"]);
+  });
+
+  it("操作の名前つきでも、サーバの ID 検査の英語は日本語の案内になる。中身が空なら、名前だけ", () => {
+    const seen: string[] = [];
+    const off = subscribeToasts((t) => seen.push(t.text));
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    reportFailure(new Error("Invalid tableId: must be kebab-case EntityId matching ^[a-z]"), "テーブル一覧の保存");
+    reportFailure(new Error(""), "空の保存");
+    off();
+    log.mockRestore();
+    expect(seen).toEqual(["テーブル一覧の保存に失敗しました: ID の形式が正しくありません (英小文字で始まり、英小文字・数字・ハイフンだけ。64 字まで)", "空の保存に失敗しました"]);
   });
 });
 

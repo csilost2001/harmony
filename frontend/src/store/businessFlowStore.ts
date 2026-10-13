@@ -75,8 +75,8 @@ export function useBusinessFlows(): { flows: BusinessFlow[]; unreadable: string[
     }
   }, []);
   useEffect(() => {
-    reload().catch((e) => reportFailure(e, "業務フローの読み込み"));
-    const onLocal = () => { reload().catch((e) => reportFailure(e, "業務フローの読み込み")); };
+    reload().catch((err) => reportFailure(err, "業務フローの読み込み"));
+    const onLocal = () => { reload().catch((err) => reportFailure(err, "業務フローの読み込み")); };
     listeners.add(onLocal);
     const off = mcpBridge.onBroadcast("businessFlowChanged", onLocal);
     return () => { listeners.delete(onLocal); off(); };

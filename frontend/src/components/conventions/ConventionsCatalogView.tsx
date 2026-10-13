@@ -174,7 +174,7 @@ export function ConventionsCatalogView() {
     draftUpdateTimer.current = setTimeout(() => {
       if (!catalogRef.current) return;
       if (editSession?.id) {
-        mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: catalogRef.current }).catch((e) => reportFailure(e, "下書きの保存"));
+        mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: catalogRef.current }).catch((err) => reportFailure(err, "下書きの保存"));
       }
     }, 300);
   }, [isReadonly, update, editSession]);
@@ -186,7 +186,7 @@ export function ConventionsCatalogView() {
     draftUpdateTimer.current = setTimeout(() => {
       if (!catalogRef.current) return;
       if (editSession?.id) {
-        mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: catalogRef.current }).catch((e) => reportFailure(e, "下書きの保存"));
+        mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: catalogRef.current }).catch((err) => reportFailure(err, "下書きの保存"));
       }
     }, 300);
   }, [isReadonly, updateSilent, editSession]);
@@ -216,7 +216,7 @@ export function ConventionsCatalogView() {
 
   // Ctrl+S で保存 (保存ボタンの title にも書いてある)
   useSaveShortcut(() => {
-    if (isDirty && !isSaving && !isReadonly) handleSave().catch((e) => reportFailure(e, "規約カタログの保存"));
+    if (isDirty && !isSaving && !isReadonly) handleSave().catch((err) => reportFailure(err, "規約カタログの保存"));
   });
 
   const handleDiscard = useCallback(async () => {
@@ -261,7 +261,7 @@ export function ConventionsCatalogView() {
         s.state === "Active" && !!s.participants?.[mySessionId],
       );
       if (hasMyActiveSession) setShowResumeDialog(true);
-    })().catch((e) => reportFailure(e, "編集セッションの確認"));
+    })().catch((err) => reportFailure(err, "編集セッションの確認"));
     return () => { cancelled = true; };
   }, [sessionLoading, mode.kind]);
 
@@ -367,7 +367,7 @@ export function ConventionsCatalogView() {
       <EditModeToolbar
         mode={mode}
         onStartEditing={actions.startEditing}
-        onSave={() => { handleSave().catch((e) => reportFailure(e, "規約カタログの保存")); }}
+        onSave={() => { handleSave().catch((err) => reportFailure(err, "規約カタログの保存")); }}
         onDiscardClick={() => setShowDiscardDialog(true)}
         onForceReleaseClick={() => setShowForceReleaseDialog(true)}
         saving={isSaving}

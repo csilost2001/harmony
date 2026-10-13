@@ -48,8 +48,8 @@ export function useLayoutComponents(): { components: LayoutComponentDef[]; loade
     }
   }, []);
   useEffect(() => {
-    reload().catch((e) => reportFailure(e, "独自部品の読み込み"));
-    const onLocal = () => { reload().catch((e) => reportFailure(e, "独自部品の読み込み")); };
+    reload().catch((err) => reportFailure(err, "独自部品の読み込み"));
+    const onLocal = () => { reload().catch((err) => reportFailure(err, "独自部品の読み込み")); };
     listeners.add(onLocal);
     const off = mcpBridge.onBroadcast("layoutComponentsChanged", onLocal);
     return () => { listeners.delete(onLocal); off(); };

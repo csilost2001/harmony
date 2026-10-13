@@ -1,39 +1,27 @@
 #!/usr/bin/env node
 /**
- * no-new-bare-catch-console-error — frontend/src (テスト以外) の `.catch(console.error)` が、基準の件数より増えていないことを検査する。
+ * no-new-bare-catch-console-error — frontend/src (テスト以外) に、`.catch(console.error)` が 1 件も無いことを検査する。
  *
- * `.catch(console.error)` (エラー 1 つだけを渡す) は、`installFailureToasts` が利用者への通知に変えているが、
- * 何の操作が失敗したかが通知に出ない。新しいコードでは `reportFailure(err, "操作の名前")` (src/utils/failureToast.ts) を使う。
- * 既存分は基準 (scripts/verify/catch-console-error.baseline) の件数まで許す。増えたら失敗。減ったときも失敗 (基準を下げ忘れない: --update)。
+ * `.catch(console.error)` (エラー 1 つだけを渡す) は、`installFailureToasts` が利用者への通知に変えるが、
+ * 何の操作が失敗したかが通知に出ない。`reportFailure(err, "操作の名前")` (src/utils/failureToast.ts) を使う。
+ * 検査するのは、この文字列の形だけ。同じ意味の別の書き方 (`.catch((e) => console.error(e))` など) も使わないこと
+ * (frontend/AGENTS.md「失敗の知らせ方」)。
  *
- * 使い方: node scripts/verify/no-new-bare-catch-console-error.mjs [--update]
+ * 使い方: node scripts/verify/no-new-bare-catch-console-error.mjs   (終了コード 0 = 問題なし / 1 = 残っている)
  */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const src = path.resolve(here, "../../frontend/src");
-const baselineFile = path.join(here, "catch-console-error.baseline");
+const src = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../frontend/src");
 const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(dir, e.name)) : [path.join(dir, e.name)]));
-let count = 0;
+const found = [];
 for (const f of walk(src)) {
   if (!/\.(ts|tsx)$/.test(f) || /\.test\.(ts|tsx)$/.test(f) || f.endsWith("failureToast.ts")) continue; // failureToast.ts は説明のコメントに書いてある
-  count += (fs.readFileSync(f, "utf-8").match(/\.catch\(console\.error\)/g) ?? []).length;
+  fs.readFileSync(f, "utf-8").split("\n").forEach((line, i) => { if (line.includes(".catch(console.error)")) found.push(`${path.relative(src, f)}:${i + 1}`); });
 }
-if (process.argv.includes("--update")) {
-  fs.writeFileSync(baselineFile, `${count}\n`);
-  console.log(`基準を ${count} 件に更新しました`);
-  process.exit(0);
-}
-const baseline = Number(fs.readFileSync(baselineFile, "utf-8").trim());
-if (count > baseline) {
-  console.error(`.catch(console.error) が基準 (${baseline}) より増えています (${count})。新しいコードでは reportFailure(err, "操作の名前") を使ってください`);
+if (found.length > 0) {
+  console.error(`.catch(console.error) が ${found.length} 件あります。reportFailure(err, "操作の名前") に直してください:\n  ${found.join("\n  ")}`);
   process.exit(1);
 }
-if (count < baseline) {
-  // 減ったら基準も下げる (下げ忘れると、その分の余裕が残り、あとで別の場所に足しても通ってしまう)
-  console.error(`.catch(console.error) が減りました (${count} < 基準 ${baseline})。node scripts/verify/no-new-bare-catch-console-error.mjs --update で基準を ${count} に下げてコミットしてください`);
-  process.exit(1);
-}
-console.log(`OK: .catch(console.error) は基準どおり (${count} 件)`);
+console.log("OK: .catch(console.error) はありません");

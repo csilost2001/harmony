@@ -52,7 +52,7 @@ export function useProcessFlowCatalogs(): ProcessFlowCatalogs {
           agMetas.filter((a) => a.flowType === "common").map((a) => ({ id: a.id, name: a.name })),
         );
       })
-      .catch((e) => reportFailure(e, "処理フローの参照先の読み込み"));
+      .catch((err) => reportFailure(err, "処理フローの参照先の読み込み"));
     listTables()
       .then(async (metas) => {
         setTables(
@@ -66,7 +66,7 @@ export function useProcessFlowCatalogs(): ProcessFlowCatalogs {
         } as ValidatorTableDef));
         setTableDefs(defs);
       })
-      .catch((e) => reportFailure(e, "処理フローの参照先の読み込み"));
+      .catch((err) => reportFailure(err, "処理フローの参照先の読み込み"));
     loadConventions()
       .then((c) => setConventions(c as ConventionsCatalog | null))
       .catch(() => setConventions(null));

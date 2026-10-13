@@ -144,7 +144,7 @@ export function SequenceEditor() {
     draftUpdateTimer.current = setTimeout(() => {
       if (!sequenceId || !seqRef.current) return;
       if (editSession?.id) {
-        mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: seqRef.current }).catch((e) => reportFailure(e, "下書きの保存"));
+        mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: seqRef.current }).catch((err) => reportFailure(err, "下書きの保存"));
       }
     }, 300);
   }, [isReadonly, update, sequenceId, editSession]);
@@ -210,7 +210,7 @@ export function SequenceEditor() {
         s.state === "Active" && !!s.participants?.[mySessionId],
       );
       if (hasMyActiveSession) setShowResumeDialog(true);
-    })().catch((e) => reportFailure(e, "編集セッションの確認"));
+    })().catch((err) => reportFailure(err, "編集セッションの確認"));
     return () => { cancelled = true; };
   }, [sequenceId, sessionLoading, mode.kind]);
 

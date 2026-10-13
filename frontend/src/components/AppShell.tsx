@@ -269,7 +269,7 @@ export function AppShell() {
           clearTimeout(failTimerRef.current);
           failTimerRef.current = null;
         }
-        loadWorkspaces().catch((e) => reportFailure(e, "画面の読み込み"));
+        loadWorkspaces().catch((err) => reportFailure(err, "ワークスペース一覧の読み込み"));
       } else if (s === "failed") {
         setConnectionFailed(true);
       }

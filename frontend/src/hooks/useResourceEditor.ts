@@ -291,7 +291,7 @@ export function useResourceEditor<T>(opts: UseResourceEditorOptions<T>): UseReso
       } else {
         await acknowledgeServerMtime(mtimeKind, id);
       }
-    })().catch((e) => reportFailure(e, "編集中の設計の読み込み"));
+    })().catch((err) => reportFailure(err, "編集中の設計の読み込み"));
     return () => { cancelled = true; };
   }, [id, draftKind, mtimeKind, reload]);
 
@@ -315,7 +315,7 @@ export function useResourceEditor<T>(opts: UseResourceEditorOptions<T>): UseReso
         if (isDirtyRef.current || !autoReloadOnClean) {
           setServerChanged(true);
         } else {
-          reload().catch((e) => reportFailure(e, "編集中の設計の読み込み"));
+          reload().catch((err) => reportFailure(err, "編集中の設計の読み込み"));
         }
         return;
       }
@@ -323,7 +323,7 @@ export function useResourceEditor<T>(opts: UseResourceEditorOptions<T>): UseReso
       if (isDirtyRef.current || !autoReloadOnClean) {
         setServerChanged(true);
       } else {
-        reload().catch((e) => reportFailure(e, "編集中の設計の読み込み"));
+        reload().catch((err) => reportFailure(err, "編集中の設計の読み込み"));
       }
     });
   }, [id, broadcastName, broadcastIdField, autoReloadOnClean, reload]);
@@ -331,7 +331,7 @@ export function useResourceEditor<T>(opts: UseResourceEditorOptions<T>): UseReso
   // MCP 接続復帰時の自動リロード（dirty でなければ）
   useEffect(() => {
     return mcpBridge.onStatusChange((s) => {
-      if (s === "connected" && !isDirtyRef.current) reload().catch((e) => reportFailure(e, "編集中の設計の読み込み"));
+      if (s === "connected" && !isDirtyRef.current) reload().catch((err) => reportFailure(err, "編集中の設計の読み込み"));
     });
   }, [reload]);
 

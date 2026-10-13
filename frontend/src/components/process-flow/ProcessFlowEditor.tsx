@@ -274,7 +274,7 @@ export function ProcessFlowEditor() {
     draftUpdateTimer.current = setTimeout(() => {
       if (!processFlowId || !groupRef.current) return;
       if (editSession?.id) {
-        mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: groupRef.current }).catch((e) => reportFailure(e, "下書きの保存"));
+        mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: groupRef.current }).catch((err) => reportFailure(err, "下書きの保存"));
       }
     }, 300);
   }, [processFlowId, editSession]);

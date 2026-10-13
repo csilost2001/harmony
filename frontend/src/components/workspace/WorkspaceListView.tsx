@@ -772,7 +772,7 @@ export function WorkspaceListView() {
         const { loading } = getState();
         if (!loading || isWorkspaceRequestInFlight()) return;
       }
-      loadWorkspaces().catch((e) => reportFailure(e, "ワークスペース一覧の読み込み"));
+      loadWorkspaces().catch((err) => reportFailure(err, "ワークスペース一覧の読み込み"));
     });
     return () => { unsubStatus(); };
   }, []);
@@ -1080,7 +1080,7 @@ export function WorkspaceListView() {
         {showAdd && (
           <AddWorkspaceDialog
             onClose={() => setShowAdd(false)}
-            onAdded={() => { loadWorkspaces().catch((e) => reportFailure(e, "ワークスペース一覧の読み込み")); }}
+            onAdded={() => { loadWorkspaces().catch((err) => reportFailure(err, "ワークスペース一覧の読み込み")); }}
           />
         )}
 

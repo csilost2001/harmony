@@ -147,7 +147,7 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
     if (draftTimer.current) clearTimeout(draftTimer.current);
     draftTimer.current = setTimeout(() => {
       if (editSession?.id && docRef.current) {
-        mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: docRef.current }).catch((e) => reportFailure(e, "下書きの保存"));
+        mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: docRef.current }).catch((err) => reportFailure(err, "下書きの保存"));
       }
     }, 300);
   }, [editSession]);
@@ -232,7 +232,7 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
     if (conflicted || failed) return;
     await postSave();
   }, [editable, isSaving, editSession, actions, postSave]);
-  useSaveShortcut(() => { handleSave().catch((e) => reportFailure(e, "下書きの保存")); }, isActive && editable);
+  useSaveShortcut(() => { handleSave().catch((err) => reportFailure(err, "画面デザイナの保存")); }, isActive && editable);
 
   useEffect(() => {
     setTabDirty(makeTabId("design", screenId), isDirty);
@@ -246,7 +246,7 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
       if (cancelled) return;
       const mine = mcpBridge.getSessionId();
       if ((res?.sessions ?? []).some((s) => s.state === "Active" && !!s.participants?.[mine])) setShowResume(true);
-    })().catch((e) => reportFailure(e, "編集セッションの確認"));
+    })().catch((err) => reportFailure(err, "編集セッションの確認"));
     return () => { cancelled = true; };
   }, [sessionLoading, mode.kind, screenId]);
 
@@ -324,7 +324,7 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
       <EditModeToolbar
         mode={mode}
         onStartEditing={actions.startEditing}
-        onSave={() => { handleSave().catch((e) => reportFailure(e, "画面デザイナの保存")); }}
+        onSave={() => { handleSave().catch((err) => reportFailure(err, "画面デザイナの保存")); }}
         onDiscardClick={() => setShowDiscard(true)}
         onForceReleaseClick={() => setShowForceRelease(true)}
         saving={isSaving}
@@ -401,13 +401,13 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
             )}
             <div className="sld-start-actions">
               {hasLegacyDesign && legacyKind === "grapesjs" && (
-                <button type="button" className="sld-start-btn primary" onClick={() => { startConvert().catch((e) => reportFailure(e, "画面デザイナの画面の作成")); }} disabled={converting || mode.kind === "locked-by-other"} data-testid="layout-start-convert">
+                <button type="button" className="sld-start-btn primary" onClick={() => { startConvert().catch((err) => reportFailure(err, "画面デザイナの画面の作成")); }} disabled={converting || mode.kind === "locked-by-other"} data-testid="layout-start-convert">
                   <i className="bi bi-magic" />
                   <b>旧デザインから自動変換</b>
                   <span>見出し・入力欄・一覧・ボタンを業務部品に置き換えます。変換できない部分は自由 HTML として残します。</span>
                 </button>
               )}
-              <button type="button" className={`sld-start-btn${hasLegacyDesign && legacyKind === "grapesjs" ? "" : " primary"}`} onClick={() => { startEmpty().catch((e) => reportFailure(e, "画面デザイナの画面の作成")); }} disabled={mode.kind === "locked-by-other"} data-testid="layout-start-empty">
+              <button type="button" className={`sld-start-btn${hasLegacyDesign && legacyKind === "grapesjs" ? "" : " primary"}`} onClick={() => { startEmpty().catch((err) => reportFailure(err, "画面デザイナの画面の作成")); }} disabled={mode.kind === "locked-by-other"} data-testid="layout-start-empty">
                 <i className="bi bi-file-earmark-plus" />
                 <b>空の画面から作る</b>
                 <span>見出しだけの画面から、部品をドラッグして組み立てます。</span>

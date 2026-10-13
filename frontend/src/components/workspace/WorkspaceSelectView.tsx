@@ -44,7 +44,7 @@ export function WorkspaceSelectView() {
         const { loading } = getState();
         if (!loading || isWorkspaceRequestInFlight()) return;
       }
-      loadWorkspaces().catch((e) => reportFailure(e, "ワークスペースの選択の読み込み"));
+      loadWorkspaces().catch((err) => reportFailure(err, "ワークスペースの選択の読み込み"));
     });
     return () => { unsubStatus(); };
   }, []);

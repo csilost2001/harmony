@@ -34,7 +34,7 @@ export function ComponentManager({ initialEditId, screens, onClose }: ComponentM
     let alive = true;
     Promise.all(components.map(async (c) => [c.id, await findLayoutComponentUsages(c.id)] as const))
       .then((rows) => { if (alive) setUsages(Object.fromEntries(rows)); })
-      .catch((e) => reportFailure(e, "独自部品の管理の操作"));
+      .catch((err) => reportFailure(err, "独自部品の使用箇所の読み込み"));
     return () => { alive = false; };
   }, [components, loaded]);
 
@@ -105,7 +105,7 @@ export function ComponentManager({ initialEditId, screens, onClose }: ComponentM
                       <td>{u ? `${u.screens.length} 画面${u.components.length ? ` / ${u.components.length} 部品` : ""}` : "…"}</td>
                       <td className="sld-row-actions">
                         <button type="button" className="sld-btn" onClick={() => setEditing({ def: c, isNew: false })} data-testid={`component-edit-${c.id}`}><i className="bi bi-pencil-square" /> 編集</button>
-                        <button type="button" className="sld-icon-btn danger" title="削除" onClick={() => { remove(c).catch((e) => reportFailure(e, "独自部品の管理の削除")); }} data-testid={`component-delete-${c.id}`}><i className="bi bi-trash" /></button>
+                        <button type="button" className="sld-icon-btn danger" title="削除" onClick={() => { remove(c).catch((err) => reportFailure(err, "独自部品の削除")); }} data-testid={`component-delete-${c.id}`}><i className="bi bi-trash" /></button>
                       </td>
                     </tr>
                   );

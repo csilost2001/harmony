@@ -88,7 +88,7 @@ multi browser context の e2e で **Vite dev server (port 5173) が間欠 crash*
 ## 失敗の知らせ方
 
 - 利用者にも知らせたい失敗は、`reportFailure(err, "操作の名前")` (`src/utils/failureToast.ts`) を使う (`.catch((e) => reportFailure(e, "保存"))`)。開発者向けのログは `console.error("説明", err)` (引数が複数のものは通知にしない)
-- `.catch(console.error)` (エラー 1 つだけ) は、`installFailureToasts` が通知に変える形だが、何の操作かが出ないので使わない。新しいコードでも使わず、`reportFailure` を使う (`npm run check` の「エラー通知の書き方の検査」が、1 件でもあると失敗する。操作の名前は「画面名 + の + 操作」(例: `テーブル一覧の保存`)。接続できない失敗は、名前に関わらず同じ案内になり、同じ文言は 5 秒に 1 回だけ通知する)
+- `.catch(console.error)` (エラー 1 つだけ) は、`installFailureToasts` が通知に変える形だが、何の操作かが出ないので使わない。新しいコードでも使わず、`reportFailure` を使う (`npm run check` の「エラー通知の書き方の検査」が、1 件でもあると失敗する。検査するのはこの文字列の形だけなので、`.catch((e) => console.error(e))` のような同じ意味の書き方もしない。操作の名前は「画面名 + の + 操作」(例: `テーブル一覧の保存`)。接続できない失敗は、名前に関わらず同じ案内になり、同じ文言は 5 秒に 1 回だけ通知する)
 - 保存・コピーなどの成功は `showToast("保存しました")` (`src/utils/toast.ts`)。保存 (編集セッション・一覧) は共通の処理が出すので、個別には出さない
 
 ## 画面デザインのキャンバス

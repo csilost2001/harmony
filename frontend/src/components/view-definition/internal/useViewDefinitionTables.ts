@@ -24,10 +24,10 @@ export function useTablesForValidator(): TableDefinitionForView[] {
         setTables(valid as unknown as TableDefinitionForView[]);
       }
     }
-    refresh().catch((e) => reportFailure(e, "ビュー定義のテーブルの読み込み"));
+    refresh().catch((err) => reportFailure(err, "ビュー定義のテーブルの読み込み"));
     // #1001: 同一 client 内 SPA 遷移先での table 変更通知 + 他 client (mcpBridge broadcast) 両カバー
-    const unsubLocal = onTableChange(() => { refresh().catch((e) => reportFailure(e, "ビュー定義のテーブルの読み込み")); });
-    const unsubBroadcast = mcpBridge.onBroadcast("tableChanged", () => { refresh().catch((e) => reportFailure(e, "ビュー定義のテーブルの読み込み")); });
+    const unsubLocal = onTableChange(() => { refresh().catch((err) => reportFailure(err, "ビュー定義のテーブルの読み込み")); });
+    const unsubBroadcast = mcpBridge.onBroadcast("tableChanged", () => { refresh().catch((err) => reportFailure(err, "ビュー定義のテーブルの読み込み")); });
     return () => {
       cancelled = true;
       unsubLocal();
@@ -64,10 +64,10 @@ export function useTableOptions(): TableOption[] {
         );
       }
     }
-    refresh().catch((e) => reportFailure(e, "ビュー定義のテーブルの読み込み"));
+    refresh().catch((err) => reportFailure(err, "ビュー定義のテーブルの読み込み"));
     // #1001: 同一 client 内 SPA 遷移先での table 変更通知 + 他 client (mcpBridge broadcast) 両カバー
-    const unsubLocal = onTableChange(() => { refresh().catch((e) => reportFailure(e, "ビュー定義のテーブルの読み込み")); });
-    const unsubBroadcast = mcpBridge.onBroadcast("tableChanged", () => { refresh().catch((e) => reportFailure(e, "ビュー定義のテーブルの読み込み")); });
+    const unsubLocal = onTableChange(() => { refresh().catch((err) => reportFailure(err, "ビュー定義のテーブルの読み込み")); });
+    const unsubBroadcast = mcpBridge.onBroadcast("tableChanged", () => { refresh().catch((err) => reportFailure(err, "ビュー定義のテーブルの読み込み")); });
     return () => {
       cancelled = true;
       unsubLocal();

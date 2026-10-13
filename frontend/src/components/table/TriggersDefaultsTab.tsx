@@ -43,8 +43,8 @@ export function TriggersDefaultsTab({ table, update }: Props) {
   const [conventions, setConventions] = useState<ConventionsCatalog | null>(null);
 
   useEffect(() => {
-    listSequences().then(setSequences).catch((e) => reportFailure(e, "テーブルのトリガー・既定値の読み込み"));
-    loadConventions().then(setConventions).catch((e) => reportFailure(e, "テーブルのトリガー・既定値の読み込み"));
+    listSequences().then(setSequences).catch((err) => reportFailure(err, "テーブルのトリガー・既定値の読み込み"));
+    loadConventions().then(setConventions).catch((err) => reportFailure(err, "テーブルのトリガー・既定値の読み込み"));
   }, []);
 
   const numberingKeys = useMemo(() => {

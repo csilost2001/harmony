@@ -62,7 +62,7 @@ export function useFlowProjectSync({
       if (isDirtyRef.current) {
         setServerChanged(true);
       } else {
-        reload().catch((e) => reportFailure(e, "画面フローの読み込み"));
+        reload().catch((err) => reportFailure(err, "画面フローの読み込み"));
       }
     };
 
@@ -76,7 +76,7 @@ export function useFlowProjectSync({
         if (isDirtyRef.current) {
           setServerChanged(true);
         } else {
-          reload().catch((e) => reportFailure(e, "画面フローの読み込み"));
+          reload().catch((err) => reportFailure(err, "画面フローの読み込み"));
         }
       }
     });
@@ -91,7 +91,7 @@ export function useFlowProjectSync({
       } else {
         await acknowledgeServerMtime("project");
       }
-    }).catch((e) => reportFailure(e, "画面フローの読み込み"));
+    }).catch((err) => reportFailure(err, "画面フローの読み込み"));
 
     return () => {
       mounted = false;
