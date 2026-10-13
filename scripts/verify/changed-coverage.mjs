@@ -34,10 +34,11 @@ for (const p of projects) {
 }
 
 // 差分で足した行: file -> Set(行番号)
-const diff = run("git", ["diff", "--unified=0", `${base}...HEAD`, "--", "frontend/src", "backend/src"], root);
-const diffWork = run("git", ["diff", "--unified=0", "HEAD", "--", "frontend/src", "backend/src"], root); // まだ commit していない変更も含める
+// 作業ツリーと、base との分岐点 (merge-base) の差分 1 本 (commit 済みも未 commit も、同じ行番号 (作業ツリーの行) で数える)
+const mergeBase = run("git", ["merge-base", base, "HEAD"], root).stdout.trim() || base;
+const diffAll = run("git", ["diff", "--unified=0", mergeBase, "--", "frontend/src", "backend/src"], root);
 const added = new Map();
-for (const text of [diff.stdout, diffWork.stdout]) {
+for (const text of [diffAll.stdout]) {
   let file = null;
   for (const line of text.split("\n")) {
     const f = /^\+\+\+ b\/(.+)$/.exec(line);

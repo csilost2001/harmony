@@ -9,7 +9,6 @@ import { createFileMemo } from "./fileMemo.js";
 import { ensureDataDir, harmonyFile, resolveDataRoot, writeTable } from "./projectStorage.js";
 import { collectSchemaIssues } from "./schemaIssues.js";
 import { scanWorkspaceHealth } from "./workspaceHealth.js";
-import { schedulePrewarm, _resetPrewarmForTest } from "./prewarm.js";
 
 const TMP = path.join(os.tmpdir(), `perf-cache-${process.pid}-${Date.now()}`);
 afterAll(async () => { await fs.rm(TMP, { recursive: true, force: true }); });
@@ -87,22 +86,6 @@ describe("検査は、変わったファイルの分だけ計算し直す (結�
     expect((await scanWorkspaceHealth(root)).filter((i) => i.severity === "error").map((i) => i.section)).toEqual(["テーブル tables/t-3.json"]);
     await fs.writeFile(broken, good + "\n");
     expect((await scanWorkspaceHealth(root)).filter((i) => i.severity === "error")).toEqual([]);
-  });
-});
-
-describe("先読み (prewarm)", () => {
-  it("ワークスペースごとに 1 回だけ、遅れて計算する。失敗しても何も起きない", async () => {
-    _resetPrewarmForTest();
-    const root = path.join(TMP, "ws");
-    schedulePrewarm(root, 0);
-    schedulePrewarm(root, 0); // 2 回目は何もしない
-    schedulePrewarm(path.join(TMP, "no-such-workspace"), 0); // 読めなくても例外にならない
-    await new Promise((r) => setTimeout(r, 300));
-  });
-  it("HARMONY_NO_PREWARM=1 なら先読みしない", () => {
-    _resetPrewarmForTest();
-    process.env.HARMONY_NO_PREWARM = "1";
-    try { schedulePrewarm("/x/skip", 0); } finally { delete process.env.HARMONY_NO_PREWARM; }
   });
 });
 

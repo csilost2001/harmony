@@ -75,6 +75,7 @@ import type { RawExtensionsBundle } from "../schemas/loadExtensions";
 import { backendWebSocketUrl } from "./backendEndpoint";
 import type { RpcMethod } from "@harmony/shared";
 import { getAuthToken, isUnauthorizedClose, setAuthToken, wsUrlWithToken } from "./authToken";
+import { invalidateAllInflight, isReadOnlyRpc } from "../utils/sharedInflight";
 
 export type McpStatus = "disconnected" | "connecting" | "connected" | "failed";
 export type ThemeIdLike = "standard" | "card" | "compact" | "dark";
@@ -273,7 +274,12 @@ class McpBridgeImpl {
         reject(new Error(`タイムアウト: ${method} (${REQUEST_TIMEOUT_MS}ms)`));
       }, REQUEST_TIMEOUT_MS);
 
-      this.pendingRequests.set(id, { resolve, reject, timer });
+      const readOnly = isReadOnlyRpc(method);
+      this.pendingRequests.set(id, {
+        resolve: (v) => { if (!readOnly) invalidateAllInflight(); resolve(v); },
+        reject,
+        timer,
+      });
       this.ws!.send(JSON.stringify({ type: "request", id, method, params }));
     });
   }
@@ -480,6 +486,7 @@ class McpBridgeImpl {
       // S-18 (#1147): production console 煩雑化回避のため DEV のみ出力。
       // migration 通知 / 接続 lifecycle は production 保持。
       if (import.meta.env.DEV) console.log("[mcpBridge] broadcast:", event, broadcastData);
+      invalidateAllInflight(); // 他の画面・MCP による変更のあとに、変更前の進行中の読み出しへ相乗りさせない
       if (event === "extensionsChanged") {
         this.extensionsCache = null;
         this.extensionsChangedHandlers.forEach((handler) => handler());

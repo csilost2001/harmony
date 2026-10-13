@@ -16,7 +16,7 @@ function walk(dir) {
     if (e.name === "node_modules" || e.name === "dist" || e.name.startsWith(".")) continue;
     const p = path.join(dir, e.name);
     if (e.isDirectory()) { walk(p); continue; }
-    if (!/\.(ts|tsx)$/.test(e.name) || /\.test\.tsx?$|\.d\.ts$/.test(e.name)) continue;
+    if (!/\.(ts|tsx|mts|mjs)$/.test(e.name) || /\.test\.tsx?$|\.d\.ts$/.test(e.name)) continue;
     fs.readFileSync(p, "utf8").split("\n").forEach((line, i) => { if (DIRECTIVE.test(line)) hits.push(`${path.relative(root, p)}:${i + 1}: ${line.trim()}`); });
   }
 }

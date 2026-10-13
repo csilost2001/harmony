@@ -8,7 +8,7 @@ import { scanWorkspaceHealth } from "./workspaceHealth.js";
 import { readProjectWithUnregistered } from "./registryMerge.js";
 import { describeAjvError } from "./ajvMessages.js";
 import path from "node:path";
-import { entityDirOf, listAllTables, listProcessFlows, readScreenEntity, resolveDataRoot, validateEntitySchema } from "./projectStorage.js";
+import { entityDirOf, harmonyFile, listAllTables, listProcessFlows, readScreenEntity, resolveDataRoot, validateEntitySchema } from "./projectStorage.js";
 import { createFileMemo } from "./fileMemo.js";
 
 export interface SchemaIssue {
@@ -34,9 +34,9 @@ async function computeSchemaIssues(root: string): Promise<SchemaIssue[]> {
   const project = (await readProjectWithUnregistered(root)).project;
   const screens = isRecord(project) && isRecord(project.entities) && Array.isArray(project.entities.screens) ? project.entities.screens as Array<{ id: string }> : [];
   for (const s of screens) {
-    // 旧形式の画面は、旧デザイン・画面項目のファイルからも組み立てるので、それらの状態も印に入れる
+    // 旧形式の画面は、旧デザイン・画面項目のファイルと、登録簿 (harmony.json の名前) からも組み立てるので、それらの状態も印に入れる
     const file = fileOf("screen", s.id);
-    const extras = [path.join(path.dirname(file), `${s.id}.design.json`), path.join(dataRoot, "screen-items", `${s.id}.json`)];
+    const extras = [path.join(path.dirname(file), `${s.id}.design.json`), path.join(dataRoot, "screen-items", `${s.id}.json`), harmonyFile(root)];
     out.push(...await issueMemo.get(file, async () => {
       const e = await readScreenEntity(s.id, root).catch(() => null);
       return isRecord(e) ? issuesOf("screen", "画面", s.id, e.name as string | undefined, e) : [];

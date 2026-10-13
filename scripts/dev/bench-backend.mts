@@ -38,7 +38,12 @@ console.log(`${"イベントループの最大の停止".padEnd(34)} ${ms(h.max 
 // 1 件だけ変えて、再検査 (変わったファイルの分だけ計算し直す)
 const dir = path.join(root, JSON.parse(fs.readFileSync(path.join(root, "harmony.json"), "utf-8")).dataDir ?? "harmony", "tables");
 const f = path.join(dir, fs.readdirSync(dir).filter((x) => x.endsWith(".json"))[0]);
+const original = fs.readFileSync(f);
 fs.appendFileSync(f, "\n");
-await t("1 件変更後: スキーマ違反の検査", () => collectSchemaIssues(root));
-await t("1 件変更後: ファイルの健全性", () => scanWorkspaceHealth(root));
-await t("1 件変更後: 設計書・check_design の要確認", () => collectExtraIssues(root));
+try {
+  await t("1 件変更後: スキーマ違反の検査", () => collectSchemaIssues(root));
+  await t("1 件変更後: ファイルの健全性", () => scanWorkspaceHealth(root));
+  await t("1 件変更後: 設計書・check_design の要確認", () => collectExtraIssues(root));
+} finally {
+  fs.writeFileSync(f, original); // 測定のために足した改行は、元に戻す
+}

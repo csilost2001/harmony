@@ -32,9 +32,9 @@
 
 - `backend/src/fileMemo.ts` — ファイルの stat (サイズ・更新時刻) の印が変わらない間、読み出し結果を使い回す。
 - `resolveDataRoot` — stat の印で結果を使い回す (以前は呼び出しごとに探索して O(n²))。
-- `backend/src/prewarm.ts` — ワークスペースを開いた直後に、重い読み出しを裏で温める (`wsBridge.ts` の `schedulePrewarm`)。
-- `schemaIssues.ts` / `workspaceHealth.ts` — 変わったファイルだけ再検査する (`dataSignature` の印)。
-- ブラウザ側の `frontend/src/utils/sharedInflight.ts` — 同じ RPC が同時に飛んだら 1 回にまとめる (結果は `structuredClone` して渡す。保存などで `invalidate`)。
+- `backend/src/prewarm.ts` — ワークスペースを開いた直後に、重い読み出しを裏で温める (`wsBridge.ts` の `schedulePrewarm`。ワークスペースごとにプロセスで 1 回。`HARMONY_NO_PREWARM=1` で無効にできる)。
+- `schemaIssues.ts` / `workspaceHealth.ts` — ファイルごとに `fileMemo` で、変わったファイルだけ再検査する。全体は `dataSignature` (`memoizeBySignature`) で、何も変わらないあいだは丸ごと使い回す。結果が別のファイルにも依存するもの (旧形式の画面 = 旧デザイン・画面項目・`harmony.json` の登録簿) は、依存先も印に渡す。`fileMemo` は削除されたファイルの項目を上限 (20,000 件) まで残す (上限を超えると古いものから捨てる)
+- ブラウザ側の `frontend/src/utils/sharedInflight.ts` — 同じ RPC が同時に飛んだら 1 回にまとめる (結果は `structuredClone` して渡す)。読み出し以外の RPC の成功後と、サーバーの変更通知 (broadcast) の受信時は、`mcpBridge` が全部を `invalidateAllInflight` する (改名・削除・MCP 経由の変更のあとに、変更前の進行中の読み出しへ相乗りさせない)。
 
 ## 測って「要らない」と判断したもの
 
@@ -45,6 +45,10 @@
 | ディスクキャッシュ | prewarm + 使い回しで足りる | 不要 |
 
 規模がさらに大きくなったら、`bench-backend.mts` で測り直してから判断する。
+
+## 配布後の古いタブ
+
+画面のチャンクはハッシュつきで、配布側 (`backend/src/staticAssets.ts`) は `Cache-Control: immutable` で返し、存在しない拡張子つきのパスは 404 にする。更新のあと、開いたままのタブで古いチャンクが取れなかったときは、`utils/preloadErrorReload.ts` (`vite:preloadError`) が 1 回だけ再読み込みする (10 秒以内に再読み込み済みなら、通常のエラー画面)。
 
 ## 循環 import の注意
 

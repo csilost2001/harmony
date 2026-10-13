@@ -12,6 +12,18 @@ export interface SharedInflight<T> {
   invalidate(): void;
 }
 
+const all = new Set<{ invalidate(): void }>();
+
+/** 全部の進行中の読み出しを、これ以降の呼び出しでは使わない (書き込み系の RPC の成功後・サーバーの変更通知の受信時。改名・削除・MCP 経由の変更でも、古い結果に相乗りさせない) */
+export function invalidateAllInflight(): void {
+  for (const x of all) x.invalidate();
+}
+
+/** 読み出しだけの RPC か (それ以外は、書き込みとみなして、成功のあと全部を invalidate する。多めに無効にしても、読み直すだけで害は無い) */
+export function isReadOnlyRpc(method: string): boolean {
+  return /^(load|list|get|find|search|check|recent|read|scan|probe)|\.(list|get|read|fetch)[A-Za-z]*$/.test(method);
+}
+
 export function shareInflight<T>(load: () => Promise<T>): SharedInflight<T> {
   let current: Promise<T> | null = null;
   const fn = (() => {
@@ -22,5 +34,6 @@ export function shareInflight<T>(load: () => Promise<T>): SharedInflight<T> {
     return current.then((v) => structuredClone(v));
   }) as SharedInflight<T>;
   fn.invalidate = () => { current = null; };
+  all.add(fn);
   return fn;
 }
