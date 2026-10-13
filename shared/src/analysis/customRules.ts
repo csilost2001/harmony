@@ -6,7 +6,7 @@
 import type { DesignDocInput, DocIssue, DocIssueRef } from "../designDocument.js";
 import { RULE_TARGET_LABELS, type CustomRule, type RuleCheck, type RuleTarget } from "./settings.js";
 
-/** 正規表現に当てる値の長さの上限 (繰り返しが重なる式の、多項式の遅さを抑える) */
+/** 正規表現に当てる値の長さの上限。これより長い値は検査しない (繰り返しが重なる式の、多項式の遅さを抑える) */
 const MAX_VALUE_LENGTH = 300;
 
 function getPath(obj: unknown, path: string): unknown {
@@ -37,7 +37,9 @@ function satisfies(v: unknown, c: RuleCheck): boolean {
     case "forbidden": return isEmpty(v);
     case "pattern": {
       if (isEmpty(v)) return true; // 空は「必要」の条件で見る
-      return new RegExp(c.pattern, c.flags).test(String(v).slice(0, MAX_VALUE_LENGTH));
+      // 長すぎる値は、検査しない (途中で切ると、末尾に効く式 ($ など) の判定がずれる。遅さを抑えるための上限)
+      const text = String(v);
+      return text.length > MAX_VALUE_LENGTH ? true : new RegExp(c.pattern, c.flags).test(text);
     }
     case "oneOf": return isEmpty(v) || c.values.includes(String(v));
     case "range": {

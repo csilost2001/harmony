@@ -35,13 +35,19 @@ export async function readCheckSettings(root: string): Promise<LoadedCheckSettin
   return readAndParse(designCheckFile(await resolveDataRoot(root)));
 }
 
-async function update(root: string, mutate: (s: CheckSettings) => CheckSettings): Promise<LoadedCheckSettings> {
+/**
+ * 読み込み・検証して、`mutate` で変えて、書く。読み込みで捨てられる項目があるファイルへは、書かない (書くと、その項目が消えるため)。
+ * `discardUnreadable` が true のときだけ、JSON として読める範囲で、読めない項目を捨てて書く (利用者が、捨てることを承知した場合)。
+ * JSON の構文が壊れているファイルへは、どちらでも書かない (何が書かれていたか分からなくなるため)。
+ */
+async function update(root: string, mutate: (s: CheckSettings) => CheckSettings, discardUnreadable = false): Promise<LoadedCheckSettings> {
   const dataRoot = await ensureDataDirFromRoot(root);
   const file = designCheckFile(dataRoot);
   return withFileLock(file, async () => {
     // 読み込みで捨てられる項目 (手書きの誤り) があるまま書くと、その項目が消えてしまう。直すまで、書き換えない
     const loaded = await readAndParse(file);
-    if (loaded.problems.length) throw new Error(`design-check.json に読めない項目があるため、書き換えません。ファイルを直してください: ${loaded.problems.join(" / ")}`);
+    const syntaxBroken = loaded.problems.some((m) => m.includes("JSON として読めません") || m.includes("を読めません"));
+    if (loaded.problems.length && (!discardUnreadable || syntaxBroken)) throw new Error(`design-check.json に読めない項目があるため、書き換えません。ファイルを直してください: ${loaded.problems.join(" / ")}`);
     const next = mutate(structuredClone(loaded.settings));
     // 書く前に、もう一度検証する (利用者の入力の誤りは、書かずにエラーにする)
     const checked = parseCheckSettings(next);
@@ -82,11 +88,11 @@ export async function removeSuppressions(root: string, keys: string[]): Promise<
 }
 
 /** 独自ルールを、まとめて置き換える (形が正しくなければ書かずにエラー) */
-export async function saveRules(root: string, rules: unknown): Promise<LoadedCheckSettings> {
+export async function saveRules(root: string, rules: unknown, discardUnreadable = false): Promise<LoadedCheckSettings> {
   if (!Array.isArray(rules)) throw new Error("ルールの一覧の形が正しくありません");
   const probe = parseCheckSettings({ version: 1, suppressions: [], rules });
   if (probe.problems.length || probe.settings.rules.length !== rules.length) throw new Error(probe.problems.join(" / ") || "ルールを読めませんでした");
-  return update(root, (s) => ({ ...s, rules: probe.settings.rules as CustomRule[] }));
+  return update(root, (s) => ({ ...s, rules: probe.settings.rules as CustomRule[] }), discardUnreadable);
 }
 
 export { emptyCheckSettings };

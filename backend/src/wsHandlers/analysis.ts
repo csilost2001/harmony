@@ -36,7 +36,8 @@ export const analysisHandlers: RpcHandlerMap = {
 
   "designCheck.saveRules": async ({ params, root, wsId, clientId, respond, respondError, bridge }) => {
     try {
-      const res = await saveRules(root(), (params as { rules?: unknown } | undefined)?.rules);
+      const p = (params ?? {}) as { rules?: unknown; discardUnreadable?: unknown };
+      const res = await saveRules(root(), p.rules, p.discardUnreadable === true);
       respond(res);
       bridge.broadcast({ wsId: wsId(), event: "designCheckChanged", data: {}, excludeClientId: clientId });
     } catch (e) { respondError(e instanceof Error ? e.message : String(e)); }

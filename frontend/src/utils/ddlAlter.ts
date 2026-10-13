@@ -50,9 +50,10 @@ function narrowing(prev: Column, c: Column): boolean {
     if (c.dataType === "DECIMAL") return (c.length ?? 10) < (prev.length ?? 10) || (c.scale ?? 2) < (prev.scale ?? 2);
     return false;
   }
-  if (a && b && a[0] === b[0]) return b[1] < a[1];
-  if (b?.[0] === "text") return false; // 何か → 文字列
-  if (a?.[0] === "int" && b?.[0] === "num") return false; // 整数 → 小数
+  if (!a || !b) return false; // 対応表に無い型 (BOOLEAN・JSON など) は、狭いとも広いとも言えない
+  if (a[0] === b[0]) return b[1] < a[1];
+  if (b[0] === "text") return false; // 何か → 文字列
+  if (a[0] === "int" && b[0] === "num") return false; // 整数 → 小数
   return true;
 }
 
@@ -171,7 +172,7 @@ export function generateAlterDdl(oldTable: Table | null, newTable: Table | null,
       out.splice(before, 0, note(`列「${c.physicalName}」の型が変わります。既存のデータが変換できないと失敗します${lossy ? " (長さ・精度・型が狭くなります: 切り捨て・失敗の恐れ)" : ""}`));
       if (lossy) destructive++;
     }
-    if (!prev.notNull && c.notNull && !c.autoIncrement && !c.defaultValue) out.push(note(`列「${c.physicalName}」を NOT NULL にします。NULL の行があると失敗します。先に値を埋めてください`));
+    if (!prev.notNull && c.notNull && !c.autoIncrement) out.push(note(`列「${c.physicalName}」を NOT NULL にします。NULL の行があると失敗します (既定値は、既存の行の NULL を埋めません)。先に値を埋めてください`));
     if (!!prev.primaryKey !== !!c.primaryKey) out.push(note(`列「${c.physicalName}」の主キーの指定が変わりました。主キーの付け替えは自動では作りません。手で確認してください`));
     if (!!prev.unique !== !!c.unique && !c.primaryKey) out.push(note(`列「${c.physicalName}」の一意の指定が変わりました。${c.unique ? `ALTER TABLE ${table} ADD CONSTRAINT ${q(`uq_${n.physicalName}_${c.physicalName}`, dialect)} UNIQUE (${q(c.physicalName, dialect)});` : "既存の一意の制約を、名前を確かめて消してください。"}`));
   }

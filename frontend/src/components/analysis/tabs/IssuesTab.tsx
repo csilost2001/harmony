@@ -3,14 +3,15 @@
  * 抑制は design-check.json に残り、抑制中・期限切れ・該当がなくなったものを、ここで見直せる。
  */
 import { useMemo, useState } from "react";
-import { buildDesignDocument, issueKey, type DocIssue, type DesignDocInput, type IssueSuppression } from "@harmony/shared";
+import { buildDesignDocument, issueKey, localDate, type DocIssue, type DesignDocInput, type IssueSuppression } from "@harmony/shared";
 import { mcpBridge } from "../../../mcp/mcpBridge";
 import { reportFailure } from "../../../utils/failureToast";
 import { showToast } from "../../../utils/toast";
 import { getUserName } from "../../../utils/userIdentity";
 import { AnTable, EntityLink, Section, SeverityBadge } from "../ui";
 
-const today = () => new Date().toISOString().slice(0, 10);
+/** この環境の今日 (YYYY-MM-DD)。期限は、利用者の日付で決める */
+const today = () => localDate();
 
 function IssueCell({ issue }: { issue: Pick<DocIssue, "section" | "ref"> }) {
   return issue.ref ? <EntityLink kind={issue.ref.kind} id={issue.ref.id}>{issue.section}</EntityLink> : <>{issue.section}</>;

@@ -50,15 +50,18 @@ export function RulesTab({ input, settings, problems, reload }: { input: DesignD
 
   const update = (i: number, patch: Partial<CustomRule>) => setRules((rs) => rs.map((r, k) => (k === i ? { ...r, ...patch } : r)));
   const save = async () => {
+    // 読めない項目があるファイルは、そのままでは書けない。捨てることを承知したときだけ、読めない項目を捨てて書く
+    const discard = problems.length > 0;
+    if (discard && !window.confirm(`design-check.json の次の項目は読めないため、保存すると失われます。\n\n${problems.join("\n")}\n\n捨てて保存しますか?`)) return;
     setBusy(true); setError(null);
-    try { await mcpBridge.request("designCheck.saveRules", { rules }); showToast("ルールを保存しました"); reload(); }
+    try { await mcpBridge.request("designCheck.saveRules", { rules, ...(discard ? { discardUnreadable: true } : {}) }); showToast("ルールを保存しました"); reload(); }
     catch (e) { setError(e instanceof Error ? e.message : String(e)); reportFailure(e, "ルールの保存"); }
     finally { setBusy(false); }
   };
 
   return (
     <div className="an-pane" data-testid="an-rules">
-      {problems.length > 0 && <p className="an-alert" role="alert">design-check.json に読めない項目があります (直すまで、保存できません): {problems.join(" / ")}</p>}
+      {problems.length > 0 && <p className="an-alert" role="alert" data-testid="an-rules-unreadable">design-check.json に読めない項目があります (読めない項目は、適用されていません): {problems.join(" / ")}。ファイルを直すか、ここで保存すると、読めない項目を捨てて書き直します (確認があります)。</p>}
       <Section title="命名規約" hint="規約カタログの正規表現 (@conv.regex.<キー>) で決めます。接頭辞の規約も、正規表現 (例: ^m_) で書けます。違反は要確認に出ます。" testId="an-naming"
         actions={<button type="button" className="an-btn" onClick={() => navigate(wsPath("/conventions/catalog"))}>規約カタログを開く</button>}>
         <AnTable headers={["対象", "規約カタログのキー", "状況"]} rows={naming.map((n) => [n.what, <code key="k">@conv.regex.{n.key}</code>, n.status])} />
@@ -66,7 +69,7 @@ export function RulesTab({ input, settings, problems, reload }: { input: DesignD
 
       <Section title={`独自の検査ルール (${rules.length} 件)`} hint="対象の種類・項目の場所・条件を宣言して、プロジェクト独自の検査を足します。" testId="an-custom-rules"
         actions={<><button type="button" className="an-btn" onClick={() => setRules((rs) => [...rs, blank(rs.length + 1)])} data-testid="an-rule-add"><i className="bi bi-plus-lg" /> ルールを足す</button>
-          <button type="button" className="an-btn primary" disabled={busy || !dirty || preview.problems.length > 0 || problems.length > 0} onClick={() => void save()} data-testid="an-rules-save">保存</button></>}>
+          <button type="button" className="an-btn primary" disabled={busy || (!dirty && problems.length === 0) || preview.problems.length > 0} onClick={() => void save()} data-testid="an-rules-save">保存</button></>}>
         {error && <p className="an-alert" role="alert">{error}</p>}
         {rules.length === 0 && <Empty>ルールはありません。「ルールを足す」で、例えば「テーブルには説明が必須」を決められます。</Empty>}
         {rules.map((r, i) => (

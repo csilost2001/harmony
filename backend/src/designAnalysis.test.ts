@@ -84,6 +84,11 @@ describe("点検の設定: 抑制", () => {
     expect(loaded.problems.join("")).toContain("抑制 1 件目");
     await expect(suppressIssue(ROOT, input)).rejects.toThrow("読めない項目があるため、書き換えません");
     expect(JSON.parse(await fs.readFile(file, "utf-8")).suppressions[0].key).toBe("i-1"); // そのまま
+    // 利用者が、捨てることを承知したときだけ (ルールの保存で)、読めない項目を捨てて書き直せる
+    await expect(saveRules(ROOT, [])).rejects.toThrow("書き換えません");
+    const fixed = await saveRules(ROOT, [], true);
+    expect(fixed.problems).toEqual([]);
+    expect(JSON.parse(await fs.readFile(file, "utf-8")).suppressions).toEqual([]);
     await fs.rm(file);
   });
 
@@ -107,6 +112,7 @@ describe("点検の設定: 抑制", () => {
     await expect(suppressIssue(ROOT, input)).rejects.toThrow("書き換えません");
     await expect(saveRules(ROOT, [])).rejects.toThrow("書き換えません");
     await expect(unsuppressIssue(ROOT, input.key)).rejects.toThrow("書き換えません");
+    await expect(saveRules(ROOT, [], true)).rejects.toThrow("書き換えません"); // 構文が壊れているものは、捨てることを承知しても書かない
     expect(await fs.readFile(file, "utf-8")).toBe(broken); // 元のまま
     const extra = await collectExtraIssues(ROOT);
     expect(extra.some((i) => i.severity === "warning" && i.message.includes("JSON として読めません"))).toBe(true);

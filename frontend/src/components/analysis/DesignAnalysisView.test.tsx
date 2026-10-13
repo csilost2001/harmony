@@ -320,6 +320,27 @@ describe("ルール", () => {
     expect(screen.queryAllByTestId("an-rule")).toHaveLength(0);
   });
 
+  it("読めない項目があるとき、警告を出し、捨てることを確認してから保存する (やめれば送らない)", async () => {
+    request.mockImplementation(async (method: string, params: unknown) => {
+      if (method === "designCheck.load") return { settings, problems: ["抑制 1 件目: key・理由・日時・重大度が要ります"] };
+      if (method === "designCheck.saveRules") return { settings, problems: [], _params: params };
+      if (method === "design.progress") return { summary: {}, history: [] };
+      throw new Error(`unexpected ${method}`);
+    });
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    await open("rules");
+    expect(screen.getByTestId("an-rules-unreadable").textContent).toContain("抑制 1 件目");
+    const save = screen.getByTestId("an-rules-save") as HTMLButtonElement;
+    expect(save.disabled).toBe(false); // 変更が無くても、読めない項目を直すために保存できる
+    fireEvent.click(save);
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(request).not.toHaveBeenCalledWith("designCheck.saveRules", expect.anything());
+    confirm.mockReturnValue(true);
+    fireEvent.click(save);
+    await waitFor(() => expect(request).toHaveBeenCalledWith("designCheck.saveRules", { rules: [], discardUnreadable: true }));
+    confirm.mockRestore();
+  });
+
   it("保存済みのルールがあれば、最初から一覧に出る", async () => {
     settings = { version: 1, suppressions: [], rules: [{ id: "r1", name: "既存のルール", target: "table", path: "description", check: { type: "required" }, severity: "info" }] };
     await open("rules");

@@ -4,7 +4,7 @@
  */
 import { describe, it, expect } from "vitest";
 import {
-  analyzeImpact, buildDesignDocument, buildOpenApi, checkRegexSafety, checkExternalContracts, deriveCrud, deriveOperationMatrix, deriveTestViewpointSheet, findUnused,
+  analyzeImpact, buildDesignDocument, customRuleIssues, buildOpenApi, checkRegexSafety, checkExternalContracts, deriveCrud, deriveOperationMatrix, deriveTestViewpointSheet, findUnused,
   generateTestData, oneLine, parseCheckSettings, scaffoldTests, testDataToInsertSql, type DesignDocInput,
 } from "@harmony/shared";
 import { generateAlterDdl, alterToText } from "../../../utils/ddlAlter";
@@ -101,8 +101,8 @@ describe("設計の値で Object.prototype を触れない", () => {
 });
 
 describe("正規表現の安全性 (ReDoS)", () => {
-  const bad = ["^(a|aa)+$", "(a|aa)+", "((a+))+", "^(([a-z])+.)+[A-Z]([a-z])+$", "(a+)+", "(a*)*b", "([a-z])+x", "(\\d{2})+", "(a|b)*c", "^(x+x+)+y$", "(.*)*", "a*a*a*a*b", "(?=a)b", "(?<!a)b"];
-  const good = ["^[a-z][a-z0-9]*(_[a-z0-9]+)*$", "^m_", "^[A-Z]{2}\\d{4}$", "^(?:_[a-z]+)*$", "^[a-z]+(-[a-z]+)*$", "^(\\.[a-z0-9]+){1,3}$", "^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$", "^(a|b)$", "^(ab)?c$", "^[\\w.+-]+@[\\w-]+\\.[\\w.]+$"];
+  const bad = ["^(a|aa)+$", "(a|aa)+", "((a+))+", "^(([a-z])+.)+[A-Z]([a-z])+$", "(a+)+", "(a*)*b", "(\\d{2})+", "(a|b)*c", "^(x+x+)+y$", "(.*)*", "a*a*a*a*b", "^a{0,300}a{0,300}a{0,300}a{0,300}a{0,300}b", "^(.*a){5}b", "^(a+){5}b", "^(a?){20}a{20}$"];
+  const good = ["^[a-z][a-z0-9]*(_[a-z0-9]+)*$", "^m_", "^[A-Z]{2}\\d{4}$", "^(?:_[a-z]+)*$", "^[a-z]+(-[a-z]+)*$", "^(\\.[a-z0-9]+){1,3}$", "^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$", "^(a|b)$", "([a-z])+x", "^(ab)?c$", "^[\\w.+-]+@[\\w-]+\\.[\\w.]+$", "^([A-Z][a-z0-9]*)+$", "^[a-z]+([A-Z][a-z0-9]*)*$", "^([a-z0-9]+-)*[a-z0-9]+$", "^(?=.{1,30}$)[a-z][a-z0-9_]*$", "^(\\d{3}-){2}\\d{4}$", "^[a-z]{1,10}[0-9]{1,5}_[a-z]{1,10}$"];
   it.each(bad)("拒否: %s", (p) => { expect(checkRegexSafety(p)).not.toBeNull(); });
   it.each(good)("受理: %s", (p) => { expect(checkRegexSafety(p)).toBeNull(); });
 
@@ -112,13 +112,22 @@ describe("正規表現の安全性 (ReDoS)", () => {
     expect(checkRegexSafety("^(_[^a]+)*$")).toContain("区切り");
   });
 
-  it("受理した式は、悪意のある入力でも、速く終わる", () => {
-    const input = "a".repeat(300).concat("!");
-    for (const p of good.filter((g) => !g.includes("@"))) {
+  it("受理した式は、悪意のある入力 (長さの上限いっぱい) でも、速く終わる", () => {
+    const inputs = ["a".repeat(300).concat("!"), "aA".repeat(150).concat("!"), "a-".repeat(150).concat("!"), "A".repeat(300).concat("!"), "_a".repeat(150).concat("!"), "1".repeat(300).concat("!")];
+    for (const p of good) for (const input of inputs) {
       const t = performance.now();
       new RegExp(p).test(input);
-      expect(performance.now() - t).toBeLessThan(200);
+      expect(performance.now() - t, `${p} / ${input.slice(0, 6)}`).toBeLessThan(300);
     }
+  });
+
+  it("独自ルール: 長すぎる値 (300 文字を超える) は、正規表現で検査しない (途中で切ると、末尾に効く式の判定がずれる)", () => {
+    const i = tiny();
+    i.tables[0].description = "x".repeat(400);
+    const issues = customRuleIssues({ ...i, checkSettings: { version: 1, suppressions: [], rules: [{ id: "r", name: "n", target: "table", path: "description", check: { type: "pattern", pattern: "^x+y$" }, severity: "warning" }] } });
+    expect(issues.filter((x) => x.ref?.id === "customer")).toEqual([]);
+    i.tables[0].description = "x".repeat(10);
+    expect(customRuleIssues({ ...i, checkSettings: { version: 1, suppressions: [], rules: [{ id: "r", name: "n", target: "table", path: "description", check: { type: "pattern", pattern: "^x+y$" }, severity: "warning" }] } }).filter((x) => x.ref?.id === "customer")).toHaveLength(1);
   });
 
   it("設定の読み込みでも、危険な式のルールは捨てる", () => {
@@ -195,7 +204,8 @@ describe("分析の正しさ (レビューの指摘)", () => {
     expect(cnt({ dataType: "INTEGER" }, { dataType: "DECIMAL" })).toBe(0);
     expect(cnt({ dataType: "INTEGER" }, { dataType: "VARCHAR" })).toBe(0);
     expect(cnt({ length: 10 }, { length: 50 })).toBe(0);
-    const notNull = generateAlterDdl(mk(col({})), mk(col({ notNull: true })), "postgresql");
+    expect(cnt({ dataType: "BOOLEAN" }, { dataType: "INTEGER" })).toBe(0); // 対応表に無い型は、狭いとは数えない
+    const notNull = generateAlterDdl(mk(col({})), mk(col({ notNull: true, defaultValue: "'-'" })), "postgresql"); // 既定値があっても、既存の NULL は埋まらない
     expect(notNull.statements.join("\n")).toContain("NOT NULL にします。NULL の行があると失敗します");
     expect(notNull.destructive).toBe(0);
   });

@@ -87,71 +87,62 @@ export function isValidRulePath(p: string): boolean {
 
 /**
  * 利用者が書く正規表現の安全性の検査 (ReDoS を避ける)。許す形を絞る:
- *  - 後方参照・先読み / 後読みは使えない。長さは 200 文字まで。フラグは i m s u だけ
- *  - 「終わりのない繰り返し」(`*` `+` `{n,}`) は 3 つまで
- *  - 繰り返し (`*` `+` `{n,}`、または上限が 5 を超える `{n,m}`) をつけたグループは、区切りの文字 (`_` `-` `.` `/` `:`) で始まり、
- *    選択 (`|`)・入れ子のグループを含まず、残りが区切りの文字を含まない文字 (リテラル・`\d`・区切りを含まない文字クラス) だけの形に限る。
- *    例: `(_[a-z0-9]+)*` は可 (区切りで必ず切れるので、どこで繰り返しが終わるかが 1 通りに決まる)。`(a|aa)+`・`(a+)+`・`([a-z])+` は不可
- * これで、入力の長さに対して指数的に遅くなる式を除く (3 つまでの繰り返しの重なりによる、多項式の遅さは残るので、検査する値の長さを抑える)。
+ *  - 後方参照は使えない。長さは 200 文字まで。フラグは i m s u だけ
+ *  - 繰り返し (`*` `+` `?` `{n,m}`) の「最悪の試行の数」(各繰り返しの上限 + 1 の積。終わりのないものは 300 とみなす) が 5 千万以下
+ *    (終わりのない繰り返しが 3 つまで、に相当)
+ *  - 2 回以上の繰り返しをつけたグループは、**区切りになる 1 文字**を持つ形に限る: 選択 (`|`)・入れ子のグループを含まず、
+ *    繰り返しのついていない 1 文字 (リテラル・`\d` などの略記・文字クラス) が、グループ内の他のすべての要素と、ASCII の文字を共有しない。
+ *    例: `(_[a-z0-9]+)*`・`([A-Z][a-z0-9]*)+`・`([a-z0-9]+-)*` は可 (区切りで必ず切れるので、繰り返しの切れ目が 1 通りに決まる)。
+ *    `(a|aa)+`・`(a+)+`・`([a-z])+x`・`(.*a){5}` は不可
+ * 多項式の遅さは、この積の上限と、検査する値の長さの上限 (300 文字) で抑える。
  */
 export function checkRegexSafety(pattern: string, flags?: string): string | null {
   if (pattern.length === 0) return "正規表現が空です";
   if (pattern.length > 200) return "正規表現が長すぎます (200 文字まで)";
   if (flags !== undefined && !/^[imsu]*$/.test(flags)) return "正規表現のフラグは i / m / s / u だけ使えます";
   if (/\\[1-9]|\\k</.test(pattern)) return "後方参照は使えません";
-  if (/\(\?(?:=|!|<=|<!)/.test(pattern)) return "先読み・後読みは使えません";
   try { new RegExp(pattern, flags); } catch (e) { return `正規表現として読めません: ${e instanceof Error ? e.message : String(e)}`; }
   return structuralRegexProblem(pattern);
 }
 
-const DELIMITERS = "_-./:";
-interface Atom { kind: "lit" | "esc" | "class" | "any" | "group"; ch?: string; body?: string; negated?: boolean; group?: Grp; quantified?: boolean }
+const MAX_REPEAT_COST = 5e7;
+const WIDE = 300;
+interface Atom { kind: "lit" | "esc" | "class" | "any" | "group"; src: string; ch?: string; negated?: boolean; body?: string; group?: Grp; quantified?: boolean }
 interface Grp { alt: boolean; hasGroup: boolean; atoms: Atom[] }
 
-/** 文字クラス (`[...]` の中身) が、その 1 文字を含むか。判断できない書き方 (\w \W \D \S の否定形など) は、含むとみなす */
-function classContains(body: string, ch: string): boolean {
-  const code = ch.charCodeAt(0);
-  let i = 0;
-  while (i < body.length) {
-    let c = body[i];
-    if (c === "\\") {
-      const e = body[i + 1] ?? "";
-      if (e === "w" || e === "W" || e === "D" || e === "S") return true; // \w は _ を含む。否定形は、広い
-      if (e === "d" || e === "s") { i += 2; continue; }
-      c = e; i += 2;
-    } else i += 1;
-    if (body[i] === "-" && i + 1 < body.length) {
-      let hi = body[i + 1];
-      i += 2;
-      if (hi === "\\") { hi = body[i] ?? ""; i += 1; }
-      if (code >= c.charCodeAt(0) && code <= hi.charCodeAt(0)) return true;
-    } else if (c === ch) return true;
-  }
-  return false;
+/** 要素が一致する ASCII の文字 (0〜127) の集合。数え上げられない要素 (グループ) は null */
+function asciiSet(a: Atom): Set<number> | null {
+  if (a.kind === "group") return null;
+  const source = a.kind === "any" ? "." : a.kind === "lit" ? (a.ch ?? "").replace(/[.*+?^${}()|[\]\\/-]/g, "\\$&") : a.src;
+  let re: RegExp;
+  try { re = new RegExp(`^(?:${source})$`, "s"); } catch { return null; }
+  const out = new Set<number>();
+  for (let c = 0; c < 128; c++) if (re.test(String.fromCharCode(c))) out.add(c);
+  return out;
 }
 
-function delimiterGroupOk(g: Grp): boolean {
+/** 区切りになる 1 文字を持つグループか (上の説明) */
+function separatorGroupOk(g: Grp): boolean {
   if (g.alt || g.hasGroup || g.atoms.length === 0) return false;
-  const first = g.atoms[0];
-  const delim = first.kind === "lit" || first.kind === "esc" ? first.ch : undefined;
-  if (!delim || delim.length !== 1 || !DELIMITERS.includes(delim) || first.quantified) return false;
-  return g.atoms.slice(1).every((a) => {
-    if (a.kind === "lit") return a.ch !== delim;
-    if (a.kind === "esc") return a.ch === "d" || (a.ch !== undefined && /^[^A-Za-z0-9]$/.test(a.ch) && a.ch !== delim);
-    if (a.kind === "class") return !a.negated && !classContains(a.body ?? "", delim);
-    return false; // . と、入れ子のグループ
+  const sets = g.atoms.map((a) => (a.quantified ? null : asciiSet(a)));
+  const all = g.atoms.map(asciiSet);
+  return g.atoms.some((s, i) => {
+    const sep = sets[i];
+    // 区切りは、ASCII の文字だけで、1 つ以上に一致する (非 ASCII の文字クラス・否定クラスは、区切りにしない)
+    if (!sep || sep.size === 0 || s.kind === "any" || s.negated || /[^\x00-\x7f]/.test(s.src)) return false;
+    return g.atoms.every((o, j) => j === i || (all[j] !== null && [...all[j]!].every((c) => !sep.has(c))));
   });
 }
 
 function structuralRegexProblem(p: string): string | null {
   const root: Grp = { alt: false, hasGroup: false, atoms: [] };
   const stack: Grp[] = [root];
-  let unbounded = 0;
+  let cost = 1;
   let i = 0;
   const cur = () => stack[stack.length - 1];
   while (i < p.length) {
     const c = p[i];
-    if (c === "\\") { cur().atoms.push({ kind: "esc", ch: p[i + 1] }); i += 2; continue; }
+    if (c === "\\") { cur().atoms.push({ kind: "esc", ch: p[i + 1], src: p.slice(i, i + 2) }); i += 2; continue; }
     if (c === "[") {
       let j = i + 1;
       const negated = p[j] === "^";
@@ -159,50 +150,47 @@ function structuralRegexProblem(p: string): string | null {
       const start = j;
       if (p[j] === "]") j++; // 先頭の ] は文字
       while (j < p.length && p[j] !== "]") j += p[j] === "\\" ? 2 : 1;
-      cur().atoms.push({ kind: "class", body: p.slice(start, j), negated });
+      cur().atoms.push({ kind: "class", body: p.slice(start, j), negated, src: p.slice(i, j + 1) });
       i = j + 1; continue;
     }
     if (c === "(") {
       cur().hasGroup = true;
-      if (p.startsWith("(?:", i)) i += 3;
-      else if (p[i + 1] === "?" && p[i + 2] === "<") i = p.indexOf(">", i) + 1 || p.length; // 名前つき
-      else i += 1;
+      const m = /^\(\?(?::|=|!|<=|<!|<[A-Za-z_$][\w$]*>)/.exec(p.slice(i));
+      i += m ? m[0].length : 1;
       stack.push({ alt: false, hasGroup: false, atoms: [] });
       continue;
     }
     if (c === ")") {
-      if (stack.length > 1) { const g = stack.pop()!; cur().atoms.push({ kind: "group", group: g }); }
+      if (stack.length > 1) { const g = stack.pop()!; cur().atoms.push({ kind: "group", group: g, src: "" }); }
       i += 1; continue;
     }
     if (c === "|") { cur().alt = true; i += 1; continue; }
     if (c === "^" || c === "$") { i += 1; continue; }
     if (c === "*" || c === "+" || c === "?" || c === "{") {
-      let unb = c === "*" || c === "+";
       let max = c === "?" ? 1 : Infinity;
       let len = 1;
       if (c === "{") {
         const m = /^\{(\d+)(?:(,)(\d*))?\}/.exec(p.slice(i));
-        if (!m) { cur().atoms.push({ kind: "lit", ch: c }); i += 1; continue; } // 量指定ではない {
+        if (!m) { cur().atoms.push({ kind: "lit", ch: c, src: c }); i += 1; continue; } // 量指定ではない {
         len = m[0].length;
-        unb = !!m[2] && m[3] === "";
         max = m[2] ? (m[3] === "" ? Infinity : Number(m[3])) : Number(m[1]);
       }
       const last = cur().atoms[cur().atoms.length - 1];
       if (last) {
         last.quantified = true;
-        if (unb) unbounded++;
-        if (last.kind === "group" && last.group && (unb || max > 5) && !delimiterGroupOk(last.group)) {
-          return "繰り返しのグループは、区切りの文字 (_ - . / :) で始まり、選択・入れ子を含まない形 (例: (_[a-z0-9]+)*) だけ使えます (入力しだいで、極端に遅くなる式を避けるため)";
+        cost *= Math.min(max, WIDE) + 1;
+        if (cost > MAX_REPEAT_COST) return "繰り返し (* + {n,m}) が多すぎる・広すぎるため、入力しだいで極端に遅くなるおそれがあります (終わりのない繰り返しは 3 つまで)";
+        if (last.kind === "group" && last.group && max > 1 && !separatorGroupOk(last.group)) {
+          return "繰り返しのグループは、区切りになる 1 文字 (グループ内の他の要素と重ならない、繰り返しのついていない文字) を持つ形だけ使えます (例: (_[a-z0-9]+)*。入力しだいで、極端に遅くなる式を避けるため)";
         }
       }
       i += len;
       if (p[i] === "?") i += 1; // 最短一致
       continue;
     }
-    cur().atoms.push(c === "." ? { kind: "any" } : { kind: "lit", ch: c });
+    cur().atoms.push(c === "." ? { kind: "any", src: "." } : { kind: "lit", ch: c, src: c });
     i += 1;
   }
-  if (unbounded > 3) return "終わりのない繰り返し (* + {n,}) が多すぎます (3 つまで)";
   return null;
 }
 
