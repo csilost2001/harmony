@@ -100,4 +100,17 @@ describe("読んだ uuid と保存で付く uuid が食い違わない", () => {
     expect(saved.uuid).toMatch(V4);
     expect(saved.uuid).not.toBe(deriveStableUuid("table", "brand-new", "11111111-1111-4111-8111-111111111111"));
   });
+
+  it("処理フロー (meta.uuid) も同じ: 読む → uuid 無しの本文で保存 → 読んだ uuid で再保存が通る", async () => {
+    const { writeProcessFlow } = await import("./projectStorage.js");
+    const dir = path.join(ROOT, "harmony", "process-flows");
+    await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(path.join(dir, "pf-x.json"), JSON.stringify({ meta: { id: "pf-x", name: "x", flowType: "common", createdAt: ts, updatedAt: ts }, actions: [] }));
+    const read = await readProcessFlow("pf-x", ROOT) as any;
+    expect(read.meta.uuid).toMatch(V4);
+    await writeProcessFlow("pf-x", { meta: { id: "pf-x", name: "x", flowType: "common", createdAt: ts, updatedAt: ts }, actions: [] }, ROOT);
+    const onDisk = JSON.parse(await fs.readFile(path.join(dir, "pf-x.json"), "utf-8"));
+    expect(onDisk.meta.uuid).toBe(read.meta.uuid);
+    await expect(writeProcessFlow("pf-x", { ...read, meta: { ...read.meta, name: "x2" } }, ROOT)).resolves.toBeUndefined();
+  });
 });

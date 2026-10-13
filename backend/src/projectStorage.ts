@@ -434,7 +434,8 @@ const projectSaltCache = new Map<string, string>();
  * 別のプロジェクトで同じ id の設計が、同じ uuid にならないようにする。見つからなければ空。
  */
 async function projectSaltFor(filePath: string): Promise<string> {
-  let dir = path.dirname(filePath);
+  const start = path.dirname(filePath);
+  let dir = start;
   for (let i = 0; i < 6; i++) {
     const cached = projectSaltCache.get(dir);
     if (cached !== undefined) return cached;
@@ -448,7 +449,7 @@ async function projectSaltFor(filePath: string): Promise<string> {
     if (parent === dir) break;
     dir = parent;
   }
-  return "";
+  return ""; // 見つからないときは、キャッシュしない (あとから harmony.json が置かれたら、その値を使う)
 }
 
 // ── EntityId uniqueness / uuid preserve helpers (#1294 I-2, RFC #1284) ──────

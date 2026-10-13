@@ -102,10 +102,12 @@ describe("OutlineEditor — 参照先の選択", () => {
     expect(screen.queryByTestId("outline-ref-menu")).toBeNull();
   });
 
-  it("閲覧中 (readonly) は、':' を打っても候補を出さない", () => {
-    render(<OutlineEditor steps={[]} kinds={["dbAccess"] as StepType[]} readonly onApply={vi.fn()} refCandidates={{ dbAccess: [{ id: "a", label: "a" }] }} />);
+  it("閲覧中 (readonly) は、':' を打っても候補を出さない (編集中なら出る本文で確かめる)", () => {
+    render(<OutlineEditor steps={[{ id: "step-01", kind: "dbAccess", description: "取得" } as never]} kinds={["dbAccess"] as StepType[]} readonly onApply={vi.fn()} refCandidates={{ dbAccess: [{ id: "a", label: "a" }] }} />);
     const area = screen.getByTestId("pf-outline-text") as HTMLTextAreaElement;
-    area.setSelectionRange(0, 0);
+    const at = "[DBアクセス".length;
+    expect(area.value.slice(0, at)).toBe("[DBアクセス"); // 編集中なら、ここで ':' を打つと候補が出る位置
+    area.setSelectionRange(at, at);
     fireEvent.keyDown(area, { key: ":" });
     expect(screen.queryByTestId("outline-ref-menu")).toBeNull();
   });
