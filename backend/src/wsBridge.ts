@@ -23,7 +23,7 @@ import { rpcHandlerMap, type RpcContext } from "./wsHandlers/index.js";
 import { logInfo, logWarn, logError } from "./serverLog.js";
 import { checkRequestOrigin } from "./security/originCheck.js";
 import { ExternalChangeWatcher } from "./externalChanges.js";
-import { checkAuthToken } from "./security/authToken.js";
+import { authFailureDelayMs, checkAuthToken } from "./security/authToken.js";
 import { ensureRecovered } from "./operationJournal.js";
 import { RateLimiter, checkContentLength, maxWsPayloadBytes, maxWsRequestsPer10s } from "./security/requestLimits.js";
 
@@ -420,6 +420,7 @@ export class WsBridge extends EventEmitter {
         const authError = checkAuthToken(req);
         if (authError) {
           logWarn("ws-bridge", "HTTP request rejected: auth failed", { url: url.split("?")[0], reason: authError });
+          await delay(authFailureDelayMs(req)); // 違うトークンが続く送信元への失敗の応答を、だんだん遅くする (総当たり対策)
           res.writeHead(401, { "Content-Type": "text/plain", "WWW-Authenticate": "Bearer" });
           res.end("Unauthorized");
           return;
@@ -504,7 +505,8 @@ export class WsBridge extends EventEmitter {
       const authError = checkAuthToken(req, process.env, true);
       if (authError) {
         logWarn("ws-bridge", "WebSocket connection rejected: auth failed", { reason: authError });
-        ws.close(1008, "Unauthorized");
+        const wait = authFailureDelayMs(req);
+        if (wait > 0) setTimeout(() => ws.close(1008, "Unauthorized"), wait); else ws.close(1008, "Unauthorized");
         return;
       }
 

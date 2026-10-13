@@ -18,7 +18,7 @@ import path from "node:path";
 export const LATEST_SCHEMA_VERSION = "v3";
 
 /** 移行の対象。`project` は harmony.json。種類を持つ設計 (TopLevelEntityKind) のほか、業務フロー・帳票・画面項目・汎用定義・規約・独自部品の定義も含む */
-export type MigrationTarget = TopLevelEntityKind | "project" | "businessFlow" | "report" | "screenItems" | "genericDefinition" | "conventions" | "layoutComponents";
+export type MigrationTarget = TopLevelEntityKind | "project" | "businessFlow" | "report" | "screenItems" | "genericDefinition" | "conventions" | "layoutComponents" | "other";
 
 export interface SchemaMigration {
   /** 一意の名前 (例: `v3-to-v4/table-column-type`) */
@@ -99,7 +99,9 @@ export async function migrateWorkspace(root: string, opts: { apply?: boolean; mi
   const dataRoot = await resolveDataRoot(root);
 
   /** 1 ファイルに移行を当てる。読めない・オブジェクトでないものは skipped */
+  const seen = new Set<string>();
   const visit = async (abs: string, target: MigrationTarget, id: string): Promise<void> => {
+    seen.add(abs);
     const rel = path.relative(dataRoot, abs).split(path.sep).join("/");
     let data: unknown;
     try { data = JSON.parse(await fs.readFile(abs, "utf-8")); } catch { report.skipped.push(rel); return; }
@@ -132,6 +134,19 @@ export async function migrateWorkspace(root: string, opts: { apply?: boolean; mi
   for (const [rel, target] of [["conventions/catalog.json", "conventions"], ["layout-components.json", "layoutComponents"]] as const) {
     if (await fs.access(path.join(dataRoot, ...rel.split("/"))).then(() => true, () => false)) await visit(path.join(dataRoot, ...rel.split("/")), target, idOf(path.basename(rel)));
   }
+  // 上のどれにも当たらない JSON (画面フローの座標・ER 図の配置・拡張・カタログ・規約のほかのファイル・旧デザイン)。版が上がるのに、これらだけ旧版のまま残らないようにする
+  const walk = async (dir: string): Promise<void> => {
+    let entries: import("node:fs").Dirent[] = [];
+    try { entries = await fs.readdir(dir, { withFileTypes: true }); } catch { return; }
+    for (const e of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+      if (e.name.startsWith(".")) continue;
+      const abs = path.join(dir, e.name);
+      if (e.isDirectory()) await walk(abs);
+      else if (e.name.endsWith(".json") && !seen.has(abs)) await visit(abs, "other", path.relative(dataRoot, abs).split(path.sep).join("/"));
+    }
+  };
+  await walk(dataRoot);
+
   const projectNext = run(project, "project", "harmony");
   const projectKeys = changedKeys(project, projectNext);
   if (projectKeys.length) report.files.push({ file: "harmony.json", target: "project", id: "harmony", changedKeys: projectKeys });

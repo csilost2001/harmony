@@ -39,16 +39,28 @@ function presentedToken(req: IncomingMessage, allowQuery: boolean): string | nul
   return null;
 }
 
-/** 失敗が続く送信元を、しばらく断る (総当たりへの対策)。窓の中で MAX_FAILURES 回失敗したら、LOCK_MS のあいだ、正しいトークンでも断る */
-export const MAX_FAILURES = 10;
+/**
+ * 総当たりへの対策: 違うトークンが続く送信元への「失敗の応答」を、だんだん遅くする (締め出さない)。
+ * 締め出すと、リバースプロキシ・Docker のポート転送の背後 (全利用者が同じ送信元に見える) で、違うトークンを送るだけで
+ * 正しいトークンを持つ全員を断てるため。正しいトークンの要求は、遅らせない。トークンは、推測できない長さ (32 文字以上の乱数) にする。
+ */
+export const FREE_FAILURES = 5;
 export const FAILURE_WINDOW_MS = 60_000;
-export const LOCK_MS = 60_000;
-const failures = new Map<string, { count: number; start: number; lockedUntil: number }>();
+export const MAX_DELAY_MS = 5_000;
+const MAX_TRACKED = 10_000;
+const failures = new Map<string, { count: number; start: number }>();
 
 export function _resetAuthThrottleForTest(): void { failures.clear(); }
 
 function sourceOf(req: IncomingMessage): string {
   return (req.socket?.remoteAddress ?? "unknown").replace(/^::ffff:/, "");
+}
+
+/** 期限が切れた記録を捨てる。送信元が多すぎるときは、古いものから捨てる (メモリが増え続けない) */
+function sweep(now: number): void {
+  if (failures.size < 1000) return;
+  for (const [k, f] of failures) if (now - f.start > FAILURE_WINDOW_MS) failures.delete(k);
+  while (failures.size > MAX_TRACKED) failures.delete(failures.keys().next().value as string);
 }
 
 /**
@@ -58,18 +70,23 @@ function sourceOf(req: IncomingMessage): string {
 export function checkAuthToken(req: IncomingMessage, env: NodeJS.ProcessEnv = process.env, allowQuery = false, now = Date.now()): string | null {
   const expected = configuredToken(env);
   if (!expected) return null;
-  const src = sourceOf(req);
-  const f = failures.get(src);
-  if (f && f.lockedUntil > now) return "失敗が続いたため、しばらく受け付けません";
   const given = presentedToken(req, allowQuery);
-  const ok = given !== null && safeEqual(given, expected);
-  if (ok) { failures.delete(src); return null; }
+  if (given !== null && safeEqual(given, expected)) return null;
   // トークンが無い要求 (画面を開いただけ・最初の接続) は、失敗に数えない。違うトークンだけ数える
   if (given !== null) {
-    const cur = !f || now - f.start > FAILURE_WINDOW_MS ? { count: 0, start: now, lockedUntil: 0 } : f;
+    sweep(now);
+    const src = sourceOf(req);
+    const f = failures.get(src);
+    const cur = !f || now - f.start > FAILURE_WINDOW_MS ? { count: 0, start: now } : f;
     cur.count++;
-    if (cur.count >= MAX_FAILURES) cur.lockedUntil = now + LOCK_MS;
     failures.set(src, cur);
   }
   return given === null ? "トークンがありません" : "トークンが違います";
+}
+
+/** 失敗の応答を遅らせる時間 (ミリ秒)。違うトークンが FREE_FAILURES 回を超えて続く送信元だけ。倍々で、MAX_DELAY_MS まで */
+export function authFailureDelayMs(req: IncomingMessage, now = Date.now()): number {
+  const f = failures.get(sourceOf(req));
+  if (!f || now - f.start > FAILURE_WINDOW_MS || f.count <= FREE_FAILURES) return 0;
+  return Math.min(250 * 2 ** (f.count - FREE_FAILURES - 1), MAX_DELAY_MS);
 }

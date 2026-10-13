@@ -51,12 +51,15 @@ describe("HTTP: 接続トークンと本文の上限", () => {
     expect(await ok.text()).toBe("ok");
   });
 
-  it("違うトークンが続くと、正しいトークンでも、しばらく断る (総当たりへの対策)", async () => {
+  it("違うトークンが続いても、正しいトークンの要求は通る (締め出さない)。失敗の応答だけが遅くなる", async () => {
     _resetAuthThrottleForTest();
-    for (let i = 0; i < 10; i++) await post({ authorization: `Bearer wrong-${i}` });
-    expect((await post({ authorization: "Bearer t0k3n-for-test" })).status).toBe(401);
-    _resetAuthThrottleForTest();
+    for (let i = 0; i < 7; i++) await post({ authorization: `Bearer wrong-${i}` });
+    const t = Date.now();
     expect((await post({ authorization: "Bearer t0k3n-for-test" })).status).toBe(200);
+    expect(Date.now() - t).toBeLessThan(1_000);
+    const t2 = Date.now();
+    expect((await post({ authorization: "Bearer wrong-again" })).status).toBe(401);
+    expect(Date.now() - t2).toBeGreaterThanOrEqual(200); // 失敗の応答は、遅らせている
   });
 
   it("本文が上限 (Content-Length) を超えたら 413。トークンが先", async () => {

@@ -879,8 +879,10 @@ function buildDefaultScreenEntity(
   dataRoot: string,
   /** 指定すると、uuid が無いとき乱数ではなく、種類 + id から決めた値 (deriveStableUuid) にする。旧形式の読み出し (書かない) で、何度読んでも同じ値にするため */
   uuidSalt?: string,
+  /** 指定すると、更新日時の既定を、現在時刻ではなくこの時刻にする (旧形式の読み出しで、読むたびに値が変わらないように、旧ファイルの更新時刻を使う) */
+  fixedTime?: string,
 ): Record<string, unknown> {
-  const ts = new Date().toISOString();
+  const ts = fixedTime ?? new Date().toISOString();
   const updatedAt = typeof entry?.updatedAt === "string" ? entry.updatedAt : ts;
   // #1294 I-2 (review fix Should-fix #1, RFC #1284): entry に uuid があれば継承、
   // 無ければここで採番する。_migrateScreenCore の writeJSON 経路は preserveOrAssignUuid を
@@ -922,6 +924,13 @@ async function _migrateScreenCore(screenId: string, root: string, persist: boole
   const designPath = path.join(screensDir(dataRoot), `${screenId}.design.json`);
   const legacyItemsPath = path.join(screenItemsDir(dataRoot), `${screenId}.json`);
   const current = await readEntityAndEnsureUuid("screen", entityPath);
+  // 読み出し (書かない) のときの日時は、旧ファイルの更新時刻にする (読むたびに「いま」へ変わらないように)
+  const legacyTime = persist ? undefined : await (async () => {
+    for (const f of [entityPath, designPath, legacyItemsPath]) {
+      try { return new Date((await fs.stat(f)).mtimeMs).toISOString(); } catch { /* 次 */ }
+    }
+    return undefined;
+  })();
 
   if (isScreenEntity(current) && !isLegacyGrapesScreen(current)) {
     return current as Record<string, unknown>;
@@ -937,7 +946,7 @@ async function _migrateScreenCore(screenId: string, root: string, persist: boole
     }
     const project = await readProject(root);
     const itemsFile = await readJSON<unknown>(legacyItemsPath);
-    const entity = buildDefaultScreenEntity(screenId, getScreenEntry(project, screenId), extractItems(itemsFile), dataRoot, await projectSaltFor(entityPath));
+    const entity = buildDefaultScreenEntity(screenId, getScreenEntry(project, screenId), extractItems(itemsFile), dataRoot, await projectSaltFor(entityPath), legacyTime);
     if (persist) {
       await writeJSON(entityPath, entity);
       try { await fs.unlink(legacyItemsPath); } catch { /* ignore */ }
@@ -949,7 +958,7 @@ async function _migrateScreenCore(screenId: string, root: string, persist: boole
   const itemsFile = await readJSON<unknown>(legacyItemsPath);
   if (design || itemsFile) {
     const project = await readProject(root);
-    const entity = buildDefaultScreenEntity(screenId, getScreenEntry(project, screenId), extractItems(itemsFile), dataRoot, await projectSaltFor(entityPath));
+    const entity = buildDefaultScreenEntity(screenId, getScreenEntry(project, screenId), extractItems(itemsFile), dataRoot, await projectSaltFor(entityPath), legacyTime);
     if (persist) {
       await writeJSON(entityPath, entity);
       try { await fs.unlink(legacyItemsPath); } catch { /* ignore */ }

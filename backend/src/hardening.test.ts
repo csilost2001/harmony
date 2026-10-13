@@ -15,10 +15,10 @@ import { explainWriteError } from "./writeErrors.js";
 import { describeJsonError, findJsonErrorOffset, MAX_JSON_BYTES, persistDerivedUuids, repairRegistry, scanWorkspaceHealth } from "./workspaceHealth.js";
 import { collectExtraIssues } from "./schemaIssues.js";
 import { ExternalChangeWatcher, RETRY_AFTER_MS, SELF_WINDOW_MS, classifyChangedPath, installSelfWriteTracking, isSelfWritePath, markSelfWrite } from "./externalChanges.js";
-import { openJournal, planFromAbsolute, recoverJournals, JOURNAL_DIR } from "./operationJournal.js";
+import { openJournal, planFromAbsolute, recoverJournals, isOwnerAlive, FOREIGN_STALE_MS, JOURNAL_DIR } from "./operationJournal.js";
 import { renameEntityId } from "./renameEntity.js";
-import { FAILURE_WINDOW_MS, LOCK_MS, MAX_FAILURES, _resetAuthThrottleForTest, checkAuthToken } from "./security/authToken.js";
-import { RateLimiter, checkContentLength, maxHttpBodyBytes, maxWsPayloadBytes } from "./security/requestLimits.js";
+import { FAILURE_WINDOW_MS, FREE_FAILURES, MAX_DELAY_MS, _resetAuthThrottleForTest, authFailureDelayMs, checkAuthToken } from "./security/authToken.js";
+import { BodyTooLargeError, RateLimiter, checkContentLength, maxHttpBodyBytes, maxWsPayloadBytes, readLimitedBody } from "./security/requestLimits.js";
 import { assertToolAllowed, filterTools, isReadOnlyTool, isToolAllowed } from "./security/mcpAccess.js";
 import { tools } from "./tools.js";
 import { chainFrom, changedKeys, migrateWorkspace, MIGRATIONS, type SchemaMigration } from "./schemaMigration.js";
@@ -381,6 +381,50 @@ describe("外部変更の検知 (externalChanges)", () => {
     }
   }, 30_000);
 
+  it("監視しているフォルダが消えて作り直されても、作り直されたフォルダの外部の書き換えを検知する", async () => {
+    installSelfWriteTracking();
+    const root = await makeWs();
+    await writeTable("re-made", table("re-made", "x"), root);
+    const got: string[] = [];
+    const w = new ExternalChangeWatcher((_r, evs) => got.push(...evs.map((e) => e.event)));
+    try {
+      await w.ensure(root);
+      const dir = path.join(root, "harmony", "tables");
+      const { execFileSync } = await import("node:child_process");
+      // git checkout などで、フォルダごと入れ替わる (別プロセスの操作)
+      execFileSync("node", ["-e", `const fs=require("fs");fs.rmSync(${JSON.stringify(dir)},{recursive:true});fs.mkdirSync(${JSON.stringify(dir)})`]);
+      await sleep(400);
+      got.length = 0;
+      execFileSync("node", ["-e", `require("fs").writeFileSync(${JSON.stringify(path.join(dir, "new-one.json"))}, "{}")`]);
+      expect(await waitFor(() => got.includes("tableChanged"))).toBe(true);
+    } finally {
+      w.closeAll();
+    }
+  }, 30_000);
+
+  it("自分が消して作り直したファイルを、外で消したら検知する (「自分が消した」記録が残らない)", async () => {
+    installSelfWriteTracking();
+    const root = await makeWs();
+    const file = path.join(root, "harmony", "tables", "b.json");
+    await fs.writeFile(file, "{}");
+    await fs.unlink(file);
+    await fs.writeFile(file, "{}"); // 同じ名前で作り直す
+    expect(isSelfWritePath(file)).toBe(true); // 自分が書いた直後は、自分
+    const { execFileSync } = await import("node:child_process");
+    execFileSync("node", ["-e", `require("fs").unlinkSync(${JSON.stringify(file)})`]);
+    expect(isSelfWritePath(file)).toBe(false); // 外で消された: 状態 ("-") が、覚えている状態 (ファイルあり) と違う
+    // フォルダの再帰削除は配下を「自分」にするが、作り直して書けば、外すので、外部の削除を取りこぼさない
+    const dir = path.join(root, "harmony", "tables", "d");
+    await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(path.join(dir, "x.json"), "{}");
+    await fs.rm(dir, { recursive: true, force: true });
+    expect(isSelfWritePath(path.join(dir, "x.json"))).toBe(true);
+    await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(path.join(dir, "x.json"), "{}");
+    execFileSync("node", ["-e", `require("fs").unlinkSync(${JSON.stringify(path.join(dir, "x.json"))})`]);
+    expect(isSelfWritePath(path.join(dir, "x.json"))).toBe(false);
+  });
+
   it("監視を始められなかったワークスペースは、しばらく試し直さない (要求のたびに警告ログを出さない)", async () => {
     const root = path.join(TMP, "no-harmony-json");
     await fs.mkdir(root, { recursive: true });
@@ -407,7 +451,7 @@ describe("複数ファイル操作の復旧 (operationJournal)", () => {
     const dir = path.join(root, JOURNAL_DIR);
     for (const f of (await fs.readdir(dir)).filter((x) => x.endsWith(".json"))) {
       const j = JSON.parse(await fs.readFile(path.join(dir, f), "utf-8"));
-      await fs.writeFile(path.join(dir, f), JSON.stringify({ ...j, pid: deadPid }));
+      await fs.writeFile(path.join(dir, f), JSON.stringify({ ...j, instanceId: "previous-run", pid: deadPid }));
     }
   }
 
@@ -437,6 +481,36 @@ describe("複数ファイル操作の復旧 (operationJournal)", () => {
     expect(await recoverJournals(root)).toEqual({ journals: 1, restored: 0 });
     expect(await fs.readFile(a, "utf-8")).toBe("IN-PROGRESS");
     expect((await fs.readdir(path.join(root, JOURNAL_DIR))).filter((f) => f.endsWith(".json"))).toHaveLength(1);
+  });
+
+  it("配布の Docker のように、再起動のたびに pid が同じ (1) でも、前の起動の記録は復旧する (pid の一致を「自分」とみなさない)", async () => {
+    const root = await makeWs();
+    const a = path.join(root, "harmony", "tables", "restarted.json");
+    await fs.writeFile(a, "ORIGINAL");
+    await openJournal(root, planFromAbsolute(root, "before-crash", [{ absPath: a, content: "ORIGINAL" }], []));
+    await fs.writeFile(a, "HALF");
+    // 前の起動 (強制終了した) の記録に見せる: 起動の識別子だけが違い、pid・ホストは同じ
+    const dir = path.join(root, JOURNAL_DIR);
+    for (const f of (await fs.readdir(dir)).filter((x) => x.endsWith(".json"))) {
+      const j = JSON.parse(await fs.readFile(path.join(dir, f), "utf-8"));
+      await fs.writeFile(path.join(dir, f), JSON.stringify({ ...j, instanceId: "previous-run" }));
+    }
+    expect(await recoverJournals(root)).toEqual({ journals: 1, restored: 1 });
+    expect(await fs.readFile(a, "utf-8")).toBe("ORIGINAL");
+  });
+
+  it("isOwnerAlive: 自分の起動中・別のプロセスが生きている・別のホストの新しい記録は進行中。再起動した自分・死んだ pid・古い別ホスト・持ち主不明は残骸", async () => {
+    const os = await import("node:os");
+    const { INSTANCE_ID } = await import("./operationJournal.js");
+    const base = { label: "x", restore: [], remove: [] };
+    const now = 10_000_000;
+    expect(isOwnerAlive({ ...base, instanceId: INSTANCE_ID, pid: process.pid, host: os.hostname() }, now, now)).toBe(true);
+    expect(isOwnerAlive({ ...base, instanceId: "old", pid: process.pid, host: os.hostname() }, now, now)).toBe(false);
+    expect(isOwnerAlive({ ...base, instanceId: "other", pid: process.ppid, host: os.hostname() }, now, now)).toBe(true); // 親プロセス = 別の生きているプロセス
+    expect(isOwnerAlive({ ...base, instanceId: "other", pid: 2_000_000_000, host: os.hostname() }, now, now)).toBe(false);
+    expect(isOwnerAlive({ ...base, instanceId: "other", pid: 1, host: "another-container" }, now - 1_000, now)).toBe(true);
+    expect(isOwnerAlive({ ...base, instanceId: "other", pid: 1, host: "another-container" }, now - FOREIGN_STALE_MS - 1, now)).toBe(false);
+    expect(isOwnerAlive(base, now, now)).toBe(false);
   });
 
   it("「戻す」と「消す」が同じパスにあっても、戻したファイルは消さない (旧配置の重複の削除の計画)", async () => {
@@ -511,17 +585,24 @@ describe("接続トークン (authToken)", () => {
     expect(checkAuthToken(req({}, "/?token=nope"), env, true)).toMatch(/違います/);
     expect(checkAuthToken(req({ authorization: "Basic s3cret" }), env)).toMatch(/ありません/);
   });
-  it("違うトークンが MAX_FAILURES 回続くと、LOCK_MS のあいだ、正しいトークンでも断る。トークンなしは数えない。窓が過ぎれば数え直す", () => {
+  it("違うトークンが続く送信元への失敗の応答は、だんだん遅くなる。正しいトークンは、遅くならず通る (締め出さない)。トークンなしは数えない。窓が過ぎれば戻る", () => {
     const env = { HARMONY_AUTH_TOKEN: "s3cret" };
-    const good = req({ authorization: "Bearer s3cret" });
-    for (let i = 0; i < 50; i++) checkAuthToken(req(), env, false, 1_000); // トークンなし (画面を開いただけ) は失敗に数えない
-    expect(checkAuthToken(good, env, false, 1_000)).toBeNull();
-    for (let i = 0; i < MAX_FAILURES; i++) checkAuthToken(req({ authorization: `Bearer bad${i}` }), env, false, 2_000);
-    expect(checkAuthToken(good, env, false, 2_001)).toMatch(/しばらく/);
-    expect(checkAuthToken(good, env, false, 2_000 + LOCK_MS + 1)).toBeNull();
-    // 窓を過ぎた失敗は、数え直す
-    for (let i = 0; i < MAX_FAILURES - 1; i++) checkAuthToken(req({ authorization: `Bearer bad${i}` }), env, false, 200_000);
-    expect(checkAuthToken(good, env, false, 200_000 + FAILURE_WINDOW_MS + 1)).toBeNull();
+    const bad = (i: number) => req({ authorization: `Bearer bad${i}` });
+    const probe = req();
+    for (let i = 0; i < 50; i++) checkAuthToken(req(), env, false, 1_000); // トークンなし (画面を開いただけ)
+    expect(authFailureDelayMs(probe, 1_000)).toBe(0);
+    for (let i = 0; i < FREE_FAILURES; i++) checkAuthToken(bad(i), env, false, 2_000);
+    expect(authFailureDelayMs(probe, 2_000)).toBe(0);
+    checkAuthToken(bad(99), env, false, 2_000);
+    expect(authFailureDelayMs(probe, 2_000)).toBe(250);
+    checkAuthToken(bad(100), env, false, 2_000);
+    expect(authFailureDelayMs(probe, 2_000)).toBe(500);
+    for (let i = 0; i < 30; i++) checkAuthToken(bad(200 + i), env, false, 2_000);
+    expect(authFailureDelayMs(probe, 2_000)).toBe(MAX_DELAY_MS);
+    // 正しいトークンは、失敗が続いていても通る
+    expect(checkAuthToken(req({ authorization: "Bearer s3cret" }), env, false, 2_001)).toBeNull();
+    // 窓を過ぎたら戻る
+    expect(authFailureDelayMs(probe, 2_000 + FAILURE_WINDOW_MS + 1)).toBe(0);
   });
 });
 
@@ -538,6 +619,13 @@ describe("要求の上限 (requestLimits)", () => {
     expect(checkContentLength(req({ "content-length": "100" }), 1000)).toBeNull();
     expect(checkContentLength(req({ "content-length": "5000" }), 1000)).toMatch(/大きすぎます/);
     expect(checkContentLength(req(), 1000)).toBeNull();
+  });
+  it("readLimitedBody: Content-Length の無い (chunked の) 本文も、読みながら数えて、上限を超えたら打ち切る", async () => {
+    const { Readable } = await import("node:stream");
+    const chunked = (parts: string[]) => Readable.from(parts.map((p) => Buffer.from(p))) as unknown as IncomingMessage;
+    expect(await readLimitedBody(chunked(["abc", "def"]), 10)).toBe("abcdef");
+    await expect(readLimitedBody(chunked(["12345", "67890", "x"]), 10)).rejects.toBeInstanceOf(BodyTooLargeError);
+    expect(await readLimitedBody(chunked([]), 10)).toBe("");
   });
   it("上限は環境変数で変えられ、不正な値は既定に戻る", () => {
     expect(maxWsPayloadBytes({})).toBe(32 * 1024 * 1024);
@@ -607,6 +695,12 @@ describe("旧形式 (GrapesJS) の画面は、読んだだけでは書き換え�
     expect(entity.id).toBe("old-screen");
     // 書かないので、何度読んでも同じ uuid (種類 + id から決めた値)。保存したあとも変わらない
     expect(((await readScreenEntity("old-screen", root)) as { uuid: string }).uuid).toBe(entity.uuid);
+    // 日時も、読むたびに変わらない (旧ファイルの更新時刻)
+    await new Promise((r) => setTimeout(r, 20));
+    const again = await readScreenEntity("old-screen", root) as { createdAt?: string; updatedAt?: string };
+    const first = entity as unknown as { createdAt?: string; updatedAt?: string };
+    expect(again.updatedAt).toBe(first.updatedAt);
+    expect(again.createdAt).toBe(first.createdAt);
     const design = await readScreen("old-screen", root);
     expect(design).toMatchObject({ pages: expect.any(Array) }); // 旧形式の中身は、そのまま読める
 
@@ -688,9 +782,13 @@ describe("スキーマの版の移行の枠組み (schemaMigration)", () => {
     await fs.writeFile(path.join(d, "reports", "rp.json"), JSON.stringify({ id: "rp", sections: [] }));
     await fs.writeFile(path.join(d, "generic-definitions", "message", "m1.json"), JSON.stringify({ name: "m1" }));
     await fs.writeFile(path.join(d, "layout-components.json"), JSON.stringify({ version: 1, components: [] }));
+    await fs.writeFile(path.join(d, "er-layout.json"), JSON.stringify({ positions: {} }));
+    await fs.mkdir(path.join(d, "extensions"), { recursive: true });
+    await fs.writeFile(path.join(d, "extensions", "steps.json"), JSON.stringify({ steps: [] }));
     const flag: SchemaMigration = { id: "v3-to-v4/flag", from: "v3", to: "v4", description: "flag", migrate: (data) => ({ ...data, flag: true }) };
     const rep = await migrateWorkspace(root, { migrations: [flag], latest: "v4" });
     const byTarget = Object.fromEntries(rep.files.map((f) => [f.target, f.file]));
     expect(byTarget).toMatchObject({ businessFlow: "business-flows/bf.json", report: "reports/rp.json", genericDefinition: "generic-definitions/message/m1.json", layoutComponents: "layout-components.json", project: "harmony.json" });
+    expect(rep.files.filter((f) => f.target === "other").map((f) => f.file).sort()).toEqual(["er-layout.json", "extensions/steps.json"]);
   });
 });

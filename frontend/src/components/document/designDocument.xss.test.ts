@@ -96,8 +96,12 @@ describe("設計書 HTML の XSS (すべての文字列を悪意のある値に�
     // 入れ子の中でも描かれるよう、容器の中にも全種類を置く
     const nodes = [...leaves, ...["form", "search-panel", "section", "columns", "column", "tabs", "tab", "button-bar"].map((t, i) => node(t, 100 + i, leaves))];
     const items = [{ id: P(0), label: P(1), type: "string", direction: "in" as const }];
-    const html = layoutToHtml({ version: 1, nodes } as never, items as never, []);
+    // 独自部品の定義つき: 展開後 (差し込み口に悪意のある値が入る・既定値・ラベル) の経路も描く
+    const defs = (base.layoutComponents ?? []).slice(0, 3).map((d) => taint(d));
+    const withDefs = (base.layoutComponents ?? []).slice(0, 3).map((d, i) => ({ id: `cmp${i}`, type: "component", componentRef: d.id, props, args: Object.fromEntries((d.params ?? []).map((q: { id: string }) => [q.id, P(i)])) }));
+    const html = layoutToHtml({ version: 1, nodes: [...nodes, ...withDefs] } as never, items as never, [...(base.layoutComponents ?? []), ...defs] as never);
     expect(html.length).toBeGreaterThan(500);
+    expect(html).toContain("lv-component-tag"); // 独自部品を展開した経路も描かれている
     expect(leaks(html)).toEqual([]);
     // 数のはずの値は、数として出る (文字列は混ざらない)
     expect(html).toMatch(/lv-h2\b/);

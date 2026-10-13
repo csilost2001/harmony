@@ -2445,19 +2445,20 @@ async function _renameEntityIdImpl(
     // rollback: 新規 write した file を消す + 参照側を元に戻す
     // Phase F M-6: 加えて、commit phase の旧ファイル削除が部分的に成功している可能性があるため、
     // fileRenameSnapshots の from (旧 path) も snapshot content で書き戻す (byte-identical 復元)。
+    let rollbackComplete = true; // 戻せないものがあれば、復旧用の記録を残す (次の復旧で、もう一度戻す)
     for (const abs of writtenFiles) {
-      await tryUnlink(abs);
+      try { await fs.unlink(abs); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") rollbackComplete = false; }
     }
     for (const r of restoreActions) {
-      try { await writeFileContent(r.absPath, r.originalContent); } catch { /* best effort */ }
+      try { await writeFileContent(r.absPath, r.originalContent); } catch { rollbackComplete = false; }
     }
     // 旧ファイル復元 (commit phase の strictUnlink で一部削除されたケースをカバー)
     for (const snap of fileRenameSnapshots) {
       try {
         await writeFileContent(path.join(dataRoot, snap.from), snap.originalContent);
-      } catch { /* best effort */ }
+      } catch { rollbackComplete = false; }
     }
-    await journal().catch(() => undefined); // 元に戻し終えたので、記録は不要
+    if (rollbackComplete) await journal().catch(() => undefined); // 元に戻し終えたので、記録は不要
     // Phase J SF-γ: rollback audit log
     try {
       logError("rename", "rename.execute.rollback", {

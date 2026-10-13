@@ -11,9 +11,15 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
+import os from "node:os";
 import { logWarn } from "./serverLog.js";
 
 export const JOURNAL_DIR = ".harmony-journal";
+
+/** このプロセスの起動ごとの識別子。再起動すると変わる (配布の Docker は、再起動のたびに pid が 1 のままなので、pid だけでは世代を区別できない) */
+export const INSTANCE_ID = crypto.randomUUID();
+/** 別のホスト (別のコンテナで、同じボリュームを使う場合) の記録は、生死を確かめられない。これより古ければ、残骸とみなす */
+export const FOREIGN_STALE_MS = 10 * 60 * 1000;
 
 export interface JournalPlan {
   /** 操作の名前 (ログ用) */
@@ -22,8 +28,10 @@ export interface JournalPlan {
   restore: Array<{ rel: string; content: string }>;
   /** 操作で新しく作るファイル (復旧では消す。ワークスペースからの相対パス)。restore に入っているものは消さない */
   remove: string[];
-  /** 記録を書いたプロセス。生きているあいだは、進行中の操作なので復旧しない (別のプロセス・別の経路で開いた場合に、巻き戻さないため) */
+  /** 記録を書いたプロセスの起動ごとの識別子 / pid / ホスト名。生きている持ち主の記録は、進行中の操作なので復旧しない (isOwnerAlive) */
+  instanceId?: string;
   pid?: number;
+  host?: string;
 }
 
 const toRel = (root: string, abs: string): string => path.relative(root, abs).split(path.sep).join("/");
@@ -45,7 +53,7 @@ export async function openJournal(root: string, plan: JournalPlan): Promise<() =
   await fs.writeFile(path.join(dir, ".gitignore"), "*\n", { flag: "wx" }).catch(() => undefined);
   const file = path.join(dir, `${Date.now()}-${crypto.randomUUID()}.json`);
   const tmp = `${file}.tmp`;
-  await fs.writeFile(tmp, JSON.stringify({ ...plan, pid: process.pid }), "utf-8");
+  await fs.writeFile(tmp, JSON.stringify({ ...plan, instanceId: INSTANCE_ID, pid: process.pid, host: os.hostname() }), "utf-8");
   await fs.rename(tmp, file); // 書き終えた記録だけが、復旧の対象になる
   return async () => { await fs.rm(file, { force: true }); };
 }
@@ -57,12 +65,23 @@ function contained(root: string, rel: string): string {
   return abs;
 }
 
-function isAlive(pid: number): boolean {
-  if (pid === process.pid) return true;
-  try { process.kill(pid, 0); return true; } catch (e) { return (e as NodeJS.ErrnoException).code === "EPERM"; }
+/**
+ * 記録の持ち主が、まだ操作の途中か (生きているか)。
+ * - このプロセスの起動中の記録 (instanceId が同じ): 進行中の操作
+ * - 別の起動の記録: 同じホストで、別の pid が生きていれば、別のプロセスの進行中の操作。pid が同じ (= 再起動した自分) か、死んでいれば残骸
+ *   (pid の一致では「自分」とみなさない: 配布の Docker は毎回 pid 1 で、強制終了後に再起動した新しいプロセスが、前の世代の記録を飛ばしてしまう)
+ * - 別のホストの記録: 生死を確かめられないので、FOREIGN_STALE_MS より新しければ進行中とみなす
+ * - 持ち主の情報が無い (古い形式) 記録: 残骸
+ */
+export function isOwnerAlive(plan: JournalPlan, fileMtimeMs: number, now = Date.now()): boolean {
+  if (plan.instanceId === INSTANCE_ID) return true;
+  if (plan.pid === undefined) return false;
+  if (plan.host !== undefined && plan.host !== os.hostname()) return now - fileMtimeMs < FOREIGN_STALE_MS;
+  if (plan.pid === process.pid) return false;
+  try { process.kill(plan.pid, 0); return true; } catch (e) { return (e as NodeJS.ErrnoException).code === "EPERM"; }
 }
 
-/** 残っている記録 (持ち主のプロセスが終わっているもの) を、元の内容に戻す。戻したファイルの数を返す */
+/** 残っている記録 (持ち主が終わっているもの) を、元の内容に戻す。戻したファイルの数を返す */
 export async function recoverJournals(root: string): Promise<{ journals: number; restored: number }> {
   const dir = path.join(root, JOURNAL_DIR);
   let files: string[];
@@ -73,7 +92,11 @@ export async function recoverJournals(root: string): Promise<{ journals: number;
     try {
       const plan = JSON.parse(await fs.readFile(file, "utf-8")) as JournalPlan;
       // 持ち主のプロセスが生きている記録は、進行中の操作。巻き戻さない
-      if (plan.pid !== undefined && isAlive(plan.pid)) continue;
+      const st = await fs.stat(file).catch(() => null);
+      if (isOwnerAlive(plan, st?.mtimeMs ?? 0)) {
+        logWarn("journal", "journal.skipped.owner-alive", { label: plan.label, pid: plan.pid, host: plan.host });
+        continue;
+      }
       const restoring = new Set(plan.restore.map((r) => r.rel));
       for (const r of plan.restore) {
         const abs = contained(root, r.rel);

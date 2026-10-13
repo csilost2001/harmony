@@ -12,7 +12,7 @@
  * 画面が別の操作を続けていても (ハートビートなど) 外部の変更を見逃さない。
  * 仕様: docs/spec/external-change-detection.md
  */
-import fsSync, { existsSync, readdirSync, statSync, watch, type FSWatcher } from "node:fs";
+import fsSync, { readdirSync, statSync, watch, type FSWatcher } from "node:fs";
 import fsPromises from "node:fs/promises";
 import { syncBuiltinESMExports } from "node:module";
 import path from "node:path";
@@ -48,11 +48,20 @@ function toAbs(p: unknown): string | null {
 /**
  * このパスを、backend が書く (書いた) ものとして覚える。settled が true なら、書き終えた状態も覚える (書く前に呼ぶときは false)。
  */
-export function markSelfWrite(p: unknown, settled = false, now = Date.now()): void {
+export function markSelfWrite(p: unknown, settled = false, now = Date.now(), dirRemoval = false): void {
   const abs = toAbs(p);
   if (!abs) return;
-  selfMarks.set(abs, settled ? { t: now, sig: sigOf(abs) } : { t: now });
-  if (settled && sigOf(abs) === "-") selfRemoved.set(abs, now);
+  const sig = settled ? sigOf(abs) : undefined;
+  selfMarks.set(abs, sig === undefined ? { t: now } : { t: now, sig });
+  if (settled) {
+    if (sig === "-") {
+      // フォルダ (または再帰の削除) の削除だけ、配下のファイルの削除通知も「自分」にする。ファイル 1 件の削除は、そのファイルの状態 ("-") だけで足りる
+      if (dirRemoval) selfRemoved.set(abs, now);
+    } else {
+      // 作り直した (書いた) ので、そのパスと、その親にあたる「自分が消した」記録は外す (あとの外部の削除を、取りこぼさない)
+      for (const k of selfRemoved.keys()) if (abs === k || abs.startsWith(k + path.sep)) selfRemoved.delete(k);
+    }
+  }
   if (selfMarks.size > 4000) {
     for (const [k, m] of selfMarks) if (now - m.t >= SELF_KEEP_MS) selfMarks.delete(k);
     for (const [k, t] of selfRemoved) if (now - t >= SELF_KEEP_MS) selfRemoved.delete(k);
@@ -91,7 +100,8 @@ export function installSelfWriteTracking(): void {
       const orig = (target as Record<string, unknown>)[key];
       if (typeof orig !== "function") continue;
       const idx = PATH_ARGS[name] ?? [0];
-      const mark = (args: unknown[], settled: boolean): void => { for (const i of idx) markSelfWrite(args[i], settled); };
+      const dirRemoval = name === "rm" || name === "rmdir";
+      const mark = (args: unknown[], settled: boolean): void => { for (const i of idx) markSelfWrite(args[i], settled, Date.now(), dirRemoval); };
       (target as Record<string, unknown>)[key] = isAsync
         ? async function (this: unknown, ...args: unknown[]) { mark(args, false); try { return await (orig as (...a: unknown[]) => unknown).apply(this, args); } finally { mark(args, true); } }
         : function (this: unknown, ...args: unknown[]) { mark(args, false); try { return (orig as (...a: unknown[]) => unknown).apply(this, args); } finally { mark(args, true); } };
@@ -146,6 +156,8 @@ interface Watching {
   dataRoot: string;
   /** 相対フォルダ → 監視 (フォルダごとに 1 つ。再帰の監視は、隠しフォルダ (.harmony-backups など) のファイルごとにも監視を作るので使わない) */
   dirs: Map<string, FSWatcher>;
+  /** 監視を始めたときのフォルダの inode。フォルダが消えて作り直されると変わる (古い監視は、作り直されたフォルダを見ていない) */
+  inodes: Map<string, number>;
   timer: NodeJS.Timeout | null;
   pending: Map<string, ChangeEvent>;
 }
@@ -166,7 +178,7 @@ export class ExternalChangeWatcher {
     this.starting.add(root);
     try {
       const dataRoot = await resolveDataRoot(root);
-      const w: Watching = { dataRoot, dirs: new Map(), timer: null, pending: new Map() };
+      const w: Watching = { dataRoot, dirs: new Map(), inodes: new Map(), timer: null, pending: new Map() };
       this.watching.set(root, w);
       this.syncDirs(root, w);
       if (w.dirs.size === 0) throw new Error("監視できるフォルダがありません");
@@ -183,7 +195,7 @@ export class ExternalChangeWatcher {
   }
 
   /** 監視するフォルダのうち、まだ監視していないもの (あとから作られたフォルダ) を足す */
-  private syncDirs(root: string, w: Watching): void {
+  private syncDirs(root: string, w: Watching, force: ReadonlySet<string> = new Set()): void {
     const rels = [...WATCH_DIRS];
     try {
       for (const e of readdirSync(path.join(w.dataRoot, "generic-definitions"), { withFileTypes: true })) {
@@ -191,17 +203,26 @@ export class ExternalChangeWatcher {
       }
     } catch { /* generic-definitions が無い */ }
     for (const rel of rels) {
-      if (w.dirs.has(rel)) continue;
       const abs = rel ? path.join(w.dataRoot, ...rel.split("/")) : w.dataRoot;
-      if (!existsSync(abs)) continue;
+      let ino: number;
+      try { ino = statSync(abs).ino; } catch { // フォルダが無くなった: 監視を閉じる (作り直されたら、次の通知で張り直す)
+        const gone = w.dirs.get(rel);
+        if (gone) { try { gone.close(); } catch { /* ignore */ } w.dirs.delete(rel); w.inodes.delete(rel); }
+        continue;
+      }
+      const cur = w.dirs.get(rel);
+      // 同じ名前のフォルダが消えて作り直されると、inode が同じになることがある。親の通知でその名前が出たフォルダ (force) は、必ず張り直す
+      if (cur && w.inodes.get(rel) === ino && !force.has(rel)) continue;
+      if (cur) { try { cur.close(); } catch { /* ignore */ } w.dirs.delete(rel); } // 作り直されたフォルダ: 張り直す
       try {
         const fsw = watch(abs, { persistent: false }, (_type, name) => this.onEvent(root, w, rel, name));
         fsw.on("error", (e) => {
           logWarn("external-change", "watch.dir.error", { dir: rel, error: e.message });
           try { fsw.close(); } catch { /* ignore */ }
-          if (w.dirs.get(rel) === fsw) w.dirs.delete(rel);
+          if (w.dirs.get(rel) === fsw) { w.dirs.delete(rel); w.inodes.delete(rel); }
         });
         w.dirs.set(rel, fsw);
+        w.inodes.set(rel, ino);
       } catch (e) {
         if (rel === "") throw e; // データフォルダ自身を監視できなければ、この環境では使えない
         logWarn("external-change", "watch.dir.failed", { dir: rel, error: e instanceof Error ? e.message : String(e) });
@@ -213,7 +234,10 @@ export class ExternalChangeWatcher {
     if (!name) return;
     const relPath = rel ? `${rel}/${name.toString()}` : name.toString();
     // フォルダが作られた・消えた (generic-definitions/<種類> など) 可能性: 監視を足す
-    if (rel === "" || rel === "generic-definitions") this.syncDirs(root, w);
+    if (rel === "" || rel === "generic-definitions") {
+      const child = rel ? `${rel}/${name.toString()}` : name.toString();
+      this.syncDirs(root, w, new Set([child, ...(child === "generic-definitions" ? [...w.dirs.keys()].filter((k) => k.startsWith("generic-definitions/")) : [])]));
+    }
     if (isSelfWritePath(path.join(w.dataRoot, ...relPath.split("/")))) return; // backend 自身の書き込み
     const ev = classifyChangedPath(relPath);
     if (!ev) return;
