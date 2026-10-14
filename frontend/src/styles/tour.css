@@ -1,0 +1,15 @@
+/* 操作ツアー */
+.tour-root { position: fixed; inset: 0; z-index: 1300; }
+.tour-mask { position: absolute; inset: 0; background: transparent; }
+.tour-spot { position: absolute; border-radius: 8px; box-shadow: 0 0 0 9999px color-mix(in srgb, var(--hm-inverse-bg) 55%, transparent); outline: 2px solid var(--hm-accent); pointer-events: none; transition: all 0.15s ease; }
+.tour-root:not(:has(.tour-spot)) .tour-mask { background: color-mix(in srgb, var(--hm-inverse-bg) 55%, transparent); }
+.tour-card {
+  position: absolute; width: min(360px, calc(100vw - 16px)); padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;
+  background: var(--hm-surface); color: var(--hm-fg); border: 1px solid var(--hm-border-strong); border-radius: 8px; box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+}
+.tour-step { font-size: calc(11.5px * var(--hm-font-scale)); color: var(--hm-fg-muted); }
+.tour-card h3 { margin: 0; font-size: calc(15px * var(--hm-font-scale)); }
+.tour-card p { margin: 0; font-size: calc(13px * var(--hm-font-scale)); line-height: 1.7; color: var(--hm-fg-2); }
+.tour-actions { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+.tour-spacer { flex: 1 1 auto; }
+@media (prefers-reduced-motion: reduce) { .tour-spot { transition: none; } }

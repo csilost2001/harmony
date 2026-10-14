@@ -11,6 +11,7 @@
  */
 import { useState } from "react";
 import type { ProcessFlow, EnvVarEntry } from "../../types/v3";
+import { EmptyState } from "../common/EmptyState";
 
 interface Props {
   group: ProcessFlow;
@@ -237,7 +238,7 @@ export function EnvVarsCatalogPanel({
             環境別 (dev/staging/prod) の設定値。<code>@env.&lt;KEY&gt;</code> で式から参照。
             秘匿値は <strong>secrets</strong> カタログ側で扱う。
           </div>
-          {keys.length === 0 && <div className="catalog-empty">まだエントリがありません。</div>}
+          {keys.length === 0 && <EmptyState compact noun="エントリ" icon="bi-journal-plus" hint="「追加」から登録します。" />}
           {keys.map((k) => {
             const e = catalog[k];
             return (

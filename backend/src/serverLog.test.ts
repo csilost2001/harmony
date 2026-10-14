@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
-import { initServerLog, log, logError, ingestClientLog, shutdownServerLog } from "./serverLog.js";
+import { initServerLog, log, logError, ingestClientLog, shutdownServerLog, readLogTail } from "./serverLog.js";
 
 let tmpRoot = "";
 
@@ -135,5 +135,26 @@ describe("serverLog", () => {
     process.env.DESIGNER_LOG_RETENTION_DAYS = "abc";
     try { touch(); initServerLog(tmpRoot); expect([exists(1), exists(4), exists(10)]).toEqual([true, true, false]); }
     finally { delete process.env.DESIGNER_LOG_RETENTION_DAYS; }
+  });
+
+  it("readLogTail は、今日のログの末尾の行を返す (書くときにマスクしてあるので、秘密は含まない)", () => {
+    for (let i = 0; i < 30; i++) log("info", "tail-test", `行 ${i}`);
+    log("info", "tail-test", "接続", { url: "ws://localhost/?token=SECRETVALUE123" });
+    const lines = readLogTail(5);
+    expect(lines).toHaveLength(5);
+    expect(lines[lines.length - 1]).toContain("接続");
+    expect(lines.join("\n")).not.toContain("SECRETVALUE123");
+    expect(JSON.parse(lines[0]).category).toBe("tail-test");
+    expect(readLogTail(100000).length).toBeLessThanOrEqual(500);
+  });
+
+  it("readLogTail は、ログの無いとき (初期化前・読めない) でも空で返す。大きなファイルの途中から読んだ先頭の行は捨てる", () => {
+    shutdownServerLog();
+    expect(Array.isArray(readLogTail())).toBe(true);
+    initServerLog(tmpRoot);
+    for (let i = 0; i < 400; i++) log("info", "big", "x".repeat(200) + i);
+    const lines = readLogTail(500, 4096); // 4 KB だけ読む
+    expect(lines.length).toBeGreaterThan(0);
+    expect(lines.every((l) => { try { JSON.parse(l); return true; } catch { return false; } })).toBe(true); // 切れた行を含まない
   });
 });

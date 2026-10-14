@@ -24,7 +24,7 @@
 
 body {
   font-family: "Yu Gothic UI", "Meiryo", "Segoe UI", system-ui, sans-serif;
-  font-size: 14px;
+  font-size: calc(14px * var(--hm-font-scale));
   color: #212529;
   background-color: #f8f9fa;
 }
@@ -47,7 +47,7 @@ body {
   flex-shrink: 0;
 }
 .app-header .app-title {
-  font-size: 16px;
+  font-size: calc(16px * var(--hm-font-scale));
   font-weight: 600;
   margin: 0;
 }
@@ -101,12 +101,12 @@ body {
   border-bottom: 2px solid var(--app-border-strong);
 }
 .page-header .page-title {
-  font-size: 20px;
+  font-size: calc(20px * var(--hm-font-scale));
   font-weight: 700;
   margin: 0;
 }
 .page-header .breadcrumb-area {
-  font-size: 12px;
+  font-size: calc(12px * var(--hm-font-scale));
   color: #6c757d;
 }
 
@@ -122,7 +122,7 @@ body {
   background-color: var(--app-section-title-bg);
   border-bottom: 1px solid var(--app-border);
   padding: 8px 12px;
-  font-size: 14px;
+  font-size: calc(14px * var(--hm-font-scale));
   font-weight: 700;
   color: #343a40;
 }
@@ -164,7 +164,7 @@ body {
   align-items: center;
   justify-content: center;
   color: var(--app-muted, #888);
-  font-size: 12px;
+  font-size: calc(12px * var(--hm-font-scale));
   pointer-events: none;
 }
 
@@ -375,7 +375,7 @@ body:has(.form-footer) {
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: calc(13px * var(--hm-font-scale));
 }
 .data-table thead th {
   background-color: var(--app-section-title-bg);
@@ -394,7 +394,7 @@ body:has(.form-footer) {
 .data-table thead th.sortable::after {
   content: " \2195";
   color: #adb5bd;
-  font-size: 11px;
+  font-size: calc(11px * var(--hm-font-scale));
 }
 .data-table thead th.sort-asc::after { content: " \2191"; color: #212529; }
 .data-table thead th.sort-desc::after { content: " \2193"; color: #212529; }
@@ -429,7 +429,7 @@ body:has(.form-footer) {
   display: inline-block;
   padding: 2px 8px;
   border-radius: 10px;
-  font-size: 12px;
+  font-size: calc(12px * var(--hm-font-scale));
   font-weight: 700;
   line-height: 1.4;
   color: #ffffff;
@@ -465,7 +465,7 @@ body:has(.form-footer) {
   list-style: none;
   padding: 0;
   margin: 0;
-  font-size: 12px;
+  font-size: calc(12px * var(--hm-font-scale));
   color: #495057;
 }
 .file-upload .file-list li {

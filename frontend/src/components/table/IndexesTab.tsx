@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Table, Index, LocalId, PhysicalName } from "../../types/v3";
 import { addIndex, removeIndex } from "../../store/tableStore";
+import { EmptyState } from "../common/EmptyState";
 
 type IndexMethod = "btree" | "hash" | "gin" | "gist";
 const INDEX_METHODS: IndexMethod[] = ["btree", "hash", "gin", "gist"];
@@ -49,8 +50,8 @@ export function IndexesTab({ table, update }: Props) {
 
       {indexes.length === 0 ? (
         <div className="indexes-empty2">
-          <i className="bi bi-lightning indexes-empty-icon" />
-          <p>インデックスを追加すると DDL プレビューに <code>CREATE INDEX</code> として出力されます。</p>
+          <EmptyState compact noun="インデックス" icon="bi-lightning" testId="indexes-empty-state"
+            hint={<>右上の「インデックスを追加」から足します。インデックスは DDL プレビューに <code>CREATE INDEX</code> として出力されます。</>} />
         </div>
       ) : (
         <div className="indexes-list2">

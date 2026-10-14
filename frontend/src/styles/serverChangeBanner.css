@@ -5,7 +5,7 @@
   padding: 8px 14px;
   background: var(--hm-surface-2);
   border-bottom: 1px solid #2563eb;
-  font-size: 13px;
+  font-size: calc(13px * var(--hm-font-scale));
   color: color-mix(in srgb, var(--hm-hue-blue) 70%, var(--hm-fg));
   flex-shrink: 0;
 }
@@ -22,7 +22,7 @@
 .scb-btn {
   padding: 3px 10px;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: calc(12px * var(--hm-font-scale));
   cursor: pointer;
   border: 1px solid transparent;
   transition: background 0.1s;

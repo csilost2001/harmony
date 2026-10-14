@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { QUICK_CREATE_ACTIONS, buildQuickOpenEntries, loadRecentQuickOpen, normalizeQuery, rememberQuickOpen, searchQuickOpen } from "./quickOpen";
+import { QUICK_CREATE_ACTIONS, buildQuickOpenEntries, clearRecentQuickOpen, loadRecentQuickOpen, normalizeQuery, rememberQuickOpen, resolveFavoriteEntries, searchCommands, searchQuickOpen } from "./quickOpen";
 
 const entries = buildQuickOpenEntries({
   screens: [
@@ -129,3 +129,59 @@ describe("contentHitsToEntries (本文検索の結果)", () => {
   });
 });
 
+
+describe("お気に入り (検索語が空のとき先頭に出る)", () => {
+  const es = buildQuickOpenEntries({
+    screens: [{ id: "cart", name: "カート" }],
+    tables: [{ id: "orders", name: "注文" }, { id: "items", name: "商品" }],
+    gadgets: [{ id: "global-header", name: "ヘッダ" }],
+  });
+
+  it("お気に入り → 最近開いた順 → 残り。同じものは 1 度だけ", () => {
+    const hits = searchQuickOpen(es, "", 50, ["table:items", "table:orders"], ["table:orders", "screen:cart"]).map((h) => h.entry.key);
+    expect(hits.slice(0, 3)).toEqual(["table:orders", "screen:cart", "table:items"]);
+    expect(new Set(hits).size).toBe(hits.length);
+  });
+
+  it("画面の印で固定したガジェットも、実在する側の候補として出る。語があるときは通常の検索", () => {
+    expect(searchQuickOpen(es, "", 50, [], ["screen:global-header"])[0].entry.key).toBe("gadget:global-header");
+    expect(searchQuickOpen(es, "商品", 50, [], ["table:orders"])[0].entry.key).toBe("table:items");
+  });
+
+  it("resolveFavoriteEntries は固定した順に結びつけ、見つからないもの (削除・改名) は entry が null", () => {
+    const r = resolveFavoriteEntries(es, ["table:gone", "table:orders", "screen:global-header"]);
+    expect(r.map((x) => [x.key, x.entry?.key ?? null])).toEqual([["table:gone", null], ["table:orders", "table:orders"], ["screen:global-header", "gadget:global-header"]]);
+  });
+});
+
+describe("最近開いたものの履歴を消す", () => {
+  it("消すと空になる", () => {
+    rememberQuickOpen("table:orders");
+    expect(loadRecentQuickOpen()).toContain("table:orders");
+    clearRecentQuickOpen();
+    expect(loadRecentQuickOpen()).toEqual([]);
+  });
+});
+
+describe("searchCommands (コマンドパレットの操作の検索)", () => {
+  const cmds = [
+    { id: "save", label: "保存", keywords: ["ほぞん", "save"] },
+    { id: "undo", label: "元に戻す", keywords: ["もとにもどす", "undo"] },
+    { id: "theme-dark", label: "配色: ダーク", keywords: ["はいしょく", "theme", "dark"] },
+    { id: "font-large", label: "文字サイズ: 大", keywords: ["もじ", "font", "size"] },
+  ];
+  it("語が空なら渡した順のまま、語があれば名前・読み・英語のどれでも見つかる", () => {
+    expect(searchCommands(cmds, "").map((c) => c.id)).toEqual(["save", "undo", "theme-dark", "font-large"]);
+    expect(searchCommands(cmds, "ほぞん").map((c) => c.id)).toEqual(["save"]);
+    expect(searchCommands(cmds, "ホゾン").map((c) => c.id)).toEqual(["save"]); // カタカナでも
+    expect(searchCommands(cmds, "dark").map((c) => c.id)).toEqual(["theme-dark"]);
+    expect(searchCommands(cmds, "配色 ダーク").map((c) => c.id)).toEqual(["theme-dark"]);
+  });
+  it("空白で区切った語はすべて合う必要がある。合わなければ空", () => {
+    expect(searchCommands(cmds, "文字 ダーク")).toEqual([]);
+    expect(searchCommands(cmds, "zzz")).toEqual([]);
+  });
+  it("件数を絞れる", () => {
+    expect(searchCommands(cmds, "", 2)).toHaveLength(2);
+  });
+});

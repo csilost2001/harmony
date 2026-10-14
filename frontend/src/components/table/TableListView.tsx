@@ -36,6 +36,7 @@ import { confirmDeletionImpact } from "../../utils/confirmDeletion";
 import { useQuickCreate } from "../../hooks/useQuickCreate";
 import { useReferencesDialog } from "../common/ReferencesButton";
 import { reportFailure } from "../../utils/failureToast";
+import { EmptyState } from "../common/EmptyState";
 
 const STORAGE_KEY = "list-view-mode:table-list";
 const TAB_ID = makeTabId("table-list", "main");
@@ -733,9 +734,7 @@ export function TableListView() {
           className="tables-data-list"
           isItemGhost={(id) => editor.isDeleted(id)}
           emptyMessage={
-            query
-              ? <p>該当するテーブル定義がありません</p>
-              : <p>テーブル定義がまだありません。「テーブル追加」から作成してください。</p>
+            <EmptyState noun="テーブル定義" icon="bi-table" hint="画面や処理が使うデータの置き場所と列を決めます" filtered={!!query} onCreate={() => setShowAdd(true)} createLabel="テーブルを追加" onClear={() => setQuery("")} />
           }
         />
 

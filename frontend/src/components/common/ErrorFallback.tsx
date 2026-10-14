@@ -1,5 +1,25 @@
 import "../../styles/errorFallback.css";
 import { ErrorDetailsPanel } from "./ErrorDetailsPanel";
+import { hasDraft, listAllDrafts } from "../../utils/draftStorage";
+
+/** タブの種類 → ブラウザの下書き (draftStorage) の種類。サーバの編集セッションで保つものは対応なし */
+const DRAFT_KIND_BY_TAB: Record<string, string> = { "table": "table", "process-flow": "action", "business-flow": "businessFlow", "report": "report", "screen-flow": "flow" };
+
+/** 編集中の内容が残っていることの案内 (再試行しても失われないことを伝える) */
+export function DraftAssurance({ tabType, resourceId }: { tabType?: string; resourceId?: string }) {
+  const kind = tabType ? DRAFT_KIND_BY_TAB[tabType] : undefined;
+  const mine = kind && resourceId ? hasDraft(kind, resourceId) : false;
+  const total = listAllDrafts().length;
+  return (
+    <p className="error-fallback-draft" data-testid="error-draft-assurance">
+      <i className="bi bi-shield-check" />{" "}
+      {mine
+        ? "この設計の編集中の内容は、下書きとして残っています。「再試行」か、タブを開き直すと、続きから編集できます。"
+        : "編集中の内容は、変更のたびに下書き (このブラウザと、サーバの編集セッション) へ保存しています。「再試行」か、タブを開き直すと、続きから編集できます。"}
+      {total > 0 && ` (このブラウザに残っている下書き: ${total} 件。ダッシュボードの「未保存ドラフト」から開けます)`}
+    </p>
+  );
+}
 
 interface AppFallbackProps {
   error: Error;
@@ -22,7 +42,8 @@ export function AppErrorFallback({ error, onReset }: AppFallbackProps) {
       <div className="app-error-fallback-panel">
         <h1><i className="bi bi-exclamation-octagon-fill" /> アプリでエラーが発生しました</h1>
         <p>画面を復元できませんでした。タブ情報が壊れている可能性があります。</p>
-        <ErrorDetailsPanel message={error.message} stack={error.stack} />
+        <DraftAssurance />
+        <ErrorDetailsPanel message={error.message} stack={error.stack} includeServerLog />
         <div className="app-error-actions">
           <button className="btn btn-primary" onClick={onReset}>再試行</button>
           <button className="btn btn-warning" onClick={handleResetStorage}>
@@ -37,12 +58,15 @@ export function AppErrorFallback({ error, onReset }: AppFallbackProps) {
 interface TabFallbackProps {
   error: Error;
   tabLabel: string;
+  /** タブの種類と、開いていた設計の ID (下書きが残っているかの案内に使う) */
+  tabType?: string;
+  resourceId?: string;
   onRetry: () => void;
   onClose: () => void;
 }
 
 /** 個別タブがクラッシュしたときのフォールバック。ヘッダー・TabBar は維持される。 */
-export function TabErrorFallback({ error, tabLabel, onRetry, onClose }: TabFallbackProps) {
+export function TabErrorFallback({ error, tabLabel, tabType, resourceId, onRetry, onClose }: TabFallbackProps) {
   return (
     <div className="tab-error-fallback" role="alert">
       <div className="tab-error-fallback-panel">
@@ -50,10 +74,12 @@ export function TabErrorFallback({ error, tabLabel, onRetry, onClose }: TabFallb
           <i className="bi bi-exclamation-triangle-fill" /> 「{tabLabel}」を表示できませんでした
         </h2>
         <p>このタブの描画中にエラーが発生しました。他のタブは引き続き利用できます。</p>
+        <DraftAssurance tabType={tabType} resourceId={resourceId} />
         <ErrorDetailsPanel
           message={error.message}
           stack={error.stack}
-          context={{ tabLabel }}
+          context={{ tabLabel, tabType, resourceId }}
+          includeServerLog
         />
         <div className="tab-error-actions">
           <button className="btn btn-primary" onClick={onRetry}>再試行</button>

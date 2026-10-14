@@ -1,0 +1,30 @@
+/* ヘッダーのお気に入り */
+.fav-wrap { position: relative; display: inline-flex; }
+.fav-pop {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 1100; width: min(360px, calc(100vw - 24px));
+  max-height: min(70vh, 480px); display: flex; flex-direction: column; overflow: hidden;
+  background: var(--hm-surface); color: var(--hm-fg); border: 1px solid var(--hm-border-strong); border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+.fav-toggle {
+  display: flex; align-items: center; gap: 8px; padding: 8px 12px; border: 0; border-bottom: 1px solid var(--hm-border);
+  background: var(--hm-surface-2); color: var(--hm-fg); font: inherit; font-size: calc(12.5px * var(--hm-font-scale)); text-align: left; cursor: pointer;
+}
+.fav-toggle:hover { background: var(--hm-accent-soft); color: var(--hm-accent); }
+.fav-toggle i { color: var(--hm-warning); }
+.fav-empty { margin: 0; padding: 12px; font-size: calc(12px * var(--hm-font-scale)); line-height: 1.6; color: var(--hm-fg-muted); }
+.fav-list { list-style: none; margin: 0; padding: 4px; overflow-y: auto; }
+.fav-item { display: flex; align-items: center; gap: 2px; }
+.fav-open {
+  flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 0; border-radius: 5px;
+  background: transparent; color: var(--hm-fg); font: inherit; font-size: calc(13px * var(--hm-font-scale)); text-align: left; cursor: pointer;
+}
+button.fav-open:hover { background: var(--hm-accent-soft); }
+.fav-open.is-missing { color: var(--hm-fg-faint); cursor: default; }
+.fav-open > i { color: var(--hm-fg-muted); width: 16px; text-align: center; }
+.fav-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fav-kind { flex: 0 0 auto; font-size: calc(11px * var(--hm-font-scale)); color: var(--hm-fg-muted); }
+.fav-remove { flex: 0 0 auto; border: 0; background: transparent; color: var(--hm-fg-faint); cursor: pointer; padding: 4px 6px; border-radius: 4px; }
+.fav-remove:hover { color: var(--hm-danger); background: var(--hm-hover); }
+.fav-panel-list { list-style: none; margin: 0; padding: 4px; overflow-y: auto; height: 100%; }
+.fav-panel-loading { padding: 8px; color: var(--hm-fg-muted); font-size: calc(12.5px * var(--hm-font-scale)); }

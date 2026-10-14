@@ -19,6 +19,9 @@ export interface LayoutInspectorProps {
   onItemChange: (itemId: string, fn: (i: ScreenItem) => ScreenItem, commit: boolean) => void;
   onRenameNode: (oldId: string, newId: string) => void;
   onMove: (dir: -1 | 1) => void;
+  /** 親の外へ出す / 直前の兄弟の中へ入れる (できなければ false) */
+  onOutdent?: () => boolean;
+  onIndent?: () => boolean;
   onDuplicate: () => void;
   onDelete: () => void;
   onAddChild: (type: "column" | "tab") => void;
@@ -114,7 +117,7 @@ function ScreenPanel({ issues, onSelect, items, nodes }: LayoutInspectorProps) {
 }
 
 function NodePanel(props: LayoutInspectorProps & { node: LayoutNode }) {
-  const { node, nodes, items, editable, onNodeChange, onItemChange, onRenameNode, onMove, onDuplicate, onDelete, onAddChild, onCommit, screens, onSelect, components = [], paramChips } = props;
+  const { node, nodes, items, editable, onNodeChange, onItemChange, onRenameNode, onMove, onOutdent, onIndent, onDuplicate, onDelete, onAddChild, onCommit, screens, onSelect, components = [], paramChips } = props;
   const p = node.props ?? {};
   const item = node.itemRef ? items.find((i) => i.id === node.itemRef) : undefined;
   // 部品が切り替わると NodePanel は key で作り直されるため、下書き状態の同期は不要
@@ -151,6 +154,8 @@ function NodePanel(props: LayoutInspectorProps & { node: LayoutNode }) {
         <div className="sld-node-actions">
           <button type="button" className="sld-icon-btn" title="前へ (Alt+↑)" disabled={!editable} onClick={() => onMove(-1)}><i className="bi bi-arrow-up" /></button>
           <button type="button" className="sld-icon-btn" title="後ろへ (Alt+↓)" disabled={!editable} onClick={() => onMove(1)}><i className="bi bi-arrow-down" /></button>
+          {onOutdent && <button type="button" className="sld-icon-btn" title="親の外へ出す (Alt+←)" aria-label="親の外へ出す" disabled={!editable} onClick={() => { onOutdent(); }} data-testid="layout-outdent"><i className="bi bi-box-arrow-in-left" /></button>}
+          {onIndent && <button type="button" className="sld-icon-btn" title="直前の部品の中へ入れる (Alt+→)" aria-label="直前の部品の中へ入れる" disabled={!editable} onClick={() => { onIndent(); }} data-testid="layout-indent"><i className="bi bi-box-arrow-in-right" /></button>}
           <button type="button" className="sld-icon-btn" title="複製 (Ctrl+D)" disabled={!editable} onClick={onDuplicate}><i className="bi bi-copy" /></button>
           <button type="button" className="sld-icon-btn danger" title="削除 (Delete)" disabled={!editable} onClick={onDelete} data-testid="layout-delete-node"><i className="bi bi-trash" /></button>
           <button type="button" className="sld-icon-btn" title="選択を解除 (Esc)" onClick={() => onSelect(null)}><i className="bi bi-x-lg" /></button>

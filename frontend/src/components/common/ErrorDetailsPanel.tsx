@@ -4,8 +4,10 @@
  *
  * 目的: ユーザーが「どう伝えれば治るか」困ったときに、最小限の操作でログを共有できるようにする。
  */
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { clearErrorLog, getErrorLog, type ErrorLogEntry } from "../../utils/errorLog";
+import { listAllDrafts } from "../../utils/draftStorage";
+import { mcpBridge } from "../../mcp/mcpBridge";
 
 interface Props {
   /** 見出しの次に出るエラーメッセージ。error.message などを想定。 */
@@ -16,6 +18,8 @@ interface Props {
   context?: Record<string, unknown>;
   /** 履歴ログ表示を省く場合 true。通常は false。 */
   hideHistory?: boolean;
+  /** サーバのログの末尾 (最大 100 行) を、レポートに含める。つながっていなければ含めない */
+  includeServerLog?: boolean;
 }
 
 /** クリップボードにテキストを書き出す。Clipboard API が使えない場合は textarea フォールバック。 */
@@ -48,6 +52,8 @@ function buildReport(
   stack: string | undefined,
   context: Record<string, unknown> | undefined,
   history: ErrorLogEntry[],
+  serverLog: string[] | null,
+  drafts: Array<{ kind: string; id: string }>,
 ): string {
   return JSON.stringify(
     {
@@ -58,22 +64,39 @@ function buildReport(
       stack,
       context,
       history,
+      // 編集中の内容の下書き (このブラウザに残っているもの。中身は含めない)
+      localDrafts: drafts,
+      // サーバのログの末尾 (書くときに、キー・トークンなどをマスク済み)。つながっていなければ無い
+      ...(serverLog ? { serverLogTail: serverLog } : {}),
     },
     null,
     2,
   );
 }
 
-export function ErrorDetailsPanel({ message, stack, context, hideHistory }: Props) {
+export function ErrorDetailsPanel({ message, stack, context, hideHistory, includeServerLog }: Props) {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [stackOpen, setStackOpen] = useState(false);
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
 
   const history = useMemo(() => (hideHistory ? [] : getErrorLog()), [hideHistory]);
 
+  // サーバのログの末尾 (つながっているときだけ。2 秒で諦める)。不具合の報告に添える
+  const [serverLog, setServerLog] = useState<string[] | null>(null);
+  useEffect(() => {
+    if (!includeServerLog) return;
+    let alive = true;
+    const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000));
+    Promise.race([mcpBridge.request("diagnostics.serverLogTail", { lines: 100 }), timeout])
+      .then((res) => { if (alive && res && Array.isArray((res as { lines?: unknown }).lines)) setServerLog((res as { lines: string[] }).lines); })
+      .catch(() => undefined);
+    return () => { alive = false; };
+  }, [includeServerLog]);
+  const drafts = useMemo(() => listAllDrafts().map((d) => ({ kind: d.kind, id: d.id })), []);
+
   const report = useMemo(
-    () => buildReport(message, stack, context, history),
-    [message, stack, context, history],
+    () => buildReport(message, stack, context, history, serverLog, drafts),
+    [message, stack, context, history, serverLog, drafts],
   );
 
   const handleCopy = useCallback(async () => {
@@ -147,7 +170,7 @@ export function ErrorDetailsPanel({ message, stack, context, hideHistory }: Prop
           data-copy-state={copyState}
         >
           <i className="bi bi-clipboard" />{" "}
-          {copyState === "copied" ? "コピー済み" : copyState === "failed" ? "コピー失敗" : "レポートをコピー"}
+          {copyState === "copied" ? "コピー済み" : copyState === "failed" ? "コピー失敗" : "状況をまとめてコピー"}
         </button>
         <button
           type="button"

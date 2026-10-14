@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import "../../styles/editorHeader.css";
 import { SaveResetButtons } from "./SaveResetButtons";
+import { UndoHistoryPanel } from "./UndoHistoryPanel";
+import type { UndoHistoryView } from "../../hooks/useUndoableState";
 
 export interface EditorHeaderBackLink {
   label: string;
@@ -14,6 +16,11 @@ export interface EditorHeaderUndoRedo {
   onRedo: () => void;
   canUndo: boolean;
   canRedo: boolean;
+  /** 渡すと、「変更履歴」のボタンが出る (積まれている操作の一覧と、途中へ戻る操作) */
+  history?: UndoHistoryView<unknown>;
+  /** 履歴の「いま」の状態 (history と一緒に渡す) */
+  present?: unknown;
+  onJump?: (delta: number) => void;
 }
 
 export interface EditorHeaderSaveReset {
@@ -92,6 +99,7 @@ export function EditorHeader({
             >
               <i className="bi bi-arrow-clockwise" />
             </button>
+            {undoRedo.history && undoRedo.onJump && <UndoHistoryPanel history={undoRedo.history} present={undoRedo.present} onJump={undoRedo.onJump} />}
           </div>
         )}
         {extraRight !== undefined && (

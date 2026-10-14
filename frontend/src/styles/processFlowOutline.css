@@ -1,16 +1,16 @@
 .pf-outline { display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; }
-.pf-outline-hint { margin: 0; font-size: 12px; color: var(--hm-fg-muted); line-height: 1.6; }
-.pf-outline-hint kbd { padding: 0 5px; font-family: inherit; font-size: 11px; background: var(--hm-surface-2); border: 1px solid var(--hm-border-strong); border-radius: 4px; }
-.pf-outline-hint code { font-size: 11px; color: var(--hm-fg-faint); }
+.pf-outline-hint { margin: 0; font-size: calc(12px * var(--hm-font-scale)); color: var(--hm-fg-muted); line-height: 1.6; }
+.pf-outline-hint kbd { padding: 0 5px; font-family: inherit; font-size: calc(11px * var(--hm-font-scale)); background: var(--hm-surface-2); border: 1px solid var(--hm-border-strong); border-radius: 4px; }
+.pf-outline-hint code { font-size: calc(11px * var(--hm-font-scale)); color: var(--hm-fg-faint); }
 .pf-outline-text {
   width: 100%; resize: vertical; box-sizing: border-box; padding: 10px 12px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Noto Sans Mono CJK JP", monospace; font-size: 13px; line-height: 1.8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Noto Sans Mono CJK JP", monospace; font-size: calc(13px * var(--hm-font-scale)); line-height: 1.8;
   color: var(--hm-fg); background: var(--hm-surface); border: 1px solid var(--hm-border-strong); border-radius: 8px;
   white-space: pre; overflow-x: auto; tab-size: 2;
 }
 .pf-outline-text:focus { outline: 2px solid var(--hm-focus); outline-offset: -1px; }
 .pf-outline-text[readonly] { background: var(--hm-surface-2); }
-.pf-outline-status { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; min-height: 28px; font-size: 12px; color: var(--hm-fg); }
+.pf-outline-status { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; min-height: 28px; font-size: calc(12px * var(--hm-font-scale)); color: var(--hm-fg); }
 .pf-outline-muted { color: var(--hm-fg-muted); }
 .pf-outline-errors { margin: 0; padding-left: 18px; color: var(--hm-danger); }
 .pf-outline-danger { color: var(--hm-danger); }

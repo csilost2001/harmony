@@ -13,6 +13,7 @@ import { listSequences } from "../../store/sequenceStore";
 import { loadConventions } from "../../store/conventionsStore";
 import type { ConventionsCatalog } from "../../schemas/conventionsValidator";
 import { reportFailure } from "../../utils/failureToast";
+import { EmptyState } from "../common/EmptyState";
 
 // v3 DefaultDefinition.kind: literal / function / sequence / convention (旧 conventionRef → convention)
 type DefaultKind = DefaultDefinition["kind"];
@@ -129,9 +130,8 @@ export function TriggersDefaultsTab({ table, update }: Props) {
 
         {defaults.length === 0 ? (
           <div className="td-empty">
-            <i className="bi bi-database-fill-gear td-empty-icon" />
-            <p>DEFAULT 値定義を追加すると <code>ALTER TABLE ... ALTER COLUMN ... SET DEFAULT</code> として DDL に出力されます。</p>
-            <p className="td-empty-hint">規約参照 (<code>@conv.numbering.*</code>) を選ぶと採番規約との連携を明示できます。</p>
+            <EmptyState compact noun="DEFAULT 値定義" icon="bi-database-fill-gear" testId="defaults-empty-state"
+              hint={<>追加すると <code>ALTER TABLE ... ALTER COLUMN ... SET DEFAULT</code> として DDL に出力されます。規約参照 (<code>@conv.numbering.*</code>) を選ぶと、採番規約との連携を明示できます。</>} />
           </div>
         ) : (
           <div className="td-list">
@@ -175,8 +175,8 @@ export function TriggersDefaultsTab({ table, update }: Props) {
 
         {triggers.length === 0 ? (
           <div className="td-empty">
-            <i className="bi bi-play-btn td-empty-icon" />
-            <p>トリガーを追加すると <code>CREATE TRIGGER</code> として DDL に出力されます。</p>
+            <EmptyState compact noun="トリガー" icon="bi-play-btn" testId="triggers-empty-state"
+              hint={<>追加すると <code>CREATE TRIGGER</code> として DDL に出力されます。</>} />
           </div>
         ) : (
           <div className="td-list">

@@ -16,7 +16,7 @@ import { makeTabId, setDirty as setTabDirty, type TabType } from "../store/tabSt
 import type { MtimeKind } from "../utils/serverMtime";
 import type { DraftResourceType } from "../types/draft";
 import type { EditSessionChromeProps } from "../components/editing/EditSessionChrome";
-import { reportFailure } from "../utils/failureToast";
+import { reportFailure, runReporting } from "../utils/failureToast";
 import { useResyncDraftOnReconnect } from "./useResyncDraftOnReconnect";
 
 export interface UseEditableDocumentOptions<T> {
@@ -59,7 +59,7 @@ export function useEditableDocument<T extends object>(opts: UseEditableDocumentO
     viewerResourceType: resourceType,
     viewerEditSessionId: editSession?.id,
   });
-  const { state: doc, isDirty, isSaving, serverChanged, update, undo, redo, canUndo, canRedo, postSave, handleReset, dismissServerBanner, reload } = editor;
+  const { state: doc, isDirty, isSaving, serverChanged, update, undo, redo, canUndo, canRedo, history, jumpTo, postSave, handleReset, dismissServerBanner, reload } = editor;
 
   const editable = mode.kind === "editing";
   const docRef = useRef<T | null>(null);
@@ -179,7 +179,7 @@ export function useEditableDocument<T extends object>(opts: UseEditableDocumentO
     showDiscard, showForceRelease, showResume,
     lockedByOther: lockedByOther ? { ownerSessionId: lockedByOther.ownerSessionId } : null,
     onStartEditing: actions.startEditing,
-    onSave: () => { save().catch((err) => reportFailure(err, "編集中の設計の保存")); },
+    onSave: () => { runReporting(save, "編集中の設計の保存"); },
     onDiscardClick: () => setShowDiscard(true),
     onForceReleaseClick: () => setShowForceRelease(true),
     onReloadServer: handleReset,
@@ -199,7 +199,7 @@ export function useEditableDocument<T extends object>(opts: UseEditableDocumentO
 
   return {
     doc, editable, mode, sessionLoading, dirty: isDirty, isSaving,
-    apply, undo, redo, canUndo, canRedo, save, reload, discardLocal: handleReset,
+    apply, undo, redo, canUndo, canRedo, history, jumpTo, save, reload, discardLocal: handleReset,
     editSession, attach, takeOver, syncSessionToUrl, sessionId,
     chrome,
   };

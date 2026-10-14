@@ -147,6 +147,24 @@ export function log(
   }
 }
 
+/** 今日のログの末尾 (新しい順ではなく、古い順の最後の `maxLines` 行)。不具合の報告に添える用。書くときにマスクしてあるので、そのまま返せる */
+export function readLogTail(maxLines = 100, maxBytes = 96 * 1024): string[] {
+  if (!_logDir) return [];
+  const file = path.join(_logDir, _todayFileName());
+  let fd: number | null = null;
+  try {
+    fd = fs.openSync(file, "r");
+    const size = fs.fstatSync(fd).size;
+    const start = Math.max(0, size - maxBytes);
+    const buf = Buffer.alloc(size - start);
+    fs.readSync(fd, buf, 0, buf.length, start);
+    const lines = buf.toString("utf-8").split("\n").filter(Boolean);
+    if (start > 0) lines.shift(); // 途中から読んだ先頭の行は、切れているので捨てる
+    return lines.slice(-Math.min(Math.max(1, maxLines), 500));
+  } catch { return []; }
+  finally { if (fd !== null) { try { fs.closeSync(fd); } catch { /* ignore */ } } }
+}
+
 export const logDebug = (cat: string, msg: string, ctx?: Record<string, unknown>) => log("debug", cat, msg, ctx);
 export const logInfo = (cat: string, msg: string, ctx?: Record<string, unknown>) => log("info", cat, msg, ctx);
 export const logWarn = (cat: string, msg: string, ctx?: Record<string, unknown>) => log("warn", cat, msg, ctx);

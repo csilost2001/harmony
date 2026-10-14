@@ -11,6 +11,7 @@ import type {
 } from "../../types/v3";
 import { addConstraint, removeConstraint } from "../../store/tableStore";
 import { isValidEntityId } from "../../utils/entityIdValidation";
+import { EmptyState } from "../common/EmptyState";
 
 const FK_ACTIONS: FkAction[] = ["cascade", "setNull", "setDefault", "restrict", "noAction"];
 const FK_ACTION_LABELS: Record<FkAction, string> = {
@@ -117,8 +118,8 @@ export function ConstraintsTab({ table, update, allTables }: Props) {
 
       {constraints.length === 0 ? (
         <div className="constraints-empty">
-          <i className="bi bi-shield-check constraints-empty-icon" />
-          <p>制約を追加すると DDL プレビューに <code>ALTER TABLE ... ADD CONSTRAINT</code> として出力されます。</p>
+          <EmptyState compact noun="制約" icon="bi-shield-check" testId="constraints-empty-state"
+            hint={<>右上の「制約を追加」から足します。制約は DDL プレビューに <code>ALTER TABLE ... ADD CONSTRAINT</code> として出力されます。</>} />
         </div>
       ) : (
         <div className="constraints-list">

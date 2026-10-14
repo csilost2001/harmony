@@ -7,6 +7,7 @@
  */
 import { useState } from "react";
 import type { ProcessFlow, SecretRef, Timestamp } from "../../types/v3";
+import { EmptyState } from "../common/EmptyState";
 
 interface Props {
   group: ProcessFlow;
@@ -177,7 +178,7 @@ export function SecretsCatalogPanel({ group, onChange, expanded: expandedProp, o
             ExternalAuth.tokenRef から <code>@secret.&lt;key&gt;</code> で参照。
             values 欄で環境別 (dev/staging/prod) の参照式を宣言可能 (#414)。
           </div>
-          {keys.length === 0 && <div className="catalog-empty">まだエントリがありません。</div>}
+          {keys.length === 0 && <EmptyState compact noun="エントリ" icon="bi-journal-plus" hint="「追加」から登録します。" />}
           {keys.map((k) => {
             const e = catalog[k];
             return (

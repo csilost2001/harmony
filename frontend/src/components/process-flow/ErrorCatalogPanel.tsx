@@ -9,6 +9,7 @@ import type { ProcessFlow, ErrorCatalogEntry, LocalId } from "../../types/v3";
 import { useWorkspaceReferences } from "../../hooks/useWorkspaceReferences";
 import { exceptionTypeRefResolver } from "../../utils/reference-completer/workspaceResolver";
 import { ReferenceCompletionInput } from "../common/ReferenceCompletionInput";
+import { EmptyState } from "../common/EmptyState";
 
 // schema: `^generic-definitions/exception-type/[A-Za-z][A-Za-z0-9_]*$`
 const EXCEPTION_TYPE_REF_PREFIX = "generic-definitions/exception-type/";
@@ -82,7 +83,7 @@ export function ErrorCatalogPanel({ group, onChange, expanded: expandedProp, onE
             BranchConditionVariant.tryCatch.errorCode から参照される。
           </div>
           {keys.length === 0 && (
-            <div className="catalog-empty">まだエントリがありません。</div>
+            <EmptyState compact noun="エントリ" icon="bi-journal-plus" hint="「追加」から登録します。" />
           )}
           {keys.map((k) => {
             const e = catalog[k];

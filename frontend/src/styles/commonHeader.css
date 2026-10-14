@@ -23,12 +23,12 @@
 }
 
 .common-header-logo {
-  font-size: 18px;
+  font-size: calc(18px * var(--hm-font-scale));
   color: #6366f1;
 }
 
 .common-header-title {
-  font-size: 13px;
+  font-size: calc(13px * var(--hm-font-scale));
   font-weight: 700;
   color: #e4e6f0;
   white-space: nowrap;
@@ -60,7 +60,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: calc(12px * var(--hm-font-scale));
   color: #9a9db5;
   padding: 3px 8px;
   border-radius: 4px;
@@ -68,7 +68,7 @@
 }
 
 .common-header-user i {
-  font-size: 14px;
+  font-size: calc(14px * var(--hm-font-scale));
 }
 
 .common-header-user-label {
@@ -143,7 +143,7 @@
   border-radius: 4px;
   background: transparent;
   color: var(--hm-chrome-fg-dim);
-  font-size: 15px;
+  font-size: calc(15px * var(--hm-font-scale));
   cursor: pointer;
 }
 .common-header-icon-btn:hover {
@@ -164,8 +164,8 @@ button.common-header-user:hover { color: #c9cbe0; border-color: #5a5e7a; }
   background: var(--hm-surface); color: var(--hm-fg); border: 1px solid var(--hm-border-strong); border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
-.common-header-user-pop label { font-size: 12px; font-weight: 600; }
-.common-header-user-pop input { padding: 6px 8px; font-size: 13px; color: var(--hm-fg); background: var(--hm-surface); border: 1px solid var(--hm-border-strong); border-radius: 6px; }
+.common-header-user-pop label { font-size: calc(12px * var(--hm-font-scale)); font-weight: 600; }
+.common-header-user-pop input { padding: 6px 8px; font-size: calc(13px * var(--hm-font-scale)); color: var(--hm-fg); background: var(--hm-surface); border: 1px solid var(--hm-border-strong); border-radius: 6px; }
 .common-header-user-pop input:focus { outline: 2px solid var(--hm-focus); outline-offset: -1px; }
-.common-header-user-pop small { font-size: 11px; color: var(--hm-fg-muted); line-height: 1.5; }
+.common-header-user-pop small { font-size: calc(11px * var(--hm-font-scale)); color: var(--hm-fg-muted); line-height: 1.5; }
 .common-header-user-pop-actions { display: flex; gap: 6px; justify-content: flex-end; }

@@ -3,6 +3,7 @@
  */
 import { useState } from "react";
 import type { ProcessFlow, ExternalSystemCatalogEntry, ExternalAuth, ExternalAuthKind } from "../../types/v3";
+import { EmptyState } from "../common/EmptyState";
 
 interface Props {
   group: ProcessFlow;
@@ -76,7 +77,7 @@ export function ExternalSystemCatalogPanel({ group, onChange, expanded: expanded
             同じ外部システム (Stripe 等) を複数 step で使う場合の共通設定。
             ExternalSystemStep.systemRef から参照。
           </div>
-          {keys.length === 0 && <div className="catalog-empty">まだエントリがありません。</div>}
+          {keys.length === 0 && <EmptyState compact noun="エントリ" icon="bi-journal-plus" hint="「追加」から登録します。" />}
           {keys.map((k) => {
             const e = catalog[k];
             const auth: ExternalAuth = e.auth ?? { kind: "none" };

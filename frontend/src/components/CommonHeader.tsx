@@ -9,6 +9,11 @@ import { ShortcutHelp } from "./help/ShortcutHelp";
 import { ConnectionStatus } from "./common/ConnectionStatus";
 import { ToastHost } from "./common/ToastHost";
 import { UserNameButton } from "./common/UserNameButton";
+import { NotificationHistory } from "./common/NotificationHistory";
+import { DisplaySettings } from "./common/DisplaySettings";
+import { FavoritesMenu } from "./common/FavoritesMenu";
+import { ReplaceDialog } from "./replace/ReplaceDialog";
+import { TourHost } from "./help/Tour";
 import "../styles/commonHeader.css";
 
 interface Props {
@@ -30,11 +35,16 @@ export function CommonHeader({ notification }: Props) {
       </div>
       <div className="common-header-right">
         <QuickOpen />
+        <FavoritesMenu />
+        <NotificationHistory />
         <ShortcutHelp />
         <ThemeToggle />
+        <DisplaySettings />
         <CodexIndicator />
         <UserNameButton />
       </div>
+      <ReplaceDialog />
+      <TourHost />
       <ToastHost />
       <ChangesHost />
     </header>

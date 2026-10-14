@@ -94,6 +94,9 @@ import { CanvasPane } from "./internal/CanvasPane";
 import { EditorHeaderExtras } from "./internal/EditorHeaderExtras";
 import { useWorkspaceReferences } from "../../hooks/useWorkspaceReferences";
 import { reportFailure } from "../../utils/failureToast";
+import { useListClipboard } from "../../hooks/useListClipboard";
+import { SnippetMenu } from "../common/SnippetMenu";
+import { showToast } from "../../utils/toast";
 
 export function ProcessFlowEditor() {
   const { processFlowId } = useParams<{ processFlowId: string }>();
@@ -139,10 +142,11 @@ export function ProcessFlowEditor() {
 
   // 選択・クリップボード state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [clipboard, setClipboard] = useState<{
-    steps: Step[];
-    mode: "cut" | "copy";
-  } | null>(null);
+  // 別の処理フローへも運べる共有のクリップボード (工程の種類ごと)
+  const stepClipboard = useListClipboard<Step>((s) => s.id, { channel: "steps", sourceId: processFlowId ?? "" });
+  const clipboard = stepClipboard.hasContent && stepClipboard.clipboard.mode
+    ? { steps: stepClipboard.clipboard.items, mode: stepClipboard.clipboard.mode }
+    : null;
   const lastSelectedIdRef = useRef<string | null>(null);
 
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
@@ -207,7 +211,7 @@ export function ProcessFlowEditor() {
     update: updateGroup,
     updateSilent: updateGroupSilent,
     commit: commitGroup,
-    undo, redo, canUndo, canRedo,
+    undo, redo, canUndo, canRedo, history, jumpTo,
     postSave: hookPostSave,
     handleReset, dismissServerBanner,
   } = useResourceEditor<ProcessFlow>({
@@ -678,7 +682,7 @@ export function ProcessFlowEditor() {
   const handleCut = (ids = selectedIds) => {
     if (ids.size === 0 || !activeAction) return;
     const steps = activeAction.steps.filter((s) => ids.has(s.id));
-    setClipboard({ steps: JSON.parse(JSON.stringify(steps)), mode: "cut" });
+    stepClipboard.cut(JSON.parse(JSON.stringify(steps)) as Step[]);
     updateGroupWithDraft((g) => {
       const act = g.actions.find((a) => a.id === activeActionId);
       if (!act) return;
@@ -694,12 +698,13 @@ export function ProcessFlowEditor() {
   const handleCopy = (ids = selectedIds) => {
     if (ids.size === 0 || !activeAction) return;
     const steps = activeAction.steps.filter((s) => ids.has(s.id));
-    setClipboard({ steps: JSON.parse(JSON.stringify(steps)), mode: "copy" });
+    stepClipboard.copy(JSON.parse(JSON.stringify(steps)) as Step[]);
     closeContextMenu();
   };
 
-  const handlePaste = (insertIndex?: number) => {
-    if (!clipboard || !activeAction) return;
+  /** 工程を、新しい ID を付けて挿入する (貼り付け・スニペットの挿入の共通の処理)。挿入位置は、省略時は選択中の工程の直後 (なければ末尾) */
+  const insertSteps = (srcSteps: readonly Step[], insertIndex?: number) => {
+    if (!activeAction || srcSteps.length === 0) return;
     const targetIndex = insertIndex ?? (() => {
       // 選択中のステップがある場合: 最後の選択ステップの直後
       if (selectedIds.size > 0) {
@@ -715,7 +720,7 @@ export function ProcessFlowEditor() {
       // #1332 Codex 10 巡目 M1: paste 系の id 採番を LocalId (schema 規範) に統一。
       // 複数 step 同時 paste の衝突を避けるため existingIds を共有更新する。
       const existingIds = collectAllProcessFlowLocalIds(g);
-      const newSteps = clipboard.steps.map((s) => {
+      const newSteps = srcSteps.map((s) => {
         const clone = JSON.parse(JSON.stringify(s)) as Step;
         const newId = nextLocalId(existingIds, "step", 2);
         existingIds.add(newId);
@@ -732,9 +737,17 @@ export function ProcessFlowEditor() {
       });
       act.steps.splice(targetIndex, 0, ...newSteps);
     });
-    if (clipboard.mode === "cut") setClipboard(null);
     setSelectedIds(new Set());
     closeContextMenu();
+  };
+
+  const handlePaste = (insertIndex?: number) => {
+    if (!clipboard || !activeAction) return;
+    const foreign = stepClipboard.isForeign;
+    insertSteps(clipboard.steps, insertIndex);
+    // 切り取りは移動 (貼ったら空になる)。別の処理フローから切り取ったものは、元を消せないので、コピーに変わる
+    stepClipboard.consume();
+    if (foreign) showToast(`${clipboard.steps.length} 件の工程を貼り付けました (別の処理フローの工程です。変数・ジャンプ先の参照は、貼り付けた先で確かめてください)`, "info");
   };
 
   const getContextStepIndex = () => {
@@ -1023,7 +1036,7 @@ export function ProcessFlowEditor() {
             <span className="fw-semibold text-dark">{group.meta?.name ?? ""}</span>
           </div>
         }
-        undoRedo={{ onUndo: undo, onRedo: redo, canUndo, canRedo }}
+        undoRedo={{ onUndo: undo, onRedo: redo, canUndo, canRedo, history, present: group, onJump: jumpTo }}
         extraRight={
           <>
             <EditorHeaderExtras
@@ -1122,6 +1135,11 @@ export function ProcessFlowEditor() {
               onAddStep={handleAddStep}
               onAddTemplate={handleAddTemplate}
               isReadonly={isReadonly}
+              snippetSlot={
+                <SnippetMenu kind="steps" popAlign="left" className="step-template-btn" selectionCount={selectedIds.size} readonly={isReadonly}
+                  getSelection={() => (activeAction?.steps ?? []).filter((st) => selectedIds.has(st.id))}
+                  onInsert={(sn) => { insertSteps(sn.items as unknown as Step[]); showToast(`スニペット「${sn.name}」を挿入しました (${sn.items.length} 工程)`, "info"); }} />
+              }
             />
 
             <CanvasPane

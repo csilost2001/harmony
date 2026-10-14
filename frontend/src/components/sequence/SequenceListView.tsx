@@ -29,6 +29,7 @@ import { confirmDeletionImpact } from "../../utils/confirmDeletion";
 import { useQuickCreate } from "../../hooks/useQuickCreate";
 import { useReferencesDialog } from "../common/ReferencesButton";
 import { reportFailure } from "../../utils/failureToast";
+import { EmptyState } from "../common/EmptyState";
 
 const STORAGE_KEY = "list-view-mode:sequence-list";
 const TAB_ID = makeTabId("sequence-list", "main");
@@ -556,9 +557,7 @@ export function SequenceListView() {
           className="sequences-data-list"
           isItemGhost={(id) => editor.isDeleted(id)}
           emptyMessage={
-            query
-              ? <p>該当するシーケンス定義がありません</p>
-              : <p>シーケンス定義がまだありません。「シーケンス追加」から作成してください。</p>
+            <EmptyState noun="シーケンス定義" icon="bi-arrow-repeat" hint="連番を採番するデータベースの仕組みを定義します" filtered={!!query} onCreate={() => setShowAdd(true)} createLabel="シーケンスを追加" onClear={() => setQuery("")} />
           }
         />
 

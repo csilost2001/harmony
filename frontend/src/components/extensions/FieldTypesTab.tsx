@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { ExtensionTabProps } from "./ExtensionsPanel";
+import { EmptyState } from "../common/EmptyState";
 
 type Row = { kind: string; label: string };
 
@@ -48,7 +49,7 @@ function SimpleRows({
         <div className="extensions-namespace-field"><label className="form-label small fw-semibold">namespace</label><input className="form-control form-control-sm" aria-label="namespace" value={namespace} onChange={(e) => onNamespaceChange(e.target.value)} disabled={isReadonly} /></div>
         <div className="extensions-toolbar-actions"><button className="btn btn-primary btn-sm" disabled={saving || isReadonly} onClick={() => void onSave()}>保存</button></div>
       </div>
-      {rows.length === 0 ? <div className="extensions-empty">{title} は未登録です。</div> : null}
+      {rows.length === 0 ? <EmptyState compact noun={title} icon="bi-input-cursor-text" hint="下の「追加」から登録すると、設計の選択肢に出ます。" /> : null}
       {rows.map((row, index) => (
         <div className="extensions-simple-row" key={index}>
           <input className="form-control form-control-sm extensions-mono-input" placeholder={keyName} value={row.kind} onChange={(e) => onRowsChange(rows.map((r, i) => i === index ? { ...r, kind: e.target.value } : r))} disabled={isReadonly} />

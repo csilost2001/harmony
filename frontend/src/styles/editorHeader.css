@@ -65,7 +65,7 @@
   border-radius: 6px;
   background: transparent;
   cursor: pointer;
-  font-size: 13px;
+  font-size: calc(13px * var(--hm-font-scale));
   line-height: 1;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
@@ -91,7 +91,7 @@
   border-radius: 6px;
   background: transparent;
   cursor: pointer;
-  font-size: 15px;
+  font-size: calc(15px * var(--hm-font-scale));
   transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s;
 }
 

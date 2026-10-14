@@ -39,7 +39,9 @@ import { EditSessionDropdown } from "../editing/EditSessionDropdown";
 import { SaveConflictDialog } from "../editing/SaveConflictDialog";
 import html2canvas from "html2canvas";
 import "../../styles/er.css";
-import { reportFailure } from "../../utils/failureToast";
+import { reportFailure, runReporting } from "../../utils/failureToast";
+import { useKeyboardNodeMove } from "../../hooks/useKeyboardNodeMove";
+import { EmptyState } from "../common/EmptyState";
 
 const nodeTypes = { erTableNode: ErTableNodeComponent };
 
@@ -253,6 +255,20 @@ function ErDiagramInner() {
     persistLayoutChange(ly);
   }, [persistLayoutChange]);
 
+  // 矢印キーで動かしたテーブルの位置を、保存へ回す (React Flow は、キーでの移動を onNodeDragStop に通知しない)
+  const nodesForKeyboardRef = useRef(nodes);
+  useEffect(() => { nodesForKeyboardRef.current = nodes; });
+  const onCanvasKeyUp = useKeyboardNodeMove<RFNode>(() => nodesForKeyboardRef.current, (moved) => {
+    pushLayoutUndo();
+    const current = layoutRef.current ?? { positions: {} as Record<string, { x: number; y: number }>, logicalRelations: [] as LogicalRelation[], updatedAt: new Date().toISOString() as never };
+    const positions = { ...current.positions };
+    for (const n of moved) positions[n.id] = { x: Math.round(n.position.x), y: Math.round(n.position.y) };
+    const ly = { ...current, positions };
+    layoutRef.current = ly;
+    setLayout({ ...ly });
+    persistLayoutChange(ly);
+  }, !isReadonly);
+
   // Double click to navigate to table editor
   const onNodeDoubleClick: NodeMouseHandler = useCallback((_event, node) => {
     navigate(wsPath(`/table/edit/${node.id}`));
@@ -361,7 +377,7 @@ function ErDiagramInner() {
   }, [actions]);
 
   useSaveShortcut(() => {
-    if (!isReadonly) handleSave().catch((err) => reportFailure(err, "ER 図の保存"));
+    if (!isReadonly) runReporting(handleSave, "ER 図の保存");
   });
 
   // Export Mermaid
@@ -417,7 +433,7 @@ function ErDiagramInner() {
       <div className="edit-mode-toolbar edit-mode-toolbar--readonly" style={{ justifyContent: "flex-end" }}>
         {mode.kind === "editing" && (
           <>
-            <button type="button" className="btn btn-success btn-sm" onClick={() => { handleSave().catch((err) => reportFailure(err, "ER 図の保存")); }}>
+            <button type="button" className="btn btn-success btn-sm" onClick={() => { runReporting(handleSave, "ER 図の保存"); }}>
               <i className="bi bi-check-lg me-1" /> 保存
             </button>
             <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => { handleDiscard().catch((err) => reportFailure(err, "ER 図の破棄")); }}>
@@ -439,15 +455,12 @@ function ErDiagramInner() {
 
       <div className="er-diagram-canvas" ref={canvasRef}>
         {tables.length === 0 ? (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, color: "var(--hm-fg-faint)", height: "100%" }}>
-            <i className="bi bi-diagram-3" style={{ fontSize: 48, color: "var(--hm-fg-faint)" }} />
-            <p>テーブル定義がまだありません</p>
-            <button className="tbl-btn tbl-btn-primary" onClick={() => navigate(wsPath("/table/list"))}>
-              <i className="bi bi-table" /> テーブル設計へ
-            </button>
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
+            <EmptyState noun="テーブル定義" icon="bi-diagram-3" hint="テーブルを定義すると、ここに ER 図が描かれます。" onCreate={() => navigate(wsPath("/table/list"))} createLabel="テーブル設計へ" />
           </div>
         ) : (
           <ReactFlow
+            onKeyUp={onCanvasKeyUp}
             nodes={nodes}
             edges={edges}
             onNodesChange={onNodesChange}

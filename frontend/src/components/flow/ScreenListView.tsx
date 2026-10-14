@@ -40,6 +40,7 @@ import { confirmDeletionImpact } from "../../utils/confirmDeletion";
 import { useQuickCreate } from "../../hooks/useQuickCreate";
 import { useReferencesDialog } from "../common/ReferencesButton";
 import { reportFailure } from "../../utils/failureToast";
+import { EmptyState } from "../common/EmptyState";
 
 const STORAGE_KEY = "list-view-mode:screen-list";
 const TAB_ID = makeTabId("screen-list", "main");
@@ -722,9 +723,7 @@ export function ScreenListView() {
           showNumColumn={viewMode === "table"}
           isItemGhost={(id) => editor.isDeleted(id)}
           emptyMessage={
-            query
-              ? <p>該当する画面がありません</p>
-              : <p>画面がまだありません。「画面を追加」から作成してください。</p>
+            <EmptyState noun="画面" icon="bi-window" hint="画面の入力項目や配置を設計します。最初の 1 画面から始めましょう" filtered={!!query} onCreate={handleAddNew} createLabel="画面を追加" onClear={() => setQuery("")} />
           }
         />
       </div>

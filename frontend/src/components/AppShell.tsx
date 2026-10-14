@@ -1052,6 +1052,8 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
               <TabErrorFallback
                 error={error}
                 tabLabel={tab.label}
+                tabType={tab.type}
+                resourceId={tab.resourceId}
                 onRetry={reset}
                 onClose={() => handleCloseCrashedTab(tab.id)}
               />
@@ -1088,6 +1090,8 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
               <TabErrorFallback
                 error={error}
                 tabLabel={activeTab?.label ?? "コンテンツ"}
+                tabType={activeTab?.type}
+                resourceId={activeTab?.resourceId}
                 onRetry={reset}
                 onClose={() => {
                   if (activeTabId) handleCloseCrashedTab(activeTabId);

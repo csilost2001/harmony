@@ -186,3 +186,37 @@ body {
 .react-flow__edge-textbg { fill: var(--hm-surface); }
 .react-flow__edge-text { fill: var(--hm-fg-2); }
 .react-flow__attribution { display: none; }
+
+/* ==========================================================================
+   表示の設定 (ヘッダーの「表示の設定」。theme/displayPrefs.ts が <html data-*> を切り替える)
+   - 文字サイズ: font-size は calc(Npx * var(--hm-font-scale)) で書く (検査: scripts/dev/scale-font-sizes.mjs --check)
+   - 密度: 表の行の縦の余白 (--hm-row-py)
+   - 高コントラスト: 淡い文字と罫線を濃くする
+   紙面 (画面デザインの見本・帳票の見本) は設計対象アプリの見た目なので、文字サイズの設定を受けない。印刷も受けない
+   ========================================================================== */
+:root {
+  --hm-font-scale: 1;
+  --hm-row-py: 6px;
+}
+:root[data-font-scale="small"] { --hm-font-scale: 0.9; }
+:root[data-font-scale="large"] { --hm-font-scale: 1.15; }
+:root[data-font-scale="xlarge"] { --hm-font-scale: 1.3; }
+:root[data-density="compact"] { --hm-row-py: 2px; }
+
+:root[data-contrast="high"] {
+  --hm-border: #8a93a6;
+  --hm-border-strong: #4d5668;
+  --hm-fg-2: #1c2331;
+  --hm-fg-muted: #3b4456;
+  --hm-fg-faint: #4a5366;
+}
+:root[data-theme="dark"][data-contrast="high"] {
+  --hm-border: #6b7690;
+  --hm-border-strong: #98a3bc;
+  --hm-fg-2: #eef0f5;
+  --hm-fg-muted: #cfd4e0;
+  --hm-fg-faint: #b4bbcc;
+}
+
+.sld-paper, .rpe-paper-wrap { --hm-font-scale: 1; }
+@media print { :root, :root[data-font-scale] { --hm-font-scale: 1 !important; } }

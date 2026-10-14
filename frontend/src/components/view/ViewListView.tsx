@@ -31,6 +31,7 @@ import { confirmDeletionImpact } from "../../utils/confirmDeletion";
 import { useQuickCreate } from "../../hooks/useQuickCreate";
 import { useReferencesDialog } from "../common/ReferencesButton";
 import { reportFailure } from "../../utils/failureToast";
+import { EmptyState } from "../common/EmptyState";
 
 const STORAGE_KEY = "list-view-mode:view-list";
 const TAB_ID = makeTabId("view-list", "main");
@@ -617,9 +618,7 @@ export function ViewListView() {
           className="views-data-list"
           isItemGhost={(id) => editor.isDeleted(id)}
           emptyMessage={
-            query
-              ? <p>該当するビュー定義がありません</p>
-              : <p>ビュー定義がまだありません。「ビュー追加」から作成してください。</p>
+            <EmptyState noun="ビュー" icon="bi-eye" hint="データベースのビュー (保存済みの検索) を定義します" filtered={!!query} onCreate={() => setShowAdd(true)} createLabel="ビューを追加" onClear={() => setQuery("")} />
           }
         />
 

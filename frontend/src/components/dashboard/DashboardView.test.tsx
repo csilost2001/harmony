@@ -43,6 +43,9 @@ vi.mock("./panels/DesignIssuesPanel", () => ({
 vi.mock("./panels/DesignProgressPanel", () => ({
   DesignProgressPanel: () => <div data-testid="panel-design-progress">dp</div>,
 }));
+vi.mock("./panels/FavoritesPanel", () => ({
+  FavoritesPanel: () => <div data-testid="panel-favorites">fv</div>,
+}));
 vi.mock("./panels/MarkersSummaryPanel", () => ({
   MarkersSummaryPanel: () => <div data-testid="panel-markers-summary">ms</div>,
 }));

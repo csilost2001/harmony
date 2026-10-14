@@ -59,7 +59,7 @@ import { NumberingPanel } from "./internal/categories/NumberingPanel";
 import { TxPanel } from "./internal/categories/TxPanel";
 import { ExternalOutcomeDefaultsPanel } from "./internal/categories/ExternalOutcomeDefaultsPanel";
 import { ExtensionCategoriesPanel } from "./internal/categories/ExtensionCategoriesPanel";
-import { reportFailure } from "../../utils/failureToast";
+import { reportFailure, runReporting } from "../../utils/failureToast";
 
 type Category =
   | "msg" | "regex" | "limit"
@@ -142,7 +142,7 @@ export function ConventionsCatalogView() {
     state: catalog,
     isDirty, isSaving, serverChanged,
     update, updateSilent, commit,
-    undo, redo, canUndo, canRedo,
+    undo, redo, canUndo, canRedo, history, jumpTo,
     handleReset, dismissServerBanner,
     postSave,
     reload,
@@ -216,7 +216,7 @@ export function ConventionsCatalogView() {
 
   // Ctrl+S で保存 (保存ボタンの title にも書いてある)
   useSaveShortcut(() => {
-    if (isDirty && !isSaving && !isReadonly) handleSave().catch((err) => reportFailure(err, "規約カタログの保存"));
+    if (isDirty && !isSaving && !isReadonly) runReporting(handleSave, "規約カタログの保存");
   });
 
   const handleDiscard = useCallback(async () => {
@@ -367,7 +367,7 @@ export function ConventionsCatalogView() {
       <EditModeToolbar
         mode={mode}
         onStartEditing={actions.startEditing}
-        onSave={() => { handleSave().catch((err) => reportFailure(err, "規約カタログの保存")); }}
+        onSave={() => { runReporting(handleSave, "規約カタログの保存"); }}
         onDiscardClick={() => setShowDiscardDialog(true)}
         onForceReleaseClick={() => setShowForceReleaseDialog(true)}
         saving={isSaving}
@@ -454,7 +454,7 @@ export function ConventionsCatalogView() {
             )}
           </span>
         }
-        undoRedo={{ onUndo: undo, onRedo: redo, canUndo, canRedo }}
+        undoRedo={{ onUndo: undo, onRedo: redo, canUndo, canRedo, history, present: catalog, onJump: jumpTo }}
         saveReset={isReadonly ? undefined : { isDirty, isSaving, onSave: handleSave, onReset: () => setShowDiscardDialog(true) }}
       />
 

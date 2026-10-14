@@ -6,7 +6,7 @@
   max-width: 100%;
   padding: 3px 10px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: calc(12px * var(--hm-font-scale));
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;

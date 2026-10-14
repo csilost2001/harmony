@@ -1,0 +1,30 @@
+/* 設計全体の検索置換 (基本の見た目は pasteColumns.css) */
+.rp-modal { width: min(1000px, calc(100vw - 32px)); }
+.rp-form { display: grid; grid-template-columns: 1fr 1fr auto auto; gap: 8px 12px; align-items: end; }
+.rp-form .tbl-field { margin: 0; }
+.rp-form input[type="text"] { width: 100%; padding: 5px 8px; font: inherit; color: var(--hm-fg); background: var(--hm-surface); border: 1px solid var(--hm-border-strong); border-radius: 5px; }
+.rp-case { display: inline-flex; align-items: center; gap: 4px; font-size: calc(12.5px * var(--hm-font-scale)); white-space: nowrap; padding-bottom: 5px; }
+@media (max-width: 760px) { .rp-form { grid-template-columns: 1fr; } }
+.rp-undo, .rp-result { padding: 8px 10px; border: 1px solid var(--hm-border-strong); border-radius: 6px; background: var(--hm-surface-2); font-size: calc(12.5px * var(--hm-font-scale)); }
+.rp-undo-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.rp-result ul { margin: 4px 0 0; padding-left: 20px; }
+.rp-stale { margin: 0; padding: 6px 10px; border-radius: 6px; color: var(--hm-warning); background: color-mix(in srgb, var(--hm-warning) 10%, var(--hm-surface)); font-size: calc(12.5px * var(--hm-font-scale)); }
+.rp-summary { font-size: calc(12.5px * var(--hm-font-scale)); color: var(--hm-fg-2); }
+.rp-tools { display: flex; align-items: center; gap: 14px; font-size: calc(12.5px * var(--hm-font-scale)); }
+.rp-link { border: 0; background: transparent; padding: 0; font: inherit; color: var(--hm-accent); cursor: pointer; text-decoration: underline; }
+.rp-count { margin-left: auto; color: var(--hm-fg-muted); }
+.rp-list { display: flex; flex-direction: column; gap: 8px; max-height: 46vh; overflow-y: auto; }
+.rp-group { border: 1px solid var(--hm-border); border-radius: 6px; overflow: hidden; }
+.rp-group.is-blocked { opacity: 0.65; }
+.rp-group > header { display: flex; align-items: center; gap: 8px; padding: 5px 10px; background: var(--hm-surface-2); font-size: calc(12.5px * var(--hm-font-scale)); }
+.rp-entity { border: 0; background: transparent; padding: 0; font: inherit; font-weight: 600; color: var(--hm-fg); cursor: pointer; text-align: left; }
+.rp-entity:hover { color: var(--hm-accent); text-decoration: underline; }
+.rp-kind { color: var(--hm-fg-muted); font-size: calc(11.5px * var(--hm-font-scale)); }
+.rp-blocked { margin-left: auto; color: var(--hm-warning); font-size: calc(11.5px * var(--hm-font-scale)); }
+.rp-group ul { list-style: none; margin: 0; padding: 0; }
+.rp-group li { padding: 5px 10px 6px 30px; border-top: 1px solid var(--hm-border); font-size: calc(12.5px * var(--hm-font-scale)); }
+.rp-group li label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: var(--hm-fg-muted); font-size: calc(11.5px * var(--hm-font-scale)); }
+.rp-diff { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-top: 2px; overflow-wrap: anywhere; }
+.rp-diff > i { color: var(--hm-fg-faint); }
+.rp-hit-before { background: color-mix(in srgb, var(--hm-danger) 20%, transparent); color: inherit; border-radius: 2px; text-decoration: line-through; }
+.rp-hit-after { background: color-mix(in srgb, var(--hm-success) 22%, transparent); color: inherit; border-radius: 2px; }

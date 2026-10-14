@@ -19,7 +19,7 @@ import { LayoutPalette } from "./LayoutPalette";
 import { LayoutInspector } from "./LayoutInspector";
 import { useLayoutOps } from "./useLayoutOps";
 import { type LayoutDoc } from "./layoutModel";
-import { reportFailure } from "../../utils/failureToast";
+import { runReporting } from "../../utils/failureToast";
 
 export interface ComponentEditorProps {
   initial: LayoutComponentDef;
@@ -137,7 +137,7 @@ export function ComponentEditor({ initial, isNew, others, screens, onSave, onClo
           <div className="sld-editor-actions">
             <button type="button" className="sld-icon-btn" title="元に戻す" disabled={!canUndo} onClick={undo}><i className="bi bi-arrow-counterclockwise" /></button>
             <button type="button" className="sld-icon-btn" title="やり直す" disabled={!canRedo} onClick={redo}><i className="bi bi-arrow-clockwise" /></button>
-            <button type="button" className="sld-btn sld-btn-primary" disabled={saving || !dirty || blocking.length > 0 || !def.label.trim()} onClick={() => { save().catch((err) => reportFailure(err, "独自部品の保存")); }} data-testid="component-save">
+            <button type="button" className="sld-btn sld-btn-primary" disabled={saving || !dirty || blocking.length > 0 || !def.label.trim()} onClick={() => { runReporting(save, "独自部品の保存"); }} data-testid="component-save">
               <i className="bi bi-check2" /> {saving ? "保存中…" : dirty ? "保存" : "保存済み"}
             </button>
             <button type="button" className="sld-btn" onClick={tryClose} data-testid="component-close">閉じる</button>

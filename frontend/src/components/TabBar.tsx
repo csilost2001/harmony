@@ -23,6 +23,7 @@ import {
   closeOtherTabs,
   closeTabsToRight,
   type TabItem,
+  moveTabBy,
 } from "../store/tabStore";
 import "../styles/tabbar.css";
 
@@ -305,6 +306,12 @@ export function TabBar() {
             <i className="bi bi-arrow-bar-right" /> 右側を全て閉じる
           </div>
           <div className="tab-context-separator" />
+          <div className="tab-context-item" onClick={() => { moveTabBy(contextMenu.tabId, -1); setContextMenu(null); }} data-testid="tab-move-left">
+            <i className="bi bi-arrow-left" /> 左へ動かす
+          </div>
+          <div className="tab-context-item" onClick={() => { moveTabBy(contextMenu.tabId, 1); setContextMenu(null); }} data-testid="tab-move-right">
+            <i className="bi bi-arrow-right" /> 右へ動かす
+          </div>
           <div className="tab-context-item" onClick={() => { setPinned(contextMenu.tabId, !ctxTab.isPinned); setContextMenu(null); }}>
             <i className={`bi bi-pin${ctxTab.isPinned ? "-angle" : ""}`} />
             {ctxTab.isPinned ? "ピン留めを解除" : "ピン留め"}

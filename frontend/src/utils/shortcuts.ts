@@ -11,10 +11,14 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
     title: "どこでも",
     entries: [
       { keys: ["Ctrl", "K"], label: "画面・テーブル・処理フローなどを探して開く" },
+      { keys: ["Ctrl", "K", "→", "Ctrl", "D"], label: "探している候補を、お気に入りに追加 / 解除 (ヘッダーの ★ から開けます)" },
       { keys: ["?"], label: "このショートカット一覧を開く" },
       { keys: ["Ctrl", "Tab"], label: "次のタブへ (Shift 付きで前のタブへ)" },
       { keys: ["Ctrl", "1〜9"], label: "n 番目のタブへ" },
       { keys: ["Ctrl", "W"], label: "いまのタブを閉じる" },
+      { keys: ["Ctrl", "Shift", "PageUp / PageDown"], label: "いまのタブを左 / 右へ動かす (タブのドラッグの代わり)" },
+      { keys: ["Ctrl", "Shift", "H"], label: "設計全体の検索置換 (名前・説明などの文章を、一覧で確かめて置き換える)" },
+      { keys: ["Ctrl", "Shift", "P"], label: "操作を探して実行する (コマンドパレット。Ctrl+K のあと「>」でも同じ)" },
     ],
   },
   {
@@ -38,6 +42,13 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { keys: ["Alt", "↑↓"], label: "選んだ項目を上下へ動かす" },
       { keys: ["Shift", "F10"], label: "右クリックメニューを開く (メニューキーも可)" },
       { keys: ["Esc"], label: "選択・コピーを解除" },
+    ],
+  },
+  {
+    title: "ダッシュボード",
+    entries: [
+      { keys: ["Alt", "矢印"], label: "パネルの見出しにカーソルがあるとき: パネルを 1 マス動かす" },
+      { keys: ["Alt", "Shift", "矢印"], label: "パネルの大きさを 1 マス変える" },
     ],
   },
   {
@@ -65,9 +76,14 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
   {
     title: "画面デザイナ",
     entries: [
-      { keys: ["Alt", "↑↓"], label: "選んだ部品を上下へ動かす" },
+      { keys: ["↑", "↓"], label: "木の中で、前後の部品を選ぶ (見た目の順)" },
+      { keys: ["←", "→"], label: "親の部品 / 最初の子の部品を選ぶ" },
+      { keys: ["Alt", "↑↓"], label: "選んだ部品を同じ入れ物の中で上下へ動かす" },
+      { keys: ["Alt", "←"], label: "選んだ部品を、入れ物の外へ出す (親の直後へ)" },
+      { keys: ["Alt", "→"], label: "選んだ部品を、直前の入れ物の中へ入れる (最後の子として)" },
       { keys: ["Ctrl", "D"], label: "選んだ部品を複製" },
       { keys: ["Delete"], label: "選んだ部品を削除" },
+      { keys: ["Esc"], label: "選択を外す" },
     ],
   },
 ];

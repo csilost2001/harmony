@@ -53,6 +53,15 @@ import "../../styles/table.css";
 import "../../styles/editMode.css";
 import { reportFailure } from "../../utils/failureToast";
 import { useResyncDraftOnReconnect } from "../../hooks/useResyncDraftOnReconnect";
+import { EmptyState } from "../common/EmptyState";
+import { conflictingPhysicalNames, planColumnPaste } from "../../utils/columnClipboard";
+import { BulkEditDialog } from "../common/BulkEditDialog";
+import { applyBulkPatch } from "../../utils/bulkEdit";
+import { COLUMN_BULK_FIELDS } from "./bulkColumnFields";
+import { SnippetMenu } from "../common/SnippetMenu";
+import { ColumnGrid } from "./ColumnGrid";
+import { usePersistentState } from "../../hooks/usePersistentState";
+import { HelpHint } from "../help/HelpHint";
 
 type TabId = "columns" | "constraints" | "indexes" | "triggers" | "comment";
 
@@ -95,7 +104,7 @@ export function TableEditor() {
   const {
     state: table,
     isDirty, isSaving, serverChanged,
-    update, undo, redo, canUndo, canRedo,
+    update, undo, redo, canUndo, canRedo, history, jumpTo,
     postSave, handleReset, dismissServerBanner,
     reload,
   } = useResourceEditor<Table>({
@@ -346,7 +355,7 @@ export function TableEditor() {
             </div>
           )
         }
-        undoRedo={{ onUndo: undo, onRedo: redo, canUndo, canRedo }}
+        undoRedo={{ onUndo: undo, onRedo: redo, canUndo, canRedo, history, present: table, onJump: jumpTo }}
         extraRight={
           <>
             <EditSessionDropdown
@@ -635,7 +644,11 @@ function ColumnsTab({
 
   const sort = useListSort(table.columns, sortAccessor);
   const selection = useListSelection(sort.sorted, (c) => c.id);
-  const clipboard = useListClipboard<Column>((c) => c.id);
+  // 別のテーブルへも運べる共有のクリップボード (カラムの種類ごと)
+  const [showBulk, setShowBulk] = useState(false);
+  // 「表で編集」(セルを選んでその場で編集) と「一覧で編集」(行を選んで、パネルで編集。コピー・並べ替え・一括変更ができる) の切り替え
+  const [gridMode, setGridMode] = usePersistentState<boolean>("harmony.columns.gridMode", false);
+  const clipboard = useListClipboard<Column>((c) => c.id, { channel: "columns", sourceId: table.id });
 
   // FK column id 集合 (ColumnsTab で FK アイコン表示用)
   const fkColumnIds = useMemo(() => {
@@ -741,7 +754,9 @@ function ColumnsTab({
   };
 
   const handlePaste = (insertIdx: number | null) => {
-    const mode = clipboard.clipboard.mode;
+    const foreign = clipboard.isForeign;
+    // 別のテーブルから切り取ったものは、元のテーブルから消せないので、コピーとして貼る
+    const mode = foreign ? "copy" : clipboard.clipboard.mode;
     const clipItems = clipboard.clipboard.items;
     if (!clipItems.length) return;
 
@@ -753,8 +768,15 @@ function ColumnsTab({
       if (sameSet) return;
     }
 
+    // 別のテーブルから貼るとき、同じ物理名のカラムがあれば、先に確認する
+    if (foreign) {
+      const conflicts = conflictingPhysicalNames(table.columns, clipItems);
+      if (conflicts.length > 0 && !window.confirm(`このテーブルには、同じ物理名のカラムがあります: ${conflicts.join(", ")}\n物理名に「_copy」を付けて貼り付けますか?`)) return;
+    }
+
     const consumed = clipboard.consume();
     const newIds: string[] = [];
+    let notice = "";
 
     update((t) => {
       if (mode === "cut") {
@@ -766,11 +788,13 @@ function ColumnsTab({
         t.columns.splice(pos, 0, ...consumed);
         newIds.push(...consumed.map((c) => c.id));
       } else {
-        // copy: 新規 LocalId を採番 (col-NN は addColumn ヘルパに任せる方が安全)
-        for (const src of consumed) {
-          const inserted = addColumn(t, { ...src });
-          newIds.push(inserted.id);
-        }
+        // copy: 新しい ID・重ならない物理名を付けて追加する
+        const plan = planColumnPaste(t.columns, consumed, foreign);
+        for (const c of plan.columns) newIds.push(addColumn(t, c).id);
+        const parts: string[] = [];
+        if (plan.renamed.length > 0) parts.push(`物理名を変えたカラム ${plan.renamed.length} 件 (${plan.renamed.map((r) => `${r.from} → ${r.to}`).join(", ")})`);
+        if (plan.droppedKeys > 0) parts.push(`主キー・自動採番の印を外したカラム ${plan.droppedKeys} 件`);
+        if (foreign && parts.length > 0) notice = parts.join(" / ");
         // 挿入位置は addColumn が末尾に置くため、ここで insertIdx に並べ替える
         if (insertIdx != null && insertIdx < t.columns.length) {
           const moved = t.columns.splice(t.columns.length - newIds.length, newIds.length);
@@ -780,6 +804,7 @@ function ColumnsTab({
       t.columns = renumber(t.columns);
     });
     selection.setSelectedIds(new Set<string>(newIds));
+    if (foreign) showToast(`${newIds.length} 件のカラムを貼り付けました${notice ? `: ${notice}` : ""}`, "info");
   };
 
   const sortActive = sort.sortKeys.length > 0;
@@ -1033,14 +1058,14 @@ function ColumnsTab({
     >
       <div className="columns-selection-bar">
         <span className="columns-selection-count">
-          {anySelected ? `${selectedCount} 件選択中 (ダブルクリック/Enter で編集)` : "クリックで選択、ダブルクリックで編集"}
+          {gridMode ? "セルをクリックして、そのまま編集できます (Tab で次のセル、Enter で下の行)" : anySelected ? `${selectedCount} 件選択中 (ダブルクリック/Enter で編集)` : "クリックで選択、ダブルクリックで編集"}
         </span>
         {(columnsEmpty || primaryKeyEmpty) && (
           <span className="columns-warning" data-testid="columns-warning">
             <i className="bi bi-exclamation-triangle-fill" /> {columnsEmpty ? "カラムが未定義です" : "主キーが未指定です"}
           </span>
         )}
-        <div className="columns-selection-actions">
+        <div className={`columns-selection-actions${gridMode ? " is-grid" : ""}`}>
           <button
             className="tbl-btn tbl-btn-ghost tbl-btn-sm"
             disabled={!anySelected || sortActive}
@@ -1065,12 +1090,48 @@ function ColumnsTab({
           >
             <i className="bi bi-copy" /> 複製
           </button>
+          <button
+            className={`tbl-btn tbl-btn-ghost tbl-btn-sm${gridMode ? " active" : ""}`}
+            onClick={() => setGridMode((v) => !v)}
+            aria-pressed={gridMode}
+            title={gridMode ? "一覧で編集に戻す (行を選んで、コピー・並べ替え・一括変更ができます)" : "表計算ソフトのように、セルを選んでその場で編集する (Tab で次の列、Enter で下の行)"}
+            data-testid="columns-grid-toggle"
+          >
+            <i className={`bi ${gridMode ? "bi-list-ul" : "bi-grid-3x3"}`} /> {gridMode ? "一覧で編集" : "表で編集"}
+          </button>
+          <SnippetMenu kind="columns" selectionCount={selectedCount} getSelection={() => selection.selectedItems} readonly={isReadonly || sortActive}
+            onInsert={(sn) => {
+              const items = sn.items as unknown as Column[];
+              const newIds: string[] = [];
+              let renamed = 0;
+              update((t) => {
+                const plan = planColumnPaste(t.columns, items, false);
+                renamed = plan.renamed.length;
+                for (const c of plan.columns) newIds.push(addColumn(t, c).id);
+                t.columns = renumber(t.columns);
+              });
+              selection.setSelectedIds(new Set<string>(newIds));
+              showToast(`スニペット「${sn.name}」を挿入しました (${newIds.length} 列${renamed > 0 ? `。物理名が重なる ${renamed} 列は _copy を付けました` : ""})`, "info");
+            }} />
+          <button
+            className="tbl-btn tbl-btn-ghost tbl-btn-sm"
+            disabled={!anySelected || isReadonly}
+            onClick={() => setShowBulk(true)}
+            title="選んだカラムの型・長さ・NOT NULL などをまとめて変える"
+            data-testid="columns-bulk-edit"
+          >
+            <i className="bi bi-sliders" /> 一括変更
+          </button>
           <button className="tbl-btn tbl-btn-ghost tbl-btn-sm danger" disabled={!anySelected} onClick={() => handleDelete(selection.selectedItems)} title="削除 (Delete)">
             <i className="bi bi-trash" /> 削除{anySelected ? ` (${selectedCount})` : ""}
           </button>
         </div>
       </div>
 
+      {gridMode && (
+        <ColumnGrid columns={table.columns} readonly={isReadonly} onUpdateColumn={handleUpdateCol} onAppend={handleAddBlank} />
+      )}
+      {!gridMode && (<>
       <SortBar sort={sort} columnLabels={columnLabels} />
 
       <DataList
@@ -1088,10 +1149,12 @@ function ColumnsTab({
         showNumColumn
         variant="dark"
         className="columns-data-list"
-        emptyMessage={<p>カラムがまだありません。テンプレートから追加するか、空のカラムを追加してください。</p>}
+        emptyMessage={<EmptyState noun="カラム" icon="bi-columns-gap" hint="テンプレート (id・作成日時など) から足すか、空のカラムを追加します。Excel の表を貼り付けても作れます" onCreate={isReadonly || sortActive ? undefined : handleAddBlank} createLabel="空のカラムを追加" />}
       />
 
-      {detailCol && (
+      </>)}
+
+      {!gridMode && detailCol && (
         <div className="column-detail" ref={detailRef} onKeyDown={detailKeys.onKeyDown} data-testid="column-detail">
           <div className="column-detail-header">
             <span className="column-detail-title">
@@ -1138,6 +1201,25 @@ function ColumnsTab({
           <i className="bi bi-clipboard-data" /> 表から貼り付け
         </button>
       </div>
+      {showBulk && (
+        <BulkEditDialog<Column>
+          title="カラムの一括変更"
+          fields={COLUMN_BULK_FIELDS}
+          items={selection.selectedItems}
+          itemLabel={(c) => `${c.physicalName}${c.name ? ` (${c.name})` : ""}`}
+          onClose={() => setShowBulk(false)}
+          onApply={(patches) => {
+            const targets = selection.selectedItems;
+            update((t) => {
+              for (const p of patches) {
+                const col = t.columns.find((c) => c.id === targets[p.index]?.id);
+                if (col) applyBulkPatch(col, p.patch);
+              }
+            });
+            showToast(`${patches.length} 件のカラムを変更しました (Ctrl+Z で元に戻せます)`, "info");
+          }}
+        />
+      )}
       {showPaste && (
         <PasteColumnsDialog existing={table.columns} onApply={handlePasteColumns} onClose={() => { setShowPaste(false); setPasteInitial(""); }} initialText={pasteInitial} />
       )}
@@ -1199,7 +1281,7 @@ function ColumnDetailEditor({
     <div className="column-detail">
       <div className="column-detail-grid">
         <label className="tbl-field">
-          <span>物理名</span>
+          <span>物理名<HelpHint topic="table.physicalName" /></span>
           <input
             type="text"
             value={col.physicalName}
@@ -1208,7 +1290,7 @@ function ColumnDetailEditor({
           />
         </label>
         <label className="tbl-field">
-          <span>表示名</span>
+          <span>表示名<HelpHint topic="table.name" /></span>
           <input
             type="text"
             value={col.name}
@@ -1217,7 +1299,7 @@ function ColumnDetailEditor({
           />
         </label>
         <label className="tbl-field">
-          <span>データ型</span>
+          <span>データ型<HelpHint topic="table.dataType" /></span>
           <select
             value={col.dataType}
             onChange={(e) => onUpdate({ dataType: e.target.value })}
@@ -1252,7 +1334,7 @@ function ColumnDetailEditor({
           </label>
         )}
         <label className="tbl-field">
-          <span>デフォルト値</span>
+          <span>デフォルト値<HelpHint topic="table.defaultValue" /></span>
           <input
             type="text"
             value={col.defaultValue ?? ""}
@@ -1263,6 +1345,7 @@ function ColumnDetailEditor({
       </div>
 
       <div className="column-detail-flags">
+        <span className="column-flag-help">制約の印<HelpHint topic="table.keys" /></span>
         <label className="column-flag-label">
           <input type="checkbox" checked={col.notNull ?? false} onChange={(e) => onUpdate({ notNull: e.target.checked })} />
           NOT NULL

@@ -26,6 +26,7 @@ import { SortableList, SortableRow } from "../common/SortableList";
 import { moveById, moveByIdAt } from "../../utils/reorder";
 import "../../styles/businessFlow.css";
 import "../../styles/report.css";
+import { UndoHistoryPanel } from "../common/UndoHistoryPanel";
 
 type Selection = { sectionId: string; fieldId?: string } | null;
 const SECTION_KINDS = Object.keys(REPORT_SECTION_LABELS) as ReportSectionKind[];
@@ -46,7 +47,7 @@ export function ReportEditor() {
 
   // ── 文書 (編集セッション・元に戻す・他の保存の検知は useEditableDocument) ──
   const {
-    doc: report, editable, mode, sessionLoading, dirty, apply: applyDoc, undo, redo, canUndo, canRedo,
+    doc: report, editable, mode, sessionLoading, dirty, apply: applyDoc, undo, redo, canUndo, canRedo, history, jumpTo,
     attach, takeOver, syncSessionToUrl, sessionId, chrome,
   } = useEditableDocument<Report>({
     resourceType: "report",
@@ -259,6 +260,7 @@ export function ReportEditor() {
         <span className="bfe-spacer" />
         <button type="button" className="bfe-btn" onClick={undo} disabled={!editable || !canUndo} title="元に戻す (Ctrl+Z)" aria-label="元に戻す"><i className="bi bi-arrow-counterclockwise" /></button>
         <button type="button" className="bfe-btn" onClick={redo} disabled={!editable || !canRedo} title="やり直す (Ctrl+Y)" aria-label="やり直す"><i className="bi bi-arrow-clockwise" /></button>
+        {editable && <UndoHistoryPanel history={history} present={report} onJump={jumpTo} buttonClassName="bfe-btn" />}
         <EditSessionDropdown
           resourceType="report"
           resourceId={report.id}

@@ -28,12 +28,12 @@
   align-items: center;
   gap: 8px;
   margin: 0;
-  font-size: 18px;
+  font-size: calc(18px * var(--hm-font-scale));
   font-weight: 600;
 }
 
 .screen-list-count {
-  font-size: 12px;
+  font-size: calc(12px * var(--hm-font-scale));
   font-weight: 400;
   color: var(--hm-fg-muted);
   background: var(--hm-surface-3);
@@ -68,7 +68,7 @@
   padding: 5px 28px 5px 28px;
   border: 1px solid var(--hm-border-strong);
   border-radius: 6px;
-  font-size: 13px;
+  font-size: calc(13px * var(--hm-font-scale));
   background: var(--hm-surface);
   outline: none;
   min-width: 240px;
@@ -114,7 +114,7 @@
 
 .screen-card-icon {
   color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
-  font-size: 14px;
+  font-size: calc(14px * var(--hm-font-scale));
 }
 
 .screen-card-name {
@@ -127,7 +127,7 @@
 
 .screen-card-path {
   font-family: "Consolas", "Monaco", monospace;
-  font-size: 12px;
+  font-size: calc(12px * var(--hm-font-scale));
   color: var(--hm-fg-muted);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -138,7 +138,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 11px;
+  font-size: calc(11px * var(--hm-font-scale));
   color: var(--hm-fg-faint);
   gap: 8px;
 }
@@ -165,7 +165,7 @@
   border-radius: 10px;
   background: var(--hm-surface-3);
   color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
-  font-size: 11px;
+  font-size: calc(11px * var(--hm-font-scale));
   font-weight: 500;
 }
 
@@ -177,7 +177,7 @@
   border-radius: 10px;
   background: var(--hm-surface-3);
   color: color-mix(in srgb, var(--hm-hue-green) 80%, var(--hm-fg));
-  font-size: 11px;
+  font-size: calc(11px * var(--hm-font-scale));
   font-weight: 500;
 }
 
@@ -191,7 +191,7 @@
 }
 
 .screen-table-date {
-  font-size: 12px;
+  font-size: calc(12px * var(--hm-font-scale));
   color: var(--hm-fg-muted);
   font-variant-numeric: tabular-nums;
 }

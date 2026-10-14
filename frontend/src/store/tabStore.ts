@@ -248,6 +248,15 @@ export function reorderTabs(fromIndex: number, toIndex: number): void {
   _notify();
 }
 
+/** タブを左 (-1) / 右 (+1) へ 1 つ動かす (ドラッグの代わり)。端なら動かさず false */
+export function moveTabBy(id: string, delta: -1 | 1): boolean {
+  const from = _tabs.findIndex((t) => t.id === id);
+  const to = from + delta;
+  if (from < 0 || to < 0 || to >= _tabs.length) return false;
+  reorderTabs(from, to);
+  return true;
+}
+
 export function setDirty(id: string, dirty: boolean): void {
   const tab = _tabs.find((t) => t.id === id);
   if (!tab || tab.isDirty === dirty) return;

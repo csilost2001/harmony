@@ -47,8 +47,11 @@ import { useLayoutOps } from "./useLayoutOps";
 import { docReplaceNode, docUpdateItem, emptyLayout, setComponentArg, type LayoutDoc } from "./layoutModel";
 import "../../styles/editMode.css";
 import "../../styles/screenLayout.css";
-import { reportFailure } from "../../utils/failureToast";
+import { reportFailure, runReporting } from "../../utils/failureToast";
 import { useResyncDraftOnReconnect } from "../../hooks/useResyncDraftOnReconnect";
+import { firstChildId, neighborId, parentId } from "./layoutKeyboard";
+import { showToast } from "../../utils/toast";
+import { HelpHint } from "../help/HelpHint";
 
 const VIEWPORTS: Array<{ key: string; label: string; icon: string; width: number }> = [
   { key: "pc", label: "PC", icon: "bi-display", width: 1200 },
@@ -99,7 +102,7 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
 
   const {
     state: doc, isDirty, isSaving, serverChanged,
-    update, updateSilent, commit, undo, redo, canUndo, canRedo,
+    update, updateSilent, commit, undo, redo, canUndo, canRedo, history, jumpTo,
     postSave, handleReset, dismissServerBanner, reload,
   } = useResourceEditor<ScreenItemsDocument>({
     tabType: "design",
@@ -186,7 +189,7 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
 
   const {
     insertionPoint, addNode, addComponent, placeItem, addColumnItem, handleDrop,
-    deleteSelected, duplicateSelected, moveSelected, renameNode, addChild,
+    deleteSelected, duplicateSelected, moveSelected, outdentSelected, indentSelected, renameNode, addChild,
   } = useLayoutOps({ apply, nodes, items, tables, components, selectedId, setSelectedId });
   void insertionPoint;
 
@@ -238,7 +241,7 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
     if (conflicted || failed) return;
     await postSave();
   }, [editable, isSaving, editSession, actions, postSave]);
-  useSaveShortcut(() => { handleSave().catch((err) => reportFailure(err, "画面デザイナの保存")); }, isActive && editable);
+  useSaveShortcut(() => { runReporting(handleSave, "画面デザイナの保存"); }, isActive && editable);
 
   useEffect(() => {
     setTabDirty(makeTabId("design", screenId), isDirty);
@@ -263,15 +266,31 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
       if (e.key === "Escape") { setSelectedId(null); return; }
+      // 部品の木の中の移動: ↑↓ = 前後の部品、← = 親、→ = 最初の子 (閲覧のみでも使える)
+      if (selectedId && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && !(t && t.closest('[role="tab"], [role="listbox"], [role="combobox"], [role="menu"], dialog, [aria-modal="true"]'))) {
+        const to = e.key === "ArrowUp" ? neighborId(nodes, selectedId, -1)
+          : e.key === "ArrowDown" ? neighborId(nodes, selectedId, 1)
+          : e.key === "ArrowLeft" ? parentId(nodes, selectedId)
+          : e.key === "ArrowRight" ? firstChildId(nodes, selectedId)
+          : null;
+        if (to) {
+          e.preventDefault();
+          setSelectedId(to);
+          requestAnimationFrame(() => document.querySelector(`[data-node-id="${CSS.escape(to)}"]`)?.scrollIntoView({ block: "nearest" }));
+          return;
+        }
+      }
       if (!editable || !selectedId) return;
       if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); deleteSelected(); }
       else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "d") { e.preventDefault(); duplicateSelected(); }
       else if (e.altKey && e.key === "ArrowUp") { e.preventDefault(); moveSelected(-1); }
       else if (e.altKey && e.key === "ArrowDown") { e.preventDefault(); moveSelected(1); }
+      else if (e.altKey && e.key === "ArrowLeft") { e.preventDefault(); if (!outdentSelected()) showToast("これ以上、外へは出せません (最上位、または外に置けない部品です)", "info"); }
+      else if (e.altKey && e.key === "ArrowRight") { e.preventDefault(); if (!indentSelected()) showToast("直前の部品の中へは入れられません (直前に、この部品を置ける入れ物がありません)", "info"); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [isActive, editable, selectedId, deleteSelected, duplicateSelected, moveSelected]);
+  }, [isActive, editable, selectedId, nodes, deleteSelected, duplicateSelected, moveSelected, outdentSelected, indentSelected]);
 
   // ── 旧デザインからの変換 / 新規作成 ───────────────────────────────────
   const [converting, setConverting] = useState(false);
@@ -330,7 +349,7 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
       <EditModeToolbar
         mode={mode}
         onStartEditing={actions.startEditing}
-        onSave={() => { handleSave().catch((err) => reportFailure(err, "画面デザイナの保存")); }}
+        onSave={() => { runReporting(handleSave, "画面デザイナの保存"); }}
         onDiscardClick={() => setShowDiscard(true)}
         onForceReleaseClick={() => setShowForceRelease(true)}
         saving={isSaving}
@@ -345,8 +364,8 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
       {saveConflict && <SaveConflictDialog conflict={saveConflict} onOverwrite={onSaveConflictOverwrite} onCancel={onSaveConflictCancel} />}
 
       <EditorHeader
-        title={<span className="fw-semibold"><i className="bi bi-window-sidebar me-1" />{title} — 画面デザイン</span>}
-        undoRedo={{ onUndo: undo, onRedo: redo, canUndo, canRedo }}
+        title={<span className="fw-semibold"><i className="bi bi-window-sidebar me-1" />{title} — 画面デザイン<HelpHint topic="layout.overview" /></span>}
+        undoRedo={{ onUndo: undo, onRedo: redo, canUndo, canRedo, history, present: doc, onJump: jumpTo }}
         centerTools={hasLayout ? (
           <div className="sld-toolbar">
             <div className="sld-segmented" role="group" aria-label="表示幅">
@@ -465,6 +484,8 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
             onItemChange={(id, fn, c) => apply((d) => docUpdateItem(d, id, fn), c)}
             onRenameNode={renameNode}
             onMove={moveSelected}
+            onOutdent={outdentSelected}
+            onIndent={indentSelected}
             onDuplicate={duplicateSelected}
             onDelete={deleteSelected}
             onAddChild={addChild}
