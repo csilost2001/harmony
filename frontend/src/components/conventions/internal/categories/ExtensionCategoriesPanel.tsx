@@ -14,12 +14,12 @@ export function ExtensionCategoriesPanel({
   const entries = Object.entries(extensionCategories ?? {});
   return (
     <section className="conventions-extension-categories">
-      <h3 className="conventions-section-title">
+      <h2 className="conventions-section-title">
         <i className="bi bi-puzzle" /> 拡張カテゴリ
         <small className="text-muted ms-2">
           (extensions.v3 の conventionCategories で定義、`@conv.&lt;categoryName&gt;.&lt;key&gt;` で参照)
         </small>
-      </h3>
+      </h2>
       {entries.length === 0 ? (
         <div className="conventions-empty">拡張カテゴリは定義されていません。</div>
       ) : (

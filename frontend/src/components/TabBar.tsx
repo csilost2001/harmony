@@ -26,6 +26,9 @@ import {
   moveTabBy,
 } from "../store/tabStore";
 import "../styles/tabbar.css";
+import { tabPath } from "../routing/tabPaths";
+import { setSplit } from "../store/splitStore";
+import { useWorkspacePath } from "../hooks/useWorkspacePath";
 
 type ContextMenu = {
   tabId: string;
@@ -134,6 +137,7 @@ function TabItem({
 
 export function TabBar() {
   const { tabs, activeTabId } = useTabs();
+  const { wsId } = useWorkspacePath();
 
   // 未保存の変更があるタブが 1 つでもあれば、ブラウザを閉じる・再読み込みする前に確認を出す
   const anyDirty = tabs.some((t) => t.isDirty);
@@ -240,7 +244,8 @@ export function TabBar() {
 
   return (
     <>
-      <div
+      <nav
+        aria-label="開いているタブ"
         className={[
           "tabbar",
           canScrollLeft ? "tabbar-can-scroll-left" : "",
@@ -287,7 +292,7 @@ export function TabBar() {
             <i className="bi bi-chevron-right" />
           </button>
         )}
-      </div>
+      </nav>
 
       {contextMenu && ctxTab && (
         <div
@@ -306,6 +311,18 @@ export function TabBar() {
             <i className="bi bi-arrow-bar-right" /> 右側を全て閉じる
           </div>
           <div className="tab-context-separator" />
+          {ctxTab.type !== "workspace-list" && (
+            <div className={`tab-context-item${contextMenu.tabId === activeTabId ? " disabled" : ""}`} data-testid="tab-open-split"
+              title={contextMenu.tabId === activeTabId ? "いま開いているタブは、右側に並べられません。別のタブで試してください" : "このタブを、右側に並べて表示する (左は、いま開いているタブのまま)"}
+              onClick={() => {
+                if (contextMenu.tabId === activeTabId) return;
+                const path = wsId ? tabPath("", ctxTab) : null;
+                if (path && wsId) setSplit(wsId, { path, label: ctxTab.label, tabId: ctxTab.id });
+                setContextMenu(null);
+              }}>
+              <i className="bi bi-layout-sidebar-inset-reverse" /> 右側に並べて表示
+            </div>
+          )}
           <div className="tab-context-item" onClick={() => { moveTabBy(contextMenu.tabId, -1); setContextMenu(null); }} data-testid="tab-move-left">
             <i className="bi bi-arrow-left" /> 左へ動かす
           </div>

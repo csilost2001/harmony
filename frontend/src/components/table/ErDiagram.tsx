@@ -429,6 +429,7 @@ function ErDiagramInner() {
 
   return (
     <div className="er-diagram-page">
+      <h1 className="visually-hidden">ER 図</h1>
       <TableSubToolbar />
       <div className="edit-mode-toolbar edit-mode-toolbar--readonly" style={{ justifyContent: "flex-end" }}>
         {mode.kind === "editing" && (

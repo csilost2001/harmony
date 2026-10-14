@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildHistoryRows, describeEdit } from "./undoHistory";
+import { buildHistoryRows, describeEdit, visibleHistoryRows } from "./undoHistory";
 import { diffJson } from "./jsonDiff";
 
 const table = (cols: Array<Record<string, unknown>>) => ({ id: "t", name: "注文", columns: cols });
@@ -57,5 +57,32 @@ describe("buildHistoryRows", () => {
     const rows = buildHistoryRows([], s0, [s1, s2]);
     expect(rows.map((r) => r.delta)).toEqual([1, 2]);
     expect(rows.some((r) => r.current)).toBe(false);
+  });
+});
+
+describe("visibleHistoryRows (内容の変わらない操作は出さない)", () => {
+  const s0 = table([]);
+  const s1 = table([{ id: "c1", name: "a" }]);
+  const s2 = table([{ id: "c1", name: "a" }, { id: "c2", name: "b" }]);
+
+  it("内容の変わらない操作を除き、番号を振り直す。移る歩数は、もとの履歴のまま", () => {
+    // s0 → s0 (同じ) → s1 → s1 (同じ) → [いま s2]
+    const rows = visibleHistoryRows(buildHistoryRows([s0, s0, s1, s1], s2, []));
+    expect(rows.map((r) => r.index)).toEqual([0, 1]);
+    expect(rows.map((r) => r.delta)).toEqual([-2, 0]);
+    expect(rows.map((r) => r.current)).toEqual([false, true]);
+  });
+
+  it("いまの状態に当たる操作が、内容の変わらないものなら、直前の内容の変わる操作を「いま」にする", () => {
+    // s0 → s1 → [いま s1 (同じ内容)]
+    const rows = visibleHistoryRows(buildHistoryRows([s0, s1], s1, []));
+    expect(rows).toHaveLength(1);
+    expect(rows[0].current).toBe(true);
+  });
+
+  it("未来の、内容の変わらない操作も除く。履歴がすべて内容の変わらないものなら、空", () => {
+    expect(visibleHistoryRows(buildHistoryRows([s0], s0, [s0, s0]))).toEqual([]);
+    const rows = visibleHistoryRows(buildHistoryRows([s0], s1, [s1, s2]));
+    expect(rows.map((r) => [r.future, r.delta])).toEqual([[false, 0], [true, 2]]);
   });
 });

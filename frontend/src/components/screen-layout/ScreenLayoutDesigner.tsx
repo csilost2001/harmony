@@ -457,7 +457,7 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
             onManageComponents={() => setManaging({})}
             onAutoPlace={autoPlaceUnplaced}
           />
-          <main className="sld-center" aria-label={`${title} の画面 (${counts} 部品)`}>
+          <section className="sld-center" aria-label={`${title} の画面 (${counts} 部品)`}>
             <LayoutCanvas
               nodes={nodes}
               items={items}
@@ -472,7 +472,7 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
               onSelect={setSelectedId}
               onDrop={handleDrop}
             />
-          </main>
+          </section>
           <LayoutInspector
             editable={editable}
             node={selected}

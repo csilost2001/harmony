@@ -58,6 +58,7 @@ import {
   setViewStorageBackend,
   type ViewStorageBackend,
 } from "../store/viewStore";
+import { isPaneMode } from "../utils/paneMode";
 import {
   setViewDefinitionStorageBackend,
   type ViewDefinitionStorageBackend,
@@ -129,12 +130,15 @@ class McpBridgeImpl {
    * sessionStorage 利用不可な環境 (Safari Private mode 等) では fallback で in-memory 生成。
    */
   private readonly clientId = (() => {
+    // 並べて表示の右ペイン (iframe) は、左のアプリと sessionStorage を共有する。同じ ID を使うと、別の接続が同じ利用者として
+    // 混ざる (編集のロック・下書き・通知の除外が、左右で区別できない) ので、右ペインは別の ID を持つ
+    const key = isPaneMode() ? "harmony-client-id-pane" : "harmony-client-id";
     try {
-      const cached = sessionStorage.getItem("harmony-client-id");
+      const cached = sessionStorage.getItem(key);
       if (cached && cached.length > 0) return cached;
     } catch { /* sessionStorage 利用不可 (Private / SSR 等) → in-memory に fallback */ }
     const id = generateUUID();
-    try { sessionStorage.setItem("harmony-client-id", id); } catch { /* fallback (上記と同じ) */ }
+    try { sessionStorage.setItem(key, id); } catch { /* fallback (上記と同じ) */ }
     return id;
   })();
 

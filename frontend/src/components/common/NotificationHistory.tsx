@@ -30,7 +30,7 @@ export function NotificationHistory() {
   }, [open]);
 
   return (
-    <span className="notif-wrap" ref={rootRef}>
+    <span className="notif-wrap" ref={rootRef} onKeyDown={(e) => { if (open && e.key === "Escape") { e.stopPropagation(); setOpen(false); } }}>
       <button type="button" className="common-header-icon-btn notif-btn" data-testid="notif-open"
         title={unseen > 0 ? `通知の履歴 (見ていない失敗 ${unseen} 件)` : "通知の履歴"}
         aria-label={unseen > 0 ? `通知の履歴 (見ていない失敗 ${unseen} 件)` : "通知の履歴"}
@@ -40,8 +40,7 @@ export function NotificationHistory() {
         {unseen > 0 && <span className="notif-badge" data-testid="notif-badge" aria-hidden="true">{unseen > 9 ? "9+" : unseen}</span>}
       </button>
       {open && (
-        <div className="notif-pop" role="dialog" aria-label="通知の履歴" data-testid="notif-pop"
-          onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); setOpen(false); } }}>
+        <div className="notif-pop" role="dialog" aria-label="通知の履歴" data-testid="notif-pop">
           <div className="notif-head">
             <strong>通知の履歴</strong>
             <button type="button" className="notif-clear" data-testid="notif-clear" disabled={history.length === 0} onClick={clearToastHistory}>すべて消す</button>

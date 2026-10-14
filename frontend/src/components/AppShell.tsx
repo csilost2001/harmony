@@ -83,6 +83,11 @@ import {
 import { PageLayoutDesignRedirect } from "./shell/PageLayoutDesignRedirect";
 import { RedirectGuardBanner } from "./shell/RedirectGuardBanner";
 import { ConnectionFailedView } from "./shell/ConnectionFailedView";
+import { tabPath } from "../routing/tabPaths";
+import { SplitPane } from "./shell/SplitPane";
+import { isPaneMode, postToParent } from "../utils/paneMode";
+import { ToastHost } from "./common/ToastHost";
+import { setSplit, useSplit } from "../store/splitStore";
 
 function useTabs() {
   const [tabs, setTabs] = useState<readonly TabItem[]>(getTabs);
@@ -523,14 +528,38 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
   }, [workspaceState, wsId, location.pathname, navigate]);
 
   // CSS variables でヘッダー・タブバーの高さを各コンポーネントに伝える
+  // 並べて表示の右ペインの中では、ヘッダー・タブバーを出さないので、どちらも 0
+  const pane = isPaneMode();
   useEffect(() => {
-    document.documentElement.style.setProperty("--common-header-h", "40px");
-  }, []);
+    document.documentElement.style.setProperty("--common-header-h", pane ? "0px" : "40px");
+  }, [pane]);
 
   useEffect(() => {
-    const h = tabs.length > 0 ? "32px" : "0px";
+    const h = tabs.length > 0 && !pane ? "32px" : "0px";
     document.documentElement.style.setProperty("--tabbar-h", h);
-  }, [tabs.length]);
+  }, [tabs.length, pane]);
+
+  // 右ペインの中: いま開いている画面のパスを、左のアプリへ知らせる (左で開く・入れ替えが、いまの画面を使えるように)
+  useEffect(() => {
+    if (pane) postToParent({ type: "harmony-pane-nav", path: location.pathname });
+  }, [pane, location.pathname]);
+
+  // 並べて表示: 右ペインに出している設計を、左のタブとして開いたら、右ペインは閉じる (同じ設計を左右で開かない)
+  const split = useSplit(wsId);
+  useEffect(() => {
+    if (!pane && split?.tabId && split.tabId === activeTabId) setSplit(wsId, null);
+  }, [pane, split, activeTabId, wsId]);
+  const openSplitInMain = useCallback((path: string) => {
+    setSplit(wsId, null);
+    navigate(`/w/${wsId}${path}`);
+  }, [wsId, navigate]);
+  const swapSplit = useCallback((path: string) => {
+    const at = getTabs().find((t) => t.id === getActiveTabId());
+    const mainPath = at ? tabPath("", at) : null;
+    if (at && mainPath && at.type !== "workspace-list") setSplit(wsId, { path: mainPath, label: at.label, tabId: at.id });
+    else setSplit(wsId, null);
+    navigate(`/w/${wsId}${path}`);
+  }, [wsId, navigate]);
 
   // リソース詳細 URL で対象が見つからなかったときにダッシュボードへ戻す共通処理。
   // ブラウザが握っている URL を「存在しないリソース」のまま放置すると次回リロードで
@@ -944,40 +973,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     lastSyncedActiveTabIdRef.current = activeTabId;
     // /w/:wsId/* 規約のパスを生成。workspace-list は wsId なし
     const wp = wsId ? `/w/${wsId}` : "";
-    const expectedPath =
-      activeTab.type === "design"             ? `${wp}/screen/design/${activeTab.resourceId}`
-      : activeTab.type === "table"            ? `${wp}/table/edit/${activeTab.resourceId}`
-      : activeTab.type === "process-flow"     ? `${wp}/process-flow/edit/${activeTab.resourceId}`
-      : activeTab.type === "sequence"         ? `${wp}/sequence/edit/${activeTab.resourceId}`
-      : activeTab.type === "business-flow"    ? `${wp}/business-flow/edit/${activeTab.resourceId}`
-      : activeTab.type === "business-flow-list" ? `${wp}/business-flow/list`
-      : activeTab.type === "report"           ? `${wp}/report/edit/${activeTab.resourceId}`
-      : activeTab.type === "report-list"      ? `${wp}/report/list`
-      : activeTab.type === "view"             ? `${wp}/view/edit/${activeTab.resourceId}`
-      : activeTab.type === "view-definition"  ? `${wp}/view-definition/edit/${activeTab.resourceId}`
-      : activeTab.type === "page-layout"      ? `${wp}/page-layout/edit/${activeTab.resourceId}`
-      : activeTab.type === "screen-flow"      ? `${wp}/screen/flow`
-      : activeTab.type === "screen-list"      ? `${wp}/screen/list`
-      : activeTab.type === "table-list"       ? `${wp}/table/list`
-      : activeTab.type === "er"               ? `${wp}/table/er`
-      : activeTab.type === "process-flow-list" ? `${wp}/process-flow/list`
-      : activeTab.type === "extensions"       ? `${wp}/extensions`
-      : activeTab.type === "conventions-catalog" ? `${wp}/conventions/catalog`
-      : activeTab.type === "design-document"  ? `${wp}/document`
-      : activeTab.type === "design-analysis"  ? `${wp}/analysis`
-      : activeTab.type === "screen-items"     ? `${wp}/screen/items/${activeTab.resourceId}`
-      : activeTab.type === "sequence-list"    ? `${wp}/sequence/list`
-      : activeTab.type === "view-list"              ? `${wp}/view/list`
-      : activeTab.type === "view-definition-list"   ? `${wp}/view-definition/list`
-      : activeTab.type === "page-layout-list"       ? `${wp}/page-layout/list`
-      : activeTab.type === "gadget-list"            ? `${wp}/gadget/list`
-      : activeTab.type === "generic-definition-catalog" ? `${wp}/generic-definition`
-      : activeTab.type === "generic-definition-list" ? `${wp}/generic-definition/${activeTab.resourceId}`
-      : activeTab.type === "generic-definition"     ? `${wp}/generic-definition/${activeTab.resourceId.replace(":", "/")}`
-      : activeTab.type === "workspace-list"         ? "/workspace/list"
-      : activeTab.type === "tech-stack"             ? `${wp}/project/tech-stack`
-      : activeTab.type === "dashboard"              ? `${wp}/`
-      : null;
+    const expectedPath = tabPath(wp, activeTab);
     if (expectedPath && location.pathname !== expectedPath) {
       uiInfo("tabsync", "active-tab → URL", { from: location.pathname, to: expectedPath, tabType: activeTab.type, tabId: activeTab.id });
       const guard = checkRedirect(expectedPath);
@@ -1037,9 +1033,11 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
 
   return (
     <>
-      <CommonHeader />
-      <TabBar />
-
+      {!pane && <CommonHeader />}
+      {!pane && <TabBar />}
+      {pane && <ToastHost />}
+      <main id="app-main" className={split && !pane ? "split-root" : undefined} style={split && !pane ? { height: "calc(100vh - var(--common-header-h, 0px) - var(--tabbar-h, 0px))" } : undefined} data-testid={split && !pane ? "split-root" : undefined}>
+        <div className={split && !pane ? "split-left" : undefined}>
       {/* デザインタブ: 全て常時マウント、非アクティブは display:none */}
       {designTabs.map((tab) => (
         <div
@@ -1105,6 +1103,9 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
           </ErrorBoundary>
         </div>
       )}
+        </div>
+        {split && !pane && wsId && <SplitPane wsId={wsId} target={split} onOpenInMain={openSplitInMain} onSwap={swapSplit} />}
+      </main>
     </>
   );
 }

@@ -13,8 +13,8 @@
 .rp-tools { display: flex; align-items: center; gap: 14px; font-size: calc(12.5px * var(--hm-font-scale)); }
 .rp-link { border: 0; background: transparent; padding: 0; font: inherit; color: var(--hm-accent); cursor: pointer; text-decoration: underline; }
 .rp-count { margin-left: auto; color: var(--hm-fg-muted); }
-.rp-list { display: flex; flex-direction: column; gap: 8px; max-height: 46vh; overflow-y: auto; }
-.rp-group { border: 1px solid var(--hm-border); border-radius: 6px; overflow: hidden; }
+.rp-list { display: flex; flex-direction: column; gap: 8px; max-height: 46vh; overflow-y: auto; min-height: 0; }
+.rp-group { flex: 0 0 auto; border: 1px solid var(--hm-border); border-radius: 6px; overflow: hidden; }
 .rp-group.is-blocked { opacity: 0.65; }
 .rp-group > header { display: flex; align-items: center; gap: 8px; padding: 5px 10px; background: var(--hm-surface-2); font-size: calc(12.5px * var(--hm-font-scale)); }
 .rp-entity { border: 0; background: transparent; padding: 0; font: inherit; font-weight: 600; color: var(--hm-fg); cursor: pointer; text-align: left; }

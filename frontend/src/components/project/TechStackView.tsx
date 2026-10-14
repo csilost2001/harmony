@@ -102,9 +102,9 @@ function DesignerPanel({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
       <div>
-        <h4 style={{ margin: "0 0 12px", fontSize: 13, color: "var(--hm-fg-muted)", textTransform: "uppercase" as const, letterSpacing: 1 }}>
+        <h3 style={{ margin: "0 0 12px", fontSize: 13, color: "var(--hm-fg-muted)", textTransform: "uppercase" as const, letterSpacing: 1 }}>
           CSS フレームワーク
-        </h4>
+        </h3>
         <RadioGroup
           name="designer-css-framework"
           value={value.cssFramework ?? "bootstrap"}
@@ -129,9 +129,9 @@ function BackendPanel({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
       <div>
-        <h4 style={{ margin: "0 0 12px", fontSize: 13, color: "var(--hm-fg-muted)", textTransform: "uppercase" as const, letterSpacing: 1 }}>
+        <h3 style={{ margin: "0 0 12px", fontSize: 13, color: "var(--hm-fg-muted)", textTransform: "uppercase" as const, letterSpacing: 1 }}>
           言語
-        </h4>
+        </h3>
         <RadioGroup
           name="backend-language"
           value={value.language ?? "java"}
@@ -146,9 +146,9 @@ function BackendPanel({
         />
       </div>
       <div>
-        <h4 style={{ margin: "0 0 12px", fontSize: 13, color: "var(--hm-fg-muted)", textTransform: "uppercase" as const, letterSpacing: 1 }}>
+        <h3 style={{ margin: "0 0 12px", fontSize: 13, color: "var(--hm-fg-muted)", textTransform: "uppercase" as const, letterSpacing: 1 }}>
           フレームワーク
-        </h4>
+        </h3>
         <RadioGroup
           name="backend-framework"
           value={value.framework ?? "spring-boot"}
@@ -176,9 +176,9 @@ function DatabasePanel({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
       <div>
-        <h4 style={{ margin: "0 0 12px", fontSize: 13, color: "var(--hm-fg-muted)", textTransform: "uppercase" as const, letterSpacing: 1 }}>
+        <h3 style={{ margin: "0 0 12px", fontSize: 13, color: "var(--hm-fg-muted)", textTransform: "uppercase" as const, letterSpacing: 1 }}>
           データベース種別
-        </h4>
+        </h3>
         <RadioGroup
           name="database-type"
           value={value.type ?? "postgresql"}
@@ -193,9 +193,9 @@ function DatabasePanel({
         />
       </div>
       <div>
-        <h4 style={{ margin: "0 0 12px", fontSize: 13, color: "var(--hm-fg-muted)", textTransform: "uppercase" as const, letterSpacing: 1 }}>
+        <h3 style={{ margin: "0 0 12px", fontSize: 13, color: "var(--hm-fg-muted)", textTransform: "uppercase" as const, letterSpacing: 1 }}>
           バージョン (省略可)
-        </h4>
+        </h3>
         <input
           type="text"
           placeholder="例: 16, 8.0"
@@ -224,9 +224,9 @@ function FrontendPanel({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
       <div>
-        <h4 style={{ margin: "0 0 12px", fontSize: 13, color: "var(--hm-fg-muted)", textTransform: "uppercase" as const, letterSpacing: 1 }}>
+        <h3 style={{ margin: "0 0 12px", fontSize: 13, color: "var(--hm-fg-muted)", textTransform: "uppercase" as const, letterSpacing: 1 }}>
           ライブラリ / テンプレート
-        </h4>
+        </h3>
         <RadioGroup
           name="frontend-library"
           value={value.library ?? "thymeleaf"}
@@ -241,9 +241,9 @@ function FrontendPanel({
         />
       </div>
       <div>
-        <h4 style={{ margin: "0 0 12px", fontSize: 13, color: "var(--hm-fg-muted)", textTransform: "uppercase" as const, letterSpacing: 1 }}>
+        <h3 style={{ margin: "0 0 12px", fontSize: 13, color: "var(--hm-fg-muted)", textTransform: "uppercase" as const, letterSpacing: 1 }}>
           フレームワーク (省略可)
-        </h4>
+        </h3>
         <RadioGroup
           name="frontend-framework"
           value={value.framework ?? "none"}
@@ -269,9 +269,9 @@ function AuthPanel({
 }) {
   return (
     <div>
-      <h4 style={{ margin: "0 0 12px", fontSize: 13, color: "var(--hm-fg-muted)", textTransform: "uppercase" as const, letterSpacing: 1 }}>
+      <h3 style={{ margin: "0 0 12px", fontSize: 13, color: "var(--hm-fg-muted)", textTransform: "uppercase" as const, letterSpacing: 1 }}>
         認証方式
-      </h4>
+      </h3>
       <RadioGroup
         name="auth-method"
         value={value.method ?? "session"}
@@ -297,9 +297,9 @@ function DeploymentPanel({
 }) {
   return (
     <div>
-      <h4 style={{ margin: "0 0 12px", fontSize: 13, color: "var(--hm-fg-muted)", textTransform: "uppercase" as const, letterSpacing: 1 }}>
+      <h3 style={{ margin: "0 0 12px", fontSize: 13, color: "var(--hm-fg-muted)", textTransform: "uppercase" as const, letterSpacing: 1 }}>
         デプロイターゲット
-      </h4>
+      </h3>
       <RadioGroup
         name="deployment-target"
         value={value.target ?? "docker"}

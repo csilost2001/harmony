@@ -167,11 +167,11 @@ export function CanvasPane({
   }, [view, scrollTo, stepListRef]);
 
   return (
-    <main className="process-flow-canvas-pane">
+    <section className="process-flow-canvas-pane" aria-label="処理フローの工程">
       <div className="process-flow-canvas-header">
         <div>
           <span className="process-flow-pane-kicker">Flow</span>
-          <h6>{activeAction ? `${activeAction.name} の処理` : "処理フロー"}</h6>
+          <h2>{activeAction ? `${activeAction.name} の処理` : "処理フロー"}</h2>
         </div>
         <div className="pf-view-switch" role="tablist" aria-label="表示形式">
           {VIEWS.map((v) => (
@@ -353,6 +353,6 @@ export function CanvasPane({
           </div>
         )}
       </div>
-    </main>
+    </section>
   );
 }

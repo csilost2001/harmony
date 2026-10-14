@@ -35,15 +35,14 @@ export function FavoritesMenu() {
   const resolved = entries ? resolveFavoriteEntries(entries, favorites) : null;
 
   return (
-    <span className="fav-wrap" ref={rootRef}>
+    <span className="fav-wrap" ref={rootRef} onKeyDown={(e) => { if (open && e.key === "Escape") { e.stopPropagation(); setOpen(false); } }}>
       <button type="button" className="common-header-icon-btn" data-testid="favorites-open"
         title={`お気に入り${favorites.length ? ` (${favorites.length} 件)` : ""}`} aria-label="お気に入り" aria-haspopup="dialog" aria-expanded={open}
         onClick={() => setOpen((v) => !v)}>
         <i className={`bi ${on ? "bi-star-fill" : "bi-star"}`} />
       </button>
       {open && (
-        <div className="fav-pop" role="dialog" aria-label="お気に入り" data-testid="favorites-pop"
-          onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); setOpen(false); } }}>
+        <div className="fav-pop" role="dialog" aria-label="お気に入り" data-testid="favorites-pop">
           {key && tab && (
             <button type="button" className="fav-toggle" data-testid="favorites-toggle" onClick={() => toggleFavorite(wsId, key)}>
               <i className={`bi ${on ? "bi-star-fill" : "bi-star"}`} /> 「{tab.label}」を{on ? "お気に入りから外す" : "お気に入りに追加"}

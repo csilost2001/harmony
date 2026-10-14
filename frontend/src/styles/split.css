@@ -1,0 +1,12 @@
+/* 並べて表示 (右ペイン) */
+.split-root { display: flex; min-width: 0; }
+.split-left { flex: 1 1 0; min-width: 0; }
+.split-pane { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; border-left: 3px solid var(--hm-accent); background: var(--hm-surface); }
+.split-pane-head { display: flex; align-items: center; gap: 8px; padding: 4px 8px; background: var(--hm-surface-3); border-bottom: 1px solid var(--hm-border-strong); font-size: calc(12.5px * var(--hm-font-scale)); }
+.split-pane-title { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.split-pane-dirty { color: var(--hm-warning); font-size: calc(11.5px * var(--hm-font-scale)); font-weight: 600; }
+.split-pane-spacer { flex: 1 1 auto; }
+.split-pane-btn { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font: inherit; color: var(--hm-fg-2); background: var(--hm-surface); border: 1px solid var(--hm-border-strong); border-radius: 5px; cursor: pointer; white-space: nowrap; }
+.split-pane-btn:hover { border-color: var(--hm-accent); color: var(--hm-accent); }
+.split-pane-frame { flex: 1 1 auto; width: 100%; border: 0; min-height: 0; background: var(--hm-bg); }
+@media (max-width: 900px) { .split-pane-btn span { display: none; } }

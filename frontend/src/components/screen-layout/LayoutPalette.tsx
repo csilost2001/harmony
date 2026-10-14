@@ -89,7 +89,7 @@ export function LayoutPalette({ editable, nodes, items, tables, selectedId, onAd
           {!editable && <p className="sld-hint">「編集開始」すると部品を置けます。</p>}
           {GROUPS.map((g) => (
             <section key={g.title}>
-              <h4 className="sld-group-title">{g.title}</h4>
+              <h2 className="sld-group-title">{g.title}</h2>
               <div className="sld-parts">
                 {g.types.map((t) => (
                   <button
@@ -113,7 +113,7 @@ export function LayoutPalette({ editable, nodes, items, tables, selectedId, onAd
           ))}
           {(components.length > 0 || onManageComponents) && (
             <section data-testid="layout-components-section">
-              <h4 className="sld-group-title">独自部品</h4>
+              <h2 className="sld-group-title">独自部品</h2>
               {components.length === 0 && <p className="sld-hint">このプロジェクト専用の部品はまだありません。画面の部品を選んで「独自部品として登録」すると、ここに並びます。</p>}
               <div className="sld-parts">
                 {components.map((c) => (
@@ -174,7 +174,7 @@ export function LayoutPalette({ editable, nodes, items, tables, selectedId, onAd
           </ul>
           {hidden.length > 0 && (
             <>
-              <h4 className="sld-group-title">画面に表示しない項目</h4>
+              <h2 className="sld-group-title">画面に表示しない項目</h2>
               <p className="sld-hint">画面の内部状態・隠し値。クリックで画面に置くと、右パネルで「画面に表示しない」を外せます。</p>
               <ul className="sld-list sld-list-muted">
                 {hidden.map((i) => (
@@ -188,7 +188,7 @@ export function LayoutPalette({ editable, nodes, items, tables, selectedId, onAd
               </ul>
             </>
           )}
-          <h4 className="sld-group-title">配置済み</h4>
+          <h2 className="sld-group-title">配置済み</h2>
           <ul className="sld-list sld-list-muted">
             {items.filter((i) => placed.has(i.id as string)).map((i) => (
               <li key={i.id}><span>{i.label || i.id}</span><code>{i.id}</code></li>

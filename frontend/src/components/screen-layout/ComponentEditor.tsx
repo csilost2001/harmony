@@ -158,7 +158,7 @@ export function ComponentEditor({ initial, isNew, others, screens, onSave, onClo
             components={pool.filter((c) => c.id !== def.id)}
             onAddComponent={(id) => ops.addComponent(id)}
           />
-          <main className="sld-center" aria-label={`${def.label} (${count} 部品)`}>
+          <section className="sld-center" aria-label={`${def.label} (${count} 部品)`}>
             <LayoutCanvas
               nodes={nodes}
               items={items}
@@ -173,7 +173,7 @@ export function ComponentEditor({ initial, isNew, others, screens, onSave, onClo
               onSelect={setSelectedId}
               onDrop={ops.handleDrop}
             />
-          </main>
+          </section>
           {selected ? (
             <LayoutInspector
               editable

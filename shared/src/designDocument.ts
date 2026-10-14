@@ -490,7 +490,7 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
     <div class="hd-scroll"><table class="hd-table hd-crud"><thead><tr><th>処理フロー ＼ テーブル</th>${crud.tables.map((t) => `<th>${esc(t.name)}</th>`).join("")}</tr></thead><tbody>
     ${crud.rows.map((r) => `<tr><th><a href="#${anchor("flow", r.flowId)}">${esc(r.flowName)}</a></th>${crud.tables.map((t) => `<td class="hd-crud-cell">${(r.cells[t.id] ?? []).map((l) => `<span class="hd-crud-${l}">${l}</span>`).join("")}</td>`).join("")}</tr>`).join("")}
     </tbody></table></div>
-    ${crud.findings.length ? `<h4 class="hd-sub">所見 (自動検出)</h4><ul class="hd-findings">${crud.findings.map((f) => `<li><b>${esc(tableName.get(f.tableId) ?? f.tableId)}</b>: ${esc(f.message)}</li>`).join("")}</ul>` : ""}
+    ${crud.findings.length ? `<h3 class="hd-sub">所見 (自動検出)</h3><ul class="hd-findings">${crud.findings.map((f) => `<li><b>${esc(tableName.get(f.tableId) ?? f.tableId)}</b>: ${esc(f.message)}</li>`).join("")}</ul>` : ""}
     <p class="hd-note">処理フローの DB アクセスから自動導出。UPSERT は C+U、在庫減算等の更新系独自操作は U として扱う。</p>
   `, "6");
 
@@ -670,14 +670,14 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
     toc.push({ id: "access", title: "権限", level: 1 });
     out.push(`<section class="hd-section hd-level-1" id="access"><h2 class="hd-title"><span class="hd-chapter">${chap}</span>権限</h2>
       <p class="hd-desc">規約の役割・権限と、画面の「必要な権限」・処理の「必要な権限」から導いた一覧です。必要な権限は<b>すべて</b>持つ役割だけが使えます。</p>
-      <h4 class="hd-sub">役割<small>${am.roleIds.length} 件</small></h4>
+      <h3 class="hd-sub">役割<small>${am.roleIds.length} 件</small></h3>
       ${table(["役割", "名称", "継承", "使える権限 (継承を含む)", "説明"], am.roleIds.map((r) => [`<code>${esc(r)}</code>`, esc(roles[r].name ?? ""), (roles[r].inherits ?? []).map((x) => `<code>${esc(x)}</code>`).join("、"), am.effective[r].map((p) => `<code>${esc(p)}</code>`).join("、"), esc(roles[r].description ?? "")]))}
-      <h4 class="hd-sub">権限<small>${Object.keys(permDefs).length} 件</small></h4>
+      <h3 class="hd-sub">権限<small>${Object.keys(permDefs).length} 件</small></h3>
       ${table(["権限", "対象", "操作", "範囲", "付与する役割", "説明"], Object.entries(permDefs).map(([k, p]) => [`<code>${esc(k)}</code>`, esc(p.resource ?? ""), esc(p.action ?? ""), esc(p.scope ?? ""), am.roleIds.filter((r) => am.effective[r].includes(k)).map(roleLabel).join("、"), esc(p.description ?? "")]))}
-      <h4 class="hd-sub">画面 × 役割<small>${screenSubjects.length} 画面</small></h4>
+      <h3 class="hd-sub">画面 × 役割<small>${screenSubjects.length} 画面</small></h3>
       ${matrix(am.screens, (id) => `<a href="#${anchor("screen", id)}">${esc(screenName.get(id) ?? id)}</a>`, "画面")}
       ${openScreens > 0 ? `<p class="hd-note">権限を指定していない画面 ${openScreens} 件は、誰でも開けます (認証の要否は各画面の「認証」)。</p>` : ""}
-      <h4 class="hd-sub">処理 × 役割<small>${actionSubjects.length} 件</small></h4>
+      <h3 class="hd-sub">処理 × 役割<small>${actionSubjects.length} 件</small></h3>
       ${matrix(am.flows, (id) => { const a = actionSubjects.find((x) => x.id === id); return a ? `<a href="#${anchor("flow", a.flowId)}">${esc(a.name)}</a>` : esc(id); }, "処理")}
       <p class="hd-note">権限を指定していない処理は省略しています (誰でも呼び出せる扱い)。</p></section>`);
     chap += 1;
@@ -713,7 +713,7 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
     toc.push({ id: "input-tests", title: "テスト観点 (画面入力)", level: 1 });
     out.push(`<section class="hd-section hd-level-1" id="input-tests"><h2 class="hd-title"><span class="hd-chapter">付録</span>テスト観点 (画面入力)</h2>
       <p class="hd-desc">画面項目の必須・桁数・範囲・形式から自動で導いた、入力のテストケースです (全 ${inputCases.reduce((n, x) => n + x.cases.length, 0)} 件)。ID は画面・項目・規則から決まります。<code>npm run export:tests</code> で CSV / JSON に書き出せます。</p>
-      ${inputCases.map(({ s, cases }) => `<h4 class="hd-sub"><a href="#${anchor("screen", s.id)}">${esc(s.name ?? s.id)}</a><small>${cases.length} 件</small></h4>
+      ${inputCases.map(({ s, cases }) => `<h3 class="hd-sub"><a href="#${anchor("screen", s.id)}">${esc(s.name ?? s.id)}</a><small>${cases.length} 件</small></h3>
       ${table(["ID", "項目", "区分", "観点", "入力", "期待結果"], cases.map((c) => [
         `<code>${esc(c.rule)}</code>`, esc(c.itemLabel), `<span class="hd-sev ${catClass(c.category)}">${c.category}</span>`, esc(c.viewpoint), esc(c.input),
         esc(c.expected) + (c.expectedMessage ? `<br><small>メッセージ: ${esc(c.expectedMessage)}</small>` : ""),

@@ -12,8 +12,10 @@ function pickHeadline(changes: readonly Change[]): Change {
   return [...changes].sort((a, b) => rank[a.kind] - rank[b.kind])[0];
 }
 
+const EMPTY_LABEL = "(内容の変更なし)";
+
 export function describeEdit(changes: readonly Change[]): string {
-  if (changes.length === 0) return "(内容の変更なし)";
+  if (changes.length === 0) return EMPTY_LABEL;
   const head = pickHeadline(changes);
   const where = describePath(head.path);
   let text = `${where}${VERB[head.kind]}`;
@@ -33,6 +35,8 @@ export interface HistoryRow {
   future: boolean;
   /** いまの状態は、この操作の後 */
   current: boolean;
+  /** 前後で、内容が変わらない操作 (入力の確定だけの履歴など)。一覧には出さない */
+  empty: boolean;
 }
 
 /**
@@ -51,7 +55,23 @@ export function buildHistoryRows(past: readonly unknown[], present: unknown, fut
       delta: after - nowAt,
       future: after > nowAt,
       current: after === nowAt,
+      empty: false,
     });
+    rows[rows.length - 1].empty = rows[rows.length - 1].label === EMPTY_LABEL;
   }
   return rows;
+}
+
+/**
+ * 一覧に出す行 (内容の変わらない操作を除く)。いまの状態に当たる操作が内容の変わらないものだった場合は、
+ * 直前の、内容の変わる操作を「いま」にする (内容は同じなので、移る必要はない)。
+ */
+export function visibleHistoryRows(rows: readonly HistoryRow[]): HistoryRow[] {
+  const shown = rows.filter((r) => !r.empty).map((r) => ({ ...r }));
+  if (shown.length > 0 && !shown.some((r) => r.delta === 0)) {
+    const before = shown.filter((r) => r.delta < 0);
+    const last = before[before.length - 1];
+    if (last && rows.some((r) => r.delta === 0 && r.empty)) last.current = true;
+  }
+  return shown.map((r, i) => ({ ...r, index: i }));
 }

@@ -11,6 +11,7 @@
 | [layout-components.md](layout-components.md) | プロジェクト独自部品 (登録・差し込み口・展開・管理 UI) | 再設計 2026-10 |
 | [test-viewpoints.md](test-viewpoints.md) | テスト観点表 (画面入力の正常・異常・境界値を項目の制約から導出、処理の観点に ID を付与。CSV / JSON / Markdown に書き出し) | 再設計 2026-10 |
 | [references.md](references.md) | 参照元 (その設計を参照している設計の一覧。改名・削除の前の影響確認。UI の「参照元」/ MCP `designer__find_references`) | 再設計 2026-10 |
+| [ux-operations.md](ux-operations.md) | 操作性 (通知の履歴・表示の設定・お気に入り・コマンドパレット・変更履歴・一括変更・別画面へのコピー・スニペット・検索置換・表で編集・キーボード代替・ツアーとヘルプ・並べて表示・エラー復旧) | 第 4 弾 |
 | [design-analysis.md](design-analysis.md) | 設計の分析 (影響分析・対応表・未使用・用語・命名規約・メッセージ・操作単位の権限・SLA / ジョブ・外部システムの契約・進捗・テスト雛形・テストデータ・OpenAPI・DDL の差分) | 第 3 弾 |
 | [design-check.md](design-check.md) | 点検の設定 `design-check.json` (要確認の抑制・独自の検査ルール) | 第 3 弾 |
 | [file-backup.md](file-backup.md) | 保存前の版 (上書きされる前の内容を世代で残す・画面と MCP からの確認・読み込み) | 第 1 弾 |

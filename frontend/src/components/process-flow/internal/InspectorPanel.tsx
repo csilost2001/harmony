@@ -55,7 +55,7 @@ export function InspectorPanel({
       <div className="process-flow-pane-header">
         <div>
           <span className="process-flow-pane-kicker">Inspector</span>
-          <h6>詳細</h6>
+          <h2>詳細</h2>
         </div>
       </div>
       <div className="process-flow-inspector-scroll">

@@ -14,6 +14,7 @@ import { requestHeaderPanel, pressShortcut } from "../../utils/headerPanels";
 import { clearRecentQuickOpen } from "../../utils/quickOpen";
 import { clearToastHistory } from "../../utils/toast";
 import { tourForTab } from "../../utils/tours";
+import { getSplit, setSplit } from "../../store/splitStore";
 
 export interface PaletteCommand {
   id: string;
@@ -71,6 +72,9 @@ export function buildPaletteCommands(ctx: CommandContext): PaletteCommand[] {
   add({ id: "contrast-high", label: "コントラスト: 高", keywords: ["こんとらすと", "contrast", "high", "見やすい"], icon: "bi-circle-half", run: () => setDisplayPrefs({ contrast: "high" }) });
   add({ id: "contrast-standard", label: "コントラスト: 標準", keywords: ["こんとらすと", "contrast"], icon: "bi-circle-half", run: () => setDisplayPrefs({ contrast: "standard" }) });
   add({ id: "open-display", label: "表示の設定を開く", keywords: ["ひょうじ", "display", "settings", "設定"], icon: "bi-type", run: afterClose(() => requestHeaderPanel("display")) });
+
+  // ── 並べて表示 ──
+  if (getSplit(wsId)) add({ id: "split-close", label: "並べて表示 (右側) を閉じる", keywords: ["ならべて", "split", "分割", "右", "とじる"], icon: "bi-layout-sidebar-inset-reverse", run: () => setSplit(wsId, null) });
 
   // ── 設計全体の操作 ──
   add({ id: "replace", label: "設計全体で検索・置換", keywords: ["けんさく", "ちかん", "replace", "find", "置き換え", "用語", "一括"], icon: "bi-input-cursor-text", hint: "Ctrl+Shift+H", run: afterClose(() => requestHeaderPanel("replace")) });

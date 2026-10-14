@@ -38,7 +38,7 @@ export function PalettePanel({
       <div className="process-flow-pane-header">
         <div>
           <span className="process-flow-pane-kicker">Blocks</span>
-          <h6>ブロック<HelpHint topic="processFlow.overview" /></h6>
+          <h2>ブロック<HelpHint topic="processFlow.overview" /></h2>
         </div>
         {!isReadonly && <span className="process-flow-pane-badge">D&D</span>}
       </div>

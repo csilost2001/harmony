@@ -61,14 +61,13 @@ export function SnippetMenu({ kind, getSelection, selectionCount, onInsert, read
   };
 
   return (
-    <span className="snip-wrap" ref={rootRef}>
+    <span className="snip-wrap" ref={rootRef} onKeyDown={(e) => { if (open && e.key === "Escape") { e.stopPropagation(); setOpen(false); } }}>
       <button type="button" className={className} data-testid="snippet-open" aria-haspopup="dialog" aria-expanded={open}
         title={`よく使う${SNIPPET_KIND_LABELS[kind]}の並びを、名前をつけて残して、あとで挿入します`} onClick={() => setOpen((v) => !v)}>
         <i className="bi bi-bookmark-plus" /> スニペット{list.length > 0 ? ` (${list.length})` : ""}
       </button>
       {open && (
-        <div className={`snip-pop${popAlign === "left" ? " snip-pop--left" : ""}`} role="dialog" aria-label={`${SNIPPET_KIND_LABELS[kind]}のスニペット`} data-testid="snippet-pop"
-          onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); setOpen(false); } }}>
+        <div className={`snip-pop${popAlign === "left" ? " snip-pop--left" : ""}`} role="dialog" aria-label={`${SNIPPET_KIND_LABELS[kind]}のスニペット`} data-testid="snippet-pop">
           <div className="snip-save">
             <strong>選んだ {selectionCount} {unit}を保存</strong>
             <div className="snip-save-row">

@@ -68,7 +68,7 @@ export function EditorHeader({
           </button>
         )}
         {title !== undefined && (
-          <div className="editor-header-title">{title}</div>
+          <div className="editor-header-title" role="heading" aria-level={1}>{title}</div>
         )}
       </div>
 

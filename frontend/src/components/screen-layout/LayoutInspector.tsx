@@ -93,7 +93,7 @@ function ScreenPanel({ issues, onSelect, items, nodes }: LayoutInspectorProps) {
   walk(nodes);
   return (
     <div className="sld-right-body">
-      <h3 className="sld-panel-title">画面の状態</h3>
+      <h2 className="sld-panel-title">画面の状態</h2>
       <div className="sld-stats">
         <div><b>{count}</b><span>部品</span></div>
         <div><b>{items.length}</b><span>画面項目</span></div>
@@ -101,7 +101,7 @@ function ScreenPanel({ issues, onSelect, items, nodes }: LayoutInspectorProps) {
         <div className={sev.warning.length ? "is-warning" : ""}><b>{sev.warning.length}</b><span>警告</span></div>
       </div>
       <p className="sld-hint">部品をクリックすると、ここで詳細と画面項目の定義を編集できます。</p>
-      {issues.length > 0 && <h4 className="sld-group-title">要確認</h4>}
+      {issues.length > 0 && <h2 className="sld-group-title">要確認</h2>}
       <ul className="sld-issues" data-testid="layout-issues">
         {[...sev.error, ...sev.warning, ...sev.info].map((i, k) => (
           <li key={k} className={`sld-issue sld-issue-${i.severity}`}>
@@ -311,7 +311,7 @@ function ComponentArgsPanel({ node, def, items, screens, editable, onSetArg, onE
   }
   return (
     <div className="sld-component-panel" data-testid="layout-component-panel">
-      <h4 className="sld-group-title"><i className="bi bi-puzzle" /> 独自部品「{def.label}」</h4>
+      <h2 className="sld-group-title"><i className="bi bi-puzzle" /> 独自部品「{def.label}」</h2>
       {def.description && <p className="sld-hint">{def.description}</p>}
       {def.params.length === 0 && <p className="sld-hint">この独自部品には差し込み口がありません。</p>}
       {def.params.map((q) => {
@@ -356,7 +356,7 @@ function ItemEditor({ item, editable, onItemChange, onCommit, isTable }: {
 
   return (
     <div className="sld-item-editor" data-testid="layout-item-editor">
-      <h4 className="sld-group-title">画面項目の定義 <code>{id}</code></h4>
+      <h2 className="sld-group-title">画面項目の定義 <code>{id}</code></h2>
       <Row label="項目名" htmlFor="sld-item-label"><TextInput id="sld-item-label" value={(item.label as string) ?? ""} disabled={!editable} onLive={(v) => set("label", v as ScreenItem["label"], false)} onDone={onCommit} /></Row>
       {!isTable && (
         <div className="sld-row-2">

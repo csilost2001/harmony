@@ -229,3 +229,4 @@
 .tab-context-item.danger i {
   color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg));
 }
+.tab-context-item.disabled { opacity: 0.5; cursor: not-allowed; }

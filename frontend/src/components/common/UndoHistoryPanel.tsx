@@ -4,7 +4,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { UndoHistoryView } from "../../hooks/useUndoableState";
-import { buildHistoryRows } from "../../utils/undoHistory";
+import { buildHistoryRows, visibleHistoryRows } from "../../utils/undoHistory";
 import "../../styles/undoHistory.css";
 
 interface Props {
@@ -28,19 +28,18 @@ export function UndoHistoryPanel({ history, present, onJump, buttonClassName = "
   }, [open]);
 
   // 開いている間だけ、差を計算する (閉じているときの編集で、重い比較をしない)
-  const rows = useMemo(() => (open ? buildHistoryRows(history.past, present, history.future) : []), [open, history, present]);
+  const rows = useMemo(() => (open ? visibleHistoryRows(buildHistoryRows(history.past, present, history.future)) : []), [open, history, present]);
   const first = history.past.length === 0 && history.future.length > 0;
 
   return (
-    <span className="uh-wrap" ref={rootRef}>
+    <span className="uh-wrap" ref={rootRef} onKeyDown={(e) => { if (open && e.key === "Escape") { e.stopPropagation(); setOpen(false); } }}>
       <button type="button" className={buttonClassName} data-testid="undo-history-open" disabled={count === 0 && !open}
         title={count === 0 ? "変更履歴 (まだ操作がありません)" : `変更履歴 (戻れる操作 ${history.past.length} 件)`} aria-label="変更履歴" aria-haspopup="dialog" aria-expanded={open}
         onClick={() => setOpen((v) => !v)}>
         <i className="bi bi-clock-history" />
       </button>
       {open && (
-        <div className="uh-pop" role="dialog" aria-label="変更履歴" data-testid="undo-history"
-          onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); setOpen(false); } }}>
+        <div className="uh-pop" role="dialog" aria-label="変更履歴" data-testid="undo-history">
           <div className="uh-head"><strong>変更履歴</strong><small>行を選ぶと、その操作の後の状態へ移ります (Ctrl+Z / Ctrl+Y と同じ履歴)</small></div>
           {rows.length === 0 ? (
             <p className="uh-empty">まだ操作がありません。編集すると、ここに並びます。</p>

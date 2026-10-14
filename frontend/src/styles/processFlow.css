@@ -561,7 +561,9 @@
 }
 
 .process-flow-pane-header h6,
-.process-flow-canvas-header h6 {
+.process-flow-pane-header h2,
+.process-flow-canvas-header h6,
+.process-flow-canvas-header h2 {
   margin: 1px 0 0;
   color: var(--hm-fg);
   font-size: 0.88rem;

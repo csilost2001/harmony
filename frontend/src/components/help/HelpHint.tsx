@@ -20,14 +20,15 @@ export function HelpHint({ topic, className }: { topic: string; className?: stri
 
   if (!t) return null;
   return (
-    <span className={`help-hint${className ? ` ${className}` : ""}`} ref={rootRef}>
+    <span className={`help-hint${className ? ` ${className}` : ""}`} ref={rootRef}
+      onKeyDown={(e) => { if (open && e.key === "Escape") { e.stopPropagation(); setOpen(false); } }}>
       <button type="button" className="help-hint-btn" aria-label={`${t.title}の説明`} aria-expanded={open} aria-controls={open ? popId : undefined}
         data-testid={`help-${topic}`} onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen((v) => !v); }}>
         <i className="bi bi-question-circle" aria-hidden="true" />
       </button>
       {open && (
         <span id={popId} role="dialog" aria-label={`${t.title}の説明`} className="help-hint-pop" data-testid="help-hint-pop"
-          onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); setOpen(false); } }}>
+          >
           <strong>{t.title}</strong>
           {t.body.map((p, i) => <span key={i} className="help-hint-p">{p}</span>)}
           {t.doc && <span className="help-hint-doc">くわしくは: <code>{t.doc}</code></span>}

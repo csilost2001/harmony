@@ -42,7 +42,7 @@ export function DisplaySettings() {
   const changed = prefs.fontScale !== "standard" || prefs.density !== "standard" || prefs.contrast !== "standard";
 
   return (
-    <span className="disp-wrap" ref={rootRef}>
+    <span className="disp-wrap" ref={rootRef} onKeyDown={(e) => { if (open && e.key === "Escape") { e.stopPropagation(); setOpen(false); } }}>
       <button type="button" className="common-header-icon-btn" data-testid="display-settings-open"
         title="表示の設定 (文字サイズ・密度・コントラスト)" aria-label="表示の設定" aria-haspopup="dialog" aria-expanded={open}
         onClick={() => setOpen((v) => !v)}>
@@ -50,8 +50,7 @@ export function DisplaySettings() {
         {changed && <span className="disp-dot" aria-hidden="true" />}
       </button>
       {open && (
-        <div className="disp-pop" role="dialog" aria-label="表示の設定" data-testid="display-settings"
-          onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); setOpen(false); } }}>
+        <div className="disp-pop" role="dialog" aria-label="表示の設定" data-testid="display-settings">
           <Choice<FontScale> name="fontScale" label="文字サイズ" value={prefs.fontScale} labels={FONT_SCALE_LABELS} onChange={(v) => setDisplayPrefs({ fontScale: v })} />
           <Choice<Density> name="density" label="密度 (表の行の余白)" value={prefs.density} labels={DENSITY_LABELS} onChange={(v) => setDisplayPrefs({ density: v })} />
           <Choice<Contrast> name="contrast" label="コントラスト (淡い文字と罫線)" value={prefs.contrast} labels={CONTRAST_LABELS} onChange={(v) => setDisplayPrefs({ contrast: v })} />

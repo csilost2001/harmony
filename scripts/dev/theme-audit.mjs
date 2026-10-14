@@ -48,6 +48,17 @@ const routes = [
   ["extensions", "/extensions"], ["tech-stack", "/project/tech-stack"], ["document", "/document"], ["analysis", "/analysis"],
   // 設計の分析の各タブ (開くタブは localStorage で決まる。第 3 要素 = 先に入れる localStorage の [キー, 値])
   ...["impact", "maps", "cleanup", "ops", "progress", "rules", "export"].map((t) => [`analysis-${t}`, "/analysis", ["harmony.analysis.tab", t]]),
+  // 操作で開く部品 (ダイアログ・ポップオーバー・ツアー)。第 4 要素 = 画面を開いたあとに行う操作 (終わったら Esc で閉じる)
+  ["op-command-palette", "/", null, async (page) => { await page.keyboard.press("Control+k"); await page.getByTestId("quick-open-input").fill(">"); }],
+  ["op-display-settings", "/", null, async (page) => { await page.getByTestId("display-settings-open").click(); }],
+  ["op-notifications", "/", null, async (page) => { await page.getByTestId("notif-open").click(); }],
+  ["op-favorites", "/", null, async (page) => { await page.getByTestId("favorites-open").click(); }],
+  ["op-replace", "/", null, async (page) => { await page.keyboard.press("Control+Shift+H"); await page.getByTestId("replace-query").fill("カート"); await page.getByTestId("replace-search").click(); await page.waitForTimeout(1500); }],
+  ["op-tour", "/table/edit/cart", null, async (page) => { await page.keyboard.press("Control+k"); await page.getByTestId("quick-open-input").fill(">ツアー"); await page.keyboard.press("Enter"); }],
+  ["op-column-grid", "/table/edit/cart", null, async (page) => { await page.getByTestId("columns-grid-toggle").click(); }],
+  ["op-snippet", "/table/edit/cart", null, async (page) => { await page.getByTestId("snippet-open").click(); }],
+  ["op-help-hint", "/screen/items/cart", null, async (page) => { await page.getByTestId("help-screenItem.id").click(); }],
+  ["op-split", "/", null, async (page) => { await page.evaluate(() => { const id = location.pathname.split("/")[2]; sessionStorage.setItem(`harmony.split:${id}`, JSON.stringify({ path: "/table/list", label: "テーブル一覧", tabId: null })); }); await page.reload(); await page.waitForTimeout(2500); }],
   ["report-list", "/report/list"], ["report-edit", `/report/edit/${firstId("reports") ?? "delivery-note"}`],
   ["business-flow-list", "/business-flow/list"], ["business-flow-edit", `/business-flow/edit/${firstId("business-flows") ?? "order-to-shipment"}`],
 ].filter(([n]) => !only || only.has(n));
@@ -80,7 +91,7 @@ const auditFn = (theme) => {
     }
     return parts.join(" > ");
   };
-  const skip = (el) => el.closest(".common-header, .react-flow__minimap, iframe, .gjs-frame, [data-theme-audit-skip]");
+  const skip = (el) => el.closest(".common-header, .react-flow__minimap, iframe, .gjs-frame, [data-theme-audit-skip]") && !el.closest(".notif-pop, .disp-pop, .fav-pop");
   const contrast = [];
   const seen = new Set();
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
@@ -135,12 +146,14 @@ for (const theme of themes) {
   await page.locator(".tbl-modal .tbl-btn-primary").click();
   await page.waitForURL(/\/w\/[^/]+\//, { timeout: 15000 });
   const wsPrefix = (await page.evaluate(() => location.pathname)).match(/^\/w\/[^/]+/)[0];
-  for (const [name, route, ls] of routes) {
+  for (const [name, route, ls, act] of routes) {
     if (ls) await page.evaluate(([k, v]) => { try { localStorage.setItem(k, v); } catch { /* ignore */ } }, ls);
     await page.evaluate((p) => { window.history.pushState({}, "", p); window.dispatchEvent(new PopStateEvent("popstate")); }, `${wsPrefix}${route}`);
     await page.waitForTimeout(1200);
     await page.evaluate(() => (document.querySelector('[data-testid="resume-discard"]'))?.click());
+    if (act) { try { await act(page); await page.waitForTimeout(400); } catch (e) { console.log(`  (${name}: 操作に失敗: ${String(e.message).split("\n")[0]})`); } }
     const r = await page.evaluate(auditFn, theme);
+    if (act) { await page.keyboard.press("Escape").catch(() => undefined); await page.evaluate(() => sessionStorage.clear()); }
     report[`${theme}:${name}`] = r;
     const issues = r.contrast.length + r.surfaces.length;
     console.log(`${theme.padEnd(5)} ${name.padEnd(24)} 低コントラスト ${String(r.contrast.length).padStart(2)} / 不一致面 ${r.surfaces.length}${issues ? "" : "  ✓"}`);
