@@ -24,6 +24,7 @@ import { cleanActor } from "@harmony/shared";
 import { recordAudit } from "./ops/audit.js";
 import { describeRpc } from "./ops/auditMap.js";
 import { isEditRpc, requireRole } from "./ops/policy.js";
+import { scheduleIssueCheck } from "./ops/issuesWatch.js";
 import { logInfo, logWarn, logError } from "./serverLog.js";
 import { checkRequestOrigin } from "./security/originCheck.js";
 import { ExternalChangeWatcher } from "./externalChanges.js";
@@ -770,7 +771,16 @@ export class WsBridge extends EventEmitter {
       this.pruneExternalWatcher();
       schedulePrewarm(activePath); // 設計書・検査・検索の最初の計算を、あいたところで済ませておく
     }
+    // 1 つの接続の要求は、届いた順に処理を始める (役割の検査などの待ちで、あとの要求が先に始まらないように)。始まったあとは、並行に動く
+    const prevStart = this.startChain.get(clientId) ?? Promise.resolve();
+    let released = false;
+    let releaseStart: () => void = () => undefined;
+    const myStart = new Promise<void>((r) => { releaseStart = () => { released = true; r(); }; });
+    const chained = prevStart.then(() => myStart);
+    this.startChain.set(clientId, chained);
+    void chained.then(() => { if (this.startChain.get(clientId) === chained) this.startChain.delete(clientId); });
     try {
+      await prevStart;
       // 前回、複数ファイルの操作の途中で止まっていれば、最初の要求のときに元へ戻す
       if (activePath) await ensureRecovered(activePath);
       const handler = rpcHandlerMap.get(method);
@@ -789,26 +799,34 @@ export class WsBridge extends EventEmitter {
           respondError,
           bridge: this,
         };
-        await handler(ctx);
+        const running = handler(ctx);
+        releaseStart(); // 処理が始まった (同期の部分は済んだ)。次の要求も、始めてよい
+        await running;
         // 成功した変更の操作を、監査ログに残す (残せなくても、操作は止めない)
         if (activePath && responded) {
           const d = describeRpc(method, params, (responded as { result: unknown }).result, sessionTarget);
-          if (d) void recordAudit(activePath, { actor: actor || "(名前なし)", ...d, via: "ui" });
+          if (d) { void recordAudit(activePath, { actor: actor || "(名前なし)", ...d, via: "ui" }); scheduleIssueCheck(activePath); }
         }
         return;
       }
       // 動的に登録されたハンドラ (#750 follow-up: client.log.flush 等)
       const dynHandler = this._browserHandlers.get(method);
       if (dynHandler) {
-        const result = await dynHandler(params, { clientId });
-        respond(result);
+        const pending = Promise.resolve(dynHandler(params, { clientId }));
+        releaseStart();
+        respond(await pending);
         return;
       }
       respondError(`未知のリクエストメソッド: ${method}`);
     } catch (e) {
       respondError(e instanceof Error ? e.message : String(e));
+    } finally {
+      if (!released) releaseStart();
     }
   }
+
+  /** 接続ごとの、要求の処理の開始の順序 (_handleBrowserRequest) */
+  private startChain = new Map<string, Promise<void>>();
 
   /** 動的にブラウザリクエストハンドラを登録する (#750 follow-up: client.log.flush 等)。 */
   private _browserHandlers = new Map<

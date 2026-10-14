@@ -378,3 +378,52 @@ describe("版の情報", () => {
     await fs.rm(proj, { recursive: true, force: true });
   });
 });
+
+describe("MCP tool (AI): 生成の記録・レビューの指摘", () => {
+  const call = async (name: string, args: Record<string, unknown>) => {
+    const { handleDesignTool } = await import("../handlers/design.js");
+    const res = await handleDesignTool(name, args, ROOT, "s") as { content: Array<{ text: string }> };
+    return JSON.parse(res.content[0].text);
+  };
+  it("生成を記録し、設計が変わると乖離を返し、差分も返す", async () => {
+    await fs.mkdir(path.join(ROOT, "gen"), { recursive: true });
+    await fs.writeFile(path.join(ROOT, "gen", "a.ts"), "a");
+    expect(await call("designer__record_generation", { outputs: [{ path: "gen/a.ts", sources: [{ kind: "table", id: "orders" }] }] })).toMatchObject({ recorded: 1 });
+    expect(await call("designer__check_generation_drift", {})).toMatchObject({ ok: true, total: 1, needsAttention: 0 });
+    await writeTable("orders", table({ comment: "変えた" }), ROOT);
+    const drift = await call("designer__check_generation_drift", {});
+    expect(drift).toMatchObject({ ok: false, needsAttention: 1 });
+    expect(drift.rows[0].state).toBe("design-changed");
+    const diff = await call("designer__get_regeneration_diff", { path: "gen/a.ts" });
+    expect(diff.diffs[0].sources[0].changes.some((c: { path: string }) => c.path === "comment")).toBe(true);
+  });
+  it("指摘を、位置つきのレビューコメント (AI レビュー) として残す。同じ未解決の指摘は重ねない。不正な指摘は、何も残さず拒否する", async () => {
+    const f = { kind: "table", id: "orders", path: "columns[0]", message: "主キーの桁数を決めてください", severity: "warning" };
+    expect(await call("designer__add_review_findings", { findings: [f, { ...f, path: "columns[1]" }] })).toMatchObject({ added: 2, skippedDuplicates: 0 });
+    expect(await call("designer__add_review_findings", { findings: [f] })).toMatchObject({ added: 0, skippedDuplicates: 1 });
+    const open = await call("designer__list_review_comments", {});
+    expect(open.total).toBe(2);
+    expect(open.threads[0]).toMatchObject({ source: "ai-review", severity: "warning", status: "open", target: { kind: "table", id: "orders" } });
+    await resolveThread(ROOT, "", open.threads[0].id, true);
+    expect((await call("designer__list_review_comments", {})).total).toBe(1);
+    expect((await call("designer__list_review_comments", { status: "all" })).total).toBe(2);
+    await expect(call("designer__add_review_findings", { findings: [{ kind: "nothing", id: "x", message: "m" }] })).rejects.toThrow(/対象/);
+    await expect(call("designer__add_review_findings", { findings: [] })).rejects.toThrow(/findings/);
+  });
+});
+
+describe("要確認の増加の通知", () => {
+  it("通知先が無ければ計算しない。あれば、増えたときだけ通知し、前回の件数を残す", async () => {
+    const { checkIssueIncrease } = await import("./issuesWatch.js");
+    const { notifyStore } = await import("./stores.js");
+    expect(await checkIssueIncrease(ROOT)).toBeNull();
+    await notifyStore.update(ROOT, () => ({ version: 1, webhooks: [{ id: "h", name: "n", url: "https://hooks.invalid/x", format: "slack", events: ["issues"], enabled: true }] }));
+    const first = await checkIssueIncrease(ROOT);
+    expect(first).toMatchObject({ before: null, notified: false });
+    expect(JSON.parse(await fs.readFile(path.join(ROOT, ".harmony-ops", "notify-state.json"), "utf-8")).issues).toBe(first!.after);
+    expect(await checkIssueIncrease(ROOT)).toMatchObject({ before: first!.after, after: first!.after, notified: false });
+    // 前回の件数を 0 に戻して、増えたことにする (送信先は .invalid なので、名前解決に失敗して実際には送られない。失敗しても操作は止まらない)
+    await fs.writeFile(path.join(ROOT, ".harmony-ops", "notify-state.json"), JSON.stringify({ issues: -1 }));
+    expect(await checkIssueIncrease(ROOT)).toMatchObject({ before: -1, notified: true });
+  });
+});

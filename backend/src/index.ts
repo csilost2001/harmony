@@ -14,6 +14,7 @@ import { ensureRecovered } from "./operationJournal.js";
 import { assertToolAllowed, filterTools, isReadOnlyTool } from "./security/mcpAccess.js";
 import { recordAudit } from "./ops/audit.js";
 import { installApprovalGuard } from "./ops/policy.js";
+import { scheduleIssueCheck } from "./ops/issuesWatch.js";
 import { tools } from "./tools.js";
 import { handleAuthCheck, handlePropose } from "./aiRename.js";
 import { createStaticAssetHandler } from "./staticAssets.js";
@@ -208,6 +209,7 @@ function createMcpServer(sessionId: string): Server {
           if (!isReadOnlyTool(name) && !(result as { isError?: boolean }).isError && !/^(editSession__(list|fetch)|designer__(list|get|find|check|export|generate|analyze)_)/.test(name)) {
             const idArg = ["id", "tableId", "processFlowId", "screenId", "flowId", "reportId", "resourceId", "name", "path"].map((k) => argRecord[k]).find((v) => typeof v === "string") as string | undefined;
             void recordAudit(root, { actor: "AI", action: `AI が ${name.replace(/^designer__/, "")} を実行した`, ...(idArg ? { target: idArg } : {}), via: "ai" });
+            scheduleIssueCheck(root);
           }
           return result;
         }
