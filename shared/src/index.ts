@@ -56,3 +56,7 @@ export * from "./testViewpoints.js";
 export { RPC_METHODS, isRpcMethod, type RpcMethod } from "./rpcMethods.js";
 export * from "./analysis/index.js";
 export * from "./export/index.js";
+export * from "./docTemplate.js";
+export * from "./ops/index.js";
+export * from "./diagrams.js";
+export * from "./importers/index.js";

@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import zlib from "node:zlib";
-import { MAX_ZIP_ENTRY_BYTES, buildDesignDocument, buildDocx, buildXlsx, blocksToSheets, createZip, crc32, htmlToBlocks, readZip, sheetName, xmlText, type DesignDocInput } from "@harmony/shared";
+import { MAX_ZIP_ENTRY_BYTES, parseDocTemplate, buildDesignDocument, buildDocx, buildXlsx, blocksToSheets, createZip, crc32, htmlToBlocks, readZip, sheetName, xmlText, type DesignDocInput } from "@harmony/shared";
 
 const inflate = async (b: Uint8Array) => new Uint8Array(zlib.inflateRawSync(b));
 const dec = (b: Uint8Array) => new TextDecoder().decode(b);
@@ -110,5 +110,41 @@ describe("docx / xlsx", () => {
   });
   it("xmlText は XML に使えない文字を落とし、記号を逃がす", () => {
     expect(xmlText("a<b>&\u0001\u0008c\ud800")).toBe("a&lt;b&gt;&amp;c");
+  });
+});
+
+describe("設計書の体裁 (document-template)", () => {
+  const base: DesignDocInput = {
+    project: { id: "p", name: "試験" },
+    screens: [{ id: "s1", name: "画面1", kind: "list", path: "/a" } as never],
+    flows: [], tables: [], version: "1.0", generatedAt: "2026-10-08T00:00:00.000Z",
+  };
+  it("文書名・押印欄・改訂履歴・強調の色を表紙と本文に反映する", () => {
+    const { template } = parseDocTemplate({ documentTitle: "要件定義書", stamps: ["承認", "確認"], accentColor: "#AA3300", docNumber: "D-1", revisions: [{ version: "1.0", date: "2026-10-01", summary: "初版" }, { version: "1.1", date: "2026-10-05", summary: "画面を追加" }] });
+    const doc = buildDesignDocument({ ...base, template });
+    expect(doc.html).toContain("要件定義書");
+    expect(doc.html).toContain("D-1");
+    expect(doc.html.match(/<th>(承認|確認)<\/th>/g)).toHaveLength(2);
+    expect(doc.html).not.toContain("<th>審査</th>");
+    expect(doc.css).toContain("#aa3300");
+    expect(doc.toc.some((t) => t.id === "revisions")).toBe(true);
+    // 新しい版が上
+    expect(doc.html.indexOf("画面を追加")).toBeLessThan(doc.html.indexOf("初版"));
+  });
+  it("載せない章を除き、章番号を詰める (目次も)", () => {
+    const full = buildDesignDocument(base);
+    const ids = full.toc.filter((t) => t.level === 1 && t.id !== "cover").map((t) => t.id);
+    expect(ids).toContain("transitions");
+    const doc = buildDesignDocument({ ...base, template: parseDocTemplate({ excludeChapters: ["transitions"] }).template });
+    expect(doc.html).not.toContain('id="transitions"');
+    expect(doc.toc.some((t) => t.id === "transitions")).toBe(false);
+    const chapters = [...doc.html.matchAll(/<span class="hd-chapter">(\d+)<\/span>/g)].map((m) => Number(m[1]));
+    expect(chapters).toEqual(chapters.map((_, i) => i + 1));
+  });
+  it("読めない項目は捨てて理由を返す", () => {
+    const r = parseDocTemplate({ accentColor: "red", stamps: "x", revisions: [{ version: "1", date: "2026-13-40", summary: "x" }, { version: "2", date: "2026-10-01", summary: "ok" }], excludeChapters: ["a", "BAD!"] });
+    expect(r.problems.length).toBe(4);
+    expect(r.template.revisions).toHaveLength(1);
+    expect(r.template.excludeChapters).toEqual(["a"]);
   });
 });

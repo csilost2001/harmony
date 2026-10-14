@@ -25,6 +25,7 @@ import { applySuppressions, issueKey, type SuppressionStatus } from "./analysis/
 import { namingIssues } from "./analysis/naming.js";
 import { deriveOperationMatrix } from "./analysis/accessOps.js";
 import { customRuleIssues } from "./analysis/customRules.js";
+import { DEFAULT_DOCUMENT_TITLE, DEFAULT_STAMPS, renumberChapters, type DocTemplate } from "./docTemplate.js";
 
 // ── 入力 (原本 JSON の必要部分だけを構造的に受け取る) ─────────────────────
 
@@ -122,6 +123,8 @@ export interface DesignDocInput {
   extraIssues?: DocIssue[];
   /** 表紙に出す版 (例: git の短縮 SHA) */
   version?: string;
+  /** 設計書の体裁 (社内様式) と改訂履歴。`<データフォルダ>/document-template.json` */
+  template?: DocTemplate;
   /** 作成日時 (ISO)。省略時は呼び出し時刻 */
   generatedAt?: string;
 }
@@ -356,17 +359,33 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
   };
 
   // 表紙
+  const tpl = input.template;
+  const docTitle = tpl?.documentTitle || DEFAULT_DOCUMENT_TITLE;
+  const stamps = tpl?.stamps ?? DEFAULT_STAMPS;
   const counts: Array<[string, number]> = [["画面", pages.length], ["部品画面", gadgets.length], ["処理フロー", input.flows.length], ["テーブル", input.tables.length]];
+  const meta: Array<[string, string]> = [["文書", docTitle], ["版", input.version ?? "-"], ["作成日", date]];
+  if (tpl?.docNumber) meta.push(["文書番号", tpl.docNumber]);
+  if (tpl?.organization) meta.push(["組織", tpl.organization]);
+  if (tpl?.author) meta.push(["作成者", tpl.author]);
+  if (tpl?.classification) meta.push(["区分", tpl.classification]);
   toc.push({ id: "cover", title: "表紙", level: 1 });
   out.push(`<section class="hd-cover" id="cover">
-    <div class="hd-cover-meta"><span>文書 <b>基本設計書・処理設計書</b></span><span>版 <b>${esc(input.version ?? "-")}</b></span><span>作成日 <b>${esc(date)}</b></span></div>
+    <div class="hd-cover-meta">${meta.map(([k, v]) => `<span>${esc(k)} <b>${esc(v)}</b></span>`).join("")}</div>
     <h1 class="hd-cover-title">${esc(input.project.name)}</h1>
-    <p class="hd-cover-sub">基本設計書・処理設計書（Harmony 設計データから生成）</p>
+    <p class="hd-cover-sub">${esc(tpl?.subtitle || `${docTitle}（Harmony 設計データから生成）`)}</p>
     ${input.project.description ? `<p class="hd-cover-desc">${prose(input.project.description)}</p>` : ""}
     <div class="hd-counts">${counts.map(([k, v]) => `<div><b>${v}</b><span>${k}</span></div>`).join("")}</div>
-    <table class="hd-stamps"><tr><th>承認</th><th>審査</th><th>作成</th></tr><tr><td></td><td></td><td></td></tr></table>
+    ${stamps.length ? `<table class="hd-stamps"><tr>${stamps.map((h) => `<th>${esc(h)}</th>`).join("")}</tr><tr>${stamps.map(() => "<td></td>").join("")}</tr></table>` : ""}
     <p class="hd-note">本書は設計データ (JSON) から自動生成した閲覧用の資料です。修正は Harmony 上で行ってください。</p>
   </section>`);
+  // 改訂履歴 (document-template.json の revisions。新しいものを上に)
+  if (tpl?.revisions.length) {
+    toc.push({ id: "revisions", title: "改訂履歴", level: 1 });
+    out.push(`<section class="hd-section hd-level-1" id="revisions"><h2 class="hd-title"><span class="hd-chapter">改訂</span>改訂履歴</h2>${table(
+      ["版", "日付", "変更者", "内容"],
+      [...tpl.revisions].reverse().map((r) => [esc(r.version), esc(r.date), esc(r.author ?? ""), prose(r.summary)]),
+    )}</section>`);
+  }
 
   // 1. 画面一覧
   sec("screens", "画面一覧", 1, table(
@@ -721,7 +740,24 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
     </section>`);
   }
 
-  return { html: `<article class="hd-doc">${out.join("\n")}</article>`, toc, css: DESIGN_DOC_CSS, issues, suppression };
+  // 載せない章を除く (章の見出しは level-1 の section。それに続く level-2 の節も、章ごと除く)。章番号は振り直す
+  const exclude = new Set(tpl?.excludeChapters ?? []);
+  let html = out.join("\n");
+  let outToc = toc;
+  if (exclude.size) {
+    const kept: string[] = [];
+    let skip = false;
+    for (const chunk of out) {
+      const m = /^<section class="hd-section hd-level-(\d)" id="([^"]+)"/.exec(chunk);
+      if (m) { if (m[1] === "1") skip = exclude.has(m[2]); if (skip) continue; } else if (!chunk.startsWith("<section class=\"hd-cover\"")) { if (skip) continue; }
+      kept.push(chunk);
+    }
+    html = renumberChapters(kept.join("\n"));
+    let skipToc = false;
+    outToc = toc.filter((t) => { if (t.level === 1) skipToc = exclude.has(t.id) && t.id !== "cover"; return !skipToc; });
+  }
+  const accent = tpl?.accentColor ? `.hd-doc .hd-cover{border-top-color:${tpl.accentColor}}.hd-doc .hd-title{border-bottom-color:${tpl.accentColor}}` : "";
+  return { html: `<article class="hd-doc">${html}</article>`, toc: outToc, css: DESIGN_DOC_CSS + accent, issues, suppression };
 }
 
 /** 単体の HTML ファイル (CSS 同梱、目次付き) にする */
