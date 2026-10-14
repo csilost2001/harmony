@@ -48,7 +48,7 @@
 }
 
 .screen-items-table tbody td {
-  padding: 6px 8px;
+  padding: var(--hm-row-py) 8px;
   vertical-align: middle;
   border-bottom: 1px solid var(--hm-border);
 }

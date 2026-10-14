@@ -28,7 +28,7 @@ describe("ComponentEditor", () => {
       (within(editor).getByTestId("layout-part-text") as HTMLElement).click();
       (within(editor).getByTestId("layout-part-heading") as HTMLElement).click();
     });
-    expect(editor.querySelector('main[aria-label$="(2 部品)"]')).not.toBeNull();
+    expect(editor.querySelector('section[aria-label$="(2 部品)"]')).not.toBeNull();
     // 最後に置いた部品 (見出し。階層の選択がある) が選択されている (文章の「調子」ではない)
     expect(editor.querySelector("#sld-level")).not.toBeNull();
     expect(editor.querySelector("#sld-tone")).toBeNull();

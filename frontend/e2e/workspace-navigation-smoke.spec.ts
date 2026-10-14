@@ -94,6 +94,12 @@ async function openFirstResource(page: Page, listPath: string, editorUrl: RegExp
   await expect(page.getByTestId("data-list")).toBeVisible();
   const item = page.locator("[data-row-id]").first();
   await expect(item).toBeVisible();
+  // 一覧の読み込みが落ち着く (行が作り直されない) のを待つ。作り直しの最中に二重クリックすると、2 回目が別の要素に当たり、開かない
+  await expect.poll(async () => {
+    const a = await item.getAttribute("data-row-id");
+    await page.waitForTimeout(400);
+    return a !== null && a === (await item.getAttribute("data-row-id"));
+  }).toBe(true);
   await item.dblclick();
   await expect(page).toHaveURL(editorUrl);
   await expect(page.locator(editorSelector).first()).toBeVisible();

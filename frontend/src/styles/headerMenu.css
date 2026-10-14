@@ -13,7 +13,7 @@
   border-radius: 4px;
   background: transparent;
   color: #9a9db5;
-  font-size: 20px;
+  font-size: calc(20px * var(--hm-font-scale));
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
@@ -48,7 +48,7 @@
 }
 
 .header-menu-section-label {
-  font-size: 10px;
+  font-size: calc(10px * var(--hm-font-scale));
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.8px;
@@ -71,7 +71,7 @@
   border: none;
   background: transparent;
   color: #c4c6d8;
-  font-size: 13px;
+  font-size: calc(13px * var(--hm-font-scale));
   cursor: pointer;
   text-align: left;
   transition: background 0.1s, color 0.1s;
@@ -97,7 +97,7 @@
 }
 
 .header-menu-item i {
-  font-size: 14px;
+  font-size: calc(14px * var(--hm-font-scale));
   width: 16px;
   text-align: center;
   color: #9a9db5;
@@ -106,7 +106,7 @@
 
 .header-menu-badge {
   margin-left: auto;
-  font-size: 10px;
+  font-size: calc(10px * var(--hm-font-scale));
   padding: 1px 5px;
   border-radius: 3px;
   background: #3b3e55;

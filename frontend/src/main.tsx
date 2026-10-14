@@ -13,11 +13,13 @@ import { ErrorDialogProvider } from "./components/common/ErrorDialogProvider";
 import { installGlobalErrorHandlers } from "./utils/errorLog";
 import { installFailureToasts } from "./utils/failureToast";
 import { initAppTheme } from "./theme/appTheme";
+import { initDisplayPrefs } from "./theme/displayPrefs";
 import { installPreloadErrorReload } from "./utils/preloadErrorReload";
 
 installGlobalErrorHandlers();
 installFailureToasts();
 initAppTheme();
+initDisplayPrefs();
 installPreloadErrorReload();
 
 createRoot(document.getElementById("root")!).render(

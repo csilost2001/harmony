@@ -10,6 +10,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { Responsive, WidthProvider, type Layout, type LayoutItem } from "react-grid-layout/legacy";
 import { dashboardPanels } from "./panelRegistry";
+import { movePanel, panelKeyAction, resizePanel } from "./dashboardLayout";
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
 import "../../styles/dashboard.css";
@@ -103,6 +104,27 @@ export function DashboardView() {
     return { lg: defaultLayout };
   });
 
+  const [breakpoint, setBreakpoint] = useState<keyof typeof COLS>("lg");
+  const [announce, setAnnounce] = useState("");
+
+  /** キーボードでのパネルの移動・大きさの変更 (ドラッグ / リサイズの代わり)。いまの幅のレイアウトを書き換えて保存する */
+  const handlePanelKey = useCallback((e: React.KeyboardEvent, id: string, title: string) => {
+    const act = panelKeyAction(e.nativeEvent);
+    if (!act) return;
+    e.preventDefault();
+    const cols = COLS[breakpoint];
+    setLayouts((cur) => {
+      const base = (cur[breakpoint] ?? cur.lg ?? []) as LayoutItem[];
+      const next = act.kind === "move" ? movePanel(base, id, act.dx, act.dy, cols) : resizePanel(base, id, act.dx, act.dy, cols);
+      if (next.every((p, i) => p === base[i])) return cur;
+      const all = { ...cur, [breakpoint]: next };
+      storeLayouts(all);
+      const p = next.find((x) => x.i === id);
+      if (p) setAnnounce(`${title}: ${act.kind === "move" ? "位置" : "大きさ"}を変えました (列 ${p.x + 1}、行 ${p.y + 1}、幅 ${p.w}、高さ ${p.h})`);
+      return all;
+    });
+  }, [breakpoint]);
+
   const handleLayoutChange = useCallback(
     (_current: Layout, allLayouts: StoredLayouts) => {
       setLayouts(allLayouts);
@@ -135,7 +157,7 @@ export function DashboardView() {
           <i className="bi bi-speedometer2" /> ダッシュボード
         </h1>
         <p className="dashboard-subtitle">
-          プロジェクト全体の状況を俯瞰 <span className="dashboard-hint">（パネルはドラッグ/リサイズ可能）</span>
+          プロジェクト全体の状況を俯瞰 <span className="dashboard-hint">（パネルはドラッグ/リサイズ可能。キーボードでは、パネルの見出しで Alt+矢印 = 移動、Alt+Shift+矢印 = 大きさ）</span>
         </p>
       </div>
 
@@ -146,13 +168,17 @@ export function DashboardView() {
         cols={COLS}
         rowHeight={ROW_HEIGHT}
         onLayoutChange={handleLayoutChange}
+        onBreakpointChange={(bp: string) => setBreakpoint(bp as keyof typeof COLS)}
         draggableHandle=".panel-drag-handle"
       >
         {dashboardPanels.map((p) => {
           const PanelComponent = p.component;
           return (
             <div key={p.id} className="dashboard-panel">
-              <div className="panel-header panel-drag-handle">
+              <div className="panel-header panel-drag-handle" tabIndex={0} role="group"
+                aria-label={`パネル「${p.title}」 (Alt+矢印で移動、Alt+Shift+矢印で大きさを変える)`}
+                title="ドラッグで移動。キーボードでは、ここにフォーカスして Alt+矢印で移動、Alt+Shift+矢印で大きさ"
+                onKeyDown={(e) => handlePanelKey(e, p.id, p.title)} data-testid={`panel-handle-${p.id}`}>
                 {p.icon && <i className={`bi ${p.icon}`} />}
                 <span className="panel-title">{p.title}</span>
               </div>
@@ -163,6 +189,7 @@ export function DashboardView() {
           );
         })}
       </ResponsiveGridLayout>
+      <div className="visually-hidden" role="status" aria-live="polite" data-testid="dashboard-announce">{announce}</div>
     </div>
   );
 }

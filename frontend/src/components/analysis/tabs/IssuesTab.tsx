@@ -9,6 +9,7 @@ import { reportFailure } from "../../../utils/failureToast";
 import { showToast } from "../../../utils/toast";
 import { getUserName } from "../../../utils/userIdentity";
 import { AnTable, EntityLink, Section, SeverityBadge } from "../ui";
+import { HelpHint } from "../../help/HelpHint";
 
 /** この環境の今日 (YYYY-MM-DD)。期限は、利用者の日付で決める */
 const today = () => localDate();
@@ -46,7 +47,7 @@ export function IssuesTab({ input, skipped, reload }: { input: DesignDocInput; s
   return (
     <div className="an-pane" data-testid="an-issues">
       {skipped.length > 0 && <p className="an-alert" role="alert"><i className="bi bi-exclamation-triangle" /> 読めないものがあるため、点検に含まれていません: {skipped.map((f) => <code key={f}>{f}</code>)}</p>}
-      <Section title="要確認事項" hint="設計の抜け・矛盾の自動検査です。意図どおりのものは、理由を残して抑制できます。" testId="an-issues-list"
+      <Section title="要確認事項" hint={<>設計の抜け・矛盾の自動検査です。意図どおりのものは、理由を残して抑制できます。<HelpHint topic="analysis.suppress" /></>} testId="an-issues-list"
         actions={<>
           <select value={sev} onChange={(e) => setSev(e.target.value as typeof sev)} aria-label="重大度で絞る" className="an-input">
             <option value="all">すべて ({doc.issues.length})</option>

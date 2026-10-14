@@ -10,7 +10,7 @@
   gap: 5px;
   padding: 4px 10px;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: calc(12px * var(--hm-font-scale));
   cursor: pointer;
   border: 1px solid transparent;
   transition: background 0.1s, color 0.1s, border-color 0.1s;

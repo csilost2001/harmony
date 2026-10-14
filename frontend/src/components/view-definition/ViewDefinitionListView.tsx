@@ -50,6 +50,7 @@ import { confirmDeletionImpact } from "../../utils/confirmDeletion";
 import { useQuickCreate } from "../../hooks/useQuickCreate";
 import { useReferencesDialog } from "../common/ReferencesButton";
 import { reportFailure } from "../../utils/failureToast";
+import { EmptyState } from "../common/EmptyState";
 
 const STORAGE_KEY = "list-view-mode:view-definition-list";
 const TAB_ID = makeTabId("view-definition-list", "main");
@@ -754,9 +755,7 @@ export function ViewDefinitionListView() {
           className="view-definitions-data-list"
           isItemGhost={(id) => editor.isDeleted(id)}
           emptyMessage={
-            query
-              ? <p>該当するビュー定義がありません</p>
-              : <p>ビュー定義がまだありません。「ビュー定義追加」から作成してください。</p>
+            <EmptyState noun="ビュー定義" icon="bi-layout-text-window" hint="画面の一覧表の列・並び・絞り込みを定義します" filtered={!!query} onCreate={() => setShowAdd(true)} createLabel="ビュー定義を追加" onClear={() => setQuery("")} />
           }
         />
 

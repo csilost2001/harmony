@@ -183,3 +183,5 @@
   gap: 0.5rem;
   background: var(--hm-surface-2);
 }
+.error-fallback-draft { margin: 8px 0; padding: 8px 10px; font-size: calc(12.5px * var(--hm-font-scale)); line-height: 1.6; color: var(--hm-fg-2); background: color-mix(in srgb, var(--hm-success) 10%, var(--hm-surface)); border: 1px solid color-mix(in srgb, var(--hm-success) 35%, var(--hm-border)); border-radius: 6px; }
+.error-fallback-draft i { color: var(--hm-success); }

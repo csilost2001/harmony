@@ -44,7 +44,7 @@
   border-right: 1px solid var(--dz-border);
   background-color: var(--dz-bg);
   color: var(--dz-text-dim);
-  font-size: 12px;
+  font-size: calc(12px * var(--hm-font-scale));
   white-space: nowrap;
   cursor: pointer;
   position: relative;
@@ -63,7 +63,7 @@
 }
 
 .tabbar-tab-icon {
-  font-size: 12px;
+  font-size: calc(12px * var(--hm-font-scale));
   color: var(--dz-text-dim);
   flex-shrink: 0;
 }
@@ -83,7 +83,7 @@
 }
 
 .tabbar-tab-dirty {
-  font-size: 10px;
+  font-size: calc(10px * var(--hm-font-scale));
   color: color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg));
   flex-shrink: 0;
   margin-right: -2px;
@@ -100,7 +100,7 @@
   background: transparent;
   border: none;
   color: var(--dz-text-dim);
-  font-size: 10px;
+  font-size: calc(10px * var(--hm-font-scale));
   cursor: pointer;
   padding: 0;
   opacity: 0;
@@ -133,7 +133,7 @@
   border-left: 1px solid var(--dz-border);
   color: var(--dz-text-dim);
   cursor: pointer;
-  font-size: 12px;
+  font-size: calc(12px * var(--hm-font-scale));
   flex-shrink: 0;
   height: 32px;
 }
@@ -196,7 +196,7 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
   min-width: 180px;
   padding: 4px 0;
-  font-size: 13px;
+  font-size: calc(13px * var(--hm-font-scale));
 }
 .tab-context-item {
   display: flex;
@@ -222,10 +222,11 @@
   margin: 3px 0;
 }
 .tab-context-item i {
-  font-size: 12px;
+  font-size: calc(12px * var(--hm-font-scale));
   color: var(--dz-text-dim);
   width: 14px;
 }
 .tab-context-item.danger i {
   color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg));
 }
+.tab-context-item.disabled { opacity: 0.5; cursor: not-allowed; }

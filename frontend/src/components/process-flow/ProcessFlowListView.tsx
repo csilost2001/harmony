@@ -55,6 +55,7 @@ import { confirmDeletionImpact } from "../../utils/confirmDeletion";
 import { useQuickCreate } from "../../hooks/useQuickCreate";
 import { useReferencesDialog } from "../common/ReferencesButton";
 import { reportFailure } from "../../utils/failureToast";
+import { EmptyState } from "../common/EmptyState";
 
 const ALL_TYPES: ProcessFlowType[] = ["screen", "batch", "scheduled", "system", "common", "other"];
 const STORAGE_KEY = "list-view-mode:process-flow-list";
@@ -982,9 +983,7 @@ export function ProcessFlowListView() {
           className="process-flow-data-list"
           isItemGhost={(id) => editor.isDeleted(id)}
           emptyMessage={
-            groups.length === 0
-              ? <p>処理フロー定義がまだありません。「新規作成」から追加してください。</p>
-              : <p>該当する処理フロー定義がありません。</p>
+            <EmptyState noun="処理フロー定義" icon="bi-lightning" hint="ボタンを押したときの処理を、入力チェック・DB アクセスなどの手順で書きます" filtered={groups.length > 0} onCreate={() => setShowAdd(true)} createLabel="処理フローを作成" />
           }
         />
       </div>

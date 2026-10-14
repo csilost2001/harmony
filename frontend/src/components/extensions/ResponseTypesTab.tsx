@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { ExtensionTabProps } from "./ExtensionsPanel";
+import { EmptyState } from "../common/EmptyState";
 
 type Row = { key: string; description: string; schemaText: string };
 
@@ -51,7 +52,7 @@ export function ResponseTypesTab({ bundle, saving, onSave, isReadonly }: Extensi
         <div className="extensions-toolbar-actions"><button className="btn btn-primary btn-sm" disabled={saving || isReadonly} onClick={() => void save()}>保存</button></div>
       </div>
       {error ? <div className="alert alert-danger py-2">JSON パース失敗: {error}</div> : null}
-      {rows.length === 0 ? <div className="extensions-empty">レスポンス型は未登録です。</div> : null}
+      {rows.length === 0 ? <EmptyState compact noun="レスポンス型" icon="bi-reply" hint="下の「追加」から登録すると、設計の選択肢に出ます。" /> : null}
       {rows.map((row, index) => (
         <div className="extensions-entry-card" key={index}>
           <div className="extensions-response-grid">

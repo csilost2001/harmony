@@ -10,6 +10,7 @@ import {
 import type { ScreenItem } from "../../types/v3/screen-item";
 import type { Table } from "../../types/v3/table";
 import type { DragPayload } from "./layoutDnd";
+import { indentPlace, outdentPlace } from "./layoutKeyboard";
 import {
   createNode, docDuplicate, docInsert, docRemove, insertionPlace, itemFromColumn, newFieldWithItem, nodeForItem, type LayoutDoc, type Place,
 } from "./layoutModel";
@@ -127,6 +128,24 @@ export function useLayoutOps({ apply, nodes, items, tables, components, selected
     apply((d) => ({ ...d, layout: { version: 1, nodes: moveNode(d.layout?.nodes ?? [], selectedId, pos.parent?.id ?? null, dir > 0 ? to + 1 : to) } }));
   }, [selectedId, nodes, apply]);
 
+  /** 親の外へ出す (親の直後へ)。出せなければ false */
+  const outdentSelected = useCallback((): boolean => {
+    if (!selectedId) return false;
+    const place = outdentPlace(nodes, selectedId);
+    if (!place) return false;
+    apply((d) => ({ ...d, layout: { version: 1, nodes: moveNode(d.layout?.nodes ?? [], selectedId, place.parentId, place.index) } }));
+    return true;
+  }, [selectedId, nodes, apply]);
+
+  /** 直前の兄弟の中へ入れる (最後の子として)。入れられなければ false */
+  const indentSelected = useCallback((): boolean => {
+    if (!selectedId) return false;
+    const place = indentPlace(nodes, selectedId);
+    if (!place) return false;
+    apply((d) => ({ ...d, layout: { version: 1, nodes: moveNode(d.layout?.nodes ?? [], selectedId, place.parentId, place.index) } }));
+    return true;
+  }, [selectedId, nodes, apply]);
+
   const renameNode = useCallback((oldId: string, newId: string) => {
     apply((d) => ({ ...d, layout: { version: 1, nodes: updateNode(d.layout?.nodes ?? [], oldId, (n) => ({ ...n, id: newId })) } }));
     setSelectedId(newId);
@@ -137,5 +156,5 @@ export function useLayoutOps({ apply, nodes, items, tables, components, selected
     addNode(type, { parentId: selectedId });
   }, [selectedId, addNode]);
 
-  return { selected, insertionPoint, addNode, addComponent, placeItem, addColumnItem, handleDrop, deleteSelected, duplicateSelected, moveSelected, renameNode, addChild };
+  return { selected, insertionPoint, addNode, addComponent, placeItem, addColumnItem, handleDrop, deleteSelected, duplicateSelected, moveSelected, outdentSelected, indentSelected, renameNode, addChild };
 }

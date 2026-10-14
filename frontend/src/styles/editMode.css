@@ -19,7 +19,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 12px;
+  font-size: calc(12px * var(--hm-font-scale));
   font-weight: 600;
   color: var(--hm-fg-muted);
   padding-right: 4px;
@@ -193,5 +193,5 @@
 }
 
 /* 保存に失敗したときの案内 */
-.edit-save-error { display: flex; align-items: center; gap: 8px; margin: 0; padding: 8px 14px; background: var(--hm-surface-2); border-bottom: 1px solid var(--hm-danger); color: var(--hm-danger); font-size: 13px; }
+.edit-save-error { display: flex; align-items: center; gap: 8px; margin: 0; padding: 8px 14px; background: var(--hm-surface-2); border-bottom: 1px solid var(--hm-danger); color: var(--hm-danger); font-size: calc(13px * var(--hm-font-scale)); }
 .edit-save-error__close { margin-left: auto; border: 0; background: none; color: inherit; cursor: pointer; padding: 2px 6px; }

@@ -1,0 +1,14 @@
+/* 入力欄の「?」 */
+.help-hint { position: relative; display: inline-flex; vertical-align: middle; margin-left: 4px; font-weight: 400; }
+.help-hint-btn { border: 0; background: transparent; padding: 0 2px; line-height: 1; color: var(--hm-fg-faint); font-size: calc(13px * var(--hm-font-scale)); cursor: pointer; border-radius: 50%; }
+.help-hint-btn:hover { color: var(--hm-accent); }
+.help-hint-btn:focus-visible { outline: 2px solid var(--hm-focus); }
+.help-hint-pop {
+  position: absolute; top: calc(100% + 4px); left: 0; z-index: 1050; width: min(340px, 80vw); display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; text-align: left;
+  background: var(--hm-surface); color: var(--hm-fg); border: 1px solid var(--hm-border-strong); border-radius: 8px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  font-size: calc(12.5px * var(--hm-font-scale)); line-height: 1.6; white-space: normal; text-transform: none; letter-spacing: normal;
+}
+.help-hint-pop strong { font-size: calc(13px * var(--hm-font-scale)); }
+.help-hint-p { display: block; }
+.help-hint-doc { color: var(--hm-fg-muted); font-size: calc(11.5px * var(--hm-font-scale)); }
+.help-hint-doc code { background: var(--hm-surface-2); padding: 0 4px; border-radius: 3px; overflow-wrap: anywhere; }

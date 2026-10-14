@@ -103,6 +103,12 @@ export function collectAllProcessFlowLocalIds(doc: unknown): Set<string> {
       visitSteps(sr.onApproved);
       visitSteps(sr.onRejected);
       visitSteps(sr.onTimeout);
+      // 検証の工程の inlineBranch.ok / ng の中の工程
+      const inline = sr.inlineBranch as Record<string, unknown> | undefined;
+      if (inline && typeof inline === "object") {
+        visitSteps(inline.ok);
+        visitSteps(inline.ng);
+      }
       // outcomes.<key>.sideEffects (NonReturnStep[])
       const outcomes = sr.outcomes as Record<string, Record<string, unknown>> | undefined;
       if (outcomes && typeof outcomes === "object") {

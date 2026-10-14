@@ -24,6 +24,7 @@ import { EditSessionDropdown } from "../editing/EditSessionDropdown";
 import { SortableList, SortableRow } from "../common/SortableList";
 import { moveById } from "../../utils/reorder";
 import "../../styles/businessFlow.css";
+import { UndoHistoryPanel } from "../common/UndoHistoryPanel";
 
 type Selection = { kind: "step" | "lane"; id: string } | null;
 const STEP_ICON: Record<StepKind, string> = { start: "bi-play-circle", task: "bi-square", decision: "bi-diamond", end: "bi-stop-circle" };
@@ -43,7 +44,7 @@ export function BusinessFlowEditor() {
 
   // ── 文書 (編集セッション・元に戻す・他の保存の検知は useEditableDocument) ──
   const {
-    doc: flow, editable, mode, sessionLoading, dirty, apply: applyDoc, undo, redo, canUndo, canRedo,
+    doc: flow, editable, mode, sessionLoading, dirty, apply: applyDoc, undo, redo, canUndo, canRedo, history, jumpTo,
     attach, takeOver, syncSessionToUrl, sessionId, chrome,
   } = useEditableDocument<BusinessFlow>({
     resourceType: "business-flow",
@@ -233,6 +234,7 @@ export function BusinessFlowEditor() {
         <span className="bfe-spacer" />
         <button type="button" className="bfe-btn" onClick={undo} disabled={!editable || !canUndo} title="元に戻す (Ctrl+Z)" aria-label="元に戻す"><i className="bi bi-arrow-counterclockwise" /></button>
         <button type="button" className="bfe-btn" onClick={redo} disabled={!editable || !canRedo} title="やり直す (Ctrl+Y)" aria-label="やり直す"><i className="bi bi-arrow-clockwise" /></button>
+        {editable && <UndoHistoryPanel history={history} present={flow} onJump={jumpTo} buttonClassName="bfe-btn" />}
         <EditSessionDropdown
           resourceType="business-flow"
           resourceId={flow.id}
@@ -291,7 +293,7 @@ export function BusinessFlowEditor() {
         </aside>
 
         {/* 中央: 図と要確認 */}
-        <main className="bfe-center">
+        <section className="bfe-center" aria-label="業務フローの図">
           <div className="bfe-zoom" role="group" aria-label="図の大きさ">
             <button type="button" className="bfe-btn" onClick={() => setZoom((z) => Math.max(0.4, +(z - 0.1).toFixed(2)))} aria-label="縮小" data-testid="bf-zoom-out"><i className="bi bi-zoom-out" /></button>
             <span className="bfe-zoom-val" data-testid="bf-zoom-val">{Math.round(zoom * 100)}%</span>
@@ -312,7 +314,7 @@ export function BusinessFlowEditor() {
               </ul>
             )}
           </section>
-        </main>
+        </section>
 
         {/* 右: 設定 */}
         <aside className="bfe-right" aria-label="設定" data-testid="bf-inspector">

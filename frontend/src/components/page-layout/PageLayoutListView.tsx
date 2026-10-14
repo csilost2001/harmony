@@ -46,6 +46,7 @@ import { confirmDeletionImpact } from "../../utils/confirmDeletion";
 import { useQuickCreate } from "../../hooks/useQuickCreate";
 import { useReferencesDialog } from "../common/ReferencesButton";
 import { reportFailure } from "../../utils/failureToast";
+import { EmptyState } from "../common/EmptyState";
 
 const STORAGE_KEY = "list-view-mode:page-layout-list";
 const TAB_ID = makeTabId("page-layout-list", "main");
@@ -609,9 +610,7 @@ export function PageLayoutListView() {
           className="page-layouts-data-list"
           isItemGhost={(id) => editor.isDeleted(id)}
           emptyMessage={
-            query
-              ? <p>該当するページレイアウトがありません</p>
-              : <p>ページレイアウトがまだありません。「ページレイアウト追加」から作成してください。</p>
+            <EmptyState noun="ページレイアウト" icon="bi-layout-wtf" hint="画面の外枠 (ヘッダー・メニュー・本文の置き場所) を定義します" filtered={!!query} onCreate={() => setShowAdd(true)} createLabel="ページレイアウトを追加" onClear={() => setQuery("")} />
           }
         />
 

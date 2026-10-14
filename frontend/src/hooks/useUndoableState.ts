@@ -22,9 +22,22 @@ interface UndoableReturn<T> {
   redo: () => void;
   canUndo: boolean;
   canRedo: boolean;
+  /** 積まれている履歴 (古い順の過去と、やり直せる未来)。変更履歴パネル用 */
+  history: UndoHistoryView<T>;
+  /** 履歴の途中へ一度に移る。負 = その数だけ戻る、正 = その数だけやり直す (足りなければ端まで) */
+  jumpTo: (delta: number) => void;
   /** 初期値を再設定し履歴をクリア（データロード時に使用） */
   reset: (value: T) => void;
 }
+
+export interface UndoHistoryView<T> {
+  /** 過去の状態 (古い順。最後がひとつ前の状態) */
+  past: readonly T[];
+  /** やり直せる未来の状態 (近い順) */
+  future: readonly T[];
+}
+
+const EMPTY_HISTORY: UndoHistoryView<never> = { past: [], future: [] };
 
 /**
  * Undo/Redo 対応の useState 代替フック
@@ -51,10 +64,14 @@ export function useUndoableState<T>(
   // canUndo/canRedo はレンダリングに影響するため useState
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
+  const [history, setHistory] = useState<UndoHistoryView<T>>(EMPTY_HISTORY);
 
   const syncFlags = useCallback(() => {
-    setCanUndo(historyRef.current.past.length > 0);
-    setCanRedo(historyRef.current.future.length > 0);
+    const h = historyRef.current;
+    setCanUndo(h.past.length > 0);
+    setCanRedo(h.future.length > 0);
+    // past / future は更新のたびに新しい配列に置き換えているので、そのまま見せてよい
+    setHistory({ past: h.past, future: h.future });
   }, []);
 
   // commitRef: 最後にcommitした値を追跡し、重複commitを防ぐ
@@ -117,6 +134,32 @@ export function useUndoableState<T>(
     });
   }, [syncFlags]);
 
+  const jumpTo = useCallback((delta: number) => {
+    if (delta === 0) return;
+    setPresent((current) => {
+      const h = historyRef.current;
+      let next: T;
+      if (delta < 0) {
+        const k = Math.min(-delta, h.past.length);
+        if (k === 0) return current;
+        const at = h.past.length - k;
+        next = h.past[at];
+        h.future = [...h.past.slice(at + 1), current, ...h.future];
+        h.past = h.past.slice(0, at);
+      } else {
+        const k = Math.min(delta, h.future.length);
+        if (k === 0) return current;
+        next = h.future[k - 1];
+        h.past = [...h.past, current, ...h.future.slice(0, k - 1)];
+        h.future = h.future.slice(k);
+      }
+      lastCommittedRef.current = next;
+      syncFlags();
+      onSaveRef.current?.(next);
+      return next;
+    });
+  }, [syncFlags]);
+
   const reset = useCallback((value: T) => {
     setPresent(value);
     historyRef.current = { past: [], future: [] };
@@ -133,6 +176,8 @@ export function useUndoableState<T>(
     redo,
     canUndo,
     canRedo,
+    history,
+    jumpTo,
     reset,
   };
 }

@@ -143,13 +143,15 @@ export interface QuickOpenHit { entry: QuickOpenEntry; score: number }
 
 /**
  * 候補を検索語で絞り、よく合う順に返す。空白で区切った語はすべて合う必要がある (AND)。
- * 検索語が空なら、最近開いたもの (`recent` = 新しい順の key) を先頭に、残りを並び順で limit 件返す。
+ * 検索語が空なら、お気に入り (`favorites` = key) と最近開いたもの (`recent` = 新しい順の key) を先頭に、残りを並び順で limit 件返す。
  */
-export function searchQuickOpen(entries: QuickOpenEntry[], query: string, limit = 50, recent: readonly string[] = []): QuickOpenHit[] {
+export function searchQuickOpen(entries: QuickOpenEntry[], query: string, limit = 50, recent: readonly string[] = [], favorites: readonly string[] = []): QuickOpenHit[] {
   const tokens = normalizeQuery(query).split(/\s+/).filter(Boolean);
   if (tokens.length === 0) {
     const byKey = new Map(entries.map((e) => [e.key, e]));
-    const head = recent.map((k) => byKey.get(k)).filter((e): e is QuickOpenEntry => !!e);
+    // お気に入り (固定した順) → 最近開いた順。ガジェットと画面のどちらの印で固定していても、実在するほうを出す
+    const head = [...favorites.map((k) => byKey.get(k) ?? byKey.get(equivalentKeysOf(k).find((x) => byKey.has(x)) ?? "")), ...recent.map((k) => byKey.get(k))]
+      .filter((e, i, arr): e is QuickOpenEntry => !!e && arr.indexOf(e) === i);
     const seen = new Set(head.map((e) => e.key));
     return [...head, ...entries.filter((e) => !seen.has(e.key))].slice(0, limit).map((entry) => ({ entry, score: 0 }));
   }
@@ -188,7 +190,8 @@ export interface QuickOpenContentEntry extends QuickOpenEntry {
   detail: string;
 }
 
-const CONTENT_ROUTES: Record<ContentSearchHit["kind"], (id: string) => string> = {
+/** 設計の種類と ID から、開く画面の route (ワークスペースの下) */
+export const CONTENT_ROUTES: Record<ContentSearchHit["kind"], (id: string) => string> = {
   "screen": (id) => `/screen/design/${encodeURIComponent(id)}`,
   "table": (id) => `/table/edit/${encodeURIComponent(id)}`,
   "process-flow": (id) => `/process-flow/edit/${encodeURIComponent(id)}`,
@@ -226,6 +229,46 @@ export function loadRecentQuickOpen(): string[] {
     const v = JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]");
     return Array.isArray(v) ? v.filter((k): k is string => typeof k === "string").slice(0, RECENT_MAX) : [];
   } catch { return []; }
+}
+
+/** お気に入りの key を、いまある候補に結びつける (固定した順)。候補が無いもの (削除・改名された) は entry が null */
+export function resolveFavoriteEntries(entries: readonly QuickOpenEntry[], favorites: readonly string[]): Array<{ key: string; entry: QuickOpenEntry | null }> {
+  const byKey = new Map(entries.map((e) => [e.key, e]));
+  return favorites.map((key) => ({ key, entry: byKey.get(key) ?? byKey.get(equivalentKeysOf(key).find((k) => byKey.has(k)) ?? "") ?? null }));
+}
+
+/** 同じ設計を指す key (画面とガジェットは、同じタブで開く) */
+function equivalentKeysOf(key: string): string[] {
+  if (key.startsWith("screen:")) return [`gadget:${key.slice(7)}`];
+  if (key.startsWith("gadget:")) return [`screen:${key.slice(7)}`];
+  return [];
+}
+
+export function clearRecentQuickOpen(): void {
+  try { localStorage.removeItem(RECENT_KEY); } catch { /* 消せなくても動作は妨げない */ }
+}
+
+/** コマンドパレットの操作 1 件 (実行の中身は components/quick-open/paletteCommands.ts) */
+export interface SearchableCommand { id: string; label: string; keywords: string[] }
+
+/** 検索語に合う操作を、よく合う順に返す。空白で区切った語はすべて合う必要がある。語が空なら、渡した順のまま */
+export function searchCommands<T extends SearchableCommand>(commands: readonly T[], query: string, limit = 50): T[] {
+  const tokens = normalizeQuery(query).split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return commands.slice(0, limit);
+  const hits: Array<{ cmd: T; score: number; order: number }> = [];
+  commands.forEach((cmd, order) => {
+    const label = normalizeQuery(cmd.label);
+    const keys = cmd.keywords.map(normalizeQuery);
+    let total = 0;
+    for (const token of tokens) {
+      const best = Math.max(scoreToken(token, label) * 1.1, ...keys.map((k) => scoreToken(token, k)));
+      if (best === 0) { total = 0; break; }
+      total += best;
+    }
+    if (total > 0) hits.push({ cmd, score: total, order });
+  });
+  hits.sort((a, b) => b.score - a.score || a.order - b.order);
+  return hits.slice(0, limit).map((h) => h.cmd);
 }
 
 export function rememberQuickOpen(key: string): void {

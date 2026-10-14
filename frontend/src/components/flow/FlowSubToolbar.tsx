@@ -6,6 +6,8 @@ interface Props {
   screenCount: number;
   zoomLevel: number;
   onAddScreen: () => void;
+  /** 画面遷移を、画面を選んで追加する (線を引く代わりのキーボード操作) */
+  onAddTransition?: () => void;
   onAddGroup: () => void;
   onRenameProject: (name: string) => void;
   onClearAll: () => void;
@@ -31,7 +33,7 @@ interface Props {
 
 export function FlowSubToolbar({
   projectName, screenCount, zoomLevel,
-  onAddScreen, onAddGroup, onRenameProject, onClearAll,
+  onAddScreen, onAddTransition, onAddGroup, onRenameProject, onClearAll,
   onExportJSON, onImportJSON, onCopyMermaid, onExportMarkdown,
   onZoomChange, onFitView,
   onUndo, onRedo, canUndo, canRedo,
@@ -197,6 +199,11 @@ export function FlowSubToolbar({
               data-testid="marker-panel-toggle-btn"
             >
               <i className="bi bi-megaphone" /> マーカー
+            </button>
+          )}
+          {onAddTransition && (
+            <button className="flow-btn flow-btn-secondary" onClick={onAddTransition} title="遷移を追加: 遷移元と遷移先の画面を選んで、画面遷移を追加 (線を引く代わりのキーボード操作)" aria-label="遷移を追加" data-testid="add-transition-btn">
+              <i className="bi bi-arrow-right-circle" />
             </button>
           )}
           <button className="flow-btn flow-btn-secondary" onClick={onAddGroup} title="グループを追加">

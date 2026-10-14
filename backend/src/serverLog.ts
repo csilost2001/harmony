@@ -48,17 +48,27 @@ let _inLog = false;
  * ファイルへの書き込み前に適用することで、ログ経由の機密情報漏洩 (S-007) を防ぐ。
  */
 function maskSecrets(json: string): string {
-  return json
+  let out = json
     // Anthropic / OpenAI / 汎用 APIキー (sk-... / ant-... / claude-...)
     .replace(/\b(sk|ant|claude)-[A-Za-z0-9_-]{8,}/g, "***")
-    // Bearer トークン (Authorization ヘッダ値等)
-    .replace(/(Bearer\s+)[^\s"',}]+/gi, "$1***")
+    // AWS のアクセスキー ID
+    .replace(/\b(AKIA|ASIA)[A-Z0-9]{12,}\b/g, "***")
+    // Authorization ヘッダの値 (Bearer / Basic / Token など。種類のあとの値を隠す)
+    .replace(/((?:Bearer|Basic|Token)\s+)[^\s"',}\\]+/gi, "$1***")
+    // x-api-key などの API キーのヘッダ
+    .replace(/(x-api-key["']?\s*[:=]\s*)["']?[^"',}\s\\]+["']?/gi, "$1***")
+    // URL に埋め込まれた認証情報 (scheme://user:password@host)
+    .replace(/([a-z][a-z0-9+.-]*:\/\/)[^\/\s"'@:]*:[^\/\s"'@]+@/gi, "$1***@")
     // URL の ?token= / &token= (接続トークン。WebSocket の接続 URL に付く)
     .replace(/([?&](?:token|access_token|auth)=)[^&\s"',}\\]+/gi, "$1***")
     // 接続トークンそのもの (HARMONY_AUTH_TOKEN)
     .replace(/(HARMONY_AUTH_TOKEN["']?\s*[:=]\s*)["']?[^"',}\s]+["']?/gi, "$1***")
     // パスワード・シークレットフィールド (JSON の key:value 形式)
     .replace(/(["']?(?:password|passwd|secret|apiKey|api_key|token)["']?\s*[:=]\s*)["']?[^"',}\s]+["']?/gi, "$1***");
+  // サーバが持っている接続トークンの値そのものは、どんな書き方 (自由な文中など) でも隠す
+  const authToken = process.env.HARMONY_AUTH_TOKEN;
+  if (authToken && authToken.length >= 6) out = out.split(authToken).join("***");
+  return out;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -145,6 +155,25 @@ export function log(
   } finally {
     _inLog = false;
   }
+}
+
+/** 今日のログの末尾 (新しい順ではなく、古い順の最後の `maxLines` 行)。不具合の報告に添える用。書くときにマスクしてあるので、そのまま返せる */
+export function readLogTail(maxLines = 100, maxBytes = 96 * 1024): string[] {
+  if (!_logDir) return [];
+  const file = path.join(_logDir, _todayFileName());
+  let fd: number | null = null;
+  try {
+    fd = fs.openSync(file, "r");
+    const size = fs.fstatSync(fd).size;
+    const start = Math.max(0, size - maxBytes);
+    const buf = Buffer.alloc(size - start);
+    fs.readSync(fd, buf, 0, buf.length, start);
+    const lines = buf.toString("utf-8").split("\n").filter(Boolean);
+    if (start > 0) lines.shift(); // 途中から読んだ先頭の行は、切れているので捨てる
+    // 書いたあとに増えた規則・変えた環境変数にも追従するよう、返すときにもう一度隠す
+    return lines.slice(-Math.min(Math.max(1, maxLines), 500)).map(maskSecrets);
+  } catch { return []; }
+  finally { if (fd !== null) { try { fs.closeSync(fd); } catch { /* ignore */ } } }
 }
 
 export const logDebug = (cat: string, msg: string, ctx?: Record<string, unknown>) => log("debug", cat, msg, ctx);

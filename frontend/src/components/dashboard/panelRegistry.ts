@@ -19,6 +19,7 @@ import { MarkersSummaryPanel } from "./panels/MarkersSummaryPanel";
 import { DesignIssuesPanel } from "./panels/DesignIssuesPanel";
 import { GettingStartedPanel } from "./panels/GettingStartedPanel";
 import { DesignProgressPanel } from "./panels/DesignProgressPanel";
+import { FavoritesPanel } from "./panels/FavoritesPanel";
 
 /** react-grid-layout の 1 パネルのレイアウト指定 */
 export interface PanelLayout {
@@ -64,6 +65,13 @@ export const dashboardPanels: DashboardPanel[] = [
     icon: "bi-signpost-split",
     defaultLayout: { w: 6, h: 5, minW: 4, minH: 4 },
     component: GettingStartedPanel,
+  },
+  {
+    id: "favorites",
+    title: "お気に入り",
+    icon: "bi-star",
+    defaultLayout: { w: 6, h: 4, minW: 4, minH: 3 },
+    component: FavoritesPanel,
   },
   {
     id: "function-counts",

@@ -19,6 +19,7 @@ import { makeDuplicatedEntityId } from "../../utils/entityIdSuggestion";
 import "../../styles/businessFlow.css";
 import { useQuickCreate } from "../../hooks/useQuickCreate";
 import { reportFailure } from "../../utils/failureToast";
+import { EmptyState } from "../common/EmptyState";
 
 const MATURITY: Record<string, string> = { draft: "作成中", provisional: "レビュー中", committed: "確定" };
 
@@ -141,7 +142,7 @@ export function BusinessFlowListView() {
         variant="dark"
         className="bfl-data-list"
         emptyMessage={loaded
-          ? <p>{query ? "該当する業務フローがありません" : "業務フローがまだありません。「業務フロー追加」から作成してください。"}</p>
+          ? <EmptyState noun="業務フロー" icon="bi-diagram-2" hint="誰が何をするかを、レーンと工程でつなぎます" filtered={!!query} onCreate={() => setShowAdd(true)} onClear={() => setQuery("")} />
           : <p>読み込み中…</p>}
       />
       {showAdd && (

@@ -11,6 +11,7 @@ Claude Code 固有の補足は `CLAUDE.md`、Codex 固有の設定は `.codex/co
 | docs-site (HTML 仕様書) と AI ブラウザ確認 | [docs/conventions/docs-site-and-browser-smoke.md](docs/conventions/docs-site-and-browser-smoke.md) |
 | 品質・性能の検査と道具 (ビルドサイズ予算 / 型の食い違い / カバレッジ / E2E 報告 / 使い回し) | [docs/conventions/quality-and-performance-tooling.md](docs/conventions/quality-and-performance-tooling.md) |
 | 設計の分析 (影響分析・対応表・未使用・用語・命名規約・SLA / ジョブ・外部契約・進捗・テスト雛形 / データ・OpenAPI) と、点検の設定 (抑制・独自ルール) | [design-analysis.md](docs/spec/design-analysis.md) / [design-check.md](docs/spec/design-check.md) |
+| 操作性 (通知の履歴・表示の設定・お気に入り・コマンドパレット・変更履歴・一括変更・別画面へのコピー・スニペット・設計全体の検索置換・表で編集・ドラッグのキーボード代替・ツアーとヘルプ・並べて表示・エラー復旧) | [ux-operations.md](docs/spec/ux-operations.md) |
 | 完了判定 (回帰テストの trace 照合) | [docs/conventions/completion-gate.md](docs/conventions/completion-gate.md) |
 | 進行中の再設計計画と設計者判断 | [docs/plans/redesign-2026-10.md](docs/plans/redesign-2026-10.md) |
 | サーバの守り (接続トークン・要求の上限・MCP の権限)・保存前の版・外部更新の検知・ファイルの健全性 | [server-security.md](docs/spec/server-security.md) / [file-backup.md](docs/spec/file-backup.md) / [external-change-detection.md](docs/spec/external-change-detection.md) / [workspace-health.md](docs/spec/workspace-health.md) |
@@ -51,6 +52,7 @@ npm run kill           # 5173 / 5179 を握るプロセスを停止
 | サンプル JSON の runtime 契約検証 | `cd frontend && npm run validate:samples -- ../examples/<project-id>` |
 | 全画面スクリーンショット (dev server が未起動なら自動で起動・終了時に停止) | `npm run ui:shots -- --out .tmp/screenshots/<名前> [--theme dark]` |
 | 配色監査 (コントラスト / テーマ不一致。同上。指摘があれば終了コード 1) | `npm run ui:audit` |
+| 狭い画面 (タブレット幅 1024 / 768px) で崩れる画面の検出 (同上。指摘があれば終了コード 1) | `npm run ui:narrow [-- --width 1024,768]` |
 | 設計の要確認事項の検査 (終了コードで判定。`npm run check` に含まれる) | `npm run check:design -- examples/<project-id> [--strict] [--info]` |
 | テスト観点表の書き出し (画面入力の境界値・処理の分岐。ID つき。テストコード生成の入力) | `npm run export:tests -- examples/<project-id> --format json` |
 | 設計書 HTML の書き出し | `npm run export:doc -- examples/<project-id> --out .tmp/doc.html` |

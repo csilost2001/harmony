@@ -154,6 +154,12 @@ function collectAllLocalIds(doc: ProcessFlowDoc): Set<string> {
       if (Array.isArray(onRejected)) collectFromSteps(onRejected);
       const onTimeout = s.onTimeout as unknown[] | undefined;
       if (Array.isArray(onTimeout)) collectFromSteps(onTimeout);
+      // 検証の工程の inlineBranch.ok / ng の中の工程
+      const inline = s.inlineBranch as Record<string, unknown> | undefined;
+      if (isRecord(inline)) {
+        if (Array.isArray(inline.ok)) collectFromSteps(inline.ok);
+        if (Array.isArray(inline.ng)) collectFromSteps(inline.ng);
+      }
       collectOutcomeSideEffects(s.outcomes, collectFromSteps);
       const errorHandling = s.errorHandling as Record<string, unknown> | undefined;
       if (isRecord(errorHandling)) collectOutcomeSideEffects(errorHandling.outcomes, collectFromSteps);

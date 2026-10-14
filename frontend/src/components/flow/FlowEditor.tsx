@@ -83,8 +83,11 @@ import { acknowledgeServerMtime } from "../../utils/serverMtime";
 import "../../styles/flow.css";
 import "../../styles/editMode.css";
 import { checkDeletionImpact } from "../../utils/confirmDeletion";
-import { reportFailure } from "../../utils/failureToast";
+import { reportFailure, runReporting } from "../../utils/failureToast";
 import { useResyncDraftOnReconnect } from "../../hooks/useResyncDraftOnReconnect";
+import { EmptyState } from "../common/EmptyState";
+import { AddTransitionDialog } from "./AddTransitionDialog";
+import { useKeyboardNodeMove } from "../../hooks/useKeyboardNodeMove";
 
 const nodeTypes = {
   screenNode: ScreenNodeComponent,
@@ -373,6 +376,7 @@ function FlowEditorInner() {
     editId?: string;
     initial?: Partial<ScreenFormData>;
   }>({ open: false });
+  const [showAddTransition, setShowAddTransition] = useState(false);
   const [edgeModal, setEdgeModal] = useState<{
     open: boolean;
     editId?: string;
@@ -451,6 +455,20 @@ function FlowEditorInner() {
       syncAndSave(draft);
     }
   }, [project, syncAndSave]);
+
+  // 矢印キーで動かした画面・グループの位置を、保存へ回す (React Flow は、キーでの移動を onNodeDragStop に通知しない)
+  const nodesForKeyboardRef = useRef(nodes);
+  useEffect(() => { nodesForKeyboardRef.current = nodes; });
+  const onCanvasKeyUp = useKeyboardNodeMove<RFNode>(() => nodesForKeyboardRef.current, (moved) => {
+    if (!project) return;
+    const draft = structuredClone(project);
+    for (const n of moved) {
+      const target = draft.screens.find((s) => s.id === n.id) ?? (draft.groups ?? []).find((g) => g.id === n.id);
+      if (target) target.position = n.position;
+    }
+    setProject(draft);
+    syncAndSave(draft);
+  }, !isReadonly);
 
   const onConnect = useCallback((connection: Connection) => {
     if (isReadonly || !connection.source || !connection.target || !project) return;
@@ -1180,6 +1198,7 @@ function FlowEditorInner() {
         screenCount={screenCount}
         zoomLevel={zoomLevel}
         onAddScreen={handleOpenAddScreen}
+        onAddTransition={isReadonly || screenCount < 1 ? undefined : () => setShowAddTransition(true)}
         onAddGroup={() => { handleAddGroup().catch((err) => reportFailure(err, "グループの追加")); }}
         onRenameProject={(name) => { handleRenameProject(name).catch((err) => reportFailure(err, "プロジェクト名の変更")); }}
         onClearAll={() => { handleClearAll().catch((err) => reportFailure(err, "画面フローの全削除")); }}
@@ -1195,7 +1214,7 @@ function FlowEditorInner() {
         canRedo={canRedo}
         isDirty={isDirty}
         isSaving={isSaving}
-        onSave={() => { handleSave().catch((err) => reportFailure(err, "画面フローの保存")); }}
+        onSave={() => { runReporting(handleSave, "画面フローの保存"); }}
         onReset={() => { handleReset().catch((err) => reportFailure(err, "画面フローのリセット")); }}
         onToggleMarkerPanel={() => { handleToggleMarkerPanel().catch((err) => reportFailure(err, "マーカーの表示")); }}
         markerPanelOpen={markerPanelOpen}
@@ -1215,7 +1234,7 @@ function FlowEditorInner() {
         </div>
       )}
 
-      <div className="flow-canvas">
+      <div className="flow-canvas" onKeyUp={onCanvasKeyUp}>
         {isLoading ? (
           <div className="flow-loading">
             <div className="spinner" />
@@ -1259,11 +1278,7 @@ function FlowEditorInner() {
 
         {isEmpty && (
           <div className="flow-empty-state">
-            <i className="bi bi-diagram-3" />
-            <p>画面がまだありません</p>
-            <button className="flow-btn flow-btn-primary" onClick={handleOpenAddScreen}>
-              <i className="bi bi-plus-lg" /> 最初の画面を追加
-            </button>
+            <EmptyState noun="画面" icon="bi-diagram-3" hint="画面のあいだの遷移 (どの画面からどの画面へ進むか) を、線でつないで描きます。" onCreate={handleOpenAddScreen} createLabel="最初の画面を追加" />
           </div>
         )}
       </div>
@@ -1359,6 +1374,13 @@ function FlowEditorInner() {
       />
 
       {/* Edge Modal */}
+      {showAddTransition && project && (
+        <AddTransitionDialog
+          screens={project.screens.filter((sc) => sc.purpose !== "gadget").map((sc) => ({ id: sc.id, name: sc.name }))}
+          onAdd={(source, target) => onConnect({ source, target, sourceHandle: "bottom", targetHandle: "top" })}
+          onClose={() => setShowAddTransition(false)}
+        />
+      )}
       <EdgeEditModal
         open={edgeModal.open}
         initial={edgeModal.initial}

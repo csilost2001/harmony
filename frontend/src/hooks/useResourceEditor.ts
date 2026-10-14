@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useUndoableState } from "./useUndoableState";
+import { useUndoableState, type UndoHistoryView } from "./useUndoableState";
 import { useUndoKeyboard } from "./useUndoKeyboard";
 import { saveDraft, loadDraft, clearDraft, hasDraft } from "../utils/draftStorage";
 import { onApplyVersion } from "../utils/applyVersionBus";
@@ -78,6 +78,9 @@ export interface UseResourceEditorResult<T> {
   redo: () => void;
   canUndo: boolean;
   canRedo: boolean;
+  /** 積まれている操作 (変更履歴パネル用)。`jumpTo(n)` で、n 歩 (負 = 戻る、正 = やり直す) 一度に移る */
+  history: UndoHistoryView<T | null>;
+  jumpTo: (delta: number) => void;
 
   /** 保存実行（clean 化 + mtime ack）*/
   handleSave: () => Promise<void>;
@@ -130,7 +133,7 @@ export function useResourceEditor<T>(opts: UseResourceEditorOptions<T>): UseReso
 
   const {
     state, update: updateRaw, updateAndCommit, commit,
-    undo, redo, canUndo, canRedo, reset: resetState,
+    undo, redo, canUndo, canRedo, history, jumpTo, reset: resetState,
   } = useUndoableState<T | null>(null);
 
   useUndoKeyboard(undo, redo, enableUndoKeyboard);
@@ -406,6 +409,8 @@ export function useResourceEditor<T>(opts: UseResourceEditorOptions<T>): UseReso
     redo,
     canUndo,
     canRedo,
+    history,
+    jumpTo,
     handleSave,
     postSave,
     handleReset,

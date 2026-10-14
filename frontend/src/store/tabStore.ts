@@ -1,6 +1,7 @@
 import { recordError } from "../utils/errorLog";
 import { uiInfo } from "../utils/uiLog";
 import { isValidUuid } from "../utils/entityIdValidation";
+import { isPaneMode, postToParent } from "../utils/paneMode";
 
 const TABS_KEY = "harmony-open-tabs";
 const ACTIVE_KEY = "harmony-active-tab";
@@ -97,6 +98,8 @@ function _isValidTab(t: unknown): t is TabItem {
 }
 
 function _loadTabs(): TabItem[] {
+  // 並べて表示の右ペインは、左のアプリのタブの記録を読まない (空から始める。URL のタブだけ開く)
+  if (isPaneMode()) return [];
   try {
     const raw = localStorage.getItem(TABS_KEY);
     if (!raw) return [];
@@ -133,6 +136,7 @@ function _loadTabs(): TabItem[] {
 }
 
 function _loadActiveId(): string {
+  if (isPaneMode()) return "";
   const v = localStorage.getItem(ACTIVE_KEY) ?? "";
   if (typeof v !== "string") return "";
   // RFC #1284 (#1296 I-4 follow-up S-3): _loadTabs() で破棄された tab (UUID resourceId 等)
@@ -143,6 +147,8 @@ function _loadActiveId(): string {
 }
 
 function _persist() {
+  // 右ペインは、左のアプリのタブの記録を書き換えない
+  if (isPaneMode()) return;
   try {
     localStorage.setItem(TABS_KEY, JSON.stringify(_tabs.map((t) => ({ ...t, isDirty: false }))));
     localStorage.setItem(ACTIVE_KEY, _activeTabId);
@@ -248,11 +254,22 @@ export function reorderTabs(fromIndex: number, toIndex: number): void {
   _notify();
 }
 
+/** タブを左 (-1) / 右 (+1) へ 1 つ動かす (ドラッグの代わり)。端なら動かさず false */
+export function moveTabBy(id: string, delta: -1 | 1): boolean {
+  const from = _tabs.findIndex((t) => t.id === id);
+  const to = from + delta;
+  if (from < 0 || to < 0 || to >= _tabs.length) return false;
+  reorderTabs(from, to);
+  return true;
+}
+
 export function setDirty(id: string, dirty: boolean): void {
   const tab = _tabs.find((t) => t.id === id);
   if (!tab || tab.isDirty === dirty) return;
   _tabs = _tabs.map((t) => (t.id === id ? { ...t, isDirty: dirty } : t));
   _notify();
+  // 右ペインの中では、未保存かどうかを、左のアプリへ知らせる (右ペインを閉じるときの確認に使う)
+  if (isPaneMode()) postToParent({ type: "harmony-pane-dirty", dirty: _tabs.some((t) => t.isDirty) });
 }
 
 export function setPinned(id: string, pinned: boolean): void {

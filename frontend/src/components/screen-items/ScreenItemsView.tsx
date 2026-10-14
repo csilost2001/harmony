@@ -88,8 +88,17 @@ import {
   JS_IDENTIFIER_RE,
 } from "./internal/screenItemsConstants";
 import { OutputFields } from "./internal/sections/OutputFields";
-import { reportFailure } from "../../utils/failureToast";
+import { EmptyState } from "../common/EmptyState";
+import { reportFailure, runReporting } from "../../utils/failureToast";
 import { useResyncDraftOnReconnect } from "../../hooks/useResyncDraftOnReconnect";
+import { useListClipboard } from "../../hooks/useListClipboard";
+import { BulkEditDialog } from "../common/BulkEditDialog";
+import { applyBulkPatch } from "../../utils/bulkEdit";
+import { ITEM_BULK_FIELDS } from "./bulkItemFields";
+import { conflictingItemIds, planItemPaste } from "../../utils/itemClipboard";
+import { showToast } from "../../utils/toast";
+import { SnippetMenu } from "../common/SnippetMenu";
+import { HelpHint } from "../help/HelpHint";
 
 type ScreenMeta = { id: string; name: string };
 
@@ -362,7 +371,7 @@ export function ScreenItemsView() {
 
   // Ctrl+S で保存 (保存ボタンの title にも書いてある)
   useSaveShortcut(() => {
-    if (isDirty && !isSaving && !isReadonly) handleSave().catch((err) => reportFailure(err, "画面項目の保存"));
+    if (isDirty && !isSaving && !isReadonly) runReporting(handleSave, "画面項目の保存");
   });
 
   const handleDiscard = useCallback(async () => {
@@ -432,6 +441,49 @@ export function ScreenItemsView() {
 
   // 表計算ソフトのように、Enter / ↑↓ で上下の行の同じ列へ移る (最後の行の Enter で行を追加)
   const gridKeys = useGridKeyboard({ onAppendRow: isReadonly ? undefined : handleAddItem });
+
+  // 別の画面へも運べるコピー / 貼り付け (選んだ行をコピーして、ほかの画面の項目定義で貼り付ける)
+  const clipboard = useListClipboard<ScreenItem>((i) => i.id, { channel: "screen-items", sourceId: screenId ?? "" });
+  const [showBulk, setShowBulk] = useState(false);
+
+  const handleCopySelected = useCallback(() => {
+    const f = fileRef.current;
+    if (!f || selectedIndices.size === 0) return;
+    const picked = [...selectedIndices].sort((a, b) => a - b).map((i) => f.items[i]).filter(Boolean);
+    clipboard.copy(picked);
+    showToast(`${picked.length} 件の項目をコピーしました (ほかの画面の項目定義で貼り付けられます)`, "info");
+  }, [clipboard, selectedIndices]);
+
+  const handlePasteClipboard = useCallback(() => {
+    const f = fileRef.current;
+    if (isReadonly || !f || !clipboard.hasContent) return;
+    const foreign = clipboard.isForeign;
+    if (foreign) {
+      const conflicts = conflictingItemIds(f.items, clipboard.clipboard.items);
+      if (conflicts.length > 0 && !window.confirm(`この画面には、同じ ID の項目があります: ${conflicts.join(", ")}\nID に「Copy」を付けて貼り付けますか?`)) return;
+    }
+    const plan = planItemPaste(f.items, clipboard.consume());
+    if (plan.items.length === 0) return;
+    const start = f.items.length;
+    updateWithDraft((doc) => { doc.items.push(...plan.items); });
+    setSelectedIndices(new Set(plan.items.map((_, k) => start + k)));
+    const note = plan.renamed.length > 0 ? `。ID を変えた項目 ${plan.renamed.length} 件 (${plan.renamed.map((r) => `${r.from} → ${r.to}`).join(", ")})` : "";
+    showToast(`${plan.items.length} 件の項目を貼り付けました${note}`, "info");
+  }, [clipboard, isReadonly, updateWithDraft]);
+
+  // 表の中で Ctrl+C / Ctrl+V (入力欄・選択肢の中は、ふつうのコピー・貼り付けのまま)
+  const onTableKeyDown = useCallback((e: React.KeyboardEvent<HTMLTableElement>) => {
+    gridKeys.onKeyDown(e);
+    if (e.defaultPrevented || !(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
+    const t = e.target as HTMLElement;
+    const textLike = t instanceof HTMLTextAreaElement || t instanceof HTMLSelectElement || (t instanceof HTMLInputElement && t.type !== "checkbox");
+    if (textLike) return;
+    const k = e.key.toLowerCase();
+    // ページ上で文字を選んでいるときの Ctrl+C は、ふつうのコピー (選んだ項目のコピーより優先)
+    if (k === "c" && (window.getSelection()?.toString() ?? "") !== "") return;
+    if (k === "c" && selectedIndices.size > 0) { e.preventDefault(); handleCopySelected(); }
+    else if (k === "v" && clipboard.hasContent && !isReadonly) { e.preventDefault(); handlePasteClipboard(); }
+  }, [gridKeys, selectedIndices, handleCopySelected, handlePasteClipboard, clipboard.hasContent, isReadonly]);
 
   const handlePasteItems = useCallback((items: ParsedItem[], updates: Array<{ id: string; patch: Partial<ScreenItem> }>) => {
     updateWithDraft((f) => {
@@ -846,7 +898,7 @@ export function ScreenItemsView() {
       <EditModeToolbar
         mode={mode}
         onStartEditing={actions.startEditing}
-        onSave={() => { handleSave().catch((err) => reportFailure(err, "画面項目の保存")); }}
+        onSave={() => { runReporting(handleSave, "画面項目の保存"); }}
         onDiscardClick={() => setShowDiscardDialog(true)}
         onForceReleaseClick={() => setShowForceReleaseDialog(true)}
         saving={isSaving}
@@ -956,7 +1008,7 @@ export function ScreenItemsView() {
             </div>
           )}
           <div className="screen-items-table-wrap">
-            <table className="screen-items-table" onKeyDown={gridKeys.onKeyDown}>
+            <table className="screen-items-table" onKeyDown={onTableKeyDown}>
               <colgroup>
                 <col style={{ width: 24 }} />
                 <col style={{ width: 40 }} />
@@ -984,14 +1036,14 @@ export function ScreenItemsView() {
                     />
                   </th>
                   <th>#</th>
-                  <th>ID</th>
-                  <th>ラベル</th>
-                  <th>型</th>
-                  <th>方向</th>
-                  <th className="text-center">必須</th>
+                  <th>ID<HelpHint topic="screenItem.id" /></th>
+                  <th>ラベル<HelpHint topic="screenItem.label" /></th>
+                  <th>型<HelpHint topic="screenItem.type" /></th>
+                  <th>方向<HelpHint topic="screenItem.direction" /></th>
+                  <th className="text-center">必須<HelpHint topic="screenItem.required" /></th>
                   <th>最小長</th>
                   <th>最大長</th>
-                  <th>pattern</th>
+                  <th>pattern<HelpHint topic="screenItem.pattern" /></th>
                   <th>description</th>
                   <th></th>
                 </tr>
@@ -1000,7 +1052,8 @@ export function ScreenItemsView() {
                 {file.items.length === 0 && (
                   <tr>
                     <td colSpan={12} className="screen-items-empty-row">
-                      項目がありません。下のボタンから追加してください。
+                      <EmptyState compact noun="画面項目" icon="bi-ui-checks" hint="画面に置く入力欄・表示欄・ボタンを 1 行ずつ定義します。Excel の項目定義表を貼り付けても作れます。"
+                        onCreate={isReadonly ? undefined : handleAddItem} createLabel="項目を追加" />
                     </td>
                   </tr>
                 )}
@@ -1855,6 +1908,27 @@ export function ScreenItemsView() {
               >
                 <i className="bi bi-clipboard-data me-1" /> 表から貼り付け
               </button>
+              <button type="button" className="btn btn-sm btn-outline-secondary" onClick={handleCopySelected} disabled={selectedIndices.size === 0}
+                title="選んだ項目をコピー (Ctrl+C)。ほかの画面の項目定義で貼り付けられます" data-testid="items-copy">
+                <i className="bi bi-files me-1" /> コピー{selectedIndices.size > 0 ? ` (${selectedIndices.size})` : ""}
+              </button>
+              <button type="button" className="btn btn-sm btn-outline-secondary" onClick={handlePasteClipboard} disabled={isReadonly || !clipboard.hasContent}
+                title={clipboard.hasContent ? `コピーした ${clipboard.clipboard.items.length} 件を、末尾に貼り付け (Ctrl+V)` : "コピーした項目がありません"} data-testid="items-paste">
+                <i className="bi bi-clipboard-plus me-1" /> 貼り付け{clipboard.hasContent ? ` (${clipboard.clipboard.items.length})` : ""}
+              </button>
+              <SnippetMenu kind="screen-items" className="btn btn-sm btn-outline-secondary" selectionCount={selectedIndices.size} readonly={isReadonly}
+                getSelection={() => [...selectedIndices].sort((a, b) => a - b).map((i) => file.items[i]).filter(Boolean)}
+                onInsert={(sn) => {
+                  const plan = planItemPaste(fileRef.current?.items ?? [], sn.items as unknown as ScreenItem[]);
+                  const start = fileRef.current?.items.length ?? 0;
+                  updateWithDraft((doc) => { doc.items.push(...plan.items); });
+                  setSelectedIndices(new Set(plan.items.map((_, k) => start + k)));
+                  showToast(`スニペット「${sn.name}」を挿入しました (${plan.items.length} 項目${plan.renamed.length > 0 ? `。ID が重なる ${plan.renamed.length} 項目は Copy を付けました` : ""})`, "info");
+                }} />
+              <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setShowBulk(true)} disabled={isReadonly || selectedIndices.size === 0}
+                title="選んだ項目の型・必須・長さなどをまとめて変える" data-testid="items-bulk-edit">
+                <i className="bi bi-sliders me-1" /> 一括変更
+              </button>
               {selectedIndices.size > 0 && (
                 <button
                   type="button"
@@ -1967,6 +2041,44 @@ export function ScreenItemsView() {
           }}
           onCancel={onSaveConflictCancel}
         />
+      )}
+
+      {showBulk && file && (
+
+        <BulkEditDialog<ScreenItem>
+
+          title="画面項目の一括変更"
+
+          fields={ITEM_BULK_FIELDS}
+
+          items={[...selectedIndices].sort((a, b) => a - b).map((i) => file.items[i]).filter(Boolean)}
+
+          itemLabel={(i) => `${i.id || "(ID 未入力)"}${i.label ? ` (${i.label})` : ""}`}
+
+          onClose={() => setShowBulk(false)}
+
+          onApply={(patches) => {
+
+            const order = [...selectedIndices].sort((a, b) => a - b);
+
+            updateWithDraft((doc) => {
+
+              for (const p of patches) {
+
+                const target = doc.items[order[p.index]];
+
+                if (target) applyBulkPatch(target, p.patch);
+
+              }
+
+            });
+
+            showToast(`${patches.length} 件の項目を変更しました (Ctrl+Z で元に戻せます)`, "info");
+
+          }}
+
+        />
+
       )}
 
       {showPasteItems && (

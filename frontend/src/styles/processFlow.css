@@ -561,7 +561,9 @@
 }
 
 .process-flow-pane-header h6,
-.process-flow-canvas-header h6 {
+.process-flow-pane-header h2,
+.process-flow-canvas-header h6,
+.process-flow-canvas-header h2 {
   margin: 1px 0 0;
   color: var(--hm-fg);
   font-size: 0.88rem;
@@ -2072,7 +2074,7 @@
   align-items: center;
   gap: 3px;
   padding: 0 6px;
-  font-size: 11px;
+  font-size: calc(11px * var(--hm-font-scale));
   font-weight: 600;
   background: var(--hm-surface-3);
   color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
@@ -2097,14 +2099,14 @@
   align-items: center;
   gap: 2px;
   padding: 0 5px;
-  font-size: 10px;
+  font-size: calc(10px * var(--hm-font-scale));
   font-weight: 600;
   border-radius: 9px;
   line-height: 1.3;
   flex-shrink: 0;
   border: 1px solid transparent;
 }
-.step-marker-chip i { font-size: 9px; }
+.step-marker-chip i { font-size: calc(9px * var(--hm-font-scale)); }
 .step-marker-chip.kind-todo { background: var(--hm-surface-3); color: color-mix(in srgb, var(--hm-hue-green) 80%, var(--hm-fg)); border-color: color-mix(in srgb, var(--hm-hue-green) 38%, var(--hm-surface)); }
 .step-marker-chip.kind-question { background: var(--hm-surface-3); color: color-mix(in srgb, var(--hm-hue-purple) 80%, var(--hm-fg)); border-color: #c4b5fd; }
 .step-marker-chip.kind-attention { background: color-mix(in srgb, var(--hm-hue-amber) 9%, var(--hm-surface)); color: color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg)); border-color: color-mix(in srgb, var(--hm-hue-amber) 38%, var(--hm-surface)); }
@@ -3051,7 +3053,7 @@
   border: 0;
   background: var(--hm-surface);
   color: var(--hm-fg-muted);
-  font-size: 12px;
+  font-size: calc(12px * var(--hm-font-scale));
   padding: 3px 11px;
   cursor: pointer;
   display: inline-flex;
@@ -3064,7 +3066,7 @@
 /* 図 */
 .pfd-root { display: flex; flex-direction: column; height: 100%; min-height: 0; }
 .pfd-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 12px; border-bottom: 1px solid var(--hm-border); background: var(--hm-surface); flex-wrap: wrap; }
-.pfd-legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11.5px; color: var(--hm-fg-muted); }
+.pfd-legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: calc(11.5px * var(--hm-font-scale)); color: var(--hm-fg-muted); }
 .pfd-legend-item { display: inline-flex; align-items: center; gap: 4px; }
 .pfd-swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; border: 1.5px solid var(--hm-border-strong); background: var(--hm-surface); }
 .pfd-swatch.pfd-tone-db { border-color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg)); }
@@ -3073,7 +3075,7 @@
 .pfd-swatch.pfd-frame-loop { border: 1.5px dashed color-mix(in srgb, var(--hm-hue-amber) 80%, var(--hm-fg)); }
 .pfd-swatch.pfd-tone-error { border-color: var(--hm-danger); background: color-mix(in srgb, var(--hm-danger) 14%, var(--hm-surface)); border-radius: 6px; }
 .pfd-zoom { display: inline-flex; border: 1px solid var(--hm-border-strong); border-radius: 6px; overflow: hidden; }
-.pfd-zoom button { border: 0; background: var(--hm-surface); color: var(--hm-fg-muted); font-size: 11.5px; padding: 2px 8px; cursor: pointer; font-variant-numeric: tabular-nums; }
+.pfd-zoom button { border: 0; background: var(--hm-surface); color: var(--hm-fg-muted); font-size: calc(11.5px * var(--hm-font-scale)); padding: 2px 8px; cursor: pointer; font-variant-numeric: tabular-nums; }
 .pfd-zoom button + button { border-left: 1px solid var(--hm-border); }
 .pfd-zoom button.active { background: var(--hm-surface-3); color: var(--hm-fg); font-weight: 700; }
 .pfd-scroll { flex: 1; overflow: auto; padding: 12px; background: var(--hm-bg); }
@@ -3092,10 +3094,10 @@
 .pfd-node.is-conditional rect:first-of-type, .pfd-node.is-conditional polygon { stroke-dasharray: 6 3; }
 .pfd-node.is-selected rect:first-of-type, .pfd-node.is-selected polygon { stroke: var(--hm-accent); stroke-width: 2.6; }
 .pfd-hit:hover .pfd-node rect:first-of-type, .pfd-hit:hover .pfd-node polygon { stroke: var(--hm-accent); }
-.pfd-caption { font-size: 10.5px; font-weight: 700; fill: var(--hm-fg-muted); }
+.pfd-caption { font-size: calc(10.5px * var(--hm-font-scale)); font-weight: 700; fill: var(--hm-fg-muted); }
 .pfd-caption-inline { font-weight: 700; }
-.pfd-text { font-size: 12px; fill: var(--hm-fg); }
-.pfd-sub { font-size: 10.5px; fill: color-mix(in srgb, var(--hm-hue-blue) 70%, var(--hm-fg)); font-family: ui-monospace, Menlo, monospace; }
+.pfd-text { font-size: calc(12px * var(--hm-font-scale)); fill: var(--hm-fg); }
+.pfd-sub { font-size: calc(10.5px * var(--hm-font-scale)); fill: color-mix(in srgb, var(--hm-hue-blue) 70%, var(--hm-fg)); font-family: ui-monospace, Menlo, monospace; }
 .pfd-tone-error .pfd-text, .pfd-tone-error .pfd-caption-inline { fill: var(--hm-danger); }
 .pfd-tone-ok .pfd-text { fill: color-mix(in srgb, var(--hm-success) 75%, var(--hm-fg)); }
 
@@ -3106,7 +3108,7 @@
 .pfd-frame-commit rect { stroke: var(--hm-success); }
 .pfd-frame.is-selected rect { stroke: var(--hm-accent); stroke-width: 2.4; }
 .pfd-frame { cursor: pointer; }
-.pfd-frame-label { font-size: 11px; font-weight: 700; fill: var(--hm-fg-muted); font-family: ui-monospace, Menlo, monospace; }
+.pfd-frame-label { font-size: calc(11px * var(--hm-font-scale)); font-weight: 700; fill: var(--hm-fg-muted); font-family: ui-monospace, Menlo, monospace; }
 .pfd-frame-tx .pfd-frame-label { fill: color-mix(in srgb, var(--hm-hue-blue) 75%, var(--hm-fg)); }
 .pfd-frame-rollback .pfd-frame-label { fill: var(--hm-danger); }
 
@@ -3116,20 +3118,20 @@
 .pfd-edge-dashed path { stroke-dasharray: 5 4; }
 .pfd-arrowhead { fill: var(--hm-fg-faint); }
 .pfd-arrowhead-error { fill: var(--hm-danger); }
-.pfd-edge-label { font-size: 10.5px; fill: var(--hm-fg-2); paint-order: stroke; stroke: var(--hm-bg); stroke-width: 3px; }
+.pfd-edge-label { font-size: calc(10.5px * var(--hm-font-scale)); fill: var(--hm-fg-2); paint-order: stroke; stroke: var(--hm-bg); stroke-width: 3px; }
 .pfd-edge-error .pfd-edge-label { fill: var(--hm-danger); }
 
 /* 処理記述表 */
 .pft-scroll { height: 100%; overflow: auto; padding: 12px; background: var(--hm-bg); }
-.pft-table { width: 100%; border-collapse: collapse; background: var(--hm-surface); font-size: 12.5px; border: 1px solid var(--hm-border-strong); }
+.pft-table { width: 100%; border-collapse: collapse; background: var(--hm-surface); font-size: calc(12.5px * var(--hm-font-scale)); border: 1px solid var(--hm-border-strong); }
 .pft-caption { caption-side: top; text-align: left; font-weight: 700; padding: 0 0 6px; color: var(--hm-fg); }
-.pft-caption span { margin-left: 10px; font-weight: 400; font-size: 11.5px; color: var(--hm-fg-muted); }
+.pft-caption span { margin-left: 10px; font-weight: 400; font-size: calc(11.5px * var(--hm-font-scale)); color: var(--hm-fg-muted); }
 .pft-table th { position: sticky; top: 0; z-index: 1; background: var(--hm-surface-3); color: var(--hm-fg-2); font-weight: 700; text-align: left; padding: 6px 8px; border: 1px solid var(--hm-border-strong); white-space: nowrap; }
-.pft-table td { padding: 5px 8px; border: 1px solid var(--hm-border); vertical-align: top; color: var(--hm-fg); }
+.pft-table td { padding: var(--hm-row-py) 8px; border: 1px solid var(--hm-border); vertical-align: top; color: var(--hm-fg); }
 .pft-no { width: 72px; font-family: ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .pft-kind { width: 110px; white-space: nowrap; color: var(--hm-fg-muted); }
-.pft-target { overflow-wrap: anywhere; width: 200px; font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; color: color-mix(in srgb, var(--hm-hue-blue) 70%, var(--hm-fg)); }
-.pft-note { width: 260px; font-size: 11.5px; color: var(--hm-fg-2); overflow-wrap: anywhere; }
+.pft-target { overflow-wrap: anywhere; width: 200px; font-family: ui-monospace, Menlo, monospace; font-size: calc(11.5px * var(--hm-font-scale)); color: color-mix(in srgb, var(--hm-hue-blue) 70%, var(--hm-fg)); }
+.pft-note { width: 260px; font-size: calc(11.5px * var(--hm-font-scale)); color: var(--hm-fg-2); overflow-wrap: anywhere; }
 .pft-row { cursor: pointer; }
 .pft-row:hover td { background: var(--hm-hover); }
 .pft-row.is-tx td { background: color-mix(in srgb, var(--hm-hue-blue) 6%, var(--hm-surface)); }

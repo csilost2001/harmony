@@ -16,19 +16,19 @@
 }
 .rpe-paper-wrap .rp-paper {
   width: var(--rp-w); max-width: 100%; background: #fff; border: 1px solid #9aa3b2; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
-  padding: 22px 20px; display: flex; flex-direction: column; gap: 10px; color: var(--rp-ink); font-size: 11px; line-height: 1.5; box-sizing: border-box;
+  padding: 22px 20px; display: flex; flex-direction: column; gap: 10px; color: var(--rp-ink); font-size: calc(11px * var(--hm-font-scale)); line-height: 1.5; box-sizing: border-box;
 }
 .rpe-paper-wrap .rp-landscape { --rp-w: 760px; }
 .rp-section { position: relative; border: 1px dashed var(--rp-line); padding: 16px 6px 6px; cursor: pointer; }
 .rp-section:hover { border-color: var(--rp-accent); }
-.rp-tag { position: absolute; top: -1px; left: -1px; background: var(--rp-tag); color: var(--rp-muted); font-size: 9.5px; padding: 0 6px; border-radius: 0 0 4px 0; }
+.rp-tag { position: absolute; top: -1px; left: -1px; background: var(--rp-tag); color: var(--rp-muted); font-size: calc(9.5px * var(--hm-font-scale)); padding: 0 6px; border-radius: 0 0 4px 0; }
 .rp-row { display: flex; min-width: 0; }
 .rp-cell { padding: 2px 4px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; box-sizing: border-box; }
 .rp-right { text-align: right; }
 .rp-center { text-align: center; }
 .rp-labels .rp-cell { font-weight: 700; background: var(--rp-fill); border-bottom: 1px solid var(--rp-line); cursor: default; }
 .rp-s-detail .rp-row:not(.rp-labels) .rp-cell { border-bottom: 1px solid var(--rp-line-soft); color: var(--rp-muted); }
-.rp-s-reportHeader .rp-cell { font-size: 15px; font-weight: 700; }
+.rp-s-reportHeader .rp-cell { font-size: calc(15px * var(--hm-font-scale)); font-weight: 700; }
 .rp-s-groupFooter .rp-cell, .rp-s-reportFooter .rp-cell { font-weight: 700; border-top: 1px solid var(--rp-ink); }
 .rp-k-aggregate { color: var(--rp-accent); }
 .rp-empty { color: #8a93a3; font-style: italic; }
@@ -39,11 +39,11 @@
 .rp-section.rp-selected { background: rgba(44, 86, 201, 0.04); }
 
 .rpe-param { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr) auto auto; gap: 4px; align-items: center; margin-bottom: 4px; }
-.rpe-param input[type="text"], .rpe-param input:not([type]) { border: 1px solid var(--hm-border-strong); background: var(--hm-surface); color: var(--hm-fg); border-radius: 4px; padding: 3px 5px; font: inherit; font-size: 12px; min-width: 0; }
-.rpe-check { font-size: 11.5px; color: var(--hm-fg-2); display: flex; align-items: center; gap: 3px; white-space: nowrap; }
-.rpe-mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+.rpe-param input[type="text"], .rpe-param input:not([type]) { border: 1px solid var(--hm-border-strong); background: var(--hm-surface); color: var(--hm-fg); border-radius: 4px; padding: 3px 5px; font: inherit; font-size: calc(12px * var(--hm-font-scale)); min-width: 0; }
+.rpe-check { font-size: calc(11.5px * var(--hm-font-scale)); color: var(--hm-fg-2); display: flex; align-items: center; gap: 3px; white-space: nowrap; }
+.rpe-mono { font-family: ui-monospace, Menlo, monospace; font-size: calc(12px * var(--hm-font-scale)); }
 .rpe-source { display: flex; flex-direction: column; gap: 4px; }
-.rpe-source select, .rpe-source input { border: 1px solid var(--hm-border-strong); background: var(--hm-surface); color: var(--hm-fg); border-radius: 4px; padding: 4px 6px; font: inherit; font-size: 13px; min-width: 0; }
+.rpe-source select, .rpe-source input { border: 1px solid var(--hm-border-strong); background: var(--hm-surface); color: var(--hm-fg); border-radius: 4px; padding: 4px 6px; font: inherit; font-size: calc(13px * var(--hm-font-scale)); min-width: 0; }
 .rpe .bfe-body { grid-template-columns: 270px minmax(0, 1fr) 320px; }
 
 /* 用紙の見本で項目をドラッグ中の、落とす位置の目印 */

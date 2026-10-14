@@ -26,6 +26,7 @@ import { SortableList, SortableRow } from "../common/SortableList";
 import { moveById, moveByIdAt } from "../../utils/reorder";
 import "../../styles/businessFlow.css";
 import "../../styles/report.css";
+import { UndoHistoryPanel } from "../common/UndoHistoryPanel";
 
 type Selection = { sectionId: string; fieldId?: string } | null;
 const SECTION_KINDS = Object.keys(REPORT_SECTION_LABELS) as ReportSectionKind[];
@@ -46,7 +47,7 @@ export function ReportEditor() {
 
   // ── 文書 (編集セッション・元に戻す・他の保存の検知は useEditableDocument) ──
   const {
-    doc: report, editable, mode, sessionLoading, dirty, apply: applyDoc, undo, redo, canUndo, canRedo,
+    doc: report, editable, mode, sessionLoading, dirty, apply: applyDoc, undo, redo, canUndo, canRedo, history, jumpTo,
     attach, takeOver, syncSessionToUrl, sessionId, chrome,
   } = useEditableDocument<Report>({
     resourceType: "report",
@@ -259,6 +260,7 @@ export function ReportEditor() {
         <span className="bfe-spacer" />
         <button type="button" className="bfe-btn" onClick={undo} disabled={!editable || !canUndo} title="元に戻す (Ctrl+Z)" aria-label="元に戻す"><i className="bi bi-arrow-counterclockwise" /></button>
         <button type="button" className="bfe-btn" onClick={redo} disabled={!editable || !canRedo} title="やり直す (Ctrl+Y)" aria-label="やり直す"><i className="bi bi-arrow-clockwise" /></button>
+        {editable && <UndoHistoryPanel history={history} present={report} onJump={jumpTo} buttonClassName="bfe-btn" />}
         <EditSessionDropdown
           resourceType="report"
           resourceId={report.id}
@@ -360,7 +362,7 @@ export function ReportEditor() {
         </aside>
 
         {/* 中央: 用紙の見本 */}
-        <main className="bfe-center">
+        <section className="bfe-center" aria-label="帳票の用紙">
           <div className="rpe-stage">
             <div ref={paperRef} className="rpe-paper-wrap" onClick={onPaperClick} onKeyDown={onPaperKey} onDragStart={onPaperDragStart} onDragOver={onPaperDragOver} onDrop={onPaperDrop} onDragEnd={onPaperDragEnd} data-testid="rp-paper-view" data-theme-audit-skip dangerouslySetInnerHTML={{ __html: html }} />
           </div>
@@ -377,7 +379,7 @@ export function ReportEditor() {
               </ul>
             )}
           </section>
-        </main>
+        </section>
 
         {/* 右: 設定 */}
         <aside className="bfe-right" aria-label="設定" data-testid="rp-inspector">

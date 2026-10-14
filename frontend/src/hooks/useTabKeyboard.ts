@@ -4,6 +4,7 @@ import {
   getActiveTabId,
   setActiveTab,
   closeTab,
+  moveTabBy,
   type TabItem,
 } from "../store/tabStore";
 
@@ -57,6 +58,13 @@ export function useTabKeyboard() {
         if (tabs.length > 1) {
           setActiveTab(tabs[(idx - 1 + tabs.length) % tabs.length].id);
         }
+        return;
+      }
+
+      // Ctrl+Shift+PageUp / PageDown: いまのタブを左 / 右へ動かす (タブのドラッグの代わり)
+      if (e.shiftKey && (e.key === "PageUp" || e.key === "PageDown")) {
+        e.preventDefault();
+        if (idx !== -1) moveTabBy(activeId, e.key === "PageUp" ? -1 : 1);
         return;
       }
 

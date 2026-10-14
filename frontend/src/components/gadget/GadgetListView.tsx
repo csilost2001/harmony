@@ -36,7 +36,8 @@ import "../../styles/flow.css";
 import "../../styles/screenList.css";
 import "../../styles/editMode.css";
 import { useQuickCreate } from "../../hooks/useQuickCreate";
-import { reportFailure } from "../../utils/failureToast";
+import { reportFailure, runReporting } from "../../utils/failureToast";
+import { EmptyState } from "../common/EmptyState";
 
 const STORAGE_KEY = "list-view-mode:gadget-list";
 const TAB_ID = makeTabId("gadget-list", "main");
@@ -336,7 +337,7 @@ export function GadgetListView() {
   });
 
   const handleSave = () => {
-    editor.save().catch((err) => reportFailure(err, "ガジェット一覧の保存"));
+    runReporting(editor.save, "ガジェット一覧の保存");
     selection.clearSelection();
   };
 
@@ -543,9 +544,7 @@ export function GadgetListView() {
           showNumColumn={viewMode === "table"}
           isItemGhost={(id) => editor.isDeleted(id)}
           emptyMessage={
-            query
-              ? <p>該当するガジェットがありません</p>
-              : <p>ガジェットがまだありません。「ガジェットを追加」から作成してください。</p>
+            <EmptyState noun="ガジェット" icon="bi-puzzle" hint="ページレイアウトに置く、小さな部品の画面を定義します" filtered={!!query} onCreate={handleAddNew} createLabel="ガジェットを追加" onClear={() => setQuery("")} />
           }
         />
       </div>
@@ -569,7 +568,7 @@ export function GadgetListView() {
                     className={`form-control${addNameError ? " is-invalid" : ""}`}
                     value={addName}
                     onChange={(e) => { setAddName(e.target.value); if (addNameError) setAddNameError(""); }}
-                    onKeyDown={(e) => { if (e.key === "Enter") handleAddSave().catch((err) => reportFailure(err, "ガジェット一覧の保存")); }}
+                    onKeyDown={(e) => { if (e.key === "Enter") runReporting(handleAddSave, "ガジェット一覧の保存"); }}
                     placeholder="例: ヘッダー、フッター、サイドバー"
                     autoFocus
                   />
@@ -597,7 +596,7 @@ export function GadgetListView() {
                     existingIds={existingIds}
                     entityLabel="ガジェット"
                     inputId="gadget-id-input"
-                    onEnter={() => handleAddSave().catch((err) => reportFailure(err, "ガジェット一覧の保存"))}
+                    onEnter={() => runReporting(handleAddSave, "ガジェット一覧の保存")}
                     onValidationChange={setAddIdValidation}
                   />
                 </div>
@@ -609,7 +608,7 @@ export function GadgetListView() {
                 <button
                   type="button"
                   className="btn btn-primary"
-                  onClick={() => handleAddSave().catch((err) => reportFailure(err, "ガジェット一覧の保存"))}
+                  onClick={() => runReporting(handleAddSave, "ガジェット一覧の保存")}
                   disabled={!addName.trim() || addIdValidation.isInvalid}
                 >
                   <i className="bi bi-plus-lg me-1" />作成

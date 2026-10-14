@@ -65,7 +65,7 @@
   border-radius: 6px;
   background: transparent;
   cursor: pointer;
-  font-size: 13px;
+  font-size: calc(13px * var(--hm-font-scale));
   line-height: 1;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
@@ -91,7 +91,7 @@
   border-radius: 6px;
   background: transparent;
   cursor: pointer;
-  font-size: 15px;
+  font-size: calc(15px * var(--hm-font-scale));
   transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s;
 }
 
@@ -196,4 +196,10 @@
 /* 「ビュー編集: <code>」のように、見出しの後ろに続く識別子 (code) との間を空ける */
 .editor-header-title code {
   margin-left: 4px;
+}
+
+/* タブレット幅 (〜1100px): 右側の操作が多い画面 (画面フロー・画面デザイナ・処理フロー) で、操作が画面の外へ出ないよう、折り返す */
+@media (max-width: 1100px) {
+  .editor-header { flex-wrap: wrap; row-gap: 4px; padding-top: 4px; padding-bottom: 4px; }
+  .editor-header-left, .editor-header-right, .editor-header-extra { flex-wrap: wrap; }
 }

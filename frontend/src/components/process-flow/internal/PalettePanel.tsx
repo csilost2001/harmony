@@ -1,9 +1,11 @@
 // Phase-3 (#1145): ProcessFlowEditor.tsx 左サイドバー (パレット) を抽出。
 // 基本ステップ button / カスタムステップ button / テンプレート dropdown。
 
+import type { ReactNode } from "react";
 import type { StepKind as StepType } from "../../../types/v3";
 import { STEP_TEMPLATES } from "../../../utils/processFlowMetadata";
 import { ToolbarStepButton, CustomStepButton } from "./PaletteButtons";
+import { HelpHint } from "../../help/HelpHint";
 
 export interface PalettePanelProps {
   stepFilter: string;
@@ -15,6 +17,8 @@ export interface PalettePanelProps {
   onAddStep: (kind: StepType) => void;
   onAddTemplate: (templateId: string) => void;
   isReadonly: boolean;
+  /** 利用者が保存した工程の並び (スニペット) のメニュー */
+  snippetSlot?: ReactNode;
 }
 
 export function PalettePanel({
@@ -27,13 +31,14 @@ export function PalettePanel({
   onAddStep,
   onAddTemplate,
   isReadonly,
+  snippetSlot,
 }: PalettePanelProps) {
   return (
     <aside className="process-flow-palette-pane">
       <div className="process-flow-pane-header">
         <div>
           <span className="process-flow-pane-kicker">Blocks</span>
-          <h6>ブロック</h6>
+          <h2>ブロック<HelpHint topic="processFlow.overview" /></h2>
         </div>
         {!isReadonly && <span className="process-flow-pane-badge">D&D</span>}
       </div>
@@ -99,6 +104,7 @@ export function PalettePanel({
             </div>
           )}
         </div>
+        {snippetSlot && <div className="process-flow-template-anchor">{snippetSlot}</div>}
       </div>
     </aside>
   );

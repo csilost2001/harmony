@@ -10,9 +10,18 @@ import { summarizeProgress } from "@harmony/shared";
 import { loadDesignInputFromRoot } from "../designInput.js";
 import { readCheckSettings, removeSuppressions, saveRules, suppressIssue, unsuppressIssue, type SuppressInput } from "../designCheckSettings.js";
 import { readProgressHistory, recordProgress } from "../progressStore.js";
+import { readLogTail } from "../serverLog.js";
 import type { RpcHandlerMap } from "./types.js";
 
 export const analysisHandlers: RpcHandlerMap = {
+  /** 不具合の報告に添える、サーバのログの末尾 (書くときにマスク済み。画面のエラー画面から「状況をまとめてコピー」に含める) */
+  "diagnostics.serverLogTail": async ({ params, respond, respondError }) => {
+    try {
+      const n = (params as { lines?: unknown } | null)?.lines;
+      respond({ lines: readLogTail(typeof n === "number" && Number.isFinite(n) ? n : 100) });
+    } catch (e) { respondError(e instanceof Error ? e.message : String(e)); }
+  },
+
   "designCheck.load": async ({ root, respond, respondError }) => {
     try { respond(await readCheckSettings(root())); } catch (e) { respondError(e instanceof Error ? e.message : String(e)); }
   },

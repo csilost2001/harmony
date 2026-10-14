@@ -1,0 +1,19 @@
+/* 空の状態の共通の部品 (components/common/EmptyState.tsx) */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  padding: 32px 16px; text-align: center; color: var(--hm-fg-muted);
+}
+.empty-state-icon { font-size: calc(28px * var(--hm-font-scale)); color: var(--hm-fg-faint); }
+.empty-state-title { margin: 0; font-size: calc(14px * var(--hm-font-scale)); font-weight: 600; color: var(--hm-fg-2); }
+.empty-state-hint { margin: 0; max-width: 46ch; font-size: calc(12.5px * var(--hm-font-scale)); line-height: 1.6; }
+.empty-state-btn {
+  margin-top: 6px; display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; cursor: pointer;
+  font: inherit; font-size: calc(13px * var(--hm-font-scale)); color: var(--hm-fg-2);
+  background: var(--hm-surface-2); border: 1px solid var(--hm-border-strong); border-radius: 6px;
+}
+.empty-state-btn:hover { border-color: var(--hm-accent); color: var(--hm-accent); }
+.empty-state-btn.is-primary { background: var(--hm-accent-solid); border-color: var(--hm-accent-solid); color: var(--hm-on-solid); }
+.empty-state-btn.is-primary:hover { background: var(--hm-accent-solid-hover); color: var(--hm-on-solid); }
+.empty-state--compact { padding: 16px 12px; gap: 4px; }
+.empty-state--compact .empty-state-icon { font-size: calc(20px * var(--hm-font-scale)); }
+.empty-state-hint code { font-family: "Consolas", "Monaco", monospace; background: var(--hm-hover); padding: 1px 5px; border-radius: 3px; }

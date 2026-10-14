@@ -1,0 +1,17 @@
+/* カラムの「表で編集」 */
+.cg-wrap { overflow: auto; border: 1px solid var(--hm-border); border-radius: 6px; background: var(--hm-surface); }
+.cg-table { width: 100%; min-width: 1100px; border-collapse: collapse; font-size: calc(12.5px * var(--hm-font-scale)); }
+.cg-table th { position: sticky; top: 0; z-index: 1; padding: 5px 6px; text-align: left; font-weight: 600; color: var(--hm-fg-muted); background: var(--hm-surface-2); border-bottom: 1px solid var(--hm-border-strong); white-space: nowrap; }
+.cg-table td { padding: var(--hm-row-py) 4px; border-bottom: 1px solid var(--hm-border); vertical-align: middle; }
+.cg-table tr:last-child td { border-bottom: none; }
+.cg-no { width: 40px; text-align: right; color: var(--hm-fg-muted); font-variant-numeric: tabular-nums; padding-right: 8px !important; }
+.cg-flag { width: 40px; text-align: center !important; }
+.cg-num { width: 84px; }
+.cg-input { width: 100%; min-width: 0; padding: 3px 6px; font: inherit; color: var(--hm-fg); background: transparent; border: 1px solid transparent; border-radius: 4px; }
+.cg-input.is-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.cg-input.is-num { text-align: right; }
+.cg-input:hover:not(:disabled) { border-color: var(--hm-border-strong); }
+.cg-input:focus { outline: 2px solid var(--hm-focus); outline-offset: -1px; background: var(--hm-surface); border-color: var(--hm-accent); }
+.cg-input:disabled { color: var(--hm-fg-faint); }
+.cg-hint { margin: 0; padding: 6px 10px; font-size: calc(11.5px * var(--hm-font-scale)); color: var(--hm-fg-muted); border-top: 1px solid var(--hm-border); background: var(--hm-surface-2); }
+.columns-selection-actions.is-grid > :not([data-testid="columns-grid-toggle"]):not(.snip-wrap) { display: none; }

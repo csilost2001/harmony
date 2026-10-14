@@ -1,0 +1,15 @@
+/* 一括変更ダイアログ (基本の見た目は pasteColumns.css) */
+.bulk-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px 16px; }
+.bulk-field { display: flex; flex-direction: column; gap: 3px; padding: 6px 8px; border: 1px solid var(--hm-border); border-radius: 6px; background: var(--hm-surface-2); }
+.bulk-field.is-on { border-color: var(--hm-accent); background: var(--hm-accent-soft); }
+.bulk-field-check { display: inline-flex; align-items: center; gap: 6px; font-size: calc(12.5px * var(--hm-font-scale)); font-weight: 600; cursor: pointer; }
+.bulk-field select, .bulk-field input[type="text"], .bulk-field input[type="number"] {
+  width: 100%; padding: 4px 6px; font-size: calc(12.5px * var(--hm-font-scale)); color: var(--hm-fg); background: var(--hm-surface); border: 1px solid var(--hm-border-strong); border-radius: 5px;
+}
+.bulk-field select:disabled, .bulk-field input:disabled { opacity: 0.55; }
+.bulk-bad { font-size: calc(11.5px * var(--hm-font-scale)); color: var(--hm-danger); }
+.bulk-note { margin: 0; padding: 10px 12px; font-size: calc(12px * var(--hm-font-scale)); color: var(--hm-fg-muted); }
+.bulk-changes { display: flex; flex-wrap: wrap; gap: 4px 14px; white-space: normal !important; }
+.bulk-chg strong { color: var(--hm-accent); }
+.bulk-skip { color: var(--hm-warning); }
+.bulk-count { margin-right: auto; align-self: center; font-size: calc(12px * var(--hm-font-scale)); color: var(--hm-fg-muted); }

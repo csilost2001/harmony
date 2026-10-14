@@ -19,6 +19,9 @@ export interface LayoutInspectorProps {
   onItemChange: (itemId: string, fn: (i: ScreenItem) => ScreenItem, commit: boolean) => void;
   onRenameNode: (oldId: string, newId: string) => void;
   onMove: (dir: -1 | 1) => void;
+  /** 親の外へ出す / 直前の兄弟の中へ入れる (できなければ false) */
+  onOutdent?: () => boolean;
+  onIndent?: () => boolean;
   onDuplicate: () => void;
   onDelete: () => void;
   onAddChild: (type: "column" | "tab") => void;
@@ -90,7 +93,7 @@ function ScreenPanel({ issues, onSelect, items, nodes }: LayoutInspectorProps) {
   walk(nodes);
   return (
     <div className="sld-right-body">
-      <h3 className="sld-panel-title">画面の状態</h3>
+      <h2 className="sld-panel-title">画面の状態</h2>
       <div className="sld-stats">
         <div><b>{count}</b><span>部品</span></div>
         <div><b>{items.length}</b><span>画面項目</span></div>
@@ -98,7 +101,7 @@ function ScreenPanel({ issues, onSelect, items, nodes }: LayoutInspectorProps) {
         <div className={sev.warning.length ? "is-warning" : ""}><b>{sev.warning.length}</b><span>警告</span></div>
       </div>
       <p className="sld-hint">部品をクリックすると、ここで詳細と画面項目の定義を編集できます。</p>
-      {issues.length > 0 && <h4 className="sld-group-title">要確認</h4>}
+      {issues.length > 0 && <h2 className="sld-group-title">要確認</h2>}
       <ul className="sld-issues" data-testid="layout-issues">
         {[...sev.error, ...sev.warning, ...sev.info].map((i, k) => (
           <li key={k} className={`sld-issue sld-issue-${i.severity}`}>
@@ -114,7 +117,7 @@ function ScreenPanel({ issues, onSelect, items, nodes }: LayoutInspectorProps) {
 }
 
 function NodePanel(props: LayoutInspectorProps & { node: LayoutNode }) {
-  const { node, nodes, items, editable, onNodeChange, onItemChange, onRenameNode, onMove, onDuplicate, onDelete, onAddChild, onCommit, screens, onSelect, components = [], paramChips } = props;
+  const { node, nodes, items, editable, onNodeChange, onItemChange, onRenameNode, onMove, onOutdent, onIndent, onDuplicate, onDelete, onAddChild, onCommit, screens, onSelect, components = [], paramChips } = props;
   const p = node.props ?? {};
   const item = node.itemRef ? items.find((i) => i.id === node.itemRef) : undefined;
   // 部品が切り替わると NodePanel は key で作り直されるため、下書き状態の同期は不要
@@ -151,6 +154,8 @@ function NodePanel(props: LayoutInspectorProps & { node: LayoutNode }) {
         <div className="sld-node-actions">
           <button type="button" className="sld-icon-btn" title="前へ (Alt+↑)" disabled={!editable} onClick={() => onMove(-1)}><i className="bi bi-arrow-up" /></button>
           <button type="button" className="sld-icon-btn" title="後ろへ (Alt+↓)" disabled={!editable} onClick={() => onMove(1)}><i className="bi bi-arrow-down" /></button>
+          {onOutdent && <button type="button" className="sld-icon-btn" title="親の外へ出す (Alt+←)" aria-label="親の外へ出す" disabled={!editable} onClick={() => { onOutdent(); }} data-testid="layout-outdent"><i className="bi bi-box-arrow-in-left" /></button>}
+          {onIndent && <button type="button" className="sld-icon-btn" title="直前の部品の中へ入れる (Alt+→)" aria-label="直前の部品の中へ入れる" disabled={!editable} onClick={() => { onIndent(); }} data-testid="layout-indent"><i className="bi bi-box-arrow-in-right" /></button>}
           <button type="button" className="sld-icon-btn" title="複製 (Ctrl+D)" disabled={!editable} onClick={onDuplicate}><i className="bi bi-copy" /></button>
           <button type="button" className="sld-icon-btn danger" title="削除 (Delete)" disabled={!editable} onClick={onDelete} data-testid="layout-delete-node"><i className="bi bi-trash" /></button>
           <button type="button" className="sld-icon-btn" title="選択を解除 (Esc)" onClick={() => onSelect(null)}><i className="bi bi-x-lg" /></button>
@@ -306,7 +311,7 @@ function ComponentArgsPanel({ node, def, items, screens, editable, onSetArg, onE
   }
   return (
     <div className="sld-component-panel" data-testid="layout-component-panel">
-      <h4 className="sld-group-title"><i className="bi bi-puzzle" /> 独自部品「{def.label}」</h4>
+      <h2 className="sld-group-title"><i className="bi bi-puzzle" /> 独自部品「{def.label}」</h2>
       {def.description && <p className="sld-hint">{def.description}</p>}
       {def.params.length === 0 && <p className="sld-hint">この独自部品には差し込み口がありません。</p>}
       {def.params.map((q) => {
@@ -351,7 +356,7 @@ function ItemEditor({ item, editable, onItemChange, onCommit, isTable }: {
 
   return (
     <div className="sld-item-editor" data-testid="layout-item-editor">
-      <h4 className="sld-group-title">画面項目の定義 <code>{id}</code></h4>
+      <h2 className="sld-group-title">画面項目の定義 <code>{id}</code></h2>
       <Row label="項目名" htmlFor="sld-item-label"><TextInput id="sld-item-label" value={(item.label as string) ?? ""} disabled={!editable} onLive={(v) => set("label", v as ScreenItem["label"], false)} onDone={onCommit} /></Row>
       {!isTable && (
         <div className="sld-row-2">

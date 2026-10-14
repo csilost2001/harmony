@@ -1,0 +1,31 @@
+/* スニペットのメニュー */
+.snip-wrap { position: relative; display: inline-flex; }
+.snip-pop {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 1050; width: min(380px, calc(100vw - 24px));
+  max-height: min(70vh, 480px); display: flex; flex-direction: column; overflow-y: auto; text-align: left;
+  background: var(--hm-surface); color: var(--hm-fg); border: 1px solid var(--hm-border-strong); border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3); font-size: calc(12.5px * var(--hm-font-scale));
+}
+.snip-save { display: flex; flex-direction: column; gap: 5px; padding: 10px 12px; border-bottom: 1px solid var(--hm-border); }
+.snip-save-row { display: flex; gap: 6px; }
+.snip-save-row input { flex: 1 1 auto; min-width: 0; padding: 4px 8px; font: inherit; color: var(--hm-fg); background: var(--hm-surface); border: 1px solid var(--hm-border-strong); border-radius: 5px; }
+.snip-save-row input:disabled { opacity: 0.55; }
+.snip-save small, .snip-note { color: var(--hm-fg-muted); font-size: calc(11.5px * var(--hm-font-scale)); line-height: 1.5; }
+.snip-note { padding: 6px 12px 10px; }
+.snip-error { color: var(--hm-danger) !important; }
+.snip-empty { margin: 0; padding: 12px; color: var(--hm-fg-muted); }
+.snip-list { list-style: none; margin: 0; padding: 4px; }
+.snip-item { display: flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 5px; }
+.snip-item:hover { background: var(--hm-hover); }
+.snip-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.snip-count { flex: 0 0 auto; color: var(--hm-fg-muted); font-size: calc(11.5px * var(--hm-font-scale)); }
+.snip-btn { flex: 0 0 auto; padding: 2px 10px; font: inherit; color: var(--hm-fg-2); background: var(--hm-surface-2); border: 1px solid var(--hm-border-strong); border-radius: 5px; cursor: pointer; }
+.snip-btn:hover:not(:disabled) { border-color: var(--hm-accent); color: var(--hm-accent); }
+.snip-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.snip-btn.is-primary { background: var(--hm-accent-solid); border-color: var(--hm-accent-solid); color: var(--hm-on-solid); }
+.snip-btn.is-primary:hover:not(:disabled) { background: var(--hm-accent-solid-hover); color: var(--hm-on-solid); }
+.snip-btn.is-danger:hover:not(:disabled) { border-color: var(--hm-danger); color: var(--hm-danger); }
+.snip-foot { display: flex; gap: 14px; padding: 6px 12px; border-top: 1px solid var(--hm-border); }
+.snip-link { border: 0; background: transparent; padding: 0; font: inherit; color: var(--hm-accent); cursor: pointer; text-decoration: underline; }
+.snip-link:disabled { color: var(--hm-fg-faint); cursor: default; text-decoration: none; }
+.snip-pop--left { left: 0; right: auto; }

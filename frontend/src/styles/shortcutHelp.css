@@ -32,13 +32,13 @@
   border-bottom: 1px solid var(--hm-border);
 }
 
-.shortcut-help-head h2 { margin: 0; font-size: 16px; font-weight: 700; }
+.shortcut-help-head h2 { margin: 0; font-size: calc(16px * var(--hm-font-scale)); font-weight: 700; }
 
 .shortcut-help-close {
   border: 0;
   background: transparent;
   color: var(--hm-fg-muted);
-  font-size: 16px;
+  font-size: calc(16px * var(--hm-font-scale));
   cursor: pointer;
   padding: 4px 8px;
   border-radius: 6px;
@@ -55,7 +55,7 @@
 
 .shortcut-help-group h3 {
   margin: 8px 0 6px;
-  font-size: 12px;
+  font-size: calc(12px * var(--hm-font-scale));
   font-weight: 700;
   letter-spacing: 0.04em;
   color: var(--hm-fg-muted);
@@ -70,7 +70,7 @@
   align-items: baseline;
   padding: 4px 0;
   border-bottom: 1px solid var(--hm-border);
-  font-size: 13px;
+  font-size: calc(13px * var(--hm-font-scale));
 }
 .shortcut-help-row dt { margin: 0; white-space: nowrap; }
 .shortcut-help-row dd { margin: 0; color: var(--hm-fg-2); }
@@ -81,7 +81,7 @@
   padding: 1px 6px;
   text-align: center;
   font-family: inherit;
-  font-size: 12px;
+  font-size: calc(12px * var(--hm-font-scale));
   font-weight: 600;
   color: var(--hm-fg);
   background: var(--hm-surface-2);
@@ -94,6 +94,6 @@
 .shortcut-help-foot {
   margin: 0;
   padding: 8px 16px 12px;
-  font-size: 12px;
+  font-size: calc(12px * var(--hm-font-scale));
   color: var(--hm-fg-muted);
 }

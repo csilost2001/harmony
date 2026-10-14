@@ -1,0 +1,22 @@
+/* ヘッダーの表示の設定 */
+.disp-wrap { position: relative; display: inline-flex; }
+.disp-wrap .common-header-icon-btn { position: relative; }
+.disp-dot { position: absolute; top: 3px; right: 3px; width: 7px; height: 7px; border-radius: 50%; background: var(--hm-accent); }
+.disp-pop {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 1100; width: min(300px, calc(100vw - 24px));
+  display: flex; flex-direction: column; gap: 10px; padding: 12px;
+  background: var(--hm-surface); color: var(--hm-fg); border: 1px solid var(--hm-border-strong); border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+.disp-field { margin: 0; padding: 0; border: 0; min-width: 0; }
+.disp-field legend { padding: 0; margin-bottom: 4px; font-size: calc(12px * var(--hm-font-scale)); font-weight: 600; }
+.disp-choices { display: flex; flex-wrap: wrap; gap: 4px; }
+.disp-choice {
+  display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; font-size: calc(12.5px * var(--hm-font-scale));
+  border: 1px solid var(--hm-border-strong); border-radius: 6px; background: var(--hm-surface-2); cursor: pointer;
+}
+.disp-choice input { position: absolute; opacity: 0; width: 0; height: 0; }
+.disp-choice.is-on { border-color: var(--hm-accent); background: var(--hm-accent-soft); color: var(--hm-accent); font-weight: 600; }
+.disp-choice:focus-within { outline: 2px solid var(--hm-focus); }
+.disp-pop small { font-size: calc(11px * var(--hm-font-scale)); color: var(--hm-fg-muted); line-height: 1.5; }
+.disp-actions { display: flex; justify-content: flex-end; }

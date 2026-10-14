@@ -1,6 +1,6 @@
 :root {
   font-family: "Yu Gothic UI", "Meiryo", "Segoe UI", system-ui, sans-serif;
-  font-size: 14px;
+  font-size: calc(14px * var(--hm-font-scale));
   line-height: 1.5;
   color: var(--hm-fg);
   -webkit-font-smoothing: antialiased;

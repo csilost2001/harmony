@@ -20,6 +20,7 @@ import "../../styles/businessFlow.css";
 import "../../styles/report.css";
 import { useQuickCreate } from "../../hooks/useQuickCreate";
 import { reportFailure } from "../../utils/failureToast";
+import { EmptyState } from "../common/EmptyState";
 
 const MATURITY: Record<string, string> = { draft: "作成中", provisional: "レビュー中", committed: "確定" };
 
@@ -143,7 +144,7 @@ export function ReportListView() {
         variant="dark"
         className="bfl-data-list"
         emptyMessage={loaded
-          ? <p>{query ? "該当する帳票がありません" : "帳票がまだありません。「帳票追加」から作成してください。"}</p>
+          ? <EmptyState noun="帳票" icon="bi-file-earmark-text" hint="納品書・一覧表などの出力を、部と項目で決めます" filtered={!!query} onCreate={() => setShowAdd(true)} onClear={() => setQuery("")} />
           : <p>読み込み中…</p>}
       />
       {showAdd && (

@@ -11,18 +11,18 @@
   border: 1px solid var(--hm-border-strong); border-radius: 8px;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3); overflow: hidden;
 }
-.step-insert-head { padding: 10px 14px 6px; font-weight: 700; font-size: 13px; display: flex; align-items: baseline; gap: 8px; }
-.step-insert-head small { font-weight: 400; color: var(--hm-fg-muted); font-size: 12px; }
+.step-insert-head { padding: 10px 14px 6px; font-weight: 700; font-size: calc(13px * var(--hm-font-scale)); display: flex; align-items: baseline; gap: 8px; }
+.step-insert-head small { font-weight: 400; color: var(--hm-fg-muted); font-size: calc(12px * var(--hm-font-scale)); }
 .step-insert-input {
-  margin: 0 12px 8px; padding: 7px 10px; font-size: 14px;
+  margin: 0 12px 8px; padding: 7px 10px; font-size: calc(14px * var(--hm-font-scale));
   color: var(--hm-fg); background: var(--hm-surface); border: 1px solid var(--hm-border-strong); border-radius: 6px;
 }
 .step-insert-input:focus { outline: 2px solid var(--hm-focus); outline-offset: -1px; }
 .step-insert-list { list-style: none; margin: 0; padding: 0 6px 6px; overflow-y: auto; }
-.step-insert-item { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.step-insert-item { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: calc(13px * var(--hm-font-scale)); }
 .step-insert-item.active { background: var(--hm-accent-soft); }
 .step-insert-label { flex: 1 1 auto; }
-.step-insert-kind { color: var(--hm-fg-faint); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; }
-.step-insert-empty { padding: 10px; color: var(--hm-fg-muted); font-size: 13px; }
-.step-insert-foot { padding: 6px 14px; border-top: 1px solid var(--hm-border); font-size: 11px; color: var(--hm-fg-muted); }
-.step-insert-foot kbd { margin: 0 3px; padding: 0 5px; font-family: inherit; font-size: 11px; background: var(--hm-surface-2); border: 1px solid var(--hm-border-strong); border-radius: 4px; }
+.step-insert-kind { color: var(--hm-fg-faint); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: calc(11px * var(--hm-font-scale)); }
+.step-insert-empty { padding: 10px; color: var(--hm-fg-muted); font-size: calc(13px * var(--hm-font-scale)); }
+.step-insert-foot { padding: 6px 14px; border-top: 1px solid var(--hm-border); font-size: calc(11px * var(--hm-font-scale)); color: var(--hm-fg-muted); }
+.step-insert-foot kbd { margin: 0 3px; padding: 0 5px; font-family: inherit; font-size: calc(11px * var(--hm-font-scale)); background: var(--hm-surface-2); border: 1px solid var(--hm-border-strong); border-radius: 4px; }

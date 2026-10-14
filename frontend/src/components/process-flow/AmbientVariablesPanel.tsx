@@ -7,6 +7,7 @@
  */
 import { useState } from "react";
 import type { ProcessFlow, StructuredField, FieldType, Identifier } from "../../types/v3";
+import { EmptyState } from "../common/EmptyState";
 
 interface Props {
   group: ProcessFlow;
@@ -69,7 +70,7 @@ export function AmbientVariablesPanel({ group, onChange, expanded: expandedProp,
             inputs にも outputBinding にも無い @ 参照を valid 化 (@fieldErrors の暗黙束縛は
             #1221 で廃止、ValidationStep.fieldErrorsVar の明示宣言で扱う)。
           </div>
-          {vars.length === 0 && <div className="catalog-empty">まだエントリがありません。</div>}
+          {vars.length === 0 && <EmptyState compact noun="エントリ" icon="bi-journal-plus" hint="「追加」から登録します。" />}
           {vars.map((v, i) => {
             return (
               <div className="catalog-row" key={i}>

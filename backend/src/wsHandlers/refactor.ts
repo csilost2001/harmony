@@ -202,7 +202,7 @@ function makeMigrateEditSessions(
 }
 
 /** 参照側の画面・設計が古い参照のまま残らないよう、改名のあとに reload を知らせる設計の種類 */
-const RENAME_RELOAD_EVENTS = [
+export const RENAME_RELOAD_EVENTS = [
   "screenChanged", "tableChanged", "processFlowChanged", "viewChanged",
   "sequenceChanged", "viewDefinitionChanged", "pageLayoutChanged",
   "genericDefinitionChanged",

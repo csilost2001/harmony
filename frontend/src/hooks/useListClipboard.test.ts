@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { act, renderHook } from "@testing-library/react";
-import { useListClipboard } from "./useListClipboard";
+import { useListClipboard, _resetSharedClipboards } from "./useListClipboard";
 
 interface Item {
   id: string;
@@ -74,5 +74,55 @@ describe("useListClipboard", () => {
     act(() => result.current.cut([b]));
     expect(result.current.isItemCut("a")).toBe(false);
     expect(result.current.isItemCut("b")).toBe(true);
+  });
+});
+
+describe("useListClipboard (別の編集画面へ運べる共有のクリップボード)", () => {
+  const hookFor = (sourceId: string, channel = "test-cols") => renderHook(() => useListClipboard<Item>((it) => it.id, { channel, sourceId }));
+  beforeEach(() => { _resetSharedClipboards(); });
+
+  it("あるテーブルでコピーしたものを、別のテーブルの画面から貼り付けられる (元の画面と別のものとして)", () => {
+    const t1 = hookFor("t1");
+    const t2 = hookFor("t2");
+    act(() => t1.result.current.copy([a]));
+    expect(t2.result.current.hasContent).toBe(true);
+    expect(t2.result.current.isForeign).toBe(true);
+    expect(t1.result.current.isForeign).toBe(false);
+    let got: Item[] = [];
+    act(() => { got = t2.result.current.consume(); });
+    expect(got).toEqual([a]);
+    expect(got[0]).not.toBe(a); // 複製
+    expect(t2.result.current.hasContent).toBe(true); // コピーは、何度でも貼れる
+  });
+
+  it("別の画面から切り取ったものは、元を消せないので、コピーとして貼る (クリップボードはコピーに変わる)", () => {
+    const t1 = hookFor("t1");
+    const t2 = hookFor("t2");
+    act(() => t1.result.current.cut([a, b]));
+    expect(t1.result.current.isItemCut("a")).toBe(true);
+    expect(t2.result.current.isItemCut("a")).toBe(false); // 別の画面の行は薄くしない
+    act(() => { t2.result.current.consume(); });
+    expect(t2.result.current.clipboard.mode).toBe("copy");
+    expect(t1.result.current.isItemCut("a")).toBe(false);
+  });
+
+  it("同じ画面の中の切り取り → 貼り付けは、従来どおり移動 (貼ったら空になる)", () => {
+    const t1 = hookFor("t1");
+    act(() => t1.result.current.cut([a]));
+    let got: Item[] = [];
+    act(() => { got = t1.result.current.consume(); });
+    expect(got).toEqual([a]);
+    expect(t1.result.current.hasContent).toBe(false);
+  });
+
+  it("種類 (channel) が違えば、混ざらない。共有を指定しなければ、画面ごとに別", () => {
+    const cols = hookFor("t1", "cols");
+    const items = hookFor("s1", "items");
+    act(() => cols.result.current.copy([a]));
+    expect(items.result.current.hasContent).toBe(false);
+    const local1 = renderHook(() => useListClipboard<Item>((it) => it.id));
+    const local2 = renderHook(() => useListClipboard<Item>((it) => it.id));
+    act(() => local1.result.current.copy([a]));
+    expect(local2.result.current.hasContent).toBe(false);
   });
 });
