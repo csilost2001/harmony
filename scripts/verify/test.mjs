@@ -607,6 +607,103 @@ group("export-test-viewpoints", () => {
 });
 
 // ─────────────────────────────────────────────────────────────
+// docs-freshness.mjs (資料の鮮度検査)
+// ─────────────────────────────────────────────────────────────
+const { brokenLinks, unknownNpmScripts, appRoutes, docRoutes, routeTableDrift, uiReferenceIssues, skillIssues, specIndexGaps, normRoute, runChecks } = await import("./docs-freshness.mjs");
+const { pickTargets, DOC_SHOT_NAMES } = await import("../dev/docs-shots.mjs");
+const { planSetup, versionAtLeast, requiredNode } = await import("../lib/setup.mjs");
+const { toNoteLine, renderNotes } = await import("../release/notes.mjs");
+
+function docsFixture() {
+  const tmp = mkdtempSync(join(tmpdir(), "docs-fresh-"));
+  const w = (rel, text) => { mkdirSync(dirname(join(tmp, rel)), { recursive: true }); writeFileSync(join(tmp, rel), text); };
+  w("package.json", JSON.stringify({ scripts: { check: "x", "check:docs": "y" } }));
+  w("frontend/package.json", JSON.stringify({ scripts: { dev: "vite" } }));
+  w("frontend/src/components/AppShell.tsx", '<Route path="/w/:wsId" element={<X />}>\n<Route path="screen/list" element={<A />} />\n<Route path="table/edit/:tableId" element={<B />} />\n<Route path="analysis" element={<C />} />\n</Route>\n<Route path="/workspace/list" element={<D />} />\n<Route path="*" element={<E />} />');
+  w("AGENTS.md", "# A\n\n### Routing\n\n| Path | 画面 |\n|---|---|\n| `/` | top |\n| `/screen/list` | 一覧 |\n| `/table/edit/:tableId` | 編集 |\n| `/analysis` | 分析 |\n| `/workspace/*` | ワークスペース |\n\n### Key\n");
+  w("CLAUDE.md", "# C\n\n### Skills\n\n| コマンド | 用途 |\n|---|---|\n| `/issues <N>` | a |\n| `/ghost` | b |\n\n### Memory\n");
+  w("ai-skills/issues/SKILL.md", "x");
+  w("ai-skills/extra/SKILL.md", "x");
+  w("docs/spec/README.md", "# s\n- [a](a.md)\n");
+  w("docs/spec/a.md", "# a\n`npm run dev` と npm run check と [ok](../../AGENTS.md)\n");
+  w("docs/spec/b.md", "# b\n");
+  w("docs/user-guide/ui-reference/list.md", "# L\n\n> **対象画面**: `ListView` (`frontend/src/components/list.tsx`)\n> **ルート**: `/w/:wsId/screen/list`\n\n![x](../../ui-screenshots/ui-reference/list/01-default.png)\n");
+  return tmp;
+}
+
+group("docs-freshness (資料の鮮度検査)", () => {
+  const tmp = docsFixture();
+  try {
+    const files = [join(tmp, "docs/spec/a.md"), join(tmp, "AGENTS.md")];
+    assert("正しい相対リンク・コードの中のリンクは、問題にしない", brokenLinks(files, tmp).length === 0);
+    writeFileSync(join(tmp, "docs/spec/a.md"), "# a\n[壊れ](../nothing.md) [外部](https://example.com/x) [内](#h) `[コード](none.md)`\n```\n[ブロック](none2.md)\n```\n");
+    const broken = brokenLinks(files, tmp);
+    assert("リンクの先がなければ検出する (外部・ページ内・コードの中は除く)", broken.length === 1 && broken[0].link === "../nothing.md", JSON.stringify(broken));
+    writeFileSync(join(tmp, "docs/spec/a.md"), "npm run dev / npm run check:docs / npm run ghost:task / npm run check\n");
+    const un = unknownNpmScripts([join(tmp, "docs/spec/a.md")], tmp);
+    assert("どの package.json にもない npm run を検出する (ルート・ワークスペースの両方を見る)", un.length === 1 && un[0].script === "ghost:task", JSON.stringify(un));
+
+    const shell = readFileSync(join(tmp, "frontend/src/components/AppShell.tsx"), "utf8");
+    const routes = appRoutes(shell);
+    assert("画面の経路: ワークスペース配下は /w/:wsId を除き、パラメータ名をそろえ、* は除く", [...routes].sort().join(",") === "/analysis,/screen/list,/table/edit/:x,/workspace/list", [...routes].join(","));
+    const agents = readFileSync(join(tmp, "AGENTS.md"), "utf8");
+    assert("表と画面が合っていれば、食い違いなし (/workspace/* は、前方一致)", routeTableDrift(shell, agents).missingInDocs.length === 0 && routeTableDrift(shell, agents).missingInApp.length === 0);
+    const drift = routeTableDrift(shell + '<Route path="/w/:wsId/new/page" element={<Z />} />', agents.replace("| `/analysis` | 分析 |\n", "| `/gone/page` | 消えた |\n"));
+    assert("表にない画面・画面にない表の行を、両方向で検出する", drift.missingInDocs.includes("/analysis") && drift.missingInDocs.includes("/new/page") && drift.missingInApp.includes("/gone/page"), JSON.stringify(drift));
+    assert("[/:k[/:n]] の省略形・/* を展開する", (() => { const d = docRoutes("### Routing\n| `/g[/:kind[/:name]]` | x |\n| `/s/*` | y |\n"); return d.exact.has("/g") && d.exact.has("/g/:x") && d.exact.has("/g/:x/:x") && d.prefixes[0] === "/s"; })());
+    assert("normRoute", normRoute("/w/:wsId/table/edit/:tableId") === "/table/edit/:x" && normRoute("/w/:wsId/") === "/");
+
+    const ui = uiReferenceIssues(tmp, routes);
+    assert("UI 操作リファレンス: 対象画面のファイル・スクリーンショットがなければ検出する", ui.errors.some((e) => e.message.includes("対象画面のファイルがありません")) && ui.errors.some((e) => e.message.includes("スクリーンショットがありません")), JSON.stringify(ui.errors));
+    assert("UI 操作リファレンスのない画面を、知らせる", ui.infos.some((i) => i.message.includes("/analysis")) && !ui.infos.some((i) => i.message.includes("/screen/list")));
+    writeFileSync(join(tmp, "docs/user-guide/ui-reference/list.md"), "> **対象画面**: `V` (`frontend/src/components/AppShell.tsx`)\n> **ルート**: `/w/:wsId/screen/nothing`\n");
+    assert("ルートが画面にないものを検出する", uiReferenceIssues(tmp, routes).errors.some((e) => e.message.includes("ルートが、画面にありません")));
+
+    const sk = skillIssues(readFileSync(join(tmp, "CLAUDE.md"), "utf8"), tmp);
+    assert("スキル表のスキルが ai-skills/ になければ error、表にないスキルは知らせる", sk.errors.length === 1 && sk.errors[0].message.includes("/ghost") && sk.infos.some((i) => i.message.includes("ai-skills/extra")), JSON.stringify(sk));
+    assert("仕様書の索引にない仕様書を知らせる", specIndexGaps(tmp).length === 1 && specIndexGaps(tmp)[0].message.includes("b.md"));
+    const all = runChecks(tmp);
+    assert("runChecks: 全体を通して、error と知らせを返す", all.errors.length > 0 && all.infos.length > 0 && all.docCount >= 4);
+  } finally { rmSync(tmp, { recursive: true, force: true }); }
+  const real = runChecks();
+  assert("このリポジトリの資料に、食い違いがない", real.errors.length === 0, real.errors.slice(0, 3).map((e) => `${e.file}: ${e.message}`).join(" / "));
+});
+
+group("docs-shots (スクリーンショットの撮り直しの対象)", () => {
+  const existing = () => true;
+  assert("--only は、対応のあるものだけ", pickTargets({ all: false, only: ["table-list", "nothing"], staleDocs: [], existing }).join() === "table-list");
+  assert("既定は、古くなっているものだけ", pickTargets({ all: false, staleDocs: ["tech-stack", "dashboard"], existing }).join() === "tech-stack,dashboard");
+  assert("--all は、対応するものすべて", pickTargets({ all: true, staleDocs: [], existing }).length === Object.keys(DOC_SHOT_NAMES).length);
+  assert("撮影済みの画像がない資料は、対象にしない (新しい資料は、手で最初の 1 枚を置く)", pickTargets({ all: true, staleDocs: [], existing: (n) => n === "dashboard" }).join() === "dashboard");
+});
+
+group("setup (初回セットアップの計画)", () => {
+  const has = (set) => (rel) => set.includes(rel);
+  assert("版の比較", versionAtLeast("v22.1.0", "20") && versionAtLeast("20.0.0", "20") && !versionAtLeast("18.19.0", "20") && versionAtLeast("v20.10", "20.9.5"));
+  assert("engines が無ければ Node 20", requiredNode({}) === "20" && requiredNode({ engines: { node: ">=22.1" } }) === "22.1");
+  const none = planSetup({ root: "/r", nodeVersion: "v20.1.0", pkg: {}, has: has([]) });
+  assert("何もなければ、install → shared のビルド → workspaces/ の作成", none.steps.map((s) => s.id).join() === "install,build-shared,mkdir-workspaces" && none.problems.length === 0);
+  const done = planSetup({ root: "/r", nodeVersion: "v20.1.0", pkg: {}, has: has(["node_modules", "shared/dist/index.js", "workspaces"]) });
+  assert("そろっていれば、何もしない", done.steps.length === 0 && done.problems.length === 0);
+  assert("Node が古ければ問題にする", planSetup({ root: "/r", nodeVersion: "v18.0.0", pkg: {}, has: has(["node_modules", "shared/dist/index.js", "workspaces"]) }).problems[0].includes("20 以上"));
+  assert("--skip-install で node_modules が無ければ問題にする (install はしない)", (() => { const p = planSetup({ root: "/r", nodeVersion: "v20.1.0", pkg: {}, has: has(["shared/dist/index.js", "workspaces"]), skipInstall: true }); return !p.steps.some((s) => s.id === "install") && p.problems.length === 1; })());
+  assert("サンプルは、examples/ にあれば複製する・なければ問題・複製済みなら何もしない", (() => {
+    const base = ["node_modules", "shared/dist/index.js", "workspaces"];
+    const a = planSetup({ root: "/r", nodeVersion: "v20.1.0", pkg: {}, has: has([...base, "examples/retail/harmony.json"]), sample: "retail" });
+    const b = planSetup({ root: "/r", nodeVersion: "v20.1.0", pkg: {}, has: has(base), sample: "retail" });
+    const c = planSetup({ root: "/r", nodeVersion: "v20.1.0", pkg: {}, has: has([...base, "examples/retail/harmony.json", "workspaces/retail"]), sample: "retail" });
+    return a.steps.some((s) => s.id === "copy-sample") && b.problems.length === 1 && c.steps.length === 0;
+  })());
+});
+
+group("release:notes (リリースノート)", () => {
+  assert("日付・件名・PR 番号 (複数なら最後) を 1 行にする", toNoteLine("2026-10-14\x1f設計の品質 (#1498) (#1500)") === "- 2026-10-14 設計の品質 (#1500)");
+  assert("PR 番号がなければ、番号なし", toNoteLine("2026-10-14\x1f直接のコミット") === "- 2026-10-14 直接のコミット");
+  assert("マージコミット・空の件名・壊れた行は除く", toNoteLine("2026-10-14\x1fMerge pull request #1 from x") === null && toNoteLine("2026-10-14\x1f (#1)") === null && toNoteLine("壊れた") === null);
+  assert("見出しと行を出す", renderNotes(["- 2026-10-14 a (#1)"]).startsWith("# リリースノート") && renderNotes(["- 2026-10-14 a (#1)"]).includes("\n- 2026-10-14 a (#1)\n"));
+});
+
+// ─────────────────────────────────────────────────────────────
 // Result summary
 // ─────────────────────────────────────────────────────────────
 console.log(`\n────────────────────────────────────────────`);

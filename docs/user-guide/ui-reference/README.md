@@ -15,7 +15,7 @@ Harmony の各 UI 画面の操作マニュアル。**エンドユーザー (業�
 
 - [`common-operations`](./common-operations.md) — 開く・探す (`Ctrl+K`)、編集開始 → 保存、タブの「●」、ID の入力、共同編集、並べ替え
 
-## 画面一覧 (全 32 画面)
+## 画面一覧 (全 34 画面)
 
 ルーティングは AGENTS.md の "Routing" 表 が canonical。
 
@@ -26,7 +26,9 @@ Harmony の各 UI 画面の操作マニュアル。**エンドユーザー (業�
 - [`dashboard`](./dashboard.md) — Dashboard (`/`): プロジェクト全体俯瞰
 - [`screen-flow`](./screen-flow.md) — 画面フロー図 (`/screen/flow`): ReactFlow キャンバスで画面遷移を表示
 - [`er-diagram`](./er-diagram.md) — ER 図 (`/table/er`): テーブル関連を Mermaid で可視化
-- [`document`](./document.md) — 設計書ビュー (`/document`): 紙面で読む・HTML 保存・印刷
+- [`document`](./document.md) — 設計書ビュー (`/document`): 紙面で読む・HTML / Word / Excel 保存・印刷・体裁と改訂履歴
+- [`analysis`](./analysis.md) — 設計の分析 (`/analysis`): 要確認・影響分析・対応表・整理・運用・進捗・ルール・書き出し (図を含む)
+- [`operations`](./operations.md) — 連携と運用 (`/operations`): レビューと承認・変更の記録・Git・通知・生成の管理・取り込み・利用者と権限・版と更新
 - [`generic-definition-catalog`](./generic-definition-catalog.md) — 汎用定義カタログ (`/generic-definition`)
 - [`conventions-catalog`](./conventions-catalog.md) — 横断規約カタログ (`/conventions/catalog`)
 

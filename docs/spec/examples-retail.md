@@ -137,8 +137,8 @@ EC + 店舗 POS + 在庫管理 のミックス。中規模 (画面 ~11、テー�
 ## 7. テスト fixture としての利用
 
 ```bash
-# 固定 workspace でアプリ起動 (AI の動作確認 / E2E テスト)
-DESIGNER_DATA_DIR=examples/retail npm run dev:mcp
+# サンプルのワークスペースでアプリを起動する (AI の動作確認 / E2E テスト)
+npm run backend    # 別のターミナルで npm run frontend。画面の「ワークスペースを開く」で examples/retail を指定する
 ```
 
 `schemas/v3/*.test.ts` (AJV) に examples/**/*.json を組み込み、schema 進化時の regression を検出。

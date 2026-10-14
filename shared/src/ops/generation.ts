@@ -6,9 +6,16 @@
 import { ID_RE, isIsoDateTime, isOpsEntityKind, isRecord, type OpsEntityKind, type Parsed } from "./common.js";
 
 export interface GenSource { kind: OpsEntityKind; id: string; hash: string }
+/** 生成物の置き場所の基準: ワークスペース / 本体の `.tmp/generated-code/` (`/generate-code` の既定の出力先) */
+export const GEN_BASES = ["workspace", "generated-code"] as const;
+export type GenBase = (typeof GEN_BASES)[number];
+export const GEN_BASE_LABELS: Record<GenBase, string> = { workspace: "ワークスペース", "generated-code": ".tmp/generated-code" };
+
 export interface GenOutput {
-  /** ワークスペースからの相対パス (外へ出ない) */
+  /** 基準 (`base`) からの相対パス (外へ出ない) */
   path: string;
+  /** 基準。省略はワークスペース */
+  base?: GenBase;
   sources: GenSource[];
   /** 記録したときの、生成物の内容の印。無ければ、生成物の書き換えは検出しない */
   outputHash?: string;
@@ -38,12 +45,14 @@ export function parseGeneration(raw: unknown): Parsed<GenerationFile> {
   const seen = new Set<string>();
   raw.outputs.slice(0, MAX_GEN_OUTPUTS).forEach((o, i) => {
     if (!isRecord(o) || !isSafeRelPath(o.path) || !isIsoDateTime(o.at) || !Array.isArray(o.sources)) { problems.push(`生成の記録の ${i + 1} 件目が読めません`); return; }
-    if (seen.has(o.path)) { problems.push(`生成の記録「${o.path}」が重複しています`); return; }
-    seen.add(o.path);
+    const key = `${typeof o.base === "string" && o.base !== "workspace" ? o.base : ""}:${o.path}`;
+    if (seen.has(key)) { problems.push(`生成の記録「${o.path}」が重複しています`); return; }
+    seen.add(key);
     const sources: GenSource[] = [];
     for (const s of o.sources.slice(0, MAX_GEN_SOURCES)) if (isRecord(s) && isOpsEntityKind(s.kind) && typeof s.id === "string" && ID_RE.test(s.id) && typeof s.hash === "string" && HASH_RE.test(s.hash)) sources.push({ kind: s.kind, id: s.id, hash: s.hash });
+    const base = (GEN_BASES as readonly string[]).includes(o.base as string) && o.base !== "workspace" ? (o.base as GenBase) : undefined;
     value.outputs.push({
-      path: o.path, sources, at: o.at,
+      path: o.path, sources, at: o.at, ...(base ? { base } : {}),
       ...(typeof o.outputHash === "string" && HASH_RE.test(o.outputHash) ? { outputHash: o.outputHash } : {}),
       ...(typeof o.generator === "string" && o.generator ? { generator: o.generator.slice(0, 100) } : {}),
       ...(typeof o.note === "string" && o.note ? { note: o.note.slice(0, 500) } : {}),
@@ -58,10 +67,10 @@ export const DRIFT_LABELS: Record<DriftState, string> = {
 };
 
 export interface DriftSourceChange { kind: OpsEntityKind; id: string; state: "changed" | "deleted" }
-export interface DriftRow { path: string; state: DriftState; at: string; generator?: string; changedSources: DriftSourceChange[] }
+export interface DriftRow { path: string; base?: GenBase; state: DriftState; at: string; generator?: string; changedSources: DriftSourceChange[] }
 
 /** 記録といまの状態を突き合わせる。`current` は、設計の現在の印 ("kind:id" → hash。無ければ削除済み)、`outputNow` は生成物の現在の印 (null = ファイルがない) */
-export function computeDrift(file: GenerationFile, current: ReadonlyMap<string, string>, outputNow: (path: string) => string | null): DriftRow[] {
+export function computeDrift(file: GenerationFile, current: ReadonlyMap<string, string>, outputNow: (o: GenOutput) => string | null): DriftRow[] {
   return file.outputs.map((o) => {
     const changedSources: DriftSourceChange[] = [];
     for (const s of o.sources) {
@@ -69,11 +78,11 @@ export function computeDrift(file: GenerationFile, current: ReadonlyMap<string, 
       if (now === undefined) changedSources.push({ kind: s.kind, id: s.id, state: "deleted" });
       else if (now !== s.hash) changedSources.push({ kind: s.kind, id: s.id, state: "changed" });
     }
-    const out = outputNow(o.path);
+    const out = outputNow(o);
     const outputChanged = out !== null && !!o.outputHash && out !== o.outputHash;
     const designChanged = changedSources.length > 0;
     const state: DriftState = out === null ? "output-missing" : designChanged && outputChanged ? "both-changed" : designChanged ? "design-changed" : outputChanged ? "output-changed" : "current";
-    return { path: o.path, state, at: o.at, ...(o.generator ? { generator: o.generator } : {}), changedSources };
+    return { path: o.path, ...(o.base ? { base: o.base } : {}), state, at: o.at, ...(o.generator ? { generator: o.generator } : {}), changedSources };
   });
 }
 

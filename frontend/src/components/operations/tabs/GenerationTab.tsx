@@ -32,7 +32,7 @@ export function GenerationTab() {
         {rows.length > 0 && <p className={attention ? "an-warn" : "an-hint"} data-testid="op-generation-summary">{attention ? `${attention} 件が、確認を要します (全 ${rows.length} 件)` : `すべて最新です (全 ${rows.length} 件)`}</p>}
         <AnTable testId="op-generation-table" headers={["生成物", "状態", "変わった設計", "記録した日時", ""]} empty="生成の記録はまだありません。AI にコードを生成させると、記録されます。"
           rows={rows.map((r) => [
-            <code key="p">{r.path}</code>,
+            <code key="p">{r.base === "generated-code" ? `.tmp/generated-code/${r.path}` : r.path}</code>,
             <span key="s" className={`op-drift op-drift-${r.state}`} data-testid="op-drift-state" data-state={r.state}>{DRIFT_LABELS[r.state as DriftState]}</span>,
             r.changedSources.length ? <span key="c">{r.changedSources.map((c) => <span key={`${c.kind}:${c.id}`} className="op-chip"><EntityLink kind={c.kind} id={c.id}>{c.id}</EntityLink> <small>({OPS_ENTITY_LABELS[c.kind]}・{c.state === "deleted" ? "削除" : "変更"})</small></span>)}</span> : "",
             <span key="t" style={{ whiteSpace: "nowrap" }}>{formatTime(r.at)}{r.generator ? <small className="an-hint"> {r.generator}</small> : null}</span>,

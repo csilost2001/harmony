@@ -34,11 +34,15 @@
     "ui:narrow": "node scripts/dev/narrow-audit.mjs",
     "export:doc": "node scripts/export-design-doc.mjs",
     "check:design": "node scripts/check-design.mjs",
+    "check:docs": "node scripts/verify/docs-freshness.mjs",
+    "docs:shots": "node scripts/dev/docs-shots.mjs",
     "coverage": "node scripts/verify/changed-coverage.mjs --all",
     "coverage:changed": "node scripts/verify/changed-coverage.mjs",
     "e2e:report": "node scripts/verify/e2e-report.mjs",
     "migrate:schema": "tsx scripts/migrate-schema.mts",
-    "export:tests": "node scripts/export-test-viewpoints.mjs"
+    "export:tests": "node scripts/export-test-viewpoints.mjs",
+    "setup": "node scripts/setup.mjs",
+    "release:notes": "node scripts/release/notes.mjs"
   },
   "devDependencies": {
     "ajv": "^8.18.0",

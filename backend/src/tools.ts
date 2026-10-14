@@ -260,7 +260,7 @@ export const tools = [
     name: "designer__record_generation",
     description:
       "コードを生成したあとに、「どの設計から、どのファイルを作ったか」を記録します。以後、設計が変わると「再生成が必要」、生成物が書き換えられると「生成物が変わった」と検出できます (designer__check_generation_drift)。" +
-      "path は、ワークスペースからの相対パス (ワークスペースの中のファイルだけ)。sources は、元にした設計 (kind: screen / table / processFlow / businessFlow / report / sequence / view / viewDefinition と id)。" +
+      "path は、base (既定はワークスペース。/generate-code の既定の出力先 .tmp/generated-code/ なら generated-code) からの相対パス (その中のファイルだけ)。sources は、元にした設計 (kind: screen / table / processFlow / businessFlow / report / sequence / view / viewDefinition と id)。" +
       "コードを生成・再生成したら、必ずこの tool で記録してください。仕様: docs/spec/integration-ops.md",
     inputSchema: {
       type: "object" as const,
@@ -271,7 +271,8 @@ export const tools = [
           items: {
             type: "object",
             properties: {
-              path: { type: "string", description: "ワークスペースからの相対パス (例: generated/orders/order.service.ts)" },
+              path: { type: "string", description: "base からの相対パス (例: orders/order.service.ts)" },
+              base: { type: "string", enum: ["workspace", "generated-code"], description: "path の基準。workspace = ワークスペース (既定)、generated-code = 本体の .tmp/generated-code/ (/generate-code の既定の出力先)" },
               sources: { type: "array", items: { type: "object", properties: { kind: { type: "string" }, id: { type: "string" } }, required: ["kind", "id"] }, description: "元にした設計" },
               generator: { type: "string", description: "生成の道具・skill (例: generate-code)" },
               note: { type: "string" },

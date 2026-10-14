@@ -27,7 +27,7 @@ export function ReviewTab() {
 
   const rows = approvals.data?.rows ?? [];
   const shown = filter === "all" ? rows : rows.filter((r) => r.status === filter);
-  const options = useMemo(() => KIND_LIST.find((k) => k.kind === kind)?.pick(design.data!.input) ?? [], [design.data, kind]);
+  const options = useMemo(() => (design.data ? KIND_LIST.find((k) => k.kind === kind)?.pick(design.data.input) ?? [] : []), [design.data, kind]);
   const threads = (comments.data?.threads ?? []).filter((t) => threadFilter === "all" || t.status === threadFilter).sort((a, b) => b.messages.at(-1)!.at.localeCompare(a.messages.at(-1)!.at));
   const reloadAll = () => { approvals.reload(); comments.reload(); };
   const nameOf = (k: OpsEntityKind, id: string) => rows.find((r) => r.kind === k && r.id === id)?.name ?? KIND_LIST.find((x) => x.kind === k)?.pick(design.data?.input ?? { screens: [], tables: [], flows: [] } as never).find((x) => x.id === id)?.name ?? id;

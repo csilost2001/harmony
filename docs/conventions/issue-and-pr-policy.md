@@ -125,9 +125,9 @@ Codex / Sonnet の独立レビューが「本 PR で吸収 or follow-up ISSUE �
 
 ## PR 作成・レビューの規約
 
-運用手引き (人間向け): [docs/pr-review-workflow.md](docs/pr-review-workflow.md)
+運用手引き (人間向け): [docs/pr-review-workflow.md](../pr-review-workflow.md)
 
-- PR 作成時は [`.github/pull_request_template.md`](.github/pull_request_template.md) を**全項目埋める**。不要な項目は削除せず「N/A」と明記 (レビュアーが見落としと区別するため)
+- PR 作成時は [`.github/pull_request_template.md`](../../.github/pull_request_template.md) を**全項目埋める**。不要な項目は削除せず「N/A」と明記 (レビュアーが見落としと区別するため)
 - 「仕様逐条突合 (自己申告)」節は各条項を `file:line` で**個別に列挙**。「全条項 ✓」の一括表記は不可。大規模実装の完了報告前に仕様を逐条突合すること
 - 大規模実装 / spec 絡み / UI 影響のある PR は、**別セッション (新しい会話)** で独立レビューを実行し、結果を PR コメントに投稿してからマージ判断する (Claude Code 利用時は `/review-pr <N>` スキル、Codex は `/codex:review`)
 - **1 ISSUE を複数 PR に分割したケース**は、全 PR マージ後に ISSUE 単位の実装網羅性を監査する (Claude Code: `/review-issue <N>`)。PR 単位レビューでは検出できない実装漏れを拾う

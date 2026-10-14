@@ -6,8 +6,9 @@
 import { useMemo, useState } from "react";
 import { importOpenApi, parseDdl, type ImportedTable } from "@harmony/shared";
 import { Section } from "../../analysis/ui";
-import { saveTable, listTables } from "../../../store/tableStore";
-import { createProcessFlow, listProcessFlows, saveProcessFlow } from "../../../store/processFlowStore";
+import { saveTable } from "../../../store/tableStore";
+import { createProcessFlow, loadAllProcessFlows, saveProcessFlow } from "../../../store/processFlowStore";
+import { mcpBridge } from "../../../mcp/mcpBridge";
 import { reportFailure } from "../../../utils/failureToast";
 import { showToast } from "../../../utils/toast";
 import { generateUUID } from "../../../utils/uuid";
@@ -35,10 +36,11 @@ function DdlImport() {
   const [text, setText] = useState("");
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
-  const existing = useLoad(() => listTables(), false);
+  // 既にあるテーブル: ファイルの実体を、毎回読み直す (一覧の登録簿は、取り込みの直後に追いつかないことがある)
+  const existing = useLoad(async () => ((await mcpBridge.request("listAllTables", {})) as Array<{ id?: string; physicalName?: string }> | null ?? []), false);
   const result = useMemo(() => (text.trim() ? parseDdl(text) : null), [text]);
   const have = new Set((existing.data ?? []).map((t) => t.id));
-  const havePhysical = new Set((existing.data ?? []).map((t) => (t as { physicalName?: string }).physicalName).filter(Boolean));
+  const havePhysical = new Set((existing.data ?? []).map((t) => t.physicalName).filter(Boolean));
   const status = (t: ImportedTable): "new" | "exists" => (have.has(t.id) || havePhysical.has(t.physicalName) ? "exists" : "new");
   const fresh = result?.tables.filter((t) => status(t) === "new") ?? [];
   const chosen = fresh.filter((t) => picked.has(t.id));
@@ -96,12 +98,12 @@ function OpenApiImport() {
   const [error, setError] = useState<string | null>(null);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
-  const existing = useLoad(() => listProcessFlows(), false);
+  const existing = useLoad(async () => [...(await loadAllProcessFlows()).keys()], false);
   const parsed = useMemo(() => {
     if (!text.trim()) return null;
     try { return importOpenApi(JSON.parse(text)); } catch { return { flows: [], warnings: ["JSON として読めません (YAML の場合は、JSON に変換してから貼り付けてください)"] }; }
   }, [text]);
-  const have = new Set((existing.data ?? []).map((f) => (f as { id: string }).id));
+  const have = new Set(existing.data ?? []);
   const fresh = parsed?.flows.filter((f) => !have.has(f.id)) ?? [];
   const chosen = fresh.filter((f) => picked.has(f.id));
   const load = (t: string) => { setText(t); setError(null); try { setPicked(new Set(importOpenApi(JSON.parse(t)).flows.map((f) => f.id))); } catch { setPicked(new Set()); } };

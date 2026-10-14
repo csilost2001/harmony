@@ -2067,6 +2067,15 @@ Harmony 利用者は **意味のある folder 名** (例: `retail-app/`、`inven
 - `docker compose config -f docker-compose.yml` が pass (CLI 利用可能時のみ)
 - B-4 retail dogfood で Reopen in Container 実機検証 (出力アプリの起動まで)
 
+## Step 5.8: 生成の記録 (再生成の差分・乖離の検出のため)
+
+コードを書き出したら、**必ず** `designer__record_generation` で、「どの設計から、どのファイルを作ったか」を記録する (MCP が使えないときは、最終レポートに「生成の記録: 未記録 (MCP 不可)」と書く)。
+
+- `outputs[].path`: 書き出したファイルの、`base` からの相対パス。出力先が既定の `.tmp/generated-code/` なら `base: "generated-code"`、ワークスペースの中なら `base` を省略 (= workspace)。**それ以外の場所 (別のフォルダ) に出したファイルは、記録しても書き換えを検出できない** (警告が返る)
+- `outputs[].sources`: そのファイルの元にした設計。ProcessFlow → `{ kind: "processFlow", id }`、画面 → `{ kind: "screen", id }`、テーブル定義を使ったなら `{ kind: "table", id }` も足す (テーブルが変わったときも「再生成が必要」と検出するため)
+- `generator`: `generate-code`
+- 再生成のとき (すでに記録のある設計を、もう一度生成するとき): 書き出す前に `designer__check_generation_drift` で状態を見る。`design-changed` なら `designer__get_regeneration_diff` で、変わった箇所だけを確かめ、その部分だけを直して書き出す。`output-changed` / `both-changed` (人が生成物を書き換えている) ときは、**上書きせず**、どちらを正とするかを利用者に確かめる
+
 ## Step 6: smoke 検証 (§11)
 
 生成ファイルの最低限の構文健全性を確認する。
@@ -2163,6 +2172,7 @@ tsc が利用不可またはプロジェクト設定が不整合の場合はス�
 
 ## 制約 (必守)
 
+- 生成したファイルは、`designer__record_generation` で記録する (Step 5.8)。記録を省いて完了と報告しない
 - `schemas/*.json` を変更しない (schema ガバナンス #511)
 - `data/` ディレクトリを変更しない
 - `frontend/` / `backend/` のソースコードを変更しない

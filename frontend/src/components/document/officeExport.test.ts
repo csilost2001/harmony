@@ -47,6 +47,11 @@ describe("zip", () => {
 });
 
 describe("htmlToBlocks", () => {
+  it("章番号は、題との間を空けて読む (1. 画面一覧 / 付録 テスト観点)", () => {
+    expect(htmlToBlocks('<h2 class="hd-title"><span class="hd-chapter">3</span>画面設計</h2><h2><span class="hd-chapter">付録</span>テスト観点</h2>')).toEqual([
+      { type: "heading", level: 2, text: "3. 画面設計" }, { type: "heading", level: 2, text: "付録 テスト観点" },
+    ]);
+  });
   it("見出し・段落・箇条書き・表・基本情報を読み、svg と紙面の見本は読まない", () => {
     const html = `<article><h2 class="hd-title">章 &amp; 1</h2><p>本文<br>2 行目</p><ul><li>a</li><li>b</li></ul>
       <dl class="hd-info"><dt>名前</dt><dd>値</dd></dl>

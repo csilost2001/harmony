@@ -247,6 +247,32 @@ describe("生成の記録と乖離の検出", () => {
     expect(rows[0].changedSources[0].state).toBe("deleted");
     expect((await regenerationDiff(ROOT))[0].sources[0].state).toBe("deleted");
   });
+  it("`/generate-code` の既定の出力先 (.tmp/generated-code/) を基準にして記録できる。ワークスペースの同名のファイルとは別に扱い、その外には出られない", async () => {
+    const gen = await fs.mkdtemp(path.join(os.tmpdir(), "ops-gen-"));
+    const prev = process.env.HARMONY_GENERATED_CODE_DIR;
+    process.env.HARMONY_GENERATED_CODE_DIR = gen;
+    try {
+      await fs.mkdir(path.join(gen, "orders"), { recursive: true });
+      await fs.writeFile(path.join(gen, "orders", "A.java"), "class A {}");
+      await fs.mkdir(out("orders"), { recursive: true });
+      await fs.writeFile(out("orders/A.java"), "workspace copy");
+      const r = await recordGeneration(ROOT, { outputs: [{ path: "orders/A.java", base: "generated-code", sources: [{ kind: "table", id: "orders" }] }, { path: "orders/A.java", sources: [{ kind: "table", id: "orders" }] }] });
+      expect(r).toEqual({ recorded: 2, warnings: [] });
+      expect((await generationStatus(ROOT)).rows.map((x) => [x.base ?? "workspace", x.state])).toEqual([["generated-code", "current"], ["workspace", "current"]]);
+      await fs.writeFile(path.join(gen, "orders", "A.java"), "class A { int x; }"); // 基準が違えば、別のファイル
+      expect((await generationStatus(ROOT)).rows.map((x) => [x.base ?? "workspace", x.state])).toEqual([["generated-code", "output-changed"], ["workspace", "current"]]);
+      // 記録し直すと、同じ (基準 + パス) だけが置き換わる
+      await recordGeneration(ROOT, { outputs: [{ path: "orders/A.java", base: "generated-code", sources: [{ kind: "table", id: "orders" }] }] });
+      const outputs = (await generationStore.read(ROOT)).value.outputs;
+      expect(outputs).toHaveLength(2);
+      expect((await generationStatus(ROOT)).rows.every((x) => x.state === "current")).toBe(true);
+      await expect(recordGeneration(ROOT, { outputs: [{ path: "../x", base: "generated-code", sources: [{ kind: "table", id: "orders" }] }] })).rejects.toThrow(/場所が正しくありません/);
+      await expect(recordGeneration(ROOT, { outputs: [{ path: "a.ts", base: "elsewhere", sources: [{ kind: "table", id: "orders" }] }] })).rejects.toThrow(/base は/);
+    } finally {
+      if (prev === undefined) delete process.env.HARMONY_GENERATED_CODE_DIR; else process.env.HARMONY_GENERATED_CODE_DIR = prev;
+      await fs.rm(gen, { recursive: true, force: true });
+    }
+  });
   it("外へ出る場所・絶対パス・存在しない設計・元の設計がない記録は、拒否する。ワークスペースの外のファイルは、書き換えを検出しない", async () => {
     for (const bad of ["../x.ts", "/etc/passwd", "a/../../x", ".harmony-ops/x", "a\\b"]) await expect(recordGeneration(ROOT, { outputs: [{ path: bad, sources: [{ kind: "table", id: "orders" }] }] })).rejects.toThrow(/場所が正しくありません/);
     await expect(recordGeneration(ROOT, { outputs: [{ path: "a.ts", sources: [{ kind: "table", id: "none" }] }] })).rejects.toThrow(/見つかりません/);

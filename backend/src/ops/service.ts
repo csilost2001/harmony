@@ -7,8 +7,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import {
   allowedTransitions, cleanActor, computeDrift, effectiveStatus, isOpsEntityKind, isSafeRelPath, jsonDiff, MAX_APPROVAL_HISTORY, MAX_COMMENT_CHARS, MAX_GEN_SOURCES, MAX_MESSAGES_PER_THREAD, MAX_THREADS,
-  OPS_ENTITY_LABELS, STATUS_LABELS, transitionNeeds,
-  type Approval, type ApprovalState, type ApprovalStatus, type CommentTarget, type DriftRow, type GenOutput, type GenSource, type JsonChange, type NotifyMessage, type OpsEntityKind,
+  OPS_ENTITY_LABELS, STATUS_LABELS, transitionNeeds, GEN_BASES,
+  type Approval, type ApprovalState, type ApprovalStatus, type CommentTarget, type DriftRow, type GenBase, type GenOutput, type GenSource, type JsonChange, type NotifyMessage, type OpsEntityKind,
 } from "@harmony/shared";
 import { entityHash, readEntityJson, sha256 } from "./entityHash.js";
 import { recordAudit } from "./audit.js";
@@ -140,13 +140,18 @@ const MAX_OUTPUT_BYTES = 50 * 1024 * 1024;
 const snapDir = (root: string): string => path.join(opsDirOf(root), "gen-snapshots");
 const snapFile = (root: string, s: GenSource): string => path.join(snapDir(root), `${s.kind}-${s.id}-${s.hash.slice(0, 16)}.json`);
 
-async function outputHash(root: string, rel: string): Promise<string | null> {
-  const abs = path.resolve(root, rel);
-  if (abs !== root && !abs.startsWith(path.resolve(root) + path.sep)) return null;
+/** `/generate-code` の既定の出力先 (本体の `.tmp/generated-code/`)。試験・特別な配置では、環境変数 HARMONY_GENERATED_CODE_DIR で変える */
+export const generatedCodeRoot = (): string => path.resolve(process.env.HARMONY_GENERATED_CODE_DIR || path.join(import.meta.dirname, "../../../.tmp/generated-code"));
+const baseDir = (root: string, base: GenBase | undefined): string => (base === "generated-code" ? generatedCodeRoot() : root);
+
+async function outputHash(root: string, rel: string, genBase?: GenBase): Promise<string | null> {
+  const top = baseDir(root, genBase);
+  const abs = path.resolve(top, rel);
+  if (abs !== top && !abs.startsWith(path.resolve(top) + path.sep)) return null;
   try {
-    // シンボリックリンクの先がワークスペースの外なら、読まない
+    // シンボリックリンクの先が基準の外なら、読まない
     const real = await fs.realpath(abs);
-    const base = await fs.realpath(root);
+    const base = await fs.realpath(top);
     if (real !== base && !real.startsWith(base + path.sep)) return null;
     const st = await fs.stat(real);
     if (!st.isFile() || st.size > MAX_OUTPUT_BYTES) return null;
@@ -154,7 +159,7 @@ async function outputHash(root: string, rel: string): Promise<string | null> {
   } catch { return null; }
 }
 
-export interface RecordGenerationInput { outputs: Array<{ path: unknown; sources?: unknown; generator?: unknown; note?: unknown }> }
+export interface RecordGenerationInput { outputs: Array<{ path: unknown; base?: unknown; sources?: unknown; generator?: unknown; note?: unknown }> }
 
 export async function recordGeneration(root: string, input: RecordGenerationInput, actor = "AI"): Promise<{ recorded: number; warnings: string[] }> {
   if (!Array.isArray(input.outputs) || !input.outputs.length) throw new Error("outputs (生成したファイルの一覧) を指定してください");
@@ -177,12 +182,14 @@ export async function recordGeneration(root: string, input: RecordGenerationInpu
       await fs.writeFile(snapFile(root, src), JSON.stringify(content), { flag: "w", encoding: "utf-8" });
       sources.push(src);
     }
-    const oh = await outputHash(root, o.path);
-    if (oh === null) warnings.push(`${o.path}: ファイルが見つからないか、ワークスペースの外にあります (生成物の書き換えは検出しません)`);
-    entries.push({ path: o.path, sources, at: new Date().toISOString(), ...(oh ? { outputHash: oh } : {}), ...(typeof o.generator === "string" && o.generator ? { generator: o.generator.slice(0, 100) } : {}), ...(typeof o.note === "string" && o.note ? { note: o.note.slice(0, 500) } : {}) });
+    if (o.base !== undefined && !(GEN_BASES as readonly string[]).includes(o.base as string)) throw new Error(`${o.path}: base は ${GEN_BASES.join(" / ")} のどちらかです`);
+    const genBase = o.base === "generated-code" ? ("generated-code" as const) : undefined;
+    const oh = await outputHash(root, o.path, genBase);
+    if (oh === null) warnings.push(`${o.path}: ファイルが見つからないか、${genBase ? ".tmp/generated-code/" : "ワークスペース"}の外にあります (生成物の書き換えは検出しません)`);
+    entries.push({ path: o.path, ...(genBase ? { base: genBase } : {}), sources, at: new Date().toISOString(), ...(oh ? { outputHash: oh } : {}), ...(typeof o.generator === "string" && o.generator ? { generator: o.generator.slice(0, 100) } : {}), ...(typeof o.note === "string" && o.note ? { note: o.note.slice(0, 500) } : {}) });
   }
   await generationStore.update(root, (f) => {
-    for (const e of entries) f.outputs = [...f.outputs.filter((x) => x.path !== e.path), e];
+    for (const e of entries) f.outputs = [...f.outputs.filter((x) => !(x.path === e.path && (x.base ?? "workspace") === (e.base ?? "workspace"))), e];
     return f;
   });
   void recordAudit(root, { actor, action: "生成の記録を残した", detail: `${entries.length} ファイル`, via: "ai" });
@@ -199,8 +206,9 @@ export async function generationStatus(root: string): Promise<{ rows: DriftRow[]
     if (h) current.set(key, h);
   }
   const outHashes = new Map<string, string | null>();
-  for (const o of value.outputs) outHashes.set(o.path, await outputHash(root, o.path));
-  return { rows: computeDrift(value, current, (p) => outHashes.get(p) ?? null), problems };
+  const keyOf = (o: { path: string; base?: GenBase }) => `${o.base ?? "workspace"}:${o.path}`;
+  for (const o of value.outputs) outHashes.set(keyOf(o), await outputHash(root, o.path, o.base));
+  return { rows: computeDrift(value, current, (o) => outHashes.get(keyOf(o)) ?? null), problems };
 }
 
 export interface RegenDiff { path: string; sources: Array<{ kind: OpsEntityKind; id: string; state: "changed" | "deleted" | "no-snapshot"; changes: JsonChange[]; truncated: boolean }> }

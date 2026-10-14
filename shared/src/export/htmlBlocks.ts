@@ -71,6 +71,13 @@ export function htmlToBlocks(html: string): DocBlock[] {
       if (t.type === "text") text += t.text;
       else if (t.type === "open") {
         if (SKIP_TAGS.has(t.tag) || hasSkipClass(t.attrs)) { j = skipSubtree(j + 1, t.tag) - 1; continue; }
+        // 章番号 (`<span class="hd-chapter">1</span>画面一覧`) は、題との間を空ける ("1. 画面一覧" / "付録 テスト観点")
+        if (t.tag === "span" && /class\s*=\s*"[^"]*\bhd-chapter\b/.test(t.attrs)) {
+          const inner = inlineText(j + 1, "span");
+          text += inner.text + (/^\d+$/.test(inner.text) ? ". " : " ");
+          j = inner.next - 1;
+          continue;
+        }
         if (t.tag === "br") text += "\n";
         else if (t.tag === tag) depth++;
         else if (t.tag === "li" || t.tag === "p" || t.tag === "div") text += "\n";
