@@ -36,8 +36,12 @@ async function startEditing(page: Page) {
     } else break;
   }
   // 別の画面で編集中のまま移ったときは、続けて編集中になっている
-  if (!(await page.getByTestId("edit-mode-save").isVisible().catch(() => false))) await page.getByTestId("edit-mode-start").click();
-  await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 8000 });
+  // 読み込みが終わって、「編集開始」か「保存」のどちらかが出るのを待つ (読み込み前に判定しない)
+  const start = page.getByTestId("edit-mode-start");
+  const save = page.getByTestId("edit-mode-save");
+  await expect(start.or(save)).toBeVisible({ timeout: 20000 });
+  if (!(await save.isVisible())) await start.click();
+  await expect(save).toBeVisible({ timeout: 10000 });
 }
 
 test.describe("ヘッダーの道具", () => {

@@ -277,7 +277,8 @@ export async function previewReplace(root: string, opts: ReplaceOptions, isBlock
 
 // ── 適用と取り消し ──────────────────────────────────────────────────────
 
-interface UndoFile { rel: string; abs: string; original: string; replaced: string }
+/** `registry`: 登録簿 (harmony.json) のとき、置換で変えた名前 (取り消しは、ファイル全体ではなく、この項目だけを元へ戻す。登録簿は、ほかの設計の保存でも書き換わるため) */
+interface UndoFile { rel: string; abs: string; original: string; replaced: string; registry?: Array<{ key: string; id: string; before: string; after: string }> }
 interface UndoOperation { id: string; ts: number; files: UndoFile[]; replaced: number; query: string; replacement: string }
 const undoStore = new Map<string, Map<string, UndoOperation>>();
 
@@ -384,14 +385,14 @@ export async function applyReplace(
       let reg: unknown = null;
       try { reg = regText === null ? null : JSON.parse(regText); } catch { /* 壊れていれば、登録簿は触らない */ }
       if (regText !== null && isRecord(reg) && isRecord(reg.entities)) {
-        let changed = false;
+        const changes: NonNullable<UndoFile["registry"]> = [];
         for (const u of regUpdates) {
           const list = (reg.entities as Record<string, unknown>)[u.key];
           const entry = Array.isArray(list) ? list.find((e) => isRecord(e) && e.id === u.id) : undefined;
-          if (isRecord(entry) && entry.name !== u.name) { entry.name = u.name; changed = true; }
+          if (isRecord(entry) && typeof entry.name === "string" && entry.name !== u.name) { changes.push({ key: u.key, id: u.id, before: entry.name, after: u.name }); entry.name = u.name; }
         }
-        if (changed) {
-          files.push({ rel: "harmony.json", abs: regAbs, original: regText, replaced: JSON.stringify(reg, null, 2) });
+        if (changes.length > 0) {
+          files.push({ rel: "harmony.json", abs: regAbs, original: regText, replaced: JSON.stringify(reg, null, 2), registry: changes });
           nextOf.set(regAbs, reg);
         }
       }
@@ -443,6 +444,22 @@ export async function undoReplace(root: string, operationId: string): Promise<Un
     for (const f of op.files) {
       let current: string | null = null;
       try { current = await fs.readFile(f.abs, "utf-8"); } catch { /* 消えた */ }
+      if (f.registry && current !== f.replaced) {
+        // 登録簿は、ほかの設計の保存でも書き換わる。置換で変えた名前だけを、いまも置換後の名前のものについて、元へ戻す (あとの変更は残す)
+        let reg: unknown = null;
+        try { reg = current === null ? null : JSON.parse(current); } catch { /* 壊れていれば、戻さない */ }
+        if (!isRecord(reg) || !isRecord(reg.entities)) { conflicts.push(f.rel); continue; }
+        let back = 0;
+        let kept = 0;
+        for (const c of f.registry) {
+          const list = (reg.entities as Record<string, unknown>)[c.key];
+          const entry = Array.isArray(list) ? list.find((e) => isRecord(e) && e.id === c.id) : undefined;
+          if (isRecord(entry) && entry.name === c.after) { entry.name = c.before; back++; } else kept++;
+        }
+        if (back > 0) { await writeJSON(f.abs, reg); restored++; }
+        if (kept > 0) conflicts.push(`${f.rel} (名前が変えられていた ${kept} 件は、戻していません)`);
+        continue;
+      }
       // 置換した内容のままのものだけ戻す。そのあとで変えられたものを、古い内容で上書きしない
       // (writeJSON は JSON.stringify(…, 2) で書くので、置換したときの文字列と一致する)
       if (current !== f.replaced) { conflicts.push(f.rel); continue; }

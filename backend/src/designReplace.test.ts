@@ -203,6 +203,33 @@ describe("登録簿 (harmony.json) と書き込み前の確認", () => {
     expect(await fs.readFile(path.join(ROOT, "harmony.json"), "utf-8")).toBe(original);
   });
 
+  it("置換のあと、別の設計の保存などで登録簿が書き換わっていても、取り消しは、置換で変えた名前だけを戻し、あとの変更は残す", async () => {
+    const p = await previewReplace(ROOT, opts("顧客", "取引先"));
+    const r = await applyReplace(ROOT, opts("顧客", "取引先"), pick(p.candidates));
+    // 置換のあと、別のテーブルの保存で、登録簿の別の項目が書き換わる
+    const regFile = path.join(ROOT, "harmony.json");
+    const now = JSON.parse(await fs.readFile(regFile, "utf-8")) as { entities: { tables: Array<{ id: string; name: string; updatedAt?: string }>; processFlows: Array<{ id: string; name: string }> } };
+    now.entities.tables.push({ id: "other", name: "別のテーブル", updatedAt: "2027-01-01T00:00:00.000Z" });
+    await fs.writeFile(regFile, JSON.stringify(now, null, 2), "utf-8");
+    const u = await undoReplace(ROOT, r.operationId!);
+    expect(u.conflicts).toEqual([]);
+    const after = await reg();
+    expect(after.entities.tables.find((t) => t.id === "orders")?.name).toBe("顧客注文"); // 置換で変えた名前は戻る
+    expect(after.entities.tables.find((t) => t.id === "other")?.name).toBe("別のテーブル"); // あとの変更は残る
+  });
+
+  it("登録簿の名前が、置換のあとに別の名前へ変えられていたら、その名前は戻さず、知らせる", async () => {
+    const p = await previewReplace(ROOT, opts("顧客注文", "取引先注文"));
+    const r = await applyReplace(ROOT, opts("顧客注文", "取引先注文"), pick(p.candidates));
+    const regFile = path.join(ROOT, "harmony.json");
+    const now = JSON.parse(await fs.readFile(regFile, "utf-8")) as { entities: { tables: Array<{ id: string; name: string }> } };
+    now.entities.tables[0].name = "利用者が付けた名前";
+    await fs.writeFile(regFile, JSON.stringify(now, null, 2), "utf-8");
+    const u = await undoReplace(ROOT, r.operationId!);
+    expect(u.conflicts.some((c) => c.startsWith("harmony.json"))).toBe(true);
+    expect((await reg()).entities.tables[0].name).toBe("利用者が付けた名前");
+  });
+
   it("処理フローの名前は meta.name で、登録簿の名前も直る", async () => {
     const q = await previewReplace(ROOT, opts("注文確定", "注文の確定"));
     await applyReplace(ROOT, opts("注文確定", "注文の確定"), pick(q.candidates));
