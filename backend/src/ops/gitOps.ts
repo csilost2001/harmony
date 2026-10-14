@@ -4,6 +4,7 @@
  * (リモートへ出す・取り込む操作と、元に戻せない操作は、利用者が git を直接使う)。引数は検証し、`-` で始まる値・`..` を含む場所は拒否する。
  */
 import { execFile } from "node:child_process";
+import os from "node:os";
 import fs from "node:fs/promises";
 import path from "node:path";
 
@@ -14,8 +15,15 @@ export type GitRunner = (cwd: string, args: string[]) => Promise<GitRun>;
 const TIMEOUT_MS = 15_000;
 const MAX_BUFFER = 8 * 1024 * 1024;
 
+/**
+ * 利用者のワークスペースのリポジトリの設定 (.git/config) には、コマンドを実行させる項目がある (core.fsmonitor・core.hooksPath・diff.external・
+ * core.sshCommand など)。他人から受け取ったワークスペースで、状態を見ただけでコマンドが走らないよう、これらを無効にして呼ぶ。
+ * (利用者の git の設定のうち、名前・メール・署名などは、そのまま使う。コミットのフックは、--no-verify で走らせない)
+ */
+export const SAFE_GIT_CONFIG = ["-c", "core.fsmonitor=false", "-c", `core.hooksPath=${os.devNull}`, "-c", "diff.external=", "-c", "core.sshCommand=", "-c", "core.pager=cat", "-c", "protocol.ext.allow=never", "-c", "core.untrackedCache=false"];
+
 export const runGit: GitRunner = (cwd, args) => new Promise((resolve, reject) => {
-  execFile("git", args, { cwd, timeout: TIMEOUT_MS, maxBuffer: MAX_BUFFER, env: { ...process.env, GIT_TERMINAL_PROMPT: "0", GIT_PAGER: "cat", LC_ALL: "C.UTF-8", GIT_OPTIONAL_LOCKS: "0" }, windowsHide: true }, (err, stdout, stderr) => {
+  execFile("git", [...SAFE_GIT_CONFIG, ...args], { cwd, timeout: TIMEOUT_MS, maxBuffer: MAX_BUFFER, env: { ...process.env, GIT_TERMINAL_PROMPT: "0", GIT_PAGER: "cat", LC_ALL: "C.UTF-8", GIT_OPTIONAL_LOCKS: "0", GIT_EXTERNAL_DIFF: "", GIT_SSH_COMMAND: "" }, windowsHide: true }, (err, stdout, stderr) => {
     if (err && (err as NodeJS.ErrnoException).code === "ENOENT") return reject(new Error("git が見つかりません。git をインストールしてください"));
     const code = err ? (typeof (err as { code?: unknown }).code === "number" ? ((err as { code: number }).code) : 1) : 0;
     if (err && (err as { killed?: boolean }).killed) return reject(new Error("git の応答がありません (15 秒)"));

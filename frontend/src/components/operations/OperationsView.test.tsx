@@ -79,7 +79,7 @@ describe("レビューと承認", () => {
     rpc["approvals.transition"] = () => ({});
     await open();
     const table = await screen.findByTestId("op-approval-table");
-    expect(within(table).getByText("注文")).toBeTruthy();
+    expect(await within(table).findByText("注文")).toBeTruthy();
     expect(within(table).getByTestId("op-status").textContent).toBe("承認待ち");
     fireEvent.click(within(table).getByTestId("op-approval-rejected"));
     expect((screen.getByTestId("op-reject-go") as HTMLButtonElement).disabled).toBe(true);
@@ -105,7 +105,7 @@ describe("レビューと承認", () => {
     rpc["reviewComments.resolve"] = () => ({ ok: true });
     await open();
     const section = await screen.findByTestId("op-comments");
-    expect(within(section).getByText("桁数は？")).toBeTruthy();
+    expect(await within(section).findByText("桁数は？")).toBeTruthy();
     expect(within(section).queryByText("済んだ件")).toBeNull();
     fireEvent.change(within(section).getByTestId("op-reply-input"), { target: { value: "20 桁です" } });
     fireEvent.click(within(section).getByTestId("op-reply-send"));

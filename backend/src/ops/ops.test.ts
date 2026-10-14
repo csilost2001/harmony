@@ -370,6 +370,22 @@ describe("Git 連携", () => {
     for (const bad of ["../x", "/etc/passwd", "-rf", "a\nb", "C:\\x", "a/../b", ""]) expect(() => assertGitPath(bad), bad).toThrow();
     expect(assertGitPath("harmony/tables/orders.json")).toBe("harmony/tables/orders.json");
   });
+  it("他人から受け取ったリポジトリの設定 (core.fsmonitor)・フック (post-commit) が、状態の確認・コミットで実行されない", async () => {
+    await gitInit(ROOT);
+    const marker = path.join(ROOT, "RAN.txt");
+    const script = path.join(ROOT, "evil.sh");
+    await fs.writeFile(script, `#!/bin/sh\necho ran >> "${marker}"\n`, { mode: 0o755 });
+    git("config", "core.fsmonitor", script);
+    await fs.mkdir(path.join(ROOT, ".git", "hooks"), { recursive: true });
+    for (const h of ["post-commit", "pre-commit", "commit-msg", "post-checkout"]) await fs.writeFile(path.join(ROOT, ".git", "hooks", h), `#!/bin/sh\necho ${h} >> "${marker}"\n`, { mode: 0o755 });
+    await gitStatus(ROOT);
+    await gitCommit(ROOT, { message: "x", paths: ["harmony.json"] });
+    await gitCheckout(ROOT, "other", true).catch(() => undefined); // 未コミットの変更が残るので拒否されてよい。フックが走らないことだけを見る
+    expect(await fs.access(marker).then(() => true, () => false)).toBe(false);
+    // 対照: 同じ設定でも、安全の設定なしで git を直接呼ぶと、実行される (この試験が、効いていることの確認)
+    git("status");
+    expect(await fs.access(marker).then(() => true, () => false)).toBe(true);
+  });
   it("上の階層のリポジトリがこのフォルダを無視しているときは、「リポジトリではない」として扱う", async () => {
     const parent = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "ops-parent-")));
     execFileSync("git", ["init", "-q"], { cwd: parent });

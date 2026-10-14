@@ -54,6 +54,9 @@ export function createZip(entries: readonly ZipEntry[]): Uint8Array {
 
 /** 展開後の 1 ファイルの上限 (inflate を渡す側も、この大きさで打ち切ること) */
 export const MAX_ZIP_ENTRY_BYTES = 64 * 1024 * 1024;
+/** 展開後の合計の上限と、項目の数の上限 (小さな ZIP が、大量のメモリを使わせないように) */
+export const MAX_ZIP_TOTAL_BYTES = 256 * 1024 * 1024;
+export const MAX_ZIP_ENTRIES = 10_000;
 
 /** ZIP の中の、名前と中身 (圧縮なし・deflate のどちらも)。deflate の展開は、呼び出し側が渡す (Node: zlib、ブラウザ: DecompressionStream) */
 export async function readZip(bytes: Uint8Array, inflate: (raw: Uint8Array) => Promise<Uint8Array>): Promise<Map<string, Uint8Array>> {
@@ -63,6 +66,8 @@ export async function readZip(bytes: Uint8Array, inflate: (raw: Uint8Array) => P
   for (let i = bytes.length - 22; i >= Math.max(0, bytes.length - 22 - 65535); i--) { if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; } }
   if (eocd < 0) throw new Error("ZIP として読めません (xlsx / docx ではないファイルです)");
   const count = dv.getUint16(eocd + 10, true);
+  if (count > MAX_ZIP_ENTRIES) throw new Error(`ZIP の中のファイルが多すぎます (${MAX_ZIP_ENTRIES} 個まで)`);
+  let total = 0;
   let p = dv.getUint32(eocd + 16, true);
   const dec = new TextDecoder();
   const out = new Map<string, Uint8Array>();
@@ -85,6 +90,8 @@ export async function readZip(bytes: Uint8Array, inflate: (raw: Uint8Array) => P
     else throw new Error(`ZIP の圧縮方式 (${method}) には対応していません`);
     // 1 つのファイルの展開後が大きすぎる ZIP (爆弾) を止める
     if ((out.get(name)?.length ?? 0) > MAX_ZIP_ENTRY_BYTES) throw new Error("ZIP の中のファイルが大きすぎます (64 MB まで)");
+    total += out.get(name)?.length ?? 0;
+    if (total > MAX_ZIP_TOTAL_BYTES) throw new Error("ZIP の中身の合計が大きすぎます (256 MB まで)");
   }
   return out;
 }

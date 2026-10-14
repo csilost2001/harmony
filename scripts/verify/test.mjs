@@ -607,6 +607,27 @@ group("export-test-viewpoints", () => {
 });
 
 // ─────────────────────────────────────────────────────────────
+// export-design-doc.mjs + document-template.json (CLI の設計書にも、体裁・改訂履歴が効く)
+// ─────────────────────────────────────────────────────────────
+group("export-design-doc (体裁・改訂履歴)", () => {
+  const repo = resolve(__dirname, "../..");
+  const tmp = mkdtempSync(join(tmpdir(), "doc-template-"));
+  try {
+    cpSync(join(repo, "examples/retail"), join(tmp, "ws"), { recursive: true });
+    writeFileSync(join(tmp, "ws/harmony/document-template.json"), JSON.stringify({ version: 1, documentTitle: "要件定義書 (CLI)", excludeChapters: ["crud"], revisions: [{ version: "1.0", date: "2026-10-01", summary: "初版 (CLI)" }] }));
+    const out = join(tmp, "doc.html");
+    const r = spawnSync("node", ["scripts/export-design-doc.mjs", join(tmp, "ws"), "--out", out], { cwd: repo, encoding: "utf8" });
+    const html = existsSync(out) ? readFileSync(out, "utf8") : "";
+    assert("書き出せる", r.status === 0 && html.length > 1000, r.stderr);
+    assert("文書名・改訂履歴が載る", html.includes("要件定義書 (CLI)") && html.includes("初版 (CLI)") && html.includes('id="revisions"'));
+    assert("載せない章 (CRUD 図) は載らない", !html.includes('id="crud"'));
+    writeFileSync(join(tmp, "ws/harmony/document-template.json"), "{壊れた");
+    const broken = spawnSync("node", ["scripts/export-design-doc.mjs", join(tmp, "ws"), "--out", out], { cwd: repo, encoding: "utf8" });
+    assert("体裁の JSON が壊れていたら、理由を知らせる (体裁なしで書き出す)", (broken.stderr + broken.stdout).includes("document-template.json を読めない"), broken.stderr);
+  } finally { rmSync(tmp, { recursive: true, force: true }); }
+});
+
+// ─────────────────────────────────────────────────────────────
 // docs-freshness.mjs (資料の鮮度検査)
 // ─────────────────────────────────────────────────────────────
 const { brokenLinks, unknownNpmScripts, appRoutes, docRoutes, routeTableDrift, uiReferenceIssues, skillIssues, specIndexGaps, normRoute, runChecks } = await import("./docs-freshness.mjs");
