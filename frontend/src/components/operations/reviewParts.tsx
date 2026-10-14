@@ -63,7 +63,7 @@ export function ThreadView({ thread, onChanged, compact }: { thread: CommentThre
       </ul>
       {!compact || !resolved ? (
         <div className="op-reply">
-          <input className="an-input" value={reply} onChange={(e) => setReply(e.target.value)} placeholder="返信を書く" aria-label="返信" data-testid="op-reply-input"
+          <input className="an-input" value={reply} onChange={(e) => setReply(e.target.value)} placeholder="例: 20 桁にします" aria-label="返信" data-testid="op-reply-input"
             onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing && reply.trim()) { e.preventDefault(); void act(async () => { await opsApi.commentAdd({ threadId: thread.id, text: reply }); setReply(""); }, "コメントの返信"); } }} />
           <button type="button" className="an-btn" disabled={busy || !reply.trim()} onClick={() => void act(async () => { await opsApi.commentAdd({ threadId: thread.id, text: reply }); setReply(""); }, "コメントの返信")} data-testid="op-reply-send">返信</button>
         </div>
@@ -85,7 +85,7 @@ export function NewThread({ kind, id, onChanged }: { kind: OpsEntityKind; id: st
   return (
     <div className="op-new-thread" data-testid="op-new-thread">
       <input className="an-input" value={path} onChange={(e) => setPath(e.target.value)} placeholder="例: columns[2] (箇所。省略できます)" aria-label="コメントの箇所" data-testid="op-thread-path" />
-      <textarea className="an-input" rows={2} value={text} onChange={(e) => setText(e.target.value)} placeholder="コメントを書く" aria-label="コメント" data-testid="op-thread-text" />
+      <textarea className="an-input" rows={2} value={text} onChange={(e) => setText(e.target.value)} placeholder="例: 桁数を確認してください" aria-label="コメント" data-testid="op-thread-text" />
       <button type="button" className="an-btn primary" disabled={busy || !text.trim()} onClick={() => void send()} data-testid="op-thread-send"><i className="bi bi-chat-left-text" /> コメントする</button>
     </div>
   );

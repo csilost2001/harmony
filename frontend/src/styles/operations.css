@@ -47,7 +47,7 @@
 
 /* ヘッダーのレビューパネル */
 .rv-wrap { position: relative; display: inline-flex; }
-.rv-badge { position: absolute; top: -2px; right: -2px; min-width: 14px; height: 14px; padding: 0 3px; border-radius: 7px; background: var(--hm-danger); color: var(--hm-on-solid); font-size: 9px; line-height: 14px; text-align: center; font-weight: 700; }
+.rv-badge { position: absolute; top: -2px; right: -2px; min-width: 14px; height: 14px; padding: 0 3px; border-radius: 7px; background: var(--hm-danger); color: var(--hm-on-solid); font-size: calc(9px * var(--hm-font-scale)); line-height: 14px; text-align: center; font-weight: 700; }
 .rv-pop { position: absolute; right: 0; top: calc(100% + 6px); width: min(440px, 92vw); max-height: min(70vh, 640px); overflow-y: auto; z-index: 1000; background: var(--hm-surface); color: var(--hm-fg); border: 1px solid var(--hm-border-strong); border-radius: 10px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3); padding: 12px; display: flex; flex-direction: column; gap: 10px; font-size: calc(13px * var(--hm-font-scale)); }
 .rv-pop h2 { margin: 0; font-size: calc(13.5px * var(--hm-font-scale)); font-weight: 700; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .rv-pop h3 { margin: 0; font-size: calc(12.5px * var(--hm-font-scale)); font-weight: 700; color: var(--hm-fg-muted); }

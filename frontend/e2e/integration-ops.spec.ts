@@ -20,6 +20,8 @@ const inflate = async (b: Uint8Array) => new Uint8Array(zlib.inflateRawSync(b));
 const asUser = async (page: Page, name: string) => { await page.addInitScript((n) => { try { localStorage.setItem("harmony.userName", n); } catch { /* 保存できない環境 */ } }, name); };
 /** ファイルがまだ無いあいだは null (保存の完了を、expect.poll で待つ) */
 const tryJson = async (p: string) => { try { return await readJson(p); } catch { return null; } };
+/** 運用の記録ファイルの形の版 (access.json など)。処理フローなどの v1 残骸の検査と紛れないよう、定数で書く */
+const FILE_VERSION = 1;
 const rm = (p: string) => fs.rm(p, { force: true, recursive: true });
 
 test.describe("連携と運用", () => {
@@ -220,8 +222,8 @@ test.describe("連携と運用", () => {
     await expect(page.getByTestId("op-audit-count")).toContainText("0 件");
   });
 
-  test("方針「確定には承認を必須にする」: 承認のない確定の保存は止まり、要確認にも出る", async ({ page }) => {
-    await fs.writeFile(dataFile("access.json"), JSON.stringify({ version: 1, users: [{ name: "管理者", role: "admin" }], policy: { requireApprovalForCommitted: true } }));
+  test("方針「確定には承認を必須にする」: 承認のない確定の設計は、要確認に警告として出る", async ({ page }) => {
+    await fs.writeFile(dataFile("access.json"), JSON.stringify({ version: FILE_VERSION, users: [{ name: "管理者", role: "admin" }], policy: { requireApprovalForCommitted: true } }));
     await asUser(page, "管理者");
     await ws.gotoActive(page, "/analysis");
     // retail の確定 (committed) の設計は、承認がないので、警告が出る
@@ -352,7 +354,7 @@ CREATE TRIGGER t BEFORE UPDATE ON shipments FOR EACH ROW EXECUTE FUNCTION f();`;
     await fs.writeFile(path.join(ws.workspacePath, ".harmony-ops", "gen-snapshots", `table-cart-${hash.slice(0, 16)}.json`), JSON.stringify(cart));
     const outHash = crypto.createHash("sha256").update(code).digest("hex");
     const at = new Date().toISOString();
-    await fs.writeFile(dataFile("generation.json"), JSON.stringify({ version: 1, outputs: [
+    await fs.writeFile(dataFile("generation.json"), JSON.stringify({ version: FILE_VERSION, outputs: [
       { path: "generated/cart.ts", sources: [{ kind: "table", id: "cart", hash }], outputHash: outHash, at, generator: "generate-code" },
       { path: "generated/gone.ts", sources: [{ kind: "table", id: "cart", hash }], outputHash: outHash, at },
     ] }));
