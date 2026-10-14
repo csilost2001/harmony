@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { cloneStepsWithNewIds } from "./stepClone";
+import { collectAllProcessFlowLocalIds } from "./localIdGenerator";
 
 const collectIds = (n: unknown, out: string[] = []): string[] => {
   if (Array.isArray(n)) n.forEach((x) => collectIds(x, out));
@@ -54,6 +55,18 @@ describe("cloneStepsWithNewIds", () => {
     expect(ids).toHaveLength(5);
     for (const old of ["step-01", "step-02", "step-03", "step-04", "note-01"]) expect(ids).not.toContain(old);
     expect(out[0].inlineBranch.ngJumpTo).toBe(out[1].id);
+  });
+
+  it("検証の工程の inlineBranch.ok / ng の中の工程も付け直す。ng の中の工程は、使用中の ID の収集にも入る", () => {
+    const validation = [{ id: "step-01", kind: "validation", inlineBranch: { ok: [], ng: [{ id: "step-01-ng-01", kind: "return" }] } }];
+    const existing = collectAllProcessFlowLocalIds({ actions: [{ id: "act-1", steps: validation }] });
+    expect(existing.has("step-01-ng-01")).toBe(true);
+    const out = cloneStepsWithNewIds(validation, existing) as unknown as Array<{ id: string; inlineBranch: { ng: Array<{ id: string }> } }>;
+    expect(out[0].inlineBranch.ng[0].id).not.toBe("step-01-ng-01");
+    expect(out[0].id).not.toBe("step-01");
+    expect(new Set(collectIds(out)).size).toBe(2);
+    const again = cloneStepsWithNewIds(validation, existing);
+    expect(collectIds(again).some((i) => collectIds(out).includes(i))).toBe(false);
   });
 
   it("同じ工程を 2 回続けて貼っても、ID は重ならない (貼るたびに、追加した ID を足す)", () => {

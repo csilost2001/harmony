@@ -1,7 +1,7 @@
 /**
  * 工程を複製して貼る (貼り付け・スニペットの挿入) ときの、ID の付け直し。
  * 付け直すのは、処理フローの「局所 ID」を持つものだけ (`collectAllProcessFlowLocalIds` が集めるものと同じ): 工程 (入れ子の中も、どの深さでも)・
- * 分岐 (`branches[]` / `elseBranch`)・付箋 (`notes[]`)。工程の中の、ほかの `id` (監査の `resource.id` など、対象を指す式) は、局所 ID ではないので、触れない。
+ * 分岐 (`branches[]` / `elseBranch`)・検証の `inlineBranch.ok/ng` の中の工程・付箋 (`notes[]`)。工程の中の、ほかの `id` (監査の `resource.id` など、対象を指す式) は、局所 ID ではないので、触れない。
  * 一部だけ付け直すと、別の処理フローへ貼る・同じスニペットを 2 回挿入するときに、同じ ID が重なる。
  * 複製した工程のあいだのジャンプ先 (`jumpTo` / `inlineBranch.ngJumpTo`) は、新しい ID に追従する。複製の外の工程への参照は、そのまま。
  */
@@ -39,6 +39,7 @@ export function cloneStepsWithNewIds<T>(steps: readonly T[], existingIds: Set<st
       if (Array.isArray(s.branches)) for (const br of s.branches) if (isRecord(br)) { reid(br, "br"); visitSteps(br.steps); }
       if (isRecord(s.elseBranch)) { reid(s.elseBranch, "br"); visitSteps(s.elseBranch.steps); }
       for (const k of STEP_LIST_KEYS) visitSteps(s[k]);
+      if (isRecord(s.inlineBranch)) { visitSteps(s.inlineBranch.ok); visitSteps(s.inlineBranch.ng); }
       const sideEffectsOf = (outcomes: unknown) => { if (isRecord(outcomes)) for (const oc of Object.values(outcomes)) if (isRecord(oc)) visitSteps(oc.sideEffects); };
       sideEffectsOf(s.outcomes);
       if (isRecord(s.errorHandling)) sideEffectsOf(s.errorHandling.outcomes);
