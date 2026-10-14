@@ -13,6 +13,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { loadRawProject, saveTechStack } from "../../store/flowStore";
 import { validateTechStackConstraints } from "../../utils/techStackConstraints";
+import { TECH_STACK_PRESETS, applyPreset } from "../../utils/techStackPresets";
 import type {
   HarmonyTechStack,
   TechStackDesigner,
@@ -435,6 +436,14 @@ export function TechStackView() {
 
       {/* 中央: 選択カテゴリのフォーム */}
       <div style={{ flex: 1, overflow: "auto", padding: "24px 28px" }}>
+        <div data-testid="techstack-presets" style={{ marginBottom: 20, display: "flex", flexDirection: "column", gap: 6 }}>
+          <label style={{ fontSize: 12, color: "var(--hm-fg-muted)" }} htmlFor="techstack-preset">プリセットから始める (バックエンド・DB・フロントエンド・認証・デプロイをまとめて入れます。保存するまで確定しません)</label>
+          <select id="techstack-preset" value="" onChange={(e) => { const p = TECH_STACK_PRESETS.find((x) => x.id === e.target.value); if (p) setTechStack((ts) => applyPreset(ts, p)); }}
+            style={{ maxWidth: 520, padding: "5px 8px", borderRadius: 6, border: "1px solid var(--hm-border-strong)", background: "var(--hm-surface)", color: "var(--hm-fg)", fontSize: 13 }} data-testid="techstack-preset-select">
+            <option value="">(選ぶ)</option>
+            {TECH_STACK_PRESETS.map((p) => <option key={p.id} value={p.id} title={p.description}>{p.label}</option>)}
+          </select>
+        </div>
         <h2 style={{ margin: "0 0 20px", fontSize: 17, display: "flex", alignItems: "center", gap: 8 }}>
           {activeCategory_ && <i className={`bi ${activeCategory_.icon}`} />}
           {activeCategory_?.label}

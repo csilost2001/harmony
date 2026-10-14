@@ -7,6 +7,7 @@ import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { itemUpdates, itemsToTsv, parseItemTable, splitDuplicateItems, type ParsedItem } from "../../utils/itemPaste";
 import type { ScreenItem } from "../../types/v3/screen-item";
 import "../../styles/pasteColumns.css";
+import { ExcelFileButton } from "../common/ExcelFileButton";
 
 interface Props {
   existing: readonly ScreenItem[];
@@ -57,6 +58,7 @@ export function PasteItemsDialog({ existing, onApply, onClose, initialText = "" 
               <i className="bi bi-clipboard" /> {copied ? "コピーしました" : "いまの項目を、この形式の表としてコピー (Excel で編集して貼り戻せます。既にある行は「更新する」を選ぶと反映されます)"}
             </button>
           </div>
+          <ExcelFileButton onText={setText} />
           <textarea className="paste-cols-text" value={text} onChange={(e) => setText(e.target.value)} rows={7} autoFocus
             placeholder={"例:\n項目ID\tラベル\t型\t入出力\t必須\t最大長\ncustomerName\t顧客名\t文字列\t入力\t○\t100\nbirthDate\t生年月日\t日付\t入力\t\t"}
             spellCheck={false} data-testid="paste-items-text" />

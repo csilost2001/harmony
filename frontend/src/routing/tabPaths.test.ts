@@ -6,7 +6,7 @@ const ALL_TYPES: TabType[] = [
   "design", "table", "process-flow", "sequence", "view", "view-definition", "screen-items", "page-layout", "business-flow", "report",
   "screen-flow", "screen-list", "table-list", "er", "process-flow-list", "extensions", "conventions-catalog", "sequence-list", "view-list",
   "view-definition-list", "workspace-list", "tech-stack", "dashboard", "page-layout-list", "gadget-list", "generic-definition",
-  "generic-definition-list", "generic-definition-catalog", "report-list", "business-flow-list", "design-document", "design-analysis",
+  "generic-definition-list", "generic-definition-catalog", "report-list", "business-flow-list", "design-document", "design-analysis", "operations",
 ];
 
 describe("tabPath (タブ → URL)", () => {
@@ -21,6 +21,7 @@ describe("tabPath (タブ → URL)", () => {
     expect(tabPath("/w/ws1", { type: "table-list", resourceId: "main" })).toBe("/w/ws1/table/list");
     expect(tabPath("/w/ws1", { type: "dashboard", resourceId: "main" })).toBe("/w/ws1/");
     expect(tabPath("/w/ws1", { type: "design-analysis", resourceId: "main" })).toBe("/w/ws1/analysis");
+    expect(tabPath("/w/ws1", { type: "operations", resourceId: "main" })).toBe("/w/ws1/operations");
     expect(tabPath("/w/ws1", { type: "workspace-list", resourceId: "main" })).toBe("/workspace/list");
   });
 

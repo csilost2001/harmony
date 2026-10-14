@@ -40,7 +40,8 @@ export type TabType =
   | "report-list"        // 帳票一覧 (再設計 2026-10 段階 4)
   | "business-flow-list" // 業務フロー一覧 (再設計 2026-10 段階 4)
   | "design-document" // 設計書 (再設計 2026-10 段階 3)
-  | "design-analysis"; // 設計の分析 (改善提案 第 3 弾)
+  | "design-analysis" // 設計の分析 (改善提案 第 3 弾)
+  | "operations"; // 連携と運用 (改善提案 第 5 弾)
 
 const KNOWN_TAB_TYPES: ReadonlySet<TabType> = new Set([
   "design", "table", "process-flow", "sequence", "view", "view-definition", "screen-items", "page-layout", "business-flow", "report",
@@ -48,7 +49,7 @@ const KNOWN_TAB_TYPES: ReadonlySet<TabType> = new Set([
   "extensions", "conventions-catalog", "sequence-list", "view-list", "view-definition-list",
   "workspace-list", "tech-stack", "dashboard", "page-layout-list", "gadget-list",
   "generic-definition", "generic-definition-list", "generic-definition-catalog",
-  "design-document", "business-flow-list", "report-list", "design-analysis",
+  "design-document", "business-flow-list", "report-list", "design-analysis", "operations",
 ]);
 
 // RFC #1284 (#1296 I-4): top-level entity の id 体系を UUID → kebab-case EntityId に移行。

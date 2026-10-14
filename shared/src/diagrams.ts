@@ -5,7 +5,9 @@
  */
 import type { BusinessFlow } from "./businessFlow.js";
 import type { DesignDocInput, DocFlow, DocTable } from "./designDocument.js";
-import { kindLabel, stepText, branchConditionText, type FlowStep } from "./flowStructure.js";
+import { kindLabel, stepText, branchConditionText, layoutFlow, type FlowStep } from "./flowStructure.js";
+import { businessFlowToSvg } from "./businessFlow.js";
+import { DESIGN_DOC_CSS, diagramToSvg } from "./designDocument.js";
 
 export type DiagramFormat = "mermaid" | "plantuml";
 export type DiagramKind = "er" | "screenFlow" | "processFlow" | "businessFlow";
@@ -21,7 +23,7 @@ interface GGroup { id: string; label: string; nodeIds: string[] }
 interface Graph { direction: "TD" | "LR"; nodes: GNode[]; edges: GEdge[]; groups: GGroup[] }
 
 const clean = (s: unknown, max = 60): string => {
-  const t = String(s ?? "").replace(/[\r\n\t]+/g, " ").replace(/\s+/g, " ").trim().replace(/"/g, "'");
+  const t = String(s ?? "").replace(/[\r\n\t]+/g, " ").replace(/\s+/g, " ").trim().replace(/"/g, "'").replace(/\|/g, "｜"); // 引用符と縦線は、図の記法を壊すので置き換える
   return t.length > max ? `${t.slice(0, max - 1)}…` : t;
 };
 const ident = (s: string): string => {
@@ -249,4 +251,35 @@ export function buildDiagramText(input: DesignDocInput, target: DiagramTarget, f
 /** ファイル名に使う英数字の部分 */
 export function diagramFileStem(target: DiagramTarget): string {
   return [target.kind, target.id].filter(Boolean).join("-").replace(/[^A-Za-z0-9_-]+/g, "") || "diagram";
+}
+
+// ── SVG (処理フロー・業務フロー。設計書と同じ描画) ─────────────────────────────
+
+/** SVG 単体のファイルに入れる CSS: 設計書の CSS から、図 (fd-* / bf-*) の規則と、その色の変数だけを取り出す */
+export function diagramSvgCss(): string {
+  const vars = "svg{--d-ink:#1d2433;--d-muted:#5d677a;--d-line:#d3d9e2;--d-fill:#f3f5f8;--d-accent:#2c56c9;--d-err:#c23b3b;--d-ok:#24804f;font-family:\"BIZ UDPGothic\",\"Hiragino Sans\",\"Yu Gothic UI\",Meiryo,sans-serif}";
+  const rules = DESIGN_DOC_CSS.split("\n").filter((l) => /^\.(fd|bf)-/.test(l) && !l.includes("@media"));
+  return [vars, ...rules].join("\n");
+}
+
+/** 単体で開ける SVG ファイルにする (名前空間・背景・CSS を足す)。すでに xmlns があればそのまま */
+export function standaloneSvg(svg: string): string {
+  const withNs = /xmlns=/.test(svg) ? svg : svg.replace("<svg ", '<svg xmlns="http://www.w3.org/2000/svg" ');
+  const withBg = withNs.replace(/(<svg [^>]*>)/, `$1<style>${diagramSvgCss().replace(/<\//g, "<\\/")}</style><rect width="100%" height="100%" fill="#ffffff"/>`);
+  return `<?xml version="1.0" encoding="UTF-8"?>\n${withBg}`;
+}
+
+/** 処理フローの action 1 つの図 (SVG)。見つからなければ null */
+export function processFlowSvg(input: DesignDocInput, flowId: string, actionIndex = 0): string | null {
+  const flow = input.flows.find((f) => f.meta.id === flowId);
+  const action = flow?.actions[actionIndex];
+  if (!flow || !action) return null;
+  const name = new Map(input.tables.map((t) => [t.id, t.name ?? t.physicalName ?? t.id]));
+  const scr = new Map(input.screens.map((x) => [x.id, x.name ?? x.id]));
+  return standaloneSvg(diagramToSvg(layoutFlow(action, { tableName: (id) => name.get(id), screenName: (id) => scr.get(id) }), `${flow.meta.name ?? flow.meta.id} / ${action.name ?? ""}`));
+}
+
+export function businessFlowSvg(input: DesignDocInput, flowId: string): string | null {
+  const bf = (input.businessFlows ?? []).find((b) => b.id === flowId);
+  return bf ? standaloneSvg(businessFlowToSvg(bf, { showRefs: true })) : null;
 }

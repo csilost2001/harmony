@@ -15,7 +15,7 @@ test.beforeAll(async () => {
 test.afterAll(async () => { await cleanupRealWorkspaces([KEY]); });
 
 const ROUTES = [
-  "/", "/document", "/analysis", "/screen/flow", "/screen/list", "/screen/items/cart", "/screen/design/cart",
+  "/", "/document", "/analysis", "/operations", "/screen/flow", "/screen/list", "/screen/items/cart", "/screen/design/cart",
   "/table/list", "/table/edit/order-item", "/table/er", "/process-flow/list", "/process-flow/edit/order-confirm",
   "/business-flow/list", "/business-flow/edit/order-to-shipment", "/report/list", "/report/edit/delivery-note", "/conventions/catalog", "/extensions", "/generic-definition",
   "/sequence/list", "/view/list", "/view-definition/list", "/page-layout/list", "/gadget/list", "/project/tech-stack",

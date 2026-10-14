@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import zlib from "node:zlib";
-import { MAX_ZIP_ENTRY_BYTES, parseDocTemplate, buildDesignDocument, buildDocx, buildXlsx, blocksToSheets, createZip, crc32, htmlToBlocks, readZip, sheetName, xmlText, type DesignDocInput } from "@harmony/shared";
+import { MAX_ZIP_ENTRY_BYTES, buildDiagramText, businessFlowSvg, processFlowSvg, parseDocTemplate, buildDesignDocument, buildDocx, buildXlsx, blocksToSheets, createZip, crc32, htmlToBlocks, readZip, sheetName, xmlText, type DesignDocInput } from "@harmony/shared";
 
 const inflate = async (b: Uint8Array) => new Uint8Array(zlib.inflateRawSync(b));
 const dec = (b: Uint8Array) => new TextDecoder().decode(b);
@@ -99,7 +99,7 @@ describe("docx / xlsx", () => {
     const names = [...wb.matchAll(/<sheet name="([^"]*)"/g)].map((m) => m[1]);
     expect(names.length).toBe(sheets.length);
     expect(new Set(names.map((n) => n.toLowerCase())).size).toBe(names.length);
-    for (const n of names) { expect(n.length).toBeLessThanOrEqual(31); expect(n).not.toMatch(/[\[\]:*?/\\]/); }
+    for (const n of names) { expect(n.length).toBeLessThanOrEqual(31); expect(n).not.toMatch(/[[\]:*?/\\]/); }
   });
   it("sheetName は禁止文字・長さ・重複を直す", () => {
     const used = new Set<string>();
@@ -146,5 +146,68 @@ describe("設計書の体裁 (document-template)", () => {
     expect(r.problems.length).toBe(4);
     expect(r.template.revisions).toHaveLength(1);
     expect(r.template.excludeChapters).toEqual(["a"]);
+  });
+});
+
+describe("図の書き出し (Mermaid / PlantUML / SVG)", () => {
+  const root = path.resolve(__dirname, "../../../../examples/retail");
+  const readDir = (d: string, f = (n: string) => n.endsWith(".json")) =>
+    fs.readdirSync(path.join(root, "harmony", d)).filter(f).map((n) => JSON.parse(fs.readFileSync(path.join(root, "harmony", d, n), "utf-8")));
+  const harmony = JSON.parse(fs.readFileSync(path.join(root, "harmony.json"), "utf-8"));
+  const input: DesignDocInput = {
+    project: { id: "retail", name: harmony.meta.name },
+    screens: readDir("screens", (n) => n.endsWith(".json") && !n.includes(".design.")), flows: readDir("process-flows"), tables: readDir("tables"),
+    businessFlows: readDir("business-flows"), transitions: harmony.entities.screenTransitions,
+  };
+  it("ER 図: テーブルと外部キーの関係を、Mermaid と PlantUML で出す", () => {
+    const m = buildDiagramText(input, { kind: "er" }, "mermaid")!;
+    expect(m.startsWith("erDiagram")).toBe(true);
+    expect(m).toMatch(/\|\|--o\{/);
+    expect(m).toContain("orders {");
+    expect(m).toMatch(/BIGINT id PK/);
+    const p = buildDiagramText(input, { kind: "er" }, "plantuml")!;
+    expect(p.startsWith("@startuml")).toBe(true);
+    expect(p.trimEnd().endsWith("@enduml")).toBe(true);
+    expect(p).toMatch(/\|\|--o\{/);
+  });
+  it("画面遷移図・処理フロー図・業務フロー図は、ノードと矢印を出す。記号を含む名前でも、図を壊さない", () => {
+    const sf = buildDiagramText(input, { kind: "screenFlow" }, "mermaid")!;
+    expect(sf.startsWith("flowchart LR")).toBe(true);
+    expect(sf).toMatch(/s1\["/);
+    expect(sf).toMatch(/s\d+ -->/);
+    const flowId = input.flows[0].meta.id;
+    const pf = buildDiagramText(input, { kind: "processFlow", id: flowId }, "mermaid")!;
+    expect(pf.startsWith("flowchart TD")).toBe(true);
+    expect(pf).toMatch(/p1\(\[/);
+    const bf = buildDiagramText(input, { kind: "businessFlow", id: input.businessFlows![0].id }, "plantuml")!;
+    expect(bf).toContain("package \"");
+    expect(buildDiagramText(input, { kind: "processFlow", id: "none" }, "mermaid")).toBeNull();
+    const tricky = buildDiagramText({ ...input, screens: [{ id: "a", name: 'x"y]\n<b>', path: "/p" } as never, { id: "b", name: "B" } as never], transitions: [{ sourceScreenId: "a", targetScreenId: "b", label: 'q"|r' }] }, { kind: "screenFlow" }, "mermaid")!;
+    expect(tricky).not.toMatch(/x"y/);
+    expect(tricky).toContain("-->|\"q'｜r\"| s2");
+  });
+  it("分岐は判断の菱形と条件つきの矢印、繰り返しは戻る矢印、return は終端になる", () => {
+    const flow = { meta: { id: "f" }, actions: [{ id: "a", name: "処理", trigger: "click", steps: [
+      { id: "s1", kind: "branch", description: "在庫あり?", branches: [{ code: "A", label: "あり", condition: "x", steps: [{ id: "s2", kind: "loop", description: "明細", steps: [{ id: "s3", kind: "compute", description: "加算" }] }] }], elseBranch: { code: "B", label: "なし", steps: [{ id: "s4", kind: "return", description: "エラー" }] } },
+      { id: "s5", kind: "return", description: "完了" },
+    ] }] };
+    const out = buildDiagramText({ ...input, flows: [flow as never] }, { kind: "processFlow", id: "f" }, "mermaid")!;
+    expect(out).toContain('{"');
+    expect(out).toMatch(/\|"A: あり"\|/);
+    expect(out).toMatch(/\|"B: なし"\|/);
+    expect(out).toMatch(/-\.->/); // 繰り返しの戻り
+    expect((out.match(/\(\["/g) ?? []).length).toBe(3); // 開始 + return 2 つ
+  });
+  it("SVG: 処理フロー・業務フローは、単体で開ける SVG (名前空間・スタイル・背景つき) になる", () => {
+    const svg = processFlowSvg(input, input.flows[0].meta.id)!;
+    expect(svg.startsWith("<?xml")).toBe(true);
+    expect(svg).toContain('xmlns="http://www.w3.org/2000/svg"');
+    expect(svg).toContain(".fd-node rect");
+    expect(svg).toMatch(/<rect width="100%" height="100%" fill="#ffffff"\/>/);
+    expect(svg).not.toContain("var(--hm-");
+    const bsvg = businessFlowSvg(input, input.businessFlows![0].id)!;
+    expect(bsvg).toContain(".bf-lane-bg");
+    expect(processFlowSvg(input, "none")).toBeNull();
+    expect(businessFlowSvg(input, "none")).toBeNull();
   });
 });

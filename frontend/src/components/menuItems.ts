@@ -110,6 +110,11 @@ export const MENU_ITEMS: MenuItem[] = [
     group: "出力",
   },
   {
+    id: "operations", label: "連携と運用", icon: "bi-diagram-2", route: "/operations",
+    activePaths: ["/operations"],
+    group: "出力",
+  },
+  {
     id: "workspace-list", label: "ワークスペース", icon: "bi-folder2-open", route: "/workspace/list",
     activePaths: ["/workspace/list", "/workspace/select"],
     group: "設定",

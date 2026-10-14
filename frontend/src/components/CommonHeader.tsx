@@ -12,6 +12,8 @@ import { UserNameButton } from "./common/UserNameButton";
 import { NotificationHistory } from "./common/NotificationHistory";
 import { DisplaySettings } from "./common/DisplaySettings";
 import { FavoritesMenu } from "./common/FavoritesMenu";
+import { ReviewPanel } from "./operations/ReviewPanel";
+import { UpdateNotice } from "./operations/UpdateNotice";
 import { ReplaceDialog } from "./replace/ReplaceDialog";
 import { TourHost } from "./help/Tour";
 import "../styles/commonHeader.css";
@@ -36,6 +38,7 @@ export function CommonHeader({ notification }: Props) {
       <div className="common-header-right">
         <QuickOpen />
         <FavoritesMenu />
+        <ReviewPanel />
         <NotificationHistory />
         <ShortcutHelp />
         <ThemeToggle />
@@ -45,6 +48,7 @@ export function CommonHeader({ notification }: Props) {
       </div>
       <ReplaceDialog />
       <TourHost />
+      <UpdateNotice />
       <ToastHost />
       <ChangesHost />
     </header>

@@ -34,3 +34,5 @@
 .paste-cols-dup p { margin: 0 0 4px; }
 .paste-cols-dup ul { margin: 4px 0 0; padding-left: 20px; }
 .paste-cols-update { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; color: var(--hm-fg-2); }
+.paste-cols-excel { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: calc(12px * var(--hm-font-scale)); color: var(--hm-fg-muted); }
+.paste-cols-excel label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }

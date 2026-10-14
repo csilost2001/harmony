@@ -4,14 +4,15 @@
  */
 import { useMemo, useState } from "react";
 import {
+  buildDiagramText, businessFlowSvg, diagramFileStem, diagramTargets, DIAGRAM_FORMAT_LABELS, processFlowSvg, type DiagramFormat,
   buildOpenApi, deriveTestViewpointSheet, generateTestData, scaffoldTests, TEST_FRAMEWORK_LABELS, testDataTableToCsv, testDataToInsertSql,
   type DesignDocInput, type SqlQuote, type TestFramework,
 } from "@harmony/shared";
 import { AnTable, Empty, Section } from "../ui";
 import { copyText, saveTextFile, withBom } from "../fileIo";
 
-type Sub = "scaffold" | "data" | "openapi";
-const SUBS: Array<{ id: Sub; label: string }> = [{ id: "scaffold", label: "テスト雛形" }, { id: "data", label: "テストデータ" }, { id: "openapi", label: "OpenAPI" }];
+type Sub = "scaffold" | "data" | "openapi" | "diagram";
+const SUBS: Array<{ id: Sub; label: string }> = [{ id: "scaffold", label: "テスト雛形" }, { id: "data", label: "テストデータ" }, { id: "openapi", label: "OpenAPI" }, { id: "diagram", label: "図 (Mermaid・PlantUML・SVG)" }];
 
 export function ExportTab({ input }: { input: DesignDocInput }) {
   const [sub, setSub] = useState<Sub>("scaffold");
@@ -20,7 +21,7 @@ export function ExportTab({ input }: { input: DesignDocInput }) {
       <nav className="an-subtabs" aria-label="書き出しの種類">
         {SUBS.map((s) => <button key={s.id} type="button" className={sub === s.id ? "on" : ""} aria-pressed={sub === s.id} onClick={() => setSub(s.id)}>{s.label}</button>)}
       </nav>
-      {sub === "scaffold" ? <Scaffold input={input} /> : sub === "data" ? <TestData input={input} /> : <OpenApi input={input} />}
+      {sub === "scaffold" ? <Scaffold input={input} /> : sub === "data" ? <TestData input={input} /> : sub === "diagram" ? <Diagrams input={input} /> : <OpenApi input={input} />}
     </div>
   );
 }
@@ -121,6 +122,62 @@ function OpenApi({ input }: { input: DesignDocInput }) {
       <p className="an-hint" data-testid="an-openapi-count">{res.operations} 操作を書き出し、HTTP の契約の無いアクション {res.skipped} 件は含めていません。</p>
       {res.warnings.length > 0 && <ul className="an-list an-warn">{res.warnings.map((w, i) => <li key={i}>{w}</li>)}</ul>}
       {res.operations > 0 && <Preview title="openapi.json" text={text} filename="openapi.json" mime="application/json" />}
+    </Section>
+  );
+}
+
+type DiagramPick = "mermaid" | "plantuml" | "svg";
+
+/** ER 図・画面遷移図・処理フロー図・業務フロー図を、他のドキュメントへ貼れる形で書き出す (設計は書き換えない) */
+function Diagrams({ input }: { input: DesignDocInput }) {
+  const targets = useMemo(() => diagramTargets(input), [input]);
+  const [idx, setIdx] = useState(0);
+  const [format, setFormat] = useState<DiagramPick>("mermaid");
+  const [actionIdx, setActionIdx] = useState(0);
+  const target = targets[Math.min(idx, targets.length - 1)];
+  const flow = target?.kind === "processFlow" ? input.flows.find((f) => f.meta.id === target.id) : undefined;
+  const svgOk = target?.kind === "processFlow" || target?.kind === "businessFlow";
+  const effective: DiagramPick = format === "svg" && !svgOk ? "mermaid" : format;
+  const result = useMemo(() => {
+    if (!target) return null;
+    if (effective === "svg") {
+      const svg = target.kind === "processFlow" ? processFlowSvg(input, target.id!, Math.min(actionIdx, Math.max((flow?.actions.length ?? 1) - 1, 0))) : businessFlowSvg(input, target.id!);
+      return svg ? { text: svg, ext: "svg", mime: "image/svg+xml" } : null;
+    }
+    const text = buildDiagramText(input, target, effective as DiagramFormat);
+    return text ? { text, ext: effective === "mermaid" ? "mmd" : "puml", mime: "text/plain" } : null;
+  }, [input, target, effective, actionIdx, flow]);
+  const file = `${target ? diagramFileStem(target) : "diagram"}.${result?.ext ?? "txt"}`;
+
+  return (
+    <Section title="図の書き出し" hint="ER 図・画面遷移図・処理フロー図・業務フロー図を、Markdown・Wiki・他の設計書に貼れる形で書き出します。Mermaid は GitHub や多くの Wiki がそのまま描画します。SVG は処理フロー・業務フローだけです (設計書と同じ描画)。" testId="an-diagrams">
+      <div className="an-form-row">
+        <label>図の対象
+          <select className="an-input" value={idx} onChange={(e) => { setIdx(Number(e.target.value)); setActionIdx(0); }} data-testid="an-diagram-target">
+            {targets.map((t, i) => <option key={`${t.kind}-${t.id ?? ""}`} value={i}>{t.label}</option>)}
+          </select>
+        </label>
+        <fieldset className="an-form-row" aria-label="形式" style={{ border: 0, padding: 0, margin: 0 }}>
+          {(["mermaid", "plantuml", "svg"] as DiagramPick[]).map((f) => (
+            <label key={f} className="an-check"><input type="radio" name="an-diagram-format" checked={effective === f} disabled={f === "svg" && !svgOk} onChange={() => setFormat(f)} data-testid={`an-diagram-format-${f}`} /> {f === "svg" ? "SVG" : DIAGRAM_FORMAT_LABELS[f]}</label>
+          ))}
+        </fieldset>
+        {flow && flow.actions.length > 1 && effective === "svg" && (
+          <label>処理 (SVG は 1 つずつ)
+            <select className="an-input" value={actionIdx} onChange={(e) => setActionIdx(Number(e.target.value))}>{flow.actions.map((a, i) => <option key={i} value={i}>{a.name ?? `処理 ${i + 1}`}</option>)}</select>
+          </label>
+        )}
+      </div>
+      {!result ? <Empty>この図は作れませんでした (対象の設計が見つかりません)。</Empty> : (
+        <div className="an-preview" data-testid="an-diagram-preview">
+          <div className="an-row"><b>{file}</b><span className="an-spacer" />
+            <button type="button" className="an-btn" onClick={() => void copyText(result.text)} data-testid="an-diagram-copy"><i className="bi bi-clipboard" /> コピー</button>
+            <button type="button" className="an-btn primary" onClick={() => saveTextFile(file, result.text, result.mime)} data-testid="an-diagram-save"><i className="bi bi-download" /> 保存</button>
+          </div>
+          {result.ext === "svg" && <div className="an-code an-paper" data-theme-audit-skip><img alt="図のプレビュー" src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(result.text)}`} style={{ maxWidth: "100%" }} /></div>}
+          <pre className="an-code"><code>{result.text}</code></pre>
+        </div>
+      )}
     </Section>
   );
 }

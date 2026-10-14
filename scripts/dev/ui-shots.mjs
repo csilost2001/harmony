@@ -75,6 +75,7 @@ const routes = [
   ["tech-stack", "/project/tech-stack"],
   ["document", "/document"],
   ["analysis", "/analysis"],
+  ["operations", "/operations"],
   ["report-list", "/report/list"],
   ["report-edit", `/report/edit/${firstId("reports") ?? "delivery-note"}`],
   ["business-flow-list", "/business-flow/list"],

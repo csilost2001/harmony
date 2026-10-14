@@ -18,8 +18,12 @@ const msg = (e: unknown): string => (e instanceof Error ? e.message : String(e))
 const obj = (p: unknown): Record<string, unknown> => (p && typeof p === "object" ? (p as Record<string, unknown>) : {});
 
 /** try/catch と応答を共通にする (エラーは、日本語の文のまま画面に出る) */
-const h = (fn: (c: RpcContext, p: Record<string, unknown>, actor: string) => Promise<unknown>) => async (c: RpcContext): Promise<void> => {
-  try { c.respond(await fn(c, obj(c.params), c.actor?.() ?? "")); } catch (e) { c.respondError(msg(e)); }
+const h = (fn: (c: RpcContext, p: Record<string, unknown>, actor: string) => Promise<unknown>, opts: { writes?: string } = {}) => async (c: RpcContext): Promise<void> => {
+  try {
+    c.respond(await fn(c, obj(c.params), c.actor?.() ?? ""));
+    // 書き込みのあとは、ほかの画面 (同じワークスペース) に、読み直しを促す
+    if (opts.writes) c.bridge.broadcast({ wsId: c.wsId(), event: "opsChanged", data: { scope: opts.writes }, excludeClientId: c.clientId });
+  } catch (e) { c.respondError(msg(e)); }
 };
 
 export const opsHandlers: RpcHandlerMap = {
@@ -31,7 +35,7 @@ export const opsHandlers: RpcHandlerMap = {
     const r = await templateStore.update(root, () => p.template as never, { discardUnreadable: p.discardUnreadable === true });
     void recordAudit(root, { actor, action: "設計書の体裁・改訂履歴を保存した", via: "ui" });
     return { template: r.value, problems: r.problems };
-  }),
+  }, { writes: "template" }),
   "revisions.suggest": h(async (c, p) => {
     const root = c.root();
     const t = (await templateStore.read(root)).value;
@@ -42,12 +46,12 @@ export const opsHandlers: RpcHandlerMap = {
 
   // ── 承認 ──
   "approvals.load": h(async (c) => listApprovals(c.root())),
-  "approvals.transition": h(async (c, p, actor) => transitionApproval(c.root(), actor, p as never)),
+  "approvals.transition": h(async (c, p, actor) => transitionApproval(c.root(), actor, p as never), { writes: "approvals" }),
 
   // ── レビューコメント ──
   "reviewComments.load": h(async (c) => commentsStore.read(c.root()).then((r) => ({ threads: r.value.threads, problems: r.problems }))),
-  "reviewComments.add": h(async (c, p, actor) => addComment(c.root(), actor, p)),
-  "reviewComments.resolve": h(async (c, p, actor) => { await resolveThread(c.root(), actor, p.threadId, p.resolved !== false); return { ok: true }; }),
+  "reviewComments.add": h(async (c, p, actor) => addComment(c.root(), actor, p), { writes: "comments" }),
+  "reviewComments.resolve": h(async (c, p, actor) => { await resolveThread(c.root(), actor, p.threadId, p.resolved !== false); return { ok: true }; }, { writes: "comments" }),
 
   // ── 利用者と権限 ──
   "access.load": h(async (c, _p, actor) => {
@@ -67,7 +71,7 @@ export const opsHandlers: RpcHandlerMap = {
     const r = await accessStore.update(root, () => next, { discardUnreadable: p.discardUnreadable === true });
     void recordAudit(root, { actor, action: "利用者と権限を保存した", detail: `${next.users.length} 人`, via: "ui" });
     return { access: r.value, problems: r.problems };
-  }),
+  }, { writes: "access" }),
 
   // ── 監査ログ ──
   "audit.list": h(async (c, p) => readAudit(c.root(), {
@@ -98,7 +102,7 @@ export const opsHandlers: RpcHandlerMap = {
     }, { discardUnreadable: p.discardUnreadable === true });
     void recordAudit(root, { actor, action: "通知先を保存した", detail: `${r.value.webhooks.length} 件`, via: "ui" });
     return { saved: r.value.webhooks.length };
-  }),
+  }, { writes: "notify" }),
   "notify.test": h(async (c, p, actor) => {
     const root = c.root();
     await requireRole(root, actor, "admin", "通知を試すこと");
@@ -122,21 +126,21 @@ export const opsHandlers: RpcHandlerMap = {
     void recordAudit(root, { actor, action: "Git でコミットした", target: r.commit, detail: String(p.message).slice(0, 120), via: "ui" });
     emitNotify(root, { event: "git", title: `コミットしました (${r.commit})`, lines: [`${actor || "(名前なし)"}: ${String(p.message).slice(0, 200)}`, `${r.files} ファイル`] });
     return r;
-  }),
+  }, { writes: "git" }),
   "git.checkout": h(async (c, p, actor) => {
     const root = c.root();
     await requireRole(root, actor, "editor", "ブランチを切り替えること");
     const r = await gitCheckout(root, p.branch as string, p.create === true);
     void recordAudit(root, { actor, action: p.create === true ? "Git でブランチを作った" : "Git でブランチを切り替えた", target: r.branch, via: "ui" });
     return r;
-  }),
+  }, { writes: "git" }),
   "git.init": h(async (c, _p, actor) => {
     const root = c.root();
     await requireRole(root, actor, "admin", "git のリポジトリを作ること");
     await gitInit(root);
     void recordAudit(root, { actor, action: "git init した", via: "ui" });
     return { ok: true };
-  }),
+  }, { writes: "git" }),
 
   // ── 生成の記録 (読み取り。記録は AI が MCP tool で残す) ──
   "generation.status": h(async (c) => generationStatus(c.root())),

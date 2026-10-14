@@ -210,6 +210,7 @@ function createMcpServer(sessionId: string): Server {
             const idArg = ["id", "tableId", "processFlowId", "screenId", "flowId", "reportId", "resourceId", "name", "path"].map((k) => argRecord[k]).find((v) => typeof v === "string") as string | undefined;
             void recordAudit(root, { actor: "AI", action: `AI が ${name.replace(/^designer__/, "")} を実行した`, ...(idArg ? { target: idArg } : {}), via: "ai" });
             scheduleIssueCheck(root);
+            wsBridge.broadcast({ wsId: root, event: "opsChanged", data: { scope: "ai" } });
           }
           return result;
         }
