@@ -479,6 +479,8 @@ export function ScreenItemsView() {
     const textLike = t instanceof HTMLTextAreaElement || t instanceof HTMLSelectElement || (t instanceof HTMLInputElement && t.type !== "checkbox");
     if (textLike) return;
     const k = e.key.toLowerCase();
+    // ページ上で文字を選んでいるときの Ctrl+C は、ふつうのコピー (選んだ項目のコピーより優先)
+    if (k === "c" && (window.getSelection()?.toString() ?? "") !== "") return;
     if (k === "c" && selectedIndices.size > 0) { e.preventDefault(); handleCopySelected(); }
     else if (k === "v" && clipboard.hasContent && !isReadonly) { e.preventDefault(); handlePasteClipboard(); }
   }, [gridKeys, selectedIndices, handleCopySelected, handlePasteClipboard, clipboard.hasContent, isReadonly]);

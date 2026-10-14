@@ -14,7 +14,7 @@ import { showToast } from "../../utils/toast";
 import { onHeaderPanelRequest } from "../../utils/headerPanels";
 import { CONTENT_ROUTES } from "../../utils/quickOpen";
 import {
-  REPLACE_KIND_ICONS, REPLACE_KIND_LABELS, afterSegments, groupByEntity, replaceableKeys, splitByQuery,
+  REPLACE_KIND_ICONS, REPLACE_KIND_LABELS, afterSegments, becomesEmpty, groupByEntity, replaceableKeys, splitByQuery,
   type EntityGroup, type ReplacePreview, type ReplaceResult, type Segment,
 } from "../../utils/replaceView";
 import "../../styles/pasteColumns.css";
@@ -170,7 +170,7 @@ function ReplacePanel({ onClose }: { onClose: () => void }) {
               <div className="rp-summary" data-testid="replace-summary">
                 {preview.data.total === 0
                   ? `「${preview.query}」に合う文章は、見つかりませんでした。`
-                  : `${preview.data.total} か所 (${preview.data.entities} 件の設計) が見つかりました。${preview.data.truncated ? `一覧には先頭の ${preview.data.candidates.length} か所だけ出しています。` : ""}`}
+                  : `${preview.data.total} か所 (${preview.data.entities} 件の設計) が見つかりました。${preview.data.truncated ? `一覧には先頭の ${preview.data.candidates.length} か所だけ出しています (「すべて選ぶ」も、この分だけです。置換したあと、もう一度探して続けられます)。` : ""}`}
                 {preview.data.blocked.length > 0 && ` 編集中の ${preview.data.blocked.length} 件は、置換できません。`}
               </div>
               {preview.data.candidates.length > 0 && (
@@ -202,6 +202,7 @@ function ReplacePanel({ onClose }: { onClose: () => void }) {
                                 onChange={(e) => setSelected((cur) => { const n = new Set(cur); if (e.target.checked) n.add(c.key); else n.delete(c.key); return n; })} data-testid="replace-item" />
                               <span className="rp-where">{c.where}</span>
                             </label>
+                            {becomesEmpty(c) && <div className="rp-empty-warn" data-testid="replace-empty-warn"><i className="bi bi-exclamation-triangle" /> 置換すると空になります (名前が空だと、設計の要確認が出ます)。使うときは、自分で選んでください</div>}
                             <div className="rp-diff">
                               <span className="rp-before">{marks(splitByQuery(c.before, preview.query, preview.caseSensitive), "rp-hit-before")}</span>
                               <i className="bi bi-arrow-right" aria-label="から" />

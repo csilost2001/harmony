@@ -248,6 +248,9 @@ test.describe("設計全体の検索置換", () => {
     const changed = await fs.readFile(file, "utf-8");
     expect(changed).toContain(`${name}(置換試験)`);
     expect(JSON.parse(changed).physicalName).toBe(JSON.parse(original).physicalName);
+    // 一覧が読む登録簿 (harmony.json) の名前も直る
+    const registry = JSON.parse(await fs.readFile(path.join(ws.workspacePath, "harmony.json"), "utf-8")) as { entities: { tables: Array<{ id: string; name: string }> } };
+    expect(registry.entities.tables.find((t) => t.id === "customer-master")?.name).toBe(`${name}(置換試験)`);
     await page.getByTestId("replace-undo").first().click();
     await expect.poll(async () => fs.readFile(file, "utf-8"), { timeout: 15000 }).toBe(original);
   });
@@ -283,6 +286,45 @@ test.describe("キーボード", () => {
     const firstId = await nodes.first().getAttribute("data-node-id");
     await page.keyboard.press("ArrowDown");
     await expect.poll(async () => page.locator("[data-node-id].selected, [data-node-id][aria-selected=true], [data-node-id].is-selected").first().getAttribute("data-node-id").catch(() => null)).not.toBe(firstId);
+  });
+});
+
+test.describe("画面フロー", () => {
+  test("遷移を追加: 遷移元・遷移先を選んで、線を引かずに画面遷移を足せる", async ({ page }) => {
+    await ws.gotoActive(page, "/screen/flow");
+    await startEditing(page);
+    const edges = page.locator(".react-flow__edge");
+    await expect(edges.first()).toBeVisible({ timeout: 15000 });
+    const n0 = await edges.count();
+    await page.getByTestId("add-transition-btn").click();
+    await expect(page.getByTestId("add-transition-dialog")).toBeVisible();
+    await page.getByTestId("add-transition-source").selectOption({ index: 0 });
+    await page.getByTestId("add-transition-target").selectOption({ index: 2 });
+    await page.getByTestId("add-transition-apply").click();
+    await expect.poll(async () => page.locator(".react-flow__edge").count(), { timeout: 10000 }).toBeGreaterThan(n0);
+  });
+});
+
+test.describe("画面フローのキーボード移動", () => {
+  test("画面を選んで矢印キーで動かすと、位置が保存され、再読み込みしても残る", async ({ page }) => {
+    await ws.gotoActive(page, "/screen/flow");
+    await startEditing(page);
+    const node = page.locator(".react-flow__node").first();
+    await expect(node).toBeVisible({ timeout: 15000 });
+    const id = (await node.getAttribute("data-id")) ?? "";
+    const pos = async () => page.locator(`.react-flow__node[data-id="${id}"]`).evaluate((el) => (el as HTMLElement).style.transform);
+    const before = await pos();
+    await node.focus();
+    await page.keyboard.press("Space"); // キーボードで、フォーカスしたノードを選ぶ (React Flow の標準)
+    for (let i = 0; i < 8; i++) await page.keyboard.press("Shift+ArrowRight");
+    await page.waitForTimeout(800); // 操作が落ち着いてから、位置が保存へ回る
+    const moved = await pos();
+    expect(moved).not.toBe(before);
+    await page.getByTestId("edit-mode-save").click();
+    await expect(page.getByTestId("edit-mode-save")).not.toBeDisabled({ timeout: 15000 });
+    await page.reload();
+    await expect(page.locator(`.react-flow__node[data-id="${id}"]`)).toBeVisible({ timeout: 20000 });
+    expect(await pos()).toBe(moved);
   });
 });
 

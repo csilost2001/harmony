@@ -29,6 +29,12 @@ describe("afterSegments", () => {
 const cand = (kind: ReplaceCandidate["kind"], id: string, n: number): ReplaceCandidate => ({ key: `${kind}:${id}#${n}`, kind, id, entityName: id, where: "名前", before: "a", after: "b" });
 
 describe("groupByEntity / replaceableKeys", () => {
+  it("置換後が空になる候補は、初めから選ばない (名前が空になるのを避ける)", () => {
+    const empty = { ...cand("table", "t1", 9), after: "  " };
+    const groups = groupByEntity([cand("table", "t1", 1), empty], []);
+    expect(replaceableKeys(groups)).toEqual(["table:t1#1"]);
+  });
+
   it("設計ごとにまとめ、編集中の設計は理由つき。置換できる key だけ取り出せる", () => {
     const groups = groupByEntity([cand("table", "t1", 1), cand("table", "t1", 2), cand("screen", "s1", 1)], [{ kind: "table", id: "t1", reason: "編集中" }]);
     expect(groups.map((g) => [g.kind, g.id, g.items.length, g.blocked])).toEqual([["table", "t1", 2, "編集中"], ["screen", "s1", 1, null]]);

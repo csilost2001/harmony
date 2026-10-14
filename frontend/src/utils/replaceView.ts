@@ -78,7 +78,12 @@ export function groupByEntity(candidates: readonly ReplaceCandidate[], blocked: 
   return [...groups.values()];
 }
 
-/** 置換できる (編集中でない) 候補の key */
+/** 置換後が空になる候補か (名前が空になると、設計の要確認が出る。初めから選ばず、利用者が選ぶ) */
+export function becomesEmpty(c: ReplaceCandidate): boolean {
+  return c.after.trim() === "";
+}
+
+/** 置換できる (編集中でない) 候補の key。置換後が空になるものは含めない */
 export function replaceableKeys(groups: readonly EntityGroup[]): string[] {
-  return groups.filter((g) => !g.blocked).flatMap((g) => g.items.map((c) => c.key));
+  return groups.filter((g) => !g.blocked).flatMap((g) => g.items.filter((c) => !becomesEmpty(c)).map((c) => c.key));
 }

@@ -362,7 +362,7 @@ export function ReportEditor() {
         </aside>
 
         {/* 中央: 用紙の見本 */}
-        <main className="bfe-center">
+        <section className="bfe-center" aria-label="帳票の用紙">
           <div className="rpe-stage">
             <div ref={paperRef} className="rpe-paper-wrap" onClick={onPaperClick} onKeyDown={onPaperKey} onDragStart={onPaperDragStart} onDragOver={onPaperDragOver} onDrop={onPaperDrop} onDragEnd={onPaperDragEnd} data-testid="rp-paper-view" data-theme-audit-skip dangerouslySetInnerHTML={{ __html: html }} />
           </div>
@@ -379,7 +379,7 @@ export function ReportEditor() {
               </ul>
             )}
           </section>
-        </main>
+        </section>
 
         {/* 右: 設定 */}
         <aside className="bfe-right" aria-label="設定" data-testid="rp-inspector">

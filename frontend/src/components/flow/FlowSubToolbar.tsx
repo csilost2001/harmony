@@ -202,8 +202,8 @@ export function FlowSubToolbar({
             </button>
           )}
           {onAddTransition && (
-            <button className="flow-btn flow-btn-secondary" onClick={onAddTransition} title="遷移元と遷移先の画面を選んで、画面遷移を追加 (線を引く代わりのキーボード操作)" data-testid="add-transition-btn">
-              <i className="bi bi-arrow-right-circle" /> 遷移を追加
+            <button className="flow-btn flow-btn-secondary" onClick={onAddTransition} title="遷移を追加: 遷移元と遷移先の画面を選んで、画面遷移を追加 (線を引く代わりのキーボード操作)" aria-label="遷移を追加" data-testid="add-transition-btn">
+              <i className="bi bi-arrow-right-circle" />
             </button>
           )}
           <button className="flow-btn flow-btn-secondary" onClick={onAddGroup} title="グループを追加">

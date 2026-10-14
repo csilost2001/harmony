@@ -34,6 +34,16 @@ function blockedCheck(bridge: WsBridge, wsId: string | null): BlockedCheck {
   };
 }
 
+/** 登録簿 (harmony.json) を、画面フローの編集セッションが持っているか。あれば、一覧に映る名前の置換は、あとの保存で巻き戻る */
+function registryBlockedReason(bridge: WsBridge, wsId: string | null): string | null {
+  if (!wsId) return null;
+  for (const es of bridge.editSessionListByResource(wsId, "flow", "singleton")) {
+    if (es.state !== "Active") continue;
+    for (const [, p] of es.participants) if (p.role === "Edit") return "画面フローを編集中のため、一覧に映る名前は置換できません (保存か破棄をしてから)";
+  }
+  return null;
+}
+
 function readOptions(params: unknown): ReplaceOptions {
   const p = (params ?? {}) as Record<string, unknown>;
   return {
@@ -57,12 +67,13 @@ export const replaceHandlers: RpcHandlerMap = {
   "designReplace.apply": async ({ params, root, wsId, respond, respondError, bridge }) => {
     try {
       const selected = ((params ?? {}) as { selected?: unknown }).selected;
-      const res = await applyReplace(root(), readOptions(params), Array.isArray(selected) ? (selected as ReplaceSelection[]) : [], blockedCheck(bridge, wsId()));
+      const res = await applyReplace(root(), readOptions(params), Array.isArray(selected) ? (selected as ReplaceSelection[]) : [], blockedCheck(bridge, wsId()), registryBlockedReason(bridge, wsId()));
       respond(res);
       // 応答のあとで通知する。開いている画面が古い文言のまま保存して、置換を巻き戻さないよう、起点のクライアントにも届ける
       if (res.files > 0) {
         const kinds = new Set(res.touched.map((t) => KIND_TO_EVENT[t.kind]));
         for (const ev of RENAME_RELOAD_EVENTS) bridge.broadcast({ wsId: wsId(), event: ev, data: { reload: true } });
+        bridge.broadcast({ wsId: wsId(), event: "projectChanged", data: { reload: true } }); // 一覧が読む登録簿 (harmony.json)
         for (const ev of kinds) bridge.broadcast({ wsId: wsId(), event: ev, data: { reload: true } });
       }
     } catch (e) { respondError(e instanceof Error ? e.message : String(e)); }
@@ -76,7 +87,10 @@ export const replaceHandlers: RpcHandlerMap = {
       const opRoot = findReplaceUndoRoot(operationId as string) ?? root();
       const res = await undoReplace(opRoot, operationId as string);
       respond(res);
-      if (res.restored > 0) for (const ev of RENAME_RELOAD_EVENTS) bridge.broadcast({ wsId: wsId(), event: ev, data: { reload: true } });
+      if (res.restored > 0) {
+        for (const ev of RENAME_RELOAD_EVENTS) bridge.broadcast({ wsId: wsId(), event: ev, data: { reload: true } });
+        bridge.broadcast({ wsId: wsId(), event: "projectChanged", data: { reload: true } });
+      }
     } catch (e) { respondError(e instanceof Error ? e.message : String(e)); }
   },
 

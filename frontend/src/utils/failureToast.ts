@@ -74,7 +74,8 @@ export function reportFailure(e: unknown, what?: string, retry?: () => void): vo
 
 /**
  * 操作 (保存など) を実行し、失敗したら通知する。通知と通知の履歴に「再試行」が付き、押すと同じ操作をもう一度実行する。
- * `() => handleSave()` のように、何度呼んでも同じ意味になる操作だけに使う。
+ * `() => handleSave()` のように、何度呼んでも同じ意味になる操作だけに使う。再試行は、渡した関数をそのまま呼び直すので、
+ * 保存のように、呼ぶ時点の最新の内容を (ref などで) 読む関数に限る (描画時の値を握ったままの関数だと、古い内容を保存してしまう)。
  */
 export function runReporting(fn: () => Promise<unknown>, what: string): void {
   const run = () => { fn().catch((e) => reportFailure(e, what, run)); };

@@ -28,3 +28,4 @@
 .rp-diff > i { color: var(--hm-fg-faint); }
 .rp-hit-before { background: color-mix(in srgb, var(--hm-danger) 20%, transparent); color: inherit; border-radius: 2px; text-decoration: line-through; }
 .rp-hit-after { background: color-mix(in srgb, var(--hm-success) 22%, transparent); color: inherit; border-radius: 2px; }
+.rp-empty-warn { margin: 2px 0; font-size: calc(11.5px * var(--hm-font-scale)); color: var(--hm-warning); }

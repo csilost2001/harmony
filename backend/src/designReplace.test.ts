@@ -16,7 +16,11 @@ async function seed() {
   await fs.mkdir(path.join(ROOT, "harmony", "tables"), { recursive: true });
   await fs.writeFile(path.join(ROOT, "harmony.json"), JSON.stringify({
     schemaVersion: "v3", dataDir: "harmony",
-    meta: { id: "00000000-0000-4000-8000-00000000000c", name: "t", createdAt: ts, updatedAt: ts }, entities: {},
+    meta: { id: "00000000-0000-4000-8000-00000000000c", name: "t", createdAt: ts, updatedAt: ts },
+    entities: {
+      tables: [{ id: "orders", no: 1, name: "顧客注文", physicalName: "customer_orders", maturity: "draft", updatedAt: ts }],
+      processFlows: [{ id: "order-confirm", no: 1, name: "注文確定", flowType: "common", maturity: "draft", updatedAt: ts }],
+    },
   }));
   await writeTable("orders", {
     id: "orders", uuid: "44444444-4444-4444-8444-444444444441", physicalName: "customer_orders", name: "顧客注文", comment: "顧客ごとの受注", createdAt: ts, updatedAt: ts,
@@ -105,7 +109,7 @@ describe("検索置換の適用", () => {
     const chosen = pick(p.candidates.filter((c) => c.kind === "table" && c.before !== "顧客ごとの受注"));
     const r = await applyReplace(ROOT, opts("顧客", "取引先"), chosen);
     expect(r.replaced).toBe(chosen.length);
-    expect(r.files).toBe(1);
+    expect(r.files).toBe(2); // 設計のファイル 1 + 登録簿 (harmony.json。一覧が読む名前)
     expect(r.skipped).toEqual([]);
     const t = await readTable("orders", ROOT) as { name: string; comment: string; physicalName: string; columns: Array<{ name: string; comment?: string; physicalName: string }> };
     expect(t.name).toBe("取引先注文");
@@ -179,5 +183,53 @@ describe("検索置換の取り消し", () => {
     expect(u.conflicts).toEqual(["tables/orders.json"]);
     expect((await readTable("orders", ROOT) as { comment: string }).comment).toBe("あとで書いた備考");
     expect(u.restored).toBe(r.files - 1);
+  });
+});
+
+describe("登録簿 (harmony.json) と書き込み前の確認", () => {
+  const reg = async () => JSON.parse(await fs.readFile(path.join(ROOT, "harmony.json"), "utf-8")) as { entities: Record<string, Array<{ id: string; name: string }>> };
+
+  it("設計の名前を置換したら、一覧が読む登録簿の名前も同じ操作で直る。取り消すと、登録簿も戻る", async () => {
+    const before = await reg();
+    expect(before.entities.tables?.find((t) => t.id === "orders")?.name).toBe("顧客注文");
+    const original = await fs.readFile(path.join(ROOT, "harmony.json"), "utf-8");
+    const p = await previewReplace(ROOT, opts("顧客注文", "取引先注文"));
+    const r = await applyReplace(ROOT, opts("顧客注文", "取引先注文"), pick(p.candidates));
+    expect((await reg()).entities.tables.find((t) => t.id === "orders")?.name).toBe("取引先注文");
+    expect(r.files).toBe(2); // 設計のファイル + 登録簿
+    const u = await undoReplace(ROOT, r.operationId!);
+    expect(u.conflicts).toEqual([]);
+    expect(await fs.readFile(path.join(ROOT, "harmony.json"), "utf-8")).toBe(original);
+  });
+
+  it("処理フローの名前は meta.name で、登録簿の名前も直る", async () => {
+    const q = await previewReplace(ROOT, opts("注文確定", "注文の確定"));
+    await applyReplace(ROOT, opts("注文確定", "注文の確定"), pick(q.candidates));
+    expect((await reg()).entities.processFlows.find((t) => t.id === "order-confirm")?.name).toBe("注文の確定");
+  });
+
+  it("登録簿を画面フローが編集中なら、一覧に映る名前の置換は飛ばし、ほかの欄 (備考など) は置換する", async () => {
+    const p = await previewReplace(ROOT, opts("顧客", "取引先"));
+    const r = await applyReplace(ROOT, opts("顧客", "取引先"), pick(p.candidates), () => null, "画面フローを編集中");
+    expect(r.skipped.some((s) => s.key === candidateKey("table", "orders", "name") && s.reason === "画面フローを編集中")).toBe(true);
+    const t = await readTable("orders", ROOT) as { name: string; comment: string };
+    expect(t.name).toBe("顧客注文"); // 名前は変えない (登録簿とずれないように)
+    expect(t.comment).toBe("取引先ごとの受注");
+  });
+
+  it("書き込みの直前に、設計が書き換えられていたら、その設計は書かずに飛ばす", async () => {
+    const p = await previewReplace(ROOT, opts("顧客", "取引先"));
+    let touched = false;
+    const r = await applyReplace(ROOT, opts("顧客", "取引先"), pick(p.candidates), (kind, id) => {
+      // 走査のあと・書き込みの前に、ほかの経路 (MCP の保存など) が、ファイルを書き換える
+      if (!touched && kind === "table" && id === "orders") { touched = true; void fs.writeFile(path.join(ROOT, "harmony", "tables", "orders.json"), "{}", "utf-8"); }
+      return null;
+    });
+    // 同期的に書き換わるとは限らないので、書き換え後の状態だけ確かめる
+    await new Promise((res) => setTimeout(res, 50));
+    expect(touched).toBe(true);
+    expect(r.replaced + r.skipped.length).toBeGreaterThan(0);
+    const now = await fs.readFile(path.join(ROOT, "harmony", "tables", "orders.json"), "utf-8");
+    expect(now === "{}" || now.includes("取引先")).toBe(true);
   });
 });

@@ -158,3 +158,31 @@ describe("serverLog", () => {
     expect(lines.every((l) => { try { JSON.parse(l); return true; } catch { return false; } })).toBe(true); // 切れた行を含まない
   });
 });
+
+describe("ログのマスク (読み返すときも)", () => {
+  beforeEach(() => { tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "backend-log-mask-")); initServerLog(tmpRoot); });
+  afterEach(() => { delete process.env.HARMONY_AUTH_TOKEN; shutdownServerLog(); try { fs.rmSync(tmpRoot, { recursive: true, force: true }); } catch { /* ignore */ } });
+
+  it("Basic 認証・URL の認証情報・x-api-key・AWS のキー・自由な文中の接続トークンの値は、ファイルにも、返す行にも出ない", () => {
+    process.env.HARMONY_AUTH_TOKEN = "tok-abcdef123456";
+    log("info", "mask", "headers", { auth: "Authorization: Basic dXNlcjpwYXNz", db: "postgres://admin:s3cr3tpw@db.example/app", key: "x-api-key: ZZZ999secretvalue", aws: "AKIAIOSFODNN7EXAMPLE" });
+    log("info", "mask", "接続トークンは tok-abcdef123456 です");
+    const file = readLatestLogFile();
+    const lines = readLogTail(10);
+    for (const text of [file, lines.join("\n")]) {
+      expect(text).not.toContain("dXNlcjpwYXNz");
+      expect(text).not.toContain("s3cr3tpw");
+      expect(text).not.toContain("ZZZ999secretvalue");
+      expect(text).not.toContain("AKIAIOSFODNN7EXAMPLE");
+      expect(text).not.toContain("tok-abcdef123456");
+    }
+    expect(lines.join("\n")).toContain("db.example"); // ホスト名など、秘密でない部分は残す
+  });
+
+  it("読み返すときにも隠す: 隠す前の形で書かれていた古い行も、返すときには隠れる", () => {
+    const dir = path.join(tmpRoot, "logs");
+    const name = fs.readdirSync(dir).find((f) => f.endsWith(".log")) as string;
+    fs.appendFileSync(path.join(dir, name), JSON.stringify({ ts: "x", level: "info", category: "old", msg: "Authorization: Basic b2xkOm9sZA==" }) + "\n");
+    expect(readLogTail(5).join("\n")).not.toContain("b2xkOm9sZA==");
+  });
+});

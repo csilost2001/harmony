@@ -12,7 +12,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
-import { resolveDataRoot, writeJSON } from "./storageCore.js";
+import { harmonyFile, resolveDataRoot, writeJSON } from "./storageCore.js";
 import { acquireWorkspaceLock } from "./renameLock.js";
 import { openJournal, planFromAbsolute } from "./operationJournal.js";
 import { backupBeforeOverwrite } from "./fileBackup.js";
@@ -66,6 +66,19 @@ export interface ReplacePreview {
 
 /** 設計が編集中なら、その理由。なければ null (呼び出し側が、編集セッションの状況から答える) */
 export type BlockedCheck = (kind: ReplaceKind, id: string) => string | null;
+
+// ── 登録簿 (harmony.json) ──
+
+/** 一覧が読む登録簿 (harmony.json の entities) の項目。名前を持つ設計は、設計のファイルと登録簿の両方の名前を直さないと、一覧・クイックオープン・タブの題だけが古いままになる */
+const REGISTRY_KEY: Partial<Record<ReplaceKind, string>> = {
+  "screen": "screens", "table": "tables", "process-flow": "processFlows", "sequence": "sequences", "view": "views",
+  "view-definition": "viewDefinitions", "page-layout": "pageLayouts",
+};
+
+/** 登録簿の名前に映る欄 (処理フローは meta.name、ほかは name) か */
+function isRegistryName(kind: ReplaceKind, ptr: string): boolean {
+  return REGISTRY_KEY[kind] !== undefined && ptr === (kind === "process-flow" ? "meta/name" : "name");
+}
 
 // ── 走査 ────────────────────────────────────────────────────────────────
 
@@ -304,7 +317,11 @@ export interface ReplaceResult {
 /** 適用で選ぶもの。`before` は予行で見せた元の文言 (いま違えば、予行のあとに変えられたので飛ばす) */
 export interface ReplaceSelection { key: string; before: string }
 
-export async function applyReplace(root: string, opts: ReplaceOptions, selected: readonly ReplaceSelection[], isBlocked: BlockedCheck = () => null): Promise<ReplaceResult> {
+export async function applyReplace(
+  root: string, opts: ReplaceOptions, selected: readonly ReplaceSelection[], isBlocked: BlockedCheck = () => null,
+  /** 登録簿 (harmony.json) を編集中 (画面フローの編集セッション) の理由。あれば、一覧に映る名前の置換は飛ばす (あとの保存で、登録簿が巻き戻るため) */
+  registryBlocked: string | null = null,
+): Promise<ReplaceResult> {
   assertOptions(opts);
   if (!Array.isArray(selected) || selected.length === 0) throw new Error("置換するものを選んでください");
   if (selected.length > SELECT_MAX) throw new Error(`一度に置換できるのは ${SELECT_MAX} 件までです`);
@@ -326,6 +343,7 @@ export async function applyReplace(root: string, opts: ReplaceOptions, selected:
       for (const f of mine) {
         const key = candidateKey(s.target.kind, s.target.id, f.ptr);
         seen.add(key);
+        if (registryBlocked && isRegistryName(s.target.kind, f.ptr)) { skipped.push({ key, reason: registryBlocked }); continue; }
         // 予行で見せた文言のままのものだけ置換する (予行のあとに変えられたものは、見せていない結果になるので飛ばす)
         if (want.get(key) !== f.value || getAt(next, f.ptr) !== f.value || !setAt(next, f.ptr, replaceIn(f.value, opts))) { skipped.push({ key, reason: "文言が変わっていたので、飛ばしました" }); continue; }
         done++;
@@ -335,26 +353,70 @@ export async function applyReplace(root: string, opts: ReplaceOptions, selected:
     for (const k of want.keys()) if (!seen.has(k) && !skipped.some((x) => x.key === k)) skipped.push({ key: k, reason: "もう一致しない (文言が変わった・設計が消えた) ので、飛ばしました" });
     if (plans.length === 0) return { operationId: null, replaced: 0, files: 0, skipped, touched: [] };
 
+    // 書き込みの直前に、走査したときのまま変わっていないかを、すべて確かめる。変わっていたものは書かず、飛ばす
+    // (編集セッションを使わない保存 (MCP など) は、この排他を取らないので、走査から書き込みのあいだに変えられうる)
+    const live: typeof plans = [];
+    for (const p of plans) {
+      const now = await fs.readFile(p.s.target.abs, "utf-8").catch(() => null);
+      if (now === p.s.text) { live.push(p); continue; }
+      for (const f of p.s.found) {
+        const key = candidateKey(p.s.target.kind, p.s.target.id, f.ptr);
+        if (want.has(key) && !skipped.some((x) => x.key === key)) skipped.push({ key, reason: "置換の直前に、設計が書き換えられていたので、飛ばしました" });
+      }
+    }
+    if (live.length === 0) return { operationId: null, replaced: 0, files: 0, skipped, touched: [] };
+
+    // 一覧が読む登録簿 (harmony.json) の名前も、同じ操作で直す (設計のファイルだけ直すと、一覧・Ctrl+K・タブの題が古いままになる)
+    const regUpdates: Array<{ key: string; id: string; name: string }> = [];
+    for (const p of live) {
+      const key = REGISTRY_KEY[p.s.target.kind];
+      if (!key) continue;
+      const ptr = p.s.target.kind === "process-flow" ? "meta/name" : "name";
+      if (!p.s.found.some((f) => f.ptr === ptr && want.has(candidateKey(p.s.target.kind, p.s.target.id, f.ptr)))) continue;
+      const nameNow = getAt(p.next, ptr);
+      if (typeof nameNow === "string" && nameNow !== getAt(JSON.parse(p.s.text), ptr)) regUpdates.push({ key, id: p.s.target.id, name: nameNow });
+    }
+    const files: UndoFile[] = live.map((p) => ({ rel: p.s.target.rel, abs: p.s.target.abs, original: p.s.text, replaced: JSON.stringify(p.next, null, 2) }));
+    const nextOf = new Map<string, unknown>(live.map((p) => [p.s.target.abs, p.next]));
+    if (regUpdates.length > 0) {
+      const regAbs = harmonyFile(root);
+      const regText = await fs.readFile(regAbs, "utf-8").catch(() => null);
+      let reg: unknown = null;
+      try { reg = regText === null ? null : JSON.parse(regText); } catch { /* 壊れていれば、登録簿は触らない */ }
+      if (regText !== null && isRecord(reg) && isRecord(reg.entities)) {
+        let changed = false;
+        for (const u of regUpdates) {
+          const list = (reg.entities as Record<string, unknown>)[u.key];
+          const entry = Array.isArray(list) ? list.find((e) => isRecord(e) && e.id === u.id) : undefined;
+          if (isRecord(entry) && entry.name !== u.name) { entry.name = u.name; changed = true; }
+        }
+        if (changed) {
+          files.push({ rel: "harmony.json", abs: regAbs, original: regText, replaced: JSON.stringify(reg, null, 2) });
+          nextOf.set(regAbs, reg);
+        }
+      }
+    }
+
     // 途中で止まっても元に戻せるよう、書き換える前の内容を先に記録する
-    const files: UndoFile[] = plans.map((p) => ({ rel: p.s.target.rel, abs: p.s.target.abs, original: p.s.text, replaced: JSON.stringify(p.next, null, 2) }));
     const done = await openJournal(root, planFromAbsolute(root, `replace "${opts.query}" -> "${opts.replacement}"`, files.map((f) => ({ absPath: f.abs, content: f.original })), []));
     const written: UndoFile[] = [];
     try {
-      for (let i = 0; i < plans.length; i++) {
-        await writeJSON(files[i].abs, plans[i].next); // 一時ファイル → 置き換え + 保存前の版の世代
-        written.push(files[i]);
+      for (const f of files) {
+        await writeJSON(f.abs, nextOf.get(f.abs)); // 一時ファイル → 置き換え + 保存前の版の世代
+        written.push(f);
       }
     } catch (e) {
-      // 途中で失敗: 書いたものを元に戻す (戻せたものを数えて、原因を返す)
-      for (const f of written) await writeTextAtomic(f.abs, f.original).catch(() => undefined);
-      await done();
-      throw e;
+      // 途中で失敗: 書いたものを元に戻す。戻せないものがあれば、復旧用の記録 (.harmony-journal) を残す (次の起動で戻す)
+      let restoreFailed = false;
+      for (const f of written) await writeTextAtomic(f.abs, f.original).catch(() => { restoreFailed = true; });
+      if (!restoreFailed) await done();
+      throw new Error(`${e instanceof Error ? e.message : String(e)}${restoreFailed ? " (書き換えたファイルの一部を元に戻せませんでした。次の起動で、記録から元に戻します)" : ""}`);
     }
     await done();
-    const replaced = plans.reduce((n, p) => n + p.done, 0);
+    const replaced = live.reduce((n, p) => n + p.done, 0);
     const id = crypto.randomUUID();
     pushUndo(root, { id, ts: Date.now(), files, replaced, query: opts.query, replacement: opts.replacement });
-    return { operationId: id, replaced, files: files.length, skipped, touched: plans.map((p) => ({ kind: p.s.target.kind, id: p.s.target.id })) };
+    return { operationId: id, replaced, files: files.length, skipped, touched: live.map((p) => ({ kind: p.s.target.kind, id: p.s.target.id })) };
   } finally { release(); }
 }
 

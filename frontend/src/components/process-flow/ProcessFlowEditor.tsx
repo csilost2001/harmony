@@ -97,6 +97,7 @@ import { reportFailure } from "../../utils/failureToast";
 import { useListClipboard } from "../../hooks/useListClipboard";
 import { SnippetMenu } from "../common/SnippetMenu";
 import { showToast } from "../../utils/toast";
+import { cloneStepsWithNewIds } from "../../utils/stepClone";
 
 export function ProcessFlowEditor() {
   const { processFlowId } = useParams<{ processFlowId: string }>();
@@ -720,21 +721,8 @@ export function ProcessFlowEditor() {
       // #1332 Codex 10 巡目 M1: paste 系の id 採番を LocalId (schema 規範) に統一。
       // 複数 step 同時 paste の衝突を避けるため existingIds を共有更新する。
       const existingIds = collectAllProcessFlowLocalIds(g);
-      const newSteps = srcSteps.map((s) => {
-        const clone = JSON.parse(JSON.stringify(s)) as Step;
-        const newId = nextLocalId(existingIds, "step", 2);
-        existingIds.add(newId);
-        clone.id = newId as LocalId;
-        const cloneWithSubs = clone as StepWithSubSteps;
-        if (cloneWithSubs.subSteps) {
-          cloneWithSubs.subSteps = cloneWithSubs.subSteps.map((sub) => {
-            const subId = nextLocalId(existingIds, "step", 2);
-            existingIds.add(subId);
-            return { ...sub, id: subId as LocalId };
-          });
-        }
-        return clone;
-      });
+      // 入れ子の中 (分岐・ループ・トランザクションなど、どの深さでも) の ID も新しくする
+      const newSteps = cloneStepsWithNewIds(srcSteps, existingIds);
       act.steps.splice(targetIndex, 0, ...newSteps);
     });
     setSelectedIds(new Set());

@@ -293,7 +293,7 @@ export function BusinessFlowEditor() {
         </aside>
 
         {/* 中央: 図と要確認 */}
-        <main className="bfe-center">
+        <section className="bfe-center" aria-label="業務フローの図">
           <div className="bfe-zoom" role="group" aria-label="図の大きさ">
             <button type="button" className="bfe-btn" onClick={() => setZoom((z) => Math.max(0.4, +(z - 0.1).toFixed(2)))} aria-label="縮小" data-testid="bf-zoom-out"><i className="bi bi-zoom-out" /></button>
             <span className="bfe-zoom-val" data-testid="bf-zoom-val">{Math.round(zoom * 100)}%</span>
@@ -314,7 +314,7 @@ export function BusinessFlowEditor() {
               </ul>
             )}
           </section>
-        </main>
+        </section>
 
         {/* 右: 設定 */}
         <aside className="bfe-right" aria-label="設定" data-testid="bf-inspector">
