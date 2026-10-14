@@ -34,6 +34,9 @@ export function recordAudit(root: string, e: Omit<AuditEntry, "at"> & { at?: str
   return p;
 }
 
+/** 追記待ちが、すべて書き終わるまで待つ (試験・終了の前に使う) */
+export const flushAudit = (): Promise<unknown> => queue.catch(() => undefined);
+
 export interface AuditQuery { actor?: string; action?: string; q?: string; since?: string; until?: string; limit?: number }
 
 export function parseAuditLines(text: string): AuditEntry[] {

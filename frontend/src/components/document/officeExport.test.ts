@@ -216,3 +216,41 @@ describe("図の書き出し (Mermaid / PlantUML / SVG)", () => {
     expect(businessFlowSvg(input, "none")).toBeNull();
   });
 });
+
+describe("officeExport (画面から使う入口)", () => {
+  const root = path.resolve(__dirname, "../../../../examples/retail");
+  const readDir = (d: string, f = (n: string) => n.endsWith(".json")) =>
+    fs.readdirSync(path.join(root, "harmony", d)).filter(f).map((n) => JSON.parse(fs.readFileSync(path.join(root, "harmony", d, n), "utf-8")));
+  const harmony = JSON.parse(fs.readFileSync(path.join(root, "harmony.json"), "utf-8"));
+  const input: DesignDocInput = {
+    project: { id: "retail-x", name: harmony.meta.name },
+    screens: readDir("screens", (n) => n.endsWith(".json") && !n.includes(".design.")), flows: readDir("process-flows"), tables: readDir("tables"),
+    transitions: harmony.entities.screenTransitions, generatedAt: "2026-10-08T00:00:00.000Z", version: "v1",
+    template: parseDocTemplate({ documentTitle: "要件定義書", docNumber: "D-9", organization: "開発部", classification: "社外秘", headerText: "H", footerText: "F" }).template,
+  };
+  it("officeParts: 表紙は、体裁から作る (HTML の表紙は本文に含めない)。ヘッダー・フッターは、体裁があればそれを使う", async () => {
+    const { officeParts } = await import("./officeExport");
+    const p = officeParts(input);
+    expect(p.cover).toEqual([["プロジェクト", harmony.meta.name], ["文書", "要件定義書"], ["版", "v1"], ["作成日", "2026-10-08"], ["文書番号", "D-9"], ["組織", "開発部"], ["区分", "社外秘"]]);
+    expect(p.title).toBe(`${harmony.meta.name}\u3000要件定義書`);
+    expect(p.header).toBe("H");
+    expect(p.footer).toBe("F");
+    expect(p.blocks.some((b) => b.type === "heading" && b.text === "1. 画面一覧")).toBe(true);
+    expect(p.blocks.some((b) => b.type === "heading" && b.level === 1)).toBe(false); // 表紙の h1 (プロジェクト名) は、本文に入らない
+    const plain = officeParts({ ...input, template: undefined });
+    expect(plain.header).toBe(`${harmony.meta.name}\u3000基本設計書・処理設計書`);
+    expect(plain.footer).toBe("");
+  });
+  it("designDocx / designXlsx: 開けるファイルになる。ファイル名は英数字のプロジェクト ID", async () => {
+    const { designDocx, designXlsx, officeFileStem, DOCX_MIME, XLSX_MIME } = await import("./officeExport");
+    const dz = await readZip(designDocx(input), inflate);
+    expect(new TextDecoder().decode(dz.get("word/header1.xml")!)).toContain("<w:t xml:space=\"preserve\">H</w:t>");
+    expect(new TextDecoder().decode(dz.get("word/document.xml")!)).toContain("要件定義書");
+    const xz = await readZip(designXlsx(input), inflate);
+    expect(new TextDecoder().decode(xz.get("xl/workbook.xml")!)).toContain('name="表紙"');
+    expect(officeFileStem(input)).toBe("retail-x-design-document");
+    expect(officeFileStem({ ...input, project: { id: "日本語", name: "x" } })).toBe("harmony-design-document");
+    expect(DOCX_MIME).toContain("wordprocessingml");
+    expect(XLSX_MIME).toContain("spreadsheetml");
+  });
+});

@@ -381,7 +381,7 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
   // 改訂履歴 (document-template.json の revisions。新しいものを上に)
   if (tpl?.revisions.length) {
     toc.push({ id: "revisions", title: "改訂履歴", level: 1 });
-    out.push(`<section class="hd-section hd-level-1" id="revisions"><h2 class="hd-title"><span class="hd-chapter">改訂</span>改訂履歴</h2>${table(
+    out.push(`<section class="hd-section hd-level-1" id="revisions"><h2 class="hd-title">改訂履歴</h2>${table(
       ["版", "日付", "変更者", "内容"],
       [...tpl.revisions].reverse().map((r) => [esc(r.version), esc(r.date), esc(r.author ?? ""), prose(r.summary)]),
     )}</section>`);

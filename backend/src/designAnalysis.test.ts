@@ -283,6 +283,9 @@ describe("MCP: designer__analyze_design ほか", () => {
 describe("ファイル監視の分類", () => {
   it("design-check.json の変更を、点検の設定の変更として通知する", () => {
     expect(classifyChangedPath("design-check.json")).toEqual({ event: "designCheckChanged", data: {} });
+    // 運用の記録 (承認・コメント・権限・体裁・生成の記録) の外部更新 (git pull など) も、画面へ知らせる
+    for (const f of ["approvals.json", "review-comments.json", "access.json", "document-template.json", "generation.json"]) expect(classifyChangedPath(f)).toEqual({ event: "opsChanged", data: {} });
+    expect(classifyChangedPath("notify.json")).toBeNull(); // 通知先は、データフォルダの外 (.harmony-ops/) にしか置かない
   });
 });
 
