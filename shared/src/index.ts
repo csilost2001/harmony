@@ -55,3 +55,4 @@ export * from "./report.js";
 export * from "./testViewpoints.js";
 export { RPC_METHODS, isRpcMethod, type RpcMethod } from "./rpcMethods.js";
 export * from "./analysis/index.js";
+export * from "./export/index.js";
