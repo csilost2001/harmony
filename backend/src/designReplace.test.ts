@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import fs from "node:fs/promises";
+import fsSync from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { writeTable, writeProcessFlow, writeGenericDefinition, readTable } from "./projectStorage.js";
@@ -217,19 +218,18 @@ describe("登録簿 (harmony.json) と書き込み前の確認", () => {
     expect(t.comment).toBe("取引先ごとの受注");
   });
 
-  it("書き込みの直前に、設計が書き換えられていたら、その設計は書かずに飛ばす", async () => {
+  it("書き込みの直前に、設計が書き換えられていたら、その設計は書かずに飛ばす (書き換えられた内容を上書きしない)", async () => {
     const p = await previewReplace(ROOT, opts("顧客", "取引先"));
-    let touched = false;
+    const file = path.join(ROOT, "harmony", "tables", "orders.json");
     const r = await applyReplace(ROOT, opts("顧客", "取引先"), pick(p.candidates), (kind, id) => {
       // 走査のあと・書き込みの前に、ほかの経路 (MCP の保存など) が、ファイルを書き換える
-      if (!touched && kind === "table" && id === "orders") { touched = true; void fs.writeFile(path.join(ROOT, "harmony", "tables", "orders.json"), "{}", "utf-8"); }
+      if (kind === "table" && id === "orders") fsSync.writeFileSync(file, '{"id":"orders","name":"別の経路で保存"}', "utf-8");
       return null;
     });
-    // 同期的に書き換わるとは限らないので、書き換え後の状態だけ確かめる
-    await new Promise((res) => setTimeout(res, 50));
-    expect(touched).toBe(true);
-    expect(r.replaced + r.skipped.length).toBeGreaterThan(0);
-    const now = await fs.readFile(path.join(ROOT, "harmony", "tables", "orders.json"), "utf-8");
-    expect(now === "{}" || now.includes("取引先")).toBe(true);
+    expect(await fs.readFile(file, "utf-8")).toBe('{"id":"orders","name":"別の経路で保存"}');
+    expect(r.skipped.some((x) => x.key.startsWith("table:orders#") && x.reason.includes("直前"))).toBe(true);
+    expect(r.touched.some((t) => t.kind === "table")).toBe(false);
+    expect(r.replaced).toBeGreaterThan(0); // ほかの設計 (処理フロー・汎用定義) は置換される
+    expect((await reg()).entities.tables.find((t) => t.id === "orders")?.name).toBe("顧客注文"); // 登録簿も、書かなかった設計の分は変えない
   });
 });
