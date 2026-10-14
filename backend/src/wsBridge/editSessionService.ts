@@ -305,6 +305,14 @@ export class EditSessionService {
    *   - stage: "commit": conflict check skip、saveHistory + 本体書き込み + broadcast
    * 衝突時は { ok: false, conflict } を return value で signal (throw しない)。
    */
+  /** 編集セッションの対象 (「種類 id」)。監査ログ用。見つからなければ undefined */
+  describeSession(sessionId: string, editSessionId: string): string | undefined {
+    try {
+      const s = this.getOrCreateEditSessionStore(this._resolveActiveWsId(sessionId)).getById(editSessionId);
+      return s ? `${s.resourceType} ${s.resourceId}` : undefined;
+    } catch { return undefined; }
+  }
+
   async save(
     sessionId: string,
     editSessionId: string,

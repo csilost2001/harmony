@@ -11,7 +11,9 @@ import {
 import { wsBridge } from "./wsBridge.js";
 import { installSelfWriteTracking } from "./externalChanges.js";
 import { ensureRecovered } from "./operationJournal.js";
-import { assertToolAllowed, filterTools } from "./security/mcpAccess.js";
+import { assertToolAllowed, filterTools, isReadOnlyTool } from "./security/mcpAccess.js";
+import { recordAudit } from "./ops/audit.js";
+import { installApprovalGuard } from "./ops/policy.js";
 import { tools } from "./tools.js";
 import { handleAuthCheck, handlePropose } from "./aiRename.js";
 import { createStaticAssetHandler } from "./staticAssets.js";
@@ -50,6 +52,7 @@ const projectRoot = process.env.DESIGNER_LOG_DIR ?? path.resolve(process.cwd(), 
 initServerLog(projectRoot);
 // backend 自身のファイルの書き込みを記録する (外部変更の検知から除く。externalChanges.ts)
 installSelfWriteTracking();
+installApprovalGuard();
 
 // 常駐バックエンドなので停止 signal (SIGTERM/SIGINT/disconnect) のみ監視。
 // stdin は監視しない (#302: HTTP transport に統一、stdio 廃止)。
@@ -200,7 +203,14 @@ function createMcpServer(sessionId: string): Server {
       ];
       for (const handler of dispatchers) {
         const result = await handler(name, argRecord, root, sessionId);
-        if (result !== null && result !== undefined) return result;
+        if (result !== null && result !== undefined) {
+          // AI の書き込みの tool は、監査ログに残す (失敗した呼び出しは、残さない。isError の結果も除く)
+          if (!isReadOnlyTool(name) && !(result as { isError?: boolean }).isError && !/^(editSession__(list|fetch)|designer__(list|get|find|check|export|generate|analyze)_)/.test(name)) {
+            const idArg = ["id", "tableId", "processFlowId", "screenId", "flowId", "reportId", "resourceId", "name", "path"].map((k) => argRecord[k]).find((v) => typeof v === "string") as string | undefined;
+            void recordAudit(root, { actor: "AI", action: `AI が ${name.replace(/^designer__/, "")} を実行した`, ...(idArg ? { target: idArg } : {}), via: "ai" });
+          }
+          return result;
+        }
       }
       throw new McpError(ErrorCode.MethodNotFound, `未知のツール: ${name}`);
     } catch (err) {

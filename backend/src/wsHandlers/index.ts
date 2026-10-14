@@ -12,6 +12,7 @@ import { analysisHandlers } from "./analysis.js";
 import { codexHandlers } from "./codex.js";
 import { editSessionHandlers } from "./editSession.js";
 import { miscHandlers } from "./misc.js";
+import { opsHandlers } from "./ops.js";
 import { presenceHandlers } from "./presence.js";
 import { processFlowHandlers } from "./processFlow.js";
 import { projectHandlers } from "./project.js";
@@ -42,6 +43,7 @@ export const allRpcHandlers: RpcHandlerMap = {
   ...versionHandlers,
   ...analysisHandlers,
   ...replaceHandlers,
+  ...opsHandlers,
 };
 
 /** Map 形式 (wsBridge での lookup 用)。 */

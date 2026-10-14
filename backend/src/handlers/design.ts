@@ -24,6 +24,9 @@ import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import type { RenameEntityType } from "../renameEntity.js";
 import { runEntityRename, runEntityRenamePreview, runEntityUndo } from "../wsHandlers/refactor.js";
 import { wsBridge } from "../wsBridge.js";
+import { addComment, generationStatus, recordGeneration, regenerationDiff } from "../ops/service.js";
+import { commentsStore } from "../ops/stores.js";
+import { OPS_ENTITY_KINDS } from "@harmony/shared";
 import { workspaceContextManager } from "../workspaceState.js";
 import type { ToolHandler } from "../mcpHelpers.js";
 
@@ -71,6 +74,40 @@ export const handleDesignTool: ToolHandler = async (name, args, root, sessionId)
         return json({ files: scaffoldTests(sheet, a.scaffold as TestFramework) });
       }
       return json(sheet);
+    }
+
+    case "designer__record_generation": return json(await recordGeneration(root, { outputs: Array.isArray(a.outputs) ? (a.outputs as never) : [] }));
+
+    case "designer__check_generation_drift": {
+      const { rows, problems } = await generationStatus(root);
+      const stale = rows.filter((r) => r.state !== "current");
+      return json({ ok: stale.length === 0 && problems.length === 0, total: rows.length, needsAttention: stale.length, problems, rows });
+    }
+
+    case "designer__get_regeneration_diff": return json({ diffs: await regenerationDiff(root, typeof a.path === "string" ? a.path : undefined) });
+
+    case "designer__add_review_findings": {
+      const list = Array.isArray(a.findings) ? (a.findings as Array<Record<string, unknown>>) : [];
+      if (!list.length) throw new McpError(ErrorCode.InvalidParams, "findings (指摘の一覧) を指定してください");
+      if (list.length > 50) throw new McpError(ErrorCode.InvalidParams, "一度に残せる指摘は 50 件までです");
+      const existing = (await commentsStore.read(root)).value.threads.filter((t) => t.status === "open");
+      const added: string[] = [], skipped: string[] = [];
+      for (const f of list) {
+        if (typeof f.message !== "string" || !f.message.trim()) throw new McpError(ErrorCode.InvalidParams, "指摘の message を書いてください");
+        if (!OPS_ENTITY_KINDS.includes(f.kind as never) || typeof f.id !== "string") throw new McpError(ErrorCode.InvalidParams, `指摘の対象が正しくありません (kind: ${OPS_ENTITY_KINDS.join(" / ")})`);
+        const path = typeof f.path === "string" ? f.path.trim() : "";
+        // 同じ箇所に同じ内容の未解決の指摘があれば、重ねない
+        if (existing.some((t) => t.target.kind === f.kind && t.target.id === f.id && (t.target.path ?? "") === path && t.messages[0]?.text === f.message)) { skipped.push(`${String(f.kind)} ${f.id}`); continue; }
+        const r = await addComment(root, "AI", { target: { kind: f.kind, id: f.id, ...(path ? { path } : {}) }, text: f.message, ai: true, source: "ai-review", severity: f.severity });
+        added.push(r.threadId);
+      }
+      return json({ added: added.length, skippedDuplicates: skipped.length, threadIds: added });
+    }
+
+    case "designer__list_review_comments": {
+      const status = a.status === "resolved" || a.status === "all" ? a.status : "open";
+      const threads = (await commentsStore.read(root)).value.threads.filter((t) => (status === "all" || t.status === status) && (typeof a.kind !== "string" || t.target.kind === a.kind) && (typeof a.id !== "string" || t.target.id === a.id));
+      return json({ total: threads.length, threads });
     }
 
     case "designer__analyze_design": return analyzeDesign(a, root);

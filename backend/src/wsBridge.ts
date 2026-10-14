@@ -20,6 +20,10 @@ import {
 } from "./editSessionStore.js";
 import { resolveRoot } from "./projectStorage.js";
 import { rpcHandlerMap, type RpcContext } from "./wsHandlers/index.js";
+import { cleanActor } from "@harmony/shared";
+import { recordAudit } from "./ops/audit.js";
+import { describeRpc } from "./ops/auditMap.js";
+import { isEditRpc, requireRole } from "./ops/policy.js";
 import { logInfo, logWarn, logError } from "./serverLog.js";
 import { checkRequestOrigin } from "./security/originCheck.js";
 import { ExternalChangeWatcher } from "./externalChanges.js";
@@ -30,7 +34,7 @@ import { RateLimiter, checkContentLength, maxWsPayloadBytes, maxWsRequestsPer10s
 
 type Command = { id: string; method: string; params?: unknown };
 type Response = { id: string; result?: unknown; error?: string };
-type BrowserRequest = { type: "request"; id: string; method: string; params?: unknown };
+type BrowserRequest = { type: "request"; id: string; method: string; params?: unknown; actor?: string };
 
 // Port は env var で上書き可能 (テスト用に任意 port を使う想定)。未指定なら 5179 (#302)
 const WS_PORT = parseInt(process.env.DESIGNER_MCP_PORT ?? "5179", 10);
@@ -733,7 +737,9 @@ export class WsBridge extends EventEmitter {
       return;
     }
 
+    let responded: { result: unknown } | null = null;
     const respond = (result: unknown): void => {
+      responded = { result };
       if (ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: "response", id, result }));
       }
@@ -769,16 +775,26 @@ export class WsBridge extends EventEmitter {
       if (activePath) await ensureRecovered(activePath);
       const handler = rpcHandlerMap.get(method);
       if (handler) {
+        const actor = cleanActor(req.actor);
+        // 役割の設定があるとき、編集の操作は「編集」以上の役割が要る (画面からの要求。AI の権限は別の設定)
+        if (activePath && isEditRpc(method)) await requireRole(activePath, actor, "editor", "設計を変えること");
+        const sessionTarget = activePath && method === "editSession.save" ? this.editSessionService.describeSession(clientId, String((params as { editSessionId?: unknown } | undefined)?.editSessionId ?? "")) : undefined;
         const ctx: RpcContext = {
           params,
           clientId,
           root,
           wsId,
+          actor: () => actor,
           respond,
           respondError,
           bridge: this,
         };
         await handler(ctx);
+        // 成功した変更の操作を、監査ログに残す (残せなくても、操作は止めない)
+        if (activePath && responded) {
+          const d = describeRpc(method, params, (responded as { result: unknown }).result, sessionTarget);
+          if (d) void recordAudit(activePath, { actor: actor || "(名前なし)", ...d, via: "ui" });
+        }
         return;
       }
       // 動的に登録されたハンドラ (#750 follow-up: client.log.flush 等)

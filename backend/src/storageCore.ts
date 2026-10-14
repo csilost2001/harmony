@@ -163,7 +163,13 @@ export async function fileExists(filePath: string): Promise<boolean> {
   }
 }
 
+/** 書き込みの直前の検査 (承認の方針など)。throw すると、書かない */
+type PreWriteGuard = (filePath: string, data: unknown) => Promise<void>;
+const preWriteGuards: PreWriteGuard[] = [];
+export function addPreWriteGuard(g: PreWriteGuard): void { preWriteGuards.push(g); }
+
 export async function writeJSON(filePath: string, data: unknown): Promise<void> {
+  for (const g of preWriteGuards) await g(filePath, data);
   const json = JSON.stringify(data, null, 2);
   await fs.mkdir(path.dirname(filePath), { recursive: true });
   // 同じディレクトリの一時ファイルに書いてから rename で置き換える。直接 writeFile すると

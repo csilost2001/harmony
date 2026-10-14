@@ -16,6 +16,7 @@ import { summarizeOpenApi, type ExternalSpecSummary } from "@harmony/shared";
 import { createFileMemo } from "./fileMemo.js";
 import { genericDefinitionsDir, resolveDataRoot } from "./storageCore.js";
 import { readCheckSettings } from "./designCheckSettings.js";
+import { templateStore } from "./ops/stores.js";
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
 
@@ -68,6 +69,7 @@ async function computeDesignInput(root: string): Promise<LoadedDesignInput> {
 
   const genericDefinitions = await readGenericDefinitions(root);
   const checkSettings = (await readCheckSettings(root).catch(() => null))?.settings;
+  const template = (await templateStore.read(root).catch(() => null))?.value;
   const input: DesignDocInput = {
     project: { id: meta.id as string | undefined, name: (meta.name as string | undefined) ?? "プロジェクト", description: meta.description as string | undefined },
     screens: screens as unknown as DesignDocInput["screens"],
@@ -85,6 +87,7 @@ async function computeDesignInput(root: string): Promise<LoadedDesignInput> {
     db: conv.db ?? {},
     genericDefinitions,
     ...(checkSettings ? { checkSettings } : {}),
+    ...(template ? { template } : {}),
   };
   return { input, skipped, counts: { screens: screens.length, flows: flows.length, tables: tables.length, businessFlows: businessFlows.flows.length, reports: reports.reports.length } };
 }

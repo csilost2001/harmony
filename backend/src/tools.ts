@@ -257,6 +257,75 @@ export const tools = [
     },
   },
   {
+    name: "designer__record_generation",
+    description:
+      "コードを生成したあとに、「どの設計から、どのファイルを作ったか」を記録します。以後、設計が変わると「再生成が必要」、生成物が書き換えられると「生成物が変わった」と検出できます (designer__check_generation_drift)。" +
+      "path は、ワークスペースからの相対パス (ワークスペースの中のファイルだけ)。sources は、元にした設計 (kind: screen / table / processFlow / businessFlow / report / sequence / view / viewDefinition と id)。" +
+      "コードを生成・再生成したら、必ずこの tool で記録してください。仕様: docs/spec/integration-ops.md",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        outputs: {
+          type: "array",
+          description: "生成したファイルの一覧 (500 まで)",
+          items: {
+            type: "object",
+            properties: {
+              path: { type: "string", description: "ワークスペースからの相対パス (例: generated/orders/order.service.ts)" },
+              sources: { type: "array", items: { type: "object", properties: { kind: { type: "string" }, id: { type: "string" } }, required: ["kind", "id"] }, description: "元にした設計" },
+              generator: { type: "string", description: "生成の道具・skill (例: generate-code)" },
+              note: { type: "string" },
+            },
+            required: ["path", "sources"],
+          },
+        },
+      },
+      required: ["outputs"],
+    },
+  },
+  {
+    name: "designer__check_generation_drift",
+    description:
+      "記録した生成物 (designer__record_generation) と、いまの設計・ファイルを突き合わせます。state: current (最新) / design-changed (設計が変わった: 再生成が必要) / output-changed (生成物が書き換えられた) / both-changed (両方が変わった: どちらを正とするか確認) / output-missing (生成物がない)。",
+    inputSchema: { type: "object" as const, properties: {}, required: [] },
+  },
+  {
+    name: "designer__get_regeneration_diff",
+    description:
+      "記録した生成のときの設計と、いまの設計の差 (変更・追加・削除された項目の場所と前後の値) を返します。設計が変わったファイルだけ、変わった箇所に絞って再生成するときに使います。",
+    inputSchema: { type: "object" as const, properties: { path: { type: "string", description: "生成物のパス。省略すると、設計が変わったすべての生成物" } }, required: [] },
+  },
+  {
+    name: "designer__add_review_findings",
+    description:
+      "設計のレビューで見つけた指摘を、設計の箇所に紐づくレビューコメントとして残します (人はレビューコメントの画面・各設計で見て、解決済みにします)。" +
+      "kind / id は設計の種類と id、path は設計の中の箇所 (例: `columns[2]` `actions[0].steps`)。severity: error / warning / info。同じ内容の未解決の指摘が既にあれば、重ねません。",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        findings: {
+          type: "array",
+          description: "指摘の一覧 (50 まで)",
+          items: {
+            type: "object",
+            properties: { kind: { type: "string" }, id: { type: "string" }, path: { type: "string" }, message: { type: "string" }, severity: { type: "string", enum: ["error", "warning", "info"] } },
+            required: ["kind", "id", "message"],
+          },
+        },
+      },
+      required: ["findings"],
+    },
+  },
+  {
+    name: "designer__list_review_comments",
+    description: "レビューコメントのスレッドの一覧を返します (未解決のものが既定)。AI が指摘に対応するとき、対象の設計と箇所・内容を確認するのに使います。",
+    inputSchema: {
+      type: "object" as const,
+      properties: { status: { type: "string", enum: ["open", "resolved", "all"], description: "既定は open" }, kind: { type: "string" }, id: { type: "string" } },
+      required: [],
+    },
+  },
+  {
     name: "designer__list_versions",
     description:
       "設計 1 件の「上書きされる前の版」の一覧 (新しい順、最大 20 件) を返します。保存・AI の書き込みのたびに、上書き直前の内容が自動で残ります。" +
