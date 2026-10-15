@@ -81,6 +81,24 @@ test.describe("入力補助", { tag: ["@regression"] }, () => {
     await expect(page.getByPlaceholder("例: column_name")).toHaveValue("customer_code");
   });
 
+  test("カラムの詳細パネル: 表示名の欄に触れて何も変えずに出ても、元に戻す履歴を積まない", async ({ page }) => {
+    await openTableDialog(page);
+    const modal = page.locator(".tbl-modal");
+    await modal.getByPlaceholder("例: customers").fill("touch_only");
+    await modal.getByPlaceholder("例: 顧客マスタ").fill("触るだけ");
+    await modal.getByTestId("table-add-starter").selectOption("standard");
+    await modal.getByRole("button", { name: "作成して編集" }).click();
+    await expect(page).toHaveURL(/\/table\/edit\//, { timeout: 15000 });
+    await expect(page.getByText("created_at", { exact: true }).first()).toBeVisible({ timeout: 10000 });
+    await page.getByText("created_at", { exact: true }).first().dblclick();
+    const nameField = page.getByPlaceholder("例: カラムの日本語名");
+    await expect(nameField).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId("editor-header-undo")).toBeDisabled();
+    await nameField.focus();
+    await nameField.blur();
+    await expect(page.getByTestId("editor-header-undo")).toBeDisabled();
+  });
+
   test("画面項目: テーブルから項目を作る・ラベルから ID と型を埋める・エラーメッセージの下書き", async ({ page }) => {
     await ws.gotoActive(page, "/screen/items/cart");
     await expect(page.getByTestId("items-from-table-open")).toBeVisible({ timeout: 15000 });

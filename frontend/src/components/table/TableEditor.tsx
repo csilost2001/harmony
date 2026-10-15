@@ -670,9 +670,18 @@ function ColumnsTab({
       if (col) Object.assign(col, patch);
     });
   }, [update]);
+  // 詳細パネルの表示名の欄を出たとき: 提案があるときだけ入れる (何も変えずに出ただけでは、履歴・変更の印・下書きを動かさない)
+  const handleNameCommit = useCallback((colId: string) => {
+    const current = table.columns.find((c) => c.id === colId);
+    if (!current) return;
+    const plan = planColumnAutofill(current, current.name, table.columns.filter((c) => c.id !== colId), suggestionSource.index, suggestionSource.convention);
+    if (!plan) return;
+    showToast(plan.message, "info");
+    handleUpdateColRaw(colId, plan.patch as Partial<Column>);
+  }, [table.columns, suggestionSource, handleUpdateColRaw]);
   const handleUpdateCol = useCallback((colId: string, patch: Partial<Column>) => {
     // 新しく足した列に表示名を入れたら、物理名・型・長さも埋める (決めた値は変えない。Ctrl+Z で戻せる)
-    // 「表で編集」はセルを出るときに 1 回だけ呼ばれる。1 文字ずつ呼ばれる入力欄は handleUpdateColRaw を使い、確定のときに handleUpdateCol で埋める
+    // 「表で編集」はセルを出るときに (変わったときだけ) 1 回呼ばれる。1 文字ずつ呼ばれる入力欄は handleUpdateColRaw を使い、確定のときに handleNameCommit で埋める
     let merged = patch;
     const current = table.columns.find((c) => c.id === colId);
     if (current && typeof patch.name === "string") {
@@ -1189,7 +1198,7 @@ function ColumnsTab({
           <ColumnDetailEditor
             col={detailCol}
             onUpdate={(patch) => handleUpdateColRaw(detailCol.id, patch)}
-            onNameCommit={() => handleUpdateCol(detailCol.id, { name: detailCol.name })}
+            onNameCommit={() => handleNameCommit(detailCol.id)}
             showLength={DATA_TYPES_WITH_LENGTH.includes(detailCol.dataType as BuiltinDataType)}
             showScale={DATA_TYPES_WITH_SCALE.includes(detailCol.dataType as BuiltinDataType)}
           />
