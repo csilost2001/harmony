@@ -4,6 +4,8 @@ import type { Candidate, CompletionContext, Resolver } from "../utils/reference-
 import { bestRank } from "../utils/textMatch";
 import { applyCompletionHistory, recordCompletionPick } from "../utils/completionHistory";
 import { isImeComposing } from "../utils/imeKeys";
+import { referenceAt, requestGoToReference } from "../utils/referenceTarget";
+import { showToast } from "../utils/toast";
 
 type El = HTMLInputElement | HTMLTextAreaElement;
 
@@ -63,8 +65,23 @@ export function useReferenceCompletion<T extends El>({ value, onValueChange, onC
     [value, resolvers, ctx, onValueChange],
   );
 
+  /** カーソル (またはクリック位置) の参照の定義を開く。参照の上でなければ案内する */
+  const goToDefinition = (pos: number) => {
+    const target = referenceAt(value, pos);
+    if (!target) {
+      showToast("参照 (@screen.cart のような @ で始まる指定) の上にカーソルを置いてください", "info");
+      return;
+    }
+    requestGoToReference(target);
+  };
+
   const onKeyDown = (e: React.KeyboardEvent<T>) => {
     if (isImeComposing(e)) return;
+    if (e.key === "F12" && !e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) {
+      e.preventDefault();
+      goToDefinition(inputRef.current?.selectionStart ?? cursorPos);
+      return;
+    }
     if (e.key === " " && e.ctrlKey && !e.altKey && !e.metaKey) {
       e.preventDefault();
       setCursorPos(inputRef.current?.selectionStart ?? value.length);
@@ -98,6 +115,15 @@ export function useReferenceCompletion<T extends El>({ value, onValueChange, onC
       onValueChange(e.target.value);
     },
     onKeyDown,
+    onClick: (e: React.MouseEvent<T>) => {
+      // Ctrl (Mac は ⌘) + クリックで、参照の定義を開く
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const pos = (e.currentTarget as T).selectionStart;
+      if (pos !== null && referenceAt(value, pos)) {
+        e.preventDefault();
+        goToDefinition(pos);
+      }
+    },
     onSelect: (e: React.SyntheticEvent<T>) => {
       setCursorPos((e.target as T).selectionStart ?? 0);
     },

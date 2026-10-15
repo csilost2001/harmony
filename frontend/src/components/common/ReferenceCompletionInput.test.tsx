@@ -9,6 +9,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { ReferenceCompletionInput } from "./ReferenceCompletionInput";
 import type { Resolver, CompletionState } from "../../utils/reference-completer/types";
+import { onGoToReference } from "../../utils/referenceTarget";
 
 /** 常に phase: "active" + 固定候補を返す mock resolver (screenItemTypeResolver と同パターン) */
 const alwaysActiveResolver: Resolver = {
@@ -140,5 +141,45 @@ describe("ReferenceCompletionInput — 操作 (入力補助 第 1 弾)", () => {
     cleanup();
     setup();
     expect(options()[0]).toContain("beta");
+  });
+});
+
+describe("ReferenceCompletionInput — 定義へ移動 (F12 / Ctrl+クリック)", () => {
+  const none: Resolver = { id: "none", match: () => null };
+
+  function setup(value: string) {
+    const seen: Array<{ route: string; label: string }> = [];
+    const off = onGoToReference((t) => seen.push({ route: t.route, label: t.label }));
+    render(<ReferenceCompletionInput value={value} onValueChange={() => undefined} resolvers={[none]} ctx={{}} />);
+    const input = screen.getByRole("textbox") as HTMLInputElement;
+    return { input, seen, off };
+  }
+
+  it("参照の上で F12 を押すと、その定義を開く合図を出す", () => {
+    const { input, seen, off } = setup("WHERE a = @table.orders.field.id");
+    input.setSelectionRange(14, 14);
+    fireEvent.keyDown(input, { key: "F12" });
+    expect(seen).toEqual([{ route: "/table/edit/orders", label: "テーブル orders" }]);
+    off();
+  });
+
+  it("Ctrl+クリックでも開く。ふつうのクリックでは開かない", () => {
+    const { input, seen, off } = setup("@screen.cart");
+    input.setSelectionRange(4, 4);
+    fireEvent.click(input);
+    expect(seen).toHaveLength(0);
+    fireEvent.click(input, { ctrlKey: true });
+    expect(seen).toHaveLength(1);
+    expect(seen[0].route).toBe("/screen/items/cart");
+    off();
+  });
+
+  it("参照の上でなければ開かない (F12 は案内を出す)", () => {
+    const { input, seen, off } = setup("plain text");
+    input.setSelectionRange(2, 2);
+    fireEvent.keyDown(input, { key: "F12" });
+    fireEvent.click(input, { ctrlKey: true });
+    expect(seen).toHaveLength(0);
+    off();
   });
 });

@@ -81,4 +81,4 @@ export function CompletionPopup({ candidates, activeIndex, onPick, ariaLabel = "
 
 /** 補完のある入力欄に付ける、操作の案内 (title 属性用)。 */
 export const COMPLETION_TITLE =
-  "@ を入力すると、参照の候補が出ます。Ctrl+Space で候補を開き、↑↓ で選び、Tab / Enter で確定、Esc で閉じます。";
+  "@ を入力すると、参照の候補が出ます。Ctrl+Space で候補を開き、↑↓ で選び、Tab / Enter で確定、Esc で閉じます。参照の上で Ctrl+クリック (または F12) をすると、その定義を開きます。";

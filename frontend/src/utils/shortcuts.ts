@@ -27,6 +27,8 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { keys: ["Ctrl", "S"], label: "保存 (入力欄にカーソルがあっても効く)" },
       { keys: ["Ctrl", "Z"], label: "元に戻す" },
       { keys: ["Ctrl", "Y"], label: "やり直し (Ctrl+Shift+Z も可)" },
+      { keys: ["Ctrl", "Space"], label: "参照の入力欄で、補完の候補を開く (@ を打つと自動で開きます。↑↓ で選び、Tab / Enter で確定、Esc で閉じる)" },
+      { keys: ["F12"], label: "参照 (@screen.cart など) の上にカーソルがあるとき、その定義を開く (Ctrl+クリックも可)" },
     ],
   },
   {
