@@ -36,4 +36,19 @@ describe("useFocusTrap — Esc で閉じる", () => {
     expect(inner).toHaveBeenCalledTimes(1);
     expect(outer).not.toHaveBeenCalled();
   });
+
+  it("ダイアログが重なっているとき、Tab は、いちばん上のダイアログの中だけで循環する (下のものが奪わない)", () => {
+    const { getAllByRole } = render(
+      <div>
+        <Dialog onEscape={() => undefined} label="outer" />
+        <Dialog onEscape={() => undefined} label="inner" />
+      </div>,
+    );
+    const [, innerBtn] = getAllByRole("button");
+    innerBtn.focus();
+    const ev = new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true });
+    document.dispatchEvent(ev);
+    // 上のダイアログの中の 1 つだけのボタン: 自分に戻る (下のダイアログに奪われない)
+    expect(document.activeElement).toBe(innerBtn);
+  });
 });

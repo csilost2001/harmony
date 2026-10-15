@@ -10,7 +10,7 @@ const SRC = path.resolve(__dirname, "..");
 // 検索の入力欄にフォーカスがあり、自分で候補の移動・Esc を処理している (入力欄が最初から中にある)
 const OWN_FOCUS = new Set(["components/quick-open/QuickOpen.tsx"]);
 // aria-modal の文字が、ダイアログではなく、除外の指定 (セレクタ) として書かれているだけ
-const SELECTOR_ONLY = new Set(["components/screen-layout/ScreenLayoutDesigner.tsx"]);
+const SELECTOR_ONLY = new Set(["components/screen-layout/ScreenLayoutDesigner.tsx", "components/common/RegionNavigator.tsx"]);
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const name of fs.readdirSync(dir)) {

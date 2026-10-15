@@ -6,6 +6,8 @@ export function RegionNavigator() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "F6" || e.ctrlKey || e.altKey || e.metaKey) return;
+      // ダイアログが開いているあいだは、領域の巡回をしない (フォーカスをダイアログの外へ出さない)
+      if (document.querySelector('[aria-modal="true"]')) return;
       const regions = collectRegions();
       if (regions.length === 0) return;
       e.preventDefault();

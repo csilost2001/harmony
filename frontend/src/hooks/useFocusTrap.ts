@@ -38,6 +38,8 @@ export function useFocusTrap(ref: RefObject<HTMLElement | null>, active = true, 
         return;
       }
       if (e.key !== "Tab") return;
+      // 重なったダイアログでは、いちばん上のものだけが、Tab を閉じ込める (下のものが、上のダイアログの中の Tab を奪わない)
+      if (!isTopmostDialog(root)) return;
       const items = focusableIn(root);
       if (items.length === 0) { e.preventDefault(); return; }
       const first = items[0], last = items[items.length - 1];

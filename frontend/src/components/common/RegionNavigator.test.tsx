@@ -25,4 +25,21 @@ describe("RegionNavigator", () => {
     fireEvent.keyDown(document, { key: "F6", shiftKey: true });
     expect(document.activeElement?.id).toBe("i1");
   });
+
+  it("ダイアログが開いているあいだは、領域を移らない (フォーカスをダイアログの外へ出さない)", () => {
+    document.body.innerHTML = "";
+    render(
+      <>
+        <RegionNavigator />
+        <header className="common-header"><button id="hb">h</button></header>
+        <main id="app-main"><section data-region="一覧"><input id="i1" /></section></main>
+        <div role="dialog" aria-modal="true"><input id="dlg" /></div>
+      </>,
+    );
+    document.getElementById("dlg")!.focus();
+    const ev = new KeyboardEvent("keydown", { key: "F6", bubbles: true, cancelable: true });
+    document.dispatchEvent(ev);
+    expect(document.activeElement?.id).toBe("dlg");
+    expect(ev.defaultPrevented).toBe(false);
+  });
 });

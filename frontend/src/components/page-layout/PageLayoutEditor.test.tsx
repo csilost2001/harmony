@@ -341,4 +341,15 @@ describe("PageLayoutEditor", () => {
     fireEvent.keyDown(lastRow.querySelector("input") ?? lastRow, { key: "Delete", altKey: true });
     await waitFor(() => expect(names()).toEqual(["main", "header"]));
   });
+
+  it("content slot の region (main) は、Alt+Delete でも削除できない (削除ボタンと同じ)", async () => {
+    editSessionMock.modeKind = "editing";
+    renderEditor();
+    await screen.findByTestId("page-layout-slot-header");
+    const section = Array.from(document.querySelectorAll("section.tbl-editor-section")).find((x) => x.querySelector("h3")?.textContent?.startsWith("Regions")) as HTMLElement;
+    const rows = () => Array.from(section.querySelectorAll("tbody tr")).filter((tr) => tr.querySelector("code.region-name-code"));
+    const mainRow = rows().find((tr) => tr.querySelector("code.region-name-code")?.textContent === "main") as HTMLElement;
+    fireEvent.keyDown(mainRow.querySelector("input") ?? mainRow, { key: "Delete", altKey: true });
+    expect(rows().map((tr) => tr.querySelector("code.region-name-code")?.textContent)).toContain("main");
+  });
 });

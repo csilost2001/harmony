@@ -57,6 +57,7 @@ import "../../styles/editMode.css";
 import "../../styles/pageLayoutManager.css";
 import { reportFailure } from "../../utils/failureToast";
 import { isImeComposing } from "../../utils/imeKeys";
+import { showToast } from "../../utils/toast";
 
 const MATURITY_OPTIONS: Maturity[] = ["draft", "provisional", "committed"];
 const MATURITY_LABELS: Record<Maturity, string> = {
@@ -770,6 +771,8 @@ export function PageLayoutEditor() {
                       setTimeout(() => tbody?.children[to]?.querySelector<HTMLInputElement>("input")?.focus(), 0);
                     } else if (e.key === "Delete") {
                       e.preventDefault();
+                      // 削除ボタンと同じ: content slot (本文が嵌まる region) は削除できない
+                      if (isContentSlotRegion(region.name)) { showToast("content slot の region は削除できません", "info"); return; }
                       handleRemoveRegion(region.name);
                     }
                   }}

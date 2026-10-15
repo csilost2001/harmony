@@ -711,7 +711,7 @@ function ColumnsTab({
     update((t) => {
       const src = t.columns[index];
       if (!src) return;
-      addColumn(t, { ...src, physicalName: `${src.physicalName}_copy` as PhysicalName });
+      addColumn(t, planColumnPaste(t.columns, [src], true).columns[0]);
       const [m] = t.columns.splice(t.columns.length - 1, 1);
       t.columns.splice(index + 1, 0, m);
       t.columns = renumber(t.columns);
@@ -781,7 +781,8 @@ function ColumnsTab({
       for (const src of cols) {
         const cur = t.columns.find((c) => c.id === src.id);
         if (!cur) continue;
-        newIds.push(addColumn(t, { ...cur, physicalName: (cur.physicalName + "_copy") as PhysicalName }).id);
+        // 新しい ID・重ならない物理名 (_copy)・主キーの印は外す (主キーが増えないように)
+        newIds.push(addColumn(t, planColumnPaste(t.columns, [cur], true).columns[0]).id);
       }
     });
     selection.setSelectedIds(new Set<string>(newIds));
