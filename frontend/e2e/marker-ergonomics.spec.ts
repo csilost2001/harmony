@@ -113,9 +113,6 @@ test.describe("marker-ergonomics (#261)", { tag: ["@regression"] }, () => {
   test.describe("StepCard から marker 起票", () => {
     test("コンテキストメニューから AI に指摘 → marker 追加", async ({ page }) => {
       await setupEditor(page);
-      page.on("dialog", async (d) => {
-        if (d.type() === "prompt") await d.accept("並行制御のため affectedRowsCheck 追加して");
-      });
       await page.evaluate(() => {
         const card = document.querySelectorAll(".step-card")[0];
         const btns = Array.from(card.querySelectorAll(".step-card-menu-btn"));
@@ -128,6 +125,9 @@ test.describe("marker-ergonomics (#261)", { tag: ["@regression"] }, () => {
         const ask = items.find(i => i.textContent?.includes("AI に指摘"));
         ask?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
       });
+      // 「AI に指摘」は、複数行で書けるダイアログ (以前は window.prompt)
+      await page.getByTestId("step-marker-body").fill("並行制御のため affectedRowsCheck 追加して");
+      await page.getByTestId("step-marker-body").press("Enter");
       await page.waitForTimeout(300);
       await page.locator(".marker-panel .catalog-panel-toggle").click();
       await expect(page.locator(".marker-panel .marker-row")).toHaveCount(3);

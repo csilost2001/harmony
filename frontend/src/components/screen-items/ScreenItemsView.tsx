@@ -36,6 +36,7 @@ import { PasteItemsDialog } from "./PasteItemsDialog";
 import { ItemsFromTableDialog } from "./ItemsFromTableDialog";
 import { RemoteMarkerPanel } from "../common/RemoteMarkerPanel";
 import { anchorPathItem } from "@harmony/shared";
+import { unresolvedCountByPath } from "../../utils/markerDoc";
 import { ModalShell } from "../common/ModalShell";
 import { usePageCommands } from "../../hooks/usePageCommands";
 import { buildTermIndex } from "../../utils/columnSuggestion";
@@ -82,7 +83,7 @@ import { loadAllTables } from "../../store/tableStore";
 import { listViews, loadView } from "../../store/viewStore";
 import { listGenericDefinitions } from "../../store/genericDefinitionStore";
 import { genericDefinitionResolver } from "../../utils/reference-completer/genericDefinitionResolver";
-import type { Table, View } from "../../types/v3";
+import type { Marker, Table, View } from "../../types/v3";
 import { ConvCompletionInput } from "../common/ConvCompletionInput";
 import { generateAutoId, getFieldTypePrefix } from "../../utils/screenItemNaming";
 import "../../styles/screen-items.css";
@@ -164,6 +165,12 @@ export function ScreenItemsView() {
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [showPasteItems, setShowPasteItems] = useState(false);
   const [showItemsFromTable, setShowItemsFromTable] = useState(false);
+  // マーカー (AI への指示・質問): 項目ごとの未解決の件数 (行のバッジ)、追加欄への位置の指定・フォーカス
+  const [itemMarkers, setItemMarkers] = useState<readonly Marker[]>([]);
+  const itemMarkerCounts = useMemo(() => unresolvedCountByPath(itemMarkers), [itemMarkers]);
+  const [markerAnchor, setMarkerAnchor] = useState("");
+  const [markerFocus, setMarkerFocus] = useState(0);
+  const openMarkers = useCallback((anchorPath?: string) => { setMarkerAnchor(anchorPath ?? ""); setMarkerFocus((n) => n + 1); }, []);
   const [pasteItemsInitial, setPasteItemsInitial] = useState("");
   const [allScreenIds, setAllScreenIds] = useState<string[]>([]);
   const [renameUndoToast, setRenameUndoToast] = useRenameEntityUndoToast(
@@ -581,6 +588,27 @@ export function ScreenItemsView() {
   }, [updateWithDraft]);
 
   // コマンドパレット (Ctrl+K の「>」) に、この画面の操作を載せる
+  // いまフォーカスのある行の項目の、マーカーの位置 (無ければ全体)
+  const focusedItemPath = (): string | undefined => {
+    const row = document.activeElement?.closest("tr[data-grid-row]");
+    const idx = row ? Number(row.getAttribute("data-grid-row")) : NaN;
+    const item = Number.isInteger(idx) ? fileRef.current?.items[idx] : undefined;
+    return item?.id ? anchorPathItem(item.id) : undefined;
+  };
+  // Ctrl+Alt+M: マーカーを追加 (フォーカスのある項目について)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && (e.key === "m" || e.key === "M") && !(e.target as HTMLElement | null)?.closest?.('[aria-modal="true"]')) {
+        e.preventDefault();
+        openMarkers(focusedItemPath());
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  });
+  usePageCommands(`screen-items:${screenId ?? ""}:markers`, [
+    { id: "marker-add", label: "マーカーを追加 (AI への指示・質問)", keywords: ["まーかー", "marker", "ai", "しじ", "ついか", "注釈", "指示"], icon: "bi-megaphone", hint: "Ctrl+Alt+M", run: () => openMarkers(focusedItemPath()) },
+  ]);
   usePageCommands(`screen-items:${screenId ?? ""}`, isReadonly ? [] : [
     { id: "item-add", label: "画面項目を追加", keywords: ["こうもく", "item", "add", "ついか", "追加"], icon: "bi-plus-lg", run: handleAddItem },
     { id: "item-from-table", label: "テーブルから画面項目を作る", keywords: ["てーぶる", "table", "からむ", "一括"], icon: "bi-table", run: () => setShowItemsFromTable(true) },
@@ -1086,6 +1114,9 @@ export function ScreenItemsView() {
             name={selectedScreenName ?? undefined}
             anchorChoices={file.items.filter((it) => it.id).map((it) => ({ value: anchorPathItem(it.id), label: `${it.label || it.id} (${it.id})` }))}
             readOnly={false}
+            onMarkersChange={setItemMarkers}
+            presetAnchor={markerAnchor}
+            focusToken={markerFocus}
             isOrphan={(m) => { const mm = m.anchor?.fieldPath?.match(/^\$\.items\[([^\]]+)\]$/); return !!mm && !file.items.some((it) => it.id === mm[1]); }}
             orphanTitle="紐付く画面項目が削除されました"
           />
@@ -1168,6 +1199,12 @@ export function ScreenItemsView() {
                     </td>
                     <td className="screen-items-no">
                       {i + 1}
+                      {item.id && (itemMarkerCounts.get(anchorPathItem(item.id)) ?? 0) > 0 && (
+                        <button type="button" className="col-marker-badge" title="この項目への、未解決のマーカー (クリックで開く)" data-testid={`item-marker-badge-${item.id}`}
+                          onClick={() => openMarkers(anchorPathItem(item.id))}>
+                          <i className="bi bi-megaphone" /> {itemMarkerCounts.get(anchorPathItem(item.id))}
+                        </button>
+                      )}
                       {lintByRow.has(i) && (
                         <i
                           className="bi bi-exclamation-circle-fill text-warning ms-1"

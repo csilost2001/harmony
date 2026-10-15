@@ -127,7 +127,6 @@ test.describe("step marker badge (#261)", { tag: ["@regression"] }, () => {
 
   test("AI に指摘 で新規 marker 追加後チップ件数が +1 される", async ({ page }) => {
     await setup(page);
-    page.on("dialog", async (d) => { if (d.type() === "prompt") await d.accept("新規指摘"); });
     await page.evaluate(() => {
       const card = document.querySelectorAll(".step-card")[1]; // s2
       const dots = Array.from(card.querySelectorAll(".step-card-menu-btn")).find(b => b.querySelector(".bi-three-dots"));
@@ -138,6 +137,9 @@ test.describe("step marker badge (#261)", { tag: ["@regression"] }, () => {
       const items = Array.from(document.querySelectorAll(".step-context-menu-item"));
       items.find(i => i.textContent?.includes("AI に指摘"))?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
     });
+    // 「AI に指摘」は、複数行で書けるダイアログ (以前は window.prompt)
+    await page.getByTestId("step-marker-body").fill("新規指摘");
+    await page.getByTestId("step-marker-submit").click();
     await page.waitForTimeout(300);
     // 追加された marker は kind=todo (「AI に指摘」の既定) → s2 の todo チップが 1 件増える
     // 元は question 1 件のみだったので、追加後 todo 1 + question 1 = 2 チップ

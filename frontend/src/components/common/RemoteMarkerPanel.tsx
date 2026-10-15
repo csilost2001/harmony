@@ -26,16 +26,20 @@ type Props = Omit<MarkerListPanelProps, "markers" | "onChange" | "entity"> & {
   type: MarkerEntityType;
   id: string;
   name?: string;
+  /** マーカーの一覧が (読み込み・追加・解決などで) 変わるたびに呼ぶ。行のバッジなど、親の表示に使う */
+  onMarkersChange?: (markers: readonly Marker[]) => void;
 };
 
 /**
  * 設計の保存とは別に、マーカーだけをその場で保存するパネル (画面など、編集中の内容にマーカーを持たない編集画面用)。
  * 追加・解決・削除は、サーバの内容へ重ねて保存する (AI が並行して足したマーカーを消さない)。
  */
-export function RemoteMarkerPanel({ type, id, name, ...rest }: Props) {
+export function RemoteMarkerPanel({ type, id, name, onMarkersChange, ...rest }: Props) {
   const [markers, setMarkers] = useState<Marker[]>([]);
   const markersRef = useRef<Marker[]>([]);
-  const set = useCallback((next: Marker[]) => { markersRef.current = next; setMarkers(next); }, []);
+  const notifyRef = useRef(onMarkersChange);
+  useEffect(() => { notifyRef.current = onMarkersChange; });
+  const set = useCallback((next: Marker[]) => { markersRef.current = next; setMarkers(next); notifyRef.current?.(next); }, []);
 
   const reload = useCallback(() => {
     mcpBridge.request("listMarkers", { entityType: type, entityId: id })

@@ -1,4 +1,5 @@
 import { ConvCompletionInput } from "../common/ConvCompletionInput";
+import { StepMarkerDialog } from "./internal/StepMarkerDialog";
 import { useState } from "react";
 import type { DraggableAttributes, DraggableSyntheticListeners } from "@dnd-kit/core";
 // #1186 Phase 2-B: types/action → types/v3 + processFlowMetadata 移行
@@ -139,6 +140,8 @@ export function StepCard({
 }: StepCardProps) {
   const [expanded, setExpanded] = useState(defaultExpanded ?? false);
   const [showMenu, setShowMenu] = useState(false);
+  // AI への指示・質問を付けるダイアログ (右クリックメニュー / Ctrl+Alt+M)
+  const [showMarkerDialog, setShowMarkerDialog] = useState(false);
   const [showSubTypePicker, setShowSubTypePicker] = useState(false);
   // 旧 collapsedBranchIds / loopBodyCollapsed は branch / loop body sub-component 内に
   // 内部化済 (Phase-2 #1145)。state lift する必要がある場合は本 component に戻す。
@@ -184,6 +187,13 @@ export function StepCard({
 
   return (
     <div className="step-card-wrapper" data-edit-level={editLevel}>
+      {showMarkerDialog && onAddMarker && (
+        <StepMarkerDialog
+          stepLabel={`${label} ${STEP_TYPE_LABELS[step.kind]}`}
+          onSubmit={(body, kind) => { onAddMarker(body, kind); setShowMarkerDialog(false); }}
+          onClose={() => setShowMarkerDialog(false)}
+        />
+      )}
       <div
         className={cardClass}
         data-step-id={step.id}
@@ -198,6 +208,14 @@ export function StepCard({
           role="group"
           data-expanded={expanded}
           aria-label={`${label} ${STEP_TYPE_LABELS[step.kind]} (${expanded ? "開いています" : "閉じています"})`}
+          onKeyDown={(e) => {
+            // Ctrl+Alt+M: この工程に、AI への指示・質問を付ける (工程の見出しにフォーカスがあるとき)
+            if (e.target === e.currentTarget && onAddMarker && !readOnly && e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && (e.key === "m" || e.key === "M")) {
+              e.preventDefault();
+              e.stopPropagation();
+              setShowMarkerDialog(true);
+            }
+          }}
           onClick={(e) => {
             if ((e.target as HTMLElement).closest("[data-drag-handle]")) return;
             if ((e.ctrlKey || e.metaKey || e.shiftKey) && onHeaderClick) {
@@ -428,8 +446,7 @@ export function StepCard({
                           className="step-context-menu-item"
                           onClick={() => {
                             setShowMenu(false);
-                            const body = window.prompt(`このステップに AI への指摘を入力:\n(例: 並行制御の affectedRowsCheck を追加して)`);
-                            if (body && body.trim()) onAddMarker(body.trim(), "todo");
+                            setShowMarkerDialog(true);
                           }}
                         >
                           <i className="bi bi-robot" /> AI に指摘

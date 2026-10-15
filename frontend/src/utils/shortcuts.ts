@@ -19,6 +19,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { keys: ["Ctrl", "W"], label: "いまのタブを閉じる" },
       { keys: ["Ctrl", "Shift", "PageUp / PageDown"], label: "いまのタブを左 / 右へ動かす (タブのドラッグの代わり)" },
       { keys: ["Ctrl", "Shift", "H"], label: "設計全体の検索置換 (名前・説明などの文章を、一覧で確かめて置き換える)" },
+      { keys: ["Ctrl", "Alt", "M"], label: "AI への指示・質問 (マーカー) を追加 (テーブル・画面項目: フォーカスのある行について / 処理フロー: 工程の見出しにカーソルがあるとき)" },
       { keys: ["F6"], label: "画面の領域 (ヘッダー → タブ → 一覧・詳細・マーカーなど) を順に移る (Shift 付きで逆順)" },
       { keys: ["Ctrl", "Shift", "P"], label: "操作を探して実行する (コマンドパレット。Ctrl+K のあと「>」でも同じ)" },
     ],
