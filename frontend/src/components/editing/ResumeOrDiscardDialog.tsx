@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import "../../styles/editMode.css";
 
 export interface ResumeOrDiscardDialogProps {
@@ -10,17 +11,12 @@ export interface ResumeOrDiscardDialogProps {
 export function ResumeOrDiscardDialog({ onResume, onDiscard, onCancel }: ResumeOrDiscardDialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCancel();
-    };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [onCancel]);
-
+  // 開いたら、ダイアログ自身にフォーカスする (フォーカスの閉じ込めより先に宣言する: すでに中にあれば、動かさない)
   useEffect(() => {
     dialogRef.current?.focus();
   }, []);
+  // Esc は「あとで決める」(取り消し)。Tab はダイアログの中で循環する
+  useFocusTrap(dialogRef, true, onCancel);
 
   return (
     <div

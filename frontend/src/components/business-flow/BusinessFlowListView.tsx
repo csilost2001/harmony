@@ -5,6 +5,7 @@
  * 新規作成・複製・削除ができる。編集は /business-flow/edit/:id (BusinessFlowEditor)。
  * 仕様: docs/spec/business-flow.md
  */
+import { ModalShell } from "../common/ModalShell";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { validateBusinessFlow, type BusinessFlow } from "@harmony/shared";
@@ -147,7 +148,7 @@ export function BusinessFlowListView() {
       />
       {showAdd && (
         <div className="bfe-modal-overlay" onClick={() => setShowAdd(false)}>
-          <div className="bfe-modal" role="dialog" aria-label="業務フロー追加" onClick={(e) => e.stopPropagation()}>
+          <ModalShell className="bfe-modal" ariaLabel="業務フロー追加" onEscape={() => setShowAdd(false)} onClick={(e) => e.stopPropagation()}>
             <h3>業務フロー追加</h3>
             <label className="bfe-field">
               <span>名前</span>
@@ -161,7 +162,7 @@ export function BusinessFlowListView() {
               <button type="button" className="bfe-btn" onClick={() => setShowAdd(false)}>キャンセル</button>
               <button type="button" className="bfe-btn bfe-btn-primary" disabled={addValidation.isInvalid || !addName.trim()} onClick={create} data-testid="bf-add-submit">作成</button>
             </div>
-          </div>
+          </ModalShell>
         </div>
       )}
     </div>

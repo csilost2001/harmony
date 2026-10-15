@@ -4,7 +4,8 @@
  * 直接 import して使うより useErrorDialog() の showError() 経由で呼ぶのが通常だが、
  * 制御状態を外から持ちたい場合はこの low-level コンポーネントを直接使う。
  */
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { ErrorDetailsPanel } from "./ErrorDetailsPanel";
 
 export interface ErrorDialogProps {
@@ -17,6 +18,8 @@ export interface ErrorDialogProps {
 }
 
 export function ErrorDialog({ open, title, message, stack, context, onClose }: ErrorDialogProps) {
+  const overlayRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(overlayRef, open);
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -30,6 +33,7 @@ export function ErrorDialog({ open, title, message, stack, context, onClose }: E
 
   return (
     <div
+      ref={overlayRef}
       className="error-dialog-overlay"
       role="dialog"
       aria-modal="true"

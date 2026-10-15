@@ -34,6 +34,7 @@ import { RenameEntityDialog } from "../common/RenameEntityDialog";
 import { ReferencesButton } from "../common/ReferencesButton";
 import { PasteItemsDialog } from "./PasteItemsDialog";
 import { ItemsFromTableDialog } from "./ItemsFromTableDialog";
+import { ModalShell } from "../common/ModalShell";
 import { usePageCommands } from "../../hooks/usePageCommands";
 import { buildTermIndex } from "../../utils/columnSuggestion";
 import { draftErrorMessages, planItemAutofill } from "../../utils/itemSuggestion";
@@ -2058,7 +2059,7 @@ export function ScreenItemsView() {
       </div>
 
       {pendingRename && (
-        <div className="modal show d-block" style={{ background: "rgba(0,0,0,0.45)" }} role="dialog" aria-modal="true">
+        <ModalShell className="modal show d-block" style={{ background: "rgba(0,0,0,0.45)" }} onEscape={handleCancelRename}>
           <div className="modal-dialog">
             <div className="modal-content">
               <div className="modal-header">
@@ -2089,11 +2090,11 @@ export function ScreenItemsView() {
               </div>
             </div>
           </div>
-        </div>
+        </ModalShell>
       )}
 
       {pendingReset && (
-        <div className="modal show d-block" style={{ background: "rgba(0,0,0,0.45)" }} role="dialog" aria-modal="true">
+        <ModalShell className="modal show d-block" style={{ background: "rgba(0,0,0,0.45)" }} onEscape={handleCancelReset}>
           <div className="modal-dialog">
             <div className="modal-content">
               <div className="modal-header">
@@ -2129,7 +2130,7 @@ export function ScreenItemsView() {
               </div>
             </div>
           </div>
-        </div>
+        </ModalShell>
       )}
 
       {saveConflict && (

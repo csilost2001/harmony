@@ -7,6 +7,7 @@
  * - 「新規ガジェット作成」ボタン → modal で作成 (purpose: "gadget" 固定)
  */
 
+import { ModalShell } from "../common/ModalShell";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
@@ -552,7 +553,7 @@ export function GadgetListView() {
 
       {/* 新規ガジェット作成モーダル */}
       {showAdd && (
-        <div className="modal fade show" style={{ display: "block", backgroundColor: "rgba(0,0,0,0.5)" }} role="dialog">
+        <ModalShell className="modal fade show" style={{ display: "block", backgroundColor: "rgba(0,0,0,0.5)" }} onEscape={() => setShowAdd(false)}>
           <div className="modal-dialog modal-dialog-centered">
             <div className="modal-content">
               <div className="modal-header">
@@ -617,7 +618,7 @@ export function GadgetListView() {
               </div>
             </div>
           </div>
-        </div>
+        </ModalShell>
       )}
 
       {contextMenu && (

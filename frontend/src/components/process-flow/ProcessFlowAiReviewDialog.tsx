@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import type { ProcessFlow } from "../../types/v3";
 import { reviewProcessFlowWithCodex } from "../../codex/processFlowReview";
 
@@ -12,6 +13,8 @@ export function ProcessFlowAiReviewDialog({ current, onClose }: Props) {
   const [result, setResult] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [reviewing, setReviewing] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef, true, () => { if (!reviewing) onClose(); });
 
   const handleReview = async () => {
     setReviewing(true);
@@ -33,7 +36,7 @@ export function ProcessFlowAiReviewDialog({ current, onClose }: Props) {
 
   return (
     <div className="edit-mode-modal-backdrop" role="presentation" onClick={(e) => { if (e.target === e.currentTarget && !reviewing) onClose(); }}>
-      <div className="edit-mode-modal process-flow-ai-review-dialog" role="dialog" aria-modal="true" aria-labelledby="process-flow-ai-review-title">
+      <div ref={dialogRef} className="edit-mode-modal process-flow-ai-review-dialog" role="dialog" aria-modal="true" aria-labelledby="process-flow-ai-review-title">
         <div className="edit-mode-modal-header">
           <h3 id="process-flow-ai-review-title" className="edit-mode-modal-title">
             <i className="bi bi-clipboard-check" /> AI レビュー

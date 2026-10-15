@@ -124,7 +124,7 @@ export function EditorFind() {
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={(e) => {
           if (isImeComposing(e)) return;
-          if (e.key === "Enter") { e.preventDefault(); move(e.shiftKey ? -1 : 1); }
+          if (e.key === "Enter" && !isImeComposing(e)) { e.preventDefault(); move(e.shiftKey ? -1 : 1); }
           else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(true); }
         }}
       />

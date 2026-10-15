@@ -14,6 +14,7 @@
  * z-index は 1055 (edit-mode-modal-backdrop の 1050 より上) を使用 (#890 で揃えた階層)。
  */
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { DRAFT_HISTORY_RETENTION_DAYS } from "@harmony/shared";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import type { DraftResourceType } from "../../types/draft";
@@ -151,6 +152,7 @@ export function DraftHistoryModal({
   const [restoring, setRestoring] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef, isOpen);
 
   // ── 一覧取得 ────────────────────────────────────────────────────────────────
   const fetchHistory = useCallback(async () => {

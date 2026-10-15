@@ -20,7 +20,7 @@ export interface ComponentManagerProps {
 
 export function ComponentManager({ initialEditId, screens, onClose }: ComponentManagerProps) {
   const trapRef = useRef<HTMLDivElement>(null);
-  useFocusTrap(trapRef);
+  useFocusTrap(trapRef, true, onClose);
   const { components, loaded } = useLayoutComponents();
   const [editing, setEditing] = useState<{ def: LayoutComponentDef; isNew: boolean } | null>(null);
   const [usages, setUsages] = useState<Record<string, LayoutComponentUsages>>({});

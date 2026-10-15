@@ -77,7 +77,7 @@ export function useGridKeyboard({ onAppendRow, onInsertRowBelow, onDuplicateRow,
     // Ctrl+Enter / Ctrl+Shift+Enter / Alt+Delete: 行の挿入・複製・削除
     const idx = rowIndexOf(row);
     if (idx !== null) {
-      if (mod && !e.altKey && e.key === "Enter") {
+      if (mod && !e.altKey && e.key === "Enter" && !isImeComposing(e)) {
         const fn = e.shiftKey ? onDuplicateRow : onInsertRowBelow;
         if (fn) { e.preventDefault(); fn(idx); }
         return;
