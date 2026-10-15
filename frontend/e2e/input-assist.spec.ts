@@ -11,6 +11,16 @@ let ws: OpenedWorkspace;
 // 同じ名前のテーブルを何度も作らない (前の試験の下書き・同じ ID の衝突を避ける)
 const uniq = (base: string) => `${base}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
 
+/** 「前回の編集の続き」ダイアログが (遅れて) 出ることがある。出ていれば「破棄して本体を読み込む」で閉じる */
+async function dismissResume(page: Page) {
+  await page.waitForTimeout(500);
+  for (let i = 0; i < 3; i++) {
+    if (!(await page.locator(".edit-mode-modal-backdrop").isVisible().catch(() => false))) break;
+    await page.evaluate(() => (document.querySelector('[data-testid="resume-discard"]') as HTMLButtonElement | null)?.click());
+    await page.locator(".edit-mode-modal-backdrop").waitFor({ state: "hidden", timeout: 5000 }).catch(() => undefined);
+  }
+}
+
 async function openTableDialog(page: Page) {
   await ws.gotoActive(page, "/table/list");
   await expect(page.locator(".table-list-page")).toBeVisible();
@@ -41,6 +51,7 @@ test.describe("入力補助", { tag: ["@regression"] }, () => {
     await modal.getByTestId("table-add-starter").selectOption("standard");
     await modal.getByRole("button", { name: "作成して編集" }).click();
     await expect(page).toHaveURL(/\/table\/edit\//, { timeout: 15000 });
+    await dismissResume(page);
     for (const name of ["id", "created_at", "updated_at"]) {
       await expect(page.getByText(name, { exact: true }).first()).toBeVisible({ timeout: 10000 });
     }
@@ -54,6 +65,7 @@ test.describe("入力補助", { tag: ["@regression"] }, () => {
     await modal.getByTestId("table-add-starter").selectOption("empty");
     await modal.getByRole("button", { name: "作成して編集" }).click();
     await expect(page).toHaveURL(/\/table\/edit\//, { timeout: 15000 });
+    await dismissResume(page);
     await page.getByTestId("columns-grid-toggle").click();
     const grid = page.getByTestId("column-grid");
     await expect(grid).toBeVisible({ timeout: 10000 });
@@ -74,6 +86,7 @@ test.describe("入力補助", { tag: ["@regression"] }, () => {
     await modal.getByTestId("table-add-starter").selectOption("empty");
     await modal.getByRole("button", { name: "作成して編集" }).click();
     await expect(page).toHaveURL(/\/table\/edit\//, { timeout: 15000 });
+    await dismissResume(page);
     await page.getByTestId("empty-state-create").click();
     const nameField = page.getByPlaceholder("例: カラムの日本語名");
     await expect(nameField).toBeVisible({ timeout: 10000 });
@@ -91,6 +104,7 @@ test.describe("入力補助", { tag: ["@regression"] }, () => {
     await modal.getByTestId("table-add-starter").selectOption("standard");
     await modal.getByRole("button", { name: "作成して編集" }).click();
     await expect(page).toHaveURL(/\/table\/edit\//, { timeout: 15000 });
+    await dismissResume(page);
     await expect(page.getByText("created_at", { exact: true }).first()).toBeVisible({ timeout: 10000 });
     await page.getByText("created_at", { exact: true }).first().dblclick();
     const nameField = page.getByPlaceholder("例: カラムの日本語名");
