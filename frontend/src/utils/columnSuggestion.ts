@@ -121,6 +121,14 @@ export function buildTermIndex(columnLists: ColumnLike[][]): TermIndex {
   return { byDisplay };
 }
 
+/**
+ * 物理名の形式 (schema の PhysicalName: ^[a-z][a-z0-9_]*$、63 字まで)。
+ * 規約が camelCase などでも、スキーマに合わない名前は提案しない (スキーマが優先)。
+ */
+export function isValidPhysicalName(name: string): boolean {
+  return /^[a-z][a-z0-9_]*$/.test(name) && name.length <= 63;
+}
+
 export interface PhysicalNameSuggestion {
   /** 提案する物理名。決められなければ null */
   name: string | null;
@@ -254,7 +262,7 @@ export function planColumnAutofill(
 
   if (PLACEHOLDER_NAME.test(col.physicalName) || col.physicalName === "") {
     const s = suggestPhysicalName(display, index, convention);
-    if (s?.name && !siblings.some((x) => x.physicalName === s.name)) {
+    if (s?.name && isValidPhysicalName(s.name) && !siblings.some((x) => x.physicalName === s.name)) {
       patch.physicalName = s.name;
       notes.push(s.name);
     }
@@ -308,7 +316,7 @@ export function columnNameHints(
   if (/^[A-Za-z0-9_-]+$/.test(col.physicalName)) {
     const words = splitWords(col.physicalName);
     const expected = applyNamingConvention(words, convention);
-    if (words.length > 0 && expected !== col.physicalName && !hints.some((h) => h.fix === expected)) {
+    if (words.length > 0 && expected !== col.physicalName && isValidPhysicalName(expected) && !hints.some((h) => h.fix === expected)) {
       hints.push({ kind: "case", message: `${convention} の表記では ${expected} です`, fix: expected });
     }
   }

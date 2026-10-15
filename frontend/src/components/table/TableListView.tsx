@@ -5,7 +5,7 @@ import type { Table, TableEntry, TableId, PhysicalName, DisplayName, Timestamp }
 import { type SqlDialect, SQL_DIALECT_LABELS } from "../../utils/ddlGenerator";
 import { listTables, createTable, loadTable, saveTable, loadTableValidationMap, commitTables, addColumn } from "../../store/tableStore";
 import { TABLE_STARTERS, starterColumns } from "./tableStarters";
-import { suggestPhysicalName } from "../../utils/columnSuggestion";
+import { isValidPhysicalName, suggestPhysicalName } from "../../utils/columnSuggestion";
 import { loadProject } from "../../store/flowStore";
 import { generateAllDdl, generateAllTableMarkdown } from "../../utils/ddlGenerator";
 import { mcpBridge } from "../../mcp/mcpBridge";
@@ -774,7 +774,10 @@ export function TableListView() {
                   onChange={(e) => {
                     setAddLogical(e.target.value);
                     // 物理名をまだ決めていなければ、表示名から (辞書で全部を英語にできたときだけ) 入れる
-                    if (!physTouched.current) setAddName(suggestPhysicalName(e.target.value)?.name ?? "");
+                    if (!physTouched.current) {
+                      const sug = suggestPhysicalName(e.target.value)?.name ?? "";
+                      setAddName(isValidPhysicalName(sug) ? sug : "");
+                    }
                   }}
                   placeholder="例: 顧客マスタ"
                   onKeyDown={(e) => { if (e.key === "Enter" && !isImeComposing(e)) handleAdd(); }}

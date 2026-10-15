@@ -64,6 +64,23 @@ test.describe("入力補助", { tag: ["@regression"] }, () => {
     await expect(grid.locator("select").first()).toHaveValue("DECIMAL");
   });
 
+  test("カラムの詳細パネル (一覧で編集): 表示名を 1 文字ずつ打っても、物理名は最終の表示名から入る", async ({ page }) => {
+    await openTableDialog(page);
+    const modal = page.locator(".tbl-modal");
+    await modal.getByPlaceholder("例: customers").fill("codes");
+    await modal.getByPlaceholder("例: 顧客マスタ").fill("コード表");
+    await modal.getByTestId("table-add-starter").selectOption("empty");
+    await modal.getByRole("button", { name: "作成して編集" }).click();
+    await expect(page).toHaveURL(/\/table\/edit\//, { timeout: 15000 });
+    await page.getByTestId("empty-state-create").click();
+    const nameField = page.getByPlaceholder("例: カラムの日本語名");
+    await expect(nameField).toBeVisible({ timeout: 10000 });
+    await nameField.fill("");
+    await nameField.pressSequentially("顧客コード");
+    await nameField.blur();
+    await expect(page.getByPlaceholder("例: column_name")).toHaveValue("customer_code");
+  });
+
   test("画面項目: テーブルから項目を作る・ラベルから ID と型を埋める・エラーメッセージの下書き", async ({ page }) => {
     await ws.gotoActive(page, "/screen/items/cart");
     await expect(page.getByTestId("items-from-table-open")).toBeVisible({ timeout: 15000 });

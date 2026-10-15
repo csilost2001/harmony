@@ -170,14 +170,43 @@ describe("columnNameHints", () => {
     expect(h).toEqual([expect.objectContaining({ kind: "case", fix: "customer_name" })]);
   });
 
-  it("規約の表記で判定する", () => {
-    expect(columnNameHints({ physicalName: "customer_name", name: "x" }, undefined, "camelCase")).toEqual([expect.objectContaining({ fix: "customerName" })]);
+  it("規約が camelCase でも、スキーマ (PhysicalName: 小文字・数字・_) に合わない名前には直さない", () => {
+    expect(columnNameHints({ physicalName: "customer_name", name: "x" }, undefined, "camelCase")).toEqual([]);
     expect(columnNameHints({ physicalName: "customerName", name: "x" }, undefined, "camelCase")).toEqual([]);
+    expect(columnNameHints({ physicalName: "CUSTOMER_NAME", name: "x" }, undefined, "snake_case")).toEqual([expect.objectContaining({ fix: "customer_name" })]);
   });
 
   it("仮の列・空・英数字以外を含む物理名では出さない", () => {
     expect(columnNameHints({ physicalName: "new_column", name: "x" }, index)).toEqual([]);
     expect(columnNameHints({ physicalName: "", name: "x" }, index)).toEqual([]);
     expect(columnNameHints({ physicalName: "顧客名", name: "x" }, index)).toEqual([]);
+  });
+});
+
+import { isValidPhysicalName } from "./columnSuggestion";
+
+describe("物理名の形式 (schema の PhysicalName)", () => {
+  it("小文字で始まり、小文字・数字・_ だけ、63 字まで", () => {
+    expect(isValidPhysicalName("customer_name")).toBe(true);
+    expect(isValidPhysicalName("2024_fiscal_year")).toBe(false);
+    expect(isValidPhysicalName("1st_item")).toBe(false);
+    expect(isValidPhysicalName("customerName")).toBe(false);
+    expect(isValidPhysicalName("a".repeat(64))).toBe(false);
+  });
+
+  it("数字で始まる名前や規約が camelCase のときは、物理名を入れない (型は入れる)", () => {
+    const blank = { physicalName: "new_column", dataType: "VARCHAR", length: undefined };
+    expect(planColumnAutofill(blank, "2024年度", [])?.patch.physicalName).toBeUndefined();
+    expect(planColumnAutofill(blank, "1st item", [])).toBeNull();
+    const r = planColumnAutofill(blank, "顧客名", [], undefined, "camelCase");
+    expect(r?.patch.physicalName).toBeUndefined();
+    expect(r?.patch.dataType).toBe("VARCHAR");
+  });
+
+  it("連続して入力しても (1 文字ずつ)、最終の表示名からだけ提案する: 詳細パネルは確定のときだけ呼ぶ", () => {
+    // 1 文字ずつの途中の表示名は、先頭の辞書語だけで物理名が決まってしまう。呼び出し側 (確定のときだけ呼ぶ) の前提を固定する
+    const blank = { physicalName: "new_column", dataType: "VARCHAR", length: undefined };
+    expect(planColumnAutofill(blank, "顧客", [])?.patch.physicalName).toBe("customer");
+    expect(planColumnAutofill(blank, "顧客コード", [])?.patch.physicalName).toBe("customer_code");
   });
 });

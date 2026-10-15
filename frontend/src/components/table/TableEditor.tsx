@@ -664,8 +664,15 @@ function ColumnsTab({
   }, [table.constraints]);
 
   const suggestionSource = useColumnSuggestionSource(table.id);
+  const handleUpdateColRaw = useCallback((colId: string, patch: Partial<Column>) => {
+    update((t) => {
+      const col = t.columns.find((c) => c.id === colId);
+      if (col) Object.assign(col, patch);
+    });
+  }, [update]);
   const handleUpdateCol = useCallback((colId: string, patch: Partial<Column>) => {
     // 新しく足した列に表示名を入れたら、物理名・型・長さも埋める (決めた値は変えない。Ctrl+Z で戻せる)
+    // 「表で編集」はセルを出るときに 1 回だけ呼ばれる。1 文字ずつ呼ばれる入力欄は handleUpdateColRaw を使い、確定のときに handleUpdateCol で埋める
     let merged = patch;
     const current = table.columns.find((c) => c.id === colId);
     if (current && typeof patch.name === "string") {
@@ -1181,7 +1188,8 @@ function ColumnsTab({
           </div>
           <ColumnDetailEditor
             col={detailCol}
-            onUpdate={(patch) => handleUpdateCol(detailCol.id, patch)}
+            onUpdate={(patch) => handleUpdateColRaw(detailCol.id, patch)}
+            onNameCommit={() => handleUpdateCol(detailCol.id, { name: detailCol.name })}
             showLength={DATA_TYPES_WITH_LENGTH.includes(detailCol.dataType as BuiltinDataType)}
             showScale={DATA_TYPES_WITH_SCALE.includes(detailCol.dataType as BuiltinDataType)}
           />
@@ -1283,11 +1291,13 @@ function ColumnsTab({
 
 // ── カラム詳細編集 (FK は ConstraintsTab で管理) ────────────────────────────
 
-function ColumnDetailEditor({
-  col, onUpdate, showLength, showScale,
+export function ColumnDetailEditor({
+  col, onUpdate, onNameCommit, showLength, showScale,
 }: {
   col: Column;
   onUpdate: (patch: Partial<Column>) => void;
+  /** 表示名の入力を終えたとき (欄を出たとき)。物理名・型の提案を入れる */
+  onNameCommit: () => void;
   showLength: boolean;
   showScale: boolean;
 }) {
@@ -1309,6 +1319,7 @@ function ColumnDetailEditor({
             type="text"
             value={col.name}
             onChange={(e) => onUpdate({ name: e.target.value as DisplayName })}
+            onBlur={onNameCommit}
             placeholder="例: カラムの日本語名"
           />
         </label>
