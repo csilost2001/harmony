@@ -7,6 +7,10 @@ import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } fr
 import { buildDesignDocument, renderStandaloneDesignDoc, type DesignDocInput } from "@harmony/shared";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { loadDesignInput } from "./loadDesignInput";
+import { DocTemplateDialog } from "./DocTemplateDialog";
+import { designDocx, designXlsx, DOCX_MIME, XLSX_MIME, officeFileStem } from "./officeExport";
+import { saveBytesFile } from "../analysis/fileIo";
+import { reportFailure } from "../../utils/failureToast";
 import "../../styles/designDocument.css";
 
 export function DesignDocumentView() {
@@ -14,6 +18,7 @@ export function DesignDocumentView() {
   const [skipped, setSkipped] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [templateOpen, setTemplateOpen] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
 
   const reload = useCallback(() => {
@@ -67,6 +72,15 @@ export function DesignDocumentView() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
+  const saveOffice = (kind: "docx" | "xlsx") => {
+    if (!input) return;
+    try {
+      const withDate = { ...input, generatedAt: new Date().toISOString() };
+      if (kind === "docx") saveBytesFile(`${officeFileStem(input)}.docx`, designDocx(withDate), DOCX_MIME);
+      else saveBytesFile(`${officeFileStem(input)}.xlsx`, designXlsx(withDate), XLSX_MIME);
+    } catch (e) { reportFailure(e, kind === "docx" ? "設計書の Word への書き出し" : "設計書の Excel への書き出し"); }
+  };
+
   const openInNewTab = () => {
     if (!input) return;
     const url = URL.createObjectURL(new Blob([standalone()], { type: "text/html;charset=utf-8" }));
@@ -87,8 +101,12 @@ export function DesignDocumentView() {
         )}
         <button type="button" className="ddv-btn" onClick={reload} disabled={loading} title="最新の設計データで作り直す"><i className="bi bi-arrow-clockwise" /> 再生成</button>
         <button type="button" className="ddv-btn" onClick={openInNewTab} disabled={!doc} title="別タブで開く (印刷はこちらから)"><i className="bi bi-box-arrow-up-right" /> 別タブで開く</button>
+        <button type="button" className="ddv-btn" onClick={() => setTemplateOpen(true)} disabled={!doc} title="表紙・載せる章・改訂履歴を設定する" data-testid="ddv-template"><i className="bi bi-file-earmark-richtext" /> 体裁・改訂履歴</button>
+        <button type="button" className="ddv-btn" onClick={() => saveOffice("docx")} disabled={!doc} title="Word (.docx) で保存 (図と画面の見本は含みません)" data-testid="ddv-save-docx"><i className="bi bi-file-earmark-word" /> Word</button>
+        <button type="button" className="ddv-btn" onClick={() => saveOffice("xlsx")} disabled={!doc} title="Excel (.xlsx) で保存 (章ごとのシート)" data-testid="ddv-save-xlsx"><i className="bi bi-file-earmark-excel" /> Excel</button>
         <button type="button" className="ddv-btn primary" onClick={saveHtml} disabled={!doc} data-testid="ddv-save-html"><i className="bi bi-download" /> HTML で保存</button>
       </header>
+      {templateOpen && input && <DocTemplateDialog input={input} onClose={() => setTemplateOpen(false)} onSaved={reload} />}
       {skipped.length > 0 && (
         <p className="ddv-skipped" role="alert" data-testid="ddv-skipped">
           <i className="bi bi-exclamation-triangle" /> 読めないものがあるため、設計書に載っていません (JSON が壊れている・読み込みに失敗した): {skipped.map((f) => <code key={f}>{f}</code>)}

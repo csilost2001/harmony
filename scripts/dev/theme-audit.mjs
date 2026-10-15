@@ -45,14 +45,18 @@ const routes = [
   ["page-layout-list", "/page-layout/list"], ["page-layout-edit", `/page-layout/edit/${firstId("page-layouts")}`],
   ["gadget-list", "/gadget/list"], ["generic-definition", "/generic-definition"],
   ["generic-definition-list", "/generic-definition/message"], ["conventions", "/conventions/catalog"],
-  ["extensions", "/extensions"], ["tech-stack", "/project/tech-stack"], ["document", "/document"], ["analysis", "/analysis"],
+  ["extensions", "/extensions"], ["tech-stack", "/project/tech-stack"], ["document", "/document"], ["analysis", "/analysis"], ["operations", "/operations"],
   // 設計の分析の各タブ (開くタブは localStorage で決まる。第 3 要素 = 先に入れる localStorage の [キー, 値])
   ...["impact", "maps", "cleanup", "ops", "progress", "rules", "export"].map((t) => [`analysis-${t}`, "/analysis", ["harmony.analysis.tab", t]]),
+  // 連携と運用の各タブ
+  ...["audit", "git", "notify", "generation", "import", "access", "version"].map((t) => [`operations-${t}`, "/operations", ["harmony.operations.tab", t]]),
   // 操作で開く部品 (ダイアログ・ポップオーバー・ツアー)。第 4 要素 = 画面を開いたあとに行う操作 (終わったら Esc で閉じる)
   ["op-command-palette", "/", null, async (page) => { await page.keyboard.press("Control+k"); await page.getByTestId("quick-open-input").fill(">"); }],
   ["op-display-settings", "/", null, async (page) => { await page.getByTestId("display-settings-open").click(); }],
   ["op-notifications", "/", null, async (page) => { await page.getByTestId("notif-open").click(); }],
   ["op-favorites", "/", null, async (page) => { await page.getByTestId("favorites-open").click(); }],
+  ["op-review-panel", "/table/edit/cart", null, async (page) => { await page.getByTestId("review-open").click(); }],
+  ["op-doc-template", "/document", null, async (page) => { await page.getByTestId("ddv-template").click(); await page.getByTestId("dt-tab-revisions").click(); await page.getByTestId("dt-rev-add").click(); }],
   ["op-replace", "/", null, async (page) => { await page.keyboard.press("Control+Shift+H"); await page.getByTestId("replace-query").fill("カート"); await page.getByTestId("replace-search").click(); await page.waitForTimeout(1500); }],
   ["op-tour", "/table/edit/cart", null, async (page) => { await page.keyboard.press("Control+k"); await page.getByTestId("quick-open-input").fill(">ツアー"); await page.keyboard.press("Enter"); }],
   ["op-column-grid", "/table/edit/cart", null, async (page) => { await page.getByTestId("columns-grid-toggle").click(); }],
@@ -91,7 +95,7 @@ const auditFn = (theme) => {
     }
     return parts.join(" > ");
   };
-  const skip = (el) => el.closest(".common-header, .react-flow__minimap, iframe, .gjs-frame, [data-theme-audit-skip]") && !el.closest(".notif-pop, .disp-pop, .fav-pop");
+  const skip = (el) => el.closest(".common-header, .react-flow__minimap, iframe, .gjs-frame, [data-theme-audit-skip]") && !el.closest(".notif-pop, .disp-pop, .fav-pop, .rv-pop");
   const contrast = [];
   const seen = new Set();
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);

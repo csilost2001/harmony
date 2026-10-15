@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { columnUpdates, columnsToTsv, parseColumnTable, splitDuplicates, type ParsedColumn } from "../../utils/columnPaste";
 import type { Column } from "../../types/v3/table";
+import { ExcelFileButton } from "../common/ExcelFileButton";
 import "../../styles/pasteColumns.css";
 
 interface Props {
@@ -51,6 +52,7 @@ export function PasteColumnsDialog({ existing, onApply, onClose, initialText = "
             Excel などの表 (タブ区切り・カンマ区切り) を貼り付けます。1 行目が見出し (物理名・表示名・データ型・長さ・NOT NULL・PK・UK・連番・デフォルト・備考) なら、列の順は自由です。
             見出しがなければ、この順に並んでいるものとして読みます。型は <code>VARCHAR(100)</code> や <code>int</code>・<code>文字列</code> のような書き方も読めます。
           </p>
+          <ExcelFileButton onText={setText} />
           <div>
             <button type="button" className="btn btn-sm btn-link p-0" onClick={copyCurrent} data-testid="paste-columns-copy-current">
               <i className="bi bi-clipboard" /> {copied ? "コピーしました" : "いまのカラムを、この形式の表としてコピー (Excel で編集して貼り戻せます。既にある行は「更新する」を選ぶと反映されます)"}

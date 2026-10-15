@@ -10,7 +10,7 @@
 
 - **ランタイム正本**: active workspace の `<dataDir>/conventions/catalog.json` (例: `workspaces/<wsId>/<dataDir>/conventions/catalog.json`)
 - **サンプル**: `examples/<project-id>/harmony/conventions/catalog.json` (例: `examples/retail/harmony/conventions/catalog.json`)
-- **JSON Schema**: [`schemas/conventions.schema.json`](../../schemas/conventions.schema.json)
+- **JSON Schema**: [`schemas/v3/conventions.v3.schema.json`](../../schemas/v3/conventions.v3.schema.json)
 - **参照整合性検証**: `frontend/src/schemas/conventionsValidator.ts` が処理フロー内の `@conv.*` 参照を検査
 - **編集 UI**: 業務システムデザイナーの「規約カタログ」タブから閲覧・編集可 (#317)
 

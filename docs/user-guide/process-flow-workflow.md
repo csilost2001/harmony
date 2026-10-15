@@ -4,7 +4,7 @@
 
 ## 位置づけと原則
 
-1. **一次成果物は JSON スキーマに準拠した処理フロー JSON** (`schemas/process-flow.schema.json`)
+1. **一次成果物は JSON スキーマに準拠した処理フロー JSON** (`schemas/v3/process-flow.v3.schema.json`)
 2. 上流の概要は人間が書く、詳細化は AI が行う (完全自動ではなく、人間と対話しながら)
 3. API 課金は発生しない (Anthropic Claude Code Max プラン内で完結)
 4. designer 画面は**リッチなコンテキスト保持器** (AI への指示・質問・注目点を保存)
@@ -145,4 +145,4 @@ ProcessFlow / action / step の 3 粒度で設定可。step が committed なら
 - 仕様: [`docs/spec/process-flow-extensions.md`](../spec/process-flow-extensions.md)
 - 式言語: [`docs/spec/process-flow-expression-language.md`](../spec/process-flow-expression-language.md)
 - 実行時規約: [`docs/spec/process-flow-runtime-conventions.md`](../spec/process-flow-runtime-conventions.md)
-- JSON Schema: [`schemas/process-flow.schema.json`](../../schemas/process-flow.schema.json)
+- JSON Schema: [`schemas/v3/process-flow.v3.schema.json`](../../schemas/v3/process-flow.v3.schema.json)

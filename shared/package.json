@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "Harmony frontend / backend 間で共有する型・定数の単一定義 source-of-truth (#1375)",
   "private": true,
+  "sideEffects": false,
   "type": "module",
   "exports": {
     ".": {

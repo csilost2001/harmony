@@ -12,6 +12,7 @@ Claude Code 固有の補足は `CLAUDE.md`、Codex 固有の設定は `.codex/co
 | 品質・性能の検査と道具 (ビルドサイズ予算 / 型の食い違い / カバレッジ / E2E 報告 / 使い回し) | [docs/conventions/quality-and-performance-tooling.md](docs/conventions/quality-and-performance-tooling.md) |
 | 設計の分析 (影響分析・対応表・未使用・用語・命名規約・SLA / ジョブ・外部契約・進捗・テスト雛形 / データ・OpenAPI) と、点検の設定 (抑制・独自ルール) | [design-analysis.md](docs/spec/design-analysis.md) / [design-check.md](docs/spec/design-check.md) |
 | 操作性 (通知の履歴・表示の設定・お気に入り・コマンドパレット・変更履歴・一括変更・別画面へのコピー・スニペット・設計全体の検索置換・表で編集・ドラッグのキーボード代替・ツアーとヘルプ・並べて表示・エラー復旧) | [ux-operations.md](docs/spec/ux-operations.md) |
+| 連携と運用 (Word / Excel 書き出し・設計書の体裁と改訂履歴・図の書き出し・Git・レビューコメント・承認・利用者と権限・変更の記録・通知・取り込み・生成の管理・技術スタックのプリセット・版とリリースノート・資料の鮮度検査) | [integration-ops.md](docs/spec/integration-ops.md) |
 | 完了判定 (回帰テストの trace 照合) | [docs/conventions/completion-gate.md](docs/conventions/completion-gate.md) |
 | 進行中の再設計計画と設計者判断 | [docs/plans/redesign-2026-10.md](docs/plans/redesign-2026-10.md) |
 | サーバの守り (接続トークン・要求の上限・MCP の権限)・保存前の版・外部更新の検知・ファイルの健全性 | [server-security.md](docs/spec/server-security.md) / [file-backup.md](docs/spec/file-backup.md) / [external-change-detection.md](docs/spec/external-change-detection.md) / [workspace-health.md](docs/spec/workspace-health.md) |
@@ -59,8 +60,10 @@ npm run kill           # 5173 / 5179 を握るプロセスを停止
 | 大きなプロジェクトでの性能 (画面 約 300 / 処理フロー 約 150 / テーブル 約 170。回帰には含めない) | `cd frontend && npx playwright test e2e/perf-large-project.spec.ts` (大きなワークスペースは `scripts/dev/make-large-workspace.mjs` が作る) |
 | 差分の行のカバレッジ (PR 本文に載せる) / E2E の遅い試験・flake の一覧 | `npm run coverage:changed` / `npm run e2e:report` ([quality-and-performance-tooling.md](docs/conventions/quality-and-performance-tooling.md)) |
 | backend の重い読み出しの時間 (規模を増やしたときの確認) | `npx tsx scripts/dev/bench-backend.mts <workspace-dir>` (同上) |
+| 初回セットアップ (診断して、足りないものをそろえる。`-- --check` は診断だけ、`-- --sample retail` でサンプルを複製) | `npm run setup` |
+| 資料の鮮度検査 (相対リンク・`npm run` の名前・Routing の表と画面の経路・UI 操作リファレンス・スキル表。`npm run check` に含まれる) / スクリーンショットの撮り直し / リリースノート (git の履歴から `docs/release-notes.md`) | `npm run check:docs [-- --info]` / `npm run docs:shots [-- --all]` / `npm run release:notes` |
 | スキーマの版の移行 (予行が既定。`--apply` で書く。登録された移行はいまは空) | `npm run migrate:schema -- <workspace-dir> [--apply]` ([schema-migration.md](docs/spec/schema-migration.md)) |
-| AI (MCP) から: 設計の点検・参照元・改名・テスト観点 | `designer__check_design` (設計を直したら、完了報告の前に呼び error / warning 0 件にする。要確認は、画面か design-check.json で人が理由つきで抑制するもので、AI は黙らせない) / `designer__analyze_design` (影響分析・対応表・未使用・用語ほか。読み取りのみ) / `designer__find_references` (誰が参照しているか) / `designer__rename_entity` (既定は予行、`apply: true` で実行) と `designer__undo_rename` / `designer__get_test_viewpoints` |
+| AI (MCP) から: 設計の点検・参照元・改名・テスト観点 | `designer__check_design` (設計を直したら、完了報告の前に呼び error / warning 0 件にする。要確認は、画面か design-check.json で人が理由つきで抑制するもので、AI は黙らせない) / `designer__analyze_design` (影響分析・対応表・未使用・用語ほか。読み取りのみ) / `designer__find_references` (誰が参照しているか) / `designer__rename_entity` (既定は予行、`apply: true` で実行) と `designer__undo_rename` / `designer__get_test_viewpoints` / コード生成のあとは `designer__record_generation` (どの設計からどのファイルを作ったか) → 再生成の前は `designer__check_generation_drift` と `designer__get_regeneration_diff` / レビューの指摘は `designer__add_review_findings` (位置つきのコメント) と `designer__list_review_comments` |
 
 - E2E は自前で起動した backend を再利用すると E2E 用環境変数が効かず失敗する。E2E 実行前は `npm run kill` して Playwright にサーバを起動させる。
 - AI が検証のために dev server を起動した場合は、作業の終わりに必ず `npm run kill` で止める。
@@ -99,7 +102,9 @@ AI Agent ──(http://localhost:5179/mcp)──┐
 | Path | 画面 |
 |---|---|
 | `/` | ダッシュボード (「設計の要確認」パネルあり)。どの画面でも `Ctrl+K` で画面・テーブル・処理フロー等へ飛べる ([quick-open.md](docs/spec/quick-open.md)) |
-| `/document` | 設計書 (読み取り専用の紙面。HTML 保存・印刷) |
+| `/document` | 設計書 (読み取り専用の紙面。HTML / Word / Excel 保存・印刷。体裁と改訂履歴の設定) |
+| `/analysis` | 設計の分析 (要確認・影響分析・対応表・整理・運用・進捗・ルール・書き出し) |
+| `/operations` | 連携と運用 (レビューと承認・変更の記録・Git・通知・生成の管理・取り込み・利用者と権限・版と更新) |
 | `/screen/flow` `/screen/list` | 画面フロー / 画面一覧 |
 | `/screen/design/:screenId` `/screen/items/:screenId` | 画面デザイナ / 画面項目 |
 | `/table/list` `/table/edit/:tableId` `/table/er` | テーブル一覧 / 編集 / ER 図 |
@@ -110,6 +115,8 @@ AI Agent ──(http://localhost:5179/mcp)──┐
 | `/page-layout/list` `/page-layout/edit/:id` `/gadget/list` | ページレイアウト / ガジェット |
 | `/generic-definition[/:kind[/:name]]` | 汎用定義 (メッセージ・ドメイン型 等 17 種) |
 | `/conventions/catalog` `/extensions` `/project/tech-stack` | 規約 / 拡張 / 技術スタック |
+| `/workspace/*` | ワークスペースの一覧・選択 (top-level) |
+| `/ai-settings` | AI 設定 (top-level) |
 
 URL は `/category/feature[/:id]`。HeaderMenu から到達する画面と個別リソース編集画面はすべてタブで開く (一覧は singleton、編集はリソースごと)。実装: `frontend/src/components/AppShell.tsx` の `<Routes>`。
 

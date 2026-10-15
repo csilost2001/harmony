@@ -42,7 +42,7 @@ const routes = [
   ["sequence-list", "/sequence/list"], ["view-list", "/view/list"], ["view-definition-list", "/view-definition/list"],
   ["page-layout-list", "/page-layout/list"], ["gadget-list", "/gadget/list"], ["generic-definition", "/generic-definition"],
   ["conventions", "/conventions/catalog"], ["extensions", "/extensions"], ["tech-stack", "/project/tech-stack"], ["document", "/document"],
-  ["analysis", "/analysis"], ["report-list", "/report/list"], ["report-edit", `/report/edit/${firstId("reports") ?? "delivery-note"}`],
+  ["analysis", "/analysis"], ["operations", "/operations"], ["report-list", "/report/list"], ["report-edit", `/report/edit/${firstId("reports") ?? "delivery-note"}`],
   ["business-flow-list", "/business-flow/list"], ["business-flow-edit", `/business-flow/edit/${firstId("business-flows") ?? "order-to-shipment"}`],
 ].filter(([n]) => !only || only.has(n));
 

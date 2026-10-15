@@ -151,7 +151,7 @@ interface FilterSpec {
 
 1 ベース table をそのまま列挙する最小構成。マスタ画面・単純な明細一覧で多用される。
 
-実例: [`examples/retail/view-definitions/db10b1f4-...json`](../../examples/retail/view-definitions/db10b1f4-459c-4bd3-bb27-76394209671d.json) (商品マスター一覧 5 列)
+実例: [`examples/retail/harmony/view-definitions/product-master-list-viewer.json`](../../examples/retail/harmony/view-definitions/product-master-list-viewer.json) (商品マスター一覧 5 列)
 
 ```jsonc
 {
@@ -227,7 +227,7 @@ interface FilterSpec {
 
 `query.sql` に完全 SQL 文を直接書く escape hatch。window 関数 / CTE / 再帰 / UNION / 複雑な ROW_NUMBER 等、Level 2 では表現できない場合に使う。validator は SQL 構文を解析せず `columns[]` の宣言を信頼する (実行時保証)。
 
-実例: [`examples/retail/view-definitions/37a3af9a-...json`](../../examples/retail/view-definitions/37a3af9a-f240-4fbb-b33d-6937305b430b.json) (カテゴリ別売れ筋商品 上位 N、ROW_NUMBER + CTE)
+実例: [`examples/retail/harmony/view-definitions/top-products-by-category.json`](../../examples/retail/harmony/view-definitions/top-products-by-category.json) (カテゴリ別売れ筋商品 上位 N、ROW_NUMBER + CTE)
 
 ```jsonc
 {

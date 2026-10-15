@@ -33,6 +33,7 @@ const READ_ONLY_TOOLS: ReadonlySet<string> = new Set([
   "designer__list_business_flows", "designer__list_extension_packages", "designer__list_extensions", "designer__list_layout_components",
   "designer__list_markers", "designer__list_page_layouts", "designer__list_process_flows", "designer__list_reports",
   "designer__list_response_type_extensions", "designer__list_screens", "designer__list_tables", "designer__list_tabs", "designer__list_versions",
+  "designer__check_generation_drift", "designer__get_regeneration_diff", "designer__list_review_comments",
   "designer__workspace_inspect", "designer__workspace_list", "designer__workspace_status",
   // 作業するワークスペースの切り替え (データは変えない。init: true の新規作成だけは、isToolAllowed で除く)
   "designer__workspace_open", "designer__workspace_close",

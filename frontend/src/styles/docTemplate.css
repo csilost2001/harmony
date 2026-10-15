@@ -1,0 +1,23 @@
+/* 設計書の体裁・改訂履歴のダイアログ。色は tokens.css のトークンだけを使う */
+.dt-modal { width: min(820px, 96vw); }
+.dt-tabs { display: flex; gap: 2px; padding: 0 12px; border-bottom: 1px solid var(--hm-border); }
+.dt-tabs button { border: 0; background: transparent; color: var(--hm-fg-muted); padding: 8px 14px; font-size: calc(13px * var(--hm-font-scale)); cursor: pointer; border-bottom: 2px solid transparent; }
+.dt-tabs button:hover { color: var(--hm-fg); background: var(--hm-hover); }
+.dt-tabs button.on { color: var(--hm-accent); border-bottom-color: var(--hm-accent); font-weight: 600; }
+.dt-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; }
+.dt-field { display: flex; flex-direction: column; gap: 3px; font-size: calc(12px * var(--hm-font-scale)); color: var(--hm-fg-muted); min-width: 0; }
+.dt-field input[type="text"] { border: 1px solid var(--hm-border-strong); background: var(--hm-surface); color: var(--hm-fg); border-radius: 6px; padding: 4px 8px; font-size: calc(13px * var(--hm-font-scale)); min-width: 0; }
+.dt-field input:focus, .dt-revs input:focus, .dt-revs textarea:focus { outline: 2px solid var(--hm-focus); outline-offset: 0; }
+.dt-color { display: flex; align-items: center; gap: 8px; }
+.dt-color input[type="color"] { width: 44px; height: 28px; padding: 0; border: 1px solid var(--hm-border-strong); border-radius: 4px; background: var(--hm-surface); }
+.dt-chapters ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 16px; }
+.dt-chapters label { display: flex; align-items: center; gap: 6px; font-size: calc(13px * var(--hm-font-scale)); }
+.dt-rev-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.dt-rev-table { width: 100%; border-collapse: collapse; font-size: calc(12.5px * var(--hm-font-scale)); }
+.dt-rev-table th { text-align: left; background: var(--hm-surface-2); padding: 4px 6px; border: 1px solid var(--hm-border); font-weight: 600; white-space: nowrap; }
+.dt-rev-table td { padding: 3px 4px; border: 1px solid var(--hm-border); vertical-align: top; }
+.dt-rev-table input, .dt-rev-table textarea { width: 100%; border: 1px solid var(--hm-border-strong); background: var(--hm-surface); color: var(--hm-fg); border-radius: 4px; padding: 3px 6px; font: inherit; min-width: 0; box-sizing: border-box; }
+.dt-w-ver { min-width: 5em; }
+.dt-w-author { min-width: 6em; }
+.dt-foot-note { flex: 1; align-self: center; font-size: calc(12px * var(--hm-font-scale)); color: var(--hm-warning); }
+@media (max-width: 700px) { .dt-grid, .dt-chapters ul { grid-template-columns: 1fr; } }

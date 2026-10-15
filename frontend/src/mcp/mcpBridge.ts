@@ -77,6 +77,7 @@ import { backendWebSocketUrl } from "./backendEndpoint";
 import type { RpcMethod } from "@harmony/shared";
 import { getAuthToken, isUnauthorizedClose, setAuthToken, wsUrlWithToken } from "./authToken";
 import { invalidateAllInflight, isReadOnlyRpc } from "../utils/sharedInflight";
+import { getUserName } from "../utils/userIdentity";
 
 export type McpStatus = "disconnected" | "connecting" | "connected" | "failed";
 export type ThemeIdLike = "standard" | "card" | "compact" | "dark";
@@ -284,7 +285,7 @@ class McpBridgeImpl {
         reject,
         timer,
       });
-      this.ws!.send(JSON.stringify({ type: "request", id, method, params }));
+      this.ws!.send(JSON.stringify({ type: "request", id, method, params, actor: getUserName() }));
     });
   }
 

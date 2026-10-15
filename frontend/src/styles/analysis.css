@@ -65,3 +65,4 @@
 .an-axis { fill: var(--hm-fg-muted); font-size: calc(9px * var(--hm-font-scale)); }
 @media (max-width: 900px) { .an-body { padding: 10px; } .an-section { padding: 10px; } }
 .an-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.an-paper { background: var(--hm-surface-2); } /* SVG は、白い背景を自分で持つので、どのテーマでも読める */

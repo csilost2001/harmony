@@ -23,6 +23,7 @@ import {
   type EditSessionLike,
 } from "../renameEntity.js";
 import { findReferences } from "../references.js";
+import { renameOpsRecords } from "../ops/service.js";
 import { assertEntityId, assertSafeName } from "../security/idValidator.js";
 import type { DraftResourceType as EditSessionResourceType } from "../editSessionStore.js";
 import type { WsBridge } from "../wsBridge.js";
@@ -237,6 +238,7 @@ export async function runEntityRename(
   // 編集セッションの対象 ID の移行 (ライブ + 永続化)
   const migrateEditSessions = makeMigrateEditSessions(bridge, wsId);
   const result = await renameEntityId(et, oldId, newId, root, { sessionId, editSessions, fetchEditSessionsForRef, migrateEditSessions });
+  await renameOpsRecords(root, et, oldId, newId); // 承認・レビューコメント・生成の記録の id を追従させる
   const broadcastReload = () => {
     // 改名した設計の changed (reload: true つき。別タブの編集画面が古い ID のまま保存して壊さないよう、
     // 起点のクライアントにも届ける) と、参照側の設計の reload
@@ -258,7 +260,9 @@ export async function runEntityUndo(bridge: WsBridge, operationId: string, fallb
   // workspace 切替後 undo と raw path injection を同時に塞ぐ。
   const opRoot = findUndoOperationWorkspaceRoot(operationId) ?? fallbackRoot;
   const migrateEditSessions = makeMigrateEditSessions(bridge, opRoot);
+  const undone = listRecentUndoOperations(opRoot).find((o) => o.operationId === operationId);
   const result = await undoEntityRename(operationId, opRoot, { sessionId, migrateEditSessions });
+  if (undone) await renameOpsRecords(opRoot, undone.entityType, undone.newId, undone.oldId); // 改名の取り消しに、運用の記録も追従させる
   const broadcastReload = () => {
     for (const ev of RENAME_RELOAD_EVENTS) bridge.broadcast({ wsId: opRoot, event: ev, data: { reload: true } });
   };

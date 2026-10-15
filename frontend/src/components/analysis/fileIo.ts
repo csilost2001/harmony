@@ -17,3 +17,13 @@ export const withBom = (csv: string): string => `${String.fromCharCode(0xfeff)}$
 export async function copyText(text: string, done = "コピーしました"): Promise<void> {
   try { await navigator.clipboard.writeText(text); showToast(done); } catch { showToast("コピーできませんでした (ブラウザの許可が要ります)", "error"); }
 }
+
+/** バイト列をファイルとして保存する (Word / Excel など) */
+export function saveBytesFile(filename: string, bytes: Uint8Array, mime: string): void {
+  const blob = new Blob([bytes as BlobPart], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; a.style.display = "none";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}

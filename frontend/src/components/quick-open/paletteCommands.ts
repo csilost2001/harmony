@@ -80,6 +80,9 @@ export function buildPaletteCommands(ctx: CommandContext): PaletteCommand[] {
   add({ id: "replace", label: "設計全体で検索・置換", keywords: ["けんさく", "ちかん", "replace", "find", "置き換え", "用語", "一括"], icon: "bi-input-cursor-text", hint: "Ctrl+Shift+H", run: afterClose(() => requestHeaderPanel("replace")) });
 
   // ── パネル・ヘルプ・履歴 ──
+  if (activeTab && ["design", "screen-items", "table", "process-flow", "business-flow", "report", "sequence", "view", "view-definition"].includes(activeTab.type)) {
+    add({ id: "open-review", label: "この設計のレビュー (承認・コメント) を開く", keywords: ["れびゅー", "review", "しょうにん", "承認", "こめんと", "コメント", "approve"], icon: "bi-chat-square-text", run: afterClose(() => requestHeaderPanel("review")) });
+  }
   add({ id: "open-notifications", label: "通知の履歴を開く", keywords: ["つうち", "notification", "toast", "履歴", "失敗"], icon: "bi-bell", run: afterClose(() => requestHeaderPanel("notifications")) });
   if (tourForTab(activeTab?.type)) add({ id: "tour", label: "この画面の操作ツアーを始める", keywords: ["つあー", "tour", "ガイド", "使い方", "はじめかた", "help", "ヘルプ"], icon: "bi-signpost-split", run: afterClose(() => requestHeaderPanel("tour")) });
   add({ id: "open-shortcuts", label: "キーボードショートカット一覧を開く", keywords: ["しょーとかっと", "shortcut", "help", "ヘルプ", "キー"], icon: "bi-keyboard", hint: "?", run: afterClose(() => pressShortcut({ key: "?" })) });

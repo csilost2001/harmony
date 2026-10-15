@@ -20,6 +20,11 @@ import {
 } from "./editSessionStore.js";
 import { resolveRoot } from "./projectStorage.js";
 import { rpcHandlerMap, type RpcContext } from "./wsHandlers/index.js";
+import { cleanActor } from "@harmony/shared";
+import { recordAudit } from "./ops/audit.js";
+import { describeRpc } from "./ops/auditMap.js";
+import { isEditRpc, requireRole } from "./ops/policy.js";
+import { scheduleIssueCheck } from "./ops/issuesWatch.js";
 import { logInfo, logWarn, logError } from "./serverLog.js";
 import { checkRequestOrigin } from "./security/originCheck.js";
 import { ExternalChangeWatcher } from "./externalChanges.js";
@@ -30,7 +35,7 @@ import { RateLimiter, checkContentLength, maxWsPayloadBytes, maxWsRequestsPer10s
 
 type Command = { id: string; method: string; params?: unknown };
 type Response = { id: string; result?: unknown; error?: string };
-type BrowserRequest = { type: "request"; id: string; method: string; params?: unknown };
+type BrowserRequest = { type: "request"; id: string; method: string; params?: unknown; actor?: string };
 
 // Port は env var で上書き可能 (テスト用に任意 port を使う想定)。未指定なら 5179 (#302)
 const WS_PORT = parseInt(process.env.DESIGNER_MCP_PORT ?? "5179", 10);
@@ -733,7 +738,9 @@ export class WsBridge extends EventEmitter {
       return;
     }
 
+    let responded: { result: unknown } | null = null;
     const respond = (result: unknown): void => {
+      responded = { result };
       if (ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: "response", id, result }));
       }
@@ -764,35 +771,62 @@ export class WsBridge extends EventEmitter {
       this.pruneExternalWatcher();
       schedulePrewarm(activePath); // 設計書・検査・検索の最初の計算を、あいたところで済ませておく
     }
+    // 1 つの接続の要求は、届いた順に処理を始める (役割の検査などの待ちで、あとの要求が先に始まらないように)。始まったあとは、並行に動く
+    const prevStart = this.startChain.get(clientId) ?? Promise.resolve();
+    let released = false;
+    let releaseStart: () => void = () => undefined;
+    const myStart = new Promise<void>((r) => { releaseStart = () => { released = true; r(); }; });
+    const chained = prevStart.then(() => myStart);
+    this.startChain.set(clientId, chained);
+    void chained.then(() => { if (this.startChain.get(clientId) === chained) this.startChain.delete(clientId); });
     try {
+      await prevStart;
       // 前回、複数ファイルの操作の途中で止まっていれば、最初の要求のときに元へ戻す
       if (activePath) await ensureRecovered(activePath);
       const handler = rpcHandlerMap.get(method);
       if (handler) {
+        const actor = cleanActor(req.actor);
+        // 役割の設定があるとき、編集の操作は「編集」以上の役割が要る (画面からの要求。AI の権限は別の設定)
+        if (activePath && isEditRpc(method)) await requireRole(activePath, actor, "editor", "設計を変えること");
+        const sessionTarget = activePath && method === "editSession.save" ? this.editSessionService.describeSession(clientId, String((params as { editSessionId?: unknown } | undefined)?.editSessionId ?? "")) : undefined;
         const ctx: RpcContext = {
           params,
           clientId,
           root,
           wsId,
+          actor: () => actor,
           respond,
           respondError,
           bridge: this,
         };
-        await handler(ctx);
+        const running = handler(ctx);
+        releaseStart(); // 処理が始まった (同期の部分は済んだ)。次の要求も、始めてよい
+        await running;
+        // 成功した変更の操作を、監査ログに残す (残せなくても、操作は止めない)
+        if (activePath && responded) {
+          const d = describeRpc(method, params, (responded as { result: unknown }).result, sessionTarget);
+          if (d) { void recordAudit(activePath, { actor: actor || "(名前なし)", ...d, via: "ui" }); scheduleIssueCheck(activePath); }
+        }
         return;
       }
       // 動的に登録されたハンドラ (#750 follow-up: client.log.flush 等)
       const dynHandler = this._browserHandlers.get(method);
       if (dynHandler) {
-        const result = await dynHandler(params, { clientId });
-        respond(result);
+        const pending = Promise.resolve(dynHandler(params, { clientId }));
+        releaseStart();
+        respond(await pending);
         return;
       }
       respondError(`未知のリクエストメソッド: ${method}`);
     } catch (e) {
       respondError(e instanceof Error ? e.message : String(e));
+    } finally {
+      if (!released) releaseStart();
     }
   }
+
+  /** 接続ごとの、要求の処理の開始の順序 (_handleBrowserRequest) */
+  private startChain = new Map<string, Promise<void>>();
 
   /** 動的にブラウザリクエストハンドラを登録する (#750 follow-up: client.log.flush 等)。 */
   private _browserHandlers = new Map<

@@ -28,6 +28,8 @@ export type RpcContext = {
   root: () => string;
   /** per-session active workspace path (broadcast scoping 用)。未選択時は null */
   wsId: () => string | null;
+  /** 操作している人の名前 (ブラウザの自己申告。本人確認ではない)。画面からの要求にだけある */
+  actor?: () => string;
   /** client へ正常応答を返す */
   respond: (result: unknown) => void;
   /** client へエラー応答を返す */

@@ -24,6 +24,7 @@ Claude Code 向けの補足。プロジェクト共通のルールは [AGENTS.md
 | コマンド | 用途 |
 |---|---|
 | `/issues <N>` | ISSUE を実装から PR まで完遂 |
+| `/issues-cdx <N>` | ISSUE を Opus 直接実装 + Codex CLI の反復レビューで完遂 (設計判断を先に確定し、user 不在中も自律実行) |
 | `/review-pr <N>` / `/review-issue <N>` | PR の独立レビュー / ISSUE 単位の網羅性監査 |
 | `/create-flow` / `/review-flow <flowId>` | 処理フロー JSON の作成 / 実行セマンティクスのレビュー |
 | `/generate-code` / `/generate-tests` | 設計書からのコード生成 / テスト生成 |
@@ -33,6 +34,7 @@ Claude Code 向けの補足。プロジェクト共通のルールは [AGENTS.md
 | `/test-strategy` | テスト実装時の方針 (自動起動) |
 | `/release-review` | リリース前の自律レビュー |
 | `/publish-dev-image <ver>` | Dev Container base image の公開 (maintainer 専用) |
+| `/publish-harmony-image <ver>` | Harmony 本体の配布用 Docker image の build / smoke / ghcr push (maintainer 専用、host の WSL2 / Linux で実行) |
 
 ### Memory
 

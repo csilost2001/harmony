@@ -25,6 +25,10 @@
 4. **DB / インフラ** — DB engine / connection / 監視
 5. **AI / 開発支援** — Codex / Claude Code 設定 (AI 連携時の prompt 等)
 
+## プリセット
+
+画面の上の「プリセットから始める」で、よくある組み合わせ (Java + Spring Boot + PostgreSQL、Kotlin、TypeScript の NestJS + Next.js / Express、Python の FastAPI + Vue、Go の Gin + Kubernetes など) を選ぶと、バックエンド・DB・フロントエンド・認証・デプロイをまとめて入れる。画面デザインの設定は変えない。保存するまで確定しない。選択肢そのものを増やすには、スキーマの変更 (設計者の判断) が要る。詳細: [integration-ops.md](../../spec/integration-ops.md) §13
+
 ## 主要操作
 
 | 操作 | 手段 | 結果 |

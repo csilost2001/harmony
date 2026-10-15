@@ -4,7 +4,7 @@ AGENTS.md から移設した詳細版 (2026-10-08)。
 
 ### Documentation HTML サイト (docs-site/)
 
-仕様書 / プレゼン HTML 化サイト (Astro 5 + Tailwind v4 + pagefind + rehype-mermaid)。詳細は [`docs-site/README.md`](docs-site/README.md) 参照。メタ ISSUE: [#1124](https://github.com/csilost2001/harmony/issues/1124) (Phase A-E 完了済)。
+仕様書 / プレゼン HTML 化サイト (Astro 5 + Tailwind v4 + pagefind + rehype-mermaid)。詳細は [`docs-site/README.md`](../../docs-site/README.md) 参照。メタ ISSUE: [#1124](https://github.com/csilost2001/harmony/issues/1124) (Phase A-E 完了済)。
 
 #### 出力構成
 

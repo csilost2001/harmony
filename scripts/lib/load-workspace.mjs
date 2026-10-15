@@ -4,7 +4,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { parseCheckSettings, summarizeOpenApi } from "@harmony/shared";
+import { parseCheckSettings, parseDocTemplate, summarizeOpenApi } from "@harmony/shared";
 
 const readJson = (p) => { try { return JSON.parse(fs.readFileSync(p, "utf8")); } catch { return null; } };
 /** ファイルが無ければ null、あるのに読めない (JSON が壊れている) ときは例外 */
@@ -82,6 +82,16 @@ export function loadWorkspaceInput(dir, warn = console.warn) {
       for (const m of parsed.problems) problems.push({ severity: "warning", section: "読み込み", message: `design-check.json: ${m}` });
     } catch { report("error", "design-check.json を読めない (JSON が壊れている) ため、抑制・独自ルールを適用しません"); }
   }
+  // 設計書の体裁・改訂履歴 (document-template.json)。読めない項目は捨てて、問題として知らせる
+  const templateFile = path.join(dataDir, "document-template.json");
+  let template;
+  if (fs.existsSync(templateFile)) {
+    try {
+      const parsed = parseDocTemplate(JSON.parse(fs.readFileSync(templateFile, "utf8")));
+      template = parsed.template;
+      for (const m of parsed.problems) problems.push({ severity: "warning", section: "読み込み", message: `document-template.json: ${m}` });
+    } catch { report("error", "document-template.json を読めない (JSON が壊れている) ため、設計書の体裁・改訂履歴を適用しません"); }
+  }
   // 外部システムの OpenAPI の定義 (ワークスペース内の JSON だけ。URL は取りに行かない)
   const externalSpecs = Object.create(null); // キーは設計の値。`__proto__` で Object.prototype を触らない
   for (const f of flows) {
@@ -127,6 +137,7 @@ export function loadWorkspaceInput(dir, warn = console.warn) {
     db: conventions?.db ?? {},
     genericDefinitions,
     ...(checkSettings ? { checkSettings } : {}),
+    ...(template ? { template } : {}),
     ...(Object.keys(externalSpecs).length ? { externalSpecs: { ...externalSpecs } } : {}),
   };
   return { input, dataDir, problems, counts: { screens: screens.length, flows: flows.length, tables: tables.length, businessFlows: businessFlows.length, reports: reports.length } };

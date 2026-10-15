@@ -77,3 +77,19 @@ describe("TechStackView", () => {
     expect((saveBtn as HTMLButtonElement).disabled).toBe(false);
   });
 });
+
+describe("プリセット", () => {
+  it("選ぶと、バックエンド・DB・フロントエンド・認証・デプロイがまとめて入り、右の概要に出る。保存するまで、保存の呼び出しはしない", async () => {
+    loadRawProjectMock.mockResolvedValue({ techStack: { designer: { cssFramework: "tailwind" } } });
+    saveTechStackMock.mockResolvedValue(undefined);
+    const { findByTestId, findByText, getByText, getByRole } = render(<TechStackView />);
+    fireEvent.change((await findByTestId("techstack-preset-select")) as HTMLSelectElement, { target: { value: "go-k8s" } });
+    expect(await findByText("FW: gin")).toBeTruthy();
+    expect(getByText("ターゲット: kubernetes")).toBeTruthy();
+    expect(getByText("CSS: tailwind")).toBeTruthy(); // 画面デザインの設定は、そのまま
+    expect(saveTechStackMock).not.toHaveBeenCalled();
+    fireEvent.click(getByRole("button", { name: /保存/ }));
+    await waitFor(() => expect(saveTechStackMock).toHaveBeenCalledTimes(1));
+    expect(saveTechStackMock.mock.calls[0][0]).toMatchObject({ designer: { cssFramework: "tailwind" }, backend: { language: "go", framework: "gin" }, deployment: { target: "kubernetes" } });
+  });
+});

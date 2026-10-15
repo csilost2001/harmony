@@ -6,7 +6,8 @@
 
 | 検査 | スクリプト | 見るもの |
 |---|---|---|
-| ビルドサイズの予算 | `scripts/verify/bundle-budget.mjs` | 最初に読む JS (入口) 850 kB 以下 / 他の 1 チャンク 400 kB 以下。画面は `frontend/src/routing/lazyViews.ts` 経由で遅延読み込みする。画面を静的に import し直すと入口が膨らんで失敗する |
+| ビルドサイズの予算 | `scripts/verify/bundle-budget.mjs` | 最初に読む JS (入口) 850 kB 以下 / 他の 1 チャンク 400 kB 以下。画面は `frontend/src/routing/lazyViews.ts` 経由で遅延読み込みする。画面を静的に import し直すと入口が膨らんで失敗する。`@harmony/shared` は `package.json` の `"sideEffects": false` で、使わない関数が入口に入らない (これを外すと、shared に足した書き出し・取り込み・図などが、すべて入口に入る: 実測 709 kB → 885 kB)。shared に、import しただけで実行される処理 (登録・設定の書き換え) を足すときは、この前提を崩さないこと |
+| 資料の鮮度検査 | `scripts/verify/docs-freshness.mjs` (`npm run check:docs`) | 資料の相対リンク・`npm run` の名前・AGENTS.md の Routing の表と画面の経路 (両方向)・UI 操作リファレンスの対象画面 / ルート / スクリーンショット・CLAUDE.md のスキル表を、実物と突き合わせる。知らせ (`-- --info`): 資料のない画面・古いスクリーンショット (`npm run docs:shots` で撮り直す)・索引にない仕様書。画面を足したら、Routing の表と UI 操作リファレンスを足す |
 | スキーマと型の食い違い | `scripts/verify/types-drift.mjs` | `schemas/v3` の `$defs` と、手書きの `frontend/src/types/v3` の interface の項目名の差。既存の差は `types-drift.baseline.json`。新しい差は失敗。スキーマは設計者の専権なので、直すのは型の側 |
 | E2E の無条件 skip | `scripts/verify/no-unconditional-e2e-skip.mjs` | 題名だけの常時 skip (`test.skip("題名", …)` / `test.describe.skip` / `test.fixme`) を失敗にする。条件つきの skip は可 |
 | 型検査の抑止 | `scripts/verify/no-type-suppression.mjs` | テスト以外の `@ts-nocheck` / `@ts-ignore` / `@ts-expect-error` を失敗にする |

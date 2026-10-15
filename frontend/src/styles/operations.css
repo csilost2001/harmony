@@ -1,0 +1,56 @@
+/* 連携と運用 (OperationsView)・レビューパネル。分析の画面の共通の見た目 (analysis.css) の上に足す。色は tokens.css のトークンだけを使う */
+.op-status { font-size: calc(11.5px * var(--hm-font-scale)); font-weight: 700; padding: 1px 8px; border-radius: 10px; border: 1px solid currentColor; white-space: nowrap; color: var(--hm-fg-muted); }
+.op-status-review { color: var(--hm-accent); }
+.op-status-approved { color: var(--hm-success); }
+.op-status-rejected, .op-status-stale { color: var(--hm-danger); }
+.op-actions { display: inline-flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.op-reject { display: inline-flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.op-note { color: var(--hm-fg-muted); }
+.op-request { padding-top: 6px; border-top: 1px dashed var(--hm-border); }
+.op-threads, .op-thread-list, .op-msgs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.op-thread-wrap { display: flex; flex-direction: column; gap: 4px; }
+.op-thread-target { font-size: calc(12.5px * var(--hm-font-scale)); font-weight: 600; }
+.op-thread { border: 1px solid var(--hm-border); border-radius: 8px; padding: 8px 12px; display: flex; flex-direction: column; gap: 6px; background: var(--hm-surface); }
+.op-thread.is-resolved { opacity: 0.8; border-style: dashed; }
+.op-thread.is-ai { border-left: 3px solid var(--hm-accent); }
+.op-thread-head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.op-msgs li { font-size: calc(13px * var(--hm-font-scale)); }
+.op-msgs p { margin: 2px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.op-reply, .op-new-thread { display: flex; gap: 6px; flex-wrap: wrap; align-items: flex-start; }
+.op-reply .an-input { flex: 1; min-width: 12em; }
+.op-new-thread { flex-direction: column; align-items: stretch; }
+.op-new-thread .an-btn { align-self: flex-start; }
+.op-box { border: 1px solid var(--hm-border); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; background: var(--hm-surface-2); font-size: calc(13px * var(--hm-font-scale)); min-width: 0; }
+.op-h3 { margin: 6px 0 0; font-size: calc(13px * var(--hm-font-scale)); font-weight: 700; }
+.op-diff { white-space: pre; }
+.op-add { color: var(--hm-success); }
+.op-del { color: var(--hm-danger); }
+.op-hunk { color: var(--hm-accent); }
+.op-msg { display: flex; flex-direction: column; gap: 3px; font-size: calc(12px * var(--hm-font-scale)); color: var(--hm-fg-muted); }
+.op-branch { align-items: flex-end; }
+.op-hooks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.op-hook { border: 1px solid var(--hm-border); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.op-grow { flex: 1; min-width: 14em; }
+.op-grow .an-input { width: 100%; box-sizing: border-box; }
+.op-ta { width: 100%; box-sizing: border-box; font-family: ui-monospace, Menlo, monospace; }
+.op-preview { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.op-drift { font-size: calc(12px * var(--hm-font-scale)); font-weight: 600; }
+.op-drift-current { color: var(--hm-success); }
+.op-drift-design-changed, .op-drift-output-changed { color: var(--hm-warning); }
+.op-drift-both-changed, .op-drift-output-missing { color: var(--hm-danger); }
+.op-chip { display: inline-block; margin-right: 8px; }
+.op-dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0; font-size: calc(13px * var(--hm-font-scale)); }
+.op-dl dt { color: var(--hm-fg-muted); }
+.op-dl dd { margin: 0; overflow-wrap: anywhere; }
+.op-notes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; font-size: calc(13px * var(--hm-font-scale)); }
+.op-note-date { color: var(--hm-fg-muted); font-variant-numeric: tabular-nums; margin-right: 6px; }
+
+/* ヘッダーのレビューパネル */
+.rv-wrap { position: relative; display: inline-flex; }
+.rv-badge { position: absolute; top: -2px; right: -2px; min-width: 14px; height: 14px; padding: 0 3px; border-radius: 7px; background: var(--hm-danger); color: var(--hm-on-solid); font-size: calc(9px * var(--hm-font-scale)); line-height: 14px; text-align: center; font-weight: 700; }
+.rv-pop { position: absolute; right: 0; top: calc(100% + 6px); width: min(440px, 92vw); max-height: min(70vh, 640px); overflow-y: auto; z-index: 1000; background: var(--hm-surface); color: var(--hm-fg); border: 1px solid var(--hm-border-strong); border-radius: 10px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3); padding: 12px; display: flex; flex-direction: column; gap: 10px; font-size: calc(13px * var(--hm-font-scale)); }
+.rv-pop h2 { margin: 0; font-size: calc(13.5px * var(--hm-font-scale)); font-weight: 700; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.rv-pop h3 { margin: 0; font-size: calc(12.5px * var(--hm-font-scale)); font-weight: 700; color: var(--hm-fg-muted); }
+.rv-pop .op-actions .an-btn { font-size: calc(12px * var(--hm-font-scale)); }
+.rv-more { align-self: flex-start; }
+@media (max-width: 900px) { .op-dl { grid-template-columns: 1fr; } }
