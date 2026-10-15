@@ -11,6 +11,7 @@
 | [layout-components.md](layout-components.md) | プロジェクト独自部品 (登録・差し込み口・展開・管理 UI) | 再設計 2026-10 |
 | [test-viewpoints.md](test-viewpoints.md) | テスト観点表 (画面入力の正常・異常・境界値を項目の制約から導出、処理の観点に ID を付与。CSV / JSON / Markdown に書き出し) | 再設計 2026-10 |
 | [references.md](references.md) | 参照元 (その設計を参照している設計の一覧。改名・削除の前の影響確認。UI の「参照元」/ MCP `designer__find_references`) | 再設計 2026-10 |
+| [ui-keyboard.md](ui-keyboard.md) | キーボード・移動 (画面内検索 Ctrl+F・参照元 Shift+F12・表の Ctrl+D / 行の挿入・複製・削除・コマンドパレットの画面の操作・F6・部品の追加・ダイアログのキー) | UI 第 2 弾 |
 | [ui-input-assist.md](ui-input-assist.md) | 入力補助 (参照の補完・SQL の表名とカラム名・定義へ移動・検索できる選択・カラムの物理名と型の提案・外部キーの候補・テーブルから画面項目・ID の候補・工程のおすすめ・IME) | UI 第 1 弾 |
 | [ux-operations.md](ux-operations.md) | 操作性 (通知の履歴・表示の設定・お気に入り・コマンドパレット・変更履歴・一括変更・別画面へのコピー・スニペット・検索置換・表で編集・キーボード代替・ツアーとヘルプ・並べて表示・エラー復旧) | 第 4 弾 |
 | [design-analysis.md](design-analysis.md) | 設計の分析 (影響分析・対応表・未使用・用語・命名規約・メッセージ・操作単位の権限・SLA / ジョブ・外部システムの契約・進捗・テスト雛形・テストデータ・OpenAPI・DDL の差分) | 第 3 弾 |
