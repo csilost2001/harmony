@@ -167,7 +167,7 @@ export function CanvasPane({
   }, [view, scrollTo, stepListRef]);
 
   return (
-    <section className="process-flow-canvas-pane" aria-label="処理フローの工程">
+    <section className="process-flow-canvas-pane" aria-label="処理フローの工程" data-region="工程の一覧">
       <div className="process-flow-canvas-header">
         <div>
           <span className="process-flow-pane-kicker">Flow</span>

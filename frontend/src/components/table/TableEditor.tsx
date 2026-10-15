@@ -61,6 +61,7 @@ import { COLUMN_BULK_FIELDS } from "./bulkColumnFields";
 import { SnippetMenu } from "../common/SnippetMenu";
 import { ColumnGrid } from "./ColumnGrid";
 import { useColumnSuggestionSource } from "../../hooks/useColumnSuggestionSource";
+import { usePageCommands } from "../../hooks/usePageCommands";
 import { columnNameHints, planColumnAutofill } from "../../utils/columnSuggestion";
 import { usePersistentState } from "../../hooks/usePersistentState";
 import { HelpHint } from "../help/HelpHint";
@@ -727,6 +728,16 @@ function ColumnsTab({
     setActiveColId(newColId);
   };
 
+  // コマンドパレット (Ctrl+K の「>」) に、この画面の操作を載せる
+  usePageCommands(`table:${table.id}:columns`, [
+    ...(isReadonly ? [] : [
+      { id: "col-add", label: "カラムを追加", keywords: ["かんむ", "からむ", "column", "add", "ついか", "追加"], icon: "bi-plus-lg", run: handleAddBlank },
+      { id: "col-template", label: "テンプレートからカラムを追加", keywords: ["てんぷれーと", "template", "id", "作成日時"], icon: "bi-collection", run: () => setShowTemplates(true) },
+      { id: "col-paste", label: "表 (Excel) から貼り付けてカラムを追加", keywords: ["ぺーすと", "paste", "excel", "えくせる", "貼り付け"], icon: "bi-clipboard-data", run: () => { setPasteInitial(""); setShowPaste(true); } },
+    ]),
+    { id: "col-grid", label: gridMode ? "カラムを「一覧で編集」に切り替える" : "カラムを「表で編集」に切り替える", keywords: ["ひょう", "grid", "ichiran", "切り替え", "表計算"], icon: gridMode ? "bi-list-ul" : "bi-grid-3x3", run: () => setGridMode((v) => !v) },
+  ]);
+
   const handlePasteColumns = (cols: ParsedColumn[], updates: Array<{ id: string; patch: Partial<Column> }>) => {
     const newIds: string[] = [];
     update((t) => {
@@ -1098,6 +1109,7 @@ function ColumnsTab({
   return (
     <div
       className="columns-tab"
+      data-region="カラム"
       onPaste={(e) => {
         // Excel の表を貼り付けたら、「表から貼り付け」を開く (アプリ内のコピーがあるとき・入力欄の中は、ふつうの貼り付け)
         if (isReadonly || sortActive || isPasteIntoField(e.target) || clipboard.hasContent) return;
@@ -1209,7 +1221,7 @@ function ColumnsTab({
       </>)}
 
       {!gridMode && detailCol && (
-        <div className="column-detail" ref={detailRef} onKeyDown={detailKeys.onKeyDown} data-testid="column-detail">
+        <div className="column-detail" data-region="カラムの詳細" ref={detailRef} onKeyDown={detailKeys.onKeyDown} data-testid="column-detail">
           <div className="column-detail-header">
             <span className="column-detail-title">
               <i className="bi bi-pencil-square" /> 編集中: <code>{detailCol.physicalName}</code>

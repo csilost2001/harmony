@@ -34,6 +34,7 @@ import { RenameEntityDialog } from "../common/RenameEntityDialog";
 import { ReferencesButton } from "../common/ReferencesButton";
 import { PasteItemsDialog } from "./PasteItemsDialog";
 import { ItemsFromTableDialog } from "./ItemsFromTableDialog";
+import { usePageCommands } from "../../hooks/usePageCommands";
 import { buildTermIndex } from "../../utils/columnSuggestion";
 import { draftErrorMessages, planItemAutofill } from "../../utils/itemSuggestion";
 import { isPasteIntoField, looksLikeSpreadsheet } from "../../utils/pasteDetect";
@@ -576,6 +577,14 @@ export function ScreenItemsView() {
     showToast(`テーブル「${tableName}」から ${items.length} 項目を追加しました`, "info");
   }, [updateWithDraft]);
 
+  // コマンドパレット (Ctrl+K の「>」) に、この画面の操作を載せる
+  usePageCommands(`screen-items:${screenId ?? ""}`, isReadonly ? [] : [
+    { id: "item-add", label: "画面項目を追加", keywords: ["こうもく", "item", "add", "ついか", "追加"], icon: "bi-plus-lg", run: handleAddItem },
+    { id: "item-from-table", label: "テーブルから画面項目を作る", keywords: ["てーぶる", "table", "からむ", "一括"], icon: "bi-table", run: () => setShowItemsFromTable(true) },
+    { id: "item-paste", label: "表 (Excel) から貼り付けて画面項目を追加", keywords: ["ぺーすと", "paste", "excel", "えくせる", "貼り付け"], icon: "bi-clipboard-data", run: () => setShowPasteItems(true) },
+    { id: "item-messages", label: "エラーメッセージの下書きを入れる", keywords: ["めっせーじ", "message", "えらー", "検証", "下書き"], icon: "bi-chat-text", run: () => handleDraftMessages(fileRef.current?.items.map((_, k) => k) ?? []) },
+  ]);
+
   const handleRemoveItem = useCallback((idx: number) => {
     updateWithDraft((f) => {
       f.items.splice(idx, 1);
@@ -1082,7 +1091,7 @@ export function ScreenItemsView() {
               </ul>
             </div>
           )}
-          <div className="screen-items-table-wrap">
+          <div className="screen-items-table-wrap" data-region="項目の表">
             <table className="screen-items-table" onKeyDown={onTableKeyDown}>
               <colgroup>
                 <col style={{ width: 24 }} />

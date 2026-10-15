@@ -80,6 +80,7 @@ import { StepContextMenu } from "./internal/StepContextMenu";
 import { WarningsPanel } from "./internal/WarningsPanel";
 import { ALL_STEP_TYPES } from "./internal/stepCardConstants";
 import { StepInsertMenu } from "./internal/StepInsertMenu";
+import { usePageCommands } from "../../hooks/usePageCommands";
 import { findStepKind, type TransitionStats } from "../../utils/stepSuggestion";
 import { loadStepTransitionStats } from "../../store/stepStatsStore";
 import { focusStepHeader, useStepKeyboard } from "./internal/useStepKeyboard";
@@ -505,6 +506,10 @@ export function ProcessFlowEditor() {
   // ── キーボード操作 (docs/spec/process-flow-keyboard.md) ──────────────────────
   /** 挿入メニュー。afterStepId = その工程の後ろへ (null なら末尾) */
   const [insertMenu, setInsertMenu] = useState<{ afterStepId: string | null } | null>(null);
+  // コマンドパレット (Ctrl+K の「>」) に、この画面の操作を載せる
+  usePageCommands(`process-flow:${processFlowId ?? ""}`, isReadonly ? [] : [
+    { id: "step-insert", label: "工程を挿入 (末尾に)", keywords: ["こうてい", "step", "insert", "ついか", "追加", "ステップ"], icon: "bi-plus-circle", hint: "Insert", run: () => setInsertMenu({ afterStepId: null }) },
+  ]);
   // 挿入メニューで、「この後によく置かれる種類」を出すための統計 (開いたときに 1 回読む)
   const [stepStats, setStepStats] = useState<TransitionStats | undefined>(undefined);
   useEffect(() => {

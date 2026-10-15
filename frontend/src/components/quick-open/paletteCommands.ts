@@ -15,6 +15,7 @@ import { clearRecentQuickOpen } from "../../utils/quickOpen";
 import { clearToastHistory } from "../../utils/toast";
 import { tourForTab } from "../../utils/tours";
 import { getSplit, setSplit } from "../../store/splitStore";
+import { getPageCommands } from "../../store/pageCommands";
 
 export interface PaletteCommand {
   id: string;
@@ -57,6 +58,12 @@ export function buildPaletteCommands(ctx: CommandContext): PaletteCommand[] {
       const fav = isFavorite(wsId, favKey);
       add({ id: "favorite", label: fav ? "お気に入りから外す" : "お気に入りに追加", keywords: ["おきにいり", "favorite", "star", "ほし", "固定"], icon: fav ? "bi-star-fill" : "bi-star", run: () => { toggleFavorite(wsId, favKey); } });
     }
+  }
+
+  // ── この画面の操作 (編集画面が usePageCommands で登録したもの) ──
+  for (const c of getPageCommands()) add({ ...c, run: afterClose(c.run) });
+  if (activeTab && ["design", "screen-items", "table", "process-flow", "business-flow", "report", "sequence", "view", "view-definition", "page-layout"].includes(activeTab.type)) {
+    add({ id: "find-in-page", label: "この画面の中を検索", keywords: ["けんさく", "find", "search", "さがす", "画面内"], icon: "bi-search", hint: "Ctrl+F", run: afterClose(() => pressShortcut({ key: "f", ctrlKey: true })) });
   }
 
   // ── 配色・表示 ──

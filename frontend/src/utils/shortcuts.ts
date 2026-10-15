@@ -18,6 +18,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { keys: ["Ctrl", "W"], label: "いまのタブを閉じる" },
       { keys: ["Ctrl", "Shift", "PageUp / PageDown"], label: "いまのタブを左 / 右へ動かす (タブのドラッグの代わり)" },
       { keys: ["Ctrl", "Shift", "H"], label: "設計全体の検索置換 (名前・説明などの文章を、一覧で確かめて置き換える)" },
+      { keys: ["F6"], label: "画面の領域 (ヘッダー → タブ → 一覧・詳細・マーカーなど) を順に移る (Shift 付きで逆順)" },
       { keys: ["Ctrl", "Shift", "P"], label: "操作を探して実行する (コマンドパレット。Ctrl+K のあと「>」でも同じ)" },
     ],
   },
@@ -104,4 +105,18 @@ export function shouldOpenShortcutHelp(e: Pick<KeyboardEvent, "key" | "ctrlKey" 
   if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return false;
   if (t?.isContentEditable) return false;
   return true;
+}
+
+/** 開いている画面に関係するグループ (ヘルプで、先頭に出して開いておく)。「どこでも」「編集中」は、どの画面でも関係する */
+export function relevantGroupTitles(pathname: string): string[] {
+  const rest = pathname.replace(/^\/w\/[^/]+/, "") || "/";
+  const out = ["どこでも"];
+  const isEdit = /\/(edit|items|design)\//.test(rest) || /^\/(conventions\/catalog|generic-definition)/.test(rest);
+  if (isEdit) out.push("編集中");
+  if (rest === "/") out.push("ダッシュボード");
+  if (/\/list$|^\/(screen\/flow|generic-definition|table\/er)/.test(rest)) out.push("一覧 (画面・テーブル・処理フローなど)");
+  if (/^\/process-flow\/edit\//.test(rest)) out.push("処理フロー (工程の見出しにカーソルがあるとき)");
+  if (/^\/(table\/edit|screen\/items|view-definition\/edit)\//.test(rest) || /^\/conventions\/catalog/.test(rest)) out.push("表の入力 (画面項目・規約カタログ・ビュー定義・テーブルのカラム)");
+  if (/^\/screen\/design\//.test(rest)) out.push("画面デザイナ");
+  return out;
 }

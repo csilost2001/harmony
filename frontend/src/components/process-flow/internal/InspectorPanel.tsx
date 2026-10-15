@@ -51,7 +51,7 @@ export function InspectorPanel({
   handlePickScreenItem,
 }: InspectorPanelProps) {
   return (
-    <aside className="process-flow-inspector-pane">
+    <aside className="process-flow-inspector-pane" data-region="メタ情報・入出力">
       <div className="process-flow-pane-header">
         <div>
           <span className="process-flow-pane-kicker">Inspector</span>

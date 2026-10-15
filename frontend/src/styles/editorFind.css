@@ -33,3 +33,6 @@
 [data-find-hit="current"], [data-find-current] { background-color: var(--hm-find-current-bg) !important; outline: 2px solid var(--hm-find-current-bg); }
 ::highlight(hm-find) { background-color: var(--hm-find-bg); color: var(--hm-fg); }
 ::highlight(hm-find-current) { background-color: var(--hm-find-current-bg); color: var(--hm-fg); }
+
+/* F6 で移った領域 */
+.hm-region-flash { outline: 3px solid var(--hm-accent) !important; outline-offset: -3px; transition: outline-color 0.9s; }
