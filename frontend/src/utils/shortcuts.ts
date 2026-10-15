@@ -45,7 +45,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { keys: ["Ctrl", "C"], label: "コピー (Ctrl+X で切り取り、Ctrl+V で貼り付け)" },
       { keys: ["Ctrl", "D"], label: "複製" },
       { keys: ["Delete"], label: "削除" },
-      { keys: ["Alt", "↑↓"], label: "選んだ項目を上下へ動かす" },
+      { keys: ["Alt", "↑↓"], label: "選んだ項目を上下へ動かす (ページレイアウトの region は、行の入力欄からも。Alt+Delete で削除)" },
       { keys: ["Shift", "F10"], label: "右クリックメニューを開く (メニューキーも可)" },
       { keys: ["Esc"], label: "選択・コピーを解除" },
     ],
