@@ -20,7 +20,7 @@ const mount = () => render(
 );
 
 describe("MarkersSummaryPanel (全設計)", () => {
-  beforeEach(() => request.mockReset());
+  beforeEach(() => { request.mockReset(); }); // 注意: mock を返すと、後片付けの関数として呼ばれてしまう
 
   it("処理フロー以外 (テーブル・画面) も数える。種類別・設計の種類別・いちばん古い日数。クリックで編集画面へ", async () => {
     const old = new Date(Date.now() - 9 * 86_400_000).toISOString();
@@ -41,12 +41,14 @@ describe("MarkersSummaryPanel (全設計)", () => {
     expect(screen.getByTestId("where")).toHaveTextContent("/w/ws1/markers");
   });
 
-  it("未解決が無いとき、案内を出す。失敗したら失敗を出す", async () => {
+  it("未解決が無いとき、案内を出す", async () => {
     request.mockResolvedValue({ items: [] });
-    const { unmount } = mount();
+    mount();
     expect(await screen.findByText(/未解決のマーカーはありません/)).toBeInTheDocument();
-    unmount();
-    request.mockImplementation(async () => { throw new Error("つながりません"); });
+  });
+
+  it("読み込みに失敗したら、失敗を出す", async () => {
+    request.mockImplementation(() => Promise.reject(new Error("つながりません")));
     mount();
     expect(await screen.findByText(/集計失敗/)).toBeInTheDocument();
   });
