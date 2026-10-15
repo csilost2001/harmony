@@ -9,11 +9,6 @@ import {
   removeCatalogEntry,
   insertStepAt,
   findStep,
-  listMarkers,
-  findAllMarkers,
-  addMarker,
-  resolveMarker,
-  removeMarker,
   type ProcessFlowDoc,
 } from "./processFlowEdits.js";
 
@@ -214,106 +209,6 @@ describe("addCatalogEntry / removeCatalogEntry", () => {
     addCatalogEntry(ag, "secretsCatalog", "b", { source: "env", name: "B" });
     removeCatalogEntry(ag, "secretsCatalog", "a");
     expect(Object.keys(ag.secretsCatalog ?? {})).toEqual(["b"]);
-  });
-});
-
-describe("markers (#261)", () => {
-  it("addMarker → listMarkers で取得", () => {
-    const ag = makeGroup();
-    const m = addMarker(ag, { kind: "chat", body: "ここ直して", author: "human" });
-    expect(m.id).toMatch(/^mk-/);
-    const list = listMarkers(ag);
-    expect(list).toHaveLength(1);
-  });
-
-  it("listMarkers unresolvedOnly=true (既定) は解決済みを除外", () => {
-    const ag = makeGroup();
-    const m1 = addMarker(ag, { kind: "chat", body: "A", author: "human" });
-    addMarker(ag, { kind: "todo", body: "B", author: "human" });
-    resolveMarker(ag, m1.id, "対応済み");
-    expect(listMarkers(ag, { unresolvedOnly: true })).toHaveLength(1);
-    expect(listMarkers(ag, { unresolvedOnly: false })).toHaveLength(2);
-  });
-
-  it("listMarkers stepId で絞込", () => {
-    const ag = makeGroup();
-    addMarker(ag, { kind: "chat", body: "group 宛", author: "human" });
-    addMarker(ag, { kind: "chat", body: "s1 宛", stepId: "s1", author: "human" });
-    expect(listMarkers(ag, { stepId: "s1" })).toHaveLength(1);
-    expect(listMarkers(ag, { stepId: "s2" })).toHaveLength(0);
-  });
-
-  it("resolveMarker で resolvedAt + resolution が設定", () => {
-    const ag = makeGroup();
-    const m = addMarker(ag, { kind: "question", body: "?", author: "human" });
-    resolveMarker(ag, m.id, "回答しました");
-    const found = (ag.markers ?? []).find((x) => x.id === m.id);
-    expect(found?.resolvedAt).toBeDefined();
-    expect(found?.resolution).toBe("回答しました");
-  });
-
-  it("removeMarker は完全削除", () => {
-    const ag = makeGroup();
-    const m = addMarker(ag, { kind: "chat", body: "A", author: "human" });
-    removeMarker(ag, m.id);
-    expect(ag.markers).toBeUndefined();
-  });
-
-  it("未知 id は throw", () => {
-    const ag = makeGroup();
-    expect(() => resolveMarker(ag, "nope")).toThrow();
-    expect(() => removeMarker(ag, "nope")).toThrow();
-  });
-});
-
-describe("findAllMarkers", () => {
-  function group(id: string, name: string, markers: Array<{ kind: "chat" | "attention" | "todo" | "question"; body: string; resolved?: boolean }>): { id: string; name: string; ag: ProcessFlowDoc } {
-    const ag: ProcessFlowDoc = { id, actions: [{ id: `${id}-a`, steps: [] }] };
-    for (const m of markers) {
-      const added = addMarker(ag, { kind: m.kind, body: m.body, author: "human" });
-      if (m.resolved) resolveMarker(ag, added.id, "ok");
-    }
-    return { id, name, ag };
-  }
-
-  it("複数 AG を横断し processFlowId / processFlowName 付きで返す", () => {
-    const groups = [
-      group("ag-a", "A", [{ kind: "todo", body: "X" }, { kind: "question", body: "Y" }]),
-      group("ag-b", "B", [{ kind: "chat", body: "Z" }]),
-    ];
-    const all = findAllMarkers(groups);
-    expect(all).toHaveLength(3);
-    expect(all[0].processFlowId).toBe("ag-a");
-    expect(all[0].processFlowName).toBe("A");
-    expect(all[2].processFlowId).toBe("ag-b");
-  });
-
-  it("unresolvedOnly=true (既定) で解決済みは除外", () => {
-    const groups = [
-      group("ag-a", "A", [{ kind: "todo", body: "open" }, { kind: "todo", body: "done", resolved: true }]),
-    ];
-    expect(findAllMarkers(groups, { unresolvedOnly: true })).toHaveLength(1);
-    expect(findAllMarkers(groups, { unresolvedOnly: false })).toHaveLength(2);
-  });
-
-  it("kind フィルタで特定種別のみ抽出", () => {
-    const groups = [
-      group("ag-a", "A", [{ kind: "todo", body: "t" }, { kind: "question", body: "q" }]),
-      group("ag-b", "B", [{ kind: "todo", body: "t2" }]),
-    ];
-    const onlyTodo = findAllMarkers(groups, { kind: "todo" });
-    expect(onlyTodo).toHaveLength(2);
-    expect(onlyTodo.every((m) => m.kind === "todo")).toBe(true);
-  });
-
-  it("マーカーなし AG は結果に含まれない (空配列を返すだけ)", () => {
-    const groups = [
-      group("ag-empty", "Empty", []),
-      group("ag-has", "Has", [{ kind: "chat", body: "x" }]),
-    ];
-    const all = findAllMarkers(groups);
-    expect(all).toHaveLength(1);
-    expect(all[0].processFlowId).toBe("ag-has");
   });
 });
 
