@@ -63,6 +63,17 @@ describe("OpenAPI の取り込み", () => {
     expect(r.flows[0].flow.actions[0].inputs).toHaveLength(200); // 1 つのスキーマは 200 個まで
     expect(r.warnings.some((w) => w.includes("項目が多いため"))).toBe(true);
   });
+  it("パスの共有のパラメータを多数のパスから $ref で参照しても、結果の大きさに上限がある", () => {
+    const params = Array.from({ length: 20_000 }, (_, i) => ({ name: `q${i}`, in: "query", schema: { type: "string" } }));
+    const paths = Object.fromEntries(Array.from({ length: 300 }, (_, i) => [`/s${i}`, { $ref: "#/components/pathItems/Shared" }]));
+    const t0 = Date.now();
+    const r = importOpenApi({ openapi: "3.0.0", components: { pathItems: { Shared: { parameters: params, get: { responses: { "200": { description: "ok" } } } } } }, paths });
+    expect(Date.now() - t0).toBeLessThan(3000);
+    const fields = r.flows.reduce((n, f) => n + ((f.flow.actions[0].inputs as unknown[] | undefined)?.length ?? 0), 0);
+    expect(fields).toBeLessThanOrEqual(50_000);
+    expect(r.flows.every((f) => ((f.flow.actions[0].inputs as unknown[] | undefined)?.length ?? 0) <= 300)).toBe(true);
+    expect(r.warnings.some((w) => w.includes("パラメータが多いため"))).toBe(true);
+  });
   it("読めない文書・外部参照・同名の operation は、止まらずに扱う", () => {
     expect(importOpenApi("x").warnings[0]).toContain("OpenAPI");
     const dup = importOpenApi({ openapi: "3.0.0", paths: { "/a": { get: { operationId: "x", responses: {} }, post: { operationId: "x", responses: {} } } } });

@@ -104,13 +104,17 @@ export function importOpenApi(doc: unknown): OpenApiImportResult {
       for (let n = 2; usedIds.has(id); n++) id = `${kebab(opId).slice(0, 58)}-${n}`;
       usedIds.add(id);
       const name = (typeof op.summary === "string" && op.summary.trim() ? op.summary.trim() : opId).slice(0, 100);
-      const params = [...(Array.isArray(pathItem.parameters) ? pathItem.parameters : []), ...(Array.isArray(op.parameters) ? op.parameters : [])].map((p) => resolve(p)).filter(isRecord);
+      // 共有したパラメータが operation ごとに複製されるので、読む数にも上限を掛ける (本文の項目と同じ上限)
+      const rawParams = [...(Array.isArray(pathItem.parameters) ? pathItem.parameters : []), ...(Array.isArray(op.parameters) ? op.parameters : [])];
+      if (rawParams.length > MAX_FIELDS_PER_OPERATION) truncated.add(`${method.toUpperCase()} ${path}: パラメータが多いため、先頭の ${MAX_FIELDS_PER_OPERATION} 個までにしました`);
+      const params = rawParams.slice(0, MAX_FIELDS_PER_OPERATION).map((p) => resolve(p)).filter(isRecord);
       const inputs: Json[] = [];
       const seen = new Set<string>();
       for (const p of params) {
         if ((p.in !== "path" && p.in !== "query") || typeof p.name !== "string") continue;
+        if (totalFields >= MAX_TOTAL_FIELDS) { truncated.add(`全体の項目が ${MAX_TOTAL_FIELDS} 個を超えたため、以降のパラメータは読みませんでした`); break; }
         const f = field(p.name, p.schema, p.in === "path" || p.required === true, p.description);
-        if (!seen.has(f.name)) { seen.add(f.name); inputs.push(f); }
+        if (!seen.has(f.name)) { seen.add(f.name); inputs.push(f); totalFields++; }
       }
       const reqBody = resolve(op.requestBody);
       if (isRecord(reqBody)) for (const f of bodyFields(jsonSchemaOf(reqBody.content), `${method.toUpperCase()} ${path} の要求`)) if (!seen.has(f.name as string) && inputs.length < MAX_FIELDS_PER_OPERATION) { seen.add(f.name as string); inputs.push(f); }
