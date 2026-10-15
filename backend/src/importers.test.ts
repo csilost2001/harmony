@@ -100,6 +100,25 @@ describe("OpenAPI の取り込み", () => {
     const d = time({ openapi: "3.0.0", components: { schemas: { Big: { type: "object", properties: props } } }, paths: Object.fromEntries(Array.from({ length: 500 }, (_, i) => [`/b${i}`, { post: { requestBody: { content: { "application/json": { schema: { $ref: "#/components/schemas/Big" } } } }, responses: {} } }])) });
     expect(d.ms).toBeLessThan(3000);
   });
+  it("共有された、キーの多いオブジェクト・長い $ref を、operation ごとに全体走査しない (数 MB の文書が、数秒以内)", () => {
+    const sharedPaths = (op: Record<string, unknown>) => ({ openapi: "3.0.0", components: { pathItems: { S: op } }, paths: Object.fromEntries(Array.from({ length: 500 }, (_, i) => [`/s${i}`, { $ref: "#/components/pathItems/S" }])) });
+    const time = (doc: unknown) => { const t0 = Date.now(); const r = importOpenApi(doc); return { ms: Date.now() - t0, r }; };
+    const manyKeys = (n: number, v: unknown) => { const o: Record<string, unknown> = {}; for (let i = 0; i < n; i++) o[`k${i}`] = v; return o; };
+    // 値が記録でないメディア型・応答のコードを、20 万個
+    const media = time(sharedPaths({ post: { requestBody: { content: manyKeys(200_000, "x") }, responses: { "200": { description: "ok", content: manyKeys(200_000, "x") } } } }));
+    expect(media.ms).toBeLessThan(3000);
+    const codes = time(sharedPaths({ get: { responses: manyKeys(200_000, { description: "d" }) } }));
+    expect(codes.ms).toBeLessThan(3000);
+    expect(codes.r.flows).toHaveLength(500);
+    // 10 万字の $ref を持つパラメータ 30 個
+    const long = `#/components/${"a".repeat(100_000)}`;
+    const refs = time(sharedPaths({ parameters: Array.from({ length: 30 }, () => ({ $ref: long })), get: { responses: {} } }));
+    expect(refs.ms).toBeLessThan(3000);
+    expect(refs.r.warnings.some((w) => w.includes("長すぎる参照"))).toBe(true);
+    // 内容のあるメディア型は、先頭の数十個に無くても、application/json があれば読む
+    const withJson = importOpenApi({ openapi: "3.0.0", paths: { "/a": { post: { requestBody: { content: { ...manyKeys(1000, "x"), "application/json": { schema: { type: "object", properties: { id: { type: "string" } } } } } }, responses: {} } } } });
+    expect(withJson.flows[0].flow.actions[0].inputs).toEqual([{ name: "id", type: "string" }]);
+  });
   it("読めない文書・外部参照・同名の operation は、止まらずに扱う", () => {
     expect(importOpenApi("x").warnings[0]).toContain("OpenAPI");
     const dup = importOpenApi({ openapi: "3.0.0", paths: { "/a": { get: { operationId: "x", responses: {} }, post: { operationId: "x", responses: {} } } } });

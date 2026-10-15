@@ -21,6 +21,8 @@ const MAX_NAME = 100;
 const MAX_TEXT = 2000;
 const MAX_PATH = 500;
 const MAX_RESPONSES = 100;
+const MAX_MEDIA_TYPES = 50;
+const MAX_REF_CHARS = 500;
 const MAX_WARNINGS = 100;
 const clip = (v: unknown, n: number): string => (typeof v === "string" ? v.slice(0, n) : "");
 
@@ -47,17 +49,32 @@ export function importOpenApi(doc: unknown): OpenApiImportResult {
   const version = typeof doc.openapi === "string" ? doc.openapi : typeof doc.swagger === "string" ? `swagger ${doc.swagger}` : "";
   if (!version.startsWith("3") && !version.startsWith("swagger 2")) warnings.push("openapi の版が読めません。3.x として読みます");
 
+  // 共有 (`$ref`) されたオブジェクトは、operation ごとに同じものが来る。キーの数え上げと、参照の解決は、同じものを 1 回だけにする
+  // (キーの数 × operation 数、文字列の長さ × 回数の時間にならないように)
+  const keyCache = new WeakMap<object, string[]>();
+  const KEEP_KEYS = Math.max(MAX_PROPS_PER_SCHEMA, MAX_RESPONSES, MAX_MEDIA_TYPES) + 1;
+  const firstKeys = (o: Json): string[] => {
+    let ks = keyCache.get(o);
+    if (!ks) { ks = Object.keys(o).slice(0, KEEP_KEYS); keyCache.set(o, ks); }
+    return ks;
+  };
+  const refCache = new Map<string, unknown>();
+
   const resolve = (v: unknown, depth = 0): unknown => {
     if (!isRecord(v) || typeof v.$ref !== "string") return v;
     if (depth > 8) return {};
     const ref = v.$ref;
-    if (!ref.startsWith("#/")) { warnings.push(`外部の参照 (${ref.slice(0, 60)}) は解決しません`); return {}; }
+    if (ref.length > MAX_REF_CHARS) { warn(`長すぎる参照 ($ref) は、解決しません (${MAX_REF_CHARS} 字まで)`); return {}; }
+    const key = `${depth}|${ref}`;
+    if (refCache.has(key)) return refCache.get(key);
+    const done = (r: unknown): unknown => { refCache.set(key, r); return r; };
+    if (!ref.startsWith("#/")) { warnings.push(`外部の参照 (${ref.slice(0, 60)}) は解決しません`); return done({}); }
     let cur: unknown = doc;
     for (const seg of ref.slice(2).split("/").map((s) => s.replace(/~1/g, "/").replace(/~0/g, "~"))) {
-      if (!isRecord(cur) || !Object.prototype.hasOwnProperty.call(cur, seg)) return {};
+      if (!isRecord(cur) || !Object.prototype.hasOwnProperty.call(cur, seg)) return done({});
       cur = cur[seg];
     }
-    return resolve(cur, depth + 1);
+    return done(resolve(cur, depth + 1));
   };
 
   const fieldType = (schema: unknown, depth = 0): unknown => {
@@ -80,13 +97,6 @@ export function importOpenApi(doc: unknown): OpenApiImportResult {
       ...(typeof description === "string" && description ? { description: description.slice(0, MAX_TEXT) } : isRecord(s) && typeof s.description === "string" ? { description: s.description.slice(0, MAX_TEXT) } : {}),
     };
   };
-  // 先頭のキーだけ (上限 + 1 個)。同じスキーマ (`$ref` で共有されたもの) は、1 回だけ数え上げる
-  const keyCache = new WeakMap<object, string[]>();
-  const firstKeys = (o: Json): string[] => {
-    let ks = keyCache.get(o);
-    if (!ks) { ks = Object.keys(o).slice(0, MAX_PROPS_PER_SCHEMA + 1); keyCache.set(o, ks); }
-    return ks;
-  };
   let totalFields = 0;
   const truncated = new Set<string>();
   const bodyFields = (schema: unknown, where: string): Json[] => {
@@ -105,7 +115,8 @@ export function importOpenApi(doc: unknown): OpenApiImportResult {
   const jsonSchemaOf = (content: unknown): unknown => {
     const c = resolve(content);
     if (!isRecord(c)) return undefined;
-    const media = isRecord(c["application/json"]) ? c["application/json"] : Object.values(c).find(isRecord);
+    let media: unknown = isRecord(c["application/json"]) ? c["application/json"] : undefined;
+    if (!media) for (const k of firstKeys(c).slice(0, MAX_MEDIA_TYPES)) { if (isRecord(c[k])) { media = c[k]; break; } }
     return isRecord(media) ? media.schema : undefined;
   };
 
@@ -148,8 +159,8 @@ export function importOpenApi(doc: unknown): OpenApiImportResult {
       const respMap = isRecord(op.responses) ? op.responses : {};
       let skippedCodes = 0;
       let seenCodes = 0;
-      for (const code in respMap) {
-        if (!Object.prototype.hasOwnProperty.call(respMap, code)) continue;
+      const codeKeys = firstKeys(respMap);
+      for (const code of codeKeys) {
         if (++seenCodes > MAX_RESPONSES) { truncated.add(`${where}: 応答が多いため、先頭の ${MAX_RESPONSES} 個までにしました`); break; }
         const rRaw = respMap[code];
         const status = /^\d{3}$/.test(code) ? Number(code) : NaN;
