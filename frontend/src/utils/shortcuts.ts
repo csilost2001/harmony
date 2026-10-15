@@ -11,6 +11,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
     title: "どこでも",
     entries: [
       { keys: ["Ctrl", "K"], label: "画面・テーブル・処理フローなどを探して開く" },
+      { keys: ["Ctrl", "K", "→", "Alt", "Enter"], label: "探している候補を、いまの画面の右側に並べて開く (並べて表示)" },
       { keys: ["Ctrl", "K", "→", "Ctrl", "D"], label: "探している候補を、お気に入りに追加 / 解除 (ヘッダーの ★ から開けます)" },
       { keys: ["?"], label: "このショートカット一覧を開く" },
       { keys: ["Ctrl", "Tab"], label: "次のタブへ (Shift 付きで前のタブへ)" },
@@ -99,6 +100,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { keys: ["Alt", "↑↓"], label: "選んだ部品を同じ入れ物の中で上下へ動かす" },
       { keys: ["Alt", "←"], label: "選んだ部品を、入れ物の外へ出す (親の直後へ)" },
       { keys: ["Alt", "→"], label: "選んだ部品を、直前の入れ物の中へ入れる (最後の子として)" },
+      { keys: ["/", "または Insert"], label: "部品を追加するメニューを開く (種類を打ち込んで Enter。選んでいる部品の後ろに追加)" },
       { keys: ["Ctrl", "D"], label: "選んだ部品を複製" },
       { keys: ["Delete"], label: "選んだ部品を削除" },
       { keys: ["Esc"], label: "選択を外す" },

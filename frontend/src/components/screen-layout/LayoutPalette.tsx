@@ -12,7 +12,7 @@ import type { Table } from "../../types/v3/table";
 import { DND_MIME, setDragPayload, type DragPayload } from "./layoutDnd";
 import { nodeTypeForItem } from "./layoutModel";
 
-const GROUPS: Array<{ title: string; types: Array<{ type: LayoutNodeType; icon: string; hint: string }> }> = [
+export const GROUPS: Array<{ title: string; types: Array<{ type: LayoutNodeType; icon: string; hint: string }> }> = [
   {
     title: "画面の構成",
     types: [

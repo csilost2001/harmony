@@ -12,7 +12,8 @@ import { getActiveTabId, getTabs, type TabItem } from "../../store/tabStore";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { isFavorite, toggleFavorite, useFavorites } from "../../utils/favorites";
-import { loadQuickOpenSources, openQuickOpenEntry } from "./loadSources";
+import { isWorkspaceScoped, loadQuickOpenSources, openQuickOpenEntry } from "./loadSources";
+import { setSplit } from "../../store/splitStore";
 import { buildPaletteCommands, type PaletteCommand } from "./paletteCommands";
 import {
   QUICK_OPEN_KIND_ICONS,
@@ -150,6 +151,16 @@ export function QuickOpen() {
     openQuickOpenEntry(row.entry, navigate, wsPath);
   }, [navigate, wsPath]);
 
+  // Alt+Enter: 候補を、いまの画面の右側に並べて開く (並べて表示)。設計の候補だけ。操作・新規作成は、ふつうに実行する
+  const runBeside = useCallback((row: Row) => {
+    if (row.type === "entry" && row.entry.kind !== "create" && isWorkspaceScoped(row.entry.route) && wsId) {
+      setOpen(false);
+      setSplit(wsId, { path: row.entry.route, label: row.entry.label, tabId: activeTab?.id ?? null });
+      return;
+    }
+    run(row);
+  }, [run, wsId, activeTab]);
+
   const onInputKey = (e: React.KeyboardEvent) => {
     // 日本語入力の変換中の Esc / Enter は、変換の取り消し・確定に使うので、ここでは扱わない
     if (e.nativeEvent.isComposing) return;
@@ -157,7 +168,7 @@ export function QuickOpen() {
     else if (e.key === "Tab") { e.preventDefault(); } // 開いている間は、フォーカスを入力欄から出さない
     else if (e.key === "ArrowDown") { e.preventDefault(); setCursor((c) => Math.min(c + 1, Math.max(rows.length - 1, 0))); }
     else if (e.key === "ArrowUp") { e.preventDefault(); setCursor((c) => Math.max(c - 1, 0)); }
-    else if (e.key === "Enter" && !isImeComposing(e)) { e.preventDefault(); if (rows[cursor]) run(rows[cursor]); }
+    else if (e.key === "Enter" && !isImeComposing(e)) { e.preventDefault(); if (rows[cursor]) (e.altKey ? runBeside : run)(rows[cursor]); }
     else if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "d") {
       // Ctrl+D: 選んでいる候補を、お気に入りに追加 / 解除 (ブラウザのブックマークは開かない)
       e.preventDefault();
@@ -257,6 +268,7 @@ export function QuickOpen() {
           <div className="quick-open-footer">
             <span><kbd>↑</kbd><kbd>↓</kbd> 選ぶ</span>
             <span><kbd>Enter</kbd> 開く・実行</span>
+            <span><kbd>Alt</kbd>+<kbd>Enter</kbd> 右に並べて開く</span>
             <span><kbd>Ctrl</kbd><kbd>D</kbd> お気に入り</span>
             <span><kbd>&gt;</kbd> 操作 (保存・配色など)</span>
             <span>空白で区切ると絞り込み (例: <code>注文 帳票</code>)</span>
