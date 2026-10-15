@@ -443,8 +443,41 @@ export function ScreenItemsView() {
     }, 0);
   }, [updateWithDraft]);
 
+  // 行のキー操作 (Ctrl+Enter = 下に挿入 / Ctrl+Shift+Enter = 複製 / Alt+Delete = 削除)。行の番号は data-grid-row (項目の番号)
+  const focusItemRow = useCallback((index: number) => {
+    setTimeout(() => {
+      const rows = document.querySelectorAll<HTMLElement>(".screen-items-table tbody tr[data-grid-row]");
+      const input = rows[Math.min(index, rows.length - 1)]?.querySelector<HTMLInputElement>('input[placeholder="例: email"]');
+      input?.scrollIntoView?.({ block: "nearest" });
+      input?.focus();
+    }, 0);
+  }, []);
+  const handleInsertItemBelow = useCallback((idx: number) => {
+    updateWithDraft((f) => { f.items.splice(idx + 1, 0, { id: "" as Identifier, label: "", type: "string" }); });
+    focusItemRow(idx + 1);
+  }, [updateWithDraft, focusItemRow]);
+  const handleDuplicateItemAt = useCallback((idx: number) => {
+    const f = fileRef.current;
+    const src = f?.items[idx];
+    if (!f || !src) return;
+    const plan = planItemPaste(f.items, [src]);
+    if (plan.items.length === 0) return;
+    updateWithDraft((doc) => { doc.items.splice(idx + 1, 0, ...plan.items); });
+    focusItemRow(idx + 1);
+  }, [updateWithDraft, focusItemRow]);
+  const handleDeleteItemAt = useCallback((idx: number) => {
+    updateWithDraft((f) => { f.items.splice(idx, 1); });
+    setSelectedIndices(new Set());
+    focusItemRow(Math.max(0, idx - 1));
+  }, [updateWithDraft, focusItemRow]);
+
   // 表計算ソフトのように、Enter / ↑↓ で上下の行の同じ列へ移る (最後の行の Enter で行を追加)
-  const gridKeys = useGridKeyboard({ onAppendRow: isReadonly ? undefined : handleAddItem });
+  const gridKeys = useGridKeyboard({
+    onAppendRow: isReadonly ? undefined : handleAddItem,
+    onInsertRowBelow: isReadonly ? undefined : handleInsertItemBelow,
+    onDuplicateRow: isReadonly ? undefined : handleDuplicateItemAt,
+    onDeleteRow: isReadonly ? undefined : handleDeleteItemAt,
+  });
 
   // 別の画面へも運べるコピー / 貼り付け (選んだ行をコピーして、ほかの画面の項目定義で貼り付ける)
   const clipboard = useListClipboard<ScreenItem>((i) => i.id, { channel: "screen-items", sourceId: screenId ?? "" });
@@ -1101,7 +1134,7 @@ export function ScreenItemsView() {
                 )}
                 {file.items.map((item, i) => (
                   <React.Fragment key={i}>
-                  <tr className={selectedIndices.has(i) ? "screen-items-row-selected" : ""}>
+                  <tr className={selectedIndices.has(i) ? "screen-items-row-selected" : ""} data-grid-row={i}>
                     <td className="text-center">
                       <input
                         type="checkbox"

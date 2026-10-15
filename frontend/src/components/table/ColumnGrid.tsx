@@ -1,5 +1,6 @@
 /**
  * カラムの「表で編集」。表計算ソフトのように、セルを選んでその場で編集する。
+ * - Ctrl+D = 上の行の値を写す、Ctrl+Enter = 下に行を挿入、Ctrl+Shift+Enter = 行を複製、Alt+Delete = 行を削除 (useGridKeyboard)
  * - Tab / Shift+Tab = 次 / 前のセル、Enter = 下の行の同じ列 (最後の行の Enter で、値があればカラムを追加)、Shift+Enter = 上、
  *   ↑ / ↓ = 文字を打つセルから上下の行の同じ列へ、Esc = セルから出る (useGridKeyboard)
  * - 文字のセルは、セルを出る (Tab・Enter・クリック) ときに 1 回だけ反映する (1 文字ずつ元に戻す履歴にしない)。
@@ -18,6 +19,12 @@ interface Props {
   onUpdateColumn: (id: string, patch: Partial<Column>) => void;
   /** 最後の行の Enter (値があるとき) で、カラムを 1 つ追加する */
   onAppend: () => void;
+  /** Ctrl+Enter: i 行目 (0 始まり) の下に、空のカラムを挿入する */
+  onInsertBelow?: (index: number) => void;
+  /** Ctrl+Shift+Enter: i 行目を複製する (元の行の下) */
+  onDuplicate?: (index: number) => void;
+  /** Alt+Delete: i 行目を削除する */
+  onDelete?: (index: number) => void;
   /** 物理名についてのヒント (用語・表記のずれ)。あれば行に電球を出し、クリックで合わせる */
   hintsFor?: (c: Column) => ColumnNameHint[];
 }
@@ -43,8 +50,17 @@ function NumberCell({ value, label, readonly, disabled, onCommit }: { value: num
   );
 }
 
-export function ColumnGrid({ columns, readonly, onUpdateColumn, onAppend, hintsFor }: Props) {
-  const grid = useGridKeyboard({ onAppendRow: readonly ? undefined : onAppend });
+export function ColumnGrid({ columns, readonly, onUpdateColumn, onAppend, onInsertBelow, onDuplicate, onDelete, hintsFor }: Props) {
+  // 挿入・複製のあと、新しい行の表示名の欄へ移る (すぐ打ち始められるように)
+  const focusRow = (index: number) => setTimeout(() => {
+    document.querySelector<HTMLInputElement>(`.cg-table tr[data-grid-row="${index}"] input[aria-label$="の表示名"]`)?.focus();
+  }, 0);
+  const grid = useGridKeyboard({
+    onAppendRow: readonly ? undefined : onAppend,
+    onInsertRowBelow: readonly || !onInsertBelow ? undefined : (i) => { onInsertBelow(i); focusRow(i + 1); },
+    onDuplicateRow: readonly || !onDuplicate ? undefined : (i) => { onDuplicate(i); focusRow(i + 1); },
+    onDeleteRow: readonly || !onDelete ? undefined : (i) => { onDelete(i); focusRow(Math.max(0, Math.min(i, columns.length - 2))); },
+  });
   const flag = (c: Column, key: "notNull" | "primaryKey" | "unique" | "autoIncrement", label: string) => (
     <input type="checkbox" checked={c[key] ?? false} disabled={readonly} aria-label={`${c.physicalName}の${label}`}
       onChange={(e) => onUpdateColumn(c.id, key === "primaryKey" ? { primaryKey: e.target.checked, notNull: e.target.checked ? true : c.notNull } : { [key]: e.target.checked })} />
@@ -62,7 +78,7 @@ export function ColumnGrid({ columns, readonly, onUpdateColumn, onAppend, hintsF
         </thead>
         <tbody>
           {columns.map((c, i) => (
-            <tr key={c.id} data-testid="column-grid-row">
+            <tr key={c.id} data-testid="column-grid-row" data-grid-row={i}>
               <td className="cg-no">{i + 1}</td>
               <td>
                 <div className="cg-name-cell">
@@ -95,7 +111,7 @@ export function ColumnGrid({ columns, readonly, onUpdateColumn, onAppend, hintsF
           ))}
         </tbody>
       </table>
-      <p className="cg-hint">Tab = 次のセル / Enter = 下の行 (最後の行では、カラムを追加) / ↑↓ = 上下のセル / Esc = セルから出る。文字のセルは、セルを出るときに反映されます。</p>
+      <p className="cg-hint">Tab = 次のセル / Enter = 下の行 (最後の行では、カラムを追加) / ↑↓ = 上下のセル / Esc = セルから出る / Ctrl+D = 上の行の値を写す / Ctrl+Enter = 下に行を挿入 / Ctrl+Shift+Enter = 行を複製 / Alt+Delete = 行を削除。文字のセルは、セルを出るときに反映されます。</p>
     </div>
   );
 }

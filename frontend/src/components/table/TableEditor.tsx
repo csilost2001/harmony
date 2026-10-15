@@ -697,6 +697,29 @@ function ColumnsTab({
     });
   }, [update, table.columns, suggestionSource]);
 
+  // 「表で編集」のキー操作 (Ctrl+Enter / Ctrl+Shift+Enter / Alt+Delete)
+  const handleInsertBelow = (index: number) => {
+    update((t) => {
+      addColumn(t);
+      const [m] = t.columns.splice(t.columns.length - 1, 1);
+      t.columns.splice(index + 1, 0, m);
+      t.columns = renumber(t.columns);
+    });
+  };
+  const handleDuplicateAt = (index: number) => {
+    update((t) => {
+      const src = t.columns[index];
+      if (!src) return;
+      addColumn(t, { ...src, physicalName: `${src.physicalName}_copy` as PhysicalName });
+      const [m] = t.columns.splice(t.columns.length - 1, 1);
+      t.columns.splice(index + 1, 0, m);
+      t.columns = renumber(t.columns);
+    });
+  };
+  const handleDeleteAt = (index: number) => {
+    update((t) => { const c = t.columns[index]; if (c) removeColumn(t, c.id); });
+  };
+
   const handleAddBlank = () => {
     let newColId: string = "";
     update((t) => { newColId = addColumn(t).id; });
@@ -1159,6 +1182,7 @@ function ColumnsTab({
 
       {gridMode && (
         <ColumnGrid columns={table.columns} readonly={isReadonly} onUpdateColumn={handleUpdateCol} onAppend={handleAddBlank}
+          onInsertBelow={handleInsertBelow} onDuplicate={handleDuplicateAt} onDelete={handleDeleteAt}
           hintsFor={(c) => columnNameHints(c, suggestionSource.index, suggestionSource.convention)} />
       )}
       {!gridMode && (<>
