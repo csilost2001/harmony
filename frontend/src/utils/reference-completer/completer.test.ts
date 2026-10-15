@@ -23,6 +23,28 @@ const ctx = (conventions: ConventionsCatalog | null = catalog): CompletionContex
   conventions,
 });
 
+describe("候補の並び (前方一致 → 部分一致)", () => {
+  const fake = (cands: Candidate[], prefix: string) => ({
+    id: "fake",
+    match: () => ({ phase: "active" as const, resolverId: "fake", prefix, candidates: cands, replaceLen: prefix.length }),
+  });
+
+  it("前方一致が上、部分一致が下。元の順は保たれる", () => {
+    const s = computeReferenceCompletion("id", 2, [fake([{ value: "subId" }, { value: "idA" }, { value: "midC" }, { value: "idB" }], "id")], {});
+    expect(s.phase === "active" && s.candidates.map((c) => c.value)).toEqual(["idA", "idB", "subId", "midC"]);
+  });
+
+  it("label が一致するものも前方一致として扱う", () => {
+    const s = computeReferenceCompletion("注", 1, [fake([{ value: "t2", label: "請求の注文" }, { value: "t1", label: "注文" }], "注")], {});
+    expect(s.phase === "active" && s.candidates.map((c) => c.value)).toEqual(["t1", "t2"]);
+  });
+
+  it("prefix が空なら並べ替えない", () => {
+    const s = computeReferenceCompletion("", 0, [fake([{ value: "b" }, { value: "a" }], "")], {});
+    expect(s.phase === "active" && s.candidates.map((c) => c.value)).toEqual(["b", "a"]);
+  });
+});
+
 describe("computeReferenceCompletion", () => {
   it("resolver なし → idle", () => {
     const s = computeReferenceCompletion("@conv.", 6, [], ctx());

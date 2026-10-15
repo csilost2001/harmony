@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import type { ConventionsCatalog } from "../../schemas/conventionsValidator";
 import { computeCompletion, insertCandidate } from "../../hooks/useConvCompletion";
+import { isImeComposing } from "../../utils/imeKeys";
 
 interface ConvCompletionInputProps {
   value: string;
@@ -64,7 +65,7 @@ export function ConvCompletionInput({
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setActiveIndex((i) => (i - 1 + candidates.length) % candidates.length);
-    } else if (e.key === "Enter" || e.key === "Tab") {
+    } else if ((e.key === "Enter" && !isImeComposing(e)) || e.key === "Tab") {
       if (candidates[safeIndex]) {
         e.preventDefault();
         pick(candidates[safeIndex]);

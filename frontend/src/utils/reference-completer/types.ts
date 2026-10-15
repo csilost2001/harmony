@@ -18,6 +18,8 @@ export interface Candidate {
   label?: string;
   /** サブテキスト (title / maturity 等)。 */
   hint?: string;
+  /** 選んでいる候補の下に出す詳しい説明 (型・定義元・現在の値など)。 */
+  detail?: string;
   /** 確定時の suffix (例: category → ".")。 */
   trailing?: string;
 }

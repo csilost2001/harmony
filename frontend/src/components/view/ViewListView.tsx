@@ -32,6 +32,7 @@ import { useQuickCreate } from "../../hooks/useQuickCreate";
 import { useReferencesDialog } from "../common/ReferencesButton";
 import { reportFailure } from "../../utils/failureToast";
 import { EmptyState } from "../common/EmptyState";
+import { isImeComposing } from "../../utils/imeKeys";
 
 const STORAGE_KEY = "list-view-mode:view-list";
 const TAB_ID = makeTabId("view-list", "main");
@@ -635,7 +636,7 @@ export function ViewListView() {
                   placeholder="例: v_customer_with_last_order"
                   autoFocus
                   className={addPhysicalNameError ? "input-error" : undefined}
-                  onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !isImeComposing(e)) handleAdd(); }}
                 />
                 {addPhysicalNameError && <span className="tbl-field-error">{addPhysicalNameError}</span>}
               </label>
@@ -646,7 +647,7 @@ export function ViewListView() {
                   value={addName}
                   onChange={(e) => setAddName(e.target.value)}
                   placeholder="例: 顧客最終購入日ビュー"
-                  onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !isImeComposing(e)) handleAdd(); }}
                 />
               </label>
               <label className="tbl-field">

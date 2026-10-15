@@ -8,6 +8,7 @@ import { STEP_TYPE_ICONS, STEP_TYPE_LABELS } from "../../../utils/processFlowMet
 import { normalizeQuery } from "../../../utils/quickOpen";
 import { useFocusTrap } from "../../../hooks/useFocusTrap";
 import "../../../styles/stepInsertMenu.css";
+import { isImeComposing } from "../../../utils/imeKeys";
 
 interface Props {
   kinds: readonly StepKind[];
@@ -43,7 +44,7 @@ export function StepInsertMenu({ kinds, where, onPick, onClose }: Props) {
     if (e.key === "Escape") { e.preventDefault(); onClose(); }
     else if (e.key === "ArrowDown") { e.preventDefault(); setCursor((c) => Math.min(c + 1, Math.max(hits.length - 1, 0))); }
     else if (e.key === "ArrowUp") { e.preventDefault(); setCursor((c) => Math.max(c - 1, 0)); }
-    else if (e.key === "Enter") { e.preventDefault(); if (hits[cursor]) onPick(hits[cursor]); }
+    else if (e.key === "Enter" && !isImeComposing(e)) { e.preventDefault(); if (hits[cursor]) onPick(hits[cursor]); }
   };
 
   return (

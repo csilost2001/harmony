@@ -16,6 +16,7 @@
  */
 
 import type { CompletionContext, CompletionState, Resolver } from "./types";
+import { looseMatch } from "../textMatch";
 import {
   PAGE_LAYOUT_THIS_TOPLEVEL_FIELD_NAMES,
   PROCESS_FLOW_THIS_TOPLEVEL_FIELD_NAMES,
@@ -132,7 +133,7 @@ export const thisResolver: Resolver = {
         const prefix = mItem[1];
         const items = ctx.currentScreenItems ?? [];
         const candidates = items
-          .filter((i) => i.id.startsWith(prefix))
+          .filter((i) => looseMatch(i.id, prefix))
           .map((i) => ({ value: i.id, label: i.label ?? i.id }));
         return {
           phase: "active",
@@ -151,7 +152,7 @@ export const thisResolver: Resolver = {
         const prefix = mAction[1];
         const actions = ctx.flow?.actions ?? [];
         const candidates = actions
-          .filter((a) => a.id.startsWith(prefix))
+          .filter((a) => looseMatch(a.id, prefix))
           .map((a) => ({ value: a.id, label: a.name ?? a.id }));
         return {
           phase: "active",
@@ -169,7 +170,7 @@ export const thisResolver: Resolver = {
       const prefix = mTop[1];
       const fields = TOPLEVEL_FIELDS_BY_KIND[kind] ?? [];
       const candidates = fields
-        .filter((f) => f.name.startsWith(prefix))
+        .filter((f) => looseMatch(f.name, prefix))
         .map((f) => ({
           value: f.name,
           label: f.name,

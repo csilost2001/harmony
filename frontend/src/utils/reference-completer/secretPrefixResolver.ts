@@ -6,6 +6,7 @@
  */
 
 import type { CompletionContext, CompletionState, Resolver } from "./types";
+import { looseMatch } from "../textMatch";
 
 export const secretPrefixResolver: Resolver = {
   id: "secret",
@@ -19,7 +20,7 @@ export const secretPrefixResolver: Resolver = {
 
     const prefix = m[1];
     const candidates = (ctx.workspace.secrets ?? [])
-      .filter((s) => s.id.startsWith(prefix))
+      .filter((s) => looseMatch(s.id, prefix))
       .map((s) => ({ value: s.id, label: s.id, hint: s.name }));
 
     return {

@@ -3,6 +3,7 @@ import type { StepNote, StepNoteType } from "../../utils/processFlowMetadata";
 import { STEP_NOTE_TYPE_VALUES } from "../../utils/processFlowMetadata";
 // #1332 Codex 10 巡目 M1: Note.id は schema 規範 (LocalId, `note-NN`) で採番
 import { nextLocalId } from "../../utils/localIdGenerator";
+import { isImeComposing } from "../../utils/imeKeys";
 
 interface Props {
   notes: StepNote[] | undefined;
@@ -143,7 +144,7 @@ export function NotesPanel({ notes, onChange }: Props) {
               value={newBody}
               onChange={(e) => setNewBody(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") {
+                if (e.key === "Enter" && !isImeComposing(e)) {
                   e.preventDefault();
                   addNote();
                 }

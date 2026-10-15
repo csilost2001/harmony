@@ -12,6 +12,7 @@
 import type { Candidate, CompletionContext, CompletionState, Resolver } from "./types";
 import { varScopeResolver } from "./varScopeResolver";
 import { secretPrefixResolver } from "./secretPrefixResolver";
+import { looseMatch } from "../textMatch";
 
 /** @stepResult.<stepId>.<field> resolver。 */
 export const stepResultResolver: Resolver = {
@@ -35,7 +36,7 @@ export const stepResultResolver: Resolver = {
       const prefix = stepIdPart ?? "";
       const stepIds = allSteps
         .map((s) => s.id as unknown as string)
-        .filter((id): id is string => typeof id === "string" && id.startsWith(prefix));
+        .filter((id): id is string => typeof id === "string" && looseMatch(id, prefix));
       const unique = [...new Set(stepIds)];
       const candidates: Candidate[] = unique.map((id) => ({
         value: id,
@@ -80,7 +81,7 @@ export const stepResultResolver: Resolver = {
 
     const prefix = fieldPart;
     const candidates: Candidate[] = [...fields]
-      .filter((f) => f.startsWith(prefix))
+      .filter((f) => looseMatch(f, prefix))
       .map((f) => ({ value: f }));
 
     return {
@@ -117,7 +118,7 @@ export const inputsResolver: Resolver = {
     }
 
     const candidates: Candidate[] = [...inputNames]
-      .filter((n) => n.startsWith(prefix))
+      .filter((n) => looseMatch(n, prefix))
       .map((n) => ({ value: n }));
 
     return {
@@ -168,7 +169,7 @@ export const fieldErrorsResolver: Resolver = {
     }
 
     const candidates: Candidate[] = [...fields]
-      .filter((f) => f.startsWith(prefix))
+      .filter((f) => looseMatch(f, prefix))
       .map((f) => ({ value: f }));
 
     return {

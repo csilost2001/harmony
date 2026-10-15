@@ -37,6 +37,7 @@ import { useQuickCreate } from "../../hooks/useQuickCreate";
 import { useReferencesDialog } from "../common/ReferencesButton";
 import { reportFailure } from "../../utils/failureToast";
 import { EmptyState } from "../common/EmptyState";
+import { isImeComposing } from "../../utils/imeKeys";
 
 const STORAGE_KEY = "list-view-mode:table-list";
 const TAB_ID = makeTabId("table-list", "main");
@@ -751,7 +752,7 @@ export function TableListView() {
                   onChange={(e) => setAddName(e.target.value)}
                   placeholder="例: customers"
                   autoFocus
-                  onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !isImeComposing(e)) handleAdd(); }}
                 />
               </label>
               <label className="tbl-field">
@@ -761,7 +762,7 @@ export function TableListView() {
                   value={addLogical}
                   onChange={(e) => setAddLogical(e.target.value)}
                   placeholder="例: 顧客マスタ"
-                  onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !isImeComposing(e)) handleAdd(); }}
                 />
               </label>
               <label className="tbl-field">

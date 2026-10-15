@@ -20,6 +20,7 @@ import {
   suggestUniqueIdSuffix,
 } from "../../utils/entityIdSuggestion";
 import "../../styles/entityIdInput.css";
+import { isImeComposing } from "../../utils/imeKeys";
 
 export interface EntityIdInputProps {
   /** id field 現在値 */
@@ -184,7 +185,7 @@ export function EntityIdInput({
           value={value}
           onChange={(e) => changeByUser(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && onEnter && !isInvalid) {
+            if ((e.key === "Enter" && !isImeComposing(e)) && onEnter && !isInvalid) {
               e.preventDefault();
               onEnter();
             }

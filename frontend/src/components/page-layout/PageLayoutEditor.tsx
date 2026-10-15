@@ -56,6 +56,7 @@ import "../../styles/table.css";
 import "../../styles/editMode.css";
 import "../../styles/pageLayoutManager.css";
 import { reportFailure } from "../../utils/failureToast";
+import { isImeComposing } from "../../utils/imeKeys";
 
 const MATURITY_OPTIONS: Maturity[] = ["draft", "provisional", "committed"];
 const MATURITY_LABELS: Record<Maturity, string> = {
@@ -815,7 +816,7 @@ export function PageLayoutEditor() {
                   onChange={(e) => { setNewRegionName(e.target.value); setRegionNameError(""); }}
                   placeholder="region 名 (例: breadcrumb)"
                   className={`tbl-input tbl-input-sm${regionNameError ? " input-error" : ""}`}
-                  onKeyDown={(e) => { if (e.key === "Enter") handleAddRegion(); }}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !isImeComposing(e)) handleAddRegion(); }}
                 />
                 <input
                   type="text"

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { Step } from "../../types/v3";
 import { getJumpTargetOptions } from "../../utils/actionUtils";
+import { isImeComposing } from "../../utils/imeKeys";
 
 interface JumpTargetSelectorProps {
   value: string;
@@ -48,7 +49,7 @@ export function JumpTargetSelector({
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!open) {
-      if (e.key === "ArrowDown" || e.key === "Enter") {
+      if (e.key === "ArrowDown" || (e.key === "Enter" && !isImeComposing(e))) {
         setOpen(true);
         setActiveIdx(0);
         e.preventDefault();
@@ -61,7 +62,7 @@ export function JumpTargetSelector({
     } else if (e.key === "ArrowUp") {
       setActiveIdx((i) => Math.max(i - 1, 0));
       e.preventDefault();
-    } else if (e.key === "Enter") {
+    } else if (e.key === "Enter" && !isImeComposing(e)) {
       if (activeIdx >= 0 && activeIdx < filtered.length) {
         select(filtered[activeIdx].id);
       } else if (search) {

@@ -42,6 +42,7 @@ import "../../styles/er.css";
 import { reportFailure, runReporting } from "../../utils/failureToast";
 import { useKeyboardNodeMove } from "../../hooks/useKeyboardNodeMove";
 import { EmptyState } from "../common/EmptyState";
+import { isImeComposing } from "../../utils/imeKeys";
 
 const nodeTypes = { erTableNode: ErTableNodeComponent };
 
@@ -774,7 +775,7 @@ function AddTableFromErModal({
             onChange={(e) => setPhysicalName(e.target.value)}
             placeholder="例: customers"
             autoFocus
-            onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+            onKeyDown={(e) => { if (e.key === "Enter" && !isImeComposing(e)) submit(); }}
           />
         </label>
         <label className="tbl-field">
@@ -784,7 +785,7 @@ function AddTableFromErModal({
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder="例: 顧客マスタ"
-            onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+            onKeyDown={(e) => { if (e.key === "Enter" && !isImeComposing(e)) submit(); }}
           />
         </label>
         <label className="tbl-field">

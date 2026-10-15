@@ -18,6 +18,7 @@ import {
   isLoopStep,
   isTransactionScopeStep,
 } from "../../utils/actionUtils";
+import { isImeComposing } from "../../utils/imeKeys";
 
 /** ProcessFlow 内の全 step.id を再帰的に収集 (anchor orphan 判定用) */
 function collectStepIds(group: ProcessFlow): Set<string> {
@@ -259,7 +260,7 @@ export function MarkerPanel({ group, onChange, expanded: expandedProp, onExpande
                       placeholder="解決メモ (任意): 何をしたか・なぜ閉じるか"
                       onChange={(e) => setResolveNote(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                        if ((e.key === "Enter" && !isImeComposing(e)) && (e.ctrlKey || e.metaKey)) {
                           e.preventDefault();
                           confirmResolve(m.id);
                         } else if (e.key === "Escape") {
@@ -320,7 +321,7 @@ export function MarkerPanel({ group, onChange, expanded: expandedProp, onExpande
               value={newBody}
               onChange={(e) => setNewBody(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); addMarker(); }
+                if ((e.key === "Enter" && !isImeComposing(e)) && !e.shiftKey) { e.preventDefault(); addMarker(); }
               }}
             />
             <button

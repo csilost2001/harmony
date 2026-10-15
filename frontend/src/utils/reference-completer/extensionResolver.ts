@@ -7,6 +7,7 @@
  * fieldKind="extensionRef" で起動する。
  */
 
+import { rankByMatch } from "../textMatch";
 import type { Candidate, CompletionContext, CompletionState, Resolver } from "./types";
 
 /**
@@ -72,12 +73,8 @@ export const extensionResolver: Resolver = {
     if (!ctx.extensions) return null;
 
     const prefix = value;
-    const lowerPrefix = prefix.toLowerCase();
     const all = collectExtensionCandidates(ctx);
-    const filtered = all.filter((c) => {
-      return c.value.toLowerCase().includes(lowerPrefix) ||
-        (c.hint ?? "").toLowerCase().includes(lowerPrefix);
-    });
+    const filtered = rankByMatch(all, prefix, (c) => [c.value, c.hint]);
 
     return {
       phase: "active",

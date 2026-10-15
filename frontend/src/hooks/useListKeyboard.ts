@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import type { ListSelection } from "./useListSelection";
 import type { ListClipboard } from "./useListClipboard";
 import type { ListSort } from "./useListSort";
+import { isImeComposing } from "../utils/imeKeys";
 
 interface ListKeyboardOpts<T> {
   items: T[];
@@ -149,7 +150,7 @@ export function useListKeyboard<T>(opts: ListKeyboardOpts<T>): void {
         return;
       }
 
-      if ((e.key === "Enter" || e.key === "F2") && !ctrl && !e.altKey) {
+      if (((e.key === "Enter" && !isImeComposing(e)) || e.key === "F2") && !ctrl && !e.altKey) {
         if (onActivate && selection.selectedItems.length === 1) {
           e.preventDefault();
           onActivate(selection.selectedItems[0]);

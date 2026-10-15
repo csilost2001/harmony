@@ -5,6 +5,7 @@
  * テキスト全体を prefix として contains フィルタで候補を絞り込む。
  */
 
+import { rankByMatch } from "../textMatch";
 import type { Candidate, CompletionContext, CompletionState, Resolver } from "./types";
 
 /**
@@ -20,13 +21,8 @@ function makeIdResolver(
     match(value: string, _cursorPos: number, ctx: CompletionContext): CompletionState | null {
       if (ctx.fieldKind !== fieldKind) return null;
       const prefix = value;
-      const lowerPrefix = prefix.toLowerCase();
       const all = source(ctx);
-      const filtered = all.filter((c) => {
-        const val = c.value.toLowerCase();
-        const lbl = (c.label ?? "").toLowerCase();
-        return val.includes(lowerPrefix) || lbl.includes(lowerPrefix);
-      });
+      const filtered = rankByMatch(all, prefix, (c) => [c.value, c.label]);
       return {
         phase: "active",
         resolverId: fieldKind,
@@ -44,6 +40,7 @@ export const screenIdResolver = makeIdResolver("screenId", (ctx) =>
     value: s.id,
     label: s.name,
     hint: s.maturity,
+    detail: `画面 ・ ID: ${s.id}`,
   })),
 );
 
@@ -53,6 +50,7 @@ export const tableIdResolver = makeIdResolver("tableId", (ctx) =>
     value: t.id,
     label: `${t.name}（${t.physicalName}）`,
     hint: t.maturity,
+    detail: `テーブル ・ 物理名: ${t.physicalName} ・ ID: ${t.id}`,
   })),
 );
 
@@ -71,6 +69,7 @@ export const handlerFlowIdResolver = makeIdResolver("handlerFlowId", (ctx) =>
     value: f.id,
     label: f.name,
     hint: f.kind,
+    detail: `処理フロー (${f.kind}) ・ ID: ${f.id}`,
   })),
 );
 

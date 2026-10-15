@@ -15,6 +15,7 @@
  */
 
 import type { CompletionContext, CompletionState, Resolver } from "./types";
+import { looseMatch } from "../textMatch";
 
 const KIND_PREFIXES = ["dialog", "messageArea", "options"] as const;
 
@@ -33,7 +34,7 @@ export const genericDefinitionResolver: Resolver = {
         const prefix = m[1];
         const items = ctx.genericDefinitionsByKind[kind] ?? [];
         const candidates = items
-          .filter((i) => i.name.startsWith(prefix))
+          .filter((i) => looseMatch(i.name, prefix))
           .map((i) => ({ value: i.name, label: i.name }));
         return {
           phase: "active",

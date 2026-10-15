@@ -8,6 +8,18 @@
 
 import { ALL_CONV_CATEGORIES } from "../../hooks/useConvCompletion";
 import type { Candidate, CompletionContext, CompletionState, Resolver } from "./types";
+import { looseMatch } from "../textMatch";
+
+/** 規約の値を 1 行の短い文字にする (候補の説明用)。 */
+export function summarizeValue(v: unknown, max = 80): string {
+  let text: string;
+  try {
+    text = typeof v === "string" ? v : JSON.stringify(v) ?? String(v);
+  } catch {
+    text = String(v);
+  }
+  return text.length > max ? `${text.slice(0, max)}…` : text;
+}
 
 export const convResolver: Resolver = {
   id: "conv",
@@ -27,7 +39,7 @@ export const convResolver: Resolver = {
       // カテゴリ補完フェーズ
       const prefix = catPart ?? "";
       const candidates: Candidate[] = (ALL_CONV_CATEGORIES as readonly string[])
-        .filter((c) => c.startsWith(prefix))
+        .filter((c) => looseMatch(c, prefix))
         .map((c) => ({ value: c, label: c, trailing: "." }));
       return {
         phase: "active",
@@ -41,8 +53,11 @@ export const convResolver: Resolver = {
     // キー補完フェーズ
     const cat = (ctx.conventions as unknown as Record<string, unknown>)[catPart!];
     if (!cat || typeof cat !== "object") return null;
-    const keys = Object.keys(cat as object).filter((k) => k.startsWith(keyPart));
-    const candidates: Candidate[] = keys.map((k) => ({ value: k }));
+    const keys = Object.keys(cat as object).filter((k) => looseMatch(k, keyPart));
+    const candidates: Candidate[] = keys.map((k) => ({
+      value: k,
+      detail: `現在の値: ${summarizeValue((cat as Record<string, unknown>)[k])}`,
+    }));
     return {
       phase: "active",
       resolverId: "conv",
