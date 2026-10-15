@@ -36,3 +36,7 @@
 .paste-cols-update { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; color: var(--hm-fg-2); }
 .paste-cols-excel { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: calc(12px * var(--hm-font-scale)); color: var(--hm-fg-muted); }
 .paste-cols-excel label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.paste-cols-mapping { border: 1px solid var(--hm-border); border-radius: 6px; padding: 6px 10px; }
+.paste-cols-mapping summary { cursor: pointer; font-size: calc(12px * var(--hm-font-scale)); color: var(--hm-fg-muted); }
+.paste-cols-mapping table { border-collapse: collapse; font-size: calc(12px * var(--hm-font-scale)); margin-top: 4px; }
+.paste-cols-mapping td { padding: 2px 6px; white-space: nowrap; max-width: 12em; overflow: hidden; text-overflow: ellipsis; }

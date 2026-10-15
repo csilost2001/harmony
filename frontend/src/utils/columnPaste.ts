@@ -35,11 +35,28 @@ export interface ColumnPasteResult {
   headerDetected: boolean;
   /** 貼り付けた表にある項目 (見出しなしなら、既定の順の全項目)。既存の行を更新するとき、この項目だけを書き換える */
   fields: ColumnField[];
+  /** 実際に使った列の対応 (見出しからの推定、または利用者が選んだもの)。ダイアログが、列ごとの選択欄に出す */
+  mapping: ColumnMapping;
+  /** 表の列数 (いちばん多い行) と、先頭の数行 (対応を選ぶときの手がかり) */
+  columnCount: number;
+  sampleRows: string[][];
 }
+
+/** 貼り付けた表の、列ごとの項目の対応。order[i] = i 列目が何の項目か (null = 読み取らない) */
+export interface ColumnMapping {
+  order: Array<Field | null>;
+  /** 先頭行は見出し (データではない) */
+  hasHeader: boolean;
+}
+
+export const FIELD_LABELS: Record<Field, string> = {
+  physicalName: "物理名", name: "表示名", dataType: "データ型", length: "長さ", nullable: "NULL 可", notNull: "NOT NULL",
+  primaryKey: "PK", unique: "UK", autoIncrement: "連番", defaultValue: "デフォルト", comment: "備考",
+};
 
 export type ColumnField = "name" | "dataType" | "length" | "notNull" | "primaryKey" | "unique" | "autoIncrement" | "defaultValue" | "comment";
 
-type Field = "physicalName" | "name" | "dataType" | "length" | "nullable" | "notNull" | "primaryKey" | "unique" | "autoIncrement" | "defaultValue" | "comment";
+export type Field = "physicalName" | "name" | "dataType" | "length" | "nullable" | "notNull" | "primaryKey" | "unique" | "autoIncrement" | "defaultValue" | "comment";
 
 const DEFAULT_ORDER: Field[] = ["physicalName", "name", "dataType", "length", "notNull", "primaryKey", "unique", "autoIncrement", "defaultValue", "comment"];
 
@@ -162,24 +179,34 @@ export function toPhysicalName(raw: string): { value: string; changed: boolean }
   return { value: snake, changed: snake !== trimmed };
 }
 
-export function parseColumnTable(text: string): ColumnPasteResult {
+export function parseColumnTable(text: string, override?: ColumnMapping): ColumnPasteResult {
   const warnings: string[] = [];
+  const emptyMapping: ColumnMapping = { order: override?.order ?? [], hasHeader: override?.hasHeader ?? false };
   // 空行は読み飛ばすが、行番号は貼り付けた文のとおりに数える
   const parsedRows = parseRowsChecked(text, detectDelimiter(text));
   const numbered = parsedRows.rows.filter((r) => r.cells.some((c) => c.trim() !== ""));
   if (parsedRows.unclosedQuote) warnings.push(UNCLOSED_QUOTE_WARNING);
-  if (numbered.length === 0) return { columns: [], warnings, headerDetected: false, fields: [] };
+  if (numbered.length === 0) return { columns: [], warnings, headerDetected: false, fields: [], mapping: emptyMapping, columnCount: 0, sampleRows: [] };
   const rows = numbered.map((r) => r.cells.map((c) => c.trim()));
+  const columnCount = Math.max(...rows.map((r) => r.length));
+  const sampleRows = rows.slice(0, 4).map((r) => r.slice(0, columnCount));
 
-  // 見出し: 先頭行のうち 2 つ以上のセルが既知の見出し名なら、見出し行とみなす
+  // 見出し: 先頭行のうち 2 つ以上のセルが既知の見出し名なら、見出し行とみなす (利用者が列の対応を選んだときは、その対応を使う)
   const first = rows[0].map(headerField);
-  const headerDetected = first.filter((f) => f !== null).length >= 2;
-  const order: Array<Field | null> = headerDetected ? first : DEFAULT_ORDER;
+  const detected = first.filter((f) => f !== null).length >= 2;
+  const headerDetected = override ? override.hasHeader : detected;
+  const order: Array<Field | null> = override
+    ? Array.from({ length: columnCount }, (_, i) => override.order[i] ?? null)
+    : detected ? first : DEFAULT_ORDER;
   const body = headerDetected ? rows.slice(1) : rows;
   const bodyStart = headerDetected ? 1 : 0;
   const lineNo = (i: number) => numbered[i + bodyStart].no;
 
-  if (headerDetected && !order.includes("physicalName")) {
+  if (override && !order.includes("physicalName")) {
+    warnings.push("「物理名」にする列が選ばれていません。物理名の列を 1 つ選んでください");
+    return { columns: [], warnings, headerDetected, fields: [], mapping: { order, hasHeader: override.hasHeader }, columnCount, sampleRows };
+  }
+  if (!override && headerDetected && !order.includes("physicalName")) {
     warnings.push("見出しに「物理名」(カラム名) の列が見つかりません。1 列目を物理名として読みます");
     order[0] = "physicalName";
   }
@@ -249,7 +276,7 @@ export function parseColumnTable(text: string): ColumnPasteResult {
   // 「NULL 可」の列があるときは、NOT NULL を書き換える対象にする
   if (present.has("nullable")) present.add("notNull");
   const fields = (["name", "dataType", "length", "notNull", "primaryKey", "unique", "autoIncrement", "defaultValue", "comment"] as const).filter((f) => present.has(f));
-  return { columns, warnings, headerDetected, fields };
+  return { columns, warnings, headerDetected, fields, mapping: { order: [...order], hasHeader: headerDetected }, columnCount, sampleRows };
 }
 
 /** 既存のカラムと物理名が重なるものを除く (除いたものを返す) */
