@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { fieldTypeForDataType, toCamelIdentifier, uniqueId, itemsFromTable, planItemAutofill, draftErrorMessages } from "./itemSuggestion";
 import type { Table, Column } from "../types/v3";
+import { buildTermIndex } from "./columnSuggestion";
 
 const col = (o: Record<string, unknown>) => o as unknown as Column;
 const table = { id: "customers", name: "顧客", physicalName: "customers" } as unknown as Table;
@@ -58,6 +59,10 @@ describe("itemSuggestion", () => {
       expect(planItemAutofill({ ...blank, id: "x", label: "合計金額", maxLength: 5 }, [])).toBeNull();
       expect(planItemAutofill({ ...blank, label: "犬種" }, [])).toBeNull();
       expect(planItemAutofill({ ...blank, label: "" }, [])).toBeNull();
+    });
+    it("既存の列の物理名 (snake_case) が使われても、項目 ID は camelCase にする", () => {
+      const index = buildTermIndex([[{ physicalName: "cust_full_name", name: "顧客氏名" }]]);
+      expect(planItemAutofill({ ...blank, label: "顧客氏名" }, [], index)?.patch.id).toBe("custFullName");
     });
     it("ID は重ならないようにする", () => {
       const r = planItemAutofill({ ...blank, label: "顧客名" }, ["customerName"]);

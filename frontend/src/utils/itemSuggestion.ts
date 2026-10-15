@@ -90,8 +90,10 @@ export function planItemAutofill(
 
   if (!item.id) {
     const s = suggestPhysicalName(label, index, "camelCase");
-    if (s?.name && /^[a-z][A-Za-z0-9]*$/.test(s.name)) {
-      const id = uniqueId(s.name, new Set(existingIds));
+    // 既存の列の物理名 (customer_name など) が使われたときも、項目 ID は camelCase にする
+    const base = s?.name ? (/^[a-z][A-Za-z0-9]*$/.test(s.name) ? s.name : /^[A-Za-z0-9_-]+$/.test(s.name) ? toCamelIdentifier(s.name) : "") : "";
+    if (/^[a-z][A-Za-z0-9]*$/.test(base)) {
+      const id = uniqueId(base, new Set(existingIds));
       patch.id = id as Identifier;
       notes.push(`ID ${id}`);
     }

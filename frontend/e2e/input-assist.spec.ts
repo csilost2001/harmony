@@ -53,10 +53,10 @@ test.describe("入力補助", { tag: ["@regression"] }, () => {
     await modal.getByRole("button", { name: "作成して編集" }).click();
     await expect(page).toHaveURL(/\/table\/edit\//, { timeout: 15000 });
     await page.getByTestId("columns-grid-toggle").click();
-    await page.getByTestId("empty-state-create").click().catch(() => undefined);
     const grid = page.getByTestId("column-grid");
     await expect(grid).toBeVisible({ timeout: 10000 });
-    if ((await page.getByTestId("column-grid-row").count()) === 0) await page.getByRole("button", { name: /カラム|追加/ }).first().click();
+    await page.getByRole("button", { name: "カラム追加" }).click();
+    await expect(page.getByTestId("column-grid-row")).toHaveCount(1);
     const name = page.getByLabel("1 行目の表示名");
     await name.fill("合計金額");
     await name.press("Tab");
@@ -112,20 +112,25 @@ test.describe("入力補助", { tag: ["@regression"] }, () => {
     await expect(page).toHaveURL(/\/conventions\/catalog/, { timeout: 10000 });
   });
 
-  test("日本語の変換中の Enter では、マーカーを送信しない", async ({ page }) => {
+  test("日本語の変換中の Enter では、マーカーを送信しない。ふつうの Enter では送信する", async ({ page }) => {
     await ws.gotoActive(page, "/process-flow/edit/order-confirm");
-    await expect(page.locator(".process-flow-editor, [class*='process-flow-editor']")).toBeVisible({ timeout: 15000 });
-    const open = page.getByTestId("marker-panel-toggle");
-    if (await open.count()) await open.click();
-    const input = page.locator('[data-testid="marker-input"], .marker-panel input[type="text"]').first();
-    test.skip((await input.count()) === 0, "マーカー欄が見つからない画面構成");
-    await input.fill("変換中の文字");
-    const sent = await input.evaluate((el) => {
-      const ev = new KeyboardEvent("keydown", { key: "Enter", isComposing: true, bubbles: true, cancelable: true });
-      el.dispatchEvent(ev);
-      return ev.defaultPrevented;
+    await expect(page.locator(".step-editor, .process-flow-content").first()).toBeVisible({ timeout: 15000 });
+    await page.getByTestId("edit-mode-start").click();
+    await expect(page.getByTestId("edit-mode-save")).toBeVisible();
+    await page.locator(".marker-panel .catalog-panel-toggle").click();
+    const input = page.locator(".marker-panel .marker-add-row input");
+    await expect(input).toBeVisible();
+    const body = "変換中の文字を確定したところ";
+    await input.fill(body);
+    // 変換確定の Enter (isComposing) は、何も起こさない
+    await input.evaluate((el) => {
+      el.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", isComposing: true, keyCode: 229, bubbles: true, cancelable: true }));
     });
-    expect(sent).toBe(false); // 変換確定の Enter は、何も起こさない (送信しようとして preventDefault もしない)
-    await expect(input).toHaveValue("変換中の文字");
+    await expect(input).toHaveValue(body);
+    await expect(page.locator(".marker-panel").getByText(body)).toHaveCount(0);
+    // ふつうの Enter は、マーカーを追加する (入力欄は空になる)
+    await input.press("Enter");
+    await expect(input).toHaveValue("");
+    await expect(page.locator(".marker-panel").getByText(body).first()).toBeVisible();
   });
 });
