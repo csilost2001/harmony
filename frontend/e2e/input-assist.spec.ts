@@ -8,6 +8,8 @@ test.describe.configure({ mode: "serial" });
 
 const KEY = `input-assist-${Date.now()}`;
 let ws: OpenedWorkspace;
+// 同じ名前のテーブルを何度も作らない (前の試験の下書き・同じ ID の衝突を避ける)
+const uniq = (base: string) => `${base}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
 
 async function openTableDialog(page: Page) {
   await ws.gotoActive(page, "/table/list");
@@ -47,7 +49,7 @@ test.describe("入力補助", { tag: ["@regression"] }, () => {
   test("カラムの表で編集: 表示名を入れると、物理名と型が自動で入る。Ctrl+Z で戻せる", async ({ page }) => {
     await openTableDialog(page);
     const modal = page.locator(".tbl-modal");
-    await modal.getByPlaceholder("例: customers").fill("totals");
+    await modal.getByPlaceholder("例: customers").fill(uniq("totals"));
     await modal.getByPlaceholder("例: 顧客マスタ").fill("集計");
     await modal.getByTestId("table-add-starter").selectOption("empty");
     await modal.getByRole("button", { name: "作成して編集" }).click();
@@ -67,7 +69,7 @@ test.describe("入力補助", { tag: ["@regression"] }, () => {
   test("カラムの詳細パネル (一覧で編集): 表示名を 1 文字ずつ打っても、物理名は最終の表示名から入る", async ({ page }) => {
     await openTableDialog(page);
     const modal = page.locator(".tbl-modal");
-    await modal.getByPlaceholder("例: customers").fill("codes");
+    await modal.getByPlaceholder("例: customers").fill(uniq("codes"));
     await modal.getByPlaceholder("例: 顧客マスタ").fill("コード表");
     await modal.getByTestId("table-add-starter").selectOption("empty");
     await modal.getByRole("button", { name: "作成して編集" }).click();
@@ -84,7 +86,7 @@ test.describe("入力補助", { tag: ["@regression"] }, () => {
   test("カラムの詳細パネル: 表示名の欄に触れて何も変えずに出ても、元に戻す履歴を積まない", async ({ page }) => {
     await openTableDialog(page);
     const modal = page.locator(".tbl-modal");
-    await modal.getByPlaceholder("例: customers").fill("touch_only");
+    await modal.getByPlaceholder("例: customers").fill(uniq("touch_only"));
     await modal.getByPlaceholder("例: 顧客マスタ").fill("触るだけ");
     await modal.getByTestId("table-add-starter").selectOption("standard");
     await modal.getByRole("button", { name: "作成して編集" }).click();
