@@ -9,13 +9,48 @@ export interface XlsxSheetData { name: string; rows: string[][] }
 
 const MAX_ROWS = 20000;
 const MAX_COLS = 200;
+/** 読む要素の数の上限 (閉じていない・膨らませたデータが、時間を使わせないように)。値が空の要素も数える */
+const MAX_ELEMENTS = 400_000;
+/** 1 つの sheet の XML の大きさの上限 */
+const MAX_SHEET_CHARS = 32 * 1024 * 1024;
 
 const colIndex = (ref: string): number => {
   let n = 0;
   for (const ch of ref.replace(/[^A-Za-z]/g, "").toUpperCase()) n = n * 26 + (ch.charCodeAt(0) - 64);
   return n - 1;
 };
-const textOf = (xml: string): string => [...xml.matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)].map((m) => decodeEntities(m[1])).join("");
+
+interface El { attrs: string; inner: string }
+/**
+ * `<tag ...>…</tag>` と `<tag ... />` を、前から順に切り出す。正規表現ではなく indexOf で進むので、閉じていない要素が多くても、
+ * 入力の大きさに比例した時間で済む (閉じタグが見つからなければ、そこで打ち切る)。tag の直後は、空白・`>`・`/` のどれか (`<tr>` を `<t>` と取り違えない)。
+ */
+function* elements(xml: string, tag: string, limit = MAX_ELEMENTS): Generator<El> {
+  const open = `<${tag}`;
+  const close = `</${tag}>`;
+  let pos = 0, count = 0;
+  while (count < limit) {
+    const at = xml.indexOf(open, pos);
+    if (at < 0) return;
+    const next = xml.charCodeAt(at + open.length);
+    // タグ名の続き (例: `<row` に対する `<rows`) は、別の要素
+    if (!(next === 62 /* > */ || next === 47 /* / */ || next === 32 || next === 9 || next === 10 || next === 13)) { pos = at + open.length; continue; }
+    const gt = xml.indexOf(">", at + open.length);
+    if (gt < 0) return;
+    count++;
+    const attrs = xml.slice(at + open.length, gt);
+    if (xml.charCodeAt(gt - 1) === 47) { pos = gt + 1; yield { attrs: attrs.slice(0, -1), inner: "" }; continue; }
+    const end = xml.indexOf(close, gt + 1);
+    if (end < 0) return;
+    pos = end + close.length;
+    yield { attrs, inner: xml.slice(gt + 1, end) };
+  }
+}
+const attr = (attrs: string, name: string): string | undefined => {
+  const m = new RegExp(`(?:^|\\s)${name}="([^"]*)"`).exec(attrs);
+  return m?.[1];
+};
+const textOf = (xml: string): string => { let out = ""; for (const t of elements(xml, "t")) out += decodeEntities(t.inner); return out; };
 
 export async function readXlsx(bytes: Uint8Array, inflate: (raw: Uint8Array) => Promise<Uint8Array>): Promise<XlsxSheetData[]> {
   const files = await readZip(bytes, inflate);
@@ -23,43 +58,46 @@ export async function readXlsx(bytes: Uint8Array, inflate: (raw: Uint8Array) => 
   const get = (name: string): string | null => { const b = files.get(name); return b ? dec.decode(b) : null; };
   const wb = get("xl/workbook.xml");
   if (!wb) throw new Error("Excel (.xlsx) として読めません (xl/workbook.xml がありません)");
-  const rels = get("xl/_rels/workbook.xml.rels") ?? "";
   const target = new Map<string, string>();
-  for (const m of rels.matchAll(/<Relationship\b[^>]*>/g)) {
-    const id = /\bId="([^"]*)"/.exec(m[0])?.[1];
-    const t = /\bTarget="([^"]*)"/.exec(m[0])?.[1];
+  for (const r of elements(get("xl/_rels/workbook.xml.rels") ?? "", "Relationship", 10_000)) {
+    const id = attr(r.attrs, "Id");
+    const t = attr(r.attrs, "Target");
     if (id && t) target.set(id, t.startsWith("/") ? t.slice(1) : `xl/${t}`);
   }
-  const shared = [...(get("xl/sharedStrings.xml") ?? "").matchAll(/<si\b[^>]*>([\s\S]*?)<\/si>/g)].map((m) => textOf(m[1]));
+  const shared: string[] = [];
+  for (const si of elements(get("xl/sharedStrings.xml") ?? "", "si", 1_000_000)) shared.push(textOf(si.inner));
   const sheets: XlsxSheetData[] = [];
-  for (const m of wb.matchAll(/<sheet\b[^>]*>/g)) {
-    const name = decodeEntities(/\bname="([^"]*)"/.exec(m[0])?.[1] ?? "");
-    const rid = /\br:id="([^"]*)"/.exec(m[0])?.[1];
+  for (const sh of elements(wb, "sheet", 1_000)) {
+    const name = decodeEntities(attr(sh.attrs, "name") ?? "");
+    const rid = attr(sh.attrs, "r:id");
     const path = rid ? target.get(rid) : undefined;
     const xml = path ? get(path) : null;
     if (!xml) continue;
+    if (xml.length > MAX_SHEET_CHARS) throw new Error(`シート「${name}」が大きすぎます`);
+    // 行番号 (r) は信用しない: 上限を超える行は読まない (数百バイトのファイルが、巨大な疎な配列を作らないように)
     const rows: string[][] = [];
-    for (const rm of xml.matchAll(/<row\b[^>]*?(?:\/>|>([\s\S]*?)<\/row>)/g)) {
-      if (rows.length >= MAX_ROWS) break;
-      const rowNo = Number(/\br="(\d+)"/.exec(rm[0])?.[1] ?? rows.length + 1) - 1;
+    for (const row of elements(xml, "row")) {
+      const rowNo = Number(attr(row.attrs, "r") ?? rows.length + 1) - 1;
+      if (!Number.isInteger(rowNo) || rowNo < 0 || rowNo >= MAX_ROWS) continue;
       const cells: string[] = [];
-      for (const cm of (rm[1] ?? "").matchAll(/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)) {
-        const attrs = cm[1];
-        const ref = /\br="([A-Z]+\d+)"/.exec(attrs)?.[1];
+      for (const c of elements(row.inner, "c", MAX_COLS * 4)) {
+        const ref = attr(c.attrs, "r");
         const idx = ref ? colIndex(ref) : cells.length;
         if (idx < 0 || idx >= MAX_COLS) continue;
-        const type = /\bt="([^"]*)"/.exec(attrs)?.[1];
-        const body = cm[2] ?? "";
+        const type = attr(c.attrs, "t");
         let val = "";
-        if (type === "s") val = shared[Number(/<v>(\d+)<\/v>/.exec(body)?.[1])] ?? "";
-        else if (type === "inlineStr") val = textOf(body);
-        else if (type === "str" || type === "e") val = decodeEntities(/<v>([\s\S]*?)<\/v>/.exec(body)?.[1] ?? "");
-        else if (type === "b") val = /<v>1<\/v>/.test(body) ? "TRUE" : "FALSE";
-        else val = decodeEntities(/<v>([\s\S]*?)<\/v>/.exec(body)?.[1] ?? "");
+        if (type === "inlineStr") val = textOf(c.inner);
+        else {
+          const v = elements(c.inner, "v", 1).next().value;
+          const raw = v?.inner ?? "";
+          if (type === "s") val = shared[Number(raw)] ?? "";
+          else if (type === "b") val = raw === "1" ? "TRUE" : "FALSE";
+          else val = decodeEntities(raw);
+        }
         while (cells.length < idx) cells.push("");
         cells[idx] = val;
       }
-      while (rows.length < rowNo && rows.length < MAX_ROWS) rows.push([]);
+      while (rows.length < rowNo) rows.push([]);
       rows[rowNo] = cells;
     }
     sheets.push({ name, rows });
@@ -67,7 +105,7 @@ export async function readXlsx(bytes: Uint8Array, inflate: (raw: Uint8Array) => 
   return sheets;
 }
 
-/** 表を、貼り付けと同じ、タブ区切りの文字にする (セルの中のタブ・改行は空白にする) */
+/** 表を、貼り付けと同じ、タブ区切りの文にする (セルの中のタブ・改行は空白にする) */
 export function rowsToTsv(rows: readonly string[][]): string {
   return rows.map((r) => r.map((c) => c.replace(/[\t\r\n]+/g, " ")).join("\t")).join("\n").replace(/\n+$/, "");
 }

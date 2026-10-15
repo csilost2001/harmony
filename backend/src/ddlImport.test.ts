@@ -110,4 +110,26 @@ describe("DDL の取り込み", () => {
     expect(r.tables[0].columns.map((c) => c.physicalName)).toEqual(["item_id", "c_2nd"]);
     expect(r.warnings.length).toBe(3);
   });
+
+  it("識別子の途中の `$` を、ドル引用の開始と見なさない (後ろの文が、消えない)", () => {
+    const r = parseDdl("CREATE TABLE a (x$y$z int); CREATE TABLE b (id int); CREATE TABLE c (id int);");
+    expect(r.tables.map((t) => t.physicalName)).toEqual(["a", "b", "c"]);
+    // 本物のドル引用 (関数の本体) の中の `;` では、文を分けない
+    const f = parseDdl("CREATE FUNCTION f() RETURNS int AS $$ BEGIN; SELECT 1; END; $$ LANGUAGE sql; CREATE TABLE t (id int);");
+    expect(f.tables.map((t) => t.physicalName)).toEqual(["t"]);
+  });
+
+  it("空白・記号の長い連続でも、入力の大きさに比例した時間で読める (2 乗の時間にならない)", () => {
+    const sp = " ".repeat(100_000);
+    const inputs = [
+      `CREATE TABLE t (a int${sp}x);`, `CREATE${sp}TABLE t (a int);`, `CREATE TABLE t (a int NOT${sp}NULL);`, `CREATE TABLE t (a varchar(${sp}10));`,
+      `CREATE TABLE t (a int, PRIMARY${sp}KEY (a));`, `CREATE TABLE t (a int);ALTER TABLE t ADD${sp}CONSTRAINT x UNIQUE (a);`, `CREATE TABLE t (${sp});`,
+      `CREATE TABLE t (a int DEFAULT ${"'".repeat(50_000)});`, `CREATE TABLE t (a ${"character ".repeat(20_000)});`, `${"(".repeat(100_000)}`, `CREATE TABLE ${"\"".repeat(100_000)}`,
+    ];
+    for (const sql of inputs) {
+      const t0 = Date.now();
+      parseDdl(sql);
+      expect(Date.now() - t0, sql.slice(0, 40)).toBeLessThan(1500);
+    }
+  });
 });

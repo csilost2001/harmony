@@ -10,7 +10,7 @@ import { accessStore, approvalsStore, commentsStore, generationStore, templateSt
 import { addComment, generationStatus, listApprovals, recordGeneration, regenerationDiff, resolveThread, transitionApproval } from "./service.js";
 import { AUDIT_MAX_BYTES, parseAuditLines, readAudit, recordAudit } from "./audit.js";
 import { isPrivateAddress, sendWebhook, dispatchNotify, type SendDeps } from "./notifySend.js";
-import { assertBranchName, assertGitPath, gitBranches, gitCheckout, gitCommit, gitDiff, gitInit, gitLog, gitStatus } from "./gitOps.js";
+import { assertBranchName, assertGitPath, execOverrides, gitBranches, gitCheckout, gitCommit, gitDiff, gitInit, gitLog, gitStatus } from "./gitOps.js";
 import { parseReleaseNotes, readVersionInfo } from "./versionInfo.js";
 import { suggestRevision } from "./revisionSuggest.js";
 import { describeRpc } from "./auditMap.js";
@@ -116,6 +116,10 @@ describe("承認", () => {
     expect(canonicalForHash({ cols: [{ maturity: "draft" }] })).not.toBe(canonicalForHash({ cols: [{ maturity: "committed" }] }));
     expect(canonicalForHash({ meta: { maturity: "draft", name: "a" } })).toBe(canonicalForHash({ meta: { maturity: "committed", name: "a" } }));
     expect(effectiveStatus(undefined, "h")).toBe("none");
+    // 自前の `__proto__` キーも、内容として印に入る (原型の指定として、落ちない)
+    const withProto = JSON.parse('{"a":1,"__proto__":{"x":1}}');
+    expect(canonicalForHash(withProto)).not.toBe(canonicalForHash({ a: 1 }));
+    expect(canonicalForHash(withProto)).toContain("__proto__");
   });
 });
 
@@ -386,6 +390,32 @@ describe("Git 連携", () => {
     git("status");
     expect(await fs.access(marker).then(() => true, () => false)).toBe(true);
   });
+  it("リポジトリの設定の filter (clean / smudge)・textconv・gpg.program・include も、状態の確認・差分・コミットで実行されない", async () => {
+    await gitInit(ROOT);
+    git("add", "harmony.json"); git("-c", "user.name=t", "-c", "user.email=t@e", "commit", "-q", "-m", "base", "--no-verify");
+    const marker = path.join(ROOT, "RAN2.txt");
+    const sh = async (name: string) => { const p = path.join(ROOT, name); await fs.writeFile(p, `#!/bin/sh\necho ${name} >> "${marker}"\ncat\n`, { mode: 0o755 }); return p; };
+    const clean = await sh("clean.sh"), smudge = await sh("smudge.sh"), tc = await sh("textconv.sh"), gpg = await sh("gpg.sh");
+    await fs.writeFile(path.join(ROOT, ".gitattributes"), "*.json filter=evil diff=evil\n");
+    const extra = path.join(ROOT, "extra.cfg");
+    await fs.writeFile(extra, `[filter "evil2"]\n\tclean = ${clean}\n`);
+    for (const [k, v] of [["filter.evil.clean", clean], ["filter.evil.smudge", smudge], ["diff.evil.textconv", tc], ["gpg.program", gpg], ["commit.gpgsign", "true"], ["include.path", extra]]) git("config", k, v);
+    await fs.writeFile(path.join(ROOT, "harmony.json"), `${await fs.readFile(path.join(ROOT, "harmony.json"), "utf-8")} `);
+    const ran = () => fs.readFile(marker, "utf-8").then((t) => t.trim().split("\n"), () => [] as string[]);
+    await gitStatus(ROOT);
+    await gitDiff(ROOT, "harmony.json");
+    await gitCommit(ROOT, { message: "署名つきの設定でも", paths: ["harmony.json"] });
+    expect(await ran()).toEqual([]);
+    // 対照: 安全の設定なしで、git を直接呼ぶと、実行される (この試験が、効いていることの確認)
+    await fs.writeFile(path.join(ROOT, "harmony.json"), `${await fs.readFile(path.join(ROOT, "harmony.json"), "utf-8")} `);
+    git("status"); git("diff");
+    expect((await ran()).length).toBeGreaterThan(0);
+  });
+  it("コマンドを実行させる設定の項目を、見分ける (includeIf・別名の入ったドライバも)", () => {
+    expect(execOverrides(["user.name", "filter.lfs.clean", "diff.x.textconv", "core.fsmonitor", "merge.m.driver", "core.sshCommand", "gpg.program", "alias.x", "core.autocrlf", "diff.x.binary", "credential.https://x.helper", "url.a.insteadOf"]).filter((_, i) => i % 2 === 1)).toEqual([
+      "filter.lfs.clean=", "diff.x.textconv=", "core.fsmonitor=", "merge.m.driver=", "core.sshCommand=", "credential.https://x.helper=", "url.a.insteadOf=",
+    ]);
+  });
   it("上の階層のリポジトリがこのフォルダを無視しているときは、「リポジトリではない」として扱う", async () => {
     const parent = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "ops-parent-")));
     execFileSync("git", ["init", "-q"], { cwd: parent });
@@ -467,5 +497,31 @@ describe("要確認の増加の通知", () => {
     // 前回の件数を 0 に戻して、増えたことにする (送信先は .invalid なので、名前解決に失敗して実際には送られない。失敗しても操作は止まらない)
     await fs.writeFile(path.join(ROOT, ".harmony-ops", "notify-state.json"), JSON.stringify({ issues: -1 }));
     expect(await checkIssueIncrease(ROOT)).toMatchObject({ before: -1, notified: true });
+  });
+});
+
+describe("設計の id の改名への追従", () => {
+  it("承認・コメント・生成の記録 (と、生成のときの設計の写し) の id を付け替える。ほかの設計・ほかの種類は、そのまま。改名の取り消しで戻る", async () => {
+    const { renameOpsRecords } = await import("./service.js");
+    await fs.mkdir(path.join(ROOT, "gen"), { recursive: true });
+    await fs.writeFile(path.join(ROOT, "gen", "a.ts"), "a");
+    await transitionApproval(ROOT, "", { kind: "table", id: "orders", to: "review" });
+    await addComment(ROOT, "花子", { target: { kind: "table", id: "orders" }, text: "確認" });
+    await recordGeneration(ROOT, { outputs: [{ path: "gen/a.ts", sources: [{ kind: "table", id: "orders" }] }] });
+    const snaps = path.join(ROOT, ".harmony-ops", "gen-snapshots");
+    expect((await fs.readdir(snaps))[0]).toMatch(/^table-orders-/);
+    await renameOpsRecords(ROOT, "screen", "orders", "x"); // 種類が違えば、触らない
+    expect((await approvalsStore.read(ROOT)).value.items[0].id).toBe("orders");
+    await renameOpsRecords(ROOT, "table", "orders", "order-head");
+    expect((await approvalsStore.read(ROOT)).value.items[0]).toMatchObject({ kind: "table", id: "order-head" });
+    expect((await commentsStore.read(ROOT)).value.threads[0].target).toMatchObject({ kind: "table", id: "order-head" });
+    expect((await generationStore.read(ROOT)).value.outputs[0].sources[0].id).toBe("order-head");
+    expect((await fs.readdir(snaps))[0]).toMatch(/^table-order-head-/);
+    await renameOpsRecords(ROOT, "table", "order-head", "orders"); // 取り消し
+    expect((await approvalsStore.read(ROOT)).value.items[0].id).toBe("orders");
+    expect((await fs.readdir(snaps))[0]).toMatch(/^table-orders-/);
+    await renameOpsRecords(ROOT, "pageLayout", "orders", "z"); // 対象外の種類・同じ id は、何もしない
+    await renameOpsRecords(ROOT, "table", "orders", "orders");
+    expect((await approvalsStore.read(ROOT)).value.items[0].id).toBe("orders");
   });
 });

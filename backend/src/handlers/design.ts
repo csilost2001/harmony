@@ -24,7 +24,7 @@ import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import type { RenameEntityType } from "../renameEntity.js";
 import { runEntityRename, runEntityRenamePreview, runEntityUndo } from "../wsHandlers/refactor.js";
 import { wsBridge } from "../wsBridge.js";
-import { addComment, generationStatus, recordGeneration, regenerationDiff } from "../ops/service.js";
+import { addComment, emitNotify, generationStatus, recordGeneration, regenerationDiff } from "../ops/service.js";
 import { commentsStore } from "../ops/stores.js";
 import { OPS_ENTITY_KINDS } from "@harmony/shared";
 import { workspaceContextManager } from "../workspaceState.js";
@@ -98,9 +98,11 @@ export const handleDesignTool: ToolHandler = async (name, args, root, sessionId)
         const path = typeof f.path === "string" ? f.path.trim() : "";
         // 同じ箇所に同じ内容の未解決の指摘があれば、重ねない
         if (existing.some((t) => t.target.kind === f.kind && t.target.id === f.id && (t.target.path ?? "") === path && t.messages[0]?.text === f.message)) { skipped.push(`${String(f.kind)} ${f.id}`); continue; }
-        const r = await addComment(root, "AI", { target: { kind: f.kind, id: f.id, ...(path ? { path } : {}) }, text: f.message, ai: true, source: "ai-review", severity: f.severity });
+        const r = await addComment(root, "AI", { target: { kind: f.kind, id: f.id, ...(path ? { path } : {}) }, text: f.message, ai: true, source: "ai-review", severity: f.severity, notify: false });
         added.push(r.threadId);
       }
+      // 通知は、指摘ごとではなく、件数だけの 1 通 (登録済みの「コメント」の通知先へ。コメントの文は送らない)
+      if (added.length) emitNotify(root, { event: "comment", title: `AI レビューの指摘が ${added.length} 件ありました`, lines: ["「連携と運用」の「レビューと承認」で確認してください"] });
       return json({ added: added.length, skippedDuplicates: skipped.length, threadIds: added });
     }
 

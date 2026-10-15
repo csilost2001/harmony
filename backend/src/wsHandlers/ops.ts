@@ -50,7 +50,8 @@ export const opsHandlers: RpcHandlerMap = {
 
   // ── レビューコメント ──
   "reviewComments.load": h(async (c) => commentsStore.read(c.root()).then((r) => ({ threads: r.value.threads, problems: r.problems }))),
-  "reviewComments.add": h(async (c, p, actor) => addComment(c.root(), actor, p), { writes: "comments" }),
+  // 画面から受け取るのは、対象・本文・返信先だけ (AI の名義・種類・重大度は、画面からは指定できない。AI の指摘は MCP tool の経路)
+  "reviewComments.add": h(async (c, p, actor) => addComment(c.root(), actor, { target: p.target, text: p.text, threadId: p.threadId }), { writes: "comments" }),
   "reviewComments.resolve": h(async (c, p, actor) => { await resolveThread(c.root(), actor, p.threadId, p.resolved !== false); return { ok: true }; }, { writes: "comments" }),
 
   // ── 利用者と権限 ──

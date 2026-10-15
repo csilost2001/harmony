@@ -110,7 +110,8 @@ describe("レビューと承認", () => {
     fireEvent.change(within(section).getByTestId("op-reply-input"), { target: { value: "20 桁です" } });
     fireEvent.click(within(section).getByTestId("op-reply-send"));
     await waitFor(() => expect(calls("reviewComments.add")).toEqual([{ threadId: "t-1", text: "20 桁です" }]));
-    fireEvent.click(within(section).getByTestId("op-thread-resolve"));
+    await waitFor(() => expect(calls("reviewComments.load").length).toBeGreaterThan(1)); // 返信のあとの読み直しが終わってから、解決する
+    fireEvent.click(await within(section).findByTestId("op-thread-resolve"));
     await waitFor(() => expect(calls("reviewComments.resolve")).toEqual([{ threadId: "t-1", resolved: true }]));
     fireEvent.change(screen.getByTestId("op-thread-filter"), { target: { value: "all" } });
     expect(within(section).getByText("済んだ件")).toBeTruthy();
@@ -142,7 +143,42 @@ describe("利用者と権限", () => {
   });
 });
 
+describe("読めない項目のある設定ファイル", () => {
+  it("利用者と権限: 読めない項目があると、「捨てて保存する」ことを承知するまで保存できない。承知すると、捨てる保存として送る", async () => {
+    rpc["access.load"] = () => ({ access: { version: 1, users: [{ name: "花子", role: "admin" }], policy: { requireApprovalForCommitted: false } }, problems: ["利用者「太郎」: 役割は viewer / editor / approver / admin のどれかです"], you: { name: "花子", role: "admin", enforced: true } });
+    rpc["access.save"] = () => ({ access: {}, problems: [] });
+    await open("access");
+    await screen.findByTestId("op-access-discard");
+    fireEvent.click(screen.getByTestId("op-access-policy"));
+    expect((screen.getByTestId("op-access-save") as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByTestId("op-access-discard-check"));
+    expect((screen.getByTestId("op-access-save") as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(screen.getByTestId("op-access-save"));
+    await waitFor(() => expect(calls("access.save")).toHaveLength(1));
+    expect((calls("access.save")[0] as { discardUnreadable: boolean }).discardUnreadable).toBe(true);
+  });
+
+  it("通知: 同じ。問題が無いときは、承知の欄を出さない", async () => {
+    rpc["notify.load"] = () => ({ problems: ["通知先「x」: https:// の URL だけ使えます"], webhooks: [{ id: "h1", name: "チーム", format: "slack", events: [], enabled: true, urlMasked: "https://x.example.com/…" }] });
+    rpc["notify.save"] = () => ({ saved: 1 });
+    await open("notify");
+    await screen.findByTestId("op-notify-discard");
+    fireEvent.click(screen.getByTestId("op-hook-event-approval"));
+    expect((screen.getByTestId("op-notify-save") as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByTestId("op-notify-discard-check"));
+    fireEvent.click(screen.getByTestId("op-notify-save"));
+    await waitFor(() => expect(calls("notify.save")).toHaveLength(1));
+    expect((calls("notify.save")[0] as { discardUnreadable: boolean }).discardUnreadable).toBe(true);
+  });
+});
+
 describe("通知", () => {
+  it("問題の無い設定には、承知の欄を出さない", async () => {
+    await open("notify");
+    await screen.findByTestId("op-hook-add");
+    expect(screen.queryByTestId("op-notify-discard")).toBeNull();
+  });
+
   it("http・ローカルのホストの URL は、保存できない。保存すると、URL は送るが、画面には出さない", async () => {
     rpc["notify.save"] = () => ({ saved: 1 });
     await open("notify");

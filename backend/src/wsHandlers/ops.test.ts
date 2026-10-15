@@ -77,6 +77,15 @@ describe("承認・レビューコメント", () => {
     expect(bad).toEqual({ ok: false, error: "状態が正しくありません" });
   });
 
+  it("画面からは、AI の名義・種類・重大度を指定できない (本文・対象・返信先だけを受け取る)", async () => {
+    const { threadId } = await okResult("reviewComments.add", { target: { kind: "table", id: "orders" }, text: "人が書いた", ai: true, source: "ai-review", severity: "error", by: "AI レビュー" }, "花子");
+    const th = (await okResult("reviewComments.load")).threads.find((t: { id: string }) => t.id === threadId);
+    expect(th.source).toBeUndefined();
+    expect(th.severity).toBeUndefined();
+    expect(th.messages[0]).toMatchObject({ by: "花子", text: "人が書いた" });
+    expect(th.messages[0].ai).toBeUndefined();
+  });
+
   it("コメントを書き・返信し・解決できる。解決は、書き込みの通知を伴う", async () => {
     const { threadId } = await okResult("reviewComments.add", { target: { kind: "table", id: "orders", path: "columns[0]" }, text: "桁数は？" }, "花子");
     await okResult("reviewComments.add", { threadId, text: "20 です" }, "太郎");

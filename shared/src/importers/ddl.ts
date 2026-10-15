@@ -56,7 +56,8 @@ export function splitStatements(sql: string): string[] {
       // MySQL のダンプの `/*!40101 ... */` は、読み飛ばす (実行用の設定)
       i = end < 0 ? n : end + 2; cur += " "; continue;
     }
-    if (c === "$") { const m = /^\$[A-Za-z_]*\$/.exec(sql.slice(i, i + 40)); if (m) { dollar = m[0]; cur += m[0]; i += m[0].length; continue; } }
+    // ドル引用 ($tag$ … $tag$)。識別子の途中の `$` (x$y$z) は、開始と見なさない
+    if (c === "$" && !/[\w$]/.test(sql[i - 1] ?? "")) { const m = /^\$[A-Za-z_]*\$/.exec(sql.slice(i, i + 40)); if (m) { dollar = m[0]; cur += m[0]; i += m[0].length; continue; } }
     if (c === "'" || c === '"' || c === "`") {
       let j = i + 1;
       while (j < n) { if (sql[j] === c) { if (sql[j + 1] === c) { j += 2; continue; } break; } if (sql[j] === "\\" && c === "'") j++; j++; }
@@ -143,7 +144,7 @@ function splitColumnDef(def: string): RawCol | null {
   const name = unquote(m[1]);
   const body = m[2];
   // 型は、制約キーワードの手前まで
-  const stop = /\s+(?:NOT\s+NULL|NULL|DEFAULT|PRIMARY\s+KEY|UNIQUE|REFERENCES|CHECK|AUTO_INCREMENT|AUTOINCREMENT|GENERATED|COMMENT|COLLATE|CHARACTER\s+SET|CONSTRAINT|ON\s+UPDATE|IDENTITY)\b/i.exec(body);
+  const stop = /(?<!\s)\s+(?:NOT\s+NULL|NULL|DEFAULT|PRIMARY\s+KEY|UNIQUE|REFERENCES|CHECK|AUTO_INCREMENT|AUTOINCREMENT|GENERATED|COMMENT|COLLATE|CHARACTER\s+SET|CONSTRAINT|ON\s+UPDATE|IDENTITY)\b/i.exec(body);
   const typeText = stop ? body.slice(0, stop.index) : body;
   return { name, typeText: typeText.trim(), rest: stop ? body.slice(stop.index) : "" };
 }

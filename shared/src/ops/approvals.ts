@@ -78,7 +78,8 @@ export function canonicalForHash(value: unknown): string {
   const walk = (v: unknown, depth: number, parentIsMeta: boolean): unknown => {
     if (Array.isArray(v)) return v.map((x) => walk(x, depth + 1, false));
     if (isRecord(v)) {
-      const out: Record<string, unknown> = {};
+      // 原型のない入れ物に組む (自前の `__proto__` キーも、内容として印に入る)
+      const out: Record<string, unknown> = Object.create(null);
       for (const k of Object.keys(v).sort()) {
         if ((depth === 0 || parentIsMeta) && VOLATILE_KEYS.has(k)) continue;
         out[k] = walk(v[k], depth + 1, depth === 0 && k === "meta");

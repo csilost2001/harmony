@@ -84,7 +84,7 @@ export async function transitionApproval(root: string, actorRaw: unknown, p: { k
 
 // ── レビューコメント ───────────────────────────────────────────────────────
 
-export async function addComment(root: string, actorRaw: unknown, p: { target?: unknown; text?: unknown; threadId?: unknown; ai?: boolean; severity?: unknown; source?: "human" | "ai-review" }): Promise<{ threadId: string }> {
+export async function addComment(root: string, actorRaw: unknown, p: { target?: unknown; text?: unknown; threadId?: unknown; ai?: boolean; severity?: unknown; source?: "human" | "ai-review"; /** false で、通知を出さない (まとめて 1 通にするとき) */ notify?: boolean }): Promise<{ threadId: string }> {
   const actor = cleanActor(actorRaw);
   const text = typeof p.text === "string" ? p.text.trim() : "";
   if (!text) throw new Error("コメントを書いてください");
@@ -117,7 +117,7 @@ export async function addComment(root: string, actorRaw: unknown, p: { target?: 
   const tgt = target ?? (await commentsStore.read(root)).value.threads.find((t) => t.id === threadId)?.target;
   const label = tgt ? `${OPS_ENTITY_LABELS[tgt.kind]} ${await nameOfEntity(root, tgt.kind, tgt.id)}${tgt.path ? ` / ${tgt.path}` : ""}` : "";
   void recordAudit(root, { actor: by, action: p.threadId ? "コメントに返信した" : "コメントを書いた", target: label, detail: text.slice(0, 120), via: p.ai ? "ai" : "ui" });
-  emitNotify(root, { event: "comment", title: `${label} にコメントがありました`, lines: [`${by}: ${text.slice(0, 200)}`] });
+  if (p.notify !== false) emitNotify(root, { event: "comment", title: `${label} にコメントがありました`, lines: [`${by}: ${text.slice(0, 200)}`] });
   return { threadId };
 }
 
@@ -239,3 +239,28 @@ export async function regenerationDiff(root: string, filePath?: string): Promise
 }
 
 export { accessStore, PermissionError };
+
+
+// ── 設計の id の改名への追従 ─────────────────────────────────────────────
+
+const RENAME_KIND: Record<string, OpsEntityKind> = { screen: "screen", table: "table", processFlow: "processFlow", sequence: "sequence", view: "view", viewDefinition: "viewDefinition" };
+
+/**
+ * 設計の id の改名 (と、その取り消し) に、運用の記録 (承認・レビューコメント・生成の記録と、生成のときの設計の写し) の id を追従させる。
+ * 改名は、設計の内容 (id) を変えるので、承認は「承認後に変更」、生成は「設計が変わった」と示される (確かめ直す合図)。記録の付け替えに失敗しても、改名は止めない。
+ */
+export async function renameOpsRecords(root: string, entityType: string, from: string, to: string): Promise<void> {
+  const kind = RENAME_KIND[entityType];
+  if (!kind || from === to) return;
+  const swap = <T extends { kind: string; id: string }>(x: T): T => (x.kind === kind && x.id === from ? { ...x, id: to } : x);
+  try {
+    await approvalsStore.update(root, (f) => { f.items = f.items.map(swap); return f; });
+    await commentsStore.update(root, (f) => { f.threads = f.threads.map((t) => (t.target.kind === kind && t.target.id === from ? { ...t, target: { ...t.target, id: to } } : t)); return f; });
+    await generationStore.update(root, (f) => { f.outputs = f.outputs.map((o) => ({ ...o, sources: o.sources.map(swap) })); return f; });
+    const dir = snapDir(root);
+    for (const name of await fs.readdir(dir).catch(() => [] as string[])) {
+      const prefix = `${kind}-${from}-`;
+      if (name.startsWith(prefix)) await fs.rename(path.join(dir, name), path.join(dir, `${kind}-${to}-${name.slice(prefix.length)}`)).catch(() => undefined);
+    }
+  } catch { /* 記録が壊れている (読めない項目がある) ときは、そのまま。点検が知らせる */ }
+}

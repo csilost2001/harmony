@@ -23,6 +23,8 @@ function AccessForm({ d, error: loadError, reload }: { d: Loaded; error: string 
   const [policy, setPolicy] = useState<AccessFile["policy"]>(d.access.policy);
   const [dirty, setDirty] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [discard, setDiscard] = useState(false); // 読めない項目を捨てて保存することの承知
+  const blocked = d.problems.length > 0 && !discard;
   const me = getUserName();
 
   const save = async () => {
@@ -39,6 +41,11 @@ function AccessForm({ d, error: loadError, reload }: { d: Loaded; error: string 
         <p className="an-alert" role="note" data-testid="op-access-caution">利用者名は、ブラウザごとの自己申告です (本人確認ではありません)。誤操作・誤った承認を防ぐ区別として使います。なりすましを防ぐには、接続トークン (HARMONY_AUTH_TOKEN) とネットワークの制限を併用してください。AI (MCP) の権限は、環境変数 HARMONY_MCP_MODE / HARMONY_MCP_DENY で別に決めます。</p>
         {load.error ? <p className="an-alert" role="alert">{load.error}</p> : null}
         {d.problems.map((p) => <p key={p} className="an-alert" role="alert">{p}</p>)}
+        {d.problems.length > 0 && (
+          <label className="an-check" data-testid="op-access-discard">
+            <input type="checkbox" checked={discard} onChange={(e) => setDiscard(e.target.checked)} data-testid="op-access-discard-check" /> 読めない項目 (上に出ている項目) を、捨てて保存することを承知しました。保存すると、それらの項目は消えます
+          </label>
+        )}
         <p className="an-hint" data-testid="op-access-you">いまのあなた: {d.you.name ? <b>{d.you.name}</b> : <b>利用者名が未設定</b>} {d.you.enforced ? `(役割: ${d.you.role ? ROLE_LABELS[d.you.role] : "登録なし = 閲覧"})` : "(権限の設定はまだありません: 制限なし)"}。利用者名は、画面右上の名前のボタンで変えられます。</p>
         <table className="an-table" data-testid="op-access-table">
           <thead><tr><th scope="col">利用者名</th><th scope="col">役割</th><th scope="col"><span className="an-sr">操作</span></th></tr></thead>
@@ -58,7 +65,7 @@ function AccessForm({ d, error: loadError, reload }: { d: Loaded; error: string 
         </div>
         <label className="an-check"><input type="checkbox" checked={policy.requireApprovalForCommitted} onChange={(e) => edit(() => setPolicy({ requireApprovalForCommitted: e.target.checked }))} data-testid="op-access-policy" /> 確定 (成熟度「確定」) には、承認を必須にする (承認のない確定の保存を止めます。AI の書き込みも対象)</label>
         {error && <p className="an-alert" role="alert" data-testid="op-access-error">{error}</p>}
-        <div className="an-row"><button type="button" className="an-btn primary" disabled={!dirty} onClick={() => void save()} data-testid="op-access-save">保存</button>
+        <div className="an-row"><button type="button" className="an-btn primary" disabled={!dirty || blocked} onClick={() => void save()} data-testid="op-access-save">保存</button>
           <button type="button" className="an-btn" disabled={!dirty} onClick={() => { setUsers(d.access.users); setPolicy(d.access.policy); setDirty(false); }}>変更を捨てる</button></div>
       </Section>
     </div>

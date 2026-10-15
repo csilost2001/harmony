@@ -18,18 +18,42 @@ const MAX_BUFFER = 8 * 1024 * 1024;
 /**
  * 利用者のワークスペースのリポジトリの設定 (.git/config) には、コマンドを実行させる項目がある (core.fsmonitor・core.hooksPath・diff.external・
  * core.sshCommand など)。他人から受け取ったワークスペースで、状態を見ただけでコマンドが走らないよう、これらを無効にして呼ぶ。
- * (利用者の git の設定のうち、名前・メール・署名などは、そのまま使う。コミットのフックは、--no-verify で走らせない)
+ * フィルタ (clean / smudge)・textconv・マージドライバなども、リポジトリの設定にあるものは空にする (設定の項目名だけを先に読み、`-c 名前=` で上書き)。
+ * コミットの署名は、gpg.program がコマンドを実行するので、無効にする。コミットのフックは、--no-verify で走らせない。
+ * (利用者の git の設定のうち、名前・メールなどは、そのまま使う)
  */
 export const SAFE_GIT_CONFIG = ["-c", "core.fsmonitor=false", "-c", `core.hooksPath=${os.devNull}`, "-c", "diff.external=", "-c", "core.sshCommand=", "-c", "core.pager=cat", "-c", "protocol.ext.allow=never", "-c", "core.untrackedCache=false"];
 
-export const runGit: GitRunner = (cwd, args) => new Promise((resolve, reject) => {
-  execFile("git", [...SAFE_GIT_CONFIG, ...args], { cwd, timeout: TIMEOUT_MS, maxBuffer: MAX_BUFFER, env: { ...process.env, GIT_TERMINAL_PROMPT: "0", GIT_PAGER: "cat", LC_ALL: "C.UTF-8", GIT_OPTIONAL_LOCKS: "0", GIT_EXTERNAL_DIFF: "", GIT_SSH_COMMAND: "" }, windowsHide: true }, (err, stdout, stderr) => {
+/** コミットの署名 (gpg.program はコマンドを実行する)・外部のコマンドで内容を変換する項目 */
+const SAFE_GIT_CONFIG_2 = ["-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false", "-c", "gpg.program=", "-c", "gpg.ssh.program=", "-c", "gpg.x509.program="];
+/** リポジトリ (.git/config) が、コマンドを実行させる項目: フィルタ (clean / smudge / process)・textconv・マージドライバ・エイリアスなど */
+const EXEC_KEY = /^(filter\..+\.(clean|smudge|process)|diff\..+\.(textconv|command)|merge\..+\.(driver|recursive)|difftool\..+\.cmd|mergetool\..+\.cmd|credential\..*helper|credential\.helper|core\.(editor|askpass|fsmonitor|hookspath|sshcommand|pager|gitproxy)|sequence\.editor|receive\.|uploadpack\.|remote\..+\.(uploadpack|receivepack|vcs|proxy)|url\..+\.insteadof|http\.proxy)$/i;
+
+/** そのリポジトリの設定のうち、コマンドを実行させる項目を、空にして呼ぶための `-c` の並び (設定を読むだけで、実行はしない) */
+export function execOverrides(localConfigNames: string[]): string[] {
+  const out: string[] = [];
+  for (const name of new Set(localConfigNames)) if (EXEC_KEY.test(name) && !/[\r\n=]/.test(name)) out.push("-c", `${name}=`);
+  return out;
+}
+
+const execGit = (cwd: string, args: string[]): Promise<GitRun> => new Promise((resolve, reject) => {
+  execFile("git", args, { cwd, timeout: TIMEOUT_MS, maxBuffer: MAX_BUFFER, env: { ...process.env, GIT_TERMINAL_PROMPT: "0", GIT_PAGER: "cat", LC_ALL: "C.UTF-8", GIT_OPTIONAL_LOCKS: "0", GIT_EXTERNAL_DIFF: "", GIT_SSH_COMMAND: "" }, windowsHide: true }, (err, stdout, stderr) => {
     if (err && (err as NodeJS.ErrnoException).code === "ENOENT") return reject(new Error("git が見つかりません。git をインストールしてください"));
     const code = err ? (typeof (err as { code?: unknown }).code === "number" ? ((err as { code: number }).code) : 1) : 0;
     if (err && (err as { killed?: boolean }).killed) return reject(new Error("git の応答がありません (15 秒)"));
     resolve({ stdout: String(stdout), stderr: String(stderr), code });
   });
 });
+
+/** リポジトリの設定の項目名 (値は読まない)。リポジトリでなければ、空 */
+async function localConfigNames(cwd: string): Promise<string[]> {
+  try {
+    const r = await execGit(cwd, [...SAFE_GIT_CONFIG, "config", "--local", "--includes", "-z", "--name-only", "--list"]);
+    return r.code === 0 ? r.stdout.split("\0").filter(Boolean) : [];
+  } catch { return []; }
+}
+
+export const runGit: GitRunner = async (cwd, args) => execGit(cwd, [...SAFE_GIT_CONFIG, ...SAFE_GIT_CONFIG_2, ...execOverrides(await localConfigNames(cwd)), ...args]);
 
 export interface GitFile { path: string; /** 例: M (変更) A (追加) D (削除) R (改名) ? (未追跡) U (競合) */ status: string; staged: boolean }
 export interface GitStatus {
@@ -99,11 +123,11 @@ export async function gitDiff(root: string, file: string, run: GitRunner = runGi
   if (f.status === "?") {
     // 未追跡: 全部が追加された差分として見せる
     const empty = process.platform === "win32" ? "NUL" : "/dev/null";
-    out = await run(root, ["diff", "--no-color", "--no-ext-diff", "--no-index", "--", empty, p]);
+    out = await run(root, ["diff", "--no-color", "--no-ext-diff", "--no-textconv", "--no-index", "--", empty, p]);
     if (out.code > 1) fail(out, "差分の取得");
   } else {
     const hasHead = (await run(root, ["rev-parse", "--verify", "-q", "HEAD"])).code === 0;
-    out = await run(root, ["diff", "--no-color", "--no-ext-diff", "-U3", ...(hasHead ? ["HEAD"] : ["--cached"]), "--", p]);
+    out = await run(root, ["diff", "--no-color", "--no-ext-diff", "--no-textconv", "-U3", ...(hasHead ? ["HEAD"] : ["--cached"]), "--", p]);
     if (out.code !== 0) fail(out, "差分の取得");
   }
   return { diff: out.stdout.slice(0, MAX), truncated: out.stdout.length > MAX };

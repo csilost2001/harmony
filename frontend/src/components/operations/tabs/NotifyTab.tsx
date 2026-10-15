@@ -27,6 +27,8 @@ function NotifyForm({ d, error: loadError, reload }: { d: Loaded; error: string 
   const [error, setError] = useState<string | null>(null);
   const [testing, setTesting] = useState<string | null>(null);
   const [confirmTest, setConfirmTest] = useState<string | null>(null);
+  const [discard, setDiscard] = useState(false); // 読めない項目を捨てて保存することの承知
+  const blocked = d.problems.length > 0 && !discard;
   const edit = (i: number, patch: Partial<Row>) => { setRows((r) => r.map((x, j) => (j === i ? { ...x, ...patch } : x))); setDirty(true); };
 
   const save = async () => {
@@ -44,9 +46,14 @@ function NotifyForm({ d, error: loadError, reload }: { d: Loaded; error: string 
   return (
     <div className="an-pane" data-testid="op-notify">
       <Section title="通知" testId="op-notify-section" hint="設計の変更を、チャットに知らせます。送るのは、設計の名前・状態・件数などの短い文だけで、設計の中身そのものは送りません。接続先の URL は、このワークスペースの .harmony-ops/ にだけ保存し (git には載りません)、画面には出しません。">
-        <p className="an-alert" role="note">送信先は https のみです。社内・ローカルのアドレス (127.0.0.1・10.x・192.168.x など) へは送れません。送信できるのは、利用者が登録した接続先だけで、AI (MCP) から送る・登録する手段はありません。</p>
+        <p className="an-alert" role="note">送信先は https のみです。社内・ローカルのアドレス (127.0.0.1・10.x・192.168.x など) へは送れません。送信できるのは、利用者が登録した接続先だけです (AI から、接続先を登録・変更・指定する手段はありません。AI のレビューの指摘は、「レビューコメント」を受ける接続先へ、件数だけの 1 通が届きます)。</p>
         {load.error ? <p className="an-alert" role="alert">{load.error}</p> : null}
         {d.problems.map((p) => <p key={p} className="an-alert" role="alert">{p}</p>)}
+        {d.problems.length > 0 && (
+          <label className="an-check" data-testid="op-notify-discard">
+            <input type="checkbox" checked={discard} onChange={(e) => setDiscard(e.target.checked)} data-testid="op-notify-discard-check" /> 読めない項目 (上に出ている項目) を、捨てて保存することを承知しました。保存すると、それらの項目は消えます
+          </label>
+        )}
         {rows.length === 0 ? <p className="an-empty">通知先はまだありません。</p> : (
           <ul className="op-hooks">
             {rows.map((r, i) => (
@@ -78,7 +85,7 @@ function NotifyForm({ d, error: loadError, reload }: { d: Loaded; error: string 
         {error && <p className="an-alert" role="alert" data-testid="op-notify-error">{error}</p>}
         <div className="an-row">
           <button type="button" className="an-btn" onClick={() => { setRows((x) => [...x, { name: "", format: "slack", events: ["approval", "comment"], enabled: true, url: "" }]); setDirty(true); }} data-testid="op-hook-add"><i className="bi bi-plus-lg" /> 通知先を追加</button>
-          <button type="button" className="an-btn primary" disabled={!dirty || rows.some((r) => !r.name.trim() || (!r.urlMasked && !r.url) || !!urlProblem(r))} onClick={() => void save()} data-testid="op-notify-save">保存</button>
+          <button type="button" className="an-btn primary" disabled={!dirty || blocked || rows.some((r) => !r.name.trim() || (!r.urlMasked && !r.url) || !!urlProblem(r))} onClick={() => void save()} data-testid="op-notify-save">保存</button>
           <button type="button" className="an-btn" disabled={!dirty} onClick={() => { setRows(toRows(d)); setDirty(false); }}>変更を捨てる</button>
         </div>
       </Section>

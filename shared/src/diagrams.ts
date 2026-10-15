@@ -264,7 +264,8 @@ export function diagramSvgCss(): string {
 
 /** 単体で開ける SVG ファイルにする (名前空間・背景・CSS を足す)。すでに xmlns があればそのまま */
 export function standaloneSvg(svg: string): string {
-  const withNs = /xmlns=/.test(svg) ? svg : svg.replace("<svg ", '<svg xmlns="http://www.w3.org/2000/svg" ');
+  // 先頭の <svg ...> の開始タグだけを見る (工程の説明などの文章に `xmlns=` があっても、取り違えない)
+  const withNs = /^<svg\b[^>]*\sxmlns=/.test(svg) ? svg : svg.replace("<svg ", '<svg xmlns="http://www.w3.org/2000/svg" ');
   const withBg = withNs.replace(/(<svg [^>]*>)/, `$1<style>${diagramSvgCss().replace(/<\//g, "<\\/")}</style><rect width="100%" height="100%" fill="#ffffff"/>`);
   return `<?xml version="1.0" encoding="UTF-8"?>\n${withBg}`;
 }

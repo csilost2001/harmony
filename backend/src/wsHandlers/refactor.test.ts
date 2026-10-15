@@ -134,3 +134,19 @@ describe("runEntityRename / runEntityUndo (MCP と共通) — 編集セッショ
   });
 });
 
+describe("runEntityRename / runEntityUndo — 運用の記録 (承認・コメント) の id の追従", () => {
+  it("改名すると、承認とレビューコメントの対象の id も新しい id になり、取り消すと戻る", async () => {
+    const { approvalsStore, commentsStore } = await import("../ops/stores.js");
+    const root = await makeWorkspace();
+    await writeTable("before", { id: "before", name: "before", columns: [] }, root);
+    const bridge = { editSessionListByResource: vi.fn().mockReturnValue([]), editSessionMigrateResourceId: vi.fn().mockResolvedValue({ migrated: [], warnings: [] }), broadcast: vi.fn() } as unknown as WsBridge;
+    await approvalsStore.update(root, () => ({ version: 1, items: [{ kind: "table", id: "before", state: "review", history: [] }] }) as never);
+    await commentsStore.update(root, () => ({ version: 1, threads: [{ id: "t-1", status: "open", target: { kind: "table", id: "before" }, messages: [{ id: "m-1", by: "花子", at: "2026-10-01T00:00:00.000Z", text: "確認" }] }] }) as never);
+    const renamed = await runEntityRename(bridge, root, "table", "before", "after", root, "s");
+    expect((await approvalsStore.read(root)).value.items[0].id).toBe("after");
+    expect((await commentsStore.read(root)).value.threads[0].target.id).toBe("after");
+    await runEntityUndo(bridge, renamed.result.operation.operationId, root, "s");
+    expect((await approvalsStore.read(root)).value.items[0].id).toBe("before");
+    expect((await commentsStore.read(root)).value.threads[0].target.id).toBe("before");
+  });
+});

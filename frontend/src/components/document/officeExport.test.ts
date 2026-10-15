@@ -212,6 +212,10 @@ describe("図の書き出し (Mermaid / PlantUML / SVG)", () => {
     expect(svg).not.toContain("var(--hm-");
     const bsvg = businessFlowSvg(input, input.businessFlows![0].id)!;
     expect(bsvg).toContain(".bf-lane-bg");
+    // 工程の説明に `xmlns=` があっても (SOAP など)、開始タグに名前空間が付く
+    const soap = { ...input, flows: [{ meta: { id: "f" }, actions: [{ id: "a", name: "呼び出し", trigger: "click", steps: [{ id: "s1", kind: "compute", description: '<Envelope xmlns="urn:x"> を組み立てる' }] }] } as never] };
+    const svg2 = processFlowSvg(soap, "f")!;
+    expect(/^<\?xml[^>]*>\s*<svg\b[^>]*\sxmlns="http:\/\/www\.w3\.org\/2000\/svg"/.test(svg2)).toBe(true);
     expect(processFlowSvg(input, "none")).toBeNull();
     expect(businessFlowSvg(input, "none")).toBeNull();
   });
