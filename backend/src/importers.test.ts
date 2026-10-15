@@ -74,6 +74,32 @@ describe("OpenAPI の取り込み", () => {
     expect(r.flows.every((f) => ((f.flow.actions[0].inputs as unknown[] | undefined)?.length ?? 0) <= 300)).toBe(true);
     expect(r.warnings.some((w) => w.includes("パラメータが多いため"))).toBe(true);
   });
+  it("応答のキー・operationId・パラメータ名・警告に、共有 ($ref) で増幅させる上限の抜けがない (数百 KB の文書が、数秒以内に終わり、結果も小さい)", () => {
+    const shared = (op: Record<string, unknown>) => ({ openapi: "3.0.0", components: { pathItems: { S: op } }, paths: Object.fromEntries(Array.from({ length: 300 }, (_, i) => [`/s${i}`, { $ref: "#/components/pathItems/S" }])) });
+    const time = (doc: unknown) => { const t0 = Date.now(); const r = importOpenApi(doc); return { ms: Date.now() - t0, r }; };
+    // 数字でない応答のコードが 2 万個
+    const codes = Object.fromEntries(Array.from({ length: 20_000 }, (_, i) => [`x${i}`, { description: "d" }]));
+    const a = time(shared({ get: { responses: { "200": { description: "ok" }, ...codes } } }));
+    expect(a.ms).toBeLessThan(3000);
+    expect(a.r.warnings.length).toBeLessThanOrEqual(101);
+    expect(a.r.flows[0].flow.actions[0].responses).toHaveLength(1);
+    // 30 万字の operationId を、300 のパスで共有 → id は重複を避けて作られ、時間は線形
+    const b = time(shared({ get: { operationId: "a".repeat(300_000), responses: {} } }));
+    expect(b.ms).toBeLessThan(3000);
+    expect(new Set(b.r.flows.map((f) => f.id)).size).toBe(300);
+    expect(b.r.flows.every((f) => f.id.length <= 63)).toBe(true);
+    // 20 万字のパラメータ名・説明
+    const c = time(shared({ get: { parameters: Array.from({ length: 300 }, (_, i) => ({ name: `${"n".repeat(200_000)}${i}`, in: "query", description: "d".repeat(100_000) })), responses: {} } }));
+    expect(c.ms).toBeLessThan(3000);
+    const input0 = (c.r.flows[0].flow.actions[0].inputs as Array<{ name: string; description: string }>)[0];
+    expect(input0.name.length).toBeLessThanOrEqual(100);
+    expect(input0.description.length).toBeLessThanOrEqual(2000);
+    // 200 万のプロパティを持つスキーマを、共有 → キーを数え上げない
+    const props: Record<string, unknown> = {};
+    for (let i = 0; i < 300_000; i++) props[`p${i}`] = { type: "string" };
+    const d = time({ openapi: "3.0.0", components: { schemas: { Big: { type: "object", properties: props } } }, paths: Object.fromEntries(Array.from({ length: 500 }, (_, i) => [`/b${i}`, { post: { requestBody: { content: { "application/json": { schema: { $ref: "#/components/schemas/Big" } } } }, responses: {} } }])) });
+    expect(d.ms).toBeLessThan(3000);
+  });
   it("読めない文書・外部参照・同名の operation は、止まらずに扱う", () => {
     expect(importOpenApi("x").warnings[0]).toContain("OpenAPI");
     const dup = importOpenApi({ openapi: "3.0.0", paths: { "/a": { get: { operationId: "x", responses: {} }, post: { operationId: "x", responses: {} } } } });
