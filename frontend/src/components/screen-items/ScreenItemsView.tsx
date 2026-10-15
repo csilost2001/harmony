@@ -34,6 +34,8 @@ import { RenameEntityDialog } from "../common/RenameEntityDialog";
 import { ReferencesButton } from "../common/ReferencesButton";
 import { PasteItemsDialog } from "./PasteItemsDialog";
 import { ItemsFromTableDialog } from "./ItemsFromTableDialog";
+import { RemoteMarkerPanel } from "../common/RemoteMarkerPanel";
+import { anchorPathItem } from "@harmony/shared";
 import { ModalShell } from "../common/ModalShell";
 import { usePageCommands } from "../../hooks/usePageCommands";
 import { buildTermIndex } from "../../utils/columnSuggestion";
@@ -1077,6 +1079,16 @@ export function ScreenItemsView() {
       <div className="screen-items-content">
         {screenId && file && (
           <>
+          {/* マーカー (AI への指示・質問)。設計の保存とは別に、その場で保存する */}
+          <RemoteMarkerPanel
+            type="screen"
+            id={screenId}
+            name={selectedScreenName ?? undefined}
+            anchorChoices={file.items.filter((it) => it.id).map((it) => ({ value: anchorPathItem(it.id), label: `${it.label || it.id} (${it.id})` }))}
+            readOnly={false}
+            isOrphan={(m) => { const mm = m.anchor?.fieldPath?.match(/^\$\.items\[([^\]]+)\]$/); return !!mm && !file.items.some((it) => it.id === mm[1]); }}
+            orphanTitle="紐付く画面項目が削除されました"
+          />
           {lintIssues.length > 0 && (
             <div className="screen-items-lint-warnings">
               <i className="bi bi-exclamation-triangle-fill me-1" />

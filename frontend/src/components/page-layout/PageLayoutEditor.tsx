@@ -58,6 +58,8 @@ import "../../styles/pageLayoutManager.css";
 import { reportFailure } from "../../utils/failureToast";
 import { isImeComposing } from "../../utils/imeKeys";
 import { showToast } from "../../utils/toast";
+import { EntityMarkerSection } from "../common/EntityMarkerSection";
+import { authoringWithMarkers } from "../../utils/markerDoc";
 
 const MATURITY_OPTIONS: Maturity[] = ["draft", "provisional", "committed"];
 const MATURITY_LABELS: Record<Maturity, string> = {
@@ -541,6 +543,8 @@ export function PageLayoutEditor() {
       )}
 
       <div className="table-editor-content page-layout-editor-content">
+        <EntityMarkerSection type="pageLayout" entity={{ id: String(pl.id), name: pl.name }} markers={pl.authoring?.markers} readOnly={isReadonly} sectionClassName="tbl-editor-section plm-compact-section"
+          onChange={(next) => updateWithDraft((d) => { d.authoring = authoringWithMarkers(d.authoring, next); })} />
         {/* ─── 基本情報 ─────────────────────────────────────────────── */}
         <section className="tbl-editor-section plm-compact-section">
           <h3 className="tbl-editor-section-title">基本情報</h3>

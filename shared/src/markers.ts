@@ -150,6 +150,64 @@ export function migrateLegacyMarkers(doc: MarkerHost): number {
   return Math.max(moved.length, legacy.length > 0 ? 1 : 0);
 }
 
+export const MARKER_BODY_MAX = 20000;
+
+/**
+ * 外から来たマーカー (画面・AI の入力) を、保存してよい形にそろえる。使えない欄は捨て、形が違えば null。
+ * id は UUID のみ、種類・書き手は決まった値のみ、本文は MARKER_BODY_MAX 文字まで。
+ */
+export function normalizeMarker(raw: unknown): MarkerLike | null {
+  if (!raw || typeof raw !== "object") return null;
+  const m = raw as Record<string, unknown>;
+  if (!isUuid(m.id) || typeof m.body !== "string" || m.body === "" || m.body.length > MARKER_BODY_MAX) return null;
+  if (typeof m.kind !== "string" || !(MARKER_KINDS as readonly string[]).includes(m.kind)) return null;
+  if (m.author !== "human" && m.author !== "ai") return null;
+  if (typeof m.createdAt !== "string" || m.createdAt === "") return null;
+  const out: MarkerLike = { id: m.id, kind: m.kind as MarkerKind, body: m.body, author: m.author, createdAt: m.createdAt };
+  const a = m.anchor && typeof m.anchor === "object" ? (m.anchor as Record<string, unknown>) : null;
+  if (a) {
+    const anchor: MarkerAnchorLike = {};
+    if (typeof a.stepId === "string" && a.stepId) anchor.stepId = a.stepId;
+    if (typeof a.fieldPath === "string" && a.fieldPath) anchor.fieldPath = a.fieldPath;
+    if (a.shape && typeof a.shape === "object") anchor.shape = a.shape;
+    if (Object.keys(anchor).length > 0) out.anchor = anchor;
+  }
+  if (typeof m.resolvedAt === "string" && m.resolvedAt) out.resolvedAt = m.resolvedAt;
+  if (typeof m.resolution === "string") out.resolution = m.resolution;
+  if (typeof m.validatorCode === "string") out.validatorCode = m.validatorCode;
+  if (typeof m.validatorPath === "string") out.validatorPath = m.validatorPath;
+  return out;
+}
+
+export interface MarkerChanges {
+  added?: unknown[];
+  updated?: unknown[];
+  removedIds?: unknown[];
+}
+
+/**
+ * 画面での追加・更新・削除を、いまの一覧へ重ねる (id で突き合わせる)。AI が並行して足したマーカーを、消さない。
+ * 形が違うものは無視する。変えたら true。
+ */
+export function applyMarkerChanges(doc: MarkerHost, changes: MarkerChanges): boolean {
+  const before = markersOf(doc);
+  let list = [...before];
+  for (const id of changes.removedIds ?? []) if (typeof id === "string") list = list.filter((m) => m.id !== id);
+  for (const raw of changes.updated ?? []) {
+    const next = normalizeMarker(raw);
+    if (!next) continue;
+    const i = list.findIndex((m) => m.id === next.id);
+    if (i >= 0) list[i] = next; else list.push(next);
+  }
+  for (const raw of changes.added ?? []) {
+    const next = normalizeMarker(raw);
+    if (next && !list.some((m) => m.id === next.id)) list.push(next);
+  }
+  const changed = list.length !== before.length || list.some((m, i) => m !== before[i]);
+  if (changed) setMarkers(doc, list);
+  return changed;
+}
+
 export interface MarkerFilter {
   unresolvedOnly?: boolean;
   kind?: MarkerKind;
