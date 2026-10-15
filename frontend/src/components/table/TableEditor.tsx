@@ -68,6 +68,7 @@ import { anchorPathColumn } from "@harmony/shared";
 import { columnNameHints, planColumnAutofill } from "../../utils/columnSuggestion";
 import { usePersistentState } from "../../hooks/usePersistentState";
 import { HelpHint } from "../help/HelpHint";
+import { isInsideModal } from "../../utils/modalScope";
 
 type TabId = "columns" | "constraints" | "indexes" | "triggers" | "comment" | "markers";
 
@@ -775,7 +776,7 @@ function ColumnsTab({
   useEffect(() => {
     if (!onOpenMarkers) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && (e.key === "m" || e.key === "M") && !(e.target as HTMLElement | null)?.closest?.('[aria-modal="true"]')) {
+      if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && (e.key === "m" || e.key === "M") && !isInsideModal(e.target as HTMLElement | null)) {
         e.preventDefault();
         onOpenMarkers(focusedColumnPath());
       }

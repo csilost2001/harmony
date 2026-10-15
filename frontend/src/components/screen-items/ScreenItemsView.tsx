@@ -98,6 +98,7 @@ import {
 import { OutputFields } from "./internal/sections/OutputFields";
 import { EmptyState } from "../common/EmptyState";
 import { reportFailure, runReporting } from "../../utils/failureToast";
+import { isInsideModal } from "../../utils/modalScope";
 import { useResyncDraftOnReconnect } from "../../hooks/useResyncDraftOnReconnect";
 import { useListClipboard } from "../../hooks/useListClipboard";
 import { BulkEditDialog } from "../common/BulkEditDialog";
@@ -598,7 +599,7 @@ export function ScreenItemsView() {
   // Ctrl+Alt+M: マーカーを追加 (フォーカスのある項目について)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && (e.key === "m" || e.key === "M") && !(e.target as HTMLElement | null)?.closest?.('[aria-modal="true"]')) {
+      if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && (e.key === "m" || e.key === "M") && !isInsideModal(e.target as HTMLElement | null)) {
         e.preventDefault();
         openMarkers(focusedItemPath());
       }

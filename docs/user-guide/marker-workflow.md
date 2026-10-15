@@ -1,6 +1,8 @@
 # AI マーカーと `/designer-work`
 
-designer 画面に残した指示・質問・TODO・チャットを Claude Code が読み取り、処理フローを自動編集する仕組みです。
+designer 画面に残した指示・質問・TODO・チャットを Claude Code が読み取り、設計を自動編集する仕組みです。
+
+**どの設計にも付けられます**: 処理フロー・画面・テーブル・ビュー・ビュー定義・シーケンス・ページレイアウト (業務フロー・帳票は、スキーマに置き場がなく、未対応)。マーカーは、設計の `authoring.markers` に保存され、画面と AI (MCP) が同じ場所を読み書きします。位置は `anchor` で指します (処理フロー: 工程の id / ほか: `$.columns[<カラム id>]` `$.items[<項目 id>]` など)。
 
 ## 4 種類のマーカー (kind)
 
@@ -13,9 +15,11 @@ designer 画面に残した指示・質問・TODO・チャットを Claude Code 
 
 ## マーカー追加の 4 経路
 
-### (A) MarkerPanel で直接追加
+### (A) マーカーのパネルで直接追加
 
-ProcessFlowEditor を開くと上部に「AI へのマーカー」パネル。kind を選んで body を入力。
+各設計の編集画面にある「AI へのマーカー」パネル (テーブルは「マーカー」タブ、画面は画面項目の画面の上部、シーケンス・ビュー・ビュー定義・ページレイアウトは画面の先頭、処理フローは上部)。種類を選び、(位置を選べる設計では) 位置を選び、本文を書く。**Enter で追加、Shift+Enter で改行**。**Ctrl+Alt+M** で、フォーカスのあるカラム・項目について、追加欄を開く。パネルの「**AI に渡す文をコピー**」は、未解決のマーカーを、Claude Code などにそのまま貼れる依頼の文にする。
+
+画面 (項目) のマーカーは、設計の保存とは別に、**その場で保存**される (AI が並行して足したマーカーを消さないよう、差分だけを重ねて保存する)。ほかの設計は、設計の保存で保存される。
 
 ### (B) 警告から 1-click 起票
 
@@ -23,7 +27,7 @@ ProcessFlowEditor を開くと上部に「AI へのマーカー」パネル。ki
 
 ### (C) step card の 3-dots メニュー
 
-対象 step の右上「...」→「AI に指摘」→ prompt で body 入力。stepId が自動で紐付く。
+対象 step の右上「...」→「AI に指摘」→ ダイアログ (複数行、種類を選べる) で body 入力。stepId が自動で紐付く。工程の見出しにフォーカスがあるとき **Ctrl+Alt+M** でも開く。
 
 ### (D) 外部ツール / API
 
@@ -46,7 +50,9 @@ ProcessFlowEditor 右上「描画」ボタン ON でツールバーが出現。
 
 | 画面 | 表示内容 |
 |------|---------|
-| Dashboard の MarkersSummaryPanel | 全体の未解決件数 + kind 別内訳 + 最多 AG ランキング |
+| Dashboard の MarkersSummaryPanel | 全設計の未解決件数 + kind 別・設計の種類別の内訳 + 最も古い未解決の経過日数 + 設計ごとの件数 |
+| マーカー一覧 (メニュー「マーカー (AI への指示)」、`/markers`) | 全設計のマーカーを古いものから並べる。設計の種類・種類・語・解決済みで絞り込み。選んだものを、メモつきでまとめて解決。「AI に渡す文をコピー」 |
+| テーブル / 画面項目の行 | 未解決のマーカーがあるカラム・項目に、件数のバッジ (クリックでパネルを開く) |
 | 処理フロー一覧 (カード / 表) | 各 ProcessFlow の未解決件数を kind 別色分けバッジ (緑/紫/橙/青) で表示。「マーカーありのみ」フィルタで絞り込み |
 | 処理フロー編集 (StepCard) | 各 step ヘッダに未解決 marker の kind 別チップ。どの step に何種類の指摘が集中しているか一目で分かる |
 | 処理フロー編集 (MarkerPanel) | 詳細リスト。kind バッジ + body + 解決/削除ボタン |
@@ -64,15 +70,17 @@ ProcessFlowEditor 右上「描画」ボタン ON でツールバーが出現。
 
 ```
 /designer-work <processFlowId>
+/designer-work <entityType> <entityId>     # 例: /designer-work table orders
+/designer-work                             # 全設計の未解決マーカーを一望してから、順に
 ```
 
-例: `/designer-work cccccccc-0005-4000-8000-cccccccccccc`
+例: `/designer-work confirm-order` / `/designer-work table orders`。entityType は `processFlow` `screen` `table` `view` `viewDefinition` `sequence` `pageLayout`。
 
 ### 動作
 
 Claude Code は内部で以下を順次実行:
 
-1. `designer__list_markers(processFlowId, unresolvedOnly=true)` で未解決 marker を取得
+1. `designer__list_markers(entityType, entityId, unresolvedOnly=true)` (処理フローは `processFlowId` だけでもよい) で未解決 marker を取得。id を指定しないときは `designer__find_all_markers` で全設計を一望
 2. 各 marker を kind 別に処理:
    - `todo` + 命令形 + 範囲明示 → MCP tool で編集 + `designer__resolve_marker`
    - `question` / `chat` → `designer__add_marker(kind="chat", author="ai", body=回答)` + 元を resolve

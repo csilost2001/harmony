@@ -1,6 +1,6 @@
 ---
-description: designer 画面で付けられたマーカー (指示・質問・TODO・チャット) を読み取り、ProcessFlow を編集して解決する
-argument-hint: <processFlowId> [--dry-run]
+description: designer 画面で付けられたマーカー (指示・質問・TODO・チャット) を読み取り、設計 (処理フロー・画面・テーブルなど) を編集して解決する
+argument-hint: [<processFlowId> | <entityType> <entityId>] [--dry-run]
 ---
 
 <!--
@@ -22,13 +22,19 @@ argument-hint: <processFlowId> [--dry-run]
     - 対象 ProcessFlow の ID を把握していること (URL の /process-flow/edit/{id})
 -->
 
-ProcessFlow `$ARGUMENTS` の未解決マーカーを処理します。
+`$ARGUMENTS` の未解決マーカーを処理します。引数の形:
+
+- `<processFlowId>` — その処理フロー
+- `<entityType> <entityId>` — 処理フロー以外 (`screen` / `table` / `view` / `viewDefinition` / `sequence` / `pageLayout`) も、同じ手順で処理する
+- 省略 — まず `designer__find_all_markers` で全設計の未解決マーカーを一望し、件数・種類・対象を人間に報告してから、設計ごとに処理する
+
+マーカーは、設計の `authoring.markers` に保存されている (画面と同じ場所)。処理フロー以外では、`anchor.fieldPath` に位置が入る: `$.columns[<カラム id>]` (テーブル) / `$.items[<項目 id>]` (画面) / `$.layout.nodes[<部品 id>]` (画面) / `$.regions[<region 名>]` (ページレイアウト)。`designer__list_markers` の `fieldPathPrefix` で絞れる。
 
 ## 実行手順
 
 ### 1. 受信と確認
 
-- `designer__list_markers` を呼び、未解決マーカー一覧を取得する (unresolvedOnly: true、既定)
+- `designer__list_markers` を呼び、未解決マーカー一覧を取得する (unresolvedOnly: true、既定。処理フロー以外は `entityType` / `entityId` を渡す)
 - `designer__get_process_flow` で現在の ProcessFlow 全体を取得し、コンテキストを把握する
 - 必要に応じて関連テーブル定義 (`designer__get_table`) や規約カタログ
   (`examples/<project-id>/conventions/catalog.json`) を参照する
@@ -95,7 +101,7 @@ catalog エントリ追加や step 編集で以下を参照する場合、対象
 
 ## スコープとガードレール
 
-- **ProcessFlow 以外は触らない**: screen / table 定義は読み取り専用扱い。修正が必要なら marker に "前提: テーブル定義の変更必要" と書いて保留
+- **マーカーが付いた設計だけを直す**: 処理フローのマーカーで、画面・テーブル定義は、読み取り専用扱い。修正が必要なら marker に "前提: テーブル定義の変更必要" と書いて保留 (対象のテーブルにも、`designer__add_marker(entityType="table", …)` で依頼を残せる)。テーブル・画面などのマーカーは、その設計を、粒度の MCP tool で直す
 - **下流モード × committed 成熟度のステップは保守的に**: 既に確定済みの内容を勝手に書き換えない。marker.body が明示的に許可している場合のみ編集
 - **@conv.* / @secret.* / @identifier の未定義参照は作らない**: 編集前に参照整合性を確認し、必要なら先にカタログへ追加してから step 参照
 - **`--dry-run` 引数があれば**: 何を変更するか提案のみで、実際の `update_step` 等は呼ばない
@@ -103,5 +109,5 @@ catalog エントリ追加や step 編集で以下を参照する場合、対象
 ## 想定外のケース
 
 - **MCP サーバ未接続** (backend が起動していない): 人間に backend 起動を促す
-- **processFlowId が見つからない**: list_process_flows で候補を提示
+- **対象の設計が見つからない**: 処理フローは list_process_flows、それ以外は各 list_* で候補を提示
 - **marker 0 件**: "現在未解決のマーカーはありません" と報告して終了
