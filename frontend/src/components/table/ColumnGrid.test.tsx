@@ -116,4 +116,14 @@ describe("ColumnGrid (表で編集)", () => {
     fireEvent.keyDown(screen.getByLabelText("2 行目の表示名"), { key: "Enter", ctrlKey: true });
     expect(ro.onInsertBelow).not.toHaveBeenCalled();
   });
+
+  it("未解決のマーカーがあるカラムに、件数のバッジを出し、クリックで位置つきで開く", () => {
+    const onOpenMarkers = vi.fn();
+    setup({ markerCounts: new Map([["$.columns[col-02]", 2]]), onOpenMarkers });
+    expect(screen.queryByTestId("col-marker-badge-id")).toBeNull();
+    const badge = screen.getByTestId("col-marker-badge-customer_name");
+    expect(badge).toHaveTextContent("2");
+    fireEvent.click(badge);
+    expect(onOpenMarkers).toHaveBeenCalledWith("$.columns[col-02]");
+  });
 });

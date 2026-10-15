@@ -91,7 +91,7 @@ test.describe("MarkerPanel (#261)", { tag: ["@regression"] }, () => {
   test("新規マーカー追加 (質問 kind)", async ({ page }) => {
     await setup(page);
     await page.locator(".marker-panel select").selectOption("question");
-    const input = page.locator(".marker-panel .marker-add-row input");
+    const input = page.locator(".marker-panel .marker-add-row textarea");
     await input.fill("この SQL を条件付き UPDATE に書き換えて");
     // React controlled input の onChange → setNewBody が完了するまで wait
     // (button の disabled={!newBody.trim()} が enabled になる)
@@ -109,7 +109,7 @@ test.describe("MarkerPanel (#261)", { tag: ["@regression"] }, () => {
 
   test("解決ボタンでインライン解決フォームが開く", async ({ page }) => {
     await setup(page);
-    await page.locator(".marker-panel .marker-add-row input").fill("A");
+    await page.locator(".marker-panel .marker-add-row textarea").fill("A");
     await expect(page.getByTestId("marker-add-btn")).toBeEnabled();
     await page.getByTestId("marker-add-btn").dispatchEvent("click");
     await page.locator(".marker-panel .marker-resolve-btn").first().dispatchEvent("click");
@@ -120,7 +120,7 @@ test.describe("MarkerPanel (#261)", { tag: ["@regression"] }, () => {
 
   test("解決フォームでメモを記入して 解決 ボタン押下で resolved に", async ({ page }) => {
     await setup(page);
-    await page.locator(".marker-panel .marker-add-row input").fill("A");
+    await page.locator(".marker-panel .marker-add-row textarea").fill("A");
     await expect(page.getByTestId("marker-add-btn")).toBeEnabled();
     await page.getByTestId("marker-add-btn").dispatchEvent("click");
     await page.locator(".marker-panel .marker-resolve-btn").first().dispatchEvent("click");
@@ -134,7 +134,7 @@ test.describe("MarkerPanel (#261)", { tag: ["@regression"] }, () => {
 
   test("解決フォームで キャンセル 押下でフォームを閉じる (未解決のまま)", async ({ page }) => {
     await setup(page);
-    await page.locator(".marker-panel .marker-add-row input").fill("A");
+    await page.locator(".marker-panel .marker-add-row textarea").fill("A");
     await expect(page.getByTestId("marker-add-btn")).toBeEnabled();
     await page.getByTestId("marker-add-btn").dispatchEvent("click");
     await page.locator(".marker-panel .marker-resolve-btn").first().dispatchEvent("click");
@@ -148,7 +148,7 @@ test.describe("MarkerPanel (#261)", { tag: ["@regression"] }, () => {
 
   test("メモ空のまま解決するとデフォルトメモが入る", async ({ page }) => {
     await setup(page);
-    await page.locator(".marker-panel .marker-add-row input").fill("A");
+    await page.locator(".marker-panel .marker-add-row textarea").fill("A");
     await expect(page.getByTestId("marker-add-btn")).toBeEnabled();
     await page.getByTestId("marker-add-btn").dispatchEvent("click");
     await page.locator(".marker-panel .marker-resolve-btn").first().dispatchEvent("click");
@@ -159,7 +159,7 @@ test.describe("MarkerPanel (#261)", { tag: ["@regression"] }, () => {
 
   test("解決済み marker の チェック済アイコン押下で未解決に戻る", async ({ page }) => {
     await setup(page);
-    await page.locator(".marker-panel .marker-add-row input").fill("A");
+    await page.locator(".marker-panel .marker-add-row textarea").fill("A");
     await expect(page.getByTestId("marker-add-btn")).toBeEnabled();
     await page.getByTestId("marker-add-btn").dispatchEvent("click");
     await page.locator(".marker-panel .marker-resolve-btn").first().dispatchEvent("click");
@@ -171,7 +171,7 @@ test.describe("MarkerPanel (#261)", { tag: ["@regression"] }, () => {
 
   test("削除ボタンで marker 消去", async ({ page }) => {
     await setup(page);
-    await page.locator(".marker-panel .marker-add-row input").fill("消すよ");
+    await page.locator(".marker-panel .marker-add-row textarea").fill("消すよ");
     await expect(page.getByTestId("marker-add-btn")).toBeEnabled();
     await page.getByTestId("marker-add-btn").dispatchEvent("click");
     await page.locator(".marker-panel .marker-row .bi-trash").dispatchEvent("click");
@@ -181,7 +181,7 @@ test.describe("MarkerPanel (#261)", { tag: ["@regression"] }, () => {
 
   test("Enter キーで追加", async ({ page }) => {
     await setup(page);
-    const input = page.locator(".marker-panel .marker-add-row input");
+    const input = page.locator(".marker-panel .marker-add-row textarea");
     await input.fill("Enter で追加");
     await input.press("Enter");
     await expect(page.locator(".marker-panel .marker-row")).toHaveCount(1);

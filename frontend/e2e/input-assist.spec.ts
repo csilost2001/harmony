@@ -169,7 +169,7 @@ test.describe("入力補助", { tag: ["@regression"] }, () => {
     await page.getByTestId("edit-mode-start").click();
     await expect(page.getByTestId("edit-mode-save")).toBeVisible();
     await page.locator(".marker-panel .catalog-panel-toggle").click();
-    const input = page.locator(".marker-panel .marker-add-row input");
+    const input = page.locator(".marker-panel .marker-add-row textarea");
     await expect(input).toBeVisible();
     const body = "変換中の文字を確定したところ";
     await input.fill(body);
