@@ -298,3 +298,24 @@ function createMockCodexClient(opts: MockCodexOpts) {
     },
   };
 }
+
+import { dictionaryIdCandidate, entityIdCandidates } from "./entityIdSuggestion";
+
+describe("日本語の名前からの ID 候補 (辞書)", () => {
+  it("辞書で全部を英語にできるものだけ候補にする", () => {
+    expect(dictionaryIdCandidate("顧客一覧")).toBe("customer-list");
+    expect(dictionaryIdCandidate("注文明細")).toBe("order-detail");
+    expect(dictionaryIdCandidate("犬種台帳")).toBeNull();
+    expect(dictionaryIdCandidate("")).toBeNull();
+  });
+
+  it("英数字の名前と日本語の名前の両方から候補を作り、重なれば番号を付け、同じ候補は 1 つにする", () => {
+    expect(entityIdCandidates("顧客一覧", [])).toEqual(["customer-list"]);
+    expect(entityIdCandidates("Customer List", [])).toEqual(["customer-list"]);
+    expect(entityIdCandidates("顧客一覧", ["customer-list"])).toEqual(["customer-list-2"]);
+    // 英数字の部分だけ / 日本語を英語にして英数字をつなげたもの
+    expect(entityIdCandidates("顧客 Master", [])).toEqual(["master", "customer-master"]);
+    expect(entityIdCandidates("犬種台帳", [])).toEqual([]);
+    for (const id of entityIdCandidates("顧客一覧", [])) expect(isValidEntityId(id)).toBe(true);
+  });
+});

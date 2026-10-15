@@ -194,8 +194,13 @@ describe("EntityIdInput", () => {
     expect(input.value).toBe("customer-list");
   });
 
-  it("名前が日本語だけなら、保存できない理由を示し「仮の ID を付ける」で埋められる", () => {
+  it("日本語の名前でも、辞書で英語にできれば ID の候補を出し、自動で入れる", () => {
     render(<Wrapper name="顧客一覧" />);
+    expect((screen.getByTestId("entity-id-input") as HTMLInputElement).value).toBe("customer-list");
+  });
+
+  it("辞書に無い言葉が残る日本語の名前なら、保存できない理由を示し「仮の ID を付ける」で埋められる", () => {
+    render(<Wrapper name="犬種台帳" />);
     expect(screen.getByTestId("entity-id-empty-hint").textContent).toContain("ID を入力すると保存できます");
     expect(screen.queryByTestId("entity-id-use-candidate")).toBeNull();
     fireEvent.click(screen.getByTestId("entity-id-use-temporary"));
