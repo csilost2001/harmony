@@ -79,7 +79,7 @@ export interface ItemAutofill {
  *   - 型が string のままで、最大長・最小/最大値・pattern・選択肢が無い: 型と最大長
  */
 export function planItemAutofill(
-  item: Pick<ScreenItem, "id" | "label" | "type" | "maxLength" | "min" | "max" | "pattern" | "options" | "minLength">,
+  item: Pick<ScreenItem, "type" | "maxLength" | "min" | "max" | "pattern" | "options" | "minLength"> & { id: string; label: string },
   existingIds: Iterable<string>,
   index?: TermIndex,
 ): ItemAutofill | null {
@@ -121,7 +121,7 @@ export type ErrorMessageKey = (typeof ERROR_MESSAGE_KEYS)[number];
  * 規約に同じキーのメッセージ (`msg.<key>`) があれば、その参照 (`@conv.msg.<key>`) を入れる。
  */
 export function draftErrorMessages(
-  item: Pick<ScreenItem, "label" | "required" | "minLength" | "maxLength" | "min" | "max" | "pattern" | "errorMessages">,
+  item: Pick<ScreenItem, "required" | "minLength" | "maxLength" | "min" | "max" | "pattern" | "errorMessages"> & { label: string },
   conventionMsgKeys: ReadonlySet<string> = new Set(),
 ): Partial<Record<ErrorMessageKey, string>> {
   const label = String(item.label ?? "").trim() || "この項目";

@@ -533,7 +533,7 @@ export function ScreenItemsView() {
         filled += keys.length;
       }
     });
-    showToast(filled > 0 ? `エラーメッセージの下書きを ${filled} 件入れました (Ctrl+Z で元に戻せます)` : "下書きを入れられるメッセージがありません (必須・長さ・形式・範囲の設定があり、まだメッセージが無い項目が対象です)", filled > 0 ? "info" : "warning");
+    showToast(filled > 0 ? `エラーメッセージの下書きを ${filled} 件入れました (Ctrl+Z で元に戻せます)` : "下書きを入れられるメッセージがありません (必須・長さ・形式・範囲の設定があり、まだメッセージが無い項目が対象です)", "info");
   }, [conventions, updateWithDraft]);
 
   const handleItemsFromTable = useCallback((items: ScreenItem[], tableName: string) => {
