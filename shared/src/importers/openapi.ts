@@ -141,7 +141,10 @@ export function importOpenApi(doc: unknown): OpenApiImportResult {
       usedIds.add(id);
       const name = (clip(op.summary, MAX_NAME).trim() || opId).slice(0, MAX_NAME);
       // 共有したパラメータが operation ごとに複製されるので、読む数にも上限を掛ける (本文の項目と同じ上限)
-      const rawParams = [...(Array.isArray(pathItem.parameters) ? pathItem.parameters : []), ...(Array.isArray(op.parameters) ? op.parameters : [])];
+      const pathParams: unknown[] = Array.isArray(pathItem.parameters) ? pathItem.parameters : [];
+      const opParams: unknown[] = Array.isArray(op.parameters) ? op.parameters : [];
+      // 複写の前に切る (共有した巨大な配列を、operation ごとに全体複写しない)
+      const rawParams = [...pathParams.slice(0, MAX_FIELDS_PER_OPERATION + 1), ...opParams.slice(0, MAX_FIELDS_PER_OPERATION + 1)];
       if (rawParams.length > MAX_FIELDS_PER_OPERATION) truncated.add(`${where}: パラメータが多いため、先頭の ${MAX_FIELDS_PER_OPERATION} 個までにしました`);
       const params = rawParams.slice(0, MAX_FIELDS_PER_OPERATION).map((p) => resolve(p)).filter(isRecord);
       const inputs: Json[] = [];
