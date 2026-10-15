@@ -37,3 +37,32 @@ describe("StepInsertMenu", () => {
     expect(onPick).toHaveBeenCalledWith("branch");
   });
 });
+
+describe("StepInsertMenu — この後によく置かれる種類", () => {
+  const items = () => screen.getAllByTestId("step-insert-item").map((e) => e.getAttribute("data-kind"));
+
+  it("suggest を渡すと、直前の工程に続く種類が上に出て「おすすめ」が付く。何も渡さなければ元の順", () => {
+    const { unmount } = render(<StepInsertMenu kinds={KINDS} onPick={vi.fn()} onClose={vi.fn()} />);
+    expect(items()).toEqual(KINDS);
+    expect(screen.queryAllByTestId("step-insert-suggest")).toHaveLength(0);
+    unmount();
+
+    render(<StepInsertMenu kinds={KINDS} suggest previousKind="validation" onPick={vi.fn()} onClose={vi.fn()} />);
+    // 目安: validation の後は dbAccess → branch (compute は選べる種類に無い)
+    expect(items().slice(0, 2)).toEqual(["dbAccess", "branch"]);
+    expect(screen.getAllByTestId("step-insert-suggest")).toHaveLength(2);
+  });
+
+  it("入力すると、おすすめの並べ替えはせず、通常の絞り込みになる", () => {
+    render(<StepInsertMenu kinds={KINDS} suggest previousKind="validation" onPick={vi.fn()} onClose={vi.fn()} />);
+    fireEvent.change(screen.getByTestId("step-insert-input"), { target: { value: "画面" } });
+    expect(items()).toEqual(["screenTransition"]);
+    expect(screen.queryAllByTestId("step-insert-suggest")).toHaveLength(0);
+  });
+
+  it("実績があれば実績を優先する", () => {
+    const stats = new Map([["validation", new Map([["screenTransition", 5]])]]);
+    render(<StepInsertMenu kinds={KINDS} suggest previousKind="validation" stats={stats} onPick={vi.fn()} onClose={vi.fn()} />);
+    expect(items()[0]).toBe("screenTransition");
+  });
+});

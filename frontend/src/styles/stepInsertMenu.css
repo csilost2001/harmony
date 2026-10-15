@@ -26,3 +26,6 @@
 .step-insert-empty { padding: 10px; color: var(--hm-fg-muted); font-size: calc(13px * var(--hm-font-scale)); }
 .step-insert-foot { padding: 6px 14px; border-top: 1px solid var(--hm-border); font-size: calc(11px * var(--hm-font-scale)); color: var(--hm-fg-muted); }
 .step-insert-foot kbd { margin: 0 3px; padding: 0 5px; font-family: inherit; font-size: calc(11px * var(--hm-font-scale)); background: var(--hm-surface-2); border: 1px solid var(--hm-border-strong); border-radius: 4px; }
+
+.step-insert-suggest { margin-left: auto; font-size: 0.7rem; padding: 0 6px; border-radius: 8px; background: var(--hm-accent-soft, var(--hm-surface-2)); color: var(--hm-accent, var(--hm-fg)); }
+.step-insert-item.active .step-insert-suggest { background: transparent; color: inherit; border: 1px solid currentColor; }
