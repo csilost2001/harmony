@@ -15,6 +15,7 @@ const ALLOW = new Set([
   "components/help/Tour.tsx",
   // 先頭で変換中を除いている
   "hooks/useReferenceCompletion.ts",
+  "components/common/SearchableSelect.tsx",
 ]);
 
 function walk(dir: string, out: string[] = []): string[] {
