@@ -4,15 +4,16 @@ interface CompletionPopupProps {
   candidates: Candidate[];
   activeIndex: number;
   onPick: (c: Candidate) => void;
+  ariaLabel?: string;
 }
 
 /** 参照補完の候補一覧。選んでいる候補には、詳しい説明 (detail) と、操作の案内を出す。 */
-export function CompletionPopup({ candidates, activeIndex, onPick }: CompletionPopupProps) {
+export function CompletionPopup({ candidates, activeIndex, onPick, ariaLabel = "補完候補" }: CompletionPopupProps) {
   const active = candidates[activeIndex];
   return (
     <ul
       role="listbox"
-      aria-label="補完候補"
+      aria-label={ariaLabel}
       style={{
         position: "absolute",
         top: "100%",

@@ -12,11 +12,16 @@ import { convResolver } from "../../../../utils/reference-completer/convResolver
 import { ALL_PROCESS_FLOW_SCOPE_RESOLVERS } from "../../../../utils/reference-completer/processFlowScopeResolver";
 import { thisResolver } from "../../../../utils/reference-completer/thisResolver";
 import { selfResolver } from "../../../../utils/reference-completer/selfResolver";
+import { sqlSchemaResolver } from "../../../../utils/reference-completer/sqlSchemaResolver";
+import type { WorkspaceRefs } from "../../../../utils/reference-completer/types";
 
 export interface DbAccessStepCardBodyProps
   extends StepCardBodyBaseProps<DbAccessStep>,
     StepCardBodyTableProps,
-    Partial<StepCardBodyCatalogProps> {}
+    Partial<StepCardBodyCatalogProps> {
+  /** ワークスペースの参照情報 (SQL の表名・カラム名の補完用) */
+  workspace?: WorkspaceRefs;
+}
 
 export function DbAccessStepCardBody({
   step,
@@ -25,10 +30,12 @@ export function DbAccessStepCardBody({
   onCommit,
   conventions,
   group,
+  workspace,
   readOnly,
 }: DbAccessStepCardBodyProps) {
-  const sqlResolvers = [convResolver, thisResolver, selfResolver, ...ALL_PROCESS_FLOW_SCOPE_RESOLVERS];
+  const sqlResolvers = [convResolver, thisResolver, selfResolver, ...ALL_PROCESS_FLOW_SCOPE_RESOLVERS, sqlSchemaResolver];
   const sqlCtx = {
+    workspace,
     conventions: conventions ?? null,
     flow: group ?? undefined,
     currentDocumentKind: "processFlow" as const,
@@ -85,7 +92,7 @@ export function DbAccessStepCardBody({
           ctx={sqlCtx}
           className="form-control form-control-sm"
           rows={2}
-          placeholder="例: SELECT ... JOIN ... WHERE ... / INSERT ... RETURNING ..."
+          placeholder="例: SELECT ... JOIN ... WHERE ... / INSERT ... RETURNING ... (表名・カラム名・@ 参照を補完)"
           style={{ fontFamily: "monospace", fontSize: "0.8rem" }}
           disabled={readOnly}
         />

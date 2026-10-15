@@ -42,7 +42,14 @@ export type CompletionState =
 /** workspace 全体の参照情報。useWorkspaceReferences の返却型。 */
 export interface WorkspaceRefs {
   screens: { id: string; name: string; maturity?: string }[];
-  tables: { id: string; physicalName: string; name: string; maturity?: string }[];
+  tables: {
+    id: string;
+    physicalName: string;
+    name: string;
+    maturity?: string;
+    /** カラム (SQL の補完・外部キーの提案用)。一覧だけを読んだ場合は無い。 */
+    columns?: { physicalName: string; name: string; dataType?: string; length?: number; primaryKey?: boolean; notNull?: boolean }[];
+  }[];
   viewDefinitions: { id: string; name: string; maturity?: string }[];
   processFlows: {
     id: string;

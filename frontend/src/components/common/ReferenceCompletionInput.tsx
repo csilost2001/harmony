@@ -15,6 +15,8 @@ interface ReferenceCompletionInputProps {
   placeholder?: string;
   disabled?: boolean;
   title?: string;
+  /** 候補一覧のアクセシビリティ上の名前 (既定 "補完候補")。 */
+  popupLabel?: string;
 }
 
 /**
@@ -34,6 +36,7 @@ export function ReferenceCompletionInput({
   placeholder,
   disabled,
   title,
+  popupLabel,
 }: ReferenceCompletionInputProps) {
   const { inputRef, candidates, isOpen, safeIndex, pick, handlers } = useReferenceCompletion<HTMLInputElement>({
     value,
@@ -58,7 +61,7 @@ export function ReferenceCompletionInput({
         disabled={disabled}
         {...handlers}
       />
-      {isOpen && <CompletionPopup candidates={candidates} activeIndex={safeIndex} onPick={pick} />}
+      {isOpen && <CompletionPopup candidates={candidates} activeIndex={safeIndex} onPick={pick} ariaLabel={popupLabel} />}
     </div>
   );
 }

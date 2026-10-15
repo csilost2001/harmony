@@ -16,6 +16,8 @@ interface ReferenceCompletionTextareaProps {
   disabled?: boolean;
   rows?: number;
   title?: string;
+  /** 候補一覧のアクセシビリティ上の名前 (既定 "補完候補")。 */
+  popupLabel?: string;
 }
 
 /**
@@ -34,6 +36,7 @@ export function ReferenceCompletionTextarea({
   disabled,
   rows = 2,
   title,
+  popupLabel,
 }: ReferenceCompletionTextareaProps) {
   const { inputRef, candidates, isOpen, safeIndex, pick, handlers } = useReferenceCompletion<HTMLTextAreaElement>({
     value,
@@ -58,7 +61,7 @@ export function ReferenceCompletionTextarea({
         rows={rows}
         {...handlers}
       />
-      {isOpen && <CompletionPopup candidates={candidates} activeIndex={safeIndex} onPick={pick} />}
+      {isOpen && <CompletionPopup candidates={candidates} activeIndex={safeIndex} onPick={pick} ariaLabel={popupLabel} />}
     </div>
   );
 }
