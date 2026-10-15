@@ -1,0 +1,35 @@
+.editor-find {
+  position: fixed;
+  top: calc(var(--common-header-h, 40px) + var(--tabbar-h, 32px) + 8px);
+  right: 16px;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--hm-surface);
+  border: 1px solid var(--hm-border-strong);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  font-size: calc(13px * var(--hm-font-scale));
+  color: var(--hm-fg);
+}
+.editor-find-input {
+  width: 18em;
+  max-width: 50vw;
+  border: 1px solid var(--hm-border-strong);
+  border-radius: 4px;
+  padding: 3px 8px;
+  background: var(--hm-surface);
+  color: var(--hm-fg);
+}
+.editor-find-count { min-width: 6em; color: var(--hm-fg-muted); font-variant-numeric: tabular-nums; }
+.editor-find-btn { border: none; background: transparent; color: var(--hm-fg); cursor: pointer; padding: 2px 6px; border-radius: 4px; }
+.editor-find-btn:hover:not(:disabled) { background: var(--hm-accent-soft); }
+.editor-find-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* 見つかった入力欄 / 文字 */
+[data-find-hit] { background-color: var(--hm-find-bg) !important; outline: 2px solid var(--hm-find-bg); }
+[data-find-hit="current"], [data-find-current] { background-color: var(--hm-find-current-bg) !important; outline: 2px solid var(--hm-find-current-bg); }
+::highlight(hm-find) { background-color: var(--hm-find-bg); color: var(--hm-fg); }
+::highlight(hm-find-current) { background-color: var(--hm-find-current-bg); color: var(--hm-fg); }

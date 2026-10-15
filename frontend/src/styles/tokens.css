@@ -42,6 +42,8 @@
   --hm-focus: rgba(84, 88, 216, 0.35);
   --hm-danger: #d03434;
   --hm-warning: #c27a0e;
+  --hm-find-bg: #fff3b0;
+  --hm-find-current-bg: #ffb347;
   --hm-success: #1f8a4c;
 
   /* 種類の見分けに使う色相 (バッジ・印)。文字にも背景の混色にも使うため、両テーマで読める明るさにしてある */
@@ -101,6 +103,8 @@
   --hm-focus: rgba(143, 147, 245, 0.4);
   --hm-danger: #f07373;
   --hm-warning: #e3a43c;
+  --hm-find-bg: #5a4d12;
+  --hm-find-current-bg: #a8661a;
   --hm-success: #5cc58a;
 
   --hm-hue-red: #f07373;
