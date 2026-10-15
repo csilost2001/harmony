@@ -47,6 +47,8 @@ describe("relevantGroupTitles", () => {
     expect(relevantGroupTitles("/w/a/screen/design/cart")).toContain("画面デザイナ");
     expect(relevantGroupTitles("/w/a/screen/items/cart").some((t) => t.startsWith("表の入力"))).toBe(true);
     expect(relevantGroupTitles("/w/a/table/list")).toContain("一覧 (画面・テーブル・処理フローなど)");
+    expect(relevantGroupTitles("/w/a/table/er")).toContain("図 (ER 図・画面フロー)");
+    expect(relevantGroupTitles("/w/a/screen/flow")).toContain("図 (ER 図・画面フロー)");
     expect(relevantGroupTitles("/w/a/")).toContain("ダッシュボード");
     expect(relevantGroupTitles("/w/a/")).not.toContain("編集中");
   });

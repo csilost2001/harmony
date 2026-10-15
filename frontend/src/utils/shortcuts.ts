@@ -60,6 +60,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
     title: "処理フロー (工程の見出しにカーソルがあるとき)",
     entries: [
       { keys: ["↑", "↓"], label: "前後の工程へ移る (Home / End で最初・最後)" },
+      { keys: ["Shift", "↑↓"], label: "選択を広げる (最上位の工程どうし。Ctrl+C / X / Delete などを、まとめて使えます)" },
       { keys: ["→", "←"], label: "工程を開く・閉じる (Space でも切り替え)" },
       { keys: ["Enter"], label: "工程を開いて、最初の入力欄へ (F2 でも同じ)" },
       { keys: ["Insert"], label: "工程を挿入 (「/」でも可。種類を入力して Enter)" },
@@ -80,6 +81,14 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { keys: ["Ctrl", "Shift", "Enter"], label: "表の入力欄 (画面項目・テーブルのカラム): この行を複製 (元の行の下)" },
       { keys: ["Alt", "Delete"], label: "表の入力欄 (画面項目・テーブルのカラム): この行を削除 (Ctrl+Z で戻せます)" },
       { keys: ["Esc"], label: "入力欄から出る (もう一度で編集パネルを閉じる)" },
+    ],
+  },
+  {
+    title: "図 (ER 図・画面フロー)",
+    entries: [
+      { keys: ["Tab"], label: "次のテーブル / 画面 (ノード) へフォーカスを移す (Shift+Tab で前へ)" },
+      { keys: ["Enter"], label: "フォーカスのあるテーブル / 画面を開く (ダブルクリックの代わり)" },
+      { keys: ["矢印"], label: "選んでいるテーブル / 画面を動かす (編集中。保存の対象になります)" },
     ],
   },
   {
@@ -114,7 +123,8 @@ export function relevantGroupTitles(pathname: string): string[] {
   const isEdit = /\/(edit|items|design)\//.test(rest) || /^\/(conventions\/catalog|generic-definition)/.test(rest);
   if (isEdit) out.push("編集中");
   if (rest === "/") out.push("ダッシュボード");
-  if (/\/list$|^\/(screen\/flow|generic-definition|table\/er)/.test(rest)) out.push("一覧 (画面・テーブル・処理フローなど)");
+  if (/\/list$|^\/generic-definition/.test(rest)) out.push("一覧 (画面・テーブル・処理フローなど)");
+  if (/^\/(screen\/flow|table\/er)/.test(rest)) out.push("図 (ER 図・画面フロー)");
   if (/^\/process-flow\/edit\//.test(rest)) out.push("処理フロー (工程の見出しにカーソルがあるとき)");
   if (/^\/(table\/edit|screen\/items|view-definition\/edit)\//.test(rest) || /^\/conventions\/catalog/.test(rest)) out.push("表の入力 (画面項目・規約カタログ・ビュー定義・テーブルのカラム)");
   if (/^\/screen\/design\//.test(rest)) out.push("画面デザイナ");

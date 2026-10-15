@@ -836,7 +836,21 @@ export function ProcessFlowEditor() {
       setTimeout(() => focusStepHeader(id), 60);
       return true;
     },
-    onFocusStep: (id, topLevel) => setSelectedIds(topLevel ? new Set([id]) : new Set()),
+    onFocusStep: (id, topLevel, extending) => {
+      if (!extending) lastSelectedIdRef.current = null; // ふつうに移ったら、範囲選択の起点は捨てる
+      setSelectedIds(topLevel ? new Set([id]) : new Set());
+    },
+    // Shift+↑↓: 起点 (最初に選んだ工程) から、いま移った工程までを選ぶ (Shift+クリックの範囲選択と同じ)
+    onExtendSelection: (fromId, toId) => {
+      const steps = activeAction?.steps ?? [];
+      const anchor = lastSelectedIdRef.current ?? fromId;
+      const a = steps.findIndex((s) => s.id === anchor);
+      const b = steps.findIndex((s) => s.id === toId);
+      if (a < 0 || b < 0) return;
+      lastSelectedIdRef.current = anchor;
+      const [from, to] = a < b ? [a, b] : [b, a];
+      setSelectedIds(new Set(steps.slice(from, to + 1).map((s) => s.id)));
+    },
   });
 
   // 挿入した工程へフォーカス (最初の入力欄へ。なければ見出しへ)
