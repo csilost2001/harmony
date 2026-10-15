@@ -189,3 +189,24 @@ describe("tableStore onTableChange subscription (#1001)", () => {
     consoleErrSpy.mockRestore();
   });
 });
+
+describe("addColumn — id は、すでにあるカラムと重ならない", () => {
+  const mk = (ids: string[]) => ({ columns: ids.map((id) => ({ id, physicalName: id, name: id, dataType: "VARCHAR" })) } as unknown as import("../types/v3").Table);
+
+  it("元のカラムの id を渡して複製しても (複製で起きる)、新しい id になる", async () => {
+    const { addColumn } = await import("./tableStore");
+    const t = mk(["col-01"]);
+    const a = addColumn(t, { id: "col-01" as never, physicalName: "id_copy" as never });
+    const b = addColumn(t, { id: "col-01" as never, physicalName: "id_copy2" as never });
+    expect(new Set(t.columns.map((c) => c.id)).size).toBe(3);
+    expect([a.id, b.id]).not.toContain("col-01");
+  });
+
+  it("途中のカラムを消したあとでも、重ならない / 空いている id を渡せばそのまま使う", async () => {
+    const { addColumn } = await import("./tableStore");
+    const t = mk(["col-01", "col-03"]);
+    expect(addColumn(t).id).toBe("col-04");
+    expect(addColumn(t, { id: "col-99" as never }).id).toBe("col-99");
+    expect(new Set(t.columns.map((c) => c.id)).size).toBe(4);
+  });
+});

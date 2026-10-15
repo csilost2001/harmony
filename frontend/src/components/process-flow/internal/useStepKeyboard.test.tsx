@@ -46,10 +46,25 @@ describe("useStepKeyboard", () => {
     expect(document.activeElement).toBe(getByTestId("hb"));
     key(getByTestId("hb"), "ArrowDown");
     expect(document.activeElement).toBe(getByTestId("hb1"));
-    expect(h.onFocusStep).toHaveBeenLastCalledWith("b1", false);
+    expect(h.onFocusStep).toHaveBeenLastCalledWith("b1", false, false);
     key(getByTestId("hb1"), "Home");
     expect(document.activeElement).toBe(getByTestId("ha"));
-    expect(h.onFocusStep).toHaveBeenLastCalledWith("a", true);
+    expect(h.onFocusStep).toHaveBeenLastCalledWith("a", true, false);
+  });
+
+  it("Shift+↑↓ で、選択を広げる (最上位の工程どうしのとき)。ふつうの移動では広げない", () => {
+    const onExtendSelection = vi.fn();
+    const h = mk({ onExtendSelection });
+    const { getByTestId } = render(<Harness h={h} />);
+    getByTestId("ha").focus();
+    key(getByTestId("ha"), "ArrowDown", { shiftKey: true });
+    expect(onExtendSelection).toHaveBeenLastCalledWith("a", "b");
+    expect(h.onFocusStep).toHaveBeenLastCalledWith("b", true, true);
+    // 入れ子の工程へ移るときは、広げない
+    key(getByTestId("hb"), "ArrowDown", { shiftKey: true });
+    expect(onExtendSelection).toHaveBeenCalledTimes(1);
+    key(getByTestId("hb1"), "Home");
+    expect(onExtendSelection).toHaveBeenCalledTimes(1);
   });
 
   it("Insert と / で挿入メニュー、入力欄の中の Ctrl+Enter でも。閲覧中は開かない。どこでも Insert は末尾", () => {

@@ -7,7 +7,9 @@
  * data-testid="overwrite-confirm-btn" は e2e spec `multi-session-branching.spec.ts:123` が参照する。
  */
 
+import { useRef } from "react";
 import { friendlyLabel } from "../../utils/participantLabel";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import "../../styles/editMode.css";
 
 export interface ConflictInfo {
@@ -24,6 +26,9 @@ export interface SaveConflictDialogProps {
 }
 
 export function SaveConflictDialog({ conflict, onOverwrite, onCancel }: SaveConflictDialogProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  // Esc は「上書きしない」(取り消し)。Tab はダイアログの中で循環する
+  useFocusTrap(dialogRef, true, onCancel);
   const savedAtFormatted = (() => {
     try {
       const d = new Date(conflict.savedAt);
@@ -45,6 +50,7 @@ export function SaveConflictDialog({ conflict, onOverwrite, onCancel }: SaveConf
         aria-modal="true"
         aria-labelledby="save-conflict-modal-title"
         tabIndex={-1}
+        ref={dialogRef}
       >
         <div className="edit-mode-modal-header">
           <h5 id="save-conflict-modal-title" className="edit-mode-modal-title">

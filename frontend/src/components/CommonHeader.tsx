@@ -6,6 +6,8 @@ import { CodexIndicator } from "./codex/CodexIndicator";
 import { ThemeToggle } from "./common/ThemeToggle";
 import { QuickOpen } from "./quick-open/QuickOpen";
 import { ReferenceNavigator } from "./common/ReferenceNavigator";
+import { EditorFind } from "./common/EditorFind";
+import { RegionNavigator } from "./common/RegionNavigator";
 import { ShortcutHelp } from "./help/ShortcutHelp";
 import { ConnectionStatus } from "./common/ConnectionStatus";
 import { ToastHost } from "./common/ToastHost";
@@ -48,6 +50,8 @@ export function CommonHeader({ notification }: Props) {
         <UserNameButton />
       </div>
       <ReferenceNavigator />
+      <EditorFind />
+      <RegionNavigator />
       <ReplaceDialog />
       <TourHost />
       <UpdateNotice />

@@ -118,7 +118,7 @@ export function RenameEntityDialog({
   const meta = getRenameEntityMeta(entityType);
   const label = entityLabel ?? meta.entityLabel;
   const trapRef = useRef<HTMLDivElement>(null);
-  useFocusTrap(trapRef);
+  useFocusTrap(trapRef, true, onClose);
 
   const [step, setStep] = useState<Step>("input");
   const [newId, setNewId] = useState("");

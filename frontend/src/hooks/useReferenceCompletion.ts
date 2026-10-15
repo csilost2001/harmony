@@ -4,7 +4,7 @@ import type { Candidate, CompletionContext, Resolver } from "../utils/reference-
 import { bestRank } from "../utils/textMatch";
 import { applyCompletionHistory, recordCompletionPick } from "../utils/completionHistory";
 import { isImeComposing } from "../utils/imeKeys";
-import { referenceAt, requestGoToReference } from "../utils/referenceTarget";
+import { referenceAt, requestFindReferences, requestGoToReference } from "../utils/referenceTarget";
 import { showToast } from "../utils/toast";
 
 type El = HTMLInputElement | HTMLTextAreaElement;
@@ -73,8 +73,23 @@ export function useReferenceCompletion<T extends El>({ value, onValueChange, onC
     requestGoToReference(target);
   };
 
+  /** カーソルの参照を、参照している設計の一覧にする (Shift+F12) */
+  const findReferences = (pos: number) => {
+    const target = referenceAt(value, pos);
+    if (!target) {
+      showToast("参照 (@screen.cart のような @ で始まる指定) の上にカーソルを置いてください", "info");
+      return;
+    }
+    requestFindReferences(target);
+  };
+
   const onKeyDown = (e: React.KeyboardEvent<T>) => {
     if (isImeComposing(e)) return;
+    if (e.key === "F12" && e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      e.preventDefault();
+      findReferences(inputRef.current?.selectionStart ?? cursorPos);
+      return;
+    }
     if (e.key === "F12" && !e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) {
       e.preventDefault();
       goToDefinition(inputRef.current?.selectionStart ?? cursorPos);

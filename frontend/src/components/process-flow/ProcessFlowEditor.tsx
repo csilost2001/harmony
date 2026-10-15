@@ -80,6 +80,7 @@ import { StepContextMenu } from "./internal/StepContextMenu";
 import { WarningsPanel } from "./internal/WarningsPanel";
 import { ALL_STEP_TYPES } from "./internal/stepCardConstants";
 import { StepInsertMenu } from "./internal/StepInsertMenu";
+import { usePageCommands } from "../../hooks/usePageCommands";
 import { findStepKind, type TransitionStats } from "../../utils/stepSuggestion";
 import { loadStepTransitionStats } from "../../store/stepStatsStore";
 import { focusStepHeader, useStepKeyboard } from "./internal/useStepKeyboard";
@@ -505,6 +506,10 @@ export function ProcessFlowEditor() {
   // ── キーボード操作 (docs/spec/process-flow-keyboard.md) ──────────────────────
   /** 挿入メニュー。afterStepId = その工程の後ろへ (null なら末尾) */
   const [insertMenu, setInsertMenu] = useState<{ afterStepId: string | null } | null>(null);
+  // コマンドパレット (Ctrl+K の「>」) に、この画面の操作を載せる
+  usePageCommands(`process-flow:${processFlowId ?? ""}`, isReadonly ? [] : [
+    { id: "step-insert", label: "工程を挿入 (末尾に)", keywords: ["こうてい", "step", "insert", "ついか", "追加", "ステップ"], icon: "bi-plus-circle", hint: "Insert", run: () => setInsertMenu({ afterStepId: null }) },
+  ]);
   // 挿入メニューで、「この後によく置かれる種類」を出すための統計 (開いたときに 1 回読む)
   const [stepStats, setStepStats] = useState<TransitionStats | undefined>(undefined);
   useEffect(() => {
@@ -831,7 +836,21 @@ export function ProcessFlowEditor() {
       setTimeout(() => focusStepHeader(id), 60);
       return true;
     },
-    onFocusStep: (id, topLevel) => setSelectedIds(topLevel ? new Set([id]) : new Set()),
+    onFocusStep: (id, topLevel, extending) => {
+      if (!extending) lastSelectedIdRef.current = null; // ふつうに移ったら、範囲選択の起点は捨てる
+      setSelectedIds(topLevel ? new Set([id]) : new Set());
+    },
+    // Shift+↑↓: 起点 (最初に選んだ工程) から、いま移った工程までを選ぶ (Shift+クリックの範囲選択と同じ)
+    onExtendSelection: (fromId, toId) => {
+      const steps = activeAction?.steps ?? [];
+      const anchor = lastSelectedIdRef.current ?? fromId;
+      const a = steps.findIndex((s) => s.id === anchor);
+      const b = steps.findIndex((s) => s.id === toId);
+      if (a < 0 || b < 0) return;
+      lastSelectedIdRef.current = anchor;
+      const [from, to] = a < b ? [a, b] : [b, a];
+      setSelectedIds(new Set(steps.slice(from, to + 1).map((s) => s.id)));
+    },
   });
 
   // 挿入した工程へフォーカス (最初の入力欄へ。なければ見出しへ)

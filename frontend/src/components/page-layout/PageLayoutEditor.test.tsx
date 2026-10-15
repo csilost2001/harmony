@@ -324,4 +324,32 @@ describe("PageLayoutEditor", () => {
     expect(await screen.findByText(/content は既存データ互換 alias/)).toBeInTheDocument();
     expect(screen.queryByTestId("page-layout-slot-content")).not.toBeInTheDocument();
   });
+
+  it("region の行で Alt+↓ で下へ動かし、Alt+Delete で削除する (編集中)", async () => {
+    editSessionMock.modeKind = "editing";
+    renderEditor();
+    const section = () => Array.from(document.querySelectorAll("section.tbl-editor-section")).find((x) => x.querySelector("h3")?.textContent?.startsWith("Regions")) as HTMLElement;
+    const rows = () => Array.from(section().querySelectorAll("tbody tr")).filter((tr) => tr.querySelector("code.region-name-code"));
+    const names = () => rows().map((tr) => tr.querySelector("code.region-name-code")?.textContent ?? "");
+    await screen.findByTestId("page-layout-slot-header");
+    expect(names()).toEqual(["header", "main", "footer"]);
+    const firstRow = rows()[0] as HTMLElement;
+    const field = firstRow.querySelector("input") ?? firstRow;
+    fireEvent.keyDown(field, { key: "ArrowDown", altKey: true });
+    await waitFor(() => expect(names()).toEqual(["main", "header", "footer"]));
+    const lastRow = rows()[2] as HTMLElement;
+    fireEvent.keyDown(lastRow.querySelector("input") ?? lastRow, { key: "Delete", altKey: true });
+    await waitFor(() => expect(names()).toEqual(["main", "header"]));
+  });
+
+  it("content slot の region (main) は、Alt+Delete でも削除できない (削除ボタンと同じ)", async () => {
+    editSessionMock.modeKind = "editing";
+    renderEditor();
+    await screen.findByTestId("page-layout-slot-header");
+    const section = Array.from(document.querySelectorAll("section.tbl-editor-section")).find((x) => x.querySelector("h3")?.textContent?.startsWith("Regions")) as HTMLElement;
+    const rows = () => Array.from(section.querySelectorAll("tbody tr")).filter((tr) => tr.querySelector("code.region-name-code"));
+    const mainRow = rows().find((tr) => tr.querySelector("code.region-name-code")?.textContent === "main") as HTMLElement;
+    fireEvent.keyDown(mainRow.querySelector("input") ?? mainRow, { key: "Delete", altKey: true });
+    expect(rows().map((tr) => tr.querySelector("code.region-name-code")?.textContent)).toContain("main");
+  });
 });

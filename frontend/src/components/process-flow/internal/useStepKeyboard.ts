@@ -2,7 +2,7 @@
  * 処理フローの工程 (ステップ) を、キーボードだけで辿る・組み立てるためのキー操作。
  *
  * 工程の見出し (.step-card-header) にフォーカスがあるとき:
- *   ↑ ↓ / Home End  前後の工程へ     → ←  開く / 閉じる     Space  開閉     Enter / F2  開いて最初の入力欄へ
+ *   ↑ ↓ / Home End  前後の工程へ (Shift 付きで、選択を広げる)     → ←  開く / 閉じる     Space  開閉     Enter / F2  開いて最初の入力欄へ
  *   Insert / /      工程を挿入 (種類を打ち込んで選ぶ)
  *   Tab / Shift+Tab  インデント (直前の工程の配下へ) / アウトデント (編集中のみ。できるときだけ。できなければ通常の Tab)
  * 入力欄の中: Esc で工程の見出しへ戻る / Ctrl+Enter で、この工程の後ろに挿入
@@ -22,7 +22,9 @@ export interface StepKeyboardHandlers {
   /** 入れ子の工程をひとつ外へ出す (Shift+Tab)。実行したら true。できないときは false で、通常のフォーカス移動 */
   onOutdent?: (stepId: string) => boolean;
   /** 見出しにフォーカスが移った (キーボードで) */
-  onFocusStep: (stepId: string, topLevel: boolean) => void;
+  onFocusStep: (stepId: string, topLevel: boolean, extending: boolean) => void;
+  /** Shift+↑↓ で、選択を広げた (from の工程から to の工程へ。どちらも最上位の工程のときだけ)。onFocusStep のあとに呼ぶ */
+  onExtendSelection?: (fromId: string, toId: string) => void;
 }
 
 const FIELD = "input, textarea, select, [contenteditable=\"true\"]";
@@ -82,18 +84,22 @@ export function useStepKeyboard(h: StepKeyboardHandlers): void {
         if (!id) return;
         const all = headersIn(target.closest(".process-flow-page") ?? document);
         const i = all.indexOf(target);
-        const go = (j: number) => {
+        const go = (j: number, extend = false) => {
           const next = all[Math.max(0, Math.min(all.length - 1, j))];
           if (next && next !== target) {
             next.focus();
             const nid = stepIdOf(next);
-            if (nid) cfg.onFocusStep(nid, parentStepIdOf(next) === null);
+            if (nid) {
+              const top = parentStepIdOf(next) === null;
+              cfg.onFocusStep(nid, top, extend);
+              if (extend && top && parentStepIdOf(target) === null) cfg.onExtendSelection?.(id, nid);
+            }
           }
         };
         const expanded = target.getAttribute("data-expanded") === "true";
         switch (e.key) {
-          case "ArrowDown": e.preventDefault(); go(i + 1); return;
-          case "ArrowUp": e.preventDefault(); go(i - 1); return;
+          case "ArrowDown": e.preventDefault(); go(i + 1, e.shiftKey); return;
+          case "ArrowUp": e.preventDefault(); go(i - 1, e.shiftKey); return;
           case "Home": e.preventDefault(); go(0); return;
           case "End": e.preventDefault(); go(all.length - 1); return;
           case "ArrowRight": if (!expanded) { e.preventDefault(); target.click(); } return;

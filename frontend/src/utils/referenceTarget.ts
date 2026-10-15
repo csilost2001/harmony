@@ -2,6 +2,8 @@
  * 入力欄の中の `@screen.cart` / `@table.orders.field.id` / `@conv.msg.required` のような参照から、
  * 「定義」の画面への経路を求める (Ctrl+クリック / F12 の定義へ移動)。
  */
+import type { ReferenceTargetType } from "./references";
+
 export interface ReferenceTarget {
   /** 参照の文字 (例: `@screen.cart.item.qty`) */
   text: string;
@@ -10,16 +12,18 @@ export interface ReferenceTarget {
   route: string;
   /** 利用者に見せる説明 (例: 「画面 cart」) */
   label: string;
+  /** 参照元を調べられる設計 (画面・テーブルなど) のときの種類と ID。汎用定義・規約は無し */
+  entity?: { type: ReferenceTargetType; id: string };
 }
 
-const ENTITY_ROUTES: Record<string, { label: string; route: (id: string) => string }> = {
-  screen: { label: "画面", route: (id) => `/screen/items/${id}` },
-  table: { label: "テーブル", route: (id) => `/table/edit/${id}` },
-  view: { label: "ビュー", route: (id) => `/view/edit/${id}` },
-  viewer: { label: "ビュー定義", route: (id) => `/view-definition/edit/${id}` },
-  seq: { label: "シーケンス", route: (id) => `/sequence/edit/${id}` },
-  layout: { label: "ページレイアウト", route: (id) => `/page-layout/edit/${id}` },
-  flow: { label: "処理フロー", route: (id) => `/process-flow/edit/${id}` },
+const ENTITY_ROUTES: Record<string, { label: string; type: ReferenceTargetType; route: (id: string) => string }> = {
+  screen: { type: "screen", label: "画面", route: (id) => `/screen/items/${id}` },
+  table: { type: "table", label: "テーブル", route: (id) => `/table/edit/${id}` },
+  view: { type: "view", label: "ビュー", route: (id) => `/view/edit/${id}` },
+  viewer: { type: "viewDefinition", label: "ビュー定義", route: (id) => `/view-definition/edit/${id}` },
+  seq: { type: "sequence", label: "シーケンス", route: (id) => `/sequence/edit/${id}` },
+  layout: { type: "pageLayout", label: "ページレイアウト", route: (id) => `/page-layout/edit/${id}` },
+  flow: { type: "processFlow", label: "処理フロー", route: (id) => `/process-flow/edit/${id}` },
 };
 
 /** 汎用定義の接頭辞 → 種類 (/generic-definition/<kind>/<name>) */
@@ -55,7 +59,7 @@ export function referenceAt(text: string, pos: number): ReferenceTarget | null {
     if (prefix === "conv") return { text: trimmed, prefix, route: "/conventions/catalog", label: "規約カタログ" };
     if (!first) return null;
     const entity = ENTITY_ROUTES[prefix];
-    if (entity) return { text: trimmed, prefix, route: entity.route(first), label: `${entity.label} ${first}` };
+    if (entity) return { text: trimmed, prefix, route: entity.route(first), label: `${entity.label} ${first}`, entity: { type: entity.type, id: first } };
     const generic = GENERIC_KINDS[prefix];
     if (generic) return { text: trimmed, prefix, route: `/generic-definition/${generic.kind}/${first}`, label: `${generic.label} ${first}` };
     return null;
@@ -64,6 +68,18 @@ export function referenceAt(text: string, pos: number): ReferenceTarget | null {
 }
 
 const EVENT = "harmony:go-to-reference";
+const FIND_EVENT = "harmony:find-references";
+
+/** 参照元の一覧 (その設計を参照している設計) を開く合図 (Shift+F12) */
+export function requestFindReferences(target: ReferenceTarget): void {
+  window.dispatchEvent(new CustomEvent<ReferenceTarget>(FIND_EVENT, { detail: target }));
+}
+
+export function onFindReferences(handler: (target: ReferenceTarget) => void): () => void {
+  const listener = (e: Event) => handler((e as CustomEvent<ReferenceTarget>).detail);
+  window.addEventListener(FIND_EVENT, listener);
+  return () => window.removeEventListener(FIND_EVENT, listener);
+}
 
 /** 定義の画面を開く合図 (CommonHeader の ReferenceNavigator が受けて移動する) */
 export function requestGoToReference(target: ReferenceTarget): void {

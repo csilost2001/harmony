@@ -39,6 +39,9 @@ import { ResumeOrDiscardDialog } from "../editing/ResumeOrDiscardDialog";
 import { htmlToSimple } from "../../screen-layout/domToSimple";
 import { LayoutCanvas } from "./LayoutCanvas";
 import { LayoutPalette } from "./LayoutPalette";
+import { GROUPS as PALETTE_GROUPS } from "./layoutPaletteGroups";
+import { QuickPickMenu, type QuickPickItem } from "../common/QuickPickMenu";
+import { LAYOUT_NODE_LABELS } from "@harmony/shared";
 import { LayoutInspector } from "./LayoutInspector";
 import { RegisterComponentDialog } from "./RegisterComponentDialog";
 import { ComponentManager } from "./ComponentManager";
@@ -196,6 +199,8 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
   // ── 独自部品 ───────────────────────────────────────────────────────────
   const [registering, setRegistering] = useState(false);
   const [managing, setManaging] = useState<{ editId?: string } | null>(null);
+  // 部品を追加するメニュー (/ または Insert。種類を打ち込んで選ぶ)
+  const [showPartMenu, setShowPartMenu] = useState(false);
 
   const registerSelected = useCallback(async (def: LayoutComponentDef, args: Record<string, string>) => {
     if (!selectedId) return;
@@ -266,6 +271,12 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
       if (e.key === "Escape") { setSelectedId(null); return; }
+      // / または Insert: 部品を追加するメニュー (選んでいる部品の後ろに追加する。パレットのクリックと同じ)
+      if (editable && (e.key === "/" || e.key === "Insert") && !e.ctrlKey && !e.metaKey && !e.altKey && !(t && t.closest('[aria-modal="true"]'))) {
+        e.preventDefault();
+        setShowPartMenu(true);
+        return;
+      }
       // 部品の木の中の移動: ↑↓ = 前後の部品、← = 親、→ = 最初の子 (閲覧のみでも使える)
       if (selectedId && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && !(t && t.closest('[role="tab"], [role="listbox"], [role="combobox"], [role="menu"], dialog, [aria-modal="true"]'))) {
         const to = e.key === "ArrowUp" ? neighborId(nodes, selectedId, -1)
@@ -291,6 +302,17 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [isActive, editable, selectedId, nodes, deleteSelected, duplicateSelected, moveSelected, outdentSelected, indentSelected]);
+
+  // 部品を追加するメニューの候補 (標準の部品 + プロジェクト独自の部品)
+  const partMenuItems = useMemo<QuickPickItem[]>(() => [
+    ...PALETTE_GROUPS.flatMap((g) => g.types.map((t) => ({ value: `type:${t.type}`, label: LAYOUT_NODE_LABELS[t.type] ?? t.type, hint: `${g.title} ・ ${t.hint}`, icon: `bi ${t.icon}` }))),
+    ...components.map((c) => ({ value: `component:${c.id}`, label: c.label, hint: c.category ? `独自部品 ・ ${c.category}` : "独自部品", icon: "bi bi-puzzle" })),
+  ], [components]);
+  const pickPart = (value: string) => {
+    setShowPartMenu(false);
+    if (value.startsWith("component:")) addComponent(value.slice("component:".length));
+    else addNode(value.slice("type:".length) as Parameters<typeof addNode>[0]);
+  };
 
   // ── 旧デザインからの変換 / 新規作成 ───────────────────────────────────
   const [converting, setConverting] = useState(false);
@@ -502,6 +524,9 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
 
       {registering && selected && (
         <RegisterComponentDialog node={selected} items={items} existing={components} onRegister={registerSelected} onCancel={() => setRegistering(false)} />
+      )}
+      {showPartMenu && editable && (
+        <QuickPickMenu title="部品を追加" where={selectedId ? "選んだ部品の後ろに" : "末尾に"} placeholder="部品の種類を入力 (例: フォーム、ボタン、一覧)" items={partMenuItems} onPick={pickPart} onClose={() => setShowPartMenu(false)} />
       )}
       {managing && (
         <ComponentManager initialEditId={managing.editId} screens={screens} onClose={() => setManaging(null)} />

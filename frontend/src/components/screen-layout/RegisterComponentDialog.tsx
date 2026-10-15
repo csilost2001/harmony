@@ -27,7 +27,7 @@ interface Row { candidate: ParamCandidate; on: boolean; paramId: string; label: 
 
 export function RegisterComponentDialog({ node, items, existing, onRegister, onCancel }: RegisterComponentDialogProps) {
   const trapRef = useRef<HTMLDivElement>(null);
-  useFocusTrap(trapRef);
+  useFocusTrap(trapRef, true, onCancel);
   const [label, setLabel] = useState("");
   const [id, setId] = useState(() => {
     const base = kebab(node.id) || "my-component";

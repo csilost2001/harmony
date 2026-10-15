@@ -1,3 +1,4 @@
+import { isImeComposing } from "../../utils/imeKeys";
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
@@ -509,6 +510,16 @@ function FlowEditorInner() {
     }
     navigate(wsPath(`/screen/design/${node.id}`));
   }, [navigate, wsPath]);
+
+  // キーボード: フォーカスのある画面 (ノード) で Enter = 画面デザイナを開く (ダブルクリックの代わり)
+  const onCanvasKeyDown = useCallback((e: React.KeyboardEvent<HTMLElement>) => {
+    if (e.key !== "Enter" || isImeComposing(e)) return;
+    const t = e.target as HTMLElement;
+    if (t.closest("input, textarea, select, button")) return;
+    const id = t.closest(".react-flow__node")?.getAttribute("data-id");
+    const node = id ? nodesForKeyboardRef.current.find((n) => n.id === id) : undefined;
+    if (node) { e.preventDefault(); onNodeDoubleClick(e as unknown as React.MouseEvent, node); }
+  }, [onNodeDoubleClick]);
 
   const onNodeContextMenu: NodeMouseHandler = useCallback((event, node) => {
     event.preventDefault();
@@ -1234,7 +1245,7 @@ function FlowEditorInner() {
         </div>
       )}
 
-      <div className="flow-canvas" onKeyUp={onCanvasKeyUp}>
+      <div className="flow-canvas" onKeyUp={onCanvasKeyUp} onKeyDown={onCanvasKeyDown}>
         {isLoading ? (
           <div className="flow-loading">
             <div className="spinner" />

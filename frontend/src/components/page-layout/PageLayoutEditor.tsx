@@ -57,6 +57,7 @@ import "../../styles/editMode.css";
 import "../../styles/pageLayoutManager.css";
 import { reportFailure } from "../../utils/failureToast";
 import { isImeComposing } from "../../utils/imeKeys";
+import { showToast } from "../../utils/toast";
 
 const MATURITY_OPTIONS: Maturity[] = ["draft", "provisional", "committed"];
 const MATURITY_LABELS: Record<Maturity, string> = {
@@ -755,7 +756,27 @@ export function PageLayoutEditor() {
             </thead>
             <tbody>
               {(pl.regions ?? []).map((region, idx) => (
-                <tr key={region.name} className={RESERVED_REGION_NAMES.includes(region.name) ? "tbl-row-reserved" : undefined}>
+                <tr
+                  key={region.name}
+                  className={RESERVED_REGION_NAMES.includes(region.name) ? "tbl-row-reserved" : undefined}
+                  onKeyDown={(e) => {
+                    // Alt+↑↓ = この region を上下へ、Alt+Delete = 削除 (表の入力欄の中でも使える。ほかの編集画面と同じ操作)
+                    if (!e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || isImeComposing(e)) return;
+                    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                      e.preventDefault();
+                      handleMoveRegion(idx, e.key === "ArrowUp" ? "up" : "down");
+                      // 動いたあと、同じ region の欄へフォーカスを戻す (並びが変わるので、描画のあとで)
+                      const to = idx + (e.key === "ArrowUp" ? -1 : 1);
+                      const tbody = e.currentTarget.parentElement;
+                      setTimeout(() => tbody?.children[to]?.querySelector<HTMLInputElement>("input")?.focus(), 0);
+                    } else if (e.key === "Delete") {
+                      e.preventDefault();
+                      // 削除ボタンと同じ: content slot (本文が嵌まる region) は削除できない
+                      if (isContentSlotRegion(region.name)) { showToast("content slot の region は削除できません", "info"); return; }
+                      handleRemoveRegion(region.name);
+                    }
+                  }}
+                >
                   <td>
                     <div className="tbl-reorder-btns">
                       <button

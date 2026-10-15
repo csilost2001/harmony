@@ -13,6 +13,7 @@ Claude Code 固有の補足は `CLAUDE.md`、Codex 固有の設定は `.codex/co
 | 設計の分析 (影響分析・対応表・未使用・用語・命名規約・SLA / ジョブ・外部契約・進捗・テスト雛形 / データ・OpenAPI) と、点検の設定 (抑制・独自ルール) | [design-analysis.md](docs/spec/design-analysis.md) / [design-check.md](docs/spec/design-check.md) |
 | 操作性 (通知の履歴・表示の設定・お気に入り・コマンドパレット・変更履歴・一括変更・別画面へのコピー・スニペット・設計全体の検索置換・表で編集・ドラッグのキーボード代替・ツアーとヘルプ・並べて表示・エラー復旧) | [ux-operations.md](docs/spec/ux-operations.md) |
 | 連携と運用 (Word / Excel 書き出し・設計書の体裁と改訂履歴・図の書き出し・Git・レビューコメント・承認・利用者と権限・変更の記録・通知・取り込み・生成の管理・技術スタックのプリセット・版とリリースノート・資料の鮮度検査) | [integration-ops.md](docs/spec/integration-ops.md) |
+| キーボード・移動 (画面内の検索 Ctrl+F・参照元 Shift+F12・表の Ctrl+D と行の挿入・複製・削除・コマンドパレットの画面の操作・F6 で領域・部品の追加 /・ダイアログの Esc とフォーカス) | [ui-keyboard.md](docs/spec/ui-keyboard.md) |
 | 入力補助 (参照の補完・SQL の表名とカラム名・定義へ移動 F12・検索できる選択・カラムの物理名と型の提案・外部キーの候補・テーブルから画面項目・ID の候補・工程のおすすめ・日本語入力の Enter) | [ui-input-assist.md](docs/spec/ui-input-assist.md) |
 | 完了判定 (回帰テストの trace 照合) | [docs/conventions/completion-gate.md](docs/conventions/completion-gate.md) |
 | 進行中の再設計計画と設計者判断 | [docs/plans/redesign-2026-10.md](docs/plans/redesign-2026-10.md) |

@@ -221,9 +221,13 @@ export function addColumn(
   table: Table,
   partial?: Partial<Column>,
 ): Column {
-  const n = table.columns.length + 1;
+  // id は、すでにあるカラムと重ならないものにする (複製で元の id が渡されても、新しい id を振る)
+  const taken = new Set(table.columns.map((c) => c.id as string));
+  let n = table.columns.length + 1;
+  let id = partial?.id && !taken.has(partial.id) ? partial.id : `col-${String(n).padStart(2, "0")}`;
+  while (taken.has(id)) { n++; id = `col-${String(n).padStart(2, "0")}`; }
   const col: Column = {
-    id: (partial?.id ?? `col-${String(n).padStart(2, "0")}`) as LocalId,
+    id: id as LocalId,
     no: nextNo(table.columns),
     physicalName: (partial?.physicalName ?? "new_column") as PhysicalName,
     name: (partial?.name ?? "新規カラム") as DisplayName,

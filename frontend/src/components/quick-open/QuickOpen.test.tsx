@@ -13,6 +13,7 @@ import { QuickOpen } from "./QuickOpen";
 import { _resetFavoritesCache, loadFavorites, toggleFavorite } from "../../utils/favorites";
 import { _resetForTests, makeTabId, openTab } from "../../store/tabStore";
 import { getAppThemePref, setAppThemePref } from "../../theme/appTheme";
+import { _resetSplitCache, getSplit } from "../../store/splitStore";
 
 function Where() { return <div data-testid="where">{useLocation().pathname}</div>; }
 const mount = () => render(
@@ -80,6 +81,18 @@ describe("QuickOpen (クイックオープン / コマンドパレット / お�
     fireEvent.keyDown(document, { key: "k", ctrlKey: true });
     expect(screen.getByTestId("quick-open")).toBeInTheDocument();
     fireEvent.keyDown(document, { key: "k", ctrlKey: true });
+    expect(screen.queryByTestId("quick-open")).toBeNull();
+  });
+
+  it("Alt+Enter で、候補を開かずに、右側に並べて表示する (いまの画面はそのまま)。操作は、ふつうに実行する", async () => {
+    sessionStorage.clear(); _resetSplitCache();
+    mount(); open();
+    await waitFor(() => expect(screen.getAllByTestId("quick-open-item").length).toBeGreaterThan(1));
+    fireEvent.change(screen.getByTestId("quick-open-input"), { target: { value: "注文" } });
+    await waitFor(() => expect(screen.getAllByTestId("quick-open-item")[0].getAttribute("data-key")).toBe("table:orders"));
+    fireEvent.keyDown(screen.getByTestId("quick-open-input"), { key: "Enter", altKey: true });
+    expect(getSplit("ws1")).toMatchObject({ path: "/table/edit/orders" });
+    expect(screen.getByTestId("where").textContent).toBe("/w/ws1/"); // 左側は動かない
     expect(screen.queryByTestId("quick-open")).toBeNull();
   });
 });

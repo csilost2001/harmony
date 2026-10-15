@@ -276,6 +276,15 @@ function ErDiagramInner() {
     navigate(wsPath(`/table/edit/${node.id}`));
   }, [navigate, wsPath]);
 
+  // キーボード: フォーカスのあるテーブル (ノード) で Enter = 編集画面を開く (ダブルクリックの代わり)
+  const onCanvasKeyDown = useCallback((e: React.KeyboardEvent<HTMLElement>) => {
+    if (e.key !== "Enter" || isImeComposing(e)) return;
+    const t = e.target as HTMLElement;
+    if (t.closest("input, textarea, select, button")) return;
+    const id = t.closest(".react-flow__node")?.getAttribute("data-id");
+    if (id) { e.preventDefault(); navigate(wsPath(`/table/edit/${id}`)); }
+  }, [navigate, wsPath]);
+
   // Handle drag-to-connect: open logical relation modal pre-filled
   const onConnect = useCallback((connection: Connection) => {
     if (isReadonly) return;
@@ -464,6 +473,7 @@ function ErDiagramInner() {
         ) : (
           <ReactFlow
             onKeyUp={onCanvasKeyUp}
+            onKeyDown={onCanvasKeyDown}
             nodes={nodes}
             edges={edges}
             onNodesChange={onNodesChange}

@@ -159,7 +159,7 @@ export function MarkerPanel({ group, onChange, expanded: expandedProp, onExpande
   const showToggle = render !== "bodyOnly";
   const showBody = render === "bodyOnly" || (render !== "toggleOnly" && expanded);
   return (
-    <div className="catalog-panel marker-panel">
+    <div className="catalog-panel marker-panel" data-region="マーカー">
       {showToggle && (
         <button
           type="button"

@@ -6,6 +6,7 @@ import { _resetFavoritesCache, isFavorite } from "../../utils/favorites";
 import { _resetSplitCache, getSplit, setSplit } from "../../store/splitStore";
 import { searchCommands } from "../../utils/quickOpen";
 import type { TabItem } from "../../store/tabStore";
+import { registerPageCommands } from "../../store/pageCommands";
 
 const tab = (over: Partial<TabItem> = {}): TabItem => ({ id: "table:orders", type: "table", resourceId: "orders", label: "注文", isDirty: false, isPinned: false, ...over });
 const byId = (cmds: ReturnType<typeof buildPaletteCommands>, id: string) => cmds.find((c) => c.id === id);
@@ -59,5 +60,36 @@ describe("buildPaletteCommands", () => {
     expect(searchCommands(cmds, "ほぞん").length).toBe(0); // 未保存でないので、保存は無い
     expect(searchCommands(buildPaletteCommands({ activeTab: tab({ isDirty: true }), wsId: "w" }), "ほぞん")[0].id).toBe("save");
     expect(searchCommands(cmds, "置換")[0].id).toBe("replace");
+  });
+});
+
+describe("コマンドパレット — この画面の操作 (usePageCommands)", () => {
+  beforeEach(() => { localStorage.clear(); sessionStorage.clear(); _resetFavoritesCache(); _resetSplitCache(); initDisplayPrefs(); vi.useFakeTimers(); });
+  afterEach(() => { vi.useRealTimers(); });
+
+  it("画面が登録した操作が、パレットに載り、実行できる (パレットが閉じたあとで)。解除すると消える", () => {
+    const run = vi.fn();
+    const off = registerPageCommands("t", () => [{ id: "col-add", label: "カラムを追加", keywords: ["かんむ"], icon: "bi-plus-lg", run }]);
+    const cmds = buildPaletteCommands({ activeTab: tab(), wsId: "w" });
+    const add = byId(cmds, "col-add")!;
+    expect(add).toBeDefined();
+    expect(searchCommands(cmds, "カラム").map((c) => c.id)).toContain("col-add");
+    add.run();
+    expect(run).not.toHaveBeenCalled(); // 閉じたあとで実行する
+    vi.runAllTimers();
+    expect(run).toHaveBeenCalledTimes(1);
+    off();
+    expect(byId(buildPaletteCommands({ activeTab: tab(), wsId: "w" }), "col-add")).toBeUndefined();
+  });
+
+  it("編集画面のタブには「この画面の中を検索」が出て、Ctrl+F を送る。ダッシュボードには出ない", () => {
+    const keys: string[] = [];
+    const on = (e: KeyboardEvent) => keys.push(`${e.ctrlKey ? "Ctrl+" : ""}${e.key}`);
+    window.addEventListener("keydown", on);
+    byId(buildPaletteCommands({ activeTab: tab(), wsId: "w" }), "find-in-page")!.run();
+    vi.runAllTimers();
+    window.removeEventListener("keydown", on);
+    expect(keys).toContain("Ctrl+f");
+    expect(byId(buildPaletteCommands({ activeTab: tab({ type: "dashboard", resourceId: "main" }), wsId: "w" }), "find-in-page")).toBeUndefined();
   });
 });

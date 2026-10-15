@@ -97,3 +97,10 @@
   font-size: calc(12px * var(--hm-font-scale));
   color: var(--hm-fg-muted);
 }
+
+.shortcut-help-group > summary { list-style: none; cursor: pointer; }
+.shortcut-help-group > summary::-webkit-details-marker { display: none; }
+.shortcut-help-group > summary h3 { display: inline-block; margin: 0 0 6px; }
+.shortcut-help-group > summary::before { content: "▸"; margin-right: 6px; color: var(--hm-fg-muted); }
+.shortcut-help-group[open] > summary::before { content: "▾"; }
+.shortcut-help-here { margin-left: 8px; font-size: calc(11px * var(--hm-font-scale)); font-weight: 400; padding: 0 8px; border-radius: 10px; background: var(--hm-accent-soft); color: var(--hm-accent); }

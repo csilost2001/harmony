@@ -34,6 +34,8 @@ import { RenameEntityDialog } from "../common/RenameEntityDialog";
 import { ReferencesButton } from "../common/ReferencesButton";
 import { PasteItemsDialog } from "./PasteItemsDialog";
 import { ItemsFromTableDialog } from "./ItemsFromTableDialog";
+import { ModalShell } from "../common/ModalShell";
+import { usePageCommands } from "../../hooks/usePageCommands";
 import { buildTermIndex } from "../../utils/columnSuggestion";
 import { draftErrorMessages, planItemAutofill } from "../../utils/itemSuggestion";
 import { isPasteIntoField, looksLikeSpreadsheet } from "../../utils/pasteDetect";
@@ -443,8 +445,41 @@ export function ScreenItemsView() {
     }, 0);
   }, [updateWithDraft]);
 
+  // 行のキー操作 (Ctrl+Enter = 下に挿入 / Ctrl+Shift+Enter = 複製 / Alt+Delete = 削除)。行の番号は data-grid-row (項目の番号)
+  const focusItemRow = useCallback((index: number) => {
+    setTimeout(() => {
+      const rows = document.querySelectorAll<HTMLElement>(".screen-items-table tbody tr[data-grid-row]");
+      const input = rows[Math.min(index, rows.length - 1)]?.querySelector<HTMLInputElement>('input[placeholder="例: email"]');
+      input?.scrollIntoView?.({ block: "nearest" });
+      input?.focus();
+    }, 0);
+  }, []);
+  const handleInsertItemBelow = useCallback((idx: number) => {
+    updateWithDraft((f) => { f.items.splice(idx + 1, 0, { id: "" as Identifier, label: "", type: "string" }); });
+    focusItemRow(idx + 1);
+  }, [updateWithDraft, focusItemRow]);
+  const handleDuplicateItemAt = useCallback((idx: number) => {
+    const f = fileRef.current;
+    const src = f?.items[idx];
+    if (!f || !src) return;
+    const plan = planItemPaste(f.items, [src]);
+    if (plan.items.length === 0) return;
+    updateWithDraft((doc) => { doc.items.splice(idx + 1, 0, ...plan.items); });
+    focusItemRow(idx + 1);
+  }, [updateWithDraft, focusItemRow]);
+  const handleDeleteItemAt = useCallback((idx: number) => {
+    updateWithDraft((f) => { f.items.splice(idx, 1); });
+    setSelectedIndices(new Set());
+    focusItemRow(Math.max(0, idx - 1));
+  }, [updateWithDraft, focusItemRow]);
+
   // 表計算ソフトのように、Enter / ↑↓ で上下の行の同じ列へ移る (最後の行の Enter で行を追加)
-  const gridKeys = useGridKeyboard({ onAppendRow: isReadonly ? undefined : handleAddItem });
+  const gridKeys = useGridKeyboard({
+    onAppendRow: isReadonly ? undefined : handleAddItem,
+    onInsertRowBelow: isReadonly ? undefined : handleInsertItemBelow,
+    onDuplicateRow: isReadonly ? undefined : handleDuplicateItemAt,
+    onDeleteRow: isReadonly ? undefined : handleDeleteItemAt,
+  });
 
   // 別の画面へも運べるコピー / 貼り付け (選んだ行をコピーして、ほかの画面の項目定義で貼り付ける)
   const clipboard = useListClipboard<ScreenItem>((i) => i.id, { channel: "screen-items", sourceId: screenId ?? "" });
@@ -542,6 +577,14 @@ export function ScreenItemsView() {
     setSelectedIndices(new Set(items.map((_, k) => start + k)));
     showToast(`テーブル「${tableName}」から ${items.length} 項目を追加しました`, "info");
   }, [updateWithDraft]);
+
+  // コマンドパレット (Ctrl+K の「>」) に、この画面の操作を載せる
+  usePageCommands(`screen-items:${screenId ?? ""}`, isReadonly ? [] : [
+    { id: "item-add", label: "画面項目を追加", keywords: ["こうもく", "item", "add", "ついか", "追加"], icon: "bi-plus-lg", run: handleAddItem },
+    { id: "item-from-table", label: "テーブルから画面項目を作る", keywords: ["てーぶる", "table", "からむ", "一括"], icon: "bi-table", run: () => setShowItemsFromTable(true) },
+    { id: "item-paste", label: "表 (Excel) から貼り付けて画面項目を追加", keywords: ["ぺーすと", "paste", "excel", "えくせる", "貼り付け"], icon: "bi-clipboard-data", run: () => setShowPasteItems(true) },
+    { id: "item-messages", label: "エラーメッセージの下書きを入れる", keywords: ["めっせーじ", "message", "えらー", "検証", "下書き"], icon: "bi-chat-text", run: () => handleDraftMessages(fileRef.current?.items.map((_, k) => k) ?? []) },
+  ]);
 
   const handleRemoveItem = useCallback((idx: number) => {
     updateWithDraft((f) => {
@@ -1049,7 +1092,7 @@ export function ScreenItemsView() {
               </ul>
             </div>
           )}
-          <div className="screen-items-table-wrap">
+          <div className="screen-items-table-wrap" data-region="項目の表">
             <table className="screen-items-table" onKeyDown={onTableKeyDown}>
               <colgroup>
                 <col style={{ width: 24 }} />
@@ -1101,7 +1144,7 @@ export function ScreenItemsView() {
                 )}
                 {file.items.map((item, i) => (
                   <React.Fragment key={i}>
-                  <tr className={selectedIndices.has(i) ? "screen-items-row-selected" : ""}>
+                  <tr className={selectedIndices.has(i) ? "screen-items-row-selected" : ""} data-grid-row={i}>
                     <td className="text-center">
                       <input
                         type="checkbox"
@@ -2016,7 +2059,7 @@ export function ScreenItemsView() {
       </div>
 
       {pendingRename && (
-        <div className="modal show d-block" style={{ background: "rgba(0,0,0,0.45)" }} role="dialog" aria-modal="true">
+        <ModalShell className="modal show d-block" style={{ background: "rgba(0,0,0,0.45)" }} onEscape={handleCancelRename}>
           <div className="modal-dialog">
             <div className="modal-content">
               <div className="modal-header">
@@ -2047,11 +2090,11 @@ export function ScreenItemsView() {
               </div>
             </div>
           </div>
-        </div>
+        </ModalShell>
       )}
 
       {pendingReset && (
-        <div className="modal show d-block" style={{ background: "rgba(0,0,0,0.45)" }} role="dialog" aria-modal="true">
+        <ModalShell className="modal show d-block" style={{ background: "rgba(0,0,0,0.45)" }} onEscape={handleCancelReset}>
           <div className="modal-dialog">
             <div className="modal-content">
               <div className="modal-header">
@@ -2087,7 +2130,7 @@ export function ScreenItemsView() {
               </div>
             </div>
           </div>
-        </div>
+        </ModalShell>
       )}
 
       {saveConflict && (

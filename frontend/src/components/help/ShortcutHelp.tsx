@@ -4,11 +4,14 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
-import { SHORTCUT_GROUPS, shouldOpenShortcutHelp } from "../../utils/shortcuts";
+import { SHORTCUT_GROUPS, relevantGroupTitles, shouldOpenShortcutHelp } from "../../utils/shortcuts";
 import "../../styles/shortcutHelp.css";
 
 export function ShortcutHelp() {
   const [open, setOpen] = useState(false);
+  // 開いている画面に関係するグループを先頭に出して開き、ほかは折りたたむ (開くたびに、いまの画面の経路を読む)
+  const relevant = relevantGroupTitles(open ? window.location.pathname : "/");
+  const groups = [...SHORTCUT_GROUPS].sort((a, b) => Number(relevant.includes(b.title)) - Number(relevant.includes(a.title)));
   const trapRef = useRef<HTMLDivElement>(null);
   useFocusTrap(trapRef, open);
 
@@ -42,9 +45,9 @@ export function ShortcutHelp() {
               <button type="button" className="shortcut-help-close" aria-label="閉じる" onClick={hide}><i className="bi bi-x-lg" /></button>
             </div>
             <div className="shortcut-help-body">
-              {SHORTCUT_GROUPS.map((g) => (
-                <section key={g.title} className="shortcut-help-group">
-                  <h3>{g.title}</h3>
+              {groups.map((g) => (
+                <details key={g.title} className="shortcut-help-group" open={relevant.includes(g.title)} data-testid={`shortcut-group-${relevant.includes(g.title) ? "open" : "closed"}`}>
+                  <summary><h3>{g.title}{relevant.includes(g.title) ? <span className="shortcut-help-here">この画面</span> : null}</h3></summary>
                   <dl>
                     {g.entries.map((e, i) => (
                       <div className="shortcut-help-row" key={i}>
@@ -53,7 +56,7 @@ export function ShortcutHelp() {
                       </div>
                     ))}
                   </dl>
-                </section>
+                </details>
               ))}
             </div>
             <p className="shortcut-help-foot">Mac では Ctrl を ⌘ に読み替えてください。</p>

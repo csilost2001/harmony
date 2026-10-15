@@ -99,4 +99,21 @@ describe("ColumnGrid (表で編集)", () => {
     setup();
     expect(screen.queryByTestId("column-hint-case")).toBeNull();
   });
+
+  it("Ctrl+Enter = 下に挿入、Ctrl+Shift+Enter = 複製、Alt+Delete = 削除 (行の番号つき)。読み取り専用では何もしない", () => {
+    const onInsertBelow = vi.fn(); const onDuplicate = vi.fn(); const onDelete = vi.fn();
+    const { unmount } = setup({ onInsertBelow, onDuplicate, onDelete });
+    const cell = screen.getByLabelText("2 行目の表示名");
+    fireEvent.keyDown(cell, { key: "Enter", ctrlKey: true });
+    fireEvent.keyDown(screen.getByLabelText("1 行目の表示名"), { key: "Enter", ctrlKey: true, shiftKey: true });
+    fireEvent.keyDown(cell, { key: "Delete", altKey: true });
+    expect(onInsertBelow).toHaveBeenCalledWith(1);
+    expect(onDuplicate).toHaveBeenCalledWith(0);
+    expect(onDelete).toHaveBeenCalledWith(1);
+    unmount();
+    const ro = { onInsertBelow: vi.fn(), onDuplicate: vi.fn(), onDelete: vi.fn() };
+    setup({ ...ro, readonly: true });
+    fireEvent.keyDown(screen.getByLabelText("2 行目の表示名"), { key: "Enter", ctrlKey: true });
+    expect(ro.onInsertBelow).not.toHaveBeenCalled();
+  });
 });
