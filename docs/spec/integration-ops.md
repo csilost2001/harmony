@@ -113,7 +113,7 @@
 | 取り込み | 内容 |
 |---|---|
 | DDL → テーブル (`shared/src/importers/ddl.ts`) | `pg_dump -s` / `mysqldump --no-data` / 手書きの `CREATE TABLE`。列 (型・長さ・小数桁・NOT NULL・既定値・主キー・一意・自動採番 / SERIAL・コメント)、テーブル制約 (主キー・一意・外部キー・ON DELETE / UPDATE)、`CREATE INDEX`、`ALTER TABLE ADD CONSTRAINT`、`COMMENT ON`。**スキーマにない型は VARCHAR にし、元の型を備考に残す** (UUID は VARCHAR(36))。物理名は小文字の snake_case にし、直したものは注意に出す。読み飛ばすもの: トリガ・ビュー・関数・CHECK の式・式のインデックス。取り込んだテーブルは「下書き」。 |
-| OpenAPI (JSON) → 処理フローの骨組み (`importers/openapi.ts`) | operation ごとに、入口 (メソッド・パス・認証)・入力 (パス・クエリ・本文の項目)・出力・応答の一覧。工程は空。同じ文書内の `$ref` だけ解決。YAML は読まない (JSON に変換してから)。500 operation まで。 |
+| OpenAPI (JSON) → 処理フローの骨組み (`importers/openapi.ts`) | operation ごとに、入口 (メソッド・パス・認証)・入力 (パス・クエリ・本文の項目)・出力・応答の一覧。工程は空。同じ文書内の `$ref` だけ解決。YAML は読まない (JSON に変換してから)。500 operation まで。結果の大きさの上限: 1 つのスキーマは 200 項目・1 operation は 300 項目・全体は 5 万項目 (共通のスキーマを多数の operation から参照しても、小さな文書が巨大な結果にならないよう)。超えたら警告して打ち切る。 |
 | Excel (.xlsx) の表 (`importers/xlsx.ts`) | テーブルの「カラムを貼り付け」・画面項目の「項目を貼り付け」の「Excel ファイルを読む」。シートを選び、貼り付けと同じタブ区切りにして入力欄へ。以後は、貼り付けと同じ予行・重複の確認。20 MB まで。 |
 
 **対象外**: Excel の設計書全体 → 各定義への取り込み (カラム・画面項目の表だけ)。DB へ接続しての ER の取り込み (§12)。

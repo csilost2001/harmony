@@ -260,7 +260,8 @@ export async function renameOpsRecords(root: string, entityType: string, from: s
     const dir = snapDir(root);
     for (const name of await fs.readdir(dir).catch(() => [] as string[])) {
       const prefix = `${kind}-${from}-`;
-      if (name.startsWith(prefix)) await fs.rename(path.join(dir, name), path.join(dir, `${kind}-${to}-${name.slice(prefix.length)}`)).catch(() => undefined);
+      // 残りが「ハッシュ 16 桁 + .json」のものだけ (id にはハイフンが入るので、`cart` の接頭辞が `cart-item` の写しにも当たる)
+      if (name.startsWith(prefix) && /^[0-9a-f]{16}\.json$/.test(name.slice(prefix.length))) await fs.rename(path.join(dir, name), path.join(dir, `${kind}-${to}-${name.slice(prefix.length)}`)).catch(() => undefined);
     }
   } catch { /* 記録が壊れている (読めない項目がある) ときは、そのまま。点検が知らせる */ }
 }

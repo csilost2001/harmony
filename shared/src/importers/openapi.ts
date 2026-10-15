@@ -11,6 +11,10 @@ export interface OpenApiImportResult { flows: ImportedFlow[]; warnings: string[]
 
 const METHODS = ["get", "post", "put", "patch", "delete"] as const;
 const MAX_OPERATIONS = 500;
+/** 結果の大きさの上限 (共通のスキーマを多数の operation から `$ref` で参照すると、小さな文書が巨大な結果になる)。超えたら、警告して打ち切る */
+const MAX_PROPS_PER_SCHEMA = 200;
+const MAX_FIELDS_PER_OPERATION = 300;
+const MAX_TOTAL_FIELDS = 50_000;
 
 const kebab = (s: string): string => {
   const t = s.replace(/([a-z0-9])([A-Z])/g, "$1-$2").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-+|-+$/g, "").toLowerCase().slice(0, 63);
@@ -63,11 +67,18 @@ export function importOpenApi(doc: unknown): OpenApiImportResult {
       ...(typeof description === "string" && description ? { description } : isRecord(s) && typeof s.description === "string" ? { description: s.description } : {}),
     };
   };
-  const bodyFields = (schema: unknown): Json[] => {
+  let totalFields = 0;
+  const truncated = new Set<string>();
+  const bodyFields = (schema: unknown, where: string): Json[] => {
     const s = resolve(schema) as Json;
     if (!isRecord(s) || !isRecord(s.properties)) return [];
     const req = new Set(Array.isArray(s.required) ? s.required.filter((x): x is string => typeof x === "string") : []);
-    return Object.entries(s.properties).map(([k, v]) => field(k, v, req.has(k)));
+    const keys = Object.keys(s.properties);
+    const room = Math.max(0, Math.min(MAX_PROPS_PER_SCHEMA, MAX_TOTAL_FIELDS - totalFields));
+    if (keys.length > room) truncated.add(`${where}: 項目が多いため、先頭の ${room} 個までにしました (1 つのスキーマは ${MAX_PROPS_PER_SCHEMA} 個、全体は ${MAX_TOTAL_FIELDS} 個まで)`);
+    const out = keys.slice(0, room).map((k) => field(k, (s.properties as Json)[k], req.has(k)));
+    totalFields += out.length;
+    return out;
   };
   const jsonSchemaOf = (content: unknown): unknown => {
     const c = resolve(content);
@@ -102,7 +113,7 @@ export function importOpenApi(doc: unknown): OpenApiImportResult {
         if (!seen.has(f.name)) { seen.add(f.name); inputs.push(f); }
       }
       const reqBody = resolve(op.requestBody);
-      if (isRecord(reqBody)) for (const f of bodyFields(jsonSchemaOf(reqBody.content))) if (!seen.has(f.name as string)) { seen.add(f.name as string); inputs.push(f); }
+      if (isRecord(reqBody)) for (const f of bodyFields(jsonSchemaOf(reqBody.content), `${method.toUpperCase()} ${path} の要求`)) if (!seen.has(f.name as string) && inputs.length < MAX_FIELDS_PER_OPERATION) { seen.add(f.name as string); inputs.push(f); }
       const responses: Json[] = [];
       let outputs: Json[] = [];
       for (const [code, rRaw] of Object.entries(isRecord(op.responses) ? op.responses : {})) {
@@ -111,7 +122,7 @@ export function importOpenApi(doc: unknown): OpenApiImportResult {
         const r = resolve(rRaw);
         const rid = `${status}-${STATUS_SLUG[status] ?? "response"}`;
         responses.push({ id: rid, status, ...(isRecord(r) && typeof r.description === "string" && r.description ? { description: r.description } : {}) });
-        if (status >= 200 && status < 300 && !outputs.length && isRecord(r)) outputs = bodyFields(jsonSchemaOf(r.content));
+        if (status >= 200 && status < 300 && !outputs.length && isRecord(r)) outputs = bodyFields(jsonSchemaOf(r.content), `${method.toUpperCase()} ${path} の応答`).slice(0, MAX_FIELDS_PER_OPERATION);
       }
       const secured = Array.isArray(op.security) ? op.security.length > 0 : globalSecurity;
       flows.push({
@@ -128,6 +139,7 @@ export function importOpenApi(doc: unknown): OpenApiImportResult {
       });
     }
   }
+  warnings.push(...truncated);
   if (!flows.length) warnings.push("取り込める operation (get / post / put / patch / delete) がありません");
   return { flows, warnings, ...(isRecord(doc.info) && typeof doc.info.title === "string" ? { title: doc.info.title } : {}) };
 }

@@ -47,10 +47,15 @@ const execGit = (cwd: string, args: string[]): Promise<GitRun> => new Promise((r
 
 /** リポジトリの設定の項目名 (値は読まない)。リポジトリでなければ、空 */
 async function localConfigNames(cwd: string): Promise<string[]> {
-  try {
-    const r = await execGit(cwd, [...SAFE_GIT_CONFIG, "config", "--local", "--includes", "-z", "--name-only", "--list"]);
-    return r.code === 0 ? r.stdout.split("\0").filter(Boolean) : [];
-  } catch { return []; }
+  const out: string[] = [];
+  // .git/config と、ワークツリー専用の設定 (extensions.worktreeConfig のときの .git/config.worktree)。どちらも、他人から受け取ったものでありうる
+  for (const scope of ["--local", "--worktree"]) {
+    try {
+      const r = await execGit(cwd, [...SAFE_GIT_CONFIG, "config", scope, "--includes", "-z", "--name-only", "--list"]);
+      if (r.code === 0) out.push(...r.stdout.split("\0").filter(Boolean));
+    } catch { /* リポジトリでない・その範囲の設定が無い */ }
+  }
+  return out;
 }
 
 export const runGit: GitRunner = async (cwd, args) => execGit(cwd, [...SAFE_GIT_CONFIG, ...SAFE_GIT_CONFIG_2, ...execOverrides(await localConfigNames(cwd)), ...args]);

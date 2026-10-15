@@ -411,6 +411,22 @@ describe("Git 連携", () => {
     git("status"); git("diff");
     expect((await ran()).length).toBeGreaterThan(0);
   });
+  it("ワークツリー専用の設定 (extensions.worktreeConfig の .git/config.worktree) の filter も、実行されない", async () => {
+    await gitInit(ROOT);
+    git("add", "harmony.json"); git("-c", "user.name=t", "-c", "user.email=t@e", "commit", "-q", "-m", "base", "--no-verify");
+    const marker = path.join(ROOT, "RAN3.txt");
+    const clean = path.join(ROOT, "clean.sh");
+    await fs.writeFile(clean, `#!/bin/sh\necho clean >> "${marker}"\ncat\n`, { mode: 0o755 });
+    await fs.writeFile(path.join(ROOT, ".gitattributes"), "*.json filter=evil\n");
+    git("config", "core.repositoryformatversion", "1"); git("config", "extensions.worktreeConfig", "true");
+    await fs.writeFile(path.join(ROOT, ".git", "config.worktree"), `[filter "evil"]\n\tclean = ${clean}\n`);
+    await fs.writeFile(path.join(ROOT, "harmony.json"), `${await fs.readFile(path.join(ROOT, "harmony.json"), "utf-8")} `);
+    await gitStatus(ROOT);
+    await gitDiff(ROOT, "harmony.json");
+    expect(await fs.access(marker).then(() => true, () => false)).toBe(false);
+    git("diff"); // 対照 (安全の設定なしなら、実行される)
+    expect(await fs.access(marker).then(() => true, () => false)).toBe(true);
+  });
   it("コマンドを実行させる設定の項目を、見分ける (includeIf・別名の入ったドライバも)", () => {
     expect(execOverrides(["user.name", "filter.lfs.clean", "diff.x.textconv", "core.fsmonitor", "merge.m.driver", "core.sshCommand", "gpg.program", "alias.x", "core.autocrlf", "diff.x.binary", "credential.https://x.helper", "url.a.insteadOf"]).filter((_, i) => i % 2 === 1)).toEqual([
       "filter.lfs.clean=", "diff.x.textconv=", "core.fsmonitor=", "merge.m.driver=", "core.sshCommand=", "credential.https://x.helper=", "url.a.insteadOf=",
@@ -520,6 +536,11 @@ describe("設計の id の改名への追従", () => {
     await renameOpsRecords(ROOT, "table", "order-head", "orders"); // 取り消し
     expect((await approvalsStore.read(ROOT)).value.items[0].id).toBe("orders");
     expect((await fs.readdir(snaps))[0]).toMatch(/^table-orders-/);
+    // 接頭辞が重なる id (cart / cart-item) の写しは、混ぜない
+    await fs.writeFile(path.join(snaps, "table-cart-0123456789abcdef.json"), "{}");
+    await fs.writeFile(path.join(snaps, "table-cart-item-0123456789abcdef.json"), "{}");
+    await renameOpsRecords(ROOT, "table", "cart", "basket");
+    expect((await fs.readdir(snaps)).filter((n) => n.includes("0123456789abcdef")).sort()).toEqual(["table-basket-0123456789abcdef.json", "table-cart-item-0123456789abcdef.json"]);
     await renameOpsRecords(ROOT, "pageLayout", "orders", "z"); // 対象外の種類・同じ id は、何もしない
     await renameOpsRecords(ROOT, "table", "orders", "orders");
     expect((await approvalsStore.read(ROOT)).value.items[0].id).toBe("orders");

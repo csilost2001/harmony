@@ -51,6 +51,18 @@ describe("OpenAPI の取り込み", () => {
       expect(validate(doc), JSON.stringify(validate.errors)).toBe(true);
     }
   });
+  it("共通のスキーマを多数の operation から $ref で参照しても、結果の大きさと時間に上限がある (警告して打ち切る)", () => {
+    const props = Object.fromEntries(Array.from({ length: 5000 }, (_, i) => [`p${i}`, { type: "string" }]));
+    const paths = Object.fromEntries(Array.from({ length: 500 }, (_, i) => [`/r${i}`, { post: { requestBody: { content: { "application/json": { schema: { $ref: "#/components/schemas/Big" } } } }, responses: { "200": { description: "ok", content: { "application/json": { schema: { $ref: "#/components/schemas/Big" } } } } } } }]));
+    const t0 = Date.now();
+    const r = importOpenApi({ openapi: "3.0.0", components: { schemas: { Big: { type: "object", properties: props } } }, paths });
+    expect(Date.now() - t0).toBeLessThan(3000);
+    const fields = r.flows.reduce((n, f) => n + ((f.flow.actions[0].inputs as unknown[] | undefined)?.length ?? 0) + ((f.flow.actions[0].outputs as unknown[] | undefined)?.length ?? 0), 0);
+    expect(fields).toBeLessThanOrEqual(50_000);
+    expect(JSON.stringify(r).length).toBeLessThan(20_000_000);
+    expect(r.flows[0].flow.actions[0].inputs).toHaveLength(200); // 1 つのスキーマは 200 個まで
+    expect(r.warnings.some((w) => w.includes("項目が多いため"))).toBe(true);
+  });
   it("読めない文書・外部参照・同名の operation は、止まらずに扱う", () => {
     expect(importOpenApi("x").warnings[0]).toContain("OpenAPI");
     const dup = importOpenApi({ openapi: "3.0.0", paths: { "/a": { get: { operationId: "x", responses: {} }, post: { operationId: "x", responses: {} } } } });
