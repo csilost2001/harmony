@@ -73,14 +73,17 @@ test.describe("キーボード操作", { tag: ["@regression"] }, () => {
     await page.keyboard.press("Enter");
     await expect(rows).toHaveCount(n + 1);
 
-    // F6 で、領域 (項目の表) へ
+    // F6 で、領域を順に移り、項目の表へ (画面の上のマーカーの欄も、領域の 1 つ)
     await page.locator("body").click({ position: { x: 5, y: 5 } });
-    for (let i = 0; i < 4; i++) {
+    const regionOf = () => page.evaluate(() => document.activeElement?.closest("#app-main [data-region]")?.getAttribute("data-region") ?? null);
+    const seen: string[] = [];
+    for (let i = 0; i < 6; i++) {
       await page.keyboard.press("F6");
-      const inRegion = await page.evaluate(() => !!document.activeElement?.closest("#app-main [data-region]"));
-      if (inRegion) break;
+      const r = await regionOf();
+      if (r) seen.push(r);
+      if (r === "項目の表") break;
     }
-    expect(await page.evaluate(() => document.activeElement?.closest("#app-main [data-region]")?.getAttribute("data-region"))).toBe("項目の表");
+    expect(seen).toContain("項目の表");
 
     // ? でショートカット一覧 (この画面に関係するグループが開いている)
     await page.locator("body").click({ position: { x: 5, y: 5 } });

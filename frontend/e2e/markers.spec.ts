@@ -15,7 +15,7 @@ const readJson = async (p: string) => JSON.parse(await fs.readFile(p, "utf-8"));
 const markersOf = async (sub: string, id: string) => ((await readJson(dataFile(sub, id))) as { authoring?: { markers?: Array<Record<string, unknown>> } }).authoring?.markers ?? [];
 
 async function dismissResume(page: Page) {
-  await page.waitForTimeout(500);
+  await page.locator(".edit-mode-modal-backdrop").waitFor({ state: "visible", timeout: 2000 }).catch(() => undefined);
   for (let i = 0; i < 3; i++) {
     if (!(await page.locator(".edit-mode-modal-backdrop").isVisible().catch(() => false))) break;
     await page.evaluate(() => (document.querySelector('[data-testid="resume-discard"]') as HTMLButtonElement | null)?.click());
