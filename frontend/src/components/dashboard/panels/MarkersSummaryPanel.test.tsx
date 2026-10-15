@@ -46,7 +46,7 @@ describe("MarkersSummaryPanel (全設計)", () => {
     const { unmount } = mount();
     expect(await screen.findByText(/未解決のマーカーはありません/)).toBeInTheDocument();
     unmount();
-    request.mockRejectedValue(new Error("つながりません"));
+    request.mockImplementation(async () => { throw new Error("つながりません"); });
     mount();
     expect(await screen.findByText(/集計失敗/)).toBeInTheDocument();
   });
