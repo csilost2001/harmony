@@ -31,18 +31,16 @@ export function useReferenceCompletion<T extends El>({ value, onValueChange, onC
   // マウント直後はフォーカスされていないため抑制状態で開始 (#1438)
   const [suppressed, setSuppressed] = useState(true);
 
-  const state = suppressed
-    ? ({ phase: "idle" } as const)
-    : computeReferenceCompletion(value, cursorPos, resolvers, ctx);
-
   const candidates: Candidate[] = useMemo(() => {
+    if (suppressed) return [];
+    const state = computeReferenceCompletion(value, cursorPos, resolvers, ctx);
     if (state.phase !== "active") return [];
     const prefix = state.prefix;
     return applyCompletionHistory(state.resolverId, state.candidates, (c) => {
       const r = bestRank([c.value, c.label], prefix);
       return r === -1 ? 2 : r;
     });
-  }, [state]);
+  }, [suppressed, value, cursorPos, resolvers, ctx]);
   const isOpen = candidates.length > 0;
   const safeIndex = isOpen ? Math.min(activeIndex, candidates.length - 1) : 0;
 

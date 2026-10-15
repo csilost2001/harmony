@@ -23,7 +23,7 @@ const FLAG = (v?: boolean) => (v ? "○" : "");
 export function PasteColumnsDialog({ existing, onApply, onClose, initialText = "" }: Props) {
   const trapRef = useRef<HTMLDivElement>(null);
   useFocusTrap(trapRef);
-  const [text, setText] = useState(initialText);
+  const [text, setTextRaw] = useState(initialText);
   const [copied, setCopied] = useState(false);
   const [updateExisting, setUpdateExisting] = useState(false);
   const copyCurrent = () => {
@@ -31,7 +31,8 @@ export function PasteColumnsDialog({ existing, onApply, onClose, initialText = "
   };
   // 列の対応を利用者が選んだとき (null = 見出しから自動で決める)
   const [mapping, setMapping] = useState<ColumnMapping | null>(null);
-  useEffect(() => { setMapping(null); }, [text]);
+  // 貼り付けた文が変わったら、利用者が選んだ列の対応は捨てて、見出しからの自動に戻す
+  const setText = (t: string) => { setTextRaw(t); setMapping(null); };
   const parsed = useMemo(() => parseColumnTable(text, mapping ?? undefined), [text, mapping]);
   const setFieldAt = (i: number, f: Field | null) => {
     const order = [...parsed.mapping.order];

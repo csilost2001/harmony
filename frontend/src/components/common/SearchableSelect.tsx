@@ -1,14 +1,8 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { applyCompletionHistory, recordCompletionPick } from "../../utils/completionHistory";
+import { recordCompletionPick } from "../../utils/completionHistory";
+import { filterOptions, type SelectOption } from "../../utils/selectOptions";
 import { isImeComposing } from "../../utils/imeKeys";
-import { bestRank } from "../../utils/textMatch";
 
-export interface SelectOption {
-  value: string;
-  label: string;
-  /** 小さく添える補足 (物理名・ID など)。検索の対象にもなる */
-  hint?: string;
-}
 
 interface Props {
   value: string;
@@ -52,21 +46,6 @@ export function SearchableSelect({
   );
 }
 
-/** 絞り込んだ候補 (前方一致 → 部分一致の順。入力が空なら、履歴のあるものを上に) */
-export function filterOptions(options: readonly SelectOption[], query: string, historyKey?: string): SelectOption[] {
-  if (query.trim() === "") {
-    if (!historyKey) return [...options];
-    const byValue = new Map(options.map((o) => [o.value, o]));
-    return applyCompletionHistory(`select:${historyKey}`, options.map((o) => ({ value: o.value })), () => 0)
-      .map((c) => byValue.get(c.value)!);
-  }
-  return options
-    .map((o, i) => ({ o, i, r: bestRank([o.label, o.hint, o.value], query) }))
-    .filter((x) => x.r >= 0)
-    .sort((a, b) => a.r - b.r || a.i - b.i)
-    .map((x) => x.o);
-}
-
 function Combo({ value, onChange, options, emptyLabel, className, disabled, ariaLabel, id, historyKey, onBlur, placeholder, testId }: Omit<Props, "threshold" | "data-testid"> & { testId?: string }) {
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -81,7 +60,6 @@ function Combo({ value, onChange, options, emptyLabel, className, disabled, aria
   // 未選択の項目は、入力が空のときだけ先頭に出す
   const rows: SelectOption[] = useMemo(() => (emptyLabel !== undefined && query.trim() === "" ? [{ value: "", label: emptyLabel }, ...hits] : hits), [emptyLabel, query, hits]);
 
-  useEffect(() => { setCursor(0); }, [query, open]);
   useEffect(() => {
     if (open) rootRef.current?.querySelector<HTMLElement>(`[data-index="${cursor}"]`)?.scrollIntoView?.({ block: "nearest" });
   }, [cursor, open]);
@@ -120,8 +98,8 @@ function Combo({ value, onChange, options, emptyLabel, className, disabled, aria
         placeholder={open ? "探す (名前・ID)" : (placeholder ?? (emptyLabel ?? ""))}
         value={open ? query : shown}
         title="文字を打つと絞り込めます。↑↓ で選び、Enter で決めます"
-        onFocus={() => { setOpen(true); setQuery(""); requestAnimationFrame(() => inputRef.current?.select()); }}
-        onChange={(e) => { setOpen(true); setQuery(e.target.value); }}
+        onFocus={() => { setOpen(true); setQuery(""); setCursor(0); requestAnimationFrame(() => inputRef.current?.select()); }}
+        onChange={(e) => { setOpen(true); setQuery(e.target.value); setCursor(0); }}
         onKeyDown={onKeyDown}
         onBlur={() => { setTimeout(() => { setOpen(false); setQuery(""); }, 120); onBlur?.(); }}
       />

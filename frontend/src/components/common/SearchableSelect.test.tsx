@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { useState } from "react";
-import { SearchableSelect, filterOptions, type SelectOption } from "./SearchableSelect";
+import { SearchableSelect } from "./SearchableSelect";
+import { filterOptions, type SelectOption } from "../../utils/selectOptions";
 
 const many: SelectOption[] = Array.from({ length: 25 }, (_, i) => ({ value: `t${i}`, label: `テーブル${i}`, hint: `table_${i}` }));
 many.push({ value: "customers", label: "顧客", hint: "customers" });
