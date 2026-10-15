@@ -14,22 +14,9 @@ import { anchorLabel, buildAiPrompt, newMarkerId, type MarkerEntityType } from "
 import type { Marker, MarkerKind } from "../../types/v3";
 import { isImeComposing } from "../../utils/imeKeys";
 import { showToast } from "../../utils/toast";
+import { MARKER_KIND_ICONS, MARKER_KIND_LABELS } from "../../utils/markerKinds";
 import "../../styles/markerPanel.css";
 
-export const MARKER_KIND_LABELS: Record<MarkerKind, string> = {
-  chat: "チャット",
-  attention: "注目",
-  todo: "TODO",
-  question: "質問",
-  validator: "バリデーター",
-};
-export const MARKER_KIND_ICONS: Record<MarkerKind, string> = {
-  chat: "bi-chat-left-text",
-  attention: "bi-eye",
-  todo: "bi-check2-square",
-  question: "bi-question-circle",
-  validator: "bi-shield-exclamation",
-};
 const ADDABLE: MarkerKind[] = ["chat", "attention", "todo", "question"];
 
 export interface MarkerAnchorChoice {
@@ -103,13 +90,19 @@ export function MarkerListPanel({
   );
   const kindsPresent = useMemo(() => ADDABLE.filter((k) => markers.some((m) => m.kind === k && (showResolved || !m.resolvedAt))), [markers, showResolved]);
 
-  // 位置の指定 (キー操作・行のボタン) を、追加欄の位置の選択に反映する
-  useEffect(() => { if (presetAnchor !== undefined) setNewAnchor(presetAnchor); }, [presetAnchor]);
+  // 位置の指定 (キー操作・行のボタン) が変わったら、追加欄の位置の選択に反映する (描画の中で、状態を合わせる)
+  const [seenPreset, setSeenPreset] = useState(presetAnchor);
+  if (presetAnchor !== seenPreset) {
+    setSeenPreset(presetAnchor);
+    if (presetAnchor !== undefined) setNewAnchor(presetAnchor);
+  }
   // 「マーカーを追加」の合図: 開いて、追加欄へ
   useEffect(() => {
     if (!focusToken) return;
-    if (!expanded) setExpanded(true);
-    const t = setTimeout(() => addRef.current?.focus(), 30);
+    const t = setTimeout(() => {
+      if (!expanded) setExpanded(true);
+      setTimeout(() => addRef.current?.focus(), 30);
+    }, 0);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusToken]);

@@ -13,7 +13,7 @@ import { showToast } from "../../utils/toast";
 import { ageDays, filterMarkerItems, markerEntityRoute, DEFAULT_MARKER_FILTER, type MarkerFilterState, type MarkerItem } from "../../utils/markerOverview";
 import type { Marker, MarkerKind } from "../../types/v3";
 import { AnTable, Section } from "../analysis/ui";
-import { MARKER_KIND_ICONS, MARKER_KIND_LABELS } from "../common/MarkerListPanel";
+import { MARKER_KIND_ICONS, MARKER_KIND_LABELS } from "../../utils/markerKinds";
 import { copyText } from "../analysis/fileIo";
 import "../../styles/analysis.css";
 
@@ -27,7 +27,7 @@ export function MarkersView() {
   const [items, setItems] = useState<MarkerItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<MarkerFilterState>(DEFAULT_MARKER_FILTER);
-  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [pickedRaw, setPicked] = useState<Set<string>>(new Set());
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -49,8 +49,8 @@ export function MarkersView() {
 
   const shown = useMemo(() => filterMarkerItems(items ?? [], filter), [items, filter]);
   const shownKeys = useMemo(() => new Set(shown.map(keyOf)), [shown]);
-  // 見えなくなった (絞り込み・解決で) ものは、選択から外す
-  useEffect(() => { setPicked((p) => { const next = new Set([...p].filter((k) => shownKeys.has(k))); return next.size === p.size ? p : next; }); }, [shownKeys]);
+  // 見えなくなった (絞り込み・解決で) ものは、選んでいない扱いにする
+  const picked = useMemo(() => new Set([...pickedRaw].filter((k) => shownKeys.has(k))), [pickedRaw, shownKeys]);
 
   const target = picked.size > 0 ? shown.filter((i) => picked.has(keyOf(i))) : shown;
   const targetOpen = target.filter((i) => !i.marker.resolvedAt);
@@ -115,7 +115,7 @@ export function MarkersView() {
                 </select>
               </label>
               <label>語で探す
-                <input className="an-input" value={filter.query} onChange={(e) => setFilter((f) => ({ ...f, query: e.target.value }))} placeholder="本文・設計の名前" data-testid="markers-query" />
+                <input className="an-input" value={filter.query} onChange={(e) => setFilter((f) => ({ ...f, query: e.target.value }))} placeholder="例: 金額の列 (本文・設計の名前から探す)" data-testid="markers-query" />
               </label>
               <label className="an-check"><input type="checkbox" checked={filter.includeResolved} onChange={(e) => setFilter((f) => ({ ...f, includeResolved: e.target.checked }))} data-testid="markers-resolved" /> 解決済みも表示</label>
             </div>

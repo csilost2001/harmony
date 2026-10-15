@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { MarkerListPanel, type MarkerListPanelProps } from "./MarkerListPanel";
 import type { Marker } from "../../types/v3";
@@ -116,7 +116,8 @@ describe("MarkerListPanel", () => {
     expect(screen.getByText(/1 未解決 \/ 1 総件数/)).toBeInTheDocument();
     expect(screen.queryByTestId("marker-add-input")).toBeNull();
     fireEvent.click(screen.getByText("go"));
-    vi.advanceTimersByTime(100);
+    act(() => { vi.advanceTimersByTime(5); });   // 開く
+    act(() => { vi.advanceTimersByTime(100); }); // 追加欄へフォーカス
     expect(screen.getByTestId("marker-add-input")).toBeInTheDocument();
     expect(document.activeElement).toBe(screen.getByTestId("marker-add-input"));
     vi.useRealTimers();

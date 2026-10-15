@@ -9,7 +9,8 @@ vi.mock("../../mcp/mcpBridge", () => ({
     onBroadcast: (ev: string, h: (d: unknown) => void) => { (broadcastHandlers[ev] ??= []).push(h); return () => { broadcastHandlers[ev] = (broadcastHandlers[ev] ?? []).filter((x) => x !== h); }; },
   },
 }));
-import { RemoteMarkerPanel, diffMarkers } from "./RemoteMarkerPanel";
+import { RemoteMarkerPanel } from "./RemoteMarkerPanel";
+import { diffMarkers } from "../../utils/markerDiff";
 import type { Marker } from "../../types/v3";
 
 const mk = (id: string, body: string, over: Partial<Marker> = {}): Marker => ({ id: id as Marker["id"], kind: "todo", body, author: "human", createdAt: "2026-01-01T00:00:00.000Z" as Marker["createdAt"], ...over });

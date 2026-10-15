@@ -4,7 +4,7 @@
  */
 import { useState } from "react";
 import { ModalShell } from "../../common/ModalShell";
-import { MARKER_KIND_LABELS } from "../../common/MarkerListPanel";
+import { MARKER_KIND_LABELS } from "../../../utils/markerKinds";
 import { isImeComposing } from "../../../utils/imeKeys";
 import type { MarkerKind } from "../../../types/v3";
 
