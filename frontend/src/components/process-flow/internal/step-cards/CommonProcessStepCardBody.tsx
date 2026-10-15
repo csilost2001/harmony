@@ -2,6 +2,7 @@
 // #1016 follow-up (2026-05-20): generic StepCardBodyBaseProps<CommonProcessStep> で type narrow、@ts-nocheck 除去。
 
 import type { CommonProcessStep, ProcessFlowId } from "../../../../types/v3";
+import { SearchableSelect } from "../../../common/SearchableSelect";
 import type {
   StepCardBodyBaseProps,
   StepCardBodyCommonGroupsProps,
@@ -22,19 +23,18 @@ export function CommonProcessStepCardBody({
       <div className="row g-2 mb-2">
         <div className="col-12">
           <label className="form-label">共通処理</label>
-          <select
+          <SearchableSelect
             className="form-select form-select-sm"
             value={step.refId}
-            onChange={(e) => {
+            onChange={(v) => {
               // #1016 follow-up: refName は v3 schema 外 field のため除去 (AJV unevaluatedProperties: false で reject される silent bug を解消)
-              onChange({ refId: e.target.value as ProcessFlowId });
+              onChange({ refId: v as ProcessFlowId });
             }}
-          >
-            <option value="">（選択）</option>
-            {commonGroups.map((g) => (
-              <option key={g.id} value={g.id}>{g.name}</option>
-            ))}
-          </select>
+            emptyLabel="（選択）"
+            options={commonGroups.map((g) => ({ value: g.id, label: g.name }))}
+            historyKey="commonProcess"
+            ariaLabel="共通処理"
+          />
         </div>
       </div>
       <div className="form-group">

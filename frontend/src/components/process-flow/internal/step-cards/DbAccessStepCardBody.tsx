@@ -14,6 +14,7 @@ import { thisResolver } from "../../../../utils/reference-completer/thisResolver
 import { selfResolver } from "../../../../utils/reference-completer/selfResolver";
 import { sqlSchemaResolver } from "../../../../utils/reference-completer/sqlSchemaResolver";
 import type { WorkspaceRefs } from "../../../../utils/reference-completer/types";
+import { SearchableSelect } from "../../../common/SearchableSelect";
 
 export interface DbAccessStepCardBodyProps
   extends StepCardBodyBaseProps<DbAccessStep>,
@@ -45,18 +46,17 @@ export function DbAccessStepCardBody({
     <>
       <div className="form-group">
         <label className="form-label">テーブル</label>
-        <select
+        <SearchableSelect
           className="form-select form-select-sm"
           value={step.tableId ?? ""}
-          onChange={(e) => {
-            onChange({ tableId: (e.target.value || undefined) as TableId | undefined });
+          onChange={(v) => {
+            onChange({ tableId: (v || undefined) as TableId | undefined });
           }}
-        >
-          <option value="">（選択）</option>
-          {tables.map((t) => (
-            <option key={t.id} value={t.id}>{t.name}（{t.physicalName}）</option>
-          ))}
-        </select>
+          emptyLabel="（選択）"
+          options={tables.map((t) => ({ value: t.id, label: t.name, hint: t.physicalName }))}
+          historyKey="table"
+          ariaLabel="テーブル"
+        />
       </div>
       <div className="form-row-pair">
         <div className="form-group">

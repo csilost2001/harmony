@@ -5,6 +5,7 @@
 // 画面名表示は screens lookup で派生 (永続化しない)。
 
 import type { ScreenTransitionStep, ScreenId } from "../../../../types/v3";
+import { SearchableSelect } from "../../../common/SearchableSelect";
 import type {
   StepCardBodyBaseProps,
   StepCardBodyScreenProps,
@@ -26,17 +27,16 @@ export function ScreenTransitionStepCardBody({
     <div className="row g-2 mb-2">
       <div className="col-12">
         <label className="form-label">遷移先画面</label>
-        <select
+        <SearchableSelect
           className="form-select form-select-sm"
           value={step.targetScreenId ?? ""}
-          onChange={(e) => onChange({ targetScreenId: e.target.value as ScreenId })}
+          onChange={(v) => onChange({ targetScreenId: v as ScreenId })}
           onBlur={onCommit}
-        >
-          <option value="">（選択）</option>
-          {screens.map((s) => (
-            <option key={s.id} value={s.id}>{s.name}</option>
-          ))}
-        </select>
+          emptyLabel="（選択）"
+          options={screens.map((s) => ({ value: s.id, label: s.name }))}
+          historyKey="screen"
+          ariaLabel="遷移先画面"
+        />
         {screenDisplay && (
           <div className="form-text text-muted" style={{ fontSize: "0.75rem" }}>
             選択中: {screenDisplay}

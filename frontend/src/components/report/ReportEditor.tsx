@@ -27,6 +27,7 @@ import { moveById, moveByIdAt } from "../../utils/reorder";
 import "../../styles/businessFlow.css";
 import "../../styles/report.css";
 import { UndoHistoryPanel } from "../common/UndoHistoryPanel";
+import { SearchableSelect } from "../common/SearchableSelect";
 
 type Selection = { sectionId: string; fieldId?: string } | null;
 const SECTION_KINDS = Object.keys(REPORT_SECTION_LABELS) as ReportSectionKind[];
@@ -308,18 +309,14 @@ export function ReportEditor() {
               </select>
             </label>
             <label className="bfe-field"><span>画面</span>
-              <select value={report.trigger?.screenRef ?? ""} onChange={(e) => patchReport((r) => { r.trigger = { ...r.trigger, screenRef: e.target.value || undefined }; })} data-testid="rp-trigger-screen">
-                <option value="">(なし)</option>
-                {screens.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                {report.trigger?.screenRef && !screens.some((s) => s.id === report.trigger?.screenRef) && <option value={report.trigger.screenRef}>{report.trigger.screenRef} (存在しない)</option>}
-              </select>
+              <SearchableSelect value={report.trigger?.screenRef ?? ""} onChange={(v) => patchReport((r) => { r.trigger = { ...r.trigger, screenRef: v || undefined }; })} data-testid="rp-trigger-screen"
+                emptyLabel="(なし)" historyKey="screen" ariaLabel="画面"
+                options={[...screens.map((s) => ({ value: s.id, label: s.name })), ...(report.trigger?.screenRef && !screens.some((s) => s.id === report.trigger?.screenRef) ? [{ value: report.trigger.screenRef, label: `${report.trigger.screenRef} (存在しない)` }] : [])]} />
             </label>
             <label className="bfe-field"><span>処理フロー</span>
-              <select value={report.trigger?.processFlowRef ?? ""} onChange={(e) => patchReport((r) => { r.trigger = { ...r.trigger, processFlowRef: e.target.value || undefined }; })} data-testid="rp-trigger-flow">
-                <option value="">(なし)</option>
-                {flows.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
-                {report.trigger?.processFlowRef && !flows.some((f) => f.id === report.trigger?.processFlowRef) && <option value={report.trigger.processFlowRef}>{report.trigger.processFlowRef} (存在しない)</option>}
-              </select>
+              <SearchableSelect value={report.trigger?.processFlowRef ?? ""} onChange={(v) => patchReport((r) => { r.trigger = { ...r.trigger, processFlowRef: v || undefined }; })} data-testid="rp-trigger-flow"
+                emptyLabel="(なし)" historyKey="processFlow" ariaLabel="処理フロー"
+                options={[...flows.map((f) => ({ value: f.id, label: f.name })), ...(report.trigger?.processFlowRef && !flows.some((f) => f.id === report.trigger?.processFlowRef) ? [{ value: report.trigger.processFlowRef, label: `${report.trigger.processFlowRef} (存在しない)` }] : [])]} />
             </label>
             <label className="bfe-field"><span>契機の説明</span><input value={report.trigger?.description ?? ""} onChange={(e) => patchReport((r) => { r.trigger = { ...r.trigger, description: e.target.value || undefined }; })} placeholder="例: 注文完了画面の「納品書を印刷」" /></label>
           </section>

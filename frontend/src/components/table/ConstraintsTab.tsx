@@ -13,6 +13,7 @@ import { addConstraint, removeConstraint } from "../../store/tableStore";
 import { isValidEntityId } from "../../utils/entityIdValidation";
 import { EmptyState } from "../common/EmptyState";
 import { suggestForeignKeys, type FkSuggestion } from "../../utils/fkSuggestion";
+import { SearchableSelect } from "../common/SearchableSelect";
 
 const FK_ACTIONS: FkAction[] = ["cascade", "setNull", "setDefault", "restrict", "noAction"];
 const FK_ACTION_LABELS: Record<FkAction, string> = {
@@ -397,22 +398,19 @@ function FkEditor({
 
       <label className="constraint-editor-field">
         <span>参照先テーブル</span>
-        <select
+        <SearchableSelect
           value={c.referencedTableId ?? ""}
-          onChange={(e) =>
+          onChange={(v) =>
             onUpdate({
-              referencedTableId: (e.target.value || "") as TableId,
+              referencedTableId: (v || "") as TableId,
               referencedColumnIds: [],
             } as Partial<ForeignKeyConstraint>)
           }
-        >
-          <option value="">テーブルを選択...</option>
-          {allTables.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.physicalName}（{t.name}）
-            </option>
-          ))}
-        </select>
+          emptyLabel="テーブルを選択..."
+          options={allTables.map((t) => ({ value: t.id, label: t.physicalName, hint: t.name }))}
+          historyKey="table"
+          ariaLabel="参照先テーブル"
+        />
       </label>
 
       {refTable && (
