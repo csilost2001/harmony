@@ -5,6 +5,7 @@
  * 再利用するための共有 component。Phase-5 前は ConventionsCatalogView.tsx 内に inline 定義。
  */
 import React from "react";
+import { isImeComposing } from "../../../utils/imeKeys";
 
 export function DeleteBtn({ onClick, isReadonly }: { onClick: () => void; isReadonly?: boolean }) {
   return (
@@ -38,7 +39,7 @@ export function NewKeyRow({
         placeholder={placeholder}
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        onKeyDown={(e) => { if (e.key === "Enter" && !disabled && !isReadonly) { e.preventDefault(); onAdd(); } }}
+        onKeyDown={(e) => { if ((e.key === "Enter" && !isImeComposing(e)) && !disabled && !isReadonly) { e.preventDefault(); onAdd(); } }}
         disabled={isReadonly}
       />
       <button

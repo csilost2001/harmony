@@ -9,6 +9,7 @@
  */
 
 import type { CompletionContext, CompletionState, Resolver } from "./types";
+import { looseMatch, rankByMatch } from "../textMatch";
 
 export const screenHierarchicalResolver: Resolver = {
   id: "screenHierarchical",
@@ -25,7 +26,7 @@ export const screenHierarchicalResolver: Resolver = {
       const items =
         screenId === ctx.currentScreenId ? (ctx.currentScreenItems ?? []) : [];
       const candidates = items
-        .filter((i) => i.id.startsWith(itemPrefix))
+        .filter((i) => looseMatch(i.id, itemPrefix))
         .map((i) => ({ value: i.id, label: i.label ?? i.id }));
       return {
         phase: "active",
@@ -41,14 +42,7 @@ export const screenHierarchicalResolver: Resolver = {
     if (m1) {
       const prefix = m1[1];
       const screens = ctx.workspace?.screens ?? [];
-      const lowerPrefix = prefix.toLowerCase();
-      const candidates = screens
-        .filter(
-          (s) =>
-            prefix === "" ||
-            s.id.startsWith(prefix) ||
-            s.name.toLowerCase().includes(lowerPrefix),
-        )
+      const candidates = rankByMatch(screens, prefix, (s) => [s.id, s.name])
         .map((s) => ({
           value: s.id,
           label: s.name,

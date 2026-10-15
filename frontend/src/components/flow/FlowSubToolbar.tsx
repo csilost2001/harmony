@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { EditorHeader } from "../common/EditorHeader";
+import { isImeComposing } from "../../utils/imeKeys";
 
 interface Props {
   projectName: string;
@@ -95,7 +96,7 @@ export function FlowSubToolbar({
             onChange={(e) => setDraft(e.target.value)}
             onBlur={commitRename}
             onKeyDown={(e) => {
-              if (e.key === "Enter") commitRename();
+              if (e.key === "Enter" && !isImeComposing(e)) commitRename();
               if (e.key === "Escape") { setDraft(projectName); setEditing(false); }
             }}
           />

@@ -12,6 +12,7 @@
 import { useState } from "react";
 import type { ProcessFlow, EnvVarEntry } from "../../types/v3";
 import { EmptyState } from "../common/EmptyState";
+import { isImeComposing } from "../../utils/imeKeys";
 
 interface Props {
   group: ProcessFlow;
@@ -143,7 +144,7 @@ function ValuesEditor({
           value={newEnvKey}
           onChange={(ev) => setNewEnvKey(ev.target.value)}
           onKeyDown={(ev) => {
-            if (ev.key === "Enter") {
+            if (ev.key === "Enter" && !isImeComposing(ev)) {
               ev.preventDefault();
               addEnvKey(newEnvKey);
             }
@@ -333,7 +334,7 @@ export function EnvVarsCatalogPanel({
               placeholder="新規 env 変数名 (例: STRIPE_API_BASE)"
               value={newKey}
               onChange={(ev) => setNewKey(ev.target.value)}
-              onKeyDown={(ev) => { if (ev.key === "Enter") { ev.preventDefault(); addEntry(); } }}
+              onKeyDown={(ev) => { if (ev.key === "Enter" && !isImeComposing(ev)) { ev.preventDefault(); addEntry(); } }}
             />
             <button
               type="button"

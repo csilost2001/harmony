@@ -14,12 +14,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isValidEntityId } from "../../utils/entityIdValidation";
 import {
+  entityIdCandidates,
   generateFallbackEntityId,
   requestAiSuggestedEntityId,
-  slugifyToEntityId,
   suggestUniqueIdSuffix,
 } from "../../utils/entityIdSuggestion";
 import "../../styles/entityIdInput.css";
+import { isImeComposing } from "../../utils/imeKeys";
 
 export interface EntityIdInputProps {
   /** id field 現在値 */
@@ -63,14 +64,6 @@ function fallbackPrefixFor(entityLabel: string): string {
   if (entityLabel.includes("レイアウト")) return "layout";
   if (entityLabel.includes("ガジェット")) return "gadget";
   return "item";
-}
-
-/** 名前が英数字を含むときだけ、そこから作れる ID の候補 (日本語だけの名前からは作れない) */
-function asciiIdCandidate(name: string, existing: ReadonlySet<string>, existingIds: readonly string[]): string | null {
-  if (!/[a-zA-Z]/.test(name)) return null;
-  const slug = slugifyToEntityId(name);
-  if (!isValidEntityId(slug)) return null;
-  return existing.has(slug) ? suggestUniqueIdSuffix(slug, existingIds) : slug;
 }
 
 export interface EntityIdValidationState {
@@ -146,7 +139,8 @@ export function EntityIdInput({
   // 未入力のとき: 保存できない理由と、すぐ進められる手段を出す
   const emptyAndNamed = trimmed.length === 0 && (name.trim().length > 0 || (idSource ?? "").trim().length > 0);
   const candidateSource = (idSource ?? "").trim() ? (idSource as string) : name;
-  const asciiCandidate = asciiIdCandidate(candidateSource, existingSet, existingIds);
+  const idCandidates = useMemo(() => entityIdCandidates(candidateSource, existingIds), [candidateSource, existingIds]);
+  const asciiCandidate = idCandidates[0] ?? null;
   const autoId = touchedRef.current ? null : asciiCandidate;
 
   useEffect(() => {
@@ -184,7 +178,7 @@ export function EntityIdInput({
           value={value}
           onChange={(e) => changeByUser(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && onEnter && !isInvalid) {
+            if ((e.key === "Enter" && !isImeComposing(e)) && onEnter && !isInvalid) {
               e.preventDefault();
               onEnter();
             }
@@ -216,19 +210,22 @@ export function EntityIdInput({
       {emptyAndNamed && (
         <div className="entity-id-input__empty-hint form-text" data-testid="entity-id-empty-hint">
           ID を入力すると保存できます。
-          {asciiCandidate ? (
-            <button
-              type="button"
-              className="btn btn-link btn-sm entity-id-input__apply-btn p-0 ms-1"
-              onClick={() => changeByUser(asciiCandidate)}
-              disabled={disabled}
-              data-testid="entity-id-use-candidate"
-            >
-              <code>{asciiCandidate}</code> を使う
-            </button>
+          {idCandidates.length > 0 ? (
+            idCandidates.map((cand, k) => (
+              <button
+                key={cand}
+                type="button"
+                className="btn btn-link btn-sm entity-id-input__apply-btn p-0 ms-1"
+                onClick={() => changeByUser(cand)}
+                disabled={disabled}
+                data-testid={k === 0 ? "entity-id-use-candidate" : `entity-id-use-candidate-${k + 1}`}
+              >
+                <code>{cand}</code> を使う
+              </button>
+            ))
           ) : (
             <>
-              日本語の名前からは ID を作れないため、英語で入力するか、
+              この名前には ID にできない言葉があるため、英語で入力するか、
               <button
                 type="button"
                 className="btn btn-link btn-sm entity-id-input__apply-btn p-0"

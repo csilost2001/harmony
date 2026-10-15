@@ -80,6 +80,8 @@ import { StepContextMenu } from "./internal/StepContextMenu";
 import { WarningsPanel } from "./internal/WarningsPanel";
 import { ALL_STEP_TYPES } from "./internal/stepCardConstants";
 import { StepInsertMenu } from "./internal/StepInsertMenu";
+import { findStepKind, type TransitionStats } from "../../utils/stepSuggestion";
+import { loadStepTransitionStats } from "../../store/stepStatsStore";
 import { focusStepHeader, useStepKeyboard } from "./internal/useStepKeyboard";
 import { applyOutline, type OutlineLine } from "../../utils/processFlowOutline";
 import { canIndentStep, canOutdentStep, indentStep, locateStep, outdentStep } from "../../utils/stepTree";
@@ -503,6 +505,14 @@ export function ProcessFlowEditor() {
   // ── キーボード操作 (docs/spec/process-flow-keyboard.md) ──────────────────────
   /** 挿入メニュー。afterStepId = その工程の後ろへ (null なら末尾) */
   const [insertMenu, setInsertMenu] = useState<{ afterStepId: string | null } | null>(null);
+  // 挿入メニューで、「この後によく置かれる種類」を出すための統計 (開いたときに 1 回読む)
+  const [stepStats, setStepStats] = useState<TransitionStats | undefined>(undefined);
+  useEffect(() => {
+    if (!insertMenu) return;
+    let alive = true;
+    loadStepTransitionStats().then((st) => { if (alive) setStepStats(st); }).catch(() => { /* 組み込みの目安だけで出す */ });
+    return () => { alive = false; };
+  }, [insertMenu]);
   /** 挿入した工程へ、描画のあとでフォーカスを移す */
   const pendingFocusStepRef = useRef<string | null>(null);
 
@@ -1196,6 +1206,9 @@ export function ProcessFlowEditor() {
         <StepInsertMenu
           kinds={ALL_STEP_TYPES}
           where={insertMenu.afterStepId ? "選んだ工程の後ろに" : "末尾に"}
+          suggest
+          previousKind={insertMenu.afterStepId ? findStepKind(group, insertMenu.afterStepId) : undefined}
+          stats={stepStats}
           onPick={handleInsertPick}
           onClose={() => { const id = insertMenu.afterStepId; setInsertMenu(null); if (id) setTimeout(() => focusStepHeader(id), 30); }}
         />

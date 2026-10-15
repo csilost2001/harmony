@@ -9,6 +9,7 @@
  * 詳細パネルの外側 (一覧・タブ) のキー操作には触れない。
  */
 import { useCallback, useEffect, type KeyboardEvent as ReactKeyboardEvent, type RefObject } from "react";
+import { isImeComposing } from "../utils/imeKeys";
 
 const FIELD = "input:not([type=hidden]):not([disabled]), select:not([disabled]), textarea:not([disabled])";
 
@@ -39,13 +40,13 @@ export function useDetailPanelKeyboard({ panelRef, resetKey, onNext, onPrev }: D
     if (e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) return; // 変換の確定の Enter は無視
     // 入力欄の部品 (候補・補完など) が自分で処理したキー、候補が開いているあいだの Enter / Esc は、その部品のもの
     const handledByField = e.defaultPrevented || target.getAttribute("aria-expanded") === "true";
-    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+    if ((e.key === "Enter" && !isImeComposing(e)) && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       if (e.shiftKey) onPrev?.(); else onNext?.();
       return;
     }
     if (handledByField) return;
-    if (e.key === "Enter" && !e.shiftKey && !e.altKey && target instanceof HTMLInputElement && target.type !== "button" && target.type !== "submit") {
+    if ((e.key === "Enter" && !isImeComposing(e)) && !e.shiftKey && !e.altKey && target instanceof HTMLInputElement && target.type !== "button" && target.type !== "submit") {
       e.preventDefault();
       const root = panelRef.current;
       if (!root) return;

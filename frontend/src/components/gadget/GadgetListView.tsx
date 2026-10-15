@@ -38,6 +38,7 @@ import "../../styles/editMode.css";
 import { useQuickCreate } from "../../hooks/useQuickCreate";
 import { reportFailure, runReporting } from "../../utils/failureToast";
 import { EmptyState } from "../common/EmptyState";
+import { isImeComposing } from "../../utils/imeKeys";
 
 const STORAGE_KEY = "list-view-mode:gadget-list";
 const TAB_ID = makeTabId("gadget-list", "main");
@@ -568,7 +569,7 @@ export function GadgetListView() {
                     className={`form-control${addNameError ? " is-invalid" : ""}`}
                     value={addName}
                     onChange={(e) => { setAddName(e.target.value); if (addNameError) setAddNameError(""); }}
-                    onKeyDown={(e) => { if (e.key === "Enter") runReporting(handleAddSave, "ガジェット一覧の保存"); }}
+                    onKeyDown={(e) => { if (e.key === "Enter" && !isImeComposing(e)) runReporting(handleAddSave, "ガジェット一覧の保存"); }}
                     placeholder="例: ヘッダー、フッター、サイドバー"
                     autoFocus
                   />

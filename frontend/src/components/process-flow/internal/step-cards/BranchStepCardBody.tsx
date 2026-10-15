@@ -5,6 +5,7 @@
 // deleteBranch / addBranch / addElseBranch / toggleBranchCollapse) も同様に内部化。
 // #1016 follow-up (2026-05-20): generic StepCardBodyBaseProps<BranchStep> で type narrow、@ts-nocheck 除去。
 
+import { ConvCompletionInput } from "../../../common/ConvCompletionInput";
 import { useState } from "react";
 import type { BranchStep, Branch, ElseBranch, LocalId, ErrorCode, Identifier } from "../../../../types/v3";
 // #1332 Codex 10 巡目 M1: Branch.id / ElseBranch.id の採番を LocalId (`br-NN`) に統一
@@ -161,14 +162,19 @@ export function BranchStepCardBody({
                 </div>
               ) : br.condition?.kind === "expression" ? (
                 <>
-                  <input
-                    className="form-control form-control-sm branch-condition-input"
-                    value={br.condition.expression}
-                    placeholder="分岐条件 (自由記述)"
-                    onClick={(e) => e.stopPropagation()}
-                    onChange={(e) => setBranchAt(bi, { ...br, condition: { kind: "expression", expression: e.target.value } })}
-                    onBlur={onCommit}
-                  />
+                  <div style={{ flex: 1, minWidth: 0 }} onClick={(e) => e.stopPropagation()}>
+                    <ConvCompletionInput
+                      className="form-control form-control-sm branch-condition-input"
+                      value={br.condition.expression}
+                      placeholder="分岐条件 (自由記述。@ で参照を補完)"
+                      onValueChange={(v) => setBranchAt(bi, { ...br, condition: { kind: "expression", expression: v } })}
+                      onCommit={onCommit}
+                      conventions={conventions ?? null}
+                      flow={group}
+                      stepId={step.id}
+                      disabled={readOnly}
+                    />
+                  </div>
                   <button
                     type="button"
                     className="btn btn-sm btn-link text-muted p-0"

@@ -9,6 +9,7 @@
  * 列は `<td>` の位置で数える。欄のない行 (詳細の展開行・空の行) は飛ばす。
  */
 import { useCallback, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { isImeComposing } from "../utils/imeKeys";
 
 const FIELD = "input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([disabled]), select:not([disabled]), textarea:not([disabled])";
 
@@ -44,7 +45,7 @@ export function useGridKeyboard({ onAppendRow }: GridKeyboardOptions = {}) {
     const isText = target instanceof HTMLInputElement && (target.type === "text" || target.type === "");
     const expanded = target.getAttribute("aria-expanded") === "true";
     let dir = 0;
-    if (e.key === "Enter" && target instanceof HTMLInputElement && target.type !== "button") dir = e.shiftKey ? -1 : 1;
+    if ((e.key === "Enter" && !isImeComposing(e)) && target instanceof HTMLInputElement && target.type !== "button") dir = e.shiftKey ? -1 : 1;
     else if ((e.key === "ArrowDown" || e.key === "ArrowUp") && isText && !expanded && !e.shiftKey) dir = e.key === "ArrowDown" ? 1 : -1;
     if (dir === 0) return;
 
@@ -56,7 +57,7 @@ export function useGridKeyboard({ onAppendRow }: GridKeyboardOptions = {}) {
       sibling = dir > 0 ? sibling.nextElementSibling : sibling.previousElementSibling;
     }
     // 端: 最後の行の Enter で、値が入っていれば行を追加
-    if (dir > 0 && e.key === "Enter" && onAppendRow && target instanceof HTMLInputElement && target.value !== "") {
+    if (dir > 0 && (e.key === "Enter" && !isImeComposing(e)) && onAppendRow && target instanceof HTMLInputElement && target.value !== "") {
       e.preventDefault();
       onAppendRow();
     }

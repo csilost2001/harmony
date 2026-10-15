@@ -27,6 +27,7 @@ import {
   type QuickOpenEntry,
 } from "../../utils/quickOpen";
 import "../../styles/quickOpen.css";
+import { isImeComposing } from "../../utils/imeKeys";
 
 /** 一覧の 1 行。設計の候補か、実行する操作 */
 type Row = { type: "entry"; entry: QuickOpenEntry | QuickOpenContentEntry } | { type: "command"; cmd: PaletteCommand };
@@ -156,7 +157,7 @@ export function QuickOpen() {
     else if (e.key === "Tab") { e.preventDefault(); } // 開いている間は、フォーカスを入力欄から出さない
     else if (e.key === "ArrowDown") { e.preventDefault(); setCursor((c) => Math.min(c + 1, Math.max(rows.length - 1, 0))); }
     else if (e.key === "ArrowUp") { e.preventDefault(); setCursor((c) => Math.max(c - 1, 0)); }
-    else if (e.key === "Enter") { e.preventDefault(); if (rows[cursor]) run(rows[cursor]); }
+    else if (e.key === "Enter" && !isImeComposing(e)) { e.preventDefault(); if (rows[cursor]) run(rows[cursor]); }
     else if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "d") {
       // Ctrl+D: 選んでいる候補を、お気に入りに追加 / 解除 (ブラウザのブックマークは開かない)
       e.preventDefault();

@@ -33,6 +33,9 @@ import { setDirty as setTabDirty, makeTabId } from "../../store/tabStore";
 import { RenameEntityDialog } from "../common/RenameEntityDialog";
 import { ReferencesButton } from "../common/ReferencesButton";
 import { PasteItemsDialog } from "./PasteItemsDialog";
+import { ItemsFromTableDialog } from "./ItemsFromTableDialog";
+import { buildTermIndex } from "../../utils/columnSuggestion";
+import { draftErrorMessages, planItemAutofill } from "../../utils/itemSuggestion";
 import { isPasteIntoField, looksLikeSpreadsheet } from "../../utils/pasteDetect";
 import type { ParsedItem } from "../../utils/itemPaste";
 import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
@@ -156,6 +159,7 @@ export function ScreenItemsView() {
   // #1330: ScreenItemsView 起点の Screen rename refactor。完了後は Items 画面に留まる。
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [showPasteItems, setShowPasteItems] = useState(false);
+  const [showItemsFromTable, setShowItemsFromTable] = useState(false);
   const [pasteItemsInitial, setPasteItemsInitial] = useState("");
   const [allScreenIds, setAllScreenIds] = useState<string[]>([]);
   const [renameUndoToast, setRenameUndoToast] = useRenameEntityUndoToast(
@@ -500,6 +504,44 @@ export function ScreenItemsView() {
       Object.assign(f.items[idx], patch);
     });
   }, [updateSilentWithDraft]);
+
+  // ラベルを入れたら、まだ決めていない項目 ID・型・最大長を埋める (決めた値は変えない。Ctrl+Z で戻せる)
+  const termIndex = useMemo(() => buildTermIndex(tables.map((t) => t.columns)), [tables]);
+  const handleLabelBlur = useCallback((idx: number) => {
+    const f = fileRef.current;
+    const item = f?.items[idx];
+    if (!f || !item) return;
+    const others = f.items.filter((_, k) => k !== idx).map((it) => it.id);
+    const plan = planItemAutofill(item, others, termIndex);
+    if (!plan) return;
+    updateWithDraft((doc) => { Object.assign(doc.items[idx], plan.patch); });
+    showToast(plan.message, "info");
+  }, [termIndex, updateWithDraft]);
+
+  // エラーメッセージの下書き (必須・長さ・形式・範囲の設定から。書いていないものだけ)
+  const handleDraftMessages = useCallback((indices: number[]) => {
+    const msgKeys = new Set(Object.keys((conventions as unknown as { msg?: Record<string, unknown> } | null)?.msg ?? {}));
+    let filled = 0;
+    updateWithDraft((doc) => {
+      for (const i of indices) {
+        const it = doc.items[i];
+        if (!it) continue;
+        const draft = draftErrorMessages(it, msgKeys);
+        const keys = Object.keys(draft);
+        if (keys.length === 0) continue;
+        it.errorMessages = { ...(it.errorMessages ?? {}), ...draft };
+        filled += keys.length;
+      }
+    });
+    showToast(filled > 0 ? `エラーメッセージの下書きを ${filled} 件入れました (Ctrl+Z で元に戻せます)` : "下書きを入れられるメッセージがありません (必須・長さ・形式・範囲の設定があり、まだメッセージが無い項目が対象です)", "info");
+  }, [conventions, updateWithDraft]);
+
+  const handleItemsFromTable = useCallback((items: ScreenItem[], tableName: string) => {
+    const start = fileRef.current?.items.length ?? 0;
+    updateWithDraft((doc) => { doc.items.push(...items); });
+    setSelectedIndices(new Set(items.map((_, k) => start + k)));
+    showToast(`テーブル「${tableName}」から ${items.length} 項目を追加しました`, "info");
+  }, [updateWithDraft]);
 
   const handleRemoveItem = useCallback((idx: number) => {
     updateWithDraft((f) => {
@@ -1095,7 +1137,7 @@ export function ScreenItemsView() {
                         className="form-control form-control-sm"
                         value={item.label}
                         onChange={(e) => handleUpdateItem(i, { label: e.target.value })}
-                        onBlur={commit}
+                        onBlur={() => { handleLabelBlur(i); commit(); }}
                         placeholder="例: メールアドレス"
                         aria-label={`行${i + 1}のラベル`}
                         disabled={isReadonly}
@@ -1908,6 +1950,26 @@ export function ScreenItemsView() {
               >
                 <i className="bi bi-clipboard-data me-1" /> 表から貼り付け
               </button>
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-secondary"
+                onClick={() => setShowItemsFromTable(true)}
+                disabled={isReadonly || tables.length === 0}
+                title="テーブルを選んで、そのカラムから画面項目をまとめて作る (型・必須・最大長・カラムとの紐づけ付き)"
+                data-testid="items-from-table-open"
+              >
+                <i className="bi bi-table me-1" /> テーブルから作る
+              </button>
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-secondary"
+                onClick={() => handleDraftMessages(selectedIndices.size > 0 ? [...selectedIndices].sort((a, b) => a - b) : file.items.map((_, k) => k))}
+                disabled={isReadonly || file.items.length === 0}
+                title="必須・長さ・形式・範囲の設定から、まだ書いていないエラーメッセージの下書きを入れる (選んだ行、無ければ全行)"
+                data-testid="items-draft-messages"
+              >
+                <i className="bi bi-chat-text me-1" /> メッセージの下書き
+              </button>
               <button type="button" className="btn btn-sm btn-outline-secondary" onClick={handleCopySelected} disabled={selectedIndices.size === 0}
                 title="選んだ項目をコピー (Ctrl+C)。ほかの画面の項目定義で貼り付けられます" data-testid="items-copy">
                 <i className="bi bi-files me-1" /> コピー{selectedIndices.size > 0 ? ` (${selectedIndices.size})` : ""}
@@ -2081,6 +2143,9 @@ export function ScreenItemsView() {
 
       )}
 
+      {showItemsFromTable && (
+        <ItemsFromTableDialog tables={tables} existingIds={(file?.items ?? []).map((it) => it.id)} onApply={handleItemsFromTable} onClose={() => setShowItemsFromTable(false)} />
+      )}
       {showPasteItems && (
         <PasteItemsDialog existing={file?.items ?? []} onApply={handlePasteItems} onClose={() => { setShowPasteItems(false); setPasteItemsInitial(""); }} initialText={pasteItemsInitial} />
       )}

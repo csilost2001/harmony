@@ -79,7 +79,7 @@ describe("表の貼り付け", () => {
 
   it("貼り付けの中の重複を知らせる / 空なら空", () => {
     expect(parseColumnTable("a\tx\tint\na\ty\tint").warnings.join("")).toContain("重複");
-    expect(parseColumnTable("   \n\n")).toEqual({ columns: [], warnings: [], headerDetected: false, fields: [] });
+    expect(parseColumnTable("   \n\n")).toMatchObject({ columns: [], warnings: [], headerDetected: false, fields: [] });
   });
 });
 
@@ -194,3 +194,39 @@ describe("既存カラムの更新: 空欄の扱い", () => {
   });
 });
 
+
+describe("列の対応を選んで読む (override)", () => {
+  const TEXT = "customer_id\t顧客ID\tBIGINT\ncustomer_name\t顧客名\tVARCHAR";
+
+  it("見出しが無ければ、決まった順で読み、対応は mapping で返す", () => {
+    const r = parseColumnTable(TEXT);
+    expect(r.headerDetected).toBe(false);
+    expect(r.mapping.order.slice(0, 3)).toEqual(["physicalName", "name", "dataType"]);
+    expect(r.columnCount).toBe(3);
+    expect(r.sampleRows[0]).toEqual(["customer_id", "顧客ID", "BIGINT"]);
+  });
+
+  it("利用者が選んだ対応で読み直せる (表示名と物理名を入れ替える・列を読み取らない)", () => {
+    const r = parseColumnTable("顧客ID\tcustomer_id\tメモ\n顧客名\tcustomer_name\tx", { order: ["name", "physicalName", null], hasHeader: false });
+    expect(r.columns.map((c) => [c.physicalName, c.name])).toEqual([["customer_id", "顧客ID"], ["customer_name", "顧客名"]]);
+    expect(r.fields).toContain("name");
+  });
+
+  it("1 行目を見出しとして飛ばす指定", () => {
+    const r = parseColumnTable("A\tB\nid\tID", { order: ["physicalName", "name"], hasHeader: true });
+    expect(r.columns.map((c) => c.physicalName)).toEqual(["id"]);
+    expect(r.headerDetected).toBe(true);
+  });
+
+  it("物理名の列が選ばれていなければ、何も作らず案内する", () => {
+    const r = parseColumnTable("a\tb", { order: ["name", null], hasHeader: false });
+    expect(r.columns).toEqual([]);
+    expect(r.warnings.join("")).toContain("物理名");
+  });
+
+  it("空の入力でも落ちない", () => {
+    const r = parseColumnTable("");
+    expect(r.columnCount).toBe(0);
+    expect(r.columns).toEqual([]);
+  });
+});

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type {
   Table,
   Constraint,
@@ -12,6 +12,8 @@ import type {
 import { addConstraint, removeConstraint } from "../../store/tableStore";
 import { isValidEntityId } from "../../utils/entityIdValidation";
 import { EmptyState } from "../common/EmptyState";
+import { suggestForeignKeys, type FkSuggestion } from "../../utils/fkSuggestion";
+import { SearchableSelect } from "../common/SearchableSelect";
 
 const FK_ACTIONS: FkAction[] = ["cascade", "setNull", "setDefault", "restrict", "noAction"];
 const FK_ACTION_LABELS: Record<FkAction, string> = {
@@ -45,6 +47,19 @@ export function ConstraintsTab({ table, update, allTables }: Props) {
       newId = c.id;
     });
     setTimeout(() => setEditingId(newId), 0);
+  };
+
+  // 外部キーの候補 (カラム名とテーブル名の対応から)。1 クリックで外部キー制約にする
+  const fkSuggestions = useMemo(() => suggestForeignKeys(table, allTables), [table, allTables]);
+  const handleAddSuggested = (s: FkSuggestion) => {
+    update((t) => {
+      addConstraint(t, {
+        kind: "foreignKey",
+        columnIds: [s.column.id],
+        referencedTableId: s.refTable.id,
+        referencedColumnIds: [s.refColumn.id],
+      } as Omit<ForeignKeyConstraint, "id">);
+    });
   };
 
   const handleDelete = (id: string) => {
@@ -115,6 +130,23 @@ export function ConstraintsTab({ table, update, allTables }: Props) {
           )}
         </div>
       </div>
+
+      {fkSuggestions.length > 0 && (
+        <div className="constraints-suggest" data-testid="fk-suggestions">
+          <div className="constraints-suggest-title"><i className="bi bi-stars" /> 外部キーの候補 (カラム名とテーブル名からの推測です。内容を確かめて追加してください)</div>
+          {fkSuggestions.map((s) => (
+            <div key={s.column.id} className="constraints-suggest-row">
+              <code>{table.physicalName}.{s.column.physicalName}</code>
+              <i className="bi bi-arrow-right" />
+              <code>{s.refTable.physicalName}.{s.refColumn.physicalName}</code>
+              <span className="constraints-suggest-reason">{s.reason}{s.confidence === "high" ? "" : " (確度: 中)"}</span>
+              <button className="tbl-btn tbl-btn-sm" onClick={() => handleAddSuggested(s)} data-testid={`fk-suggest-add-${s.column.physicalName}`}>
+                <i className="bi bi-plus-lg" /> 外部キーにする
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {constraints.length === 0 ? (
         <div className="constraints-empty">
@@ -366,22 +398,19 @@ function FkEditor({
 
       <label className="constraint-editor-field">
         <span>参照先テーブル</span>
-        <select
+        <SearchableSelect
           value={c.referencedTableId ?? ""}
-          onChange={(e) =>
+          onChange={(v) =>
             onUpdate({
-              referencedTableId: (e.target.value || "") as TableId,
+              referencedTableId: (v || "") as TableId,
               referencedColumnIds: [],
             } as Partial<ForeignKeyConstraint>)
           }
-        >
-          <option value="">テーブルを選択...</option>
-          {allTables.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.physicalName}（{t.name}）
-            </option>
-          ))}
-        </select>
+          emptyLabel="テーブルを選択..."
+          options={allTables.map((t) => ({ value: t.id, label: t.physicalName, hint: t.name }))}
+          historyKey="table"
+          ariaLabel="参照先テーブル"
+        />
       </label>
 
       {refTable && (

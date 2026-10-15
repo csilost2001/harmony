@@ -18,6 +18,7 @@
 
 import type { CompletionContext, CompletionState, Resolver } from "./types";
 import type { ProcessFlow as V3ProcessFlow } from "../../types/v3";
+import { looseMatch } from "../textMatch";
 
 const SCOPE_KEYS = ["flowParameter", "action", "step", "tx", "loop", "global"] as const;
 
@@ -77,7 +78,7 @@ export const varScopeResolver: Resolver = {
       }
 
       const candidates = [...names]
-        .filter((nm) => nm.startsWith(namePrefix))
+        .filter((nm) => looseMatch(nm, namePrefix))
         .map((v) => ({ value: v }));
       return {
         phase: "active",
@@ -152,7 +153,7 @@ export const varScopeResolver: Resolver = {
       // 候補に trailing: "." を付けて次段補完を誘発する
       const needsTrailing = scope === "step" || scope === "tx";
       const candidates = [...names]
-        .filter((nm) => nm.startsWith(namePrefix))
+        .filter((nm) => looseMatch(nm, namePrefix))
         .map((v) => (needsTrailing ? { value: v, trailing: "." } : { value: v }));
       return {
         phase: "active",
@@ -167,7 +168,7 @@ export const varScopeResolver: Resolver = {
     const m = before.match(/@var\.([\w-]*)$/);
     if (m) {
       const prefix = m[1];
-      const candidates = SCOPE_KEYS.filter((k) => k.startsWith(prefix)).map((k) => ({
+      const candidates = SCOPE_KEYS.filter((k) => looseMatch(k, prefix)).map((k) => ({
         value: k,
         trailing: ".",
       }));

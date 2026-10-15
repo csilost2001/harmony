@@ -42,6 +42,8 @@ import "../../styles/er.css";
 import { reportFailure, runReporting } from "../../utils/failureToast";
 import { useKeyboardNodeMove } from "../../hooks/useKeyboardNodeMove";
 import { EmptyState } from "../common/EmptyState";
+import { isImeComposing } from "../../utils/imeKeys";
+import { SearchableSelect } from "../common/SearchableSelect";
 
 const nodeTypes = { erTableNode: ErTableNodeComponent };
 
@@ -671,10 +673,8 @@ function AddRelationModal({
           <div style={{ flex: 1 }}>
             <label className="tbl-field">
               <span>参照元テーブル（多側 / FK側）</span>
-              <select value={srcTableId} onChange={(e) => { setSrcTableId(e.target.value); setSrcColId(""); }}>
-                <option value="">選択...</option>
-                {tables.map((t) => <option key={t.id} value={t.id}>{t.physicalName}（{t.name}）</option>)}
-              </select>
+              <SearchableSelect value={srcTableId} onChange={(v) => { setSrcTableId(v); setSrcColId(""); }} emptyLabel="選択..."
+                options={tables.map((t) => ({ value: t.id, label: t.physicalName, hint: t.name }))} historyKey="table" ariaLabel="参照元テーブル" />
             </label>
             {hasColumns && (
               <label className="tbl-field">
@@ -690,10 +690,8 @@ function AddRelationModal({
           <div style={{ flex: 1 }}>
             <label className="tbl-field">
               <span>参照先テーブル（1側）</span>
-              <select value={tgtTableId} onChange={(e) => { setTgtTableId(e.target.value); setTgtColId(""); }}>
-                <option value="">選択...</option>
-                {tables.map((t) => <option key={t.id} value={t.id}>{t.physicalName}（{t.name}）</option>)}
-              </select>
+              <SearchableSelect value={tgtTableId} onChange={(v) => { setTgtTableId(v); setTgtColId(""); }} emptyLabel="選択..."
+                options={tables.map((t) => ({ value: t.id, label: t.physicalName, hint: t.name }))} historyKey="table" ariaLabel="参照先テーブル" />
             </label>
             {hasColumns && (
               <label className="tbl-field">
@@ -774,7 +772,7 @@ function AddTableFromErModal({
             onChange={(e) => setPhysicalName(e.target.value)}
             placeholder="例: customers"
             autoFocus
-            onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+            onKeyDown={(e) => { if (e.key === "Enter" && !isImeComposing(e)) submit(); }}
           />
         </label>
         <label className="tbl-field">
@@ -784,7 +782,7 @@ function AddTableFromErModal({
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder="例: 顧客マスタ"
-            onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+            onKeyDown={(e) => { if (e.key === "Enter" && !isImeComposing(e)) submit(); }}
           />
         </label>
         <label className="tbl-field">

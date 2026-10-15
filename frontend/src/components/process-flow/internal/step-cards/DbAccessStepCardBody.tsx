@@ -12,11 +12,17 @@ import { convResolver } from "../../../../utils/reference-completer/convResolver
 import { ALL_PROCESS_FLOW_SCOPE_RESOLVERS } from "../../../../utils/reference-completer/processFlowScopeResolver";
 import { thisResolver } from "../../../../utils/reference-completer/thisResolver";
 import { selfResolver } from "../../../../utils/reference-completer/selfResolver";
+import { sqlSchemaResolver } from "../../../../utils/reference-completer/sqlSchemaResolver";
+import type { WorkspaceRefs } from "../../../../utils/reference-completer/types";
+import { SearchableSelect } from "../../../common/SearchableSelect";
 
 export interface DbAccessStepCardBodyProps
   extends StepCardBodyBaseProps<DbAccessStep>,
     StepCardBodyTableProps,
-    Partial<StepCardBodyCatalogProps> {}
+    Partial<StepCardBodyCatalogProps> {
+  /** ワークスペースの参照情報 (SQL の表名・カラム名の補完用) */
+  workspace?: WorkspaceRefs;
+}
 
 export function DbAccessStepCardBody({
   step,
@@ -25,10 +31,12 @@ export function DbAccessStepCardBody({
   onCommit,
   conventions,
   group,
+  workspace,
   readOnly,
 }: DbAccessStepCardBodyProps) {
-  const sqlResolvers = [convResolver, thisResolver, selfResolver, ...ALL_PROCESS_FLOW_SCOPE_RESOLVERS];
+  const sqlResolvers = [convResolver, thisResolver, selfResolver, ...ALL_PROCESS_FLOW_SCOPE_RESOLVERS, sqlSchemaResolver];
   const sqlCtx = {
+    workspace,
     conventions: conventions ?? null,
     flow: group ?? undefined,
     currentDocumentKind: "processFlow" as const,
@@ -38,18 +46,17 @@ export function DbAccessStepCardBody({
     <>
       <div className="form-group">
         <label className="form-label">テーブル</label>
-        <select
+        <SearchableSelect
           className="form-select form-select-sm"
           value={step.tableId ?? ""}
-          onChange={(e) => {
-            onChange({ tableId: (e.target.value || undefined) as TableId | undefined });
+          onChange={(v) => {
+            onChange({ tableId: (v || undefined) as TableId | undefined });
           }}
-        >
-          <option value="">（選択）</option>
-          {tables.map((t) => (
-            <option key={t.id} value={t.id}>{t.name}（{t.physicalName}）</option>
-          ))}
-        </select>
+          emptyLabel="（選択）"
+          options={tables.map((t) => ({ value: t.id, label: t.name, hint: t.physicalName }))}
+          historyKey="table"
+          ariaLabel="テーブル"
+        />
       </div>
       <div className="form-row-pair">
         <div className="form-group">
@@ -85,7 +92,7 @@ export function DbAccessStepCardBody({
           ctx={sqlCtx}
           className="form-control form-control-sm"
           rows={2}
-          placeholder="例: SELECT ... JOIN ... WHERE ... / INSERT ... RETURNING ..."
+          placeholder="例: SELECT ... JOIN ... WHERE ... / INSERT ... RETURNING ... (表名・カラム名・@ 参照を補完)"
           style={{ fontFamily: "monospace", fontSize: "0.8rem" }}
           disabled={readOnly}
         />

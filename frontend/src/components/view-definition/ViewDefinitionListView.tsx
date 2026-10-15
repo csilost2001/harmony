@@ -51,6 +51,7 @@ import { useQuickCreate } from "../../hooks/useQuickCreate";
 import { useReferencesDialog } from "../common/ReferencesButton";
 import { reportFailure } from "../../utils/failureToast";
 import { EmptyState } from "../common/EmptyState";
+import { isImeComposing } from "../../utils/imeKeys";
 
 const STORAGE_KEY = "list-view-mode:view-definition-list";
 const TAB_ID = makeTabId("view-definition-list", "main");
@@ -775,7 +776,7 @@ export function ViewDefinitionListView() {
                   placeholder="例: 顧客一覧"
                   autoFocus
                   className={addNameError ? "input-error" : undefined}
-                  onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !isImeComposing(e)) handleAdd(); }}
                 />
                 {addNameError && <span className="tbl-field-error">{addNameError}</span>}
               </label>

@@ -1,3 +1,4 @@
+import { ConvCompletionInput } from "../common/ConvCompletionInput";
 import { useState } from "react";
 import type { DraggableAttributes, DraggableSyntheticListeners } from "@dnd-kit/core";
 // #1186 Phase 2-B: types/action → types/v3 + processFlowMetadata 移行
@@ -494,13 +495,16 @@ export function StepCard({
                     — 真偽式、偽なら本ステップを skip
                   </span>
                 </label>
-                <input
-                  type="text"
+                <ConvCompletionInput
                   className="form-control form-control-sm"
                   value={step.runIf ?? ""}
-                  onChange={(e) => onChange({ runIf: e.target.value || undefined } as Partial<Step>)}
-                  onBlur={onCommit}
+                  onValueChange={(v) => onChange({ runIf: v || undefined } as Partial<Step>)}
+                  onCommit={onCommit}
+                  conventions={conventions ?? null}
+                  flow={group}
+                  stepId={step.id}
                   placeholder="例: @paymentMethod == 'credit_card'"
+                  disabled={readOnly}
                 />
               </div>
             </div>
@@ -598,6 +602,7 @@ export function StepCard({
                   readOnly={readOnly}
                   conventions={conventions}
                   group={group}
+                  workspace={workspace}
                 />
               )}
 
@@ -631,6 +636,7 @@ export function StepCard({
                   onChange={onChange}
                   onCommit={onCommit}
                   conventions={conventions}
+                  group={group}
                   readOnly={readOnly}
                 />
               )}
@@ -642,6 +648,7 @@ export function StepCard({
                   onChange={onChange}
                   onCommit={onCommit}
                   conventions={conventions}
+                  group={group}
                   readOnly={readOnly}
                 />
               )}

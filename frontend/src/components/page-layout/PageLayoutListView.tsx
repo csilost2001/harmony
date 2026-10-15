@@ -47,6 +47,7 @@ import { useQuickCreate } from "../../hooks/useQuickCreate";
 import { useReferencesDialog } from "../common/ReferencesButton";
 import { reportFailure } from "../../utils/failureToast";
 import { EmptyState } from "../common/EmptyState";
+import { isImeComposing } from "../../utils/imeKeys";
 
 const STORAGE_KEY = "list-view-mode:page-layout-list";
 const TAB_ID = makeTabId("page-layout-list", "main");
@@ -630,7 +631,7 @@ export function PageLayoutListView() {
                   placeholder="例: Main Layout"
                   autoFocus
                   className={addNameError ? "input-error" : undefined}
-                  onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !isImeComposing(e)) handleAdd(); }}
                 />
                 {addNameError && <span className="tbl-field-error">{addNameError}</span>}
               </label>

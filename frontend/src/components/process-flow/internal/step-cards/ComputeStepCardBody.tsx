@@ -9,13 +9,14 @@ import type {
 
 export interface ComputeStepCardBodyProps
   extends StepCardBodyBaseProps<ComputeStep>,
-    Pick<StepCardBodyCatalogProps, "conventions"> {}
+    Pick<StepCardBodyCatalogProps, "conventions" | "group"> {}
 
 export function ComputeStepCardBody({
   step,
   onChange,
   onCommit,
   conventions,
+  group,
 }: ComputeStepCardBodyProps) {
   return (
     <div className="row g-2 mb-2" data-field-path="expression">
@@ -30,6 +31,8 @@ export function ComputeStepCardBody({
           onValueChange={(v) => onChange({ expression: v })}
           onCommit={onCommit}
           conventions={conventions ?? null}
+          flow={group}
+          stepId={step.id}
           placeholder="例: Math.floor(@subtotal * 0.10) / @subtotal + @taxAmount"
           style={{ fontFamily: "monospace" }}
         />

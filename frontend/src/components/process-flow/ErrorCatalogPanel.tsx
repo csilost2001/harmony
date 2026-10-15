@@ -10,6 +10,7 @@ import { useWorkspaceReferences } from "../../hooks/useWorkspaceReferences";
 import { exceptionTypeRefResolver } from "../../utils/reference-completer/workspaceResolver";
 import { ReferenceCompletionInput } from "../common/ReferenceCompletionInput";
 import { EmptyState } from "../common/EmptyState";
+import { isImeComposing } from "../../utils/imeKeys";
 
 // schema: `^generic-definitions/exception-type/[A-Za-z][A-Za-z0-9_]*$`
 const EXCEPTION_TYPE_REF_PREFIX = "generic-definitions/exception-type/";
@@ -169,7 +170,7 @@ export function ErrorCatalogPanel({ group, onChange, expanded: expandedProp, onE
               placeholder="新規 errorCode (例: STOCK_SHORTAGE)"
               value={newKey}
               onChange={(ev) => setNewKey(ev.target.value)}
-              onKeyDown={(ev) => { if (ev.key === "Enter") { ev.preventDefault(); addEntry(); } }}
+              onKeyDown={(ev) => { if (ev.key === "Enter" && !isImeComposing(ev)) { ev.preventDefault(); addEntry(); } }}
             />
             <button
               type="button"

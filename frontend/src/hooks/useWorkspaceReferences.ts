@@ -9,7 +9,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { loadProject } from "../store/flowStore";
-import { listTables } from "../store/tableStore";
+import { loadAllTables } from "../store/tableStore";
 import { listViewDefinitions } from "../store/viewDefinitionStore";
 import { listGenericDefinitions } from "../store/genericDefinitionStore";
 import { loadAllProcessFlows, loadProcessFlow } from "../store/processFlowStore";
@@ -46,7 +46,7 @@ export function useWorkspaceReferences(): WorkspaceRefs {
       const [projectResult, tablesResult, viewDefsResult, componentsResult, exceptionsResult, catalogsResult] =
         await Promise.allSettled([
           loadProject(),
-          listTables(),
+          loadAllTables(),
           listViewDefinitions(),
           listGenericDefinitions("component-definition"),
           listGenericDefinitions("exception-type"),
@@ -84,6 +84,14 @@ export function useWorkspaceReferences(): WorkspaceRefs {
           physicalName: t.physicalName ?? "",
           name: t.name,
           maturity: t.maturity,
+          columns: (t.columns ?? []).map((c) => ({
+            physicalName: c.physicalName,
+            name: c.name,
+            dataType: c.dataType,
+            length: c.length,
+            primaryKey: c.primaryKey,
+            notNull: c.notNull,
+          })),
         })),
         viewDefinitions: viewDefsData.map((v) => ({
           id: v.id as unknown as string,

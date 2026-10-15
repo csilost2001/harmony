@@ -12,13 +12,14 @@ import type {
 
 export interface ReturnStepCardBodyProps
   extends StepCardBodyBaseProps<ReturnStep>,
-    Pick<StepCardBodyCatalogProps, "conventions"> {}
+    Pick<StepCardBodyCatalogProps, "conventions" | "group"> {}
 
 export function ReturnStepCardBody({
   step,
   onChange,
   onCommit,
   conventions,
+  group,
 }: ReturnStepCardBodyProps) {
   return (
     <div className="row g-2 mb-2">
@@ -44,6 +45,8 @@ export function ReturnStepCardBody({
           onValueChange={(v) => onChange({ bodyExpression: (v || undefined) as TemplateString | undefined })}
           onCommit={onCommit}
           conventions={conventions ?? null}
+          flow={group}
+          stepId={step.id}
           placeholder="例: { code: 'STOCK_SHORTAGE', detail: @shortageList }"
           style={{ fontFamily: "monospace" }}
         />

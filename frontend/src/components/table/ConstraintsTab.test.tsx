@@ -131,4 +131,34 @@ describe("ConstraintsTab", () => {
 
     expect(updateFn).toHaveBeenCalledTimes(1);
   });
+
+  describe("外部キーの候補", () => {
+    const orgs = ({
+      id: TABLE_B_ID, name: "Orgs", physicalName: "orgs",
+      columns: [{ id: "o1", physicalName: "id", name: "ID", dataType: "INTEGER", primaryKey: true }],
+    } as unknown) as Table;
+    const users = makeTable({
+      columns: [
+        { id: "c1", physicalName: "id", name: "ID", dataType: "INTEGER", primaryKey: true },
+        { id: "c2", physicalName: "org_id", name: "組織", dataType: "INTEGER" },
+      ],
+    });
+
+    it("カラム名から外部キーの候補を出し、「外部キーにする」で制約を足す", () => {
+      const update = vi.fn();
+      const { getByTestId, container } = render(<ConstraintsTab table={users} update={update} allTables={[users, orgs]} />);
+      expect(container.textContent).toContain("users.org_id");
+      expect(container.textContent).toContain("orgs.id");
+      fireEvent.click(getByTestId("fk-suggest-add-org_id"));
+      expect(update).toHaveBeenCalledTimes(1);
+      const t = JSON.parse(JSON.stringify(users)) as Table;
+      update.mock.calls[0][0](t);
+      expect(t.constraints?.[0]).toMatchObject({ kind: "foreignKey", columnIds: ["c2"], referencedTableId: TABLE_B_ID, referencedColumnIds: ["o1"] });
+    });
+
+    it("候補が無ければ候補の欄を出さない", () => {
+      const { queryByTestId } = render(<ConstraintsTab table={makeTable()} update={vi.fn()} allTables={[]} />);
+      expect(queryByTestId("fk-suggestions")).toBeNull();
+    });
+  });
 });

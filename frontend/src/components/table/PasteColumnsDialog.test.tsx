@@ -52,3 +52,38 @@ describe("PasteColumnsDialog", () => {
     expect(onApply).toHaveBeenCalledWith([], [{ id: "c1", physicalName: "id", patch: { name: "識別子" } }]);
   });
 });
+
+describe("PasteColumnsDialog — 列の対応", () => {
+  it("見出しが無い表でも、列ごとに項目を選び直して読める", () => {
+    const onApply = vi.fn();
+    render(<PasteColumnsDialog existing={[]} onApply={onApply} onClose={vi.fn()} />);
+    // 1 列目が表示名、2 列目が物理名 (決まった順とは逆)
+    fireEvent.change(screen.getByTestId("paste-columns-text"), { target: { value: "顧客ID\tcustomer_id\n顧客名\tcustomer_name" } });
+    expect(screen.getByTestId("paste-columns-mapping")).toHaveTextContent("見出しが無いため");
+    fireEvent.change(screen.getByTestId("paste-columns-map-0"), { target: { value: "name" } });
+    fireEvent.change(screen.getByTestId("paste-columns-map-1"), { target: { value: "physicalName" } });
+    expect(screen.getByTestId("paste-columns-mapping")).toHaveTextContent("選び直しました");
+    expect(screen.getByTestId("paste-columns-preview")).toHaveTextContent("customer_id");
+    fireEvent.click(screen.getByTestId("paste-columns-add"));
+    expect(onApply.mock.calls[0][0].map((c: { physicalName: string; name: string }) => [c.physicalName, c.name])).toEqual([["customer_id", "顧客ID"], ["customer_name", "顧客名"]]);
+  });
+
+  it("同じ項目を 2 つの列に選ぶと、前に選んだ列は読み取らない扱いになる / 文を変えると自動の対応に戻る", () => {
+    render(<PasteColumnsDialog existing={[]} onApply={vi.fn()} onClose={vi.fn()} />);
+    fireEvent.change(screen.getByTestId("paste-columns-text"), { target: { value: "a\tb\tc" } });
+    fireEvent.change(screen.getByTestId("paste-columns-map-2"), { target: { value: "physicalName" } });
+    expect((screen.getByTestId("paste-columns-map-0") as HTMLSelectElement).value).toBe("");
+    expect((screen.getByTestId("paste-columns-map-2") as HTMLSelectElement).value).toBe("physicalName");
+    fireEvent.change(screen.getByTestId("paste-columns-text"), { target: { value: "a\tb\tc\td" } });
+    expect((screen.getByTestId("paste-columns-map-0") as HTMLSelectElement).value).toBe("physicalName");
+  });
+
+  it("見出しの扱いを切り替えられる", () => {
+    render(<PasteColumnsDialog existing={[]} onApply={vi.fn()} onClose={vi.fn()} />);
+    fireEvent.change(screen.getByTestId("paste-columns-text"), { target: { value: "x\ty\nid\tID" } });
+    fireEvent.click(screen.getByTestId("paste-columns-has-header"));
+    fireEvent.change(screen.getByTestId("paste-columns-map-0"), { target: { value: "physicalName" } });
+    expect(screen.getByTestId("paste-columns-preview")).toHaveTextContent("id");
+    expect(screen.getByTestId("paste-columns-preview")).not.toHaveTextContent("x");
+  });
+});

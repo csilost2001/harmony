@@ -25,6 +25,7 @@ import { SortableList, SortableRow } from "../common/SortableList";
 import { moveById } from "../../utils/reorder";
 import "../../styles/businessFlow.css";
 import { UndoHistoryPanel } from "../common/UndoHistoryPanel";
+import { SearchableSelect } from "../common/SearchableSelect";
 
 type Selection = { kind: "step" | "lane"; id: string } | null;
 const STEP_ICON: Record<StepKind, string> = { start: "bi-play-circle", task: "bi-square", decision: "bi-diamond", end: "bi-stop-circle" };
@@ -380,18 +381,14 @@ function StepInspector(props: {
       </div>
       <label className="bfe-field"><span>説明 <small className="bfe-hint-inline">(**太字** と `コード` が使えます)</small></span><textarea rows={3} value={step.description ?? ""} onChange={(e) => props.onPatch({ description: e.target.value })} /></label>
       <label className="bfe-field"><span>実現する画面</span>
-        <select value={step.screenRef ?? ""} onChange={(e) => props.onPatch({ screenRef: e.target.value })} data-testid="bf-step-screen">
-          <option value="">(なし)</option>
-          {props.screens.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-          {step.screenRef && !props.screens.some((s) => s.id === step.screenRef) && <option value={step.screenRef}>{step.screenRef} (存在しない)</option>}
-        </select>
+        <SearchableSelect value={step.screenRef ?? ""} onChange={(v) => props.onPatch({ screenRef: v })} data-testid="bf-step-screen"
+          emptyLabel="(なし)" historyKey="screen" ariaLabel="実現する画面"
+          options={[...props.screens.map((s) => ({ value: s.id, label: s.name })), ...(step.screenRef && !props.screens.some((s) => s.id === step.screenRef) ? [{ value: step.screenRef, label: `${step.screenRef} (存在しない)` }] : [])]} />
       </label>
       <label className="bfe-field"><span>実現する処理フロー</span>
-        <select value={step.processFlowRef ?? ""} onChange={(e) => props.onPatch({ processFlowRef: e.target.value })} data-testid="bf-step-flow">
-          <option value="">(なし)</option>
-          {props.flows.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
-          {step.processFlowRef && !props.flows.some((f) => f.id === step.processFlowRef) && <option value={step.processFlowRef}>{step.processFlowRef} (存在しない)</option>}
-        </select>
+        <SearchableSelect value={step.processFlowRef ?? ""} onChange={(v) => props.onPatch({ processFlowRef: v })} data-testid="bf-step-flow"
+          emptyLabel="(なし)" historyKey="processFlow" ariaLabel="実現する処理フロー"
+          options={[...props.flows.map((f) => ({ value: f.id, label: f.name })), ...(step.processFlowRef && !props.flows.some((f) => f.id === step.processFlowRef) ? [{ value: step.processFlowRef, label: `${step.processFlowRef} (存在しない)` }] : [])]} />
       </label>
       <div className="bfe-next">
         <h5>次の工程</h5>

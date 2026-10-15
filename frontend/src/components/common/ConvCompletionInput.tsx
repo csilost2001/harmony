@@ -1,6 +1,8 @@
-import { useState, useRef, useCallback } from "react";
 import type { ConventionsCatalog } from "../../schemas/conventionsValidator";
-import { computeCompletion, insertCandidate } from "../../hooks/useConvCompletion";
+import type { ProcessFlow } from "../../types/v3";
+import { convResolver } from "../../utils/reference-completer/convResolver";
+import { EXPRESSION_RESOLVERS, expressionCtx } from "../../utils/reference-completer/expressionPreset";
+import { ReferenceCompletionInput } from "./ReferenceCompletionInput";
 
 interface ConvCompletionInputProps {
   value: string;
@@ -11,147 +13,35 @@ interface ConvCompletionInputProps {
   style?: React.CSSProperties;
   placeholder?: string;
   disabled?: boolean;
+  /**
+   * 編集中の処理フロー。渡すと、規約 (@conv) に加えて、直前の工程の結果・入力・変数・
+   * 自分・この設計の参照も候補になる (式・条件の欄用)。渡さなければ @conv だけ。
+   */
+  flow?: ProcessFlow | null;
+  /** 編集中の工程の id (@self の補完用)。 */
+  stepId?: string;
 }
 
 /**
- * @conv.* 補完ポップアップ付き input。
- * `@conv.` 入力でカテゴリ一覧、`@conv.currency.` で key 一覧を表示する。
- * ↑↓ で選択、Enter/Tab で確定、Esc で閉じる。
+ * 式の入力欄 (補完ポップアップ付き)。`@conv.` 入力でカテゴリ一覧、`@conv.currency.` で key 一覧を表示する。
+ * 操作は ReferenceCompletionInput と同じ (↑↓ で選択、Tab / Enter で確定、Esc で閉じる、Ctrl+Space で開く)。
  */
-export function ConvCompletionInput({
-  value,
-  onValueChange,
-  onCommit,
-  conventions,
-  className,
-  style,
-  placeholder,
-  disabled,
-}: ConvCompletionInputProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [cursorPos, setCursorPos] = useState(0);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [suppressed, setSuppressed] = useState(false);
-
-  const state = suppressed
-    ? ({ phase: "idle" } as const)
-    : computeCompletion(value, cursorPos, conventions);
-
-  const candidates = state.phase !== "idle" ? state.candidates : [];
-  const isOpen = candidates.length > 0;
-  const safeIndex = candidates.length > 0 ? Math.min(activeIndex, candidates.length - 1) : 0;
-
-  const pick = useCallback((candidate: string) => {
-    const pos = inputRef.current?.selectionStart ?? value.length;
-    const st = computeCompletion(value, pos, conventions);
-    if (st.phase === "idle") return;
-    const { newValue, newCursor } = insertCandidate(value, pos, st, candidate, conventions);
-    onValueChange(newValue);
-    setSuppressed(false);
-    setActiveIndex(0);
-    setCursorPos(newCursor);
-    requestAnimationFrame(() => {
-      inputRef.current?.setSelectionRange(newCursor, newCursor);
-      inputRef.current?.focus();
-    });
-  }, [value, conventions, onValueChange]);
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!isOpen) return;
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setActiveIndex((i) => (i + 1) % candidates.length);
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setActiveIndex((i) => (i - 1 + candidates.length) % candidates.length);
-    } else if (e.key === "Enter" || e.key === "Tab") {
-      if (candidates[safeIndex]) {
-        e.preventDefault();
-        pick(candidates[safeIndex]);
-      }
-    } else if (e.key === "Escape") {
-      e.preventDefault();
-      setSuppressed(true);
-    }
-  };
-
-  return (
-    <div style={{ position: "relative" }}>
-      <input
-        ref={inputRef}
-        type="text"
-        className={className}
-        style={style}
-        value={value}
-        placeholder={placeholder}
-        autoComplete="off"
-        disabled={disabled}
-        onChange={(e) => {
-          const pos = e.target.selectionStart ?? e.target.value.length;
-          setCursorPos(pos);
-          setActiveIndex(0);
-          setSuppressed(false);
-          onValueChange(e.target.value);
-        }}
-        onKeyDown={handleKeyDown}
-        onSelect={(e) => {
-          setCursorPos((e.target as HTMLInputElement).selectionStart ?? 0);
-        }}
-        onBlur={() => {
-          setTimeout(() => setSuppressed(true), 150);
-          onCommit?.();
-        }}
-        onFocus={() => setSuppressed(false)}
+export function ConvCompletionInput({ conventions, flow, stepId, ...rest }: ConvCompletionInputProps) {
+  if (flow) {
+    return (
+      <ReferenceCompletionInput
+        {...rest}
+        resolvers={EXPRESSION_RESOLVERS}
+        ctx={expressionCtx({ conventions, flow, stepId })}
       />
-      {isOpen && (
-        <ul
-          role="listbox"
-          aria-label="@conv 補完候補"
-          style={{
-            position: "absolute",
-            top: "100%",
-            left: 0,
-            zIndex: 9999,
-            background: "var(--hm-surface)",
-            border: "1px solid var(--hm-border-strong)",
-            borderRadius: 6,
-            boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
-            margin: "2px 0 0",
-            padding: "4px 0",
-            minWidth: "16em",
-            maxHeight: "14em",
-            overflowY: "auto",
-            listStyle: "none",
-          }}
-        >
-          {candidates.map((c, i) => (
-            <li
-              key={c}
-              role="option"
-              aria-selected={i === safeIndex}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                pick(c);
-              }}
-              style={{
-                padding: "4px 12px",
-                cursor: "pointer",
-                fontSize: "0.82rem",
-                fontFamily: "ui-monospace, SFMono-Regular, monospace",
-                background: i === safeIndex ? "var(--hm-accent-solid)" : "transparent",
-                color: i === safeIndex ? "var(--hm-on-solid)" : "var(--hm-fg)",
-                borderRadius: i === safeIndex ? 3 : 0,
-                margin: "0 4px",
-              }}
-            >
-              {state.phase === "category"
-                ? <><span style={{ opacity: 0.6 }}>@conv.</span><strong>{c}</strong></>
-                : c
-              }
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+    );
+  }
+  return (
+    <ReferenceCompletionInput
+      {...rest}
+      resolvers={[convResolver]}
+      ctx={{ conventions }}
+      popupLabel="@conv 補完候補"
+    />
   );
 }

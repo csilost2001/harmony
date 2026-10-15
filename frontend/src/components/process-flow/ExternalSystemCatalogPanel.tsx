@@ -4,6 +4,7 @@
 import { useState } from "react";
 import type { ProcessFlow, ExternalSystemCatalogEntry, ExternalAuth, ExternalAuthKind } from "../../types/v3";
 import { EmptyState } from "../common/EmptyState";
+import { isImeComposing } from "../../utils/imeKeys";
 
 interface Props {
   group: ProcessFlow;
@@ -198,7 +199,7 @@ export function ExternalSystemCatalogPanel({ group, onChange, expanded: expanded
               placeholder="新規 system id (例: stripe)"
               value={newKey}
               onChange={(ev) => setNewKey(ev.target.value)}
-              onKeyDown={(ev) => { if (ev.key === "Enter") { ev.preventDefault(); addEntry(); } }}
+              onKeyDown={(ev) => { if (ev.key === "Enter" && !isImeComposing(ev)) { ev.preventDefault(); addEntry(); } }}
             />
             <button
               type="button"

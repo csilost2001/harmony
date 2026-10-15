@@ -15,3 +15,8 @@
 .cg-input:disabled { color: var(--hm-fg-faint); }
 .cg-hint { margin: 0; padding: 6px 10px; font-size: calc(11.5px * var(--hm-font-scale)); color: var(--hm-fg-muted); border-top: 1px solid var(--hm-border); background: var(--hm-surface-2); }
 .columns-selection-actions.is-grid > :not([data-testid="columns-grid-toggle"]):not(.snip-wrap) { display: none; }
+
+.cg-name-cell { display: flex; align-items: center; gap: 2px; }
+.cg-name-cell .cg-input { flex: 1; min-width: 0; }
+.cg-hint-btn { border: none; background: transparent; color: var(--hm-warning); cursor: pointer; padding: 0 2px; font-size: 0.9rem; line-height: 1; }
+.cg-hint-btn:hover:not(:disabled) { color: var(--hm-accent); }

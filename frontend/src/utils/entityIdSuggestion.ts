@@ -13,6 +13,7 @@
  */
 
 import { isValidEntityId } from "./entityIdValidation";
+import { suggestPhysicalName } from "./columnSuggestion";
 import { generateUUID } from "./uuid";
 import type { CodexBrowserClient } from "../codex/codexClient";
 import type { CodexNotification } from "../codex/types";
@@ -352,4 +353,33 @@ function waitForAgentText(
       cleanup();
     },
   };
+}
+
+/**
+ * 名前に含まれる日本語を辞書で英語にして作る kebab-case の ID 候補 (「顧客一覧」→ customer-list)。
+ * 全部を英語にできなかったとき (辞書に無い言葉が残るとき) は null。
+ */
+export function dictionaryIdCandidate(name: string): string | null {
+  const s = suggestPhysicalName(name, undefined, "kebab-case");
+  if (!s?.name || !s.complete) return null;
+  const slug = s.name.replace(/[^a-z0-9-]+/g, "-").replace(/-+/g, "-").replace(/^-+|-+$/g, "").slice(0, MAX_ENTITY_ID_LENGTH).replace(/-+$/g, "");
+  return isValidEntityId(slug) ? slug : null;
+}
+
+/**
+ * 名前から作れる ID の候補 (最大 3 件)。既存の ID と重なるものは、末尾に番号を付けて重ならない形にする。
+ *   1. 名前の英数字部分 (「Customer List」→ customer-list)
+ *   2. 日本語を辞書で英語にしたもの (「顧客一覧」→ customer-list)
+ * 作れなければ空 (日本語の名前で辞書に無い言葉があるとき)。
+ */
+export function entityIdCandidates(name: string, existingIds: readonly string[]): string[] {
+  const out: string[] = [];
+  const push = (id: string | null) => {
+    if (!id || !isValidEntityId(id)) return;
+    const unique = suggestUniqueIdSuffix(id, existingIds);
+    if (!out.includes(unique)) out.push(unique);
+  };
+  if (/[a-zA-Z]/.test(name)) push(slugifyToEntityId(name));
+  push(dictionaryIdCandidate(name));
+  return out.slice(0, 3);
 }

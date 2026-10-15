@@ -3,6 +3,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { setUserName, useUserName, USER_NAME_MAX } from "../../utils/userIdentity";
+import { isImeComposing } from "../../utils/imeKeys";
 
 export function UserNameButton() {
   const name = useUserName();
@@ -41,7 +42,7 @@ export function UserNameButton() {
           onKeyDown={(e) => {
             if (e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) return;
             if (e.key === "Escape") { e.stopPropagation(); setOpen(false); }
-            if (e.key === "Enter") { e.preventDefault(); commit(); }
+            if (e.key === "Enter" && !isImeComposing(e)) { e.preventDefault(); commit(); }
           }}>
           <label htmlFor="user-name-input">あなたの名前</label>
           <input id="user-name-input" ref={inputRef} data-testid="user-name-input" value={draft} maxLength={USER_NAME_MAX}

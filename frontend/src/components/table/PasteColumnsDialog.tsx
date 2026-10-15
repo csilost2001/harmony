@@ -4,7 +4,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
-import { columnUpdates, columnsToTsv, parseColumnTable, splitDuplicates, type ParsedColumn } from "../../utils/columnPaste";
+import { FIELD_LABELS, columnUpdates, columnsToTsv, parseColumnTable, splitDuplicates, type ColumnMapping, type Field, type ParsedColumn } from "../../utils/columnPaste";
 import type { Column } from "../../types/v3/table";
 import { ExcelFileButton } from "../common/ExcelFileButton";
 import "../../styles/pasteColumns.css";
@@ -23,13 +23,25 @@ const FLAG = (v?: boolean) => (v ? "○" : "");
 export function PasteColumnsDialog({ existing, onApply, onClose, initialText = "" }: Props) {
   const trapRef = useRef<HTMLDivElement>(null);
   useFocusTrap(trapRef);
-  const [text, setText] = useState(initialText);
+  const [text, setTextRaw] = useState(initialText);
   const [copied, setCopied] = useState(false);
   const [updateExisting, setUpdateExisting] = useState(false);
   const copyCurrent = () => {
     navigator.clipboard.writeText(columnsToTsv(existing)).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }).catch(() => undefined);
   };
-  const parsed = useMemo(() => parseColumnTable(text), [text]);
+  // 列の対応を利用者が選んだとき (null = 見出しから自動で決める)
+  const [mapping, setMapping] = useState<ColumnMapping | null>(null);
+  // 貼り付けた文が変わったら、利用者が選んだ列の対応は捨てて、見出しからの自動に戻す
+  const setText = (t: string) => { setTextRaw(t); setMapping(null); };
+  const parsed = useMemo(() => parseColumnTable(text, mapping ?? undefined), [text, mapping]);
+  const setFieldAt = (i: number, f: Field | null) => {
+    const order = [...parsed.mapping.order];
+    while (order.length < parsed.columnCount) order.push(null);
+    // 同じ項目を 2 つの列に当てない (あとから選んだ列を優先)
+    if (f) for (let k = 0; k < order.length; k++) if (order[k] === f) order[k] = null;
+    order[i] = f;
+    setMapping({ order, hasHeader: parsed.mapping.hasHeader });
+  };
   const { add, duplicates } = useMemo(() => splitDuplicates(parsed.columns, existing), [parsed.columns, existing]);
 
   const updates = useMemo(() => (updateExisting ? columnUpdates(duplicates, existing, parsed.fields) : []), [updateExisting, duplicates, existing, parsed.fields]);
@@ -61,6 +73,33 @@ export function PasteColumnsDialog({ existing, onApply, onClose, initialText = "
           <textarea className="paste-cols-text" value={text} onChange={(e) => setText(e.target.value)} rows={7} autoFocus
             placeholder={"例:\n物理名\t表示名\tデータ型\t長さ\tNOT NULL\tPK\ncustomer_id\t顧客ID\tBIGINT\t\t○\t○\ncustomer_name\t顧客名\tVARCHAR\t100\t○\t"}
             spellCheck={false} data-testid="paste-columns-text" />
+
+          {parsed.columnCount > 0 && (
+            <details className="paste-cols-mapping" data-testid="paste-columns-mapping" open={!parsed.headerDetected || parsed.mapping.order.some((f) => f === null)}>
+              <summary>列の対応 {mapping ? "(選び直しました)" : parsed.headerDetected ? "(見出しから読みました)" : "(見出しが無いため、決まった順で読みました)"}</summary>
+              <p className="paste-cols-help">列ごとに、何の項目かを選べます。「読み取らない」を選ぶと、その列は無視します。</p>
+              <label className="paste-cols-update">
+                <input type="checkbox" checked={parsed.mapping.hasHeader} data-testid="paste-columns-has-header"
+                  onChange={(e) => setMapping({ order: parsed.mapping.order, hasHeader: e.target.checked })} /> 1 行目は見出し (データに含めない)
+              </label>
+              <table>
+                <tbody>
+                  <tr>{Array.from({ length: parsed.columnCount }, (_, i) => (
+                    <td key={i}>
+                      <select value={parsed.mapping.order[i] ?? ""} aria-label={`${i + 1} 列目の項目`} data-testid={`paste-columns-map-${i}`}
+                        onChange={(e) => setFieldAt(i, (e.target.value || null) as Field | null)}>
+                        <option value="">読み取らない</option>
+                        {(Object.keys(FIELD_LABELS) as Field[]).map((f) => <option key={f} value={f}>{FIELD_LABELS[f]}</option>)}
+                      </select>
+                    </td>
+                  ))}</tr>
+                  {parsed.sampleRows.map((r, ri) => (
+                    <tr key={ri} style={{ color: "var(--hm-fg-muted)" }}>{Array.from({ length: parsed.columnCount }, (_, i) => <td key={i}>{r[i] ?? ""}</td>)}</tr>
+                  ))}
+                </tbody>
+              </table>
+            </details>
+          )}
 
           {parsed.warnings.length > 0 && (
             <ul className="paste-cols-warnings" data-testid="paste-columns-warnings">

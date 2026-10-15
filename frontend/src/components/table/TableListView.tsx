@@ -1,9 +1,11 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
 import type { Table, TableEntry, TableId, PhysicalName, DisplayName, Timestamp } from "../../types/v3";
 import { type SqlDialect, SQL_DIALECT_LABELS } from "../../utils/ddlGenerator";
-import { listTables, createTable, loadTable, saveTable, loadTableValidationMap, commitTables } from "../../store/tableStore";
+import { listTables, createTable, loadTable, saveTable, loadTableValidationMap, commitTables, addColumn } from "../../store/tableStore";
+import { TABLE_STARTERS, starterColumns } from "./tableStarters";
+import { isValidPhysicalName, suggestPhysicalName } from "../../utils/columnSuggestion";
 import { loadProject } from "../../store/flowStore";
 import { generateAllDdl, generateAllTableMarkdown } from "../../utils/ddlGenerator";
 import { mcpBridge } from "../../mcp/mcpBridge";
@@ -37,6 +39,7 @@ import { useQuickCreate } from "../../hooks/useQuickCreate";
 import { useReferencesDialog } from "../common/ReferencesButton";
 import { reportFailure } from "../../utils/failureToast";
 import { EmptyState } from "../common/EmptyState";
+import { isImeComposing } from "../../utils/imeKeys";
 
 const STORAGE_KEY = "list-view-mode:table-list";
 const TAB_ID = makeTabId("table-list", "main");
@@ -67,6 +70,9 @@ export function TableListView() {
   const [addName, setAddName] = useState("");
   const [addLogical, setAddLogical] = useState("");
   const [addCategory, setAddCategory] = useState("");
+  // スターター (最初から入れておくカラムの組)。物理名は、利用者が自分で触るまで、表示名から自動で入れる
+  const [addStarter, setAddStarter] = usePersistentState<string>("harmony.table.addStarter", "empty");
+  const physTouched = useRef(false);
   // RFC #1284 / #1297 I-5: kebab-case Table id + AI 提案ボタン + uniqueness 警告
   const [addId, setAddId] = useState("");
   const [addIdValidation, setAddIdValidation] = useState<EntityIdValidationState>({ isFormatValid: false, isUnique: true, isInvalid: true });
@@ -331,11 +337,17 @@ export function TableListView() {
     if (!physical || !display || addIdValidation.isInvalid) return;
     // RFC #1284 / #1297 I-5: kebab-case id を UI から受け取って store に渡す
     const table = await createTable(physical as PhysicalName, display as DisplayName, "", addCategory || undefined, { id });
+    const starter = starterColumns(addStarter);
+    if (starter.length > 0) {
+      for (const c of starter) addColumn(table, c);
+      await saveTable(table);
+    }
     setShowAdd(false);
     setAddName("");
     setAddLogical("");
     setAddCategory("");
     setAddId("");
+    physTouched.current = false;
     // #960: 「作成して編集」は auto-edit モードで Editor を開く (sessionStorage 経由)。
     sessionStorage.setItem(`harmony-auto-edit:table:${table.id}`, "1");
     navigate(wsPath(`/table/edit/${table.id}`));
@@ -748,10 +760,10 @@ export function TableListView() {
                 <input
                   type="text"
                   value={addName}
-                  onChange={(e) => setAddName(e.target.value)}
+                  onChange={(e) => { physTouched.current = e.target.value !== ""; setAddName(e.target.value); }}
                   placeholder="例: customers"
                   autoFocus
-                  onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !isImeComposing(e)) handleAdd(); }}
                 />
               </label>
               <label className="tbl-field">
@@ -759,10 +771,23 @@ export function TableListView() {
                 <input
                   type="text"
                   value={addLogical}
-                  onChange={(e) => setAddLogical(e.target.value)}
+                  onChange={(e) => {
+                    setAddLogical(e.target.value);
+                    // 物理名をまだ決めていなければ、表示名から (辞書で全部を英語にできたときだけ) 入れる
+                    if (!physTouched.current) {
+                      const sug = suggestPhysicalName(e.target.value)?.name ?? "";
+                      setAddName(isValidPhysicalName(sug) ? sug : "");
+                    }
+                  }}
                   placeholder="例: 顧客マスタ"
-                  onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !isImeComposing(e)) handleAdd(); }}
                 />
+              </label>
+              <label className="tbl-field">
+                <span>最初のカラム</span>
+                <select value={addStarter} onChange={(e) => setAddStarter(e.target.value)} data-testid="table-add-starter">
+                  {TABLE_STARTERS.map((st) => <option key={st.id} value={st.id} title={st.description}>{st.label}</option>)}
+                </select>
               </label>
               <label className="tbl-field">
                 <span>カテゴリ</span>

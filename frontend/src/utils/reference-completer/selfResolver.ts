@@ -13,6 +13,7 @@
  */
 
 import type { CompletionContext, CompletionState, Resolver } from "./types";
+import { looseMatch } from "../textMatch";
 import {
   SELF_COLUMN_FIELD_NAMES,
   SELF_REGION_FIELD_NAMES,
@@ -93,7 +94,7 @@ export const selfResolver: Resolver = {
     const prefix = m[1];
     const fields = selfRef.fields ?? FIELDS_BY_SELF_KIND[selfRef.kind] ?? [];
     const candidates = fields
-      .filter((f) => f.name.startsWith(prefix))
+      .filter((f) => looseMatch(f.name, prefix))
       .map((f) => {
         const label = "label" in f && f.label ? f.label : f.name;
         return {

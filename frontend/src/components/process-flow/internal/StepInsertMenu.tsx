@@ -8,6 +8,8 @@ import { STEP_TYPE_ICONS, STEP_TYPE_LABELS } from "../../../utils/processFlowMet
 import { normalizeQuery } from "../../../utils/quickOpen";
 import { useFocusTrap } from "../../../hooks/useFocusTrap";
 import "../../../styles/stepInsertMenu.css";
+import { isImeComposing } from "../../../utils/imeKeys";
+import { suggestNextKinds, type TransitionStats } from "../../../utils/stepSuggestion";
 
 interface Props {
   kinds: readonly StepKind[];
@@ -15,6 +17,12 @@ interface Props {
   where?: string;
   onPick: (kind: StepKind) => void;
   onClose: () => void;
+  /** true なら、直前の工程の種類 (previousKind) から、この後によく置かれる種類を上に出す */
+  suggest?: boolean;
+  /** 直前の工程の種類。無ければ (先頭・末尾など) 処理の先頭の目安を使う */
+  previousKind?: string;
+  /** ワークスペースの処理フローから数えた、種類の並びの実績 */
+  stats?: TransitionStats;
 }
 
 /** 種類を絞り込む (日本語名・種類名・説明に、空白区切りの語がすべて含まれる)。空なら全部 */
@@ -27,13 +35,21 @@ export function filterStepKinds(kinds: readonly StepKind[], query: string): Step
   });
 }
 
-export function StepInsertMenu({ kinds, where, onPick, onClose }: Props) {
+export function StepInsertMenu({ kinds, where, onPick, onClose, suggest = false, previousKind, stats }: Props) {
   const [query, setQuery] = useState("");
   const [cursor, setCursor] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   useFocusTrap(rootRef);
-  const hits = useMemo(() => filterStepKinds(kinds, query), [kinds, query]);
+  const suggestions = useMemo(() => (suggest ? suggestNextKinds(kinds, previousKind, stats) : []), [suggest, kinds, previousKind, stats]);
+  const suggestedBy = useMemo(() => new Map(suggestions.map((x) => [x.kind, x])), [suggestions]);
+  // 入力が空のときは、この後によく置かれる種類を先頭に並べる (入力があるときは、元の順で絞り込むだけ)
+  const hits = useMemo(() => {
+    const filtered = filterStepKinds(kinds, query);
+    if (query.trim() !== "" || suggestions.length === 0) return filtered;
+    const first = suggestions.map((x) => x.kind as StepKind).filter((k) => filtered.includes(k));
+    return [...first, ...filtered.filter((k) => !first.includes(k))];
+  }, [kinds, query, suggestions]);
 
   useEffect(() => { setCursor(0); }, [query]);
   useEffect(() => { listRef.current?.querySelector<HTMLElement>(`[data-index="${cursor}"]`)?.scrollIntoView?.({ block: "nearest" }); }, [cursor]);
@@ -43,7 +59,7 @@ export function StepInsertMenu({ kinds, where, onPick, onClose }: Props) {
     if (e.key === "Escape") { e.preventDefault(); onClose(); }
     else if (e.key === "ArrowDown") { e.preventDefault(); setCursor((c) => Math.min(c + 1, Math.max(hits.length - 1, 0))); }
     else if (e.key === "ArrowUp") { e.preventDefault(); setCursor((c) => Math.max(c - 1, 0)); }
-    else if (e.key === "Enter") { e.preventDefault(); if (hits[cursor]) onPick(hits[cursor]); }
+    else if (e.key === "Enter" && !isImeComposing(e)) { e.preventDefault(); if (hits[cursor]) onPick(hits[cursor]); }
   };
 
   return (
@@ -83,6 +99,12 @@ export function StepInsertMenu({ kinds, where, onPick, onClose }: Props) {
               <i className={STEP_TYPE_ICONS[k] ?? "bi bi-circle"} />
               <span className="step-insert-label">{STEP_TYPE_LABELS[k] ?? k}</span>
               <span className="step-insert-kind">{k}</span>
+              {query.trim() === "" && suggestedBy.has(k) && (
+                <span className="step-insert-suggest" data-testid="step-insert-suggest"
+                  title={suggestedBy.get(k)!.count ? `このワークスペースで、直前の工程の後に ${suggestedBy.get(k)!.count} 回置かれています` : "よくある処理の流れから"}>
+                  おすすめ
+                </span>
+              )}
             </li>
           ))}
         </ul>

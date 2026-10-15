@@ -13,6 +13,7 @@ import type { Screen } from "../../types/v3/screen";
 import type { Marker, MarkerKind } from "../../types/v3/common";
 import type { ScreenNode } from "../../types/flow";
 import { generateUUID } from "../../utils/uuid";
+import { isImeComposing } from "../../utils/imeKeys";
 
 // ── 定数 ────────────────────────────────────────────────────────────────────
 
@@ -303,7 +304,7 @@ export function FlowMarkerPanel({
                     placeholder="解決メモ (任意): 何をしたか・なぜ閉じるか"
                     onChange={(e) => setResolveNote(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                      if ((e.key === "Enter" && !isImeComposing(e)) && (e.ctrlKey || e.metaKey)) {
                         e.preventDefault();
                         void handleConfirmResolve(screenId, m.id);
                       } else if (e.key === "Escape") {
@@ -392,7 +393,7 @@ export function FlowMarkerPanel({
               value={newBody}
               onChange={(e) => setNewBody(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
+                if ((e.key === "Enter" && !isImeComposing(e)) && !e.shiftKey) {
                   e.preventDefault();
                   void handleAdd();
                 }

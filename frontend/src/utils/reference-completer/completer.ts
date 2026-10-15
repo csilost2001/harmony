@@ -5,6 +5,7 @@
  * Resolver 一覧を受け取り、最初にマッチした Resolver の CompletionState を返す。
  */
 
+import { bestRank } from "../textMatch";
 import type { Candidate, CompletionContext, CompletionState, Resolver } from "./types";
 
 /**
@@ -19,7 +20,7 @@ export function computeReferenceCompletion(
 ): CompletionState {
   for (const r of resolvers) {
     const s = r.match(value, cursorPos, ctx);
-    if (s && s.phase === "active") return s;
+    if (s && s.phase === "active") return withPrefixFirst(s);
   }
   return { phase: "idle" };
 }
@@ -40,4 +41,14 @@ export function insertReferenceCandidate(
   const inserted = picked.value + (picked.trailing ?? "");
   const newBefore = before.slice(0, before.length - state.replaceLen) + inserted;
   return { newValue: newBefore + after, newCursor: newBefore.length };
+}
+
+/** 候補を「前方一致 → 部分一致」の順に並べる (補完ごとの絞り方の違いを、並びで揃える)。同順位は元の順。 */
+function withPrefixFirst(state: Extract<CompletionState, { phase: "active" }>): CompletionState {
+  if (state.prefix === "" || state.candidates.length < 2) return state;
+  const ranked = state.candidates
+    .map((c, i) => ({ c, i, r: bestRank([c.value, c.label], state.prefix) }))
+    .sort((a, b) => (a.r === -1 ? 1 : a.r) - (b.r === -1 ? 1 : b.r) || a.i - b.i)
+    .map((x) => x.c);
+  return { ...state, candidates: ranked };
 }
