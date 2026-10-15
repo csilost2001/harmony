@@ -110,6 +110,11 @@ export const MENU_ITEMS: MenuItem[] = [
     group: "出力",
   },
   {
+    id: "markers", label: "マーカー (AI への指示)", icon: "bi-megaphone", route: "/markers",
+    activePaths: ["/markers"],
+    group: "出力",
+  },
+  {
     id: "operations", label: "連携と運用", icon: "bi-diagram-2", route: "/operations",
     activePaths: ["/operations"],
     group: "出力",

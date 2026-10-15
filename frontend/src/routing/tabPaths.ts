@@ -28,6 +28,7 @@ export function tabPath(wp: string, tab: Pick<TabItem, "type" | "resourceId">): 
     case "design-document": return `${wp}/document`;
     case "design-analysis": return `${wp}/analysis`;
     case "operations": return `${wp}/operations`;
+    case "markers": return `${wp}/markers`;
     case "screen-items": return `${wp}/screen/items/${id}`;
     case "sequence-list": return `${wp}/sequence/list`;
     case "view-list": return `${wp}/view/list`;
