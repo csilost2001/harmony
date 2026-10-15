@@ -81,4 +81,22 @@ describe("ColumnGrid (表で編集)", () => {
     expect(onAppend).not.toHaveBeenCalled();
     expect((screen.getByLabelText("customer_nameのデータ型") as HTMLSelectElement).disabled).toBe(true);
   });
+
+  it("名前のヒント (用語・表記のずれ) があれば電球を出し、クリックで物理名を合わせる。読み取り専用では押せない", () => {
+    const hintsFor = (c: Column) => (c.id === "col-02" ? [{ kind: "term" as const, message: "ほかのテーブルでは、「顧客名」は cust_nm です (3 件)", fix: "cust_nm" }] : []);
+    const { onUpdateColumn, unmount } = setup({ hintsFor });
+    expect(screen.queryAllByTestId("column-hint-term")).toHaveLength(1);
+    fireEvent.click(screen.getByTestId("column-hint-term"));
+    expect(onUpdateColumn).toHaveBeenCalledWith("col-02", { physicalName: "cust_nm" });
+    unmount();
+    setup({ hintsFor, readonly: true });
+    expect(screen.getByTestId("column-hint-term")).toBeDisabled();
+  });
+
+  it("ヒントが無ければ電球を出さない", () => {
+    setup({ hintsFor: () => [] });
+    expect(screen.queryByTestId("column-hint-term")).toBeNull();
+    setup();
+    expect(screen.queryByTestId("column-hint-case")).toBeNull();
+  });
 });

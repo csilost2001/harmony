@@ -146,3 +146,38 @@ describe("planColumnAutofill", () => {
     expect(planColumnAutofill(blank, "削除フラグ", [])?.patch).toMatchObject({ dataType: "BOOLEAN", notNull: true, physicalName: "deleted_flag" });
   });
 });
+
+import { columnNameHints } from "./columnSuggestion";
+
+describe("columnNameHints", () => {
+  const index = buildTermIndex([
+    [{ physicalName: "customer_name", name: "顧客名" }],
+    [{ physicalName: "customer_name", name: "顧客名" }],
+    [{ physicalName: "once_only", name: "一回だけ" }],
+  ]);
+
+  it("同じ表示名がほかでは別の物理名 (2 件以上) なら、用語のヒントを出す", () => {
+    const h = columnNameHints({ physicalName: "cust_nm", name: "顧客名" }, index);
+    expect(h).toHaveLength(1);
+    expect(h[0]).toMatchObject({ kind: "term", fix: "customer_name" });
+    expect(h[0].message).toContain("2 件");
+  });
+
+  it("同じ物理名なら出さない / 1 件だけの使われ方では出さない / camelCase と snake_case の違いは表記のヒントにする", () => {
+    expect(columnNameHints({ physicalName: "customer_name", name: "顧客名" }, index)).toEqual([]);
+    expect(columnNameHints({ physicalName: "other", name: "一回だけ" }, index)).toEqual([]);
+    const h = columnNameHints({ physicalName: "customerName", name: "顧客名" }, index);
+    expect(h).toEqual([expect.objectContaining({ kind: "case", fix: "customer_name" })]);
+  });
+
+  it("規約の表記で判定する", () => {
+    expect(columnNameHints({ physicalName: "customer_name", name: "x" }, undefined, "camelCase")).toEqual([expect.objectContaining({ fix: "customerName" })]);
+    expect(columnNameHints({ physicalName: "customerName", name: "x" }, undefined, "camelCase")).toEqual([]);
+  });
+
+  it("仮の列・空・英数字以外を含む物理名では出さない", () => {
+    expect(columnNameHints({ physicalName: "new_column", name: "x" }, index)).toEqual([]);
+    expect(columnNameHints({ physicalName: "", name: "x" }, index)).toEqual([]);
+    expect(columnNameHints({ physicalName: "顧客名", name: "x" }, index)).toEqual([]);
+  });
+});

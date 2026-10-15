@@ -277,3 +277,40 @@ export function planColumnAutofill(
   if (notes.length === 0) return null;
   return { patch, message: `「${display}」から ${notes.join("・")} を入れました (Ctrl+Z で元に戻せます)` };
 }
+
+export interface ColumnNameHint {
+  kind: "term" | "case";
+  message: string;
+  /** 「合わせる」で入れる物理名 */
+  fix: string;
+}
+
+/**
+ * カラムの名前についての、入力中のヒント (保存後の「設計の分析」を待たずに、その場で気づけるように)。
+ *   - 用語: 同じ表示名のカラムが、ほかのテーブルでは別の物理名になっている (2 件以上で使われている物理名があるとき)
+ *   - 表記: 物理名が、規約の表記 (snake_case など) になっていない
+ */
+export function columnNameHints(
+  col: { physicalName: string; name: string },
+  index: TermIndex | undefined,
+  convention: NamingConvention = "snake_case",
+): ColumnNameHint[] {
+  if (isPlaceholderColumn(col) || !col.physicalName || !col.name) return [];
+  const hints: ColumnNameHint[] = [];
+  const known = index?.byDisplay.get(col.name);
+  if (known && known.count >= 2 && splitWords(known.physicalName).join("_") !== splitWords(col.physicalName).join("_")) {
+    hints.push({
+      kind: "term",
+      message: `ほかのテーブルでは、「${col.name}」は ${known.physicalName} です (${known.count} 件)`,
+      fix: known.physicalName,
+    });
+  }
+  if (/^[A-Za-z0-9_-]+$/.test(col.physicalName)) {
+    const words = splitWords(col.physicalName);
+    const expected = applyNamingConvention(words, convention);
+    if (words.length > 0 && expected !== col.physicalName && !hints.some((h) => h.fix === expected)) {
+      hints.push({ kind: "case", message: `${convention} の表記では ${expected} です`, fix: expected });
+    }
+  }
+  return hints;
+}

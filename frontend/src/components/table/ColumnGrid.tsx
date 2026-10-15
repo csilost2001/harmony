@@ -9,6 +9,7 @@
 import { useGridKeyboard } from "../../hooks/useGridKeyboard";
 import type { BuiltinDataType, Column, DisplayName, PhysicalName } from "../../types/v3";
 import { DATA_TYPE_LABELS, DATA_TYPES_WITH_LENGTH, DATA_TYPES_WITH_SCALE } from "./tableConstants";
+import type { ColumnNameHint } from "../../utils/columnSuggestion";
 import "../../styles/columnGrid.css";
 
 interface Props {
@@ -17,6 +18,8 @@ interface Props {
   onUpdateColumn: (id: string, patch: Partial<Column>) => void;
   /** 最後の行の Enter (値があるとき) で、カラムを 1 つ追加する */
   onAppend: () => void;
+  /** 物理名についてのヒント (用語・表記のずれ)。あれば行に電球を出し、クリックで合わせる */
+  hintsFor?: (c: Column) => ColumnNameHint[];
 }
 
 /** 文字のセル。セルを出るときに、変わっていれば 1 回だけ反映する (外から値が変わったら、作り直して追従する) */
@@ -40,7 +43,7 @@ function NumberCell({ value, label, readonly, disabled, onCommit }: { value: num
   );
 }
 
-export function ColumnGrid({ columns, readonly, onUpdateColumn, onAppend }: Props) {
+export function ColumnGrid({ columns, readonly, onUpdateColumn, onAppend, hintsFor }: Props) {
   const grid = useGridKeyboard({ onAppendRow: readonly ? undefined : onAppend });
   const flag = (c: Column, key: "notNull" | "primaryKey" | "unique" | "autoIncrement", label: string) => (
     <input type="checkbox" checked={c[key] ?? false} disabled={readonly} aria-label={`${c.physicalName}の${label}`}
@@ -61,7 +64,18 @@ export function ColumnGrid({ columns, readonly, onUpdateColumn, onAppend }: Prop
           {columns.map((c, i) => (
             <tr key={c.id} data-testid="column-grid-row">
               <td className="cg-no">{i + 1}</td>
-              <td><TextCell value={c.physicalName} label={`${i + 1} 行目の物理名`} readonly={readonly} mono onCommit={(v) => onUpdateColumn(c.id, { physicalName: v as PhysicalName })} /></td>
+              <td>
+                <div className="cg-name-cell">
+                  <TextCell value={c.physicalName} label={`${i + 1} 行目の物理名`} readonly={readonly} mono onCommit={(v) => onUpdateColumn(c.id, { physicalName: v as PhysicalName })} />
+                  {(hintsFor?.(c) ?? []).slice(0, 1).map((h) => (
+                    <button key={h.kind} type="button" className="cg-hint-btn" disabled={readonly} data-testid={`column-hint-${h.kind}`}
+                      title={`${h.message}。クリックで ${h.fix} に合わせます`} aria-label={`${h.message}。${h.fix} に合わせる`}
+                      onClick={() => onUpdateColumn(c.id, { physicalName: h.fix as PhysicalName })}>
+                      <i className="bi bi-lightbulb" />
+                    </button>
+                  ))}
+                </div>
+              </td>
               <td><TextCell value={c.name} label={`${i + 1} 行目の表示名`} readonly={readonly} onCommit={(v) => onUpdateColumn(c.id, { name: v as DisplayName })} /></td>
               <td>
                 <select className="cg-input" value={c.dataType} disabled={readonly} aria-label={`${c.physicalName}のデータ型`} onChange={(e) => onUpdateColumn(c.id, { dataType: e.target.value })}>

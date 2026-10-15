@@ -61,7 +61,7 @@ import { COLUMN_BULK_FIELDS } from "./bulkColumnFields";
 import { SnippetMenu } from "../common/SnippetMenu";
 import { ColumnGrid } from "./ColumnGrid";
 import { useColumnSuggestionSource } from "../../hooks/useColumnSuggestionSource";
-import { planColumnAutofill } from "../../utils/columnSuggestion";
+import { columnNameHints, planColumnAutofill } from "../../utils/columnSuggestion";
 import { usePersistentState } from "../../hooks/usePersistentState";
 import { HelpHint } from "../help/HelpHint";
 
@@ -1142,7 +1142,8 @@ function ColumnsTab({
       </div>
 
       {gridMode && (
-        <ColumnGrid columns={table.columns} readonly={isReadonly} onUpdateColumn={handleUpdateCol} onAppend={handleAddBlank} />
+        <ColumnGrid columns={table.columns} readonly={isReadonly} onUpdateColumn={handleUpdateCol} onAppend={handleAddBlank}
+          hintsFor={(c) => columnNameHints(c, suggestionSource.index, suggestionSource.convention)} />
       )}
       {!gridMode && (<>
       <SortBar sort={sort} columnLabels={columnLabels} />
