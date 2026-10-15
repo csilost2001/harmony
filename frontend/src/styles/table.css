@@ -1808,6 +1808,10 @@
 }
 
 .constraints-empty { padding: 12px 20px; }
+.constraints-suggest { margin: 8px 20px; padding: 8px 12px; border: 1px dashed var(--hm-border-strong); border-radius: 6px; background: var(--hm-surface-2, var(--hm-surface)); }
+.constraints-suggest-title { font-size: 0.8rem; color: var(--hm-fg-muted); margin-bottom: 6px; }
+.constraints-suggest-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 3px 0; font-size: 0.85rem; }
+.constraints-suggest-reason { color: var(--hm-fg-muted); font-size: 0.78rem; flex: 1; min-width: 12em; }
 
 
 

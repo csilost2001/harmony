@@ -60,6 +60,8 @@ import { applyBulkPatch } from "../../utils/bulkEdit";
 import { COLUMN_BULK_FIELDS } from "./bulkColumnFields";
 import { SnippetMenu } from "../common/SnippetMenu";
 import { ColumnGrid } from "./ColumnGrid";
+import { useColumnSuggestionSource } from "../../hooks/useColumnSuggestionSource";
+import { planColumnAutofill } from "../../utils/columnSuggestion";
 import { usePersistentState } from "../../hooks/usePersistentState";
 import { HelpHint } from "../help/HelpHint";
 
@@ -661,12 +663,23 @@ function ColumnsTab({
     return set;
   }, [table.constraints]);
 
+  const suggestionSource = useColumnSuggestionSource(table.id);
   const handleUpdateCol = useCallback((colId: string, patch: Partial<Column>) => {
+    // 新しく足した列に表示名を入れたら、物理名・型・長さも埋める (決めた値は変えない。Ctrl+Z で戻せる)
+    let merged = patch;
+    const current = table.columns.find((c) => c.id === colId);
+    if (current && typeof patch.name === "string") {
+      const plan = planColumnAutofill(current, patch.name, table.columns.filter((c) => c.id !== colId), suggestionSource.index, suggestionSource.convention);
+      if (plan) {
+        merged = { ...plan.patch, ...patch } as Partial<Column>;
+        showToast(plan.message, "info");
+      }
+    }
     update((t) => {
       const col = t.columns.find((c) => c.id === colId);
-      if (col) Object.assign(col, patch);
+      if (col) Object.assign(col, merged);
     });
-  }, [update]);
+  }, [update, table.columns, suggestionSource]);
 
   const handleAddBlank = () => {
     let newColId: string = "";
