@@ -9,7 +9,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { ReferenceCompletionInput } from "./ReferenceCompletionInput";
 import type { Resolver, CompletionState } from "../../utils/reference-completer/types";
-import { onGoToReference } from "../../utils/referenceTarget";
+import { onGoToReference, onFindReferences } from "../../utils/referenceTarget";
 
 /** 常に phase: "active" + 固定候補を返す mock resolver (screenItemTypeResolver と同パターン) */
 const alwaysActiveResolver: Resolver = {
@@ -180,6 +180,19 @@ describe("ReferenceCompletionInput — 定義へ移動 (F12 / Ctrl+クリック)
     fireEvent.keyDown(input, { key: "F12" });
     fireEvent.click(input, { ctrlKey: true });
     expect(seen).toHaveLength(0);
+    off();
+  });
+
+  it("Shift+F12 で、参照している設計の一覧 (参照元) を開く合図を出す。調べられる種類でなくても合図は出す (案内は受け側)", () => {
+    const seen: string[] = [];
+    const off = onFindReferences((t) => seen.push(`${t.entity?.type ?? "-"}:${t.entity?.id ?? t.label}`));
+    render(<ReferenceCompletionInput value="a @table.orders b @msg.x" onValueChange={() => undefined} resolvers={[none]} ctx={{}} />);
+    const input = screen.getByRole("textbox") as HTMLInputElement;
+    input.setSelectionRange(5, 5);
+    fireEvent.keyDown(input, { key: "F12", shiftKey: true });
+    input.setSelectionRange(22, 22);
+    fireEvent.keyDown(input, { key: "F12", shiftKey: true });
+    expect(seen).toEqual(["table:orders", "-:メッセージ x"]);
     off();
   });
 });
