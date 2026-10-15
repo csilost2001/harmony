@@ -24,7 +24,7 @@ function isTopmostDialog(root: HTMLElement): boolean {
 
 export function useFocusTrap(ref: RefObject<HTMLElement | null>, active = true, onEscape?: () => void): void {
   const escapeRef = useRef(onEscape);
-  escapeRef.current = onEscape;
+  useEffect(() => { escapeRef.current = onEscape; });
   useEffect(() => {
     const root = ref.current;
     if (!active || !root) return;

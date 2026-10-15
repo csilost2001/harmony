@@ -70,7 +70,6 @@ function fromDoc(next: LayoutDoc, prev: LayoutComponentDef): LayoutComponentDef 
 
 export function ComponentEditor({ initial, isNew, others, screens, onSave, onClose }: ComponentEditorProps) {
   const trapRef = useRef<HTMLDivElement>(null);
-  useFocusTrap(trapRef, true, () => tryClose());
   // 保存済みの差し込み口の ID・種類は、使っている画面の args が参照するため変えられない
   const [lockedParams, setLockedParams] = useState<Set<string>>(() => new Set(isNew ? [] : initial.params.map((q) => q.id)));
   const [savedSnapshot, setSavedSnapshot] = useState(initial);
@@ -120,6 +119,7 @@ export function ComponentEditor({ initial, isNew, others, screens, onSave, onClo
     finally { setSaving(false); }
   };
   const tryClose = () => { if (!dirty || window.confirm("保存していない変更があります。破棄して閉じますか？")) onClose(); };
+  useFocusTrap(trapRef, true, tryClose);
 
   const selected = selectedId ? ops.selected : null;
   const screenNameById = useMemo(() => new Map(screens.map((s) => [s.id, s.name])), [screens]);

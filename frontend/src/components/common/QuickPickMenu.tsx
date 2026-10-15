@@ -42,7 +42,7 @@ export function QuickPickMenu({ title, where, placeholder, items, onPick, onClos
     if (isImeComposing(e)) return;
     if (e.key === "ArrowDown") { e.preventDefault(); setCursor((c) => Math.min(c + 1, Math.max(hits.length - 1, 0))); }
     else if (e.key === "ArrowUp") { e.preventDefault(); setCursor((c) => Math.max(c - 1, 0)); }
-    else if (e.key === "Enter") { e.preventDefault(); if (hits[cursor]) onPick(hits[cursor].value); }
+    else if (e.key === "Enter" && !isImeComposing(e)) { e.preventDefault(); if (hits[cursor]) onPick(hits[cursor].value); }
   };
 
   return (

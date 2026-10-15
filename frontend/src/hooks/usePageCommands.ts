@@ -7,6 +7,6 @@ import { registerPageCommands, type PageCommand } from "../store/pageCommands";
  */
 export function usePageCommands(owner: string, commands: readonly PageCommand[]): void {
   const ref = useRef(commands);
-  ref.current = commands;
+  useEffect(() => { ref.current = commands; });
   useEffect(() => registerPageCommands(owner, () => ref.current), [owner]);
 }

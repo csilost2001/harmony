@@ -27,7 +27,10 @@ function clearMarks() {
 export function EditorFind() {
   const { pathname } = useLocation();
   const editor = isEditorPath(pathname);
-  const [open, setOpen] = useState(false);
+  // 開いた画面の経路を覚える (別の画面へ移ったら、閉じた扱い)
+  const [openPath, setOpenPath] = useState<string | null>(null);
+  const open = openPath === pathname;
+  const setOpen = useCallback((v: boolean) => setOpenPath(v ? pathname : null), [pathname]);
   const [query, setQuery] = useState("");
   const [count, setCount] = useState(0);
   const [index, setIndex] = useState(0);
@@ -41,7 +44,7 @@ export function EditorFind() {
     setOpen(false);
     setCount(0);
     if (focusHit && hit?.kind === "field") hit.el.focus();
-  }, [index]);
+  }, [index, setOpen]);
 
   // Ctrl+F / ⌘F で開く (編集画面のとき)。すでに開いていれば、検索欄を選び直す
   useEffect(() => {
@@ -55,11 +58,10 @@ export function EditorFind() {
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [editor]);
+  }, [editor, setOpen]);
 
   // 画面を移ったら閉じる
   useEffect(() => () => { clearMarks(); }, [pathname]);
-  useEffect(() => { if (!editor && open) { clearMarks(); hitsRef.current = []; setOpen(false); } }, [editor, open]);
 
   const show = useCallback((hits: FindHit[], at: number) => {
     clearMarks();
