@@ -214,4 +214,24 @@ test.describe("画面デザイナの直接操作", () => {
     await page.keyboard.press("Control+z");
     await expect.poll(order).toEqual(before);
   });
+
+  test("タッチ・ペンで部品を長押しすると、右クリックと同じメニューが開く (指が動いたら開かない) @regression", async ({ page }) => {
+    await openEditing(page, "store-master");
+    const target = nodeLoc(page, "heading");
+    const box = (await target.boundingBox())!;
+    const touch = (type: string, dx = 0) => target.evaluate((el, a) => {
+      const r = el.getBoundingClientRect();
+      el.dispatchEvent(new PointerEvent(a.type, { bubbles: true, cancelable: true, pointerType: "touch", isPrimary: true, clientX: r.left + 20 + a.dx, clientY: r.top + 10 }));
+    }, { type, dx });
+    // 指が動いたら、開かない
+    await touch("pointerdown"); await touch("pointermove", 40);
+    await page.waitForTimeout(800);
+    await expect(page.getByRole("menu")).toHaveCount(0);
+    await touch("pointerup");
+    // 押し続けると、開く
+    await touch("pointerdown");
+    await expect(page.getByRole("menu")).toBeVisible({ timeout: 3000 });
+    expect(box.width).toBeGreaterThan(0);
+    await page.keyboard.press("Escape");
+  });
 });

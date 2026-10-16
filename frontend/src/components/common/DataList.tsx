@@ -32,6 +32,7 @@ import { ListContextMenu } from "./ListContextMenu";
 import { EXPORT_FORMATS, exportRows, writeClipboardText, type ExportFormat } from "../../utils/tableExport";
 import { showToast } from "../../utils/toast";
 import { setRefDragData } from "../../utils/refDrag";
+import { useLongPress } from "../../hooks/useLongPress";
 import "../../styles/dataList.css";
 
 export interface DataListColumn<T> {
@@ -496,6 +497,12 @@ function DataListRow<T>({
       : "";
 
   const handleProps = handleDisabled ? {} : { ...attributes, ...listeners };
+  // タッチ・ペンの長押し = 右クリック (UI 改善提案 第 3 弾 #59)
+  const longPress = useLongPress((x, y) => {
+    if (!onContextMenu) return;
+    if (selection && !selection.isSelected(id)) selection.setSelectedIds(new Set([id]));
+    onContextMenu({ preventDefault: () => undefined, stopPropagation: () => undefined, clientX: x, clientY: y } as unknown as ReactMouseEvent, item);
+  }, !!onContextMenu);
 
   const handleContextMenu = (e: ReactMouseEvent) => {
     if (!onContextMenu) return;
@@ -517,6 +524,7 @@ function DataListRow<T>({
       onContextMenu={onContextMenu ? handleContextMenu : undefined}
       data-testid="data-list-row"
       data-row-id={id}
+      {...longPress}
       draggable={!!refText}
       onDragStart={refText ? (e) => {
         // 並べ替えのつまみ (dnd-kit) のドラッグとは、別のもの

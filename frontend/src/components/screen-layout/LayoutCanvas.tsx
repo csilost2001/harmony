@@ -13,6 +13,7 @@ import { ROOT_ID, computeDropTarget, getDragPayload, setDragPayload, DND_MIME, t
 import { inlineTarget } from "./layoutInline";
 import { columnPairOf, pairAfterDelta, spanDeltaFromPixels } from "./layoutResize";
 import { isImeComposing } from "../../utils/imeKeys";
+import { useLongPress } from "../../hooks/useLongPress";
 
 export interface CanvasContextValue {
   itemsById: Map<string, ScreenItem>;
@@ -309,6 +310,8 @@ function NodeView({ node, parentType, frozen = false }: { node: LayoutNode; pare
   const [activeTab, setActiveTab] = useState(0);
   const selected = selectedIds ? selectedIds.has(node.id) : selectedId === node.id;
   const editing = editingId === node.id;
+  // タッチ・ペンの長押し = 右クリック (UI 改善提案 第 3 弾 #59)
+  const longPress = useLongPress((x, y) => { onContextMenu?.(node.id, x, y); }, !!onContextMenu && !frozen);
   const issue = issuesByNode.get(node.id);
   const isContainer = CONTAINER_TYPES.has(node.type);
   const p = node.props ?? {};
@@ -396,6 +399,7 @@ function NodeView({ node, parentType, frozen = false }: { node: LayoutNode; pare
         onContextMenu(node.id, e.clientX, e.clientY);
       }}
       data-testid={`layout-node-${node.id}`}
+      {...longPress}
     >
       <span className="sld-node-tag">{LAYOUT_NODE_LABELS[node.type]}<code>{node.id}</code></span>
       {body}
