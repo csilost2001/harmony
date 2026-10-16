@@ -28,6 +28,9 @@ import { useColumnPrefs } from "../../hooks/useColumnPrefs";
 import { applyColumnPrefs, moveColumnTo, setWidth, type ColumnPrefs } from "../../utils/columnPrefs";
 import { ColumnPrefsMenu } from "./ColumnPrefsMenu";
 import { SelectByConditionMenu } from "./SelectByConditionMenu";
+import { ListContextMenu } from "./ListContextMenu";
+import { EXPORT_FORMATS, exportRows, writeClipboardText, type ExportFormat } from "../../utils/tableExport";
+import { showToast } from "../../utils/toast";
 import "../../styles/dataList.css";
 
 export interface DataListColumn<T> {
@@ -106,6 +109,16 @@ export function DataList<T>({
   const orderedAll = useMemo(() => applyColumnPrefs(allColumns, { ...prefs, hidden: [] }), [allColumns, prefs]);
   const [menuAt, setMenuAt] = useState<{ x: number; y: number } | "button" | null>(null);
   const [showCondition, setShowCondition] = useState(false);
+  const [copyMenu, setCopyMenu] = useState<{ x: number; y: number } | null>(null);
+  /** 表としてコピー: 選んでいる行 (無ければ、見えている行すべて) を、画面に出ている列だけで、他のアプリへ渡せる形にする */
+  const copyAsTable = async (format: ExportFormat) => {
+    const cols = columns.filter((c) => typeof c.header === "string" && c.sortAccessor);
+    const picked = selection && selection.selectedIds.size > 0 ? items.filter((i) => selection.selectedIds.has(getId(i))) : items;
+    const text = exportRows(format, cols.map((c) => c.header as string), picked.map((i) => cols.map((c) => c.sortAccessor!(i))));
+    const ok = await writeClipboardText(text);
+    const label = EXPORT_FORMATS.find((f) => f.format === format)!.label;
+    showToast(ok ? `${picked.length} 行を ${label} でコピーしました` : "コピーできませんでした (ブラウザがクリップボードを許可していません)", ok ? "info" : "error");
+  };
   // 条件で選べる列 (並べ替えに使う値の取り出し方がある列)
   const conditionColumns = useMemo(
     () => allColumns.filter((c) => typeof c.header === "string" && c.sortAccessor).map((c) => ({ key: c.key, label: c.header as string, accessor: c.sortAccessor! })),
@@ -281,15 +294,25 @@ export function DataList<T>({
     >
       {prefsKey && layout === "list" && (
       <div className="data-list-colmenu-bar">
+        {conditionColumns.length > 0 && (
+          <button type="button" className="data-list-colmenu-btn data-list-condmenu-btn" title="表としてコピー (Markdown・TSV・JSON。他のアプリや AI へ渡せます)" aria-label="表としてコピー" aria-haspopup="true"
+            onClick={(e) => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setMenuAt(null); setShowCondition(false); setCopyMenu(copyMenu ? null : { x: r.left, y: r.bottom + 2 }); }} data-testid="data-list-copymenu">
+            <i className="bi bi-clipboard-data" />
+          </button>
+        )}
         {selection && conditionColumns.length > 0 && (
           <button type="button" className="data-list-colmenu-btn data-list-condmenu-btn" title="条件で行を選ぶ" aria-label="条件で行を選ぶ" aria-haspopup="true"
-            onClick={(e) => { e.stopPropagation(); setMenuAt(null); setShowCondition((v) => !v); }} data-testid="data-list-condmenu">
+            onClick={(e) => { e.stopPropagation(); setMenuAt(null); setCopyMenu(null); setShowCondition((v) => !v); }} data-testid="data-list-condmenu">
             <i className="bi bi-ui-checks" />
           </button>
         )}
-        <button type="button" className="data-list-colmenu-btn" title="列の設定 (表示・並び・幅)" aria-label="列の設定" aria-haspopup="true" onClick={(e) => { e.stopPropagation(); setShowCondition(false); setMenuAt(menuAt ? null : "button"); }} data-testid="data-list-colmenu">
+        <button type="button" className="data-list-colmenu-btn" title="列の設定 (表示・並び・幅)" aria-label="列の設定" aria-haspopup="true" onClick={(e) => { e.stopPropagation(); setShowCondition(false); setCopyMenu(null); setMenuAt(menuAt ? null : "button"); }} data-testid="data-list-colmenu">
           <i className="bi bi-layout-three-columns" />
         </button>
+        {copyMenu && (
+          <ListContextMenu x={copyMenu.x} y={copyMenu.y} onClose={() => setCopyMenu(null)}
+            items={EXPORT_FORMATS.map((f) => ({ key: `copy-${f.format}`, label: `${selection && selection.selectedIds.size > 0 ? `選んだ ${selection.selectedIds.size} 行` : `すべての ${items.length} 行`}を ${f.label} でコピー`, icon: "bi-clipboard", onClick: () => { void copyAsTable(f.format); } }))} />
+        )}
         {showCondition && selection && (
           <SelectByConditionMenu items={items} getId={getId} columns={conditionColumns} selectedIds={selection.selectedIds}
             onSelect={(ids) => selection.setSelectedIds(ids)} onClose={() => setShowCondition(false)} />

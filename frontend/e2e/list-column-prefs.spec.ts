@@ -107,4 +107,30 @@ test.describe("一覧の列の設定", () => {
     await page.keyboard.press("Escape");
     await expect(menu).toHaveCount(0);
   });
+
+  test("選んだ行 (無ければすべて) を、Markdown・TSV・JSON で、他のアプリへ渡せる形でコピーできる @regression", async ({ page, context }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    await openTable(page);
+    const readClipboard = () => page.evaluate(() => navigator.clipboard.readText());
+
+    // 何も選んでいないときは、すべての行
+    await page.getByTestId("data-list-copymenu").click();
+    await page.getByTestId("list-context-menu-item-copy-markdown").click();
+    await expect.poll(readClipboard).toMatch(/^\| 画面名 \| /);
+    const all = (await readClipboard()).split("\n");
+    expect(all.length).toBe(2 + (await page.locator("tr.data-list-row").count()));
+
+    // 行を選ぶと、選んだ行だけ (TSV)
+    await page.locator("tr.data-list-row").nth(2).locator(".screen-table-name").click();
+    await page.getByTestId("data-list-copymenu").click();
+    await expect(page.getByTestId("list-context-menu-item-copy-tsv")).toContainText("選んだ 1 行");
+    await page.getByTestId("list-context-menu-item-copy-tsv").click();
+    await expect.poll(async () => (await readClipboard()).split("\n").length).toBe(2);
+    expect((await readClipboard()).split("\n")[0]).toMatch(/^画面名\t/);
+
+    // JSON
+    await page.getByTestId("data-list-copymenu").click();
+    await page.getByTestId("list-context-menu-item-copy-json").click();
+    await expect.poll(async () => { try { return (JSON.parse(await readClipboard()) as unknown[]).length; } catch { return -1; } }).toBe(1);
+  });
 });
