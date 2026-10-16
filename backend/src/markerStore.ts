@@ -57,7 +57,14 @@ export async function readMarkerDoc(type: MarkerEntityType, id: string, root: st
 
 /** 設計を書き、開いている画面へ変更を知らせる */
 export async function writeMarkerDoc(type: MarkerEntityType, id: string, doc: MarkerHost, root: string): Promise<void> {
-  (doc as { updatedAt?: string }).updatedAt = new Date().toISOString();
+  // 更新日時の置き場所: 処理フローは meta の中 (最上位は schema が禁じる)。ほかは最上位
+  const now = new Date().toISOString();
+  if (type === "processFlow") {
+    const d = doc as { meta?: { updatedAt?: string } };
+    if (d.meta && typeof d.meta === "object") d.meta.updatedAt = now;
+  } else {
+    (doc as { updatedAt?: string }).updatedAt = now;
+  }
   switch (type) {
     case "processFlow": await writeProcessFlow(id, doc, root); break;
     case "screen": await writeScreenEntity(id, doc, root); break;

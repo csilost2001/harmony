@@ -3,9 +3,10 @@
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import fs from "node:fs/promises";
+import fsSync from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { isUuid } from "@harmony/shared";
+import { isUuid, buildHarmonyAjv } from "@harmony/shared";
 import { handleMarkerTool } from "./marker.js";
 import { writeTable, writeProcessFlow, writeScreenEntity, readTable, readProcessFlow } from "../projectStorage.js";
 
@@ -43,7 +44,29 @@ beforeAll(async () => {
 });
 afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true }); });
 
+const SCHEMA_DIR = path.resolve(__dirname, "../../../schemas/v3");
+const EXAMPLE_FLOW = path.resolve(__dirname, "../../../examples/retail/harmony/process-flows");
+
 describe("マーカーの MCP tool", () => {
+  it("処理フローにマーカーを付けても、スキーマに合ったまま (更新日時は meta の中)。古い形のマーカーは、素の読み込みでも authoring.markers に移る", async () => {
+    const ajv = buildHarmonyAjv();
+    for (const f of fsSync.readdirSync(SCHEMA_DIR).filter((n) => n.endsWith(".json"))) ajv.addSchema(JSON.parse(fsSync.readFileSync(path.join(SCHEMA_DIR, f), "utf-8")));
+    const validate = ajv.getSchema("https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/process-flow.v3.schema.json")!;
+    const file = fsSync.readdirSync(EXAMPLE_FLOW).find((n) => n.endsWith(".json"))!;
+    const sample = JSON.parse(fsSync.readFileSync(path.join(EXAMPLE_FLOW, file), "utf-8"));
+    const id = sample.meta.id as string;
+    await writeProcessFlow(id, sample, ROOT);
+    expect(validate(await readProcessFlow(id, ROOT)), JSON.stringify(validate.errors)).toBe(true); // 前提: 元の形は合っている
+    await call("designer__add_marker", { processFlowId: id, kind: "todo", body: "検査" });
+    const after = await readProcessFlow(id, ROOT) as { updatedAt?: unknown; meta: { updatedAt?: string } };
+    expect(validate(after), JSON.stringify(validate.errors)).toBe(true);
+    expect(after.updatedAt).toBeUndefined();
+    // 古い形 (最上位の markers) は、画面が読む素の読み込みで見える
+    const legacy = await readProcessFlow("flow-legacy", ROOT) as { markers?: unknown; authoring?: { markers?: Array<{ body: string }> } };
+    expect(legacy.markers).toBeUndefined();
+    expect(legacy.authoring?.markers?.map((m) => m.body)).toEqual(["古い形の質問"]);
+  });
+
   it("画面が付けたマーカー (authoring.markers) を、AI が読める (以前は、別の場所を読んでいて、空だった)", async () => {
     const list = await callJson("designer__list_markers", { processFlowId: "flow-a" });
     expect(list).toHaveLength(1);
