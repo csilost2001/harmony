@@ -102,9 +102,11 @@ export function docWrap(doc: LayoutDoc, ids: readonly string[], wrapper: LayoutN
   const { parentId } = sharedParentId(nodes, sel);
   const first = findParent(nodes, sel[0])!;
   const moving = sel.map((id) => findNode(nodes, id)!);
+  // 入れ物の ID は、取り除く前の木全体で決める (選んだ部品と同じ ID にならないように)
+  const wrapperId = nextNodeId(nodes, spec.base);
   let next = [...nodes];
   for (const id of sel) next = removeNode(next, id).nodes;
-  const wrapperNode: LayoutNode = { id: nextNodeId(next, spec.base), type: wrapper, props: { ...spec.props }, children: moving };
+  const wrapperNode: LayoutNode = { id: wrapperId, type: wrapper, props: { ...spec.props }, children: moving };
   next = insertNode(next, parentId, wrapperNode, first.index);
   return { doc: { ...doc, layout: { ...doc.layout, nodes: next } }, wrapperId: wrapperNode.id };
 }

@@ -82,6 +82,8 @@ async function plan(entityType: RenameEntityType, fromId: string, toId: string, 
     const ids = (await renameReportRefsInProject(entityType, fromId, "", root, true)).changed;
     if (ids.length > 0) warnings.push(`帳票 ${ids.join(", ")} の参照は、付け替えの対象外です (帳票の画面で直してください)`);
   }
+  if (entityType === "table") warnings.push("カラム (列) の ID を指す参照 (外部キーの参照先の列など) は、付け替わりません。付け替え先のテーブルで列の ID が違う場合は、付け替えのあとに確認してください");
+  if (entityType === "table" || entityType === "view") warnings.push("参照元が、付け替え先も参照しているとき (依存の一覧など) は、同じ ID が 2 つ並ぶことがあります。付け替えのあとに確認してください");
   return { dataRoot, scan, files, existing, concurrentEditRefs, warnings };
 }
 

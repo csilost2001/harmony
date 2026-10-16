@@ -82,6 +82,13 @@ describe("docWrap", () => {
     expect(form.children!.map((c) => c.id)).toEqual(["section", "fc"]);
     expect(form.children![0].children!.map((c) => c.id)).toEqual(["fa", "fb"]);
   });
+  it("選んだ部品が「section」でも、入れ物の ID は、それと重ならない (ID で部品を探す操作が、どちらか決まるように)", () => {
+    const d: LayoutDoc = { items: [], layout: { version: 1, nodes: [{ id: "section", type: "section", props: { title: "区画" }, children: [] }, { id: "tail", type: "text", props: { text: "x" } }] } };
+    const r = docWrap(d, ["section", "tail"], "section");
+    expect(r.wrapperId).toBe("section2");
+    const all = ids(r.doc.layout!.nodes);
+    expect(new Set(all).size).toBe(all.length);
+  });
   it("入れ物が入れられない種類 (ボタン群にフォームなど)・違う親の組み合わせは包めない", () => {
     expect(canWrap(tree(), ["fa", "fb"], "button-bar")).toBe(false);
     expect(canWrap(tree(), ["fa", "ok"], "section")).toBe(false);
