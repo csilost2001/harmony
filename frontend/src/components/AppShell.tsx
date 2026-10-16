@@ -90,6 +90,7 @@ import { SplitPane } from "./shell/SplitPane";
 import { isPaneMode, postToParent } from "../utils/paneMode";
 import { ToastHost } from "./common/ToastHost";
 import { FileDropImport } from "./shell/FileDropImport";
+import { useFieldNormalizer } from "../hooks/useFieldNormalizer";
 import { setSplit, useSplit } from "../store/splitStore";
 
 function useTabs() {
@@ -346,6 +347,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
   const navigate = useNavigate();
   const { showError } = useErrorDialog();
   useTabKeyboard();
+  useFieldNormalizer(); // ID・物理名の欄の、全角・空白の正規化
   // 設計ファイルが外部で書き換えられたときの全体の知らせ (1 回だけ登録する)
   useEffect(() => { installExternalChangeNotice(); }, []);
 

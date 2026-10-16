@@ -34,6 +34,7 @@ import { reportFailure } from "../../utils/failureToast";
 import { useResyncDraftOnReconnect } from "../../hooks/useResyncDraftOnReconnect";
 import { EntityMarkerSection } from "../common/EntityMarkerSection";
 import { authoringWithMarkers } from "../../utils/markerDoc";
+import { asciiFieldProps } from "../../utils/fieldNormalize";
 
 interface TableOption {
   id: string;
@@ -582,6 +583,7 @@ export function ViewEditor() {
                       value={col.physicalName}
                       onChange={(e) => updateOutputColumn(i, "physicalName", e.target.value)}
                       placeholder="物理名 (snake_case)"
+                      {...asciiFieldProps}
                       className="view-editor-col-name"
                       disabled={isReadonly}
                     />

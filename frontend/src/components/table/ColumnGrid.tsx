@@ -14,6 +14,7 @@ import { DATA_TYPE_LABELS, DATA_TYPES_WITH_LENGTH, DATA_TYPES_WITH_SCALE } from 
 import type { ColumnNameHint } from "../../utils/columnSuggestion";
 import "../../styles/columnGrid.css";
 import { GridFillHandle } from "../common/GridFillHandle";
+import { asciiFieldProps } from "../../utils/fieldNormalize";
 
 interface Props {
   columns: readonly Column[];
@@ -37,9 +38,9 @@ interface Props {
 }
 
 /** 文字のセル。セルを出るときに、変わっていれば 1 回だけ反映する (外から値が変わったら、作り直して追従する) */
-function TextCell({ value, label, readonly, mono, placeholder, onCommit }: { value: string; label: string; readonly: boolean; mono?: boolean; placeholder?: string; onCommit: (v: string) => void }) {
+function TextCell({ value, label, readonly, mono, placeholder, ascii, onCommit }: { value: string; label: string; readonly: boolean; mono?: boolean; placeholder?: string; ascii?: boolean; onCommit: (v: string) => void }) {
   return (
-    <input key={value} type="text" defaultValue={value} readOnly={readonly} aria-label={label} placeholder={placeholder} spellCheck={false}
+    <input key={value} type="text" defaultValue={value} readOnly={readonly} aria-label={label} placeholder={placeholder} spellCheck={false} {...(ascii ? asciiFieldProps : {})}
       className={`cg-input${mono ? " is-mono" : ""}`}
       onBlur={(e) => { if (!readonly && e.currentTarget.value !== value) onCommit(e.currentTarget.value); }} />
   );
@@ -95,7 +96,7 @@ export function ColumnGrid({ columns, readonly, onUpdateColumn, onAppend, onInse
               </td>
               <td>
                 <div className="cg-name-cell">
-                  <TextCell value={c.physicalName} label={`${i + 1} 行目の物理名`} readonly={readonly} mono onCommit={(v) => onUpdateColumn(c.id, { physicalName: v as PhysicalName })} />
+                  <TextCell value={c.physicalName} label={`${i + 1} 行目の物理名`} readonly={readonly} mono ascii onCommit={(v) => onUpdateColumn(c.id, { physicalName: v as PhysicalName })} />
                   {(markerCounts?.get(`$.columns[${c.id}]`) ?? 0) > 0 && (
                     <button type="button" className="col-marker-badge" title="このカラムへの、未解決のマーカー (クリックで開く)" data-testid={`col-marker-badge-${c.physicalName}`}
                       onClick={() => onOpenMarkers?.(`$.columns[${c.id}]`)}>

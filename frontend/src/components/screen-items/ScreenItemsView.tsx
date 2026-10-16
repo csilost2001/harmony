@@ -111,6 +111,7 @@ import { HelpHint } from "../help/HelpHint";
 import { GridFillHandle } from "../common/GridFillHandle";
 import { useRowDragReorder } from "../../hooks/useRowDragReorder";
 import { moveItem, remapIndexSet } from "../../utils/rowReorder";
+import { asciiFieldProps } from "../../utils/fieldNormalize";
 
 type ScreenMeta = { id: string; name: string };
 
@@ -1240,6 +1241,7 @@ export function ScreenItemsView() {
                         onFocus={(e) => idFocusVals.current.set(i, e.target.value)}
                         onBlur={(e) => handleIdBlur(i, e)}
                         placeholder="例: email"
+                        {...asciiFieldProps}
                         aria-label={`行${i + 1}の項目 ID`}
                         disabled={isReadonly}
                       />

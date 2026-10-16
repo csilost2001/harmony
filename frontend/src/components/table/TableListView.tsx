@@ -40,6 +40,7 @@ import { useReferencesDialog } from "../common/ReferencesButton";
 import { reportFailure } from "../../utils/failureToast";
 import { EmptyState } from "../common/EmptyState";
 import { isImeComposing } from "../../utils/imeKeys";
+import { asciiFieldProps } from "../../utils/fieldNormalize";
 
 const STORAGE_KEY = "list-view-mode:table-list";
 const TAB_ID = makeTabId("table-list", "main");
@@ -764,6 +765,7 @@ export function TableListView() {
                   value={addName}
                   onChange={(e) => { physTouched.current = e.target.value !== ""; setAddName(e.target.value); }}
                   placeholder="例: customers"
+                  {...asciiFieldProps}
                   autoFocus
                   onKeyDown={(e) => { if (e.key === "Enter" && !isImeComposing(e)) handleAdd(); }}
                 />

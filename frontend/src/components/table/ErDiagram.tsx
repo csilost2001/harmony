@@ -46,6 +46,7 @@ import { useKeyboardNodeMove } from "../../hooks/useKeyboardNodeMove";
 import { EmptyState } from "../common/EmptyState";
 import { isImeComposing } from "../../utils/imeKeys";
 import { SearchableSelect } from "../common/SearchableSelect";
+import { asciiFieldProps } from "../../utils/fieldNormalize";
 
 const nodeTypes = { erTableNode: ErTableNodeComponent };
 
@@ -799,6 +800,7 @@ function AddTableFromErModal({
             value={physicalName}
             onChange={(e) => setPhysicalName(e.target.value)}
             placeholder="例: customers"
+            {...asciiFieldProps}
             autoFocus
             onKeyDown={(e) => { if (e.key === "Enter" && !isImeComposing(e)) submit(); }}
           />

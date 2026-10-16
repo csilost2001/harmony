@@ -21,6 +21,7 @@ import {
 } from "../../utils/entityIdSuggestion";
 import "../../styles/entityIdInput.css";
 import { isImeComposing } from "../../utils/imeKeys";
+import { asciiFieldProps } from "../../utils/fieldNormalize";
 
 export interface EntityIdInputProps {
   /** id field 現在値 */
@@ -185,8 +186,7 @@ export function EntityIdInput({
           }}
           placeholder={placeholder}
           disabled={disabled || aiBusy}
-          spellCheck={false}
-          autoComplete="off"
+          {...asciiFieldProps}
           data-testid="entity-id-input"
         />
         <button

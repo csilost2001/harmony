@@ -69,6 +69,7 @@ import { columnNameHints, planColumnAutofill } from "../../utils/columnSuggestio
 import { usePersistentState } from "../../hooks/usePersistentState";
 import { HelpHint } from "../help/HelpHint";
 import { isInsideModal } from "../../utils/modalScope";
+import { asciiFieldProps } from "../../utils/fieldNormalize";
 
 type TabId = "columns" | "constraints" | "indexes" | "triggers" | "comment" | "markers";
 
@@ -589,6 +590,7 @@ function TableMetaEditor({
         value={physicalName}
         onChange={(e) => setPhysicalName(e.target.value)}
         placeholder="物理名 (snake_case)"
+        {...asciiFieldProps}
         autoFocus
       />
       {physicalNameEmpty && (
