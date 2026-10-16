@@ -34,6 +34,8 @@ import { RenameEntityDialog } from "../common/RenameEntityDialog";
 import { ReferencesButton } from "../common/ReferencesButton";
 import { PasteItemsDialog } from "./PasteItemsDialog";
 import { ItemsFromTableDialog } from "./ItemsFromTableDialog";
+import { ItemColumnMismatchPanel } from "./ItemColumnMismatchPanel";
+import { itemSections, layoutOrder, reorderItems } from "../../utils/itemSections";
 import { RemoteMarkerPanel } from "../common/RemoteMarkerPanel";
 import { anchorPathItem } from "@harmony/shared";
 import { unresolvedCountByPath } from "../../utils/markerDoc";
@@ -100,6 +102,7 @@ import { EmptyState } from "../common/EmptyState";
 import { reportFailure, runReporting } from "../../utils/failureToast";
 import { isInsideModal } from "../../utils/modalScope";
 import { useResyncDraftOnReconnect } from "../../hooks/useResyncDraftOnReconnect";
+import { ClipboardHistoryMenu } from "../common/ClipboardHistoryMenu";
 import { useListClipboard } from "../../hooks/useListClipboard";
 import { BulkEditDialog } from "../common/BulkEditDialog";
 import { applyBulkPatch } from "../../utils/bulkEdit";
@@ -569,6 +572,17 @@ export function ScreenItemsView() {
       Object.assign(f.items[idx], patch);
     });
   }, [updateSilentWithDraft]);
+
+  // 区画 (画面の配置での入れ物) ごとの絞り込みと、配置の順への並べ替え (続編 第 8 弾 #155)
+  const [sectionFilter, setSectionFilter] = useState("");
+  const sectionOf = useMemo(() => itemSections(file?.layout?.nodes, file?.items ?? []), [file?.layout, file?.items]);
+  const sectionNames = useMemo(() => [...new Set(sectionOf.values())], [sectionOf]);
+  const hiddenBySection = (item: ScreenItem) => !!sectionFilter && (sectionOf.get(String(item.id)) ?? "") !== sectionFilter;
+  const handleReorderByLayout = useCallback(() => {
+    updateWithDraft((doc) => { doc.items = reorderItems(doc.items, layoutOrder(doc.layout?.nodes, doc.items)); });
+    setSelectedIndices(new Set());
+    showToast("画面の配置の順に並べ替えました (Ctrl+Z で戻せます)", "info");
+  }, [updateWithDraft]);
 
   // ラベルを入れたら、まだ決めていない項目 ID・型・最大長を埋める (決めた値は変えない。Ctrl+Z で戻せる)
   const termIndex = useMemo(() => buildTermIndex(tables.map((t) => t.columns)), [tables]);
@@ -1209,7 +1223,7 @@ export function ScreenItemsView() {
                 )}
                 {file.items.map((item, i) => (
                   <React.Fragment key={i}>
-                  <tr className={`${selectedIndices.has(i) ? "screen-items-row-selected" : ""} ${rowDrag.rowClass(i)}`.trim()} data-grid-row={i} data-deeplink={item.id ? `item:${item.id}` : undefined} data-issue={lintByRow.has(i) ? "" : undefined} {...rowDrag.rowProps(i)}>
+                  <tr style={hiddenBySection(item) ? { display: "none" } : undefined} className={`${selectedIndices.has(i) ? "screen-items-row-selected" : ""} ${rowDrag.rowClass(i)}`.trim()} data-grid-row={i} data-deeplink={item.id ? `item:${item.id}` : undefined} data-issue={lintByRow.has(i) ? "" : undefined} {...rowDrag.rowProps(i)}>
                     <td className="text-center">
                       <input
                         type="checkbox"
@@ -1550,7 +1564,7 @@ export function ScreenItemsView() {
                     </tr>
                   )}
                   {expandedEventRows.has(i) && (
-                    <tr className="screen-items-event-row">
+                    <tr className="screen-items-event-row" style={hiddenBySection(item) ? { display: "none" } : undefined}>
                       <td colSpan={11}>
                         <div className="screen-items-event-list">
                           {(item.events ?? []).map((ev, eIdx) => {
@@ -2096,6 +2110,7 @@ export function ScreenItemsView() {
                 title={clipboard.hasContent ? `コピーした ${clipboard.clipboard.items.length} 件を、末尾に貼り付け (Ctrl+V)` : "コピーした項目がありません"} data-testid="items-paste">
                 <i className="bi bi-clipboard-plus me-1" /> 貼り付け{clipboard.hasContent ? ` (${clipboard.clipboard.items.length})` : ""}
               </button>
+              <ClipboardHistoryMenu clipboard={clipboard} noun="項目" disabled={isReadonly} describe={(it) => it.label || it.id} />
               <SnippetMenu kind="screen-items" className="btn btn-sm btn-outline-secondary" selectionCount={selectedIndices.size} readonly={isReadonly}
                 getSelection={() => [...selectedIndices].sort((a, b) => a - b).map((i) => file.items[i]).filter(Boolean)}
                 onInsert={(sn) => {
@@ -2122,6 +2137,25 @@ export function ScreenItemsView() {
                 </button>
               )}
             </div>
+            {sectionNames.length > 1 && (
+              <div className="screen-items-sections" data-testid="item-sections">
+                <label className="screen-items-section-select">区画
+                  <select value={sectionFilter} onChange={(e) => setSectionFilter(e.target.value)} aria-label="区画で絞り込む" data-testid="item-section-filter">
+                    <option value="">すべての区画</option>
+                    {sectionNames.map((n) => <option key={n} value={n}>{n} ({file.items.filter((it) => sectionOf.get(String(it.id)) === n).length})</option>)}
+                  </select>
+                </label>
+                <button type="button" className="btn btn-sm btn-outline-secondary" onClick={handleReorderByLayout} disabled={isReadonly || !file.layout}
+                  title="項目を、画面の配置の順 (上から下・左から右) に並べ替える。配置に無い項目は末尾" data-testid="item-reorder-by-layout">
+                  <i className="bi bi-sort-down me-1" /> 配置の順に並べ替え
+                </button>
+              </div>
+            )}
+            <ItemColumnMismatchPanel items={file.items} tables={tables} readOnly={isReadonly}
+              onApply={(updates) => {
+                updateWithDraft((doc) => { for (const u of updates) { const t = doc.items.find((it) => it.id === u.id); if (t) Object.assign(t, u.patch); } });
+                showToast(`${updates.length} 件の項目を、カラムに合わせました (Ctrl+Z で戻せます)`, "info");
+              }} />
             <datalist id="screen-items-display-format-list">
               {DISPLAY_FORMAT_PRESETS.map((f) => <option key={f} value={f} />)}
             </datalist>

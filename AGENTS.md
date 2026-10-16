@@ -19,6 +19,7 @@ Claude Code 固有の補足は `CLAUDE.md`、Codex 固有の設定は `.codex/co
 | 入力の信頼性・見通し (欄の直下の指摘と直し方・式の書き間違い・近い名前・保存の状態・変更した欄・元に戻した内容の通知・取り消せる削除・F8 次の要確認・処理フローの目次・直接のリンク・入力専用モード・全角の正規化・操作数の予算) | [ui-input-reliability.md](docs/spec/ui-input-reliability.md) |
 | 一覧・探索・見通し (閉じたタブを開き直す Ctrl+Alt+T・画面の履歴 Ctrl+Alt+←→・パンくず・保存した絞り込み・グループ表示・Space ですぐ見る・まとめての操作・最近開いた順・行の印・CSV / Excel 保存・近い名前・使っているもの・Ctrl+K の `t:` 接頭辞・今日やること) | [ui-lists-navigation.md](docs/spec/ui-lists-navigation.md) |
 | 図・可視化 (図の道具: 検索 Ctrl+F・つながりの強調・関連 N 段・整列とガイド・ER のカラム表示・線の形・凡例・PNG / Mermaid / 印刷・基準との差分・表示位置の記憶・`[` `]` でつながりをたどる / つながり図 / 処理フローの流れ図とシーケンス図 / 画面フローの自動配置) | [ui-diagrams.md](docs/spec/ui-diagrams.md) |
+| 編集体験の深掘り (画面デザイナのサンプル値・状態・寸法・部品検索 / 処理フローの畳み・変数・囲む・判定表・式の試し実行・机上演習 / テーブルの型変更の影響・サンプル INSERT・インデックス提案 / 画面項目の食い違い / スクロール復元・Ctrl+Alt+Backspace で最後の編集へ・クリップボード履歴・用語ゆれ) | [ui-editing-depth.md](docs/spec/ui-editing-depth.md) |
 | 入力補助 (参照の補完・SQL の表名とカラム名・定義へ移動 F12・検索できる選択・カラムの物理名と型の提案・外部キーの候補・テーブルから画面項目・ID の候補・工程のおすすめ・日本語入力の Enter) | [ui-input-assist.md](docs/spec/ui-input-assist.md) |
 | 完了判定 (回帰テストの trace 照合) | [docs/conventions/completion-gate.md](docs/conventions/completion-gate.md) |
 | 進行中の再設計計画と設計者判断 | [docs/plans/redesign-2026-10.md](docs/plans/redesign-2026-10.md) |

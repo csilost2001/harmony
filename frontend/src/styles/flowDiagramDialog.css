@@ -20,3 +20,34 @@
 .fdd-svg { display: inline-block; color-scheme: light; background: Canvas; color: CanvasText; border: 1px solid var(--hm-border); border-radius: 6px; padding: 8px; }
 .fdd-svg svg { display: block; }
 .fdd-pre { margin: 0; padding: 12px; background: var(--hm-surface-2); border: 1px solid var(--hm-border); border-radius: 6px; font-size: 0.8rem; white-space: pre; overflow: auto; user-select: text; }
+
+/* 判定表・机上演習・式を試す (UI 改善提案 続編 第 8 弾 #149 #150 #151) */
+.fdd-section { margin: 0 0 16px; }
+.fdd-section h3, .fdd-walk-now h3, .fdd-walk-log h3 { font-size: 0.9rem; margin: 0 0 6px; }
+.fdd-section h3 code { color: var(--hm-fg-muted); font-weight: 400; margin-left: 6px; }
+.fdd-table { border-collapse: collapse; width: 100%; font-size: 0.82rem; }
+.fdd-table th, .fdd-table td { border: 1px solid var(--hm-border); padding: 4px 8px; text-align: left; vertical-align: top; }
+.fdd-table th { background: var(--hm-surface-2); color: var(--hm-fg-muted); font-weight: 600; }
+.fdd-table tr.is-else td { background: var(--hm-surface-2); }
+.fdd-issues { list-style: none; margin: 6px 0 0; padding: 0; color: var(--hm-warning); font-size: 0.82rem; }
+.fdd-warn { color: var(--hm-warning); }
+.fdd-walk-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 800px) { .fdd-walk-grid { grid-template-columns: 1fr; } }
+.fdd-walk-now, .fdd-walk-log { border: 1px solid var(--hm-border); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.fdd-walk-text { font-size: 0.95rem; font-weight: 600; margin: 4px 0 8px; overflow-wrap: anywhere; }
+.fdd-choices { display: flex; flex-direction: column; gap: 6px; }
+.fdd-choices button, .fdd-primary { border: 1px solid var(--hm-border-strong); background: var(--hm-surface); color: var(--hm-fg); border-radius: 6px; padding: 5px 10px; cursor: pointer; font: inherit; text-align: left; }
+.fdd-choices button:hover { background: var(--hm-hover); }
+.fdd-primary { background: var(--hm-accent-solid); color: var(--hm-on-solid); border-color: var(--hm-accent-solid); text-align: center; }
+.fdd-choices button:focus-visible, .fdd-primary:focus-visible { outline: 2px solid var(--hm-accent); outline-offset: 2px; }
+.fdd-end { color: var(--hm-success); font-weight: 600; }
+.fdd-walk-log ol { margin: 0; padding-left: 1.4em; font-size: 0.82rem; max-height: 360px; overflow-y: auto; }
+.fdd-walk-log li.is-choice { color: var(--hm-accent); list-style: none; margin-left: -1em; }
+.fdd-walk-log li.is-end { color: var(--hm-success); font-weight: 600; list-style: none; margin-left: -1em; }
+.fdd-field { display: flex; flex-direction: column; gap: 3px; font-size: 0.82rem; margin: 6px 0; color: var(--hm-fg-muted); }
+.fdd-field select, .fdd-eval-src, .fdd-eval-vars textarea { border: 1px solid var(--hm-border-strong); background: var(--hm-surface); color: var(--hm-fg); border-radius: 6px; padding: 4px 8px; font: inherit; }
+.fdd-eval-src, .fdd-eval-vars textarea { width: 100%; box-sizing: border-box; font-family: var(--hm-font-mono, ui-monospace, monospace); font-size: 0.82rem; }
+.fdd-eval-result { margin-top: 10px; padding: 8px 12px; border: 1px solid var(--hm-border); border-radius: 8px; background: var(--hm-surface-2); }
+.fdd-chip { margin-left: 8px; padding: 1px 8px; border-radius: 999px; font-size: 0.75rem; border: 1px solid var(--hm-border-strong); }
+.fdd-chip.is-true { color: var(--hm-success); border-color: var(--hm-success); }
+.fdd-chip.is-false { color: var(--hm-fg-muted); }

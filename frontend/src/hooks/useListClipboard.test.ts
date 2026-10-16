@@ -126,3 +126,39 @@ describe("useListClipboard (別の編集画面へ運べる共有のクリップ�
     expect(local2.result.current.hasContent).toBe(false);
   });
 });
+
+describe("useListClipboard (クリップボード履歴)", () => {
+  const hookFor = (sourceId: string) => renderHook(() => useListClipboard<Item>((it) => it.id, { channel: "hist-cols", sourceId }));
+  beforeEach(() => { _resetSharedClipboards(); });
+
+  it("コピーした順に新しい方を先頭へ残し、同じ内容は重ねない", () => {
+    const t = hookFor("t1");
+    act(() => t.result.current.copy([a]));
+    act(() => t.result.current.copy([b]));
+    act(() => t.result.current.copy([a]));
+    expect(t.result.current.history.map((h) => h.items[0].id)).toEqual(["a", "b"]);
+  });
+
+  it("10 件までしか持たない", () => {
+    const t = hookFor("t1");
+    for (let i = 0; i < 14; i++) act(() => t.result.current.copy([{ id: "i" + i, name: "n", nested: { value: i } }]));
+    expect(t.result.current.history).toHaveLength(10);
+    expect(t.result.current.history[0].items[0].id).toBe("i13");
+  });
+
+  it("履歴から選ぶと、クリップボードに戻る (別の画面からも)", () => {
+    const t1 = hookFor("t1");
+    const t2 = hookFor("t2");
+    act(() => t1.result.current.copy([a]));
+    act(() => t1.result.current.copy([b]));
+    act(() => t2.result.current.restoreFromHistory(1));
+    expect(t2.result.current.clipboard.items.map((i) => i.id)).toEqual(["a"]);
+    expect(t2.result.current.clipboard.mode).toBe("copy");
+  });
+
+  it("共有でないクリップボードは履歴を持たない", () => {
+    const t = renderHook(() => useListClipboard<Item>((it) => it.id));
+    act(() => t.result.current.copy([a]));
+    expect(t.result.current.history).toEqual([]);
+  });
+});

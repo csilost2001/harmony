@@ -5,6 +5,8 @@
  * キャンバスは設計対象アプリの見本なので、アプリ UI のテーマ (ライト / ダーク) に関係なく
  * 紙面 (明色) で描く。色は styles/screenLayout.css の --pv-* を使う。
  */
+import { measureSelection, type MeasureLabel } from "./layoutMeasure";
+import { sampleText, type PreviewState, type SampleMode } from "../../utils/sampleValues";
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import DOMPurify from "dompurify";
 import { CONTAINER_TYPES, LAYOUT_NODE_LABELS, expandComponentNode, findParent, type LayoutComponentDef, type LayoutNode, type LayoutNodeType } from "@harmony/shared";
@@ -21,6 +23,11 @@ export interface CanvasContextValue {
   selectedId: string | null;
   editable: boolean;
   showNotes: boolean;
+  /** 紙面に流し込むサンプル値 (なし = 入力例) と、画面の状態 (続編 第 8 弾 #141 #142) */
+  sampleMode?: SampleMode;
+  previewState?: PreviewState;
+  /** 選んだ部品の寸法と、まわりとのすき間を、紙面の上に出す (続編 第 8 弾 #143) */
+  showMeasures?: boolean;
   issuesByNode: Map<string, "error" | "warning">;
   /** プロジェクト独自部品の定義 (参照部品を展開して描くため) */
   components: LayoutComponentDef[];
@@ -71,10 +78,17 @@ function sampleFor(type: unknown, i: number): string {
 }
 
 function FieldControl({ item }: { item: ScreenItem }) {
+  const { sampleMode = "off", previewState = "normal" } = useCanvas();
   const t = typeof item.type === "string" ? item.type : "string";
   const ph = (item.placeholder as string | undefined) ?? "";
+  // 読み込み中: 値の代わりに、薄い帯 (骨組み)
+  if (previewState === "loading" && t !== "boolean") return <div className="pv-skeleton" aria-label="読み込み中" />;
+  const sample = sampleMode === "off" ? "" : sampleText({ label: item.label as string, id: item.id as string, type: item.type, maxLength: item.maxLength as number | undefined, min: item.min as number | undefined, max: item.max as number | undefined }, sampleMode);
   if (item.direction === "out") {
-    return <div className="pv-display">{ph || `（${item.label}）`}</div>;
+    return <div className="pv-display">{sample || ph || `（${item.label}）`}</div>;
+  }
+  if (sampleMode !== "off" && sample && t !== "boolean" && !item.options?.length) {
+    return <div className={`pv-input pv-sample${t === "integer" || t === "number" ? " pv-num" : ""}`}><span>{sample}</span></div>;
   }
   if (item.options?.length) {
     return <div className="pv-input pv-select"><span>{item.options[0]?.label ?? "選択"}</span><i className="bi bi-chevron-down" /></div>;
@@ -105,7 +119,7 @@ function ItemNotes({ item }: { item: ScreenItem }) {
 }
 
 function FieldView({ node }: { node: LayoutNode }) {
-  const { itemsById, showNotes } = useCanvas();
+  const { itemsById, showNotes, previewState = "normal" } = useCanvas();
   const item = node.itemRef ? itemsById.get(node.itemRef) : undefined;
   if (!item) {
     return <div className="pv-missing"><i className="bi bi-exclamation-triangle" /> 画面項目が未設定です{node.itemRef ? `（${node.itemRef} が見つかりません）` : ""}</div>;
@@ -121,13 +135,14 @@ function FieldView({ node }: { node: LayoutNode }) {
         </div>
       )}
       <FieldControl item={item} />
+      {previewState === "error" && item.required && t !== "boolean" && <div className="pv-error"><i className="bi bi-exclamation-circle" /> {item.label}を入力してください</div>}
       {item.helperText && <div className="pv-help">{item.helperText as string}</div>}
     </div>
   );
 }
 
 function TableView({ node }: { node: LayoutNode }) {
-  const { itemsById, showNotes } = useCanvas();
+  const { itemsById, showNotes, sampleMode = "off", previewState = "normal" } = useCanvas();
   const item = node.itemRef ? itemsById.get(node.itemRef) : undefined;
   const cols = item?.presentation?.columns ?? [];
   const viewDef = item?.presentation?.viewDefinitionId;
@@ -150,8 +165,11 @@ function TableView({ node }: { node: LayoutNode }) {
         <table className="pv-table">
           <thead><tr>{cols.map((c) => <th key={c.id}>{c.label}</th>)}</tr></thead>
           <tbody>
-            {[0, 1, 2].map((r) => (
-              <tr key={r}>{cols.map((c) => <td key={c.id} className={c.type === "integer" || c.type === "number" ? "pv-num" : ""}>{sampleFor(c.type, r)}</td>)}</tr>
+            {previewState === "empty" && <tr><td colSpan={cols.length} className="pv-table-state">該当するデータがありません</td></tr>}
+            {previewState === "error" && <tr><td colSpan={cols.length} className="pv-table-state pv-error"><i className="bi bi-exclamation-circle" /> データを取得できませんでした。時間をおいて、もう一度お試しください</td></tr>}
+            {previewState === "loading" && [0, 1, 2].map((r) => <tr key={r}>{cols.map((c) => <td key={c.id}><div className="pv-skeleton" /></td>)}</tr>)}
+            {previewState === "normal" && [0, 1, 2].map((r) => (
+              <tr key={r}>{cols.map((c) => <td key={c.id} className={c.type === "integer" || c.type === "number" ? "pv-num" : ""}>{sampleMode !== "off" ? (sampleText({ label: c.label as string, id: c.id as string, type: c.type }, sampleMode, r) || "―") : sampleFor(c.type, r)}</td>)}</tr>
             ))}
           </tbody>
         </table>
@@ -163,7 +181,7 @@ function TableView({ node }: { node: LayoutNode }) {
 // ── 部品 1 つ ──────────────────────────────────────────────────────────────
 
 function NodeContent({ node }: { node: LayoutNode }) {
-  const { itemsById, screenNameById } = useCanvas();
+  const { itemsById, screenNameById, previewState = "normal" } = useCanvas();
   const p = node.props ?? {};
   switch (node.type) {
     case "heading": {
@@ -189,7 +207,9 @@ function NodeContent({ node }: { node: LayoutNode }) {
     case "link":
       return <span className="pv-link">{p.label || "リンク"}{p.screenRef && <span className="pv-goto">→ {screenNameById.get(p.screenRef) ?? p.screenRef}</span>}</span>;
     case "message-area":
-      return <div className="pv-message"><i className="bi bi-info-circle" /> メッセージ表示領域（処理結果・エラーをここに表示）</div>;
+      return previewState === "error"
+        ? <div className="pv-message pv-error"><i className="bi bi-exclamation-triangle" /> 入力内容に誤りがあります。赤字の項目を確認してください</div>
+        : <div className="pv-message"><i className="bi bi-info-circle" /> メッセージ表示領域（処理結果・エラーをここに表示）</div>;
     case "image":
       return <div className="pv-image"><i className="bi bi-image" /> {p.alt || "画像"}</div>;
     case "divider":
@@ -410,6 +430,42 @@ function NodeView({ node, parentType, frozen = false }: { node: LayoutNode; pare
   );
 }
 
+// ── 寸法とすき間 (続編 第 8 弾 #143) ───────────────────────────────────────
+
+/** 選んでいる部品の寸法と、直前・直後の兄弟・入れ物の内側とのすき間を、紙面の上に重ねて描く。表示だけ (クリックを受けない) */
+function MeasureOverlay({ paperRef, selectedId, deps }: { paperRef: React.RefObject<HTMLDivElement | null>; selectedId: string | null; deps: unknown }) {
+  const [labels, setLabels] = useState<MeasureLabel[]>([]);
+  useEffect(() => {
+    const paper = paperRef.current;
+    if (!paper) return;
+    const compute = () => {
+      if (!selectedId) { setLabels([]); return; }
+      const el = paper.querySelector<HTMLElement>(`[data-node-id="${CSS.escape(selectedId)}"]`);
+      if (!el) { setLabels([]); return; }
+      const origin = paper.getBoundingClientRect();
+      const box = (e: Element) => { const b = e.getBoundingClientRect(); return { x: b.left - origin.left, y: b.top - origin.top, w: b.width, h: b.height }; };
+      const parentEl = el.parentElement?.closest<HTMLElement>("[data-node-id]") ?? null;
+      const siblingEls = Array.from(el.parentElement?.children ?? []).filter((c) => c !== el && c instanceof HTMLElement && c.hasAttribute("data-node-id"));
+      const idx = Array.from(el.parentElement?.children ?? []).indexOf(el);
+      const near = siblingEls.filter((c) => Math.abs(Array.from(el.parentElement?.children ?? []).indexOf(c) - idx) === 1);
+      setLabels(measureSelection(box(el), near.map(box), parentEl ? box(parentEl) : null));
+    };
+    // 描画のあとに測る (部品の大きさは、描画が済まないと分からない)
+    const raf = requestAnimationFrame(compute);
+    const ro = new ResizeObserver(compute);
+    ro.observe(paper);
+    return () => { cancelAnimationFrame(raf); ro.disconnect(); };
+  }, [paperRef, selectedId, deps]);
+  if (labels.length === 0) return null;
+  return (
+    <div className="sld-measures" aria-hidden="true" data-testid="layout-measures">
+      {labels.map((l, i) => l.kind === "size"
+        ? <span key={i} className="sld-measure-size" style={{ left: l.x, top: l.y }}>{l.text}</span>
+        : <span key={i} className="sld-measure-gap" style={{ left: l.box.x, top: l.box.y, width: l.box.w, height: l.box.h }}><b>{l.text}</b></span>)}
+    </div>
+  );
+}
+
 // ── キャンバス本体 ─────────────────────────────────────────────────────────
 
 export interface LayoutCanvasProps extends Omit<CanvasContextValue, "itemsById" | "nodes"> {
@@ -421,6 +477,7 @@ export interface LayoutCanvasProps extends Omit<CanvasContextValue, "itemsById" 
 }
 
 export function LayoutCanvas({ nodes, items, width, density, onDrop, ...ctx }: LayoutCanvasProps) {
+  const paperRef = useRef<HTMLDivElement>(null);
   const itemsById = useMemo(() => new Map(items.map((i) => [i.id as string, i])), [items]);
   const [target, setTarget] = useState<DropTarget | null>(null);
   const value = useMemo(() => ({ ...ctx, itemsById, nodes }), [ctx, itemsById, nodes]);
@@ -461,7 +518,8 @@ export function LayoutCanvas({ nodes, items, width, density, onDrop, ...ctx }: L
         onDrop={handleDrop}
         data-testid="layout-canvas"
       >
-        <div className={`sld-paper pv-density-${density}${ctx.showNotes ? " pv-show-notes" : ""}`} style={{ width }}>
+        <div ref={paperRef} className={`sld-paper pv-density-${density}${ctx.showNotes ? " pv-show-notes" : ""}`} style={{ width }}>
+          {ctx.showMeasures && <MeasureOverlay paperRef={paperRef} selectedId={ctx.selectedId} deps={`${nodes.length}:${width}:${density}:${ctx.sampleMode}:${ctx.previewState}:${ctx.showNotes}`} />}
           <div data-drop-parent={ROOT_ID} className="pv-stack pv-root">
             {nodes.map((n) => <NodeView key={n.id} node={n} parentType={null} />)}
             {nodes.length === 0 && (

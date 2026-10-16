@@ -39,6 +39,7 @@ import { aggregateValidation } from "../../utils/aggregatedValidation";
 import { generateUUID } from "../../utils/uuid";
 // #1332 Codex 10 巡目 M1: clone / paste 系の id 採番を LocalId に統一
 import { nextLocalId, collectAllProcessFlowLocalIds } from "../../utils/localIdGenerator";
+import { createDefaultStep } from "../../store/processFlowStore";
 import {
   DndContext,
   closestCenter,
@@ -81,11 +82,13 @@ import { WarningsPanel } from "./internal/WarningsPanel";
 import { ALL_STEP_TYPES } from "./internal/stepCardConstants";
 import { StepInsertMenu } from "./internal/StepInsertMenu";
 import { usePageCommands } from "../../hooks/usePageCommands";
+import { issueStepExpand } from "../../store/stepExpand";
+import { collectVariables } from "../../utils/stepVariables";
 import { findStepKind, type TransitionStats } from "../../utils/stepSuggestion";
 import { loadStepTransitionStats } from "../../store/stepStatsStore";
 import { focusStepHeader, useStepKeyboard } from "./internal/useStepKeyboard";
 import { applyOutline, type OutlineLine } from "../../utils/processFlowOutline";
-import { canIndentStep, canOutdentStep, indentStep, locateStep, outdentStep } from "../../utils/stepTree";
+import { canIndentStep, canOutdentStep, indentStep, locateStep, outdentStep, wrapSteps } from "../../utils/stepTree";
 import { getActionTriggerLabel } from "./internal/actionTriggerConstants";
 import { ProcessFlowDialogs } from "./internal/ProcessFlowDialogs";
 import { useProcessFlowCatalogs } from "./internal/useProcessFlowCatalogs";
@@ -97,6 +100,7 @@ import { CanvasPane } from "./internal/CanvasPane";
 import { EditorHeaderExtras } from "./internal/EditorHeaderExtras";
 import { useWorkspaceReferences } from "../../hooks/useWorkspaceReferences";
 import { reportFailure } from "../../utils/failureToast";
+import { ClipboardHistoryMenu } from "../common/ClipboardHistoryMenu";
 import { useListClipboard } from "../../hooks/useListClipboard";
 import { SnippetMenu } from "../common/SnippetMenu";
 import { showToast } from "../../utils/toast";
@@ -456,6 +460,10 @@ export function ProcessFlowEditor() {
     : ALL_STEP_TYPES;
 
   const activeAction = group?.actions.find((a) => a.id === activeActionId) ?? null;
+  const actionVariables = useMemo(
+    () => (activeAction ? collectVariables(activeAction as unknown as Parameters<typeof collectVariables>[0], (group?.context?.ambientVariables ?? []).map((v) => String(v.name))) : []),
+    [activeAction, group?.context?.ambientVariables],
+  );
   const normalizedCommandQuery = commandQuery.trim().toLowerCase();
   const visibleActions = group?.actions.filter((act) => {
     if (!normalizedCommandQuery) return true;
@@ -511,8 +519,12 @@ export function ProcessFlowEditor() {
   /** 挿入メニュー。afterStepId = その工程の後ろへ (null なら末尾) */
   const [insertMenu, setInsertMenu] = useState<{ afterStepId: string | null } | null>(null);
   // コマンドパレット (Ctrl+K の「>」) に、この画面の操作を載せる
-  usePageCommands(`process-flow:${processFlowId ?? ""}`, isReadonly ? [] : [
-    { id: "step-insert", label: "工程を挿入 (末尾に)", keywords: ["こうてい", "step", "insert", "ついか", "追加", "ステップ"], icon: "bi-plus-circle", hint: "Insert", run: () => setInsertMenu({ afterStepId: null }) },
+  usePageCommands(`process-flow:${processFlowId ?? ""}`, [
+    ...(isReadonly ? [] : [{ id: "step-insert", label: "工程を挿入 (末尾に)", keywords: ["こうてい", "step", "insert", "ついか", "追加", "ステップ"], icon: "bi-plus-circle", hint: "Insert", run: () => setInsertMenu({ afterStepId: null }) }]),
+    // 開閉は閲覧中でも使える (続編 第 8 弾 #145)
+    { id: "steps-collapse", label: "工程をすべて畳む", keywords: ["こうてい", "たたむ", "collapse", "ステップ"], icon: "bi-chevron-bar-contract", run: () => issueStepExpand("collapse") },
+    { id: "steps-expand", label: "工程をすべて開く", keywords: ["こうてい", "ひらく", "expand", "ステップ"], icon: "bi-chevron-bar-expand", run: () => issueStepExpand("expand") },
+    { id: "steps-attention", label: "要確認の工程だけ開く", keywords: ["こうてい", "ようかくにん", "attention", "ステップ"], icon: "bi-exclamation-triangle", run: () => issueStepExpand("attention") },
   ]);
   // 挿入メニューで、「この後によく置かれる種類」を出すための統計 (開いたときに 1 回読む)
   const [stepStats, setStepStats] = useState<TransitionStats | undefined>(undefined);
@@ -563,6 +575,21 @@ export function ProcessFlowEditor() {
       const act = g.actions.find((a) => a.id === activeActionId);
       if (act) indentStep(act.steps, stepId);
     });
+  };
+
+  /** 選んだ工程 (右クリックした工程が選択に入っていなければ、その工程だけ) を、トランザクション・繰り返しで囲む (続編 第 8 弾 #147) */
+  const handleWrapSteps = (clickedId: string, kind: "transactionScope" | "loop") => {
+    const ids = selectedIds.has(clickedId) ? Array.from(selectedIds) : [clickedId];
+    // 囲めるかは、複製した工程で先に確かめる (更新は、あとで状態の中で行われるため)
+    const trial = wrapSteps(structuredClone(activeAction?.steps ?? []), ids, { id: "trial", kind } as unknown as Step);
+    if (!trial.ok) { showToast(trial.reason, "info"); setContextMenu(null); return; }
+    updateGroupWithDraft((g) => {
+      const act = g.actions.find((a) => a.id === activeActionId);
+      if (!act) return;
+      wrapSteps(act.steps, ids, createDefaultStep(kind, collectAllProcessFlowLocalIds(g)));
+    });
+    showToast(`${ids.length} 工程を${kind === "loop" ? "繰り返し" : "トランザクション"}で囲みました (Ctrl+Z で戻せます)`, "info");
+    setContextMenu(null);
   };
 
   /** 親の次の位置へ (キーボードの Shift+Tab と同じ。後ろの兄弟は配下へ引き継ぎ、実行順を変えない) */
@@ -1169,12 +1196,13 @@ export function ProcessFlowEditor() {
               onAddStep={handleAddStep}
               onAddTemplate={handleAddTemplate}
               isReadonly={isReadonly}
-              outlineSlot={<StepOutlinePanel steps={activeAction?.steps ?? []} selectedIds={selectedIds} />}
-              snippetSlot={
+              outlineSlot={<StepOutlinePanel steps={activeAction?.steps ?? []} selectedIds={selectedIds} variables={actionVariables} />}
+              snippetSlot={<>
+                <ClipboardHistoryMenu clipboard={stepClipboard} noun="工程" disabled={isReadonly} describe={(st) => (st.description || st.id).slice(0, 24)} />
                 <SnippetMenu kind="steps" popAlign="left" className="step-template-btn" selectionCount={selectedIds.size} readonly={isReadonly}
                   getSelection={() => (activeAction?.steps ?? []).filter((st) => selectedIds.has(st.id))}
                   onInsert={(sn) => { insertSteps(sn.items as unknown as Step[]); showToast(`スニペット「${sn.name}」を挿入しました (${sn.items.length} 工程)`, "info"); }} />
-              }
+              </>}
             />
 
             <CanvasPane
@@ -1281,6 +1309,8 @@ export function ProcessFlowEditor() {
             setContextMenu(null);
           }}
           onDelete={() => handleDeleteStep(contextMenu.stepId)}
+          onWrap={(kind) => handleWrapSteps(contextMenu.stepId, kind)}
+          wrapCount={selectedIds.has(contextMenu.stepId) ? selectedIds.size : 1}
         />
       )}
 

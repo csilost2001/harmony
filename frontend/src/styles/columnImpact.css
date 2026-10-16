@@ -1,0 +1,48 @@
+/* カラムの変更の影響の知らせ (UI 改善提案 続編 第 8 弾 #152) */
+.col-impact { margin: 8px 0; padding: 8px 12px; border: 1px solid var(--hm-warning); border-radius: 8px; background: color-mix(in srgb, var(--hm-warning) 10%, var(--hm-surface)); font-size: 0.82rem; }
+.col-impact-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.col-impact-head i { color: var(--hm-warning); }
+.col-impact-head span { flex: 1; min-width: 14em; }
+.col-impact-list { margin: 6px 0 0; padding-left: 1.2em; }
+.col-impact-list li { margin: 3px 0; }
+.col-impact-ok { color: var(--hm-fg-muted); }
+.col-impact-names { display: inline-flex; flex-wrap: wrap; gap: 4px 8px; margin-left: 6px; }
+.col-impact-link { border: 0; background: transparent; color: var(--hm-accent); cursor: pointer; padding: 0; font: inherit; text-decoration: underline; }
+
+/* インデックスの提案 (UI 改善提案 続編 第 8 弾 #154) */
+.index-suggest { margin: 8px 0; padding: 8px 12px; border: 1px solid var(--hm-border); border-radius: 8px; background: var(--hm-surface-2); font-size: 0.82rem; }
+.index-suggest ul { list-style: none; margin: 4px 0 0; padding: 0; }
+.index-suggest li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 3px 0; }
+.index-suggest-why { flex: 1; min-width: 14em; color: var(--hm-fg-muted); }
+
+/* 画面項目とカラムの食い違い (UI 改善提案 続編 第 8 弾 #156) */
+.icm { margin: 8px 0; }
+.icm-body { margin-top: 6px; padding: 8px 12px; border: 1px solid var(--hm-warning); border-radius: 8px; background: color-mix(in srgb, var(--hm-warning) 8%, var(--hm-surface)); font-size: 0.82rem; }
+.icm-table { border-collapse: collapse; width: 100%; margin-bottom: 8px; }
+.icm-table th, .icm-table td { border-bottom: 1px solid var(--hm-border); padding: 4px 8px; text-align: left; vertical-align: top; }
+.icm-table ul { margin: 0; padding-left: 1.1em; }
+.icm-note { color: var(--hm-fg-muted); margin-left: 8px; }
+
+/* 画面項目の区画の絞り込み (UI 改善提案 続編 第 8 弾 #155) */
+.screen-items-sections { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 6px 0; }
+.screen-items-section-select { display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--hm-fg-muted); }
+.screen-items-section-select select { border: 1px solid var(--hm-border-strong); background: var(--hm-surface); color: var(--hm-fg); border-radius: 6px; padding: 2px 6px; font: inherit; }
+
+/* クリップボードの履歴 (続編 第 8 弾 #159) */
+.clip-history { position: relative; display: inline-block; }
+.clip-history-list {
+  position: absolute; z-index: 30; top: 100%; left: 0; margin: 4px 0 0; padding: 4px; list-style: none;
+  min-width: 280px; max-width: 420px; background: var(--hm-surface); color: var(--hm-fg);
+  border: 1px solid var(--hm-border); border-radius: 6px; box-shadow: 0 4px 12px color-mix(in srgb, var(--hm-fg) 25%, transparent);
+}
+.clip-history-item {
+  display: flex; gap: 8px; width: 100%; text-align: left; padding: 4px 8px; border: 0; border-radius: 4px;
+  background: transparent; color: inherit; font-size: 0.85rem;
+}
+.clip-history-item:hover, .clip-history-item:focus-visible { background: var(--hm-hover); }
+.clip-history-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--hm-fg-muted); }
+
+/* 書き方のゆれの示し (続編 第 8 弾 #160) */
+.term-variant-hint { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 2px; font-size: 0.78rem; color: var(--hm-fg-muted); }
+.term-variant-btn { border: 1px solid var(--hm-border); background: var(--hm-surface); color: var(--hm-fg); border-radius: 4px; padding: 0 6px; font-size: 0.78rem; }
+.term-variant-btn:hover, .term-variant-btn:focus-visible { background: var(--hm-hover); }

@@ -1,3 +1,4 @@
+import { shouldBeOpen, useStepExpandCommand } from "../../store/stepExpand";
 import { ConvCompletionInput } from "../common/ConvCompletionInput";
 import { StepMarkerDialog } from "./internal/StepMarkerDialog";
 import { useState } from "react";
@@ -140,6 +141,9 @@ export function StepCard({
   workspace,
 }: StepCardProps) {
   const [expanded, setExpanded] = useState(defaultExpanded ?? false);
+  // 「すべて畳む / 開く / 要確認だけ開く」の合図に従う (続編 第 8 弾 #145)。合図の世代が変わったときだけ、自分の開閉を決め直す
+  const expandCmd = useStepExpandCommand();
+  const [seenEpoch, setSeenEpoch] = useState(expandCmd.epoch);
   const [showMenu, setShowMenu] = useState(false);
   // AI への指示・質問を付けるダイアログ (右クリックメニュー / Ctrl+Alt+M)
   const [showMarkerDialog, setShowMarkerDialog] = useState(false);
@@ -155,6 +159,10 @@ export function StepCard({
   const myErrors = validationErrors.filter((e) => e.stepId === step.id);
   const hasError = myErrors.some((e) => e.severity === "error");
   const hasWarning = myErrors.some((e) => e.severity === "warning");
+  if (seenEpoch !== expandCmd.epoch) {
+    setSeenEpoch(expandCmd.epoch);
+    setExpanded(shouldBeOpen(expandCmd.mode, myErrors.length > 0 || markerCount > 0));
+  }
 
   // ── サブステップ管理 ────────────────────────────────────────────────────────
 

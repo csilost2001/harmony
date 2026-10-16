@@ -26,7 +26,19 @@ export interface ListClipboard<T> {
   isItemCut: (id: string) => boolean;
   /** 別の編集画面からコピー / 切り取りしたものか (共有のクリップボードでだけ true になりうる) */
   isForeign: boolean;
+  /** 直近のコピー / 切り取りの履歴 (新しい順、最大 10 件。共有のクリップボードでだけ。メモリのみ) */
+  history: ClipboardHistoryEntry<T>[];
+  /** 履歴の 1 件をクリップボードに戻す (コピーとして。そのあと普通に貼り付けられる) */
+  restoreFromHistory: (index: number) => void;
 }
+
+export interface ClipboardHistoryEntry<T> {
+  at: number;
+  items: T[];
+  source?: string;
+}
+
+export const CLIPBOARD_HISTORY_MAX = 10;
 
 /** 共有のクリップボードの指定。同じ channel の編集画面どうしで、コピーしたものを運べる */
 export interface ClipboardShare {
@@ -40,6 +52,16 @@ export interface ClipboardShare {
 const shared = new Map<string, ListClipboardState<unknown>>();
 const sharedListeners = new Set<() => void>();
 const EMPTY: ListClipboardState<never> = { mode: null, items: [] };
+const histories = new Map<string, ClipboardHistoryEntry<unknown>[]>();
+const NO_HISTORY: ClipboardHistoryEntry<never>[] = [];
+const historyOf = (channel: string): ClipboardHistoryEntry<unknown>[] => histories.get(channel) ?? NO_HISTORY;
+/** 同じ内容 (同じ ID の並び) が続けて入らないよう、先頭と同じなら置き換える */
+function pushHistory(channel: string, entry: ClipboardHistoryEntry<unknown>, getId?: (i: never) => string): void {
+  const list = histories.get(channel) ?? [];
+  const sig = (e: ClipboardHistoryEntry<unknown>) => e.items.map((i) => (getId ? getId(i as never) : JSON.stringify(i))).join("|");
+  const rest = list.filter((e) => sig(e) !== sig(entry));
+  histories.set(channel, [entry, ...rest].slice(0, CLIPBOARD_HISTORY_MAX));
+}
 const readShared = (channel: string): ListClipboardState<unknown> => shared.get(channel) ?? EMPTY;
 const writeShared = (channel: string, next: ListClipboardState<unknown>) => {
   if (next.mode === null) shared.delete(channel); else shared.set(channel, next);
@@ -48,7 +70,7 @@ const writeShared = (channel: string, next: ListClipboardState<unknown>) => {
 const subscribeShared = (l: () => void) => { sharedListeners.add(l); return () => { sharedListeners.delete(l); }; };
 
 /** テスト用: 共有のクリップボードを空にする */
-export function _resetSharedClipboards(): void { shared.clear(); sharedListeners.forEach((l) => l()); }
+export function _resetSharedClipboards(): void { shared.clear(); histories.clear(); sharedListeners.forEach((l) => l()); }
 
 /**
  * ブラウザ内クリップボード。仕様 §3.4。
@@ -69,19 +91,37 @@ export function useListClipboard<T>(
     () => EMPTY,
   ) as ListClipboardState<T>;
   const clipboard = channel ? sharedState : local;
+  const history = useSyncExternalStore(
+    subscribeShared,
+    () => (channel ? historyOf(channel) : NO_HISTORY),
+    () => NO_HISTORY,
+  ) as ClipboardHistoryEntry<T>[];
 
   const set = useCallback((next: ListClipboardState<T>) => {
     if (channel) writeShared(channel, next as ListClipboardState<unknown>);
     else setLocal(next);
   }, [channel]);
 
+  const remember = useCallback((items: T[]) => {
+    // 履歴の中身は、あとから元が変わっても影響されないよう複製して持つ
+    if (channel && items.length > 0) pushHistory(channel, { at: Date.now(), items: items.map((i) => deepClone(i)), source: sourceId }, getId as (i: never) => string);
+  }, [channel, sourceId, getId]);
+
   const copy = useCallback((items: T[]) => {
+    remember(items);
     set({ mode: "copy", items: [...items], source: sourceId });
-  }, [set, sourceId]);
+  }, [set, sourceId, remember]);
 
   const cut = useCallback((items: T[]) => {
+    remember(items);
     set({ mode: "cut", items: [...items], source: sourceId });
-  }, [set, sourceId]);
+  }, [set, sourceId, remember]);
+
+  const restoreFromHistory = useCallback((index: number) => {
+    const e = history[index];
+    if (!e) return;
+    set({ mode: "copy", items: e.items.map((i) => deepClone(i)), source: e.source });
+  }, [history, set]);
 
   const clear = useCallback(() => {
     set({ mode: null, items: [] });
@@ -118,6 +158,8 @@ export function useListClipboard<T>(
     consume,
     isItemCut,
     isForeign,
+    history,
+    restoreFromHistory,
   };
 }
 

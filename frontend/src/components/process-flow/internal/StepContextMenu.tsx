@@ -29,6 +29,10 @@ export interface StepContextMenuProps {
   /** AI 依頼 (group / step lookup は親側で実施済の前提) */
   onAskAi: () => void;
   onDelete: () => void;
+  /** 選んだ工程 (無ければ、この工程) を、トランザクション・繰り返しで囲む (続編 第 8 弾 #147) */
+  onWrap?: (kind: "transactionScope" | "loop") => void;
+  /** 囲む対象の数 (メニューの文言に出す) */
+  wrapCount?: number;
 }
 
 export function StepContextMenu({
@@ -48,6 +52,8 @@ export function StepContextMenu({
   onAddSubStep,
   onAskAi,
   onDelete,
+  onWrap,
+  wrapCount = 1,
 }: StepContextMenuProps) {
   return (
     <div
@@ -89,6 +95,16 @@ export function StepContextMenu({
           >
             <i className="bi bi-diagram-2" /> サブステップ追加 ▶
           </button>
+          {onWrap && (
+            <>
+              <button className="step-context-menu-item" onClick={() => onWrap("transactionScope")} data-testid="step-wrap-tx">
+                <i className="bi bi-shield-check" /> {wrapCount > 1 ? `選んだ ${wrapCount} 工程` : "この工程"}をトランザクションで囲む
+              </button>
+              <button className="step-context-menu-item" onClick={() => onWrap("loop")} data-testid="step-wrap-loop">
+                <i className="bi bi-arrow-repeat" /> {wrapCount > 1 ? `選んだ ${wrapCount} 工程` : "この工程"}を繰り返しで囲む
+              </button>
+            </>
+          )}
           <div className="step-context-menu-sep" />
           <button className="step-context-menu-item" onClick={onAskAi}>
             <i className="bi bi-robot" /> このステップを AI に依頼
