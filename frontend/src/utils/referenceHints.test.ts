@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
 import { analyzeExpression, analyzeReferences, describeCondition, editDistance, nearestName } from "./referenceHints";
 import type { Resolver } from "./reference-completer/types";
 
@@ -62,6 +64,60 @@ describe("analyzeExpression", () => {
   it("「=」は代入。AND / OR は && / ||", () => {
     expect(msgs("@a.b = 1")[0]).toContain("「===」");
     expect(msgs("@a.b === 1 AND @c.d === 2")[0]).toContain("「&&」「||」");
+  });
+});
+
+describe("analyzeExpression: 正しい式を、間違いと指摘しない", () => {
+  const ok = (s: string) => expect(analyzeExpression(s).map((h) => h.message), s).toEqual([]);
+  it("アロー関数・べき乗・単項の + -・文字列の中の AND / OR・正規表現", () => {
+    ok("@inventoryRows.map(r => r.qty)");
+    ok("@inventoryItems.some(r => r.isLowStock)");
+    ok("@cartItems.reduce((sum, item) => sum + item.price, 0)");
+    ok("@aiResponse.items.filter(t => t.confidence >= 0.8)");
+    ok("@a.b ** 2");
+    ok("+5 > 3");
+    ok("-@a.b < 0");
+    ok("@a.b === 'AND' || @a.c === \"A OR B\"");
+    ok("/abc/.test(@a.b)");
+    ok("@a.b && /^[0-9]+$/.test(@a.b)");
+  });
+  it("日本語の語を含む自由記述の条件は、検査しない", () => {
+    ok("在庫数 < 注文数");
+    ok("在庫が不足していて (要確認");
+  });
+  it("書き間違いは、これまでどおり指摘する", () => {
+    expect(analyzeExpression("@a.b = 1")).toHaveLength(1);
+    expect(analyzeExpression("@a.b >=")).toHaveLength(1);
+    expect(analyzeExpression("(@a.b > 1")).toHaveLength(1);
+  });
+});
+
+describe("analyzeExpression: examples/ の処理フローの式は、すべて指摘なし", () => {
+  it("runIf・条件・式の欄にある、すべての文字列", () => {
+    const root = path.resolve(__dirname, "../../../examples");
+    const found: string[] = [];
+    const walkFiles = (dir: string) => {
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        const p = path.join(dir, e.name);
+        if (e.isDirectory()) walkFiles(p);
+        else if (e.name.endsWith(".json") && p.includes(`${path.sep}process-flows${path.sep}`)) {
+          const walk = (v: unknown) => {
+            if (Array.isArray(v)) v.forEach(walk);
+            else if (v && typeof v === "object") {
+              for (const [k, x] of Object.entries(v)) {
+                if (typeof x === "string" && ["runIf", "condition", "expression", "expr", "when"].includes(k) && x.includes("@")) found.push(x);
+                else walk(x);
+              }
+            }
+          };
+          walk(JSON.parse(fs.readFileSync(p, "utf-8")));
+        }
+      }
+    };
+    walkFiles(root);
+    expect(found.length).toBeGreaterThan(20); // 式が、実際に集まっている
+    const bad = found.filter((s) => analyzeExpression(s).length > 0);
+    expect(bad).toEqual([]);
   });
 });
 

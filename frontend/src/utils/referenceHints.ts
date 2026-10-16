@@ -95,7 +95,7 @@ function tokenize(src: string): { tokens: Tok[]; unterminated?: string } {
     if (ref) { tokens.push({ kind: "ref", text: ref[0] }); i += ref[0].length; continue; }
     const id = /^[A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z_$][A-Za-z0-9_$]*)*/.exec(src.slice(i));
     if (id) { tokens.push({ kind: "ident", text: id[0] }); i += id[0].length; continue; }
-    const op = /^(?:===|!==|==|!=|>=|<=|&&|\|\||\?\?|[><!+\-*/%=?:])/.exec(src.slice(i));
+    const op = /^(?:===|!==|==|!=|=>|>=|<=|&&|\|\||\?\?|\*\*|\?\.|[><!+\-*/%=?:])/.exec(src.slice(i));
     if (op) { tokens.push({ kind: "op", text: op[0] }); i += op[0].length; continue; }
     if (c === "(" || c === "[" || c === "{") { tokens.push({ kind: "open", text: c }); i++; continue; }
     if (c === ")" || c === "]" || c === "}") { tokens.push({ kind: "close", text: c }); i++; continue; }
@@ -105,13 +105,17 @@ function tokenize(src: string): { tokens: Tok[]; unterminated?: string } {
   return { tokens };
 }
 
-const BINARY = new Set(["===", "!==", "==", "!=", ">=", "<=", "&&", "||", "??", ">", "<", "+", "*", "/", "%", "="]);
+// 二項の演算子 (+ - は、前に値が無くても単項になれるので、含めない。=> のアロー関数も別)
+const BINARY = new Set(["===", "!==", "==", "!=", ">=", "<=", "&&", "||", "??", ">", "<", "*", "**", "/", "%", "="]);
 const MATCHING: Record<string, string> = { ")": "(", "]": "[", "}": "{" };
 
 /** 式の書き間違い (括弧・引用符・演算子・「=」)。空欄・書き間違いが無ければ、空配列 */
 export function analyzeExpression(value: string): ReferenceHint[] {
-  const src = value.trim();
+  // 正規表現のリテラル (/abc/.test(x)) は、割り算と見分けられないので、文字列に置き換えてから検査する
+  const src = value.trim().replace(/(^|[(,=:&|!?]\s*)\/(?:\\.|[^/\\\n])+\/[a-z]*/g, "$1''");
   if (!src) return [];
+  // 日本語などの語を含む式 (「在庫数 < 注文数」のような自由記述の条件) は、式として検査しない (書き間違いと見分けられない)
+  if (/[^\x20-\x7E\t\r\n]/.test(src.replace(/'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*"|`(?:\\.|[^`\\])*`/g, ""))) return [];
   const hints: ReferenceHint[] = [];
   const { tokens, unterminated } = tokenize(src);
   if (unterminated) hints.push({ message: `引用符 ${unterminated} が閉じていません` });
@@ -139,7 +143,9 @@ export function analyzeExpression(value: string): ReferenceHint[] {
     if (!next || next.kind === "close") { hints.push({ message: `演算子 ${t.text} の後に値がありません` }); break; }
     if (next.kind === "op" && !["!", "-", "+"].includes(next.text)) { hints.push({ message: `演算子 ${t.text} のあとに、演算子 ${next.text} が続いています` }); break; }
   }
-  if (/\b(AND|OR)\b/.test(src) && !unterminated) hints.push({ message: "「AND」「OR」ではなく、「&&」「||」を使います" });
+  // 文字列の中の AND / OR は、見ない
+  const outsideStrings = src.replace(/'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*"|`(?:\\.|[^`\\])*`/g, "''");
+  if (/\b(AND|OR)\b/.test(outsideStrings) && !unterminated) hints.push({ message: "「AND」「OR」ではなく、「&&」「||」を使います" });
   return hints.map((h) => ({ message: h.message }));
 }
 
