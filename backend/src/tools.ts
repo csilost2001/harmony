@@ -330,11 +330,11 @@ export const tools = [
     name: "designer__list_versions",
     description:
       "設計 1 件の「上書きされる前の版」の一覧 (新しい順、最大 20 件) を返します。保存・AI の書き込みのたびに、上書き直前の内容が自動で残ります。" +
-      "誤って消した・壊した設計を戻す前の確認に使います。対応: table / process-flow / view / view-definition / sequence / business-flow / report。仕様: docs/spec/file-backup.md",
+      "誤って消した・壊した設計を戻す前の確認に使います。対応: table / process-flow / view / view-definition / sequence / business-flow / report / page-layout。仕様: docs/spec/file-backup.md",
     inputSchema: {
       type: "object" as const,
       properties: {
-        resourceType: { type: "string", enum: ["table", "process-flow", "view", "view-definition", "sequence", "business-flow", "report"], description: "設計の種類" },
+        resourceType: { type: "string", enum: ["table", "process-flow", "view", "view-definition", "sequence", "business-flow", "report", "page-layout"], description: "設計の種類" },
         id: { type: "string", description: "設計の ID" },
       },
       required: ["resourceType", "id"],
@@ -348,7 +348,7 @@ export const tools = [
     inputSchema: {
       type: "object" as const,
       properties: {
-        resourceType: { type: "string", enum: ["table", "process-flow", "view", "view-definition", "sequence", "business-flow", "report"], description: "設計の種類" },
+        resourceType: { type: "string", enum: ["table", "process-flow", "view", "view-definition", "sequence", "business-flow", "report", "page-layout"], description: "設計の種類" },
         id: { type: "string", description: "設計の ID" },
         versionId: { type: "string", description: "designer__list_versions の versions[].id" },
       },

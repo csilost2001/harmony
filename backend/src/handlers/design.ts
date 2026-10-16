@@ -235,8 +235,8 @@ export const handleDesignTool: ToolHandler = async (name, args, root, sessionId)
         }
       }
       const res = await restoreEntityVersionToFile(root, String(a.resourceType), a.id as string, a.versionId);
-      const ev = ({ "table": "tableChanged", "process-flow": "processFlowChanged", "view": "viewChanged", "view-definition": "viewDefinitionChanged", "sequence": "sequenceChanged", "business-flow": "businessFlowChanged", "report": "reportChanged" } as Record<string, string>)[String(a.resourceType)];
-      const idField = ({ "table": "tableId", "process-flow": "processFlowId", "view": "viewId", "view-definition": "viewDefinitionId", "sequence": "sequenceId", "business-flow": "flowId", "report": "reportId" } as Record<string, string>)[String(a.resourceType)];
+      const ev = ({ "table": "tableChanged", "process-flow": "processFlowChanged", "view": "viewChanged", "view-definition": "viewDefinitionChanged", "sequence": "sequenceChanged", "business-flow": "businessFlowChanged", "report": "reportChanged", "page-layout": "pageLayoutChanged" } as Record<string, string>)[String(a.resourceType)];
+      const idField = ({ "table": "tableId", "process-flow": "processFlowId", "view": "viewId", "view-definition": "viewDefinitionId", "sequence": "sequenceId", "business-flow": "flowId", "report": "reportId", "page-layout": "pageLayoutId" } as Record<string, string>)[String(a.resourceType)];
       if (ev) wsBridge.broadcast({ wsId, event: ev, data: { [idField]: a.id } });
       return json({ restored: true, ...res, note: "書き戻す前の内容も版として残しています (designer__list_versions)" });
     }

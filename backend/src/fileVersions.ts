@@ -6,7 +6,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import {
-  actionsDir, readEntityReadOnly, readProject, resolveDataRoot, writeProject, writeBusinessFlow, writeProcessFlow, writeReport, writeSequence, writeTable, writeView, writeViewDefinition,
+  actionsDir, readEntityReadOnly, readProject, resolveDataRoot, writeProject, writeBusinessFlow, writePageLayout, writeProcessFlow, writeReport, writeSequence, writeTable, writeView, writeViewDefinition,
 } from "./projectStorage.js";
 import { listBackupVersions, readBackupVersion, versionIdToIso, type BackupVersion } from "./fileBackup.js";
 import { assertSafeName } from "./security/idValidator.js";
@@ -20,6 +20,7 @@ const DIRS: Record<string, string> = {
   "sequence": "sequences",
   "business-flow": "business-flows",
   "report": "reports",
+  "page-layout": "page-layouts",
 };
 export const VERSIONED_RESOURCE_TYPES = Object.keys(DIRS);
 
@@ -66,6 +67,7 @@ const writerFor = (resourceType: string): ((id: string, data: unknown, root: str
   "sequence": writeSequence,
   "business-flow": (id: string, data: unknown, root: string) => writeBusinessFlow(id, data, root),
   "report": (id: string, data: unknown, root: string) => writeReport(id, data, root),
+  "page-layout": (id: string, data: unknown, root: string) => writePageLayout(id, data, root),
 } as Record<string, (id: string, data: unknown, root: string) => Promise<unknown>>)[resourceType];
 
 /**
