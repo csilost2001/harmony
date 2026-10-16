@@ -274,6 +274,23 @@ test.describe("業務フロー", () => {
     await expect(page.getByTestId("bf-step-screen")).toBeVisible();
   });
 
+  test("持ち手のドラッグ中に Esc を押すと、並べ替えを取りやめる (UI 改善提案 第 3 弾 #45) @regression", async ({ page }) => {
+    await openEditor(page, "order-to-shipment", true);
+    const laneIds = async () => page.getByTestId("bf-lane-list").locator("[data-testid^=sortable-grip-]").evaluateAll((els) => els.map((e) => (e.getAttribute("data-testid") ?? "").replace("sortable-grip-", "")));
+    const before = await laneIds();
+    const a = (await page.getByTestId(`sortable-grip-${before[0]}`).boundingBox())!;
+    const b = (await page.getByTestId(`sortable-grip-${before[2]}`).boundingBox())!;
+    await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2 + 6, { steps: 3 });
+    await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2 + 4, { steps: 8 });
+    await page.keyboard.press("Escape");
+    await page.mouse.up();
+    await page.waitForTimeout(200);
+    expect(await laneIds()).toEqual(before); // 取りやめたので、並びは変わらない
+    await expect(page.getByTestId("bf-dirty")).toHaveCount(0);
+  });
+
   test("設計書に「業務フロー」の章 (図と工程表) が出る @regression", async ({ page }) => {
     await ws.gotoActive(page, "/document");
     await expect(page.locator("#business-flows")).toBeVisible({ timeout: 30000 });
