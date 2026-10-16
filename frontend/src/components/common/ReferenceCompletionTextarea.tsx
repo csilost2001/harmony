@@ -1,6 +1,7 @@
 import { useReferenceCompletion } from "../../hooks/useReferenceCompletion";
 import type { CompletionContext, Resolver } from "../../utils/reference-completer/types";
 import { CompletionPopup, COMPLETION_TITLE } from "./CompletionPopup";
+import { FieldHint } from "./FieldHint";
 
 interface ReferenceCompletionTextareaProps {
   value: string;
@@ -18,6 +19,8 @@ interface ReferenceCompletionTextareaProps {
   title?: string;
   /** 候補一覧のアクセシビリティ上の名前 (既定 "補完候補")。 */
   popupLabel?: string;
+  /** 式・条件の欄 (書き間違いの指摘と、平文の言い直しを出す) */
+  expression?: boolean;
 }
 
 /**
@@ -37,14 +40,16 @@ export function ReferenceCompletionTextarea({
   rows = 2,
   title,
   popupLabel,
+  expression,
 }: ReferenceCompletionTextareaProps) {
-  const { inputRef, candidates, isOpen, safeIndex, pick, handlers } = useReferenceCompletion<HTMLTextAreaElement>({
+  const { inputRef, candidates, isOpen, safeIndex, pick, handlers, hints, preview, applyFix } = useReferenceCompletion<HTMLTextAreaElement>({
     value,
     onValueChange,
     onCommit,
     resolvers,
     ctx,
     pickOnEnter: false,
+    expression,
   });
 
   return (
@@ -58,10 +63,13 @@ export function ReferenceCompletionTextarea({
         title={title ?? COMPLETION_TITLE}
         autoComplete="off"
         disabled={disabled}
+        aria-invalid={hints.length > 0 ? true : undefined}
         rows={rows}
         {...handlers}
       />
       {isOpen && <CompletionPopup candidates={candidates} activeIndex={safeIndex} onPick={pick} ariaLabel={popupLabel} />}
+      {hints.map((h, i) => <FieldHint key={i} hint={h} onFix={h.fix ? () => applyFix(h.fix!) : undefined} testId="reference-hint" />)}
+      {preview && <div className="field-preview" data-testid="condition-preview">{preview}</div>}
     </div>
   );
 }

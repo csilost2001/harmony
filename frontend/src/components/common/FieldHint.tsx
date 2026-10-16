@@ -4,13 +4,15 @@
  */
 import type { IdentifierHint } from "../../utils/identifierHints";
 
-export function FieldHint({ hint, onFix, testId }: { hint: IdentifierHint | null; onFix?: (value: string) => void; testId?: string }) {
+export type FieldHintValue = IdentifierHint & { fixLabel?: string };
+
+export function FieldHint({ hint, onFix, testId }: { hint: FieldHintValue | null; onFix?: (value: string) => void; testId?: string }) {
   if (!hint) return null;
   return (
     <div className="field-hint" role="status" data-testid={testId ?? "field-hint"}>
       <span>{hint.message}</span>
       {hint.fix && onFix && (
-        <button type="button" className="field-hint-fix" onClick={() => onFix(hint.fix!)} data-testid="field-hint-fix">「{hint.fix}」に直す</button>
+        <button type="button" className="field-hint-fix" onClick={() => onFix(hint.fix!)} data-testid="field-hint-fix">{hint.fixLabel ?? `「${hint.fix}」に直す`}</button>
       )}
     </div>
   );

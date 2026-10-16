@@ -33,6 +33,7 @@ export function ConvCompletionInput({ conventions, flow, stepId, ...rest }: Conv
         {...rest}
         resolvers={EXPRESSION_RESOLVERS}
         ctx={expressionCtx({ conventions, flow, stepId })}
+        expression
       />
     );
   }

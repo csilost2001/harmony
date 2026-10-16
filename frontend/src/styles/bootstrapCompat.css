@@ -212,3 +212,4 @@ html.hm-focus-mode .common-header, html.hm-focus-mode .tabbar { display: none !i
 .field-hint-fix { margin-left: 6px; padding: 0 6px; border: 1px solid var(--hm-danger); border-radius: 4px; background: transparent; color: var(--hm-danger); font: inherit; cursor: pointer; }
 .field-hint-fix:hover, .field-hint-fix:focus-visible { background: var(--hm-danger); color: var(--hm-on-solid, #fff); }
 input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--hm-danger) !important; }
+.field-preview { margin-top: 2px; font-size: calc(11.5px * var(--hm-font-scale)); line-height: 1.4; color: var(--hm-fg-muted); }
