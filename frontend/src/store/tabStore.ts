@@ -2,7 +2,7 @@ import { recordError } from "../utils/errorLog";
 import { uiInfo } from "../utils/uiLog";
 import { isValidUuid } from "../utils/entityIdValidation";
 import { isPaneMode, postToParent } from "../utils/paneMode";
-import { recordOpened } from "../utils/openedHistory";
+import { clearOpenedHistory, recordOpened } from "../utils/openedHistory";
 
 const TABS_KEY = "harmony-open-tabs";
 const ACTIVE_KEY = "harmony-active-tab";
@@ -231,6 +231,9 @@ export function clearPersistedTabs(): void {
   try {
     localStorage.removeItem(TABS_KEY);
     localStorage.removeItem(ACTIVE_KEY);
+    // 閉じたタブ・開いた時刻も、旧ワークスペースの設計を指すので消す (同じ ID の別の設計が開くのを防ぐ)
+    localStorage.removeItem(CLOSED_KEY);
+    clearOpenedHistory();
   } catch { /* private browsing / quota error は無視 */ }
 }
 

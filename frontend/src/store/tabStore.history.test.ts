@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import {
   getTabs, getActiveTabId, openTab, closeTab, setActiveTab, makeTabId, setPinned, closeOtherTabs, closeTabsToRight,
-  getClosedTabs, reopenClosedTab, canGoBack, canGoForward, goBackTab, goForwardTab,
+  getClosedTabs, reopenClosedTab, clearPersistedTabs, canGoBack, canGoForward, goBackTab, goForwardTab,
   _resetForTests, _reloadFromStorageForTests,
 } from "./tabStore";
 
@@ -86,5 +86,18 @@ describe("画面の履歴: 戻る / 進む (続編 第 6 弾 #107)", () => {
   it("同じタブを続けて開いても履歴は増えない", () => {
     openTab(t("a")); openTab(t("a")); setActiveTab(t("a").id);
     expect(canGoBack()).toBe(false);
+  });
+});
+
+describe("ワークスペースの切り替え (レビュー M1)", () => {
+  it("切り替えの後始末で、閉じたタブと開いた時刻も消える (旧ワークスペースの設計を開き直さない)", () => {
+    openTab(t("orders")); closeTab(t("orders").id);
+    expect(getClosedTabs()).toHaveLength(1);
+    expect(localStorage.getItem("harmony-opened-at")).not.toBeNull();
+    clearPersistedTabs();
+    _reloadFromStorageForTests();
+    expect(getClosedTabs()).toEqual([]);
+    expect(localStorage.getItem("harmony-opened-at")).toBeNull();
+    expect(localStorage.getItem("harmony-closed-tabs")).toBeNull();
   });
 });

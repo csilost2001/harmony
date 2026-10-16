@@ -33,5 +33,11 @@ export function openedAtOf(tabId: string): number {
   return load()[tabId] ?? 0;
 }
 
+/** 覚えた時刻をすべて消す (ワークスペースを切り替えるとき) */
+export function clearOpenedHistory(): void {
+  cache = null;
+  try { localStorage.removeItem(KEY); } catch { /* 消せなくても動作は妨げない */ }
+}
+
 /** テスト専用 */
 export function _resetOpenedForTests(): void { cache = null; }
