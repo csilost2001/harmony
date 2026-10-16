@@ -378,4 +378,36 @@ test.describe("並べて表示", () => {
     await page.getByTestId("split-close").click();
     await expect(page.getByTestId("split-pane")).toBeHidden();
   });
+
+  test("タブを、本文の右の領域へドラッグして離すと、右側に並べて表示できる (領域の外で離すと、並べ替えだけ) @regression", async ({ page }) => {
+    await ws.gotoActive(page, "/table/list");
+    await ws.gotoActive(page, "/screen/list");
+    const tab = page.locator(".tab-item, .tabbar-tab").filter({ hasText: /テーブル/ }).first();
+    const box = (await tab.boundingBox())!;
+    const main = (await page.locator("#app-main").boundingBox())!;
+    const start = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+
+    // 領域の外で離す: 並んで表示はしない
+    await page.mouse.move(start.x, start.y);
+    await page.mouse.down();
+    await page.mouse.move(start.x + 12, start.y, { steps: 3 });
+    await page.mouse.move(main.x + main.width * 0.3, main.y + 200, { steps: 4 });
+    await expect(page.getByTestId("split-drop-zone")).toBeVisible();
+    await expect(page.getByTestId("split-drop-zone")).not.toHaveClass(/is-hot/);
+    await page.mouse.up();
+    await expect(page.getByTestId("split-pane")).toBeHidden();
+    await expect(page.getByTestId("split-drop-zone")).toHaveCount(0);
+
+    // 右の領域で離す
+    const box2 = (await tab.boundingBox())!;
+    await page.mouse.move(box2.x + box2.width / 2, box2.y + box2.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box2.x + box2.width / 2 + 12, box2.y + box2.height / 2, { steps: 3 });
+    await page.mouse.move(main.x + main.width * 0.85, main.y + 200, { steps: 6 });
+    await expect(page.getByTestId("split-drop-zone")).toHaveClass(/is-hot/);
+    await page.mouse.up();
+    await expect(page.getByTestId("split-pane")).toBeVisible();
+    await expect(page.frameLocator('[data-testid="split-frame"]').locator("body")).toContainText(/テーブル/, { timeout: 20000 });
+    await page.getByTestId("split-close").click();
+  });
 });

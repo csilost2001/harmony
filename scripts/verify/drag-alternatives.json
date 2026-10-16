@@ -1,6 +1,6 @@
 {
   "_doc": "ドラッグ操作のある画面と、マウスを使わずに同じことをする方法の台帳。新しくドラッグ操作を足したら、ここに代替を書く (検査: node scripts/verify/drag-alternatives.mjs)。仕様: docs/spec/keyboard-alternatives.md",
-  "frontend/src/components/TabBar.tsx": "タブの並べ替え → Ctrl+Shift+PageUp / PageDown、タブの右クリックメニューの「左へ動かす / 右へ動かす」",
+  "frontend/src/components/TabBar.tsx": "タブの並べ替え → Ctrl+Shift+PageUp / PageDown、タブの右クリックメニューの「左へ動かす / 右へ動かす」。タブを右の領域へドラッグして並べて表示 → タブの右クリックメニューの「右側に並べて表示」",
   "frontend/src/components/common/DataList.tsx": "一覧の行の並べ替え → 行を選んで Alt+↑↓ (useListKeyboard)。列の並び・表示・幅 (見出しのドラッグ) → 一覧の右上の「列の設定」で、列ごとの ↑↓ ボタン・表示のチェック・幅の数値",
   "frontend/src/components/common/SortableList.tsx": "業務フロー・帳票の左の一覧の並べ替え → 持ち手にフォーカスして Space → ↑↓ → Space (KeyboardSensor)、各行の上へ / 下へのボタン",
   "frontend/src/components/dashboard/DashboardView.tsx": "ダッシュボードのパネルの移動・大きさ → パネルの見出しにフォーカスして Alt+矢印 (移動) / Alt+Shift+矢印 (大きさ)",
