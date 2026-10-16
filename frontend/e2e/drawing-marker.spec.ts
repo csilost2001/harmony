@@ -142,7 +142,7 @@ test.describe("描画マーカー (#261)", { tag: ["@regression"] }, () => {
 
     // 2 ストローク描画
     await drawStroke(page, box.x + box.width * 0.3, box.y + box.height * 0.3, 100, 50);
-    await drawStroke(page, box.x + box.width * 0.5, box.y + box.height * 0.5, -80, 60);
+    await drawStroke(page, box.x + box.width * 0.5, box.y + box.height * 0.4, -80, 60);
 
     // ストローク数表示 (2 ストローク)
     await expect(page.locator(".drawing-toolbar-info")).toContainText("2 ストローク");
