@@ -60,6 +60,7 @@ import { useResyncDraftOnReconnect } from "../../hooks/useResyncDraftOnReconnect
 import { firstChildId, neighborId, parentId } from "./layoutKeyboard";
 import { showToast } from "../../utils/toast";
 import { HelpHint } from "../help/HelpHint";
+import { LoadingBlock } from "../common/LoadingBlock";
 
 const VIEWPORTS: Array<{ key: string; label: string; icon: string; width: number }> = [
   { key: "pc", label: "PC", icon: "bi-display", width: 1200 },
@@ -551,7 +552,7 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
       )}
 
       {!doc ? (
-        <div className="sld-loading">読み込み中…</div>
+        <div className="sld-loading"><LoadingBlock what="画面デザイン" onRetry={() => { void reload(); }} /></div>
       ) : !hasLayout ? (
         <div className="sld-start" data-testid="layout-start">
           <div className="sld-start-card">

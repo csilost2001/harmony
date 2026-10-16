@@ -70,6 +70,7 @@ import { usePersistentState } from "../../hooks/usePersistentState";
 import { HelpHint } from "../help/HelpHint";
 import { isInsideModal } from "../../utils/modalScope";
 import { asciiFieldProps } from "../../utils/fieldNormalize";
+import { LoadingBlock } from "../common/LoadingBlock";
 
 type TabId = "columns" | "constraints" | "indexes" | "triggers" | "comment" | "markers";
 
@@ -270,7 +271,7 @@ export function TableEditor() {
   }, [tableId]);
 
   if (!table || sessionLoading) {
-    return <div className="table-editor-loading"><i className="bi bi-hourglass-split" /> 読み込み中...</div>;
+    return <LoadingBlock what="テーブル" onRetry={() => { void reload(); }} />;
   }
 
   const ddl = generateDdl(table, ddlDialect, allTables);

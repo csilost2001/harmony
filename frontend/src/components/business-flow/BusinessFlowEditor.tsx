@@ -26,6 +26,7 @@ import { moveById } from "../../utils/reorder";
 import "../../styles/businessFlow.css";
 import { UndoHistoryPanel } from "../common/UndoHistoryPanel";
 import { SearchableSelect } from "../common/SearchableSelect";
+import { LoadingBlock } from "../common/LoadingBlock";
 
 type Selection = { kind: "step" | "lane"; id: string } | null;
 const STEP_ICON: Record<StepKind, string> = { start: "bi-play-circle", task: "bi-square", decision: "bi-diamond", end: "bi-stop-circle" };
@@ -219,7 +220,7 @@ export function BusinessFlowEditor() {
       </div>
     );
   }
-  if (!flow || sessionLoading) return <div className="bfe-empty"><p>読み込み中…</p></div>;
+  if (!flow || sessionLoading) return <div className="bfe-empty"><LoadingBlock what="業務フロー" /></div>;
 
   const stepName = (id: string) => flow.steps.find((s) => s.id === id)?.name ?? id;
   const laneName = (id: string) => flow.lanes.find((l) => l.id === id)?.name ?? id;

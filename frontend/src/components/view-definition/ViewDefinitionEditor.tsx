@@ -81,6 +81,7 @@ import { reportFailure } from "../../utils/failureToast";
 import { EntityMarkerSection } from "../common/EntityMarkerSection";
 import { authoringWithMarkers } from "../../utils/markerDoc";
 import { moveItem, remapIndex } from "../../utils/rowReorder";
+import { LoadingBlock } from "../common/LoadingBlock";
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
@@ -374,11 +375,7 @@ export function ViewDefinitionEditor() {
 
   // ─── 読み込み中 ────────────────────────────────────────────────────────────
   if (!viewDefinition || sessionLoading) {
-    return (
-      <div className="table-editor-loading">
-        <i className="bi bi-hourglass-split" /> 読み込み中...
-      </div>
-    );
+    return <LoadingBlock what="ビュー定義" onRetry={() => { void reload(); }} />;
   }
 
   const columnNames = (viewDefinition.columns ?? []).map((c) => c.name as string);

@@ -213,3 +213,6 @@ html.hm-focus-mode .common-header, html.hm-focus-mode .tabbar { display: none !i
 .field-hint-fix:hover, .field-hint-fix:focus-visible { background: var(--hm-danger); color: var(--hm-on-solid, #fff); }
 input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--hm-danger) !important; }
 .field-preview { margin-top: 2px; font-size: calc(11.5px * var(--hm-font-scale)); line-height: 1.4; color: var(--hm-fg-muted); }
+
+/* ── 読み込み中の共通の表示 (UI 改善提案 第 5 弾 #96) ──────────────────────── */
+.loading-block-slow { margin-top: 8px; color: var(--hm-fg-muted); font-size: calc(12.5px * var(--hm-font-scale)); display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; }

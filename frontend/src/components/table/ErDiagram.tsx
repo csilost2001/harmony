@@ -48,6 +48,7 @@ import { isImeComposing } from "../../utils/imeKeys";
 import { SearchableSelect } from "../common/SearchableSelect";
 import { asciiFieldProps } from "../../utils/fieldNormalize";
 import { showToast } from "../../utils/toast";
+import { LoadingBlock } from "../common/LoadingBlock";
 
 const nodeTypes = { erTableNode: ErTableNodeComponent };
 
@@ -440,7 +441,7 @@ function ErDiagramInner() {
       <div className="er-diagram-page">
         <TableSubToolbar />
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--hm-fg-muted)" }}>
-          <i className="bi bi-hourglass-split" /> 読み込み中...
+          <LoadingBlock what="ER 図" />
         </div>
       </div>
     );

@@ -33,6 +33,7 @@ import { runReporting } from "../../utils/failureToast";
 import { useUndoableState } from "../../hooks/useUndoableState";
 import { useUndoKeyboard } from "../../hooks/useUndoKeyboard";
 import { UndoHistoryPanel } from "../common/UndoHistoryPanel";
+import { LoadingBlock } from "../common/LoadingBlock";
 
 function isValidKind(k: string): k is GenericDefinitionKind {
   return (GENERIC_DEFINITION_KINDS as string[]).includes(k);
@@ -540,7 +541,7 @@ function GenericDefinitionEditorBody() {
   }
 
   if (loading) {
-    return <div style={{ padding: "24px", color: "var(--hm-fg-muted)" }}>読み込み中...</div>;
+    return <div style={{ padding: "24px" }}><LoadingBlock what="汎用定義" onRetry={() => reload()} /></div>;
   }
 
   if (error) {
