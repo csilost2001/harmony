@@ -18,6 +18,7 @@ import "../../styles/dashboard.css";
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
 const LAYOUT_STORAGE_KEY = "dashboard-layout-v1";
+const HIDDEN_STORAGE_KEY = "dashboard-hidden-v1";
 const ROW_HEIGHT = 80;
 const BREAKPOINTS = { lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 };
 const COLS = { lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 };
@@ -69,6 +70,16 @@ function reconcileLayouts(stored: StoredLayouts, defaults: LayoutItem[]): Stored
   return reconciled;
 }
 
+function loadHidden(): string[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(HIDDEN_STORAGE_KEY) ?? "[]");
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+  } catch { return []; }
+}
+function storeHidden(ids: string[]): void {
+  try { if (ids.length === 0) localStorage.removeItem(HIDDEN_STORAGE_KEY); else localStorage.setItem(HIDDEN_STORAGE_KEY, JSON.stringify(ids)); } catch { /* ignore */ }
+}
+
 function storeLayouts(layouts: StoredLayouts): void {
   try {
     localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(layouts));
@@ -103,6 +114,23 @@ export function DashboardView() {
     if (stored) return reconcileLayouts(stored, defaultLayout);
     return { lg: defaultLayout };
   });
+
+  // 非表示にしたパネル (このブラウザにだけ覚える)
+  const [hidden, setHidden] = useState<string[]>(loadHidden);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const setPanelHidden = (id: string, hide: boolean) => setHidden((cur) => {
+    const next = hide ? [...new Set([...cur, id])] : cur.filter((x) => x !== id);
+    storeHidden(next);
+    return next;
+  });
+  const resetDashboard = () => {
+    try { localStorage.removeItem(LAYOUT_STORAGE_KEY); } catch { /* ignore */ }
+    storeHidden([]);
+    setHidden([]);
+    setLayouts({ lg: defaultLayout });
+    setMenuOpen(false);
+  };
+  const visiblePanels = dashboardPanels.filter((p) => !hidden.includes(p.id));
 
   const [breakpoint, setBreakpoint] = useState<keyof typeof COLS>("lg");
   const [announce, setAnnounce] = useState("");
@@ -159,6 +187,19 @@ export function DashboardView() {
         <p className="dashboard-subtitle">
           プロジェクト全体の状況を俯瞰 <span className="dashboard-hint">（パネルはドラッグ/リサイズ可能。キーボードでは、パネルの見出しで Alt+矢印 = 移動、Alt+Shift+矢印 = 大きさ）</span>
         </p>
+        <div className="dashboard-panel-menu">
+          <button type="button" className="btn btn-sm btn-outline-secondary" aria-haspopup="true" aria-expanded={menuOpen} onClick={() => setMenuOpen((v) => !v)} data-testid="dashboard-panels-btn">
+            <i className="bi bi-grid-3x3-gap" /> 表示するパネル{hidden.length > 0 ? ` (${hidden.length} 件を隠しています)` : ""}
+          </button>
+          {menuOpen && (
+            <div className="dashboard-panel-menu-pop" role="group" aria-label="表示するパネル" data-testid="dashboard-panels-menu">
+              {dashboardPanels.map((p) => (
+                <label key={p.id}><input type="checkbox" checked={!hidden.includes(p.id)} onChange={(e) => setPanelHidden(p.id, !e.target.checked)} /> {p.title}</label>
+              ))}
+              <button type="button" className="btn btn-sm btn-link" onClick={resetDashboard} data-testid="dashboard-reset">初期の配置に戻す</button>
+            </div>
+          )}
+        </div>
       </div>
 
       <ResponsiveGridLayout
@@ -171,7 +212,7 @@ export function DashboardView() {
         onBreakpointChange={(bp: string) => setBreakpoint(bp as keyof typeof COLS)}
         draggableHandle=".panel-drag-handle"
       >
-        {dashboardPanels.map((p) => {
+        {visiblePanels.map((p) => {
           const PanelComponent = p.component;
           return (
             <div key={p.id} className="dashboard-panel">
@@ -181,6 +222,8 @@ export function DashboardView() {
                 onKeyDown={(e) => handlePanelKey(e, p.id, p.title)} data-testid={`panel-handle-${p.id}`}>
                 {p.icon && <i className={`bi ${p.icon}`} />}
                 <span className="panel-title">{p.title}</span>
+                <button type="button" className="panel-hide-btn" onClick={() => setPanelHidden(p.id, true)} onMouseDown={(e) => e.stopPropagation()}
+                  title="このパネルを隠す (「表示するパネル」から戻せます)" aria-label={`パネル「${p.title}」を隠す`} data-testid={`panel-hide-${p.id}`}><i className="bi bi-eye-slash" /></button>
               </div>
               <div className="panel-body">
                 <PanelComponent />

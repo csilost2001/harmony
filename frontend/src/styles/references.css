@@ -55,3 +55,10 @@
 .references-replace-files { list-style: none; margin: 6px 0; padding: 0; max-height: 200px; overflow: auto; }
 .references-replace-files label { display: flex; gap: 6px; align-items: baseline; }
 .references-replace-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 8px; }
+
+/* この設計が使っているもの (UI 改善提案 続編 第 6 弾 #113) */
+.references-uses { margin-top: 16px; padding-top: 8px; border-top: 1px solid var(--hm-border); }
+.references-uses h3 { margin: 4px 0; font-size: calc(12px * var(--hm-font-scale)); font-weight: 700; letter-spacing: 0.04em; color: var(--hm-fg-muted); }
+.references-uses ul { list-style: none; margin: 0; padding: 0; }
+.references-uses li { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 4px 0; border-bottom: 1px solid var(--hm-border); font-size: calc(13px * var(--hm-font-scale)); }
+.references-uses li code { margin-left: 8px; font-size: calc(11px * var(--hm-font-scale)); color: var(--hm-fg-muted); background: transparent; }

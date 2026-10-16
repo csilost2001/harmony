@@ -8,6 +8,10 @@ import { loadProject } from "../../store/flowStore";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { makeTabId } from "../../store/tabStore";
 import { DataList, type DataListColumn } from "../common/DataList";
+import { useOpenedSortAccessor } from "../../hooks/useOpenedSortAccessor";
+import { useEditingOnly } from "../../hooks/useEditingOnly";
+import { computeRowMarks } from "../../utils/rowMarks";
+import { ListViewBar } from "../common/ListViewBar";
 import { FilterBar } from "../common/FilterBar";
 import { SortBar } from "../common/SortBar";
 import { ListContextMenu, type ContextMenuItem } from "../common/ListContextMenu";
@@ -92,7 +96,10 @@ export function SequenceListView() {
 
   const allSequences = editor.items;
 
-  const filter = useListFilter(allSequences);
+  const rowMarks = useMemo(() => computeRowMarks(allSequences, (x) => String(x.id), (x) => x.name), [allSequences]);
+  const isEditing = useCallback((x: SequenceEntry) => hasDraft("sequence", String(x.id)), [hasDraft]);
+  const editing = useEditingOnly(allSequences, isEditing);
+  const filter = useListFilter(editing.items);
   useEffect(() => {
     const q = query.trim().toLowerCase();
     if (!q) {
@@ -117,7 +124,8 @@ export function SequenceListView() {
     }
   }, []);
 
-  const sort = useListSort(filter.filtered, sortAccessor);
+  const sortAccessorOpened = useOpenedSortAccessor(sortAccessor, "sequence", (x: SequenceEntry) => String(x.id));
+  const sort = useListSort(filter.filtered, sortAccessorOpened);
   const selection = useListSelection(sort.sorted, (s) => s.id);
   const clipboard = useListClipboard<SequenceEntry>((s) => s.id);
 
@@ -539,8 +547,13 @@ export function SequenceListView() {
 
         <SortBar sort={sort} columnLabels={columnLabels} />
 
+        <ListViewBar listKey="sequence-list" query={query} onQuery={setQuery} sort={sort} facets={[editing.facet]} />
+
         <DataList
           prefsKey="sequence-list"
+          rowMark={(x) => rowMarks.get(String(x.id)) ?? null}
+          recentSort
+          bulk={{ favoriteKey: (x) => `sequence:${x.id}` , marker: (x) => ({ entityType: "sequence", entityId: x.id }) }}
           dragRef={(s) => `@seq.${s.id}`}
           items={sort.sorted}
           columns={columns}
@@ -560,7 +573,7 @@ export function SequenceListView() {
           className="sequences-data-list"
           isItemGhost={(id) => editor.isDeleted(id)}
           emptyMessage={
-            <EmptyState noun="シーケンス定義" icon="bi-arrow-repeat" hint="連番を採番するデータベースの仕組みを定義します" filtered={!!query} onCreate={() => setShowAdd(true)} createLabel="シーケンスを追加" onClear={() => setQuery("")} />
+            <EmptyState suggest={{ names: allSequences.map((x) => x.name ?? ""), query: query, onPick: setQuery }} noun="シーケンス定義" icon="bi-arrow-repeat" hint="連番を採番するデータベースの仕組みを定義します" filtered={!!query} onCreate={() => setShowAdd(true)} createLabel="シーケンスを追加" onClear={() => setQuery("")} />
           }
         />
 

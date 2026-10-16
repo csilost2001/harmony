@@ -12,6 +12,8 @@ import {
   type ReferenceResult, type ReferenceTargetType,
 } from "../../utils/references";
 import { ReplaceReferencesPanel } from "./ReplaceReferencesPanel";
+import { loadDesignInput } from "../document/loadDesignInput";
+import { graphKindOf, usesFromInput, type UsedItem } from "../../utils/relatedDesigns";
 import "../../styles/references.css";
 
 interface Props {
@@ -47,6 +49,15 @@ export function ReferencesDialog({ entityType, id, name, onClose }: Props & { on
   const [error, setError] = useState<string | null>(null);
   const [replacing, setReplacing] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  // この設計が使っているもの (つながりを持つ種類だけ。参照元とは逆向き)
+  const graphKind = graphKindOf(entityType);
+  const [uses, setUses] = useState<UsedItem[] | null>(null);
+  useEffect(() => {
+    if (!graphKind) return;
+    let cancelled = false;
+    loadDesignInput().then(({ input }) => { if (!cancelled) setUses(usesFromInput(input, graphKind, id)); }).catch(() => { if (!cancelled) setUses([]); });
+    return () => { cancelled = true; };
+  }, [graphKind, id, reloadKey]);
 
   useEffect(() => {
     let cancelled = false;
@@ -108,6 +119,24 @@ export function ReferencesDialog({ entityType, id, name, onClose }: Props & { on
                 </section>
               ))}
             </>
+          )}
+          {graphKind && uses && (
+            <section className="references-uses" data-testid="references-uses">
+              <h3><i className="bi bi-box-arrow-in-down-right" /> この設計が使っているもの <span className="references-count">{uses.length}</span></h3>
+              {uses.length === 0
+                ? <p className="references-muted" data-testid="references-uses-empty">ほかの設計や共通の定義への参照は見つかりません。</p>
+                : <ul>
+                    {uses.map((u) => (
+                      <li key={`${u.kind}:${u.id}`}>
+                        {u.route
+                          ? <button type="button" className="references-link" onClick={() => open(u.route!)} data-testid={`references-use-${u.kind}-${u.id}`}>{u.name}{u.name !== u.id ? <code>{u.id}</code> : null}</button>
+                          : <span>{u.name}{u.name !== u.id ? <code>{u.id}</code> : null}</span>}
+                        <span className="references-n">{u.kindLabel} ・ {u.how}</span>
+                      </li>
+                    ))}
+                  </ul>}
+              <p className="references-muted">画面・処理フロー・テーブル・業務フロー・帳票・独自部品・メッセージなどへの参照が対象です (シーケンス・ビュー・ページレイアウトは含みません)。</p>
+            </section>
           )}
         </div>
       </div>

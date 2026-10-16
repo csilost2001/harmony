@@ -63,6 +63,12 @@ export function toggleFavorite(wsId: string | undefined, key: string): boolean {
   return true;
 }
 
+/** お気に入りを、指定のとおりにする (すでにそうなら何もしない)。まとめての操作用 */
+export function setFavorite(wsId: string | undefined, key: string, on: boolean): void {
+  if (on) { if (!isFavorite(wsId, key)) toggleFavorite(wsId, key); }
+  else removeFavorite(wsId, key);
+}
+
 export function removeFavorite(wsId: string | undefined, key: string): void {
   const same = equivalentKeys(key);
   const fav = loadFavorites(wsId);

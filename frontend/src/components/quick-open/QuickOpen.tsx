@@ -20,7 +20,10 @@ import {
   QUICK_OPEN_KIND_LABELS,
   buildQuickOpenEntries,
   contentHitsToEntries,
+  highlightSegments,
   loadRecentQuickOpen,
+  parseKindPrefix,
+  QUICK_OPEN_PREFIXES,
   searchCommands,
   searchQuickOpen,
   type ContentSearchHit,
@@ -100,16 +103,19 @@ export function QuickOpen() {
   const commandQuery = commandMode ? query.slice(COMMAND_PREFIX.length) : query;
   const allCommands = useMemo(() => (open ? buildPaletteCommands({ activeTab, wsId }) : []), [open, activeTab, wsId]);
 
-  const nameHits = useMemo(
-    () => (entries && !commandMode ? searchQuickOpen(entries, query, 50, recent, favorites) : []),
-    [entries, query, recent, favorites, commandMode],
-  );
+  // `t:注文` のように種類の接頭辞を付けると、その種類だけを探す (本文検索・操作の候補は出さない)
+  const prefix = useMemo(() => (commandMode ? { kinds: null, label: null, rest: query } : parseKindPrefix(query)), [commandMode, query]);
+  const nameHits = useMemo(() => {
+    if (!entries || commandMode) return [];
+    if (prefix.kinds) return searchQuickOpen(entries.filter((e) => prefix.kinds!.includes(e.kind)), prefix.rest, 50, recent, favorites);
+    return searchQuickOpen(entries, query, 50, recent, favorites);
+  }, [entries, query, recent, favorites, commandMode, prefix]);
 
   // 本文の一致 (説明・カラム名・項目のラベル・工程の説明など)。2 文字以上で、入力が止まってから backend に尋ねる
   const [content, setContent] = useState<{ query: string; hits: ContentSearchHit[] }>({ query: "", hits: [] });
   useEffect(() => {
     const q = query.trim();
-    if (!open || commandMode || q.length < 2) { setContent({ query: "", hits: [] }); return; }
+    if (!open || commandMode || prefix.kinds || q.length < 2) { setContent({ query: "", hits: [] }); return; }
     let alive = true;
     const timer = setTimeout(() => {
       mcpBridge.request("searchDesign", { query: q }).then((res) => {
@@ -117,7 +123,7 @@ export function QuickOpen() {
       }).catch(() => { if (alive) setContent({ query: q, hits: [] }); });
     }, 250);
     return () => { alive = false; clearTimeout(timer); };
-  }, [open, query, commandMode]);
+  }, [open, query, commandMode, prefix]);
 
   const contentEntries = useMemo<QuickOpenContentEntry[]>(
     // 入力を変えた直後は、前の入力の本文候補を出さない (応答が来るまでのあいだに Enter を押しても、合わない候補を開かない)
@@ -126,8 +132,8 @@ export function QuickOpen() {
   );
   // 「>」なら操作だけ。ふつうの検索では、語があるときだけ、合う操作を名前の候補の後ろに出す
   const commandHits = useMemo(
-    () => (commandMode ? searchCommands(allCommands, commandQuery) : query.trim() ? searchCommands(allCommands, query, 5) : []),
-    [allCommands, commandMode, commandQuery, query],
+    () => (commandMode ? searchCommands(allCommands, commandQuery) : prefix.kinds ? [] : query.trim() ? searchCommands(allCommands, query, 5) : []),
+    [allCommands, commandMode, commandQuery, query, prefix],
   );
   const rows = useMemo<Row[]>(
     () => [
@@ -205,7 +211,8 @@ export function QuickOpen() {
           </div>
           <ul className="quick-open-list" id="quick-open-list" role="listbox" ref={listRef} data-testid="quick-open-list">
             {entries === null && !commandMode && <li className="quick-open-empty">読み込み中...</li>}
-            {(entries !== null || commandMode) && rows.length === 0 && <li className="quick-open-empty" data-testid="quick-open-empty">「{commandMode ? commandQuery : query}」に一致する{commandMode ? "操作" : "もの"}はありません</li>}
+            {prefix.kinds && <li className="quick-open-section" role="presentation" data-testid="quick-open-prefix-head">{prefix.label}だけを探しています ({prefix.rest.trim() ? `「${prefix.rest.trim()}」` : "すべて"})</li>}
+            {(entries !== null || commandMode) && rows.length === 0 && <li className="quick-open-empty" data-testid="quick-open-empty">「{commandMode ? commandQuery : prefix.kinds ? prefix.rest : query}」に一致する{commandMode ? "操作" : "もの"}はありません</li>}
             {rows.map((row, i) => (
               <Fragment key={`${i}:${row.type === "entry" ? row.entry.key : row.cmd.id}`}>
               {i === firstCommandIndex && commandHits.length > 0 && (
@@ -246,7 +253,7 @@ export function QuickOpen() {
                   <i className={`bi ${QUICK_OPEN_KIND_ICONS[row.entry.kind]}`} />
                   <span className="quick-open-label">{row.entry.label}</span>
                   {"detail" in row.entry ? (
-                    <span className="quick-open-detail" data-testid="quick-open-detail">{row.entry.detail}</span>
+                    <span className="quick-open-detail" data-testid="quick-open-detail">{highlightSegments(row.entry.detail, query).map((seg, k) => (seg.hit ? <mark key={k} className="quick-open-mark">{seg.text}</mark> : <Fragment key={k}>{seg.text}</Fragment>))}</span>
                   ) : (
                     row.entry.kind !== "page" && row.entry.kind !== "create" && <span className="quick-open-id">{row.entry.id}</span>
                   )}
@@ -271,6 +278,7 @@ export function QuickOpen() {
             <span><kbd>Alt</kbd>+<kbd>Enter</kbd> 右に並べて開く</span>
             <span><kbd>Ctrl</kbd><kbd>D</kbd> お気に入り</span>
             <span><kbd>&gt;</kbd> 操作 (保存・配色など)</span>
+            <span title={QUICK_OPEN_PREFIXES.map((p) => `${p.prefix}: ${p.label}`).join(" / ")}>種類で絞る: <code>t:</code> テーブル <code>f:</code> 処理フロー <code>s:</code> 画面 ほか</span>
             <span>空白で区切ると絞り込み (例: <code>注文 帳票</code>)</span>
           </div>
         </div>

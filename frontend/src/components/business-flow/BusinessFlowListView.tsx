@@ -13,6 +13,9 @@ import { useWorkspacePath } from "../../hooks/useWorkspacePath";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { buildDefaultBusinessFlow, deleteBusinessFlow, errorText, saveBusinessFlow, useBusinessFlows } from "../../store/businessFlowStore";
 import { DataList, type DataListColumn } from "../common/DataList";
+import { useOpenedSortAccessor } from "../../hooks/useOpenedSortAccessor";
+import { computeRowMarks } from "../../utils/rowMarks";
+import { ListViewBar } from "../common/ListViewBar";
 import { EntityIdInput, type EntityIdValidationState } from "../common/EntityIdInput";
 import { useListSelection } from "../../hooks/useListSelection";
 import { useListSort } from "../../hooks/useListSort";
@@ -43,6 +46,7 @@ export function BusinessFlowListView() {
     return off;
   }, [reload]);
 
+  const rowMarks = useMemo(() => computeRowMarks(flows, (x) => x.id, (x) => x.name), [flows]);
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return q ? flows.filter((f) => f.name.toLowerCase().includes(q) || f.id.includes(q)) : flows;
@@ -57,7 +61,8 @@ export function BusinessFlowListView() {
       default: return "";
     }
   }, []);
-  const sort = useListSort(filtered, sortAccessor);
+  const sortAccessorOpened = useOpenedSortAccessor(sortAccessor, "business-flow", (x: BusinessFlow) => String(x.id));
+  const sort = useListSort(filtered, sortAccessorOpened);
   const selection = useListSelection(sort.sorted, (f) => f.id);
 
   const open = useCallback((f: BusinessFlow) => navigate(wsPath(`/business-flow/edit/${encodeURIComponent(f.id)}`)), [navigate, wsPath]);
@@ -130,8 +135,12 @@ export function BusinessFlowListView() {
           <i className="bi bi-exclamation-triangle" /> 読めない業務フローのファイルがあります (JSON が壊れています): {unreadable.map((f) => <code key={f}>{f}</code>)}。ファイルを直すか、同じ ID で保存し直すと退避して置き換えます。
         </p>
       )}
+      <ListViewBar listKey="business-flow-list" query={query} onQuery={setQuery} sort={sort} />
       <DataList
         prefsKey="business-flow-list"
+          rowMark={(x) => rowMarks.get(x.id) ?? null}
+          recentSort
+          bulk={{ favoriteKey: (x) => `business-flow:${x.id}` }}
         items={sort.sorted}
         columns={columns}
         getId={(f) => f.id}
@@ -144,7 +153,7 @@ export function BusinessFlowListView() {
         variant="dark"
         className="bfl-data-list"
         emptyMessage={loaded
-          ? <EmptyState noun="業務フロー" icon="bi-diagram-2" hint="誰が何をするかを、レーンと工程でつなぎます" filtered={!!query} onCreate={() => setShowAdd(true)} onClear={() => setQuery("")} />
+          ? <EmptyState suggest={{ names: flows.map((x) => x.name ?? ""), query: query, onPick: setQuery }} noun="業務フロー" icon="bi-diagram-2" hint="誰が何をするかを、レーンと工程でつなぎます" filtered={!!query} onCreate={() => setShowAdd(true)} onClear={() => setQuery("")} />
           : <p>読み込み中…</p>}
       />
       {showAdd && (

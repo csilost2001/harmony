@@ -2,6 +2,7 @@ import { recordError } from "../utils/errorLog";
 import { uiInfo } from "../utils/uiLog";
 import { isValidUuid } from "../utils/entityIdValidation";
 import { isPaneMode, postToParent } from "../utils/paneMode";
+import { recordOpened } from "../utils/openedHistory";
 
 const TABS_KEY = "harmony-open-tabs";
 const ACTIVE_KEY = "harmony-active-tab";
@@ -75,6 +76,46 @@ type Listener = () => void;
 let _tabs: TabItem[] = _loadTabs();
 let _activeTabId: string = _loadActiveId();
 const _listeners = new Set<Listener>();
+
+// ── 閉じたタブ (開き直す用) と、開いた順の履歴 (戻る / 進む) ─────────────────────────
+const CLOSED_KEY = "harmony-closed-tabs";
+const CLOSED_MAX = 10;
+const HISTORY_MAX = 50;
+export type ClosedTab = Omit<TabItem, "isDirty">;
+let _closed: ClosedTab[] = _loadClosed();
+/** 開いた (切り替えた) タブの順。_histIdx が「いま」の位置。戻る / 進むは、ここを動かすだけで記録は増やさない */
+let _hist: string[] = _activeTabId ? [_activeTabId] : [];
+let _histIdx = _hist.length - 1;
+
+function _loadClosed(): ClosedTab[] {
+  if (isPaneMode()) return [];
+  try {
+    const v = JSON.parse(localStorage.getItem(CLOSED_KEY) ?? "[]");
+    if (!Array.isArray(v)) return [];
+    return v.filter((t) => _isValidTab({ ...t, isDirty: false })).slice(0, CLOSED_MAX).map((t) => ({ ...t, isPinned: Boolean(t.isPinned) }));
+  } catch { return []; }
+}
+
+function _rememberClosed(removed: readonly TabItem[]): void {
+  if (isPaneMode() || removed.length === 0) return;
+  // 新しく閉じたものが先頭。同じタブは 1 つだけ
+  const add = [...removed].reverse().map(({ isDirty: _d, ...rest }) => rest as ClosedTab);
+  const ids = new Set(add.map((t) => t.id));
+  _closed = [...add, ..._closed.filter((t) => !ids.has(t.id))].slice(0, CLOSED_MAX);
+  try { localStorage.setItem(CLOSED_KEY, JSON.stringify(_closed)); } catch { /* 記録できなくても閉じる動作は妨げない */ }
+}
+
+let _flash: { id: string; seq: number } | null = null;
+let _flashSeq = 0;
+/** 既存のタブへ移ったばかりのタブ (光らせる印)。seq が変わるたびに光る */
+export function getTabFlash(): { id: string; seq: number } | null { return _flash; }
+
+function _visit(id: string): void {
+  if (id && !isPaneMode()) recordOpened(id);
+  if (!id || _hist[_histIdx] === id) return;
+  _hist = [..._hist.slice(0, _histIdx + 1), id].slice(-HISTORY_MAX);
+  _histIdx = _hist.length - 1;
+}
 
 function _notify() {
   _listeners.forEach((fn) => fn());
@@ -165,6 +206,10 @@ export function makeTabId(type: TabType, resourceId: string): string {
 export function _resetForTests(): void {
   _tabs = [];
   _activeTabId = "";
+  _closed = [];
+  _hist = [];
+  _histIdx = -1;
+  _flash = null;
   _listeners.clear();
 }
 
@@ -172,6 +217,9 @@ export function _resetForTests(): void {
 export function _reloadFromStorageForTests(): void {
   _tabs = _loadTabs();
   _activeTabId = _loadActiveId();
+  _closed = _loadClosed();
+  _hist = _activeTabId ? [_activeTabId] : [];
+  _histIdx = _hist.length - 1;
 }
 
 /**
@@ -205,10 +253,13 @@ export function openTab(item: Omit<TabItem, "isDirty" | "isPinned">): void {
   if (existing) {
     _tabs = _tabs.map((t) => (t.id === item.id ? { ...t, label: item.label } : t));
     _activeTabId = item.id;
+    // 同じ設計を開こうとした: 新しいタブは作らず、既存のタブへ移ったことをタブの光で知らせる
+    _flash = { id: item.id, seq: ++_flashSeq };
   } else {
     _tabs = [..._tabs, { ...item, isDirty: false, isPinned: false }];
     _activeTabId = item.id;
   }
+  _visit(item.id);
   _persist();
   _notify();
 }
@@ -223,9 +274,11 @@ export function closeTab(id: string, force = false): boolean {
   const idx = _tabs.findIndex((t) => t.id === id);
   const newTabs = _tabs.filter((t) => t.id !== id);
   _tabs = newTabs;
+  _rememberClosed([tab]);
 
   if (_activeTabId === id) {
     _activeTabId = newTabs[Math.min(idx, newTabs.length - 1)]?.id ?? "";
+    _visit(_activeTabId);
   }
   _persist();
   _notify();
@@ -236,6 +289,7 @@ export function setActiveTab(id: string): void {
   if (_activeTabId === id) return;
   uiInfo("tabsync", "setActiveTab", { from: _activeTabId, to: id });
   _activeTabId = id;
+  _visit(id);
   _persist();
   _notify();
 }
@@ -289,9 +343,12 @@ export function updateTabLabel(id: string, label: string): void {
 export function closeOtherTabs(id: string): void {
   const keep = _tabs.find((t) => t.id === id);
   const pinned = _tabs.filter((t) => t.isPinned && t.id !== id);
-  _tabs = keep ? [...pinned, keep] : pinned;
+  const next = keep ? [...pinned, keep] : pinned;
+  _rememberClosed(_tabs.filter((t) => !next.includes(t)));
+  _tabs = next;
   if (!_tabs.find((t) => t.id === _activeTabId)) {
     _activeTabId = keep?.id ?? _tabs[_tabs.length - 1]?.id ?? "";
+    _visit(_activeTabId);
   }
   _persist();
   _notify();
@@ -300,10 +357,58 @@ export function closeOtherTabs(id: string): void {
 export function closeTabsToRight(id: string): void {
   const idx = _tabs.findIndex((t) => t.id === id);
   if (idx === -1) return;
-  _tabs = _tabs.filter((_, i) => i <= idx || _tabs[i].isPinned);
+  const next = _tabs.filter((_, i) => i <= idx || _tabs[i].isPinned);
+  _rememberClosed(_tabs.filter((t) => !next.includes(t)));
+  _tabs = next;
   if (!_tabs.find((t) => t.id === _activeTabId)) {
     _activeTabId = id;
+    _visit(id);
   }
   _persist();
   _notify();
 }
+
+// ── 閉じたタブを開き直す (UI 改善提案 続編 第 6 弾 #106) ───────────────────────────
+
+/** 最近閉じたタブ (新しい順、最大 10 件)。いま開いているものは除く */
+export function getClosedTabs(): readonly ClosedTab[] {
+  return _closed.filter((c) => !_tabs.some((t) => t.id === c.id));
+}
+
+/** 閉じたタブを 1 つ開き直す (id を渡さなければ、いちばん新しいもの)。開き直せるものが無ければ null */
+export function reopenClosedTab(id?: string): ClosedTab | null {
+  const target = id ? getClosedTabs().find((c) => c.id === id) : getClosedTabs()[0];
+  if (!target) return null;
+  _closed = _closed.filter((c) => c.id !== target.id);
+  try { localStorage.setItem(CLOSED_KEY, JSON.stringify(_closed)); } catch { /* ignore */ }
+  openTab({ id: target.id, type: target.type, resourceId: target.resourceId, label: target.label });
+  if (target.isPinned) setPinned(target.id, true);
+  return target;
+}
+
+// ── 画面の履歴: 戻る / 進む (UI 改善提案 続編 第 6 弾 #107) ────────────────────────
+
+function _stepHistory(dir: -1 | 1): boolean {
+  let i = _histIdx + dir;
+  // 閉じたタブは飛ばす
+  while (i >= 0 && i < _hist.length && !_tabs.some((t) => t.id === _hist[i])) i += dir;
+  if (i < 0 || i >= _hist.length) return false;
+  _histIdx = i;
+  _activeTabId = _hist[i];
+  _persist();
+  _notify();
+  return true;
+}
+
+export function canGoBack(): boolean {
+  for (let i = _histIdx - 1; i >= 0; i--) if (_tabs.some((t) => t.id === _hist[i])) return true;
+  return false;
+}
+export function canGoForward(): boolean {
+  for (let i = _histIdx + 1; i < _hist.length; i++) if (_tabs.some((t) => t.id === _hist[i])) return true;
+  return false;
+}
+/** 直前に見ていたタブへ戻る。戻れなければ false */
+export function goBackTab(): boolean { return _stepHistory(-1); }
+/** 戻ったあとに、進む */
+export function goForwardTab(): boolean { return _stepHistory(1); }

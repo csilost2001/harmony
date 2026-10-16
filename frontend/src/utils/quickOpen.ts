@@ -70,12 +70,67 @@ export interface QuickOpenSources {
   pages?: { id: string; label: string; route: string }[];
 }
 
+/**
+ * 種類の絞り込みの接頭辞 (UI 改善提案 続編 第 6 弾 #115): `t:` で始めると、その種類だけを探す (例: `t:注文` = テーブルだけ)。
+ * 接頭辞は 1 文字 + コロン (全角コロンも可)。表に無い 1 文字は、ふつうの検索語として扱う。
+ */
+export const QUICK_OPEN_PREFIXES: Array<{ prefix: string; label: string; kinds: QuickOpenKind[] }> = [
+  { prefix: "s", label: "画面", kinds: ["screen"] },
+  { prefix: "i", label: "画面項目", kinds: ["screen-items"] },
+  { prefix: "t", label: "テーブル", kinds: ["table"] },
+  { prefix: "f", label: "処理フロー", kinds: ["process-flow"] },
+  { prefix: "b", label: "業務フロー", kinds: ["business-flow"] },
+  { prefix: "r", label: "帳票", kinds: ["report"] },
+  { prefix: "q", label: "シーケンス", kinds: ["sequence"] },
+  { prefix: "v", label: "ビュー・ビュー定義", kinds: ["view", "view-definition"] },
+  { prefix: "p", label: "ページレイアウト", kinds: ["page-layout"] },
+  { prefix: "g", label: "ガジェット", kinds: ["gadget"] },
+  { prefix: "d", label: "汎用定義", kinds: ["generic-definition"] },
+];
+
+/** 先頭の `x:` を、種類の絞り込みと残りの検索語に分ける。接頭辞が無ければ kinds は null */
+export function parseKindPrefix(query: string): { kinds: QuickOpenKind[] | null; label: string | null; rest: string } {
+  const m = /^\s*([A-Za-z])[:：]\s*(.*)$/s.exec(query);
+  const hit = m ? QUICK_OPEN_PREFIXES.find((p) => p.prefix === m[1].toLowerCase()) : undefined;
+  return hit ? { kinds: hit.kinds, label: hit.label, rest: m![2] } : { kinds: null, label: null, rest: query };
+}
+
 /** 比較用に正規化する (全角半角・大文字小文字・ひらがな/カタカナの差を無視) */
 export function normalizeQuery(s: string): string {
   return s
     .normalize("NFKC")
     .toLowerCase()
     .replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
+}
+
+/** 文字ごとに 1 対 1 で正規化する (位置がずれない)。1 文字が複数文字になる場合は、小文字にするだけにする */
+function foldPerChar(text: string): string {
+  let out = "";
+  for (const ch of text) {
+    const n = normalizeQuery(ch);
+    out += n.length === ch.length ? n : ch.toLowerCase();
+  }
+  return out;
+}
+
+export interface HighlightSegment { text: string; hit: boolean }
+
+/** 本文の一致の抜粋で、検索語に合う部分を目立たせるための区切り。全角半角・大文字小文字・ひらがな / カタカナの違いは無視する */
+export function highlightSegments(text: string, query: string): HighlightSegment[] {
+  const tokens = normalizeQuery(query).split(/\s+/).filter(Boolean);
+  if (!text || tokens.length === 0) return [{ text, hit: false }];
+  const folded = foldPerChar(text);
+  if (folded.length !== text.length) return [{ text, hit: false }];
+  const marks = new Array<boolean>(text.length).fill(false);
+  for (const t of tokens) {
+    for (let at = folded.indexOf(t); at >= 0; at = folded.indexOf(t, at + t.length)) for (let i = at; i < at + t.length; i++) marks[i] = true;
+  }
+  const out: HighlightSegment[] = [];
+  for (let i = 0; i < text.length; i++) {
+    const last = out[out.length - 1];
+    if (last && last.hit === marks[i]) last.text += text[i]; else out.push({ text: text[i], hit: marks[i] });
+  }
+  return out;
 }
 
 /** 「新しく作る」: 一覧画面を開き、追加ダイアログを出す (id は useQuickCreate の kind) */

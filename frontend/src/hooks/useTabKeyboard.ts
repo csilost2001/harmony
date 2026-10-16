@@ -5,6 +5,9 @@ import {
   setActiveTab,
   closeTab,
   moveTabBy,
+  goBackTab,
+  goForwardTab,
+  reopenClosedTab,
   type TabItem,
 } from "../store/tabStore";
 
@@ -21,6 +24,19 @@ export function useTabKeyboard() {
 
       const ctrl = e.ctrlKey || e.metaKey;
       if (!ctrl) return;
+
+      // Ctrl+Alt+← / → : 直前に見ていたタブへ戻る / 進む (画面の履歴)。Alt+← は画面デザイナ等で部品を動かすのに使うので、Ctrl も押す
+      if (e.altKey && !e.shiftKey && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+        e.preventDefault();
+        if (e.key === "ArrowLeft") goBackTab(); else goForwardTab();
+        return;
+      }
+      // Ctrl+Shift+T / Ctrl+Alt+T: 閉じたタブを開き直す。Ctrl+Shift+T は、多くのブラウザが自分用に取っておく (ページへ届かない) ので、Ctrl+Alt+T でも
+      if (e.key.toLowerCase() === "t" && ((e.shiftKey && !e.altKey) || (e.altKey && !e.shiftKey))) {
+        e.preventDefault();
+        reopenClosedTab();
+        return;
+      }
 
       const tabs = getTabs() as TabItem[];
       if (tabs.length === 0) return;

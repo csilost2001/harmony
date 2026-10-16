@@ -33,6 +33,8 @@ import {
   subscribeWorkspaceChanges,
 } from "../store/workspaceStore";
 import { useTabKeyboard } from "../hooks/useTabKeyboard";
+import { PageBreadcrumb } from "./shell/PageBreadcrumb";
+import { BREADCRUMB_HEIGHT, breadcrumbFor } from "../utils/breadcrumb";
 import { ErrorBoundary } from "./common/ErrorBoundary";
 import { TabErrorFallback } from "./common/ErrorFallback";
 import { ResourceLoading, ViewLoading } from "./common/ResourceLoading";
@@ -544,10 +546,12 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     document.documentElement.style.setProperty("--common-header-h", pane ? "0px" : "40px");
   }, [pane]);
 
+  // パンくずの 1 行 (開いているタブによって出る / 出ない) も、タブバーの高さに足す
+  const hasCrumb = !pane && breadcrumbFor(tabs.find((t) => t.id === activeTabId)) !== null;
   useEffect(() => {
-    const h = tabs.length > 0 && !pane ? "32px" : "0px";
+    const h = tabs.length > 0 && !pane ? `${32 + (hasCrumb ? BREADCRUMB_HEIGHT : 0)}px` : "0px";
     document.documentElement.style.setProperty("--tabbar-h", h);
-  }, [tabs.length, pane]);
+  }, [tabs.length, pane, hasCrumb]);
 
   // 右ペインの中: いま開いている画面のパスを、左のアプリへ知らせる (左で開く・入れ替えが、いまの画面を使えるように)
   useEffect(() => {
@@ -1047,6 +1051,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     <>
       {!pane && <CommonHeader />}
       {!pane && <TabBar />}
+      {!pane && tabs.length > 0 && <PageBreadcrumb />}
       {!pane && <FileDropImport />}
       {!pane && <FocusModeControl />}
       {!pane && <PageIssueNav />}

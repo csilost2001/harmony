@@ -49,6 +49,10 @@ vi.mock("./panels/FavoritesPanel", () => ({
 vi.mock("./panels/MarkersSummaryPanel", () => ({
   MarkersSummaryPanel: () => <div data-testid="panel-markers-summary">ms</div>,
 }));
+// 「今日やること」パネルを足したため、他のパネルと同じく mock で止める (UI 改善提案 続編 第 6 弾 #116)
+vi.mock("./panels/TodayPanel", () => ({
+  TodayPanel: () => <div data-testid="panel-today">td</div>,
+}));
 
 const { DashboardView } = await import("./DashboardView");
 const { dashboardPanels } = await import("./panelRegistry");

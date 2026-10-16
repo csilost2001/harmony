@@ -1,0 +1,28 @@
+/* 一覧ののぞき見 (UI 改善提案 続編 第 6 弾 #103 #112) */
+.list-peek {
+  position: fixed;
+  right: 16px;
+  top: calc(var(--common-header-h, 40px) + var(--tabbar-h, 32px) + 56px);
+  width: 320px;
+  max-width: calc(100vw - 24px);
+  max-height: 70vh;
+  overflow: auto;
+  z-index: 900;
+  background: var(--hm-surface);
+  color: var(--hm-fg);
+  border: 1px solid var(--hm-border-strong);
+  border-radius: 8px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+  font-size: 0.82rem;
+}
+.list-peek-at { right: auto; pointer-events: none; z-index: 950; }
+.list-peek-head { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--hm-border); background: var(--hm-surface-2); }
+.list-peek-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.list-peek-close { border: 0; background: transparent; color: var(--hm-fg-muted); cursor: pointer; padding: 2px 4px; border-radius: 4px; }
+.list-peek-close:hover { background: var(--hm-hover); }
+.list-peek-body { margin: 0; padding: 6px 10px 8px; display: flex; flex-direction: column; gap: 4px; }
+.list-peek-row { display: grid; grid-template-columns: 7.5em 1fr; gap: 8px; align-items: baseline; }
+.list-peek-row dt { color: var(--hm-fg-muted); font-weight: 500; }
+.list-peek-row dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.list-peek-empty { color: var(--hm-fg-faint); }
+.list-peek-foot { padding: 4px 10px 6px; color: var(--hm-fg-faint); font-size: 0.72rem; border-top: 1px solid var(--hm-border); }

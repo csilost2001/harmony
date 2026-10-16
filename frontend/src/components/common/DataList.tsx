@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type DragEvent as ReactDragEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type MouseEvent as ReactMouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type DragEvent as ReactDragEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type MouseEvent as ReactMouseEvent } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -29,7 +29,14 @@ import { applyColumnPrefs, moveColumnTo, setWidth, type ColumnPrefs } from "../.
 import { ColumnPrefsMenu } from "./ColumnPrefsMenu";
 import { SelectByConditionMenu } from "./SelectByConditionMenu";
 import { ListContextMenu } from "./ListContextMenu";
-import { EXPORT_FORMATS, exportRows, writeClipboardText, type ExportFormat } from "../../utils/tableExport";
+import { EXPORT_FORMATS, exportRows, toCsv, writeClipboardText, type ExportFormat } from "../../utils/tableExport";
+import { buildXlsx } from "@harmony/shared";
+import { saveBytesFile, saveTextFile, withBom } from "../analysis/fileIo";
+import { groupSegments, UNSET_GROUP_LABEL } from "../../utils/listGroup";
+import type { ListGrouping } from "../../hooks/useListGrouping";
+import { ListPeek } from "./ListPeek";
+import { SelectionActionBar, type BulkConfig } from "./SelectionActionBar";
+import { hasOpenModal } from "../../utils/modalScope";
 import { showToast } from "../../utils/toast";
 import { setRefDragData } from "../../utils/refDrag";
 import { useLongPress } from "../../hooks/useLongPress";
@@ -96,6 +103,19 @@ interface Props<T> {
    * キーボードでは「表としてコピー」のメニューの「参照をコピー」→ 入力欄へ貼り付け。null を返す行は、ドラッグできない
    */
   dragRef?: (item: T) => string | null;
+  /**
+   * グループ表示の選び方 (useListGrouping)。選んでいるときは、同じグループの行が続くように並べた items を渡すこと
+   * (useListSort の第 3 引数に grouping.active?.keyOf を渡せば、そうなる)。見出しの行を挟み、見出しで畳める (UI 改善提案 続編 第 6 弾 #102)
+   */
+  grouping?: ListGrouping<T>;
+  /** のぞき見・クイックルックの見出し (省略時は ID)。Space で選んでいる行の中身をカードで見る (続編 第 6 弾 #103 #112) */
+  peekTitle?: (item: T) => ReactNode;
+  /** 複数の行を選んだとき、下にまとめての操作 (お気に入り・マーカー) を出す (続編 第 6 弾 #110) */
+  bulk?: BulkConfig<T>;
+  /** 「最近開いた順」の並べ替えボタンを出す (useOpenedSortAccessor で値を足した一覧だけ。続編 第 6 弾 #111) */
+  recentSort?: boolean;
+  /** 行の印 (名前の重なり・ID の形式など)。理由の文を返すと、No 列に警告の印を出す。問題が無ければ null (続編 第 6 弾 #118) */
+  rowMark?: (item: T) => string | null;
 }
 
 export function DataList<T>({
@@ -110,6 +130,11 @@ export function DataList<T>({
   isItemGhost,
   prefsKey,
   dragRef,
+  grouping,
+  peekTitle,
+  bulk,
+  recentSort,
+  rowMark,
 }: Props<T>) {
   // ── 列の設定 (幅・表示・並び) ─────────────────────────────────────────
   const [prefs, setPrefs] = useColumnPrefs(prefsKey);
@@ -118,6 +143,7 @@ export function DataList<T>({
   const [menuAt, setMenuAt] = useState<{ x: number; y: number } | "button" | null>(null);
   const [showCondition, setShowCondition] = useState(false);
   const [copyMenu, setCopyMenu] = useState<{ x: number; y: number } | null>(null);
+  const [groupMenu, setGroupMenu] = useState<{ x: number; y: number } | null>(null);
   /** 表としてコピー: 選んでいる行 (無ければ、見えている行すべて) を、画面に出ている列だけで、他のアプリへ渡せる形にする */
   const copyRefs = async () => {
     const picked = selection && selection.selectedIds.size > 0 ? items.filter((i) => selection.selectedIds.has(getId(i))) : [];
@@ -134,6 +160,65 @@ export function DataList<T>({
     const label = EXPORT_FORMATS.find((f) => f.format === format)!.label;
     showToast(ok ? `${picked.length} 行を ${label} でコピーしました` : "コピーできませんでした (ブラウザがクリップボードを許可していません)", ok ? "info" : "error");
   };
+  /** 表を CSV / Excel のファイルとして保存する (画面に出ている列だけ。選んでいる行があれば、その行だけ) */
+  const saveAsFile = (kind: "csv" | "xlsx") => {
+    const cols = columns.filter((c) => typeof c.header === "string" && c.sortAccessor);
+    const picked = selection && selection.selectedIds.size > 0 ? items.filter((i) => selection.selectedIds.has(getId(i))) : items;
+    const headers = cols.map((c) => c.header as string);
+    const rows = picked.map((i) => cols.map((c) => c.sortAccessor!(i)));
+    const stem = `${prefsKey ?? "list"}-${new Date().toISOString().slice(0, 10)}`;
+    if (kind === "csv") saveTextFile(`${stem}.csv`, withBom(toCsv(headers, rows)), "text/csv");
+    else saveBytesFile(`${stem}.xlsx`, buildXlsx([{ name: "一覧", rows: [{ cells: headers, style: 1 }, ...rows.map((r) => ({ cells: r.map((v) => String(v ?? "")) }))], colWidths: headers.map(() => 18) }]), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    showToast(`${picked.length} 行を ${kind === "csv" ? "CSV" : "Excel"} ファイルとして保存しました`);
+  };
+
+  // ── グループ表示 ──────────────────────────────────────────────────────
+  const groupKeyOf = grouping?.active?.keyOf ?? null;
+  const groupActive = !!groupKeyOf && layout === "list";
+  const [collapsedGroups, setCollapsedGroups] = useState<ReadonlySet<string>>(new Set());
+  const toggleGroup = (key: string) => setCollapsedGroups((cur) => { const n = new Set(cur); if (n.has(key)) n.delete(key); else n.add(key); return n; });
+
+  // ── のぞき見 (Space: 選んでいる行のカード。Alt+ホバー: ポインタの近くにカード) ──────────
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [quickLook, setQuickLook] = useState(false);
+  const [hoverPeek, setHoverPeek] = useState<{ id: string; x: number; y: number } | null>(null);
+  const peekFor = (id: string) => {
+    const index = items.findIndex((i) => getId(i) === id);
+    if (index < 0) return null;
+    const item = items[index];
+    const fields = allColumns.filter((c) => typeof c.header === "string" && c.header !== "").map((c) => ({ label: c.header as string, value: c.render(item, index) }));
+    return { title: peekTitle ? peekTitle(item) : id, fields };
+  };
+  const firstSelectedId = (() => {
+    if (!selection || selection.selectedIds.size === 0) return null;
+    return items.map(getId).find((id) => selection.selectedIds.has(id)) ?? null;
+  })();
+  useEffect(() => {
+    if (!prefsKey || layout !== "list") return;
+    const visible = () => !!rootRef.current && rootRef.current.getClientRects().length > 0;
+    const onKey = (e: KeyboardEvent) => {
+      if (!visible()) return;
+      if (e.key === "Escape" && quickLook) { e.preventDefault(); e.stopPropagation(); setQuickLook(false); return; }
+      if (e.key === "Alt") return;
+      if (e.key !== " " || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t?.closest?.("input, textarea, select, button, a[href], summary, [contenteditable='true'], [role='dialog']")) return;
+      if (hasOpenModal()) return;
+      if (quickLook) { e.preventDefault(); setQuickLook(false); return; }
+      if (!selection || selection.selectedIds.size === 0) return;
+      e.preventDefault();
+      setQuickLook(true);
+    };
+    const clearHover = () => setHoverPeek(null);
+    const onKeyUp = (e: KeyboardEvent) => { if (e.key === "Alt") clearHover(); };
+    document.addEventListener("keydown", onKey, true);
+    document.addEventListener("keyup", onKeyUp);
+    window.addEventListener("blur", clearHover);
+    return () => { document.removeEventListener("keydown", onKey, true); document.removeEventListener("keyup", onKeyUp); window.removeEventListener("blur", clearHover); };
+  }, [prefsKey, layout, quickLook, selection]);
+  // 選んでいる行が無くなったら閉じる
+  useEffect(() => { if (quickLook && !firstSelectedId) setQuickLook(false); }, [quickLook, firstSelectedId]);
+
   // 条件で選べる列 (並べ替えに使う値の取り出し方がある列)
   const conditionColumns = useMemo(
     () => allColumns.filter((c) => typeof c.header === "string" && c.sortAccessor).map((c) => ({ key: c.key, label: c.header as string, accessor: c.sortAccessor! })),
@@ -214,7 +299,7 @@ export function DataList<T>({
     const { active, over } = e;
     setActiveDragId(null);
     setOverId(null);
-    if (sortActive) return;
+    if (sortActive || groupActive) return;
     if (!over || !onReorder) return;
     if (active.id === over.id) return;
     const fromIndex = items.findIndex((it) => getId(it) === active.id);
@@ -229,7 +314,7 @@ export function DataList<T>({
   };
 
   const showHandle = !!onReorder && layout === "list";
-  const handleDisabled = showHandle && sortActive;
+  const handleDisabled = showHandle && (sortActive || groupActive);
   const ids = items.map(getId);
   const rootClass = [
     "data-list",
@@ -302,6 +387,7 @@ export function DataList<T>({
 
   return (
     <div
+      ref={rootRef}
       className={rootClass}
       data-testid="data-list"
       onClick={handleRootClick}
@@ -309,9 +395,23 @@ export function DataList<T>({
     >
       {prefsKey && layout === "list" && (
       <div className="data-list-colmenu-bar">
+        {grouping && grouping.options.length > 0 && (
+          <button type="button" className={`data-list-colmenu-btn data-list-group-btn${grouping.active ? " is-on" : ""}`} aria-haspopup="menu" aria-pressed={!!grouping.active}
+            title={grouping.active ? `${grouping.active.label}でまとめています (押すと変える)` : "同じ値の行をまとめて、見出しで畳めるようにします"} aria-label="グループ表示" data-testid="data-list-group-btn"
+            onClick={(e) => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setMenuAt(null); setShowCondition(false); setCopyMenu(null); setGroupMenu(groupMenu ? null : { x: r.left, y: r.bottom + 2 }); }}>
+            <i className="bi bi-collection" />
+          </button>
+        )}
+        {recentSort && sort && (
+          <button type="button" className={`data-list-colmenu-btn data-list-recent-btn${sort.getSortDirection("opened") ? " is-on" : ""}`} aria-pressed={!!sort.getSortDirection("opened")}
+            title="最近開いた順に並べる (このブラウザで開いた順。もう一度押すと元の並びに戻ります)" aria-label="最近開いた順" data-testid="data-list-recent"
+            onClick={(e) => { e.stopPropagation(); if (sort.getSortDirection("opened")) sort.clearSort(); else sort.setSortKeys([{ columnKey: "opened", direction: "asc" }]); }}>
+            <i className="bi bi-clock-history" />
+          </button>
+        )}
         {conditionColumns.length > 0 && (
-          <button type="button" className="data-list-colmenu-btn data-list-condmenu-btn" title="表としてコピー (Markdown・TSV・JSON。他のアプリや AI へ渡せます)" aria-label="表としてコピー" aria-haspopup="true"
-            onClick={(e) => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setMenuAt(null); setShowCondition(false); setCopyMenu(copyMenu ? null : { x: r.left, y: r.bottom + 2 }); }} data-testid="data-list-copymenu">
+          <button type="button" className="data-list-colmenu-btn data-list-condmenu-btn" title="表としてコピー・保存 (Markdown・TSV・JSON・CSV・Excel。他のアプリや AI へ渡せます)" aria-label="表としてコピー" aria-haspopup="true"
+            onClick={(e) => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setMenuAt(null); setShowCondition(false); setGroupMenu(null); setCopyMenu(copyMenu ? null : { x: r.left, y: r.bottom + 2 }); }} data-testid="data-list-copymenu">
             <i className="bi bi-clipboard-data" />
           </button>
         )}
@@ -324,10 +424,19 @@ export function DataList<T>({
         <button type="button" className="data-list-colmenu-btn" title="列の設定 (表示・並び・幅)" aria-label="列の設定" aria-haspopup="true" onClick={(e) => { e.stopPropagation(); setShowCondition(false); setCopyMenu(null); setMenuAt(menuAt ? null : "button"); }} data-testid="data-list-colmenu">
           <i className="bi bi-layout-three-columns" />
         </button>
+        {groupMenu && grouping && (
+          <ListContextMenu x={groupMenu.x} y={groupMenu.y} onClose={() => setGroupMenu(null)}
+            items={[
+              { key: "group-none", label: "まとめない", icon: grouping.active ? "bi-circle" : "bi-check-circle-fill", onClick: () => grouping.setGroup(null) },
+              ...grouping.options.map((o) => ({ key: `group-${o.id}`, label: `${o.label}でまとめる`, icon: grouping.active?.id === o.id ? "bi-check-circle-fill" : "bi-circle", onClick: () => grouping.setGroup(o.id) })),
+            ]} />
+        )}
         {copyMenu && (
           <ListContextMenu x={copyMenu.x} y={copyMenu.y} onClose={() => setCopyMenu(null)}
             items={[
               ...EXPORT_FORMATS.map((f) => ({ key: `copy-${f.format}`, label: `${selection && selection.selectedIds.size > 0 ? `選んだ ${selection.selectedIds.size} 行` : `すべての ${items.length} 行`}を ${f.label} でコピー`, icon: "bi-clipboard", onClick: () => { void copyAsTable(f.format); } })),
+              { key: "save-csv", label: `${selection && selection.selectedIds.size > 0 ? `選んだ ${selection.selectedIds.size} 行` : `すべての ${items.length} 行`}を CSV ファイルで保存 (Excel で開けます)`, icon: "bi-filetype-csv", onClick: () => saveAsFile("csv") },
+              { key: "save-xlsx", label: `${selection && selection.selectedIds.size > 0 ? `選んだ ${selection.selectedIds.size} 行` : `すべての ${items.length} 行`}を Excel ファイル (.xlsx) で保存`, icon: "bi-file-earmark-excel", onClick: () => saveAsFile("xlsx") },
               ...(dragRef ? [{ key: "copy-refs", label: "選んだ行の参照 (@…) をコピー", icon: "bi-at", disabled: !selection || selection.selectedIds.size === 0, disabledReason: "参照をコピーする行を、先に選んでください", onClick: () => { void copyRefs(); } }] : []),
             ]} />
         )}
@@ -404,36 +513,59 @@ export function DataList<T>({
                 </tr>
               </thead>
               <tbody>
-                {items.map((item, index) => {
-                  const id = getId(item);
-                  return (
-                    <DataListRow
-                      key={id}
-                      item={item}
-                      index={index}
-                      getId={getId}
-                      getNo={getNo}
-                      columns={columns}
-                      selection={selection}
-                      ghost={isRowGhost(id)}
-                      onActivate={onActivate}
-                      onRowDelete={onRowDelete}
-                      onContextMenu={onContextMenu}
-                      showHandle={showHandle}
-                      handleDisabled={handleDisabled}
-                      showNumColumn={showNumColumn}
-                      dropIndicator={dropIndicatorFor(id)}
-                      refText={dragRef?.(item) ?? null}
-                    />
-                  );
-                })}
+                {(() => {
+                  const segs = groupActive ? groupSegments(items, groupKeyOf!) : null;
+                  const colSpan = (showHandle ? 1 : 0) + (showNumColumn ? 1 : 0) + (onRowDelete ? 1 : 0) + columns.length;
+                  const rowOf = (item: T, index: number) => {
+                    const id = getId(item);
+                    return (
+                      <DataListRow
+                        key={id}
+                        item={item}
+                        index={index}
+                        getId={getId}
+                        getNo={getNo}
+                        columns={columns}
+                        selection={selection}
+                        ghost={isRowGhost(id)}
+                        onActivate={onActivate}
+                        onRowDelete={onRowDelete}
+                        onContextMenu={onContextMenu}
+                        showHandle={showHandle}
+                        handleDisabled={handleDisabled}
+                        showNumColumn={showNumColumn}
+                        dropIndicator={dropIndicatorFor(id)}
+                        refText={dragRef?.(item) ?? null}
+                        mark={rowMark?.(item) ?? null}
+                        onAltHover={prefsKey ? (e) => { if (e.altKey) setHoverPeek((h) => (h && h.id === id ? { ...h, x: e.clientX, y: e.clientY } : { id, x: e.clientX, y: e.clientY })); else if (hoverPeek) setHoverPeek(null); } : undefined}
+                        onHoverEnd={() => setHoverPeek((h) => (h?.id === id ? null : h))}
+                      />
+                    );
+                  };
+                  if (!segs) return items.map(rowOf);
+                  return segs.flatMap((seg) => {
+                    const open = !collapsedGroups.has(seg.key);
+                    return [
+                      <tr key={`group:${seg.key}`} className="data-list-group-row" data-testid="data-list-group" data-group={seg.key}>
+                        <td colSpan={colSpan}>
+                          <button type="button" className="data-list-group-toggle" aria-expanded={open} onClick={() => toggleGroup(seg.key)} data-testid="data-list-group-toggle">
+                            <i className={`bi ${open ? "bi-caret-down-fill" : "bi-caret-right-fill"}`} aria-hidden="true" />
+                            <b>{seg.key === UNSET_GROUP_LABEL ? seg.key : `${grouping!.active!.label}: ${seg.key}`}</b>
+                            <span className="data-list-group-count">{seg.count} 件</span>
+                          </button>
+                        </td>
+                      </tr>,
+                      ...(open ? items.slice(seg.start, seg.start + seg.count).map((item, i) => rowOf(item, seg.start + i)) : []),
+                    ];
+                  });
+                })()}
               </tbody>
             </table>
           ) : (
             <div className="data-list-grid">
               {items.map((item, index) => {
                 const id = getId(item);
-                return (
+                const card = (
                   <DataListCard
                     key={id}
                     item={item}
@@ -445,15 +577,32 @@ export function DataList<T>({
                     onRowDelete={onRowDelete}
                     onContextMenu={onContextMenu}
                     renderCard={renderCard}
-                    draggable={!!onReorder && !sortActive}
+                    draggable={!!onReorder && !sortActive && !groupKeyOf}
                     dropIndicator={dropIndicatorFor(id)}
                   />
                 );
+                // グループ表示のとき: グループの先頭のカードの前に、見出しを 1 行で挟む
+                const gk = groupKeyOf ? (groupKeyOf(item) || UNSET_GROUP_LABEL) : null;
+                const prevKey = groupKeyOf && index > 0 ? (groupKeyOf(items[index - 1]) || UNSET_GROUP_LABEL) : null;
+                if (gk !== null && gk !== prevKey) {
+                  return [
+                    <div key={`group:${gk}:${index}`} className="data-list-group-head" data-testid="data-list-group">
+                      <b>{gk === UNSET_GROUP_LABEL ? gk : `${grouping!.active!.label}: ${gk}`}</b>
+                    </div>,
+                    card,
+                  ];
+                }
+                return card;
               })}
             </div>
           )}
         </SortableContext>
       </DndContext>
+      {bulk && selection && selection.selectedIds.size >= 2 && layout === "list" && (
+        <SelectionActionBar items={items.filter((i) => selection.selectedIds.has(getId(i)))} bulk={bulk} onClear={() => selection.clearSelection()} />
+      )}
+      {quickLook && firstSelectedId && (() => { const p = peekFor(firstSelectedId); return p ? <ListPeek title={p.title} fields={p.fields} onClose={() => setQuickLook(false)} /> : null; })()}
+      {!quickLook && hoverPeek && (() => { const p = peekFor(hoverPeek.id); return p ? <ListPeek title={p.title} fields={p.fields} at={{ x: hoverPeek.x, y: hoverPeek.y }} /> : null; })()}
     </div>
   );
 }
@@ -475,11 +624,16 @@ interface RowProps<T> {
   dropIndicator: "top" | "bottom" | null;
   /** 入力欄へドラッグして入れられる参照 (無ければ、ドラッグできない) */
   refText: string | null;
+  /** 行の印の理由 (無ければ null) */
+  mark?: string | null;
+  /** ポインタが行の上で動いた (Alt を押していたら、のぞき見を出す) */
+  onAltHover?: (e: ReactMouseEvent) => void;
+  onHoverEnd?: () => void;
 }
 
 function DataListRow<T>({
   item, index, getId, getNo, columns, selection, ghost, onActivate, onRowDelete, onContextMenu,
-  showHandle, handleDisabled, showNumColumn, dropIndicator, refText,
+  showHandle, handleDisabled, showNumColumn, dropIndicator, refText, mark, onAltHover, onHoverEnd,
 }: RowProps<T>) {
   const id = getId(item);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled: handleDisabled });
@@ -522,6 +676,8 @@ function DataListRow<T>({
       onClick={(e) => selection?.handleRowClick(id, e)}
       onDoubleClick={() => onActivate?.(item, index)}
       onContextMenu={onContextMenu ? handleContextMenu : undefined}
+      onMouseMove={onAltHover}
+      onMouseLeave={onHoverEnd}
       data-testid="data-list-row"
       data-row-id={id}
       {...longPress}
@@ -542,7 +698,12 @@ function DataListRow<T>({
           <i className="bi bi-grip-vertical" />
         </td>
       )}
-      {showNumColumn && <td className="data-list-td-num">{getNo ? getNo(item) : index + 1}</td>}
+      {showNumColumn && (
+        <td className="data-list-td-num">
+          {mark && <i className="bi bi-exclamation-triangle-fill data-list-row-mark" role="img" aria-label={`要確認: ${mark}`} title={mark} data-testid="data-list-row-mark" />}
+          {getNo ? getNo(item) : index + 1}
+        </td>
+      )}
       {onRowDelete && (
         <td className="data-list-td-row-delete-cell">
           <button

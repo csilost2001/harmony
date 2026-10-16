@@ -9,6 +9,10 @@ import { mcpBridge } from "../../mcp/mcpBridge";
 import { makeTabId } from "../../store/tabStore";
 import { MaturityBadge } from "../process-flow/MaturityBadge";
 import { DataList, type DataListColumn } from "../common/DataList";
+import { useOpenedSortAccessor } from "../../hooks/useOpenedSortAccessor";
+import { useEditingOnly } from "../../hooks/useEditingOnly";
+import { computeRowMarks } from "../../utils/rowMarks";
+import { ListViewBar } from "../common/ListViewBar";
 import { FilterBar } from "../common/FilterBar";
 import { SortBar } from "../common/SortBar";
 import { ListContextMenu, type ContextMenuItem } from "../common/ListContextMenu";
@@ -129,7 +133,10 @@ export function ViewListView() {
     return 0;
   }, [validationMap]);
 
-  const filter = useListFilter(allViews);
+  const rowMarks = useMemo(() => computeRowMarks(allViews, (x) => String(x.id), (x) => x.name), [allViews]);
+  const isEditing = useCallback((x: ViewEntry) => hasDraft("view", String(x.id)), [hasDraft]);
+  const editing = useEditingOnly(allViews, isEditing);
+  const filter = useListFilter(editing.items);
   useEffect(() => {
     const q = query.trim().toLowerCase();
     if (!q) {
@@ -152,7 +159,8 @@ export function ViewListView() {
     }
   }, []);
 
-  const sort = useListSort(filter.filtered, sortAccessor);
+  const sortAccessorOpened = useOpenedSortAccessor(sortAccessor, "view", (x: ViewEntry) => String(x.id));
+  const sort = useListSort(filter.filtered, sortAccessorOpened);
   const selection = useListSelection(sort.sorted, (v) => v.id);
   const clipboard = useListClipboard<ViewEntry>((v) => v.id);
 
@@ -600,8 +608,13 @@ export function ViewListView() {
 
         <SortBar sort={sort} columnLabels={columnLabels} />
 
+        <ListViewBar listKey="view-list" query={query} onQuery={setQuery} sort={sort} facets={[editing.facet]} />
+
         <DataList
           prefsKey="view-list"
+          rowMark={(x) => rowMarks.get(String(x.id)) ?? null}
+          recentSort
+          bulk={{ favoriteKey: (x) => `view:${x.id}` , marker: (x) => ({ entityType: "view", entityId: x.id }) }}
           dragRef={(v) => `@view.${v.id}`}
           items={sort.sorted}
           columns={columns}
@@ -621,7 +634,7 @@ export function ViewListView() {
           className="views-data-list"
           isItemGhost={(id) => editor.isDeleted(id)}
           emptyMessage={
-            <EmptyState noun="ビュー" icon="bi-eye" hint="データベースのビュー (保存済みの検索) を定義します" filtered={!!query} onCreate={() => setShowAdd(true)} createLabel="ビューを追加" onClear={() => setQuery("")} />
+            <EmptyState suggest={{ names: allViews.map((x) => x.name ?? ""), query: query, onPick: setQuery }} noun="ビュー" icon="bi-eye" hint="データベースのビュー (保存済みの検索) を定義します" filtered={!!query} onCreate={() => setShowAdd(true)} createLabel="ビューを追加" onClear={() => setQuery("")} />
           }
         />
 

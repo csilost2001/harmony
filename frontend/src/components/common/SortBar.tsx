@@ -26,7 +26,7 @@ export function SortBar<T>({ sort, columnLabels }: Props<T>): ReactElement | nul
           {sort.sortKeys.map((key, idx) => (
             <span key={key.columnKey} className="sort-bar-key">
               {idx > 0 && <span className="sort-bar-sep">→</span>}
-              <span className="sort-bar-key-name">{columnLabels[key.columnKey] ?? key.columnKey}</span>
+              <span className="sort-bar-key-name">{columnLabels[key.columnKey] ?? (key.columnKey === "opened" ? "最近開いた順" : key.columnKey)}</span>
               <i
                 className={`bi ${key.direction === "asc" ? "bi-caret-up-fill" : "bi-caret-down-fill"} sort-bar-dir`}
                 aria-label={key.direction === "asc" ? "昇順" : "降順"}

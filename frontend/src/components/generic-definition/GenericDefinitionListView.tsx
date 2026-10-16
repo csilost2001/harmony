@@ -23,6 +23,7 @@ import { ValidationBadge } from "../common/ValidationBadge";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { makeTabId, openTab } from "../../store/tabStore";
 import { DataList, type DataListColumn } from "../common/DataList";
+import { ListViewBar } from "../common/ListViewBar";
 import { FilterBar } from "../common/FilterBar";
 import { SortBar } from "../common/SortBar";
 import { ViewModeToggle, type ViewMode } from "../common/ViewModeToggle";
@@ -415,6 +416,7 @@ export function GenericDefinitionListView() {
           style={{ border: "1px solid var(--hm-border-strong)", borderRadius: "4px", padding: "4px 8px", fontSize: "0.88rem", minWidth: "200px" }}
         />
         <SortBar sort={sort} columnLabels={columnLabels} />
+        <ListViewBar listKey="generic-definition-list" query={filterQuery} onQuery={setFilterQuery} sort={sort} />
       </div>
 
       <div style={{ flex: 1, overflow: "auto", padding: "8px 24px" }}>

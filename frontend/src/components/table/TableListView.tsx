@@ -12,6 +12,12 @@ import { mcpBridge } from "../../mcp/mcpBridge";
 import { makeTabId } from "../../store/tabStore";
 import { TableSubToolbar } from "./TableSubToolbar";
 import { DataList, type DataListColumn } from "../common/DataList";
+import { useListGrouping } from "../../hooks/useListGrouping";
+import { maturityGroupName, type ListGroupOption } from "../../utils/listGroup";
+import { useEditingOnly } from "../../hooks/useEditingOnly";
+import { useOpenedSortAccessor } from "../../hooks/useOpenedSortAccessor";
+import { computeRowMarks } from "../../utils/rowMarks";
+import { ListViewBar } from "../common/ListViewBar";
 import { FilterBar } from "../common/FilterBar";
 import { SortBar } from "../common/SortBar";
 import { ListContextMenu, type ContextMenuItem } from "../common/ListContextMenu";
@@ -143,7 +149,10 @@ export function TableListView() {
     return 0;
   }, [validationMap]);
 
-  const filter = useListFilter(allTables);
+  const rowMarks = useMemo(() => computeRowMarks(allTables, (x) => String(x.id), (x) => x.name), [allTables]);
+  const isEditing = useCallback((x: TableEntry) => hasDraft("table", String(x.id)), [hasDraft]);
+  const editing = useEditingOnly(allTables, isEditing);
+  const filter = useListFilter(editing.items);
   useEffect(() => {
     const q = query.trim().toLowerCase();
     if (!q) {
@@ -170,7 +179,13 @@ export function TableListView() {
     }
   }, [getErrorPriority]);
 
-  const sort = useListSort(filter.filtered, sortAccessor);
+    const groupOptions = useMemo<ListGroupOption<TableEntry>[]>(() => [
+    { id: "category", label: "カテゴリ", keyOf: (t) => t.category ?? "" },
+    { id: "maturity", label: "成熟度", keyOf: (t) => maturityGroupName(t.maturity) },
+  ], []);
+  const grouping = useListGrouping(groupOptions, "table-list");
+  const sortAccessorOpened = useOpenedSortAccessor(sortAccessor, "table", (x: TableEntry) => String(x.id));
+  const sort = useListSort(filter.filtered, sortAccessorOpened, grouping.active?.keyOf ?? null);
   const selection = useListSelection(sort.sorted, (t) => t.id);
   const clipboard = useListClipboard<TableEntry>((t) => t.id);
 
@@ -728,8 +743,14 @@ export function TableListView() {
 
         <SortBar sort={sort} columnLabels={columnLabels} />
 
+        <ListViewBar listKey="table-list" query={query} onQuery={setQuery} sort={sort} facets={[editing.facet]} />
+
         <DataList
           prefsKey="table-list"
+          rowMark={(x) => rowMarks.get(String(x.id)) ?? null}
+          recentSort
+          bulk={{ favoriteKey: (x) => `table:${x.id}` , marker: (x) => ({ entityType: "table", entityId: x.id }) }}
+          grouping={grouping}
           dragRef={(t) => `@table.${t.id}`}
           items={sort.sorted}
           columns={columns}
@@ -749,7 +770,7 @@ export function TableListView() {
           className="tables-data-list"
           isItemGhost={(id) => editor.isDeleted(id)}
           emptyMessage={
-            <EmptyState noun="テーブル定義" icon="bi-table" hint="画面や処理が使うデータの置き場所と列を決めます" filtered={!!query} onCreate={() => setShowAdd(true)} createLabel="テーブルを追加" onClear={() => setQuery("")} />
+            <EmptyState suggest={{ names: allTables.map((x) => x.name ?? ""), query: query, onPick: setQuery }} noun="テーブル定義" icon="bi-table" hint="画面や処理が使うデータの置き場所と列を決めます" filtered={!!query} onCreate={() => setShowAdd(true)} createLabel="テーブルを追加" onClear={() => setQuery("")} />
           }
         />
 

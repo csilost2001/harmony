@@ -21,6 +21,11 @@ import { makeTabId } from "../../store/tabStore";
 import { renumber } from "../../utils/listOrder";
 import { listPageLayouts, loadPageLayout } from "../../store/pageLayoutStore";
 import { DataList, type DataListColumn } from "../common/DataList";
+import { useListGrouping } from "../../hooks/useListGrouping";
+import { type ListGroupOption } from "../../utils/listGroup";
+import { useOpenedSortAccessor } from "../../hooks/useOpenedSortAccessor";
+import { computeRowMarks } from "../../utils/rowMarks";
+import { ListViewBar } from "../common/ListViewBar";
 import { FilterBar } from "../common/FilterBar";
 import { SortBar } from "../common/SortBar";
 import { ListContextMenu, type ContextMenuItem } from "../common/ListContextMenu";
@@ -152,6 +157,7 @@ export function GadgetListView() {
   // 計算は useEffect 側で行い setUsageMap に格納。ここでは alias 公開のみ。
   const pageLayoutUsageMap = usageMap;
 
+  const rowMarks = useMemo(() => computeRowMarks(gadgets, (x) => String(x.id), (x) => x.name), [gadgets]);
   const filter = useListFilter(gadgets);
 
   useEffect(() => {
@@ -177,7 +183,12 @@ export function GadgetListView() {
     }
   }, []);
 
-  const sort = useListSort(filter.filtered, sortAccessor);
+    const groupOptions = useMemo<ListGroupOption<ScreenNode>[]>(() => [
+    { id: "kind", label: "種別", keyOf: (s) => SCREEN_KIND_LABELS[s.kind] ?? "" },
+  ], []);
+  const grouping = useListGrouping(groupOptions, "gadget-list");
+  const sortAccessorOpened = useOpenedSortAccessor(sortAccessor, "design", (x: ScreenNode) => String(x.id));
+  const sort = useListSort(filter.filtered, sortAccessorOpened, grouping.active?.keyOf ?? null);
   const selection = useListSelection(sort.sorted, (s) => s.id);
   const clipboard = useListClipboard<ScreenNode>((s) => s.id);
 
@@ -528,9 +539,15 @@ export function GadgetListView() {
 
       <SortBar sort={sort} columnLabels={columnLabels} />
 
+      <ListViewBar listKey="gadget-list" query={query} onQuery={setQuery} sort={sort} />
+
       <div className="screen-list-body">
         <DataList
           prefsKey="gadget-list"
+          rowMark={(x) => rowMarks.get(String(x.id)) ?? null}
+          recentSort
+          bulk={{ favoriteKey: (x) => `gadget:${x.id}` , marker: (x) => ({ entityType: "screen", entityId: x.id }) }}
+          grouping={grouping}
           items={sort.sorted}
           columns={columns}
           getId={(s) => s.id}
@@ -547,7 +564,7 @@ export function GadgetListView() {
           showNumColumn={viewMode === "table"}
           isItemGhost={(id) => editor.isDeleted(id)}
           emptyMessage={
-            <EmptyState noun="ガジェット" icon="bi-puzzle" hint="ページレイアウトに置く、小さな部品の画面を定義します" filtered={!!query} onCreate={handleAddNew} createLabel="ガジェットを追加" onClear={() => setQuery("")} />
+            <EmptyState suggest={{ names: gadgets.map((x) => x.name ?? ""), query: query, onPick: setQuery }} noun="ガジェット" icon="bi-puzzle" hint="ページレイアウトに置く、小さな部品の画面を定義します" filtered={!!query} onCreate={handleAddNew} createLabel="ガジェットを追加" onClear={() => setQuery("")} />
           }
         />
       </div>

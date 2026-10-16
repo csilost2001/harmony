@@ -1,0 +1,18 @@
+/* 一覧の絞り込みのチップと、保存した絞り込み (UI 改善提案 続編 第 6 弾 #101 #105) */
+.list-view-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 4px 12px; font-size: 0.8rem; color: var(--hm-fg-muted); }
+.list-view-chips, .list-view-saved { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
+.list-view-chip { display: inline-flex; align-items: center; gap: 2px; padding: 1px 4px 1px 8px; border-radius: 999px; background: var(--hm-accent-soft); color: var(--hm-accent); border: 1px solid var(--hm-border); max-width: 28ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.list-view-chip button, .list-view-saved-del { border: 0; background: transparent; color: inherit; cursor: pointer; padding: 0 3px; line-height: 1; border-radius: 50%; }
+.list-view-chip button:hover, .list-view-saved-del:hover { background: var(--hm-surface-2); }
+.list-view-save { border: 1px dashed var(--hm-border); background: transparent; color: var(--hm-accent); border-radius: 999px; padding: 1px 8px; cursor: pointer; font: inherit; }
+.list-view-save:hover { background: var(--hm-accent-soft); }
+.list-view-naming { display: inline-flex; align-items: center; gap: 4px; }
+.list-view-naming input { width: 14em; padding: 1px 6px; border: 1px solid var(--hm-border); border-radius: 4px; background: var(--hm-surface); color: var(--hm-fg); font: inherit; }
+.list-view-naming button { border: 1px solid var(--hm-border); background: var(--hm-surface); color: var(--hm-fg); border-radius: 4px; padding: 1px 8px; cursor: pointer; font: inherit; }
+.list-view-naming button:disabled { opacity: 0.5; cursor: default; }
+.list-view-saved-label { color: var(--hm-fg-muted); }
+.list-view-saved-item { display: inline-flex; align-items: center; border: 1px solid var(--hm-border); border-radius: 999px; background: var(--hm-surface); overflow: hidden; }
+.list-view-saved-item.is-on { background: var(--hm-accent-solid); border-color: var(--hm-accent-solid); color: var(--hm-on-solid); }
+.list-view-saved-apply { border: 0; background: transparent; color: inherit; cursor: pointer; padding: 1px 4px 1px 10px; font: inherit; }
+.list-view-saved-del { padding: 1px 6px 1px 2px; color: inherit; opacity: 0.7; }
+.list-view-saved-apply:focus-visible, .list-view-saved-del:focus-visible, .list-view-save:focus-visible, .list-view-chip button:focus-visible { outline: 2px solid var(--hm-accent); outline-offset: 1px; }
