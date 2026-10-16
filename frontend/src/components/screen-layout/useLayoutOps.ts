@@ -4,10 +4,11 @@
  */
 import { useCallback, useMemo } from "react";
 import {
-  createComponentNode, findNode, findParent, moveNode, updateNode,
+  LAYOUT_NODE_LABELS, createComponentNode, findNode, findParent, moveNode, updateNode,
   type LayoutComponentDef, type LayoutNode, type LayoutNodeType,
 } from "@harmony/shared";
 import type { ScreenItem } from "../../types/v3/screen-item";
+import { showToast } from "../../utils/toast";
 import type { Table } from "../../types/v3/table";
 import type { DragPayload } from "./layoutDnd";
 import { indentPlace, outdentPlace } from "./layoutKeyboard";
@@ -98,12 +99,21 @@ export function useLayoutOps({ apply, nodes, items, tables, components, selected
       case "new-component": addComponent(payload.componentId, at); break;
       case "place-item": placeItem(payload.itemId, at); break;
       case "table-column": addColumnItem(payload.tableId, payload.columnId, at); break;
-      case "move-node":
+      case "move-node": {
+        const from = findParent(nodes, payload.nodeId);
+        const moved = moveNode(nodes, payload.nodeId, at.parentId, at.index);
         apply((d) => ({ ...d, layout: { version: 1, nodes: moveNode(d.layout?.nodes ?? [], payload.nodeId, at.parentId, at.index) } }));
         setSelectedId(payload.nodeId);
+        // 別の入れ物へ移したときは、何をどこへ移したかを知らせる (誤って落としたときに、すぐ気づけるように)
+        const now = findParent(moved, payload.nodeId);
+        if (from && now && (from.parent?.id ?? null) !== (now.parent?.id ?? null)) {
+          const dest = now.parent ? `「${LAYOUT_NODE_LABELS[now.parent.type]} ${now.parent.id}」の中` : "最上位";
+          showToast(`「${payload.nodeId}」を${dest}へ移しました (Ctrl+Z で戻せます)`, "info");
+        }
         break;
+      }
     }
-  }, [addNode, addComponent, placeItem, addColumnItem, apply, setSelectedId]);
+  }, [addNode, addComponent, placeItem, addColumnItem, apply, setSelectedId, nodes]);
 
   const deleteSelected = useCallback(() => {
     if (multi.length > 1) {

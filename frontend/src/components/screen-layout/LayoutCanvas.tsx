@@ -423,6 +423,11 @@ export function LayoutCanvas({ nodes, items, width, density, onDrop, ...ctx }: L
   const handleDragOver = (e: DragEvent) => {
     const payload = getDragPayload();
     if (!payload || !ctx.editable) return;
+    // 紙面の上下の端へ寄せると、自動でスクロールする (長い画面でも、端まで運べる)
+    const sc = e.currentTarget as HTMLElement;
+    const sr = sc.getBoundingClientRect();
+    if (e.clientY < sr.top + 56) sc.scrollTop -= 18;
+    else if (e.clientY > sr.bottom - 56) sc.scrollTop += 18;
     const t = computeDropTarget(e.target as Element, e.clientX, e.clientY, payload, nodes);
     if (t) {
       e.preventDefault();

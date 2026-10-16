@@ -196,4 +196,22 @@ test.describe("画面デザイナの直接操作", () => {
     expect(item(after, "storeFilter").placeholder).toBe(item(before, "storeFilter").placeholder); // 選ばなかった属性は変わらない
     expect(item(after, "lowStockOnly").type).toBe(item(before, "lowStockOnly").type); // 型は変わらない
   });
+
+  test("部品をドラッグで別の入れ物へ移すと、移した先を知らせ、1 回の Ctrl+Z で元に戻る @regression", async ({ page }) => {
+    await openEditing(page, "customer-master");
+    const order = async () => (await page.locator('[data-testid^="layout-node-"]').evaluateAll((els) => els.map((e) => (e as HTMLElement).dataset.nodeId!)));
+    const before = await order();
+    expect(before.slice(0, 3)).toEqual(["heading", "searchPanel", "section"]);
+
+    // 見出しを、区画 (section) の中の 2 つ目の文章の上へ (どちらも画面内に見えている部品を使う。動かす前にスクロールすると、つかむ部品が変わる)
+    await nodeLoc(page, "heading").dragTo(nodeLoc(page, "text2"), { targetPosition: { x: 40, y: 4 } });
+    await expect(page.getByText(/「heading」を.*「区画 section」の中へ移しました/)).toBeVisible();
+    const moved = await order();
+    expect(moved.indexOf("heading")).toBeGreaterThan(moved.indexOf("section"));
+
+    // 1 回で元に戻る
+    await page.locator("body").click({ position: { x: 5, y: 5 } });
+    await page.keyboard.press("Control+z");
+    await expect.poll(order).toEqual(before);
+  });
 });
