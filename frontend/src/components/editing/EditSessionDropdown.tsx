@@ -88,7 +88,7 @@ function participantDisplayLabel(p: ParticipantInfo): string {
 
 // ── 集約バッジ ────────────────────────────────────────────────────────────────
 
-function AggregateBadge({ mode, othersEditing }: { mode: EditMode; othersEditing: number }) {
+function AggregateBadge({ mode, othersEditing, othersDetail }: { mode: EditMode; othersEditing: number; othersDetail: string }) {
   if (mode.kind === "editing") {
     return <><span className="esd-badge-icon">✏️</span><span className="esd-badge-label">編集中</span></>;
   }
@@ -100,7 +100,7 @@ function AggregateBadge({ mode, othersEditing }: { mode: EditMode; othersEditing
       <span className="esd-badge-icon">📄</span>
       <span className="esd-badge-label">正規版</span>
       {othersEditing > 0 && (
-        <span className="esd-badge-others" data-testid="esd-others-editing">他 {othersEditing} 件が編集中</span>
+        <span className="esd-badge-others" data-testid="esd-others-editing" title={othersDetail}>他 {othersEditing} 件が編集中</span>
       )}
     </>
   );
@@ -294,6 +294,16 @@ export function EditSessionDropdown({
     return !!editor && editor.sessionId !== currentSessionId;
   }).length;
 
+  // 誰が・いつから・どこまで: バッジに触れると見える (UI 改善提案 第 5 弾 #91)。開くと、閲覧・引き継ぎができる
+  const othersDetail = sessions
+    .filter((s) => s.state !== "Discarded")
+    .map((s) => {
+      const editor = Object.values(s.participants).find((p) => p.role === "Edit");
+      return editor && editor.sessionId !== currentSessionId ? `${participantDisplayLabel(editor)} が編集中 (最終操作 ${relativeTime(s.lastActivityAt)})` : null;
+    })
+    .filter((x): x is string => !!x)
+    .join("\n");
+
   // ── クリックアウトサイドで閉じる ───────────────────────────────────────────
   useEffect(() => {
     if (!open) return;
@@ -406,7 +416,7 @@ export function EditSessionDropdown({
         aria-haspopup="listbox"
         data-testid="esd-toggle-btn"
       >
-        <AggregateBadge mode={currentMode} othersEditing={othersEditingCount} />
+        <AggregateBadge mode={currentMode} othersEditing={othersEditingCount} othersDetail={othersDetail ? `${othersDetail}\nクリックで、閲覧・引き継ぎができます` : ""} />
         <i className={`bi bi-chevron-${open ? "up" : "down"} ms-1 esd-chevron`} />
       </button>
 
