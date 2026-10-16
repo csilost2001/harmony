@@ -151,3 +151,11 @@ textarea.form-control { min-height: 2.6rem; resize: vertical; }
   background: var(--hm-accent-solid); border: 1px solid var(--hm-surface); border-radius: 1px;
 }
 .grid-fill-target { background: color-mix(in srgb, var(--hm-accent-solid) 18%, transparent); }
+
+/* ── 表の行のドラッグ並べ替え (UI 改善提案 第 3 弾 #48) ───────────────────── */
+.row-grip { display: inline-block; width: 14px; margin-right: 2px; cursor: grab; color: var(--hm-fg-faint); user-select: none; text-align: center; }
+.row-grip:hover, .row-grip:focus-visible { color: var(--hm-fg); }
+.row-grip:active { cursor: grabbing; }
+tr.row-dragging { opacity: 0.45; }
+tr.row-drop-before > td { box-shadow: inset 0 3px 0 var(--hm-accent-solid); }
+tr.row-drop-after > td { box-shadow: inset 0 -3px 0 var(--hm-accent-solid); }

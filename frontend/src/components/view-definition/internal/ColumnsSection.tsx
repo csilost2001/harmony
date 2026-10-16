@@ -20,6 +20,7 @@ import { FIELD_TYPE_OPTIONS } from "./viewDefinitionConstants";
 import type { TableOption } from "./useViewDefinitionTables";
 import type { ViewLevel } from "../viewDefinitionLevels";
 import { GridFillHandle } from "../../common/GridFillHandle";
+import { useRowDragReorder } from "../../../hooks/useRowDragReorder";
 
 interface InScopeTable {
   tableId: string;
@@ -39,6 +40,8 @@ interface Props {
   addColumn: () => void;
   removeColumn: (ci: number) => void;
   moveColumn: (ci: number, direction: "up" | "down") => void;
+  /** つまみのドラッグ / Alt+↑↓: from 行目を to の位置へ */
+  reorderColumn?: (from: number, to: number) => void;
   updateColumn: <K extends keyof ViewColumn>(ci: number, field: K, value: ViewColumn[K]) => void;
   setColRefTable: (ci: number, tableId: string) => void;
   setColRefColumn: (ci: number, columnId: string) => void;
@@ -61,6 +64,7 @@ export function ColumnsSection({
   addColumn,
   removeColumn,
   moveColumn,
+  reorderColumn,
   updateColumn,
   setColRefTable,
   setColRefColumn,
@@ -70,7 +74,9 @@ export function ColumnsSection({
   colPath,
   getIssues,
 }: Props) {
-  const gridKeys = useGridKeyboard();
+  const colCount = (viewDefinition.columns ?? []).length;
+  const rowDrag = useRowDragReorder({ onMove: (f, t) => reorderColumn?.(f, t), disabled: isReadonly || !reorderColumn });
+  const gridKeys = useGridKeyboard({ onMoveRow: isReadonly || !reorderColumn ? undefined : (i, dir) => { if (i + dir >= 0 && i + dir < colCount) reorderColumn(i, i + dir); } });
 
   return (
     <section className="seq-editor-section" onKeyDown={gridKeys.onKeyDown}>
@@ -119,9 +125,11 @@ export function ColumnsSection({
               ];
 
               return (
-                <tr key={ci} className={colIssues.some((i) => i.severity === "error") ? "vd-col-row--error" : colIssues.some((i) => i.severity === "warning") ? "vd-col-row--warning" : undefined}>
+                <tr key={ci} data-grid-row={ci} {...rowDrag.rowProps(ci)}
+                  className={[colIssues.some((i) => i.severity === "error") ? "vd-col-row--error" : colIssues.some((i) => i.severity === "warning") ? "vd-col-row--warning" : "", rowDrag.rowClass(ci)].filter(Boolean).join(" ") || undefined}>
                   {/* name */}
                   <td>
+                    {!isReadonly && reorderColumn && <span className="row-grip" role="button" tabIndex={-1} aria-label={`${ci + 1} 行目をドラッグして並べ替え (Alt+↑↓ でも動かせます)`} title="ドラッグして並べ替え (Alt+↑↓)" data-testid={`row-grip-${ci}`} {...rowDrag.gripProps(ci)}><i className="bi bi-grip-vertical" /></span>}
                     <input
                       type="text"
                       value={col.name as string}

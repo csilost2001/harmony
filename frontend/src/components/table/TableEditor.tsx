@@ -1259,7 +1259,7 @@ function ColumnsTab({
 
       {gridMode && (
         <ColumnGrid columns={table.columns} readonly={isReadonly} onUpdateColumn={handleUpdateCol} onAppend={handleAddBlank}
-          onInsertBelow={handleInsertBelow} onDuplicate={handleDuplicateAt} onDelete={handleDeleteAt}
+          onInsertBelow={handleInsertBelow} onDuplicate={handleDuplicateAt} onDelete={handleDeleteAt} onMove={handleReorder}
           hintsFor={(c) => columnNameHints(c, suggestionSource.index, suggestionSource.convention)}
           markerCounts={markerCounts} onOpenMarkers={onOpenMarkers} />
       )}
