@@ -428,6 +428,34 @@ export const tools = [
     },
   },
   {
+    name: "designer__replace_references",
+    description:
+      "ある設計 (A) を参照している設計のうち、選んだものの参照を、別の設計 (B) へ付け替えます (改名とは別: A は残ります)。" +
+      "参照元の設計ごとに、その中の A への参照がすべて B になります (業務フロー・帳票は対象外で、予行の warnings に出ます)。" +
+      "既定は予行 (apply を付けない) で、付け替わる参照元と数を返します。referrers で参照元を選び (省略時は予行ではすべて)、apply: true で実行します。" +
+      "実行結果の operationId で、5 分以内なら designer__undo_replace_references で戻せます。",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        entityType: { type: "string", enum: ["screen", "table", "processFlow", "sequence", "view", "viewDefinition", "pageLayout"], description: "付け替える設計の種類 (A と B は同じ種類)" },
+        fromId: { type: "string", description: "いま参照している設計 (A) の ID" },
+        toId: { type: "string", description: "付け替え先の設計 (B) の ID" },
+        referrers: { type: "array", items: { type: "string" }, description: "付け替える参照元。予行の files[].filePath (例: process-flows/order-create.json)。apply: true のときは必須" },
+        apply: { type: "boolean", description: "true で実行。省略時は予行だけ" },
+      },
+      required: ["entityType", "fromId", "toId"],
+    },
+  },
+  {
+    name: "designer__undo_replace_references",
+    description: "designer__replace_references で実行した付け替えを元に戻します (実行結果の operationId を指定。5 分を過ぎた・付け替えのあとに編集された設計は戻せません)。",
+    inputSchema: {
+      type: "object" as const,
+      properties: { operationId: { type: "string", description: "designer__replace_references の実行結果にある operationId" } },
+      required: ["operationId"],
+    },
+  },
+  {
     name: "designer__get_test_viewpoints",
     description:
       "テスト観点表を返します。画面入力 (必須・桁数・範囲・形式の正常 / 異常 / 境界値) と処理 (分岐と終了) を、決まった ID つきで導出します。" +

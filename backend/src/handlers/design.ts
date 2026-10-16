@@ -22,7 +22,7 @@ import { migrateWorkspace } from "../schemaMigration.js";
 import { assertEntityIdMcp } from "../mcpHelpers.js";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import type { RenameEntityType } from "../renameEntity.js";
-import { runEntityRename, runEntityRenamePreview, runEntityUndo } from "../wsHandlers/refactor.js";
+import { runEntityRename, runEntityRenamePreview, runEntityUndo, runReplace, runReplacePreview, runReplaceUndo } from "../wsHandlers/refactor.js";
 import { wsBridge } from "../wsBridge.js";
 import { addComment, emitNotify, generationStatus, recordGeneration, regenerationDiff } from "../ops/service.js";
 import { commentsStore } from "../ops/stores.js";
@@ -176,6 +176,39 @@ export const handleDesignTool: ToolHandler = async (name, args, root, sessionId)
         operation: { operationId: result.operation.operationId, undoTtlMs: result.operation.undoTtlMs },
         undo: "戻す場合は designer__undo_rename に operation.operationId を渡す (一定時間のみ)",
       });
+    }
+
+    case "designer__replace_references": {
+      const et = a.entityType as RenameEntityType;
+      if (!RENAMEABLE.includes(et)) throw new McpError(ErrorCode.InvalidParams, `entityType は ${RENAMEABLE.join(" / ")} のどれかです`);
+      assertEntityIdMcp(a.fromId, "fromId");
+      assertEntityIdMcp(a.toId, "toId");
+      const only = Array.isArray(a.referrers) ? (a.referrers as unknown[]).filter((x): x is string => typeof x === "string") : undefined;
+      if (only && only.some((p) => p.includes("..") || p.startsWith("/"))) throw new McpError(ErrorCode.InvalidParams, "referrers は、dataRoot からの相対パスで指定してください");
+      const wsId = workspaceContextManager.getActivePath(sessionId);
+      const preview = await runReplacePreview(wsBridge, wsId, et, a.fromId as string, a.toId as string, root, sessionId, only);
+      const blockers = [
+        ...(!preview.fromExists ? [`${a.fromId} が見つかりません`] : []),
+        ...(!preview.toExists ? [`付け替え先の ${a.toId} が見つかりません`] : []),
+        ...(a.fromId === a.toId ? ["付け替え元と付け替え先が同じです"] : []),
+        ...(preview.concurrentEditRefs.length ? [`参照元を編集中のセッションがあります: ${preview.concurrentEditRefs.map((c) => `${c.entityKind}:${c.entityId}`).join(", ")}`] : []),
+        ...(preview.files.length === 0 ? ["付け替える参照が見つかりません"] : []),
+      ];
+      const summary = { entityType: et, fromId: a.fromId, toId: a.toId, files: preview.files, totalRefs: preview.totalRefs, warnings: preview.warnings, blockers };
+      if (a.apply !== true) return json({ applied: false, ...summary, note: "予行です。実行するには、referrers で参照元を選び、apply: true を付けて、もう一度呼んでください" });
+      if (!only || only.length === 0) return json({ applied: false, ...summary, note: "apply: true のときは、付け替える参照元を referrers で選んでください" });
+      if (blockers.length) return json({ applied: false, ...summary, note: "止める理由があるため実行しませんでした" });
+      const { result, broadcastReload } = await runReplace(wsBridge, wsId, et, a.fromId as string, a.toId as string, root, sessionId, only);
+      broadcastReload();
+      return json({ applied: true, ...summary, operationId: result.operationId, undoTtlMs: result.undoTtlMs, undo: "戻す場合は designer__undo_replace_references に operationId を渡す (5 分以内)" });
+    }
+
+    case "designer__undo_replace_references": {
+      if (typeof a.operationId !== "string" || !a.operationId) throw new McpError(ErrorCode.InvalidParams, "operationId を指定してください");
+      const wsId = workspaceContextManager.getActivePath(sessionId);
+      const { result, broadcastReload } = await runReplaceUndo(wsBridge, wsId, a.operationId, root);
+      broadcastReload();
+      return json({ undone: true, ...result });
     }
 
     case "designer__undo_rename": {

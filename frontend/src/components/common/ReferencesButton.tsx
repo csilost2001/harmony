@@ -11,6 +11,7 @@ import {
   REFERRER_LABELS, groupReferrers, referrerRoute,
   type ReferenceResult, type ReferenceTargetType,
 } from "../../utils/references";
+import { ReplaceReferencesPanel } from "./ReplaceReferencesPanel";
 import "../../styles/references.css";
 
 interface Props {
@@ -44,6 +45,8 @@ export function ReferencesDialog({ entityType, id, name, onClose }: Props & { on
   useFocusTrap(trapRef);
   const [result, setResult] = useState<ReferenceResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [replacing, setReplacing] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -51,7 +54,7 @@ export function ReferencesDialog({ entityType, id, name, onClose }: Props & { on
       .then((r) => { if (!cancelled) setResult(r as ReferenceResult); })
       .catch((e) => { if (!cancelled) setError(e instanceof Error ? e.message : String(e)); });
     return () => { cancelled = true; };
-  }, [entityType, id]);
+  }, [entityType, id, reloadKey]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { e.preventDefault(); onClose(); } };
@@ -80,6 +83,10 @@ export function ReferencesDialog({ entityType, id, name, onClose }: Props & { on
               <p className="references-summary" data-testid="references-summary">
                 {result.referrers.length} 件の設計から {result.total} か所で参照されています。改名すると、これらの参照も追従して書き換わります。削除すると、これらは参照先を失います。
               </p>
+              <button type="button" className="btn btn-sm btn-outline-secondary references-replace-open" onClick={() => setReplacing((v) => !v)} aria-expanded={replacing} data-testid="replace-open">
+                <i className="bi bi-arrow-left-right" /> 別の対象へ付け替える…
+              </button>
+              {replacing && <ReplaceReferencesPanel entityType={entityType} id={id} onChanged={() => setReloadKey((k) => k + 1)} />}
               {groups.map((g) => (
                 <section key={g.kind} className="references-group">
                   <h3>{REFERRER_LABELS[g.kind]} <span className="references-count">{g.items.length}</span></h3>

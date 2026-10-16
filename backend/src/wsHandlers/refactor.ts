@@ -23,6 +23,7 @@ import {
   type EditSessionLike,
 } from "../renameEntity.js";
 import { findReferences } from "../references.js";
+import { previewReplaceReferences, replaceReferences, undoReplaceReferences, type ReplacePreview } from "../replaceReferences.js";
 import { renameOpsRecords } from "../ops/service.js";
 import { assertEntityId, assertSafeName } from "../security/idValidator.js";
 import type { DraftResourceType as EditSessionResourceType } from "../editSessionStore.js";
@@ -269,7 +270,70 @@ export async function runEntityUndo(bridge: WsBridge, operationId: string, fallb
   return { result, broadcastReload };
 }
 
+/** 参照の付け替えの予行 (何も書かない)。only = 付け替える参照元 (dataRoot からの相対パス)。WebSocket と MCP の両方から使う */
+export async function runReplacePreview(
+  bridge: WsBridge, wsId: string | null, et: RenameEntityType, fromId: string, toId: string, root: string, sessionId: string, only?: readonly string[],
+): Promise<ReplacePreview> {
+  return previewReplaceReferences(et, fromId, toId, root, only, { sessionId, fetchEditSessionsForRef: makeFetchEditSessionsForRef(bridge, wsId) });
+}
+
+/** 参照の付け替えを実行する。結果と、応答のあとで呼ぶ reload 通知を返す */
+export async function runReplace(
+  bridge: WsBridge, wsId: string | null, et: RenameEntityType, fromId: string, toId: string, root: string, sessionId: string, only: readonly string[],
+) {
+  const result = await replaceReferences(et, fromId, toId, root, only, { sessionId, fetchEditSessionsForRef: makeFetchEditSessionsForRef(bridge, wsId) });
+  const broadcastReload = () => { for (const ev of RENAME_RELOAD_EVENTS) bridge.broadcast({ wsId, event: ev, data: { reload: true } }); };
+  return { result, broadcastReload };
+}
+
+export async function runReplaceUndo(bridge: WsBridge, wsId: string | null, operationId: string, root: string) {
+  const result = await undoReplaceReferences(operationId, root);
+  const broadcastReload = () => { for (const ev of RENAME_RELOAD_EVENTS) bridge.broadcast({ wsId, event: ev, data: { reload: true } }); };
+  return { result, broadcastReload };
+}
+
+const asPaths = (v: unknown): string[] | undefined => {
+  if (v === undefined) return undefined;
+  if (!Array.isArray(v) || v.some((x) => typeof x !== "string" || x.includes("..") || x.startsWith("/") || x.length > 300)) throw new Error("only は、参照元のパス (dataRoot からの相対) の配列で指定してください");
+  return v as string[];
+};
+
 export const refactorHandlers: RpcHandlerMap = {
+  /** 参照の付け替えの予行 */
+  previewReplaceReferences: async ({ params, root, wsId, clientId, respond, respondError, bridge }) => {
+    try {
+      const { entityType, fromId, toId, only } = (params ?? {}) as { entityType: unknown; fromId: unknown; toId: unknown; only?: unknown };
+      const et = assertEntityType(entityType, "entityType");
+      assertEntityId(fromId, "fromId");
+      assertEntityId(toId, "toId");
+      respond(await runReplacePreview(bridge, wsId(), et, fromId as string, toId as string, root(), clientId, asPaths(only)));
+    } catch (e) { respondError(e instanceof Error ? e.message : String(e)); }
+  },
+
+  /** 参照の付け替えの実行 (選んだ参照元だけ) */
+  replaceEntityReferences: async ({ params, root, wsId, clientId, respond, respondError, bridge }) => {
+    try {
+      const { entityType, fromId, toId, only } = (params ?? {}) as { entityType: unknown; fromId: unknown; toId: unknown; only?: unknown };
+      const et = assertEntityType(entityType, "entityType");
+      assertEntityId(fromId, "fromId");
+      assertEntityId(toId, "toId");
+      const { result, broadcastReload } = await runReplace(bridge, wsId(), et, fromId as string, toId as string, root(), clientId, asPaths(only) ?? []);
+      respond(result);
+      broadcastReload();
+    } catch (e) { respondError(e instanceof Error ? e.message : String(e)); }
+  },
+
+  /** 付け替えの取り消し (5 分以内) */
+  undoReplaceReferences: async ({ params, root, wsId, respond, respondError, bridge }) => {
+    try {
+      const { operationId } = (params ?? {}) as { operationId: unknown };
+      assertSafeName(operationId, "operationId");
+      const { result, broadcastReload } = await runReplaceUndo(bridge, wsId(), operationId as string, root());
+      respond(result);
+      broadcastReload();
+    } catch (e) { respondError(e instanceof Error ? e.message : String(e)); }
+  },
+
   listRecentUndoOperations: async ({ root, respond, respondError }) => {
     try {
       respond(listRecentUndoOperations(root()));
