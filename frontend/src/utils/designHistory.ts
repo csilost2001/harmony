@@ -72,3 +72,57 @@ export function actionVerb(action: string): string {
   if (action.includes("置換")) return "置換";
   return "保存";
 }
+
+// ── 開いているタブ → 設計 ─────────────────────────────────────────────
+
+export interface TabDesign {
+  kind: HistoryKind;
+  id: string;
+  /** 保存前の版を引ける種類 (編集セッションの resourceType)。画面などは null */
+  versionType: string | null;
+  /** 承認・レビューコメントの種類 (ページレイアウトは対象外で null) */
+  opsKind: "screen" | "table" | "processFlow" | "businessFlow" | "report" | "sequence" | "view" | "viewDefinition" | null;
+  /** いまの内容を読む RPC と、その引数名 */
+  load: { method: string; key: string };
+}
+
+const TAB_DESIGNS: Record<string, Omit<TabDesign, "id">> = {
+  design: { kind: "screen", versionType: null, opsKind: "screen", load: { method: "loadScreenEntity", key: "screenId" } },
+  "screen-items": { kind: "screen", versionType: null, opsKind: "screen", load: { method: "loadScreenEntity", key: "screenId" } },
+  table: { kind: "table", versionType: "table", opsKind: "table", load: { method: "loadTable", key: "tableId" } },
+  "process-flow": { kind: "processFlow", versionType: "process-flow", opsKind: "processFlow", load: { method: "loadProcessFlow", key: "processFlowId" } },
+  "business-flow": { kind: "businessFlow", versionType: "business-flow", opsKind: "businessFlow", load: { method: "loadBusinessFlow", key: "flowId" } },
+  report: { kind: "report", versionType: "report", opsKind: "report", load: { method: "loadReport", key: "reportId" } },
+  sequence: { kind: "sequence", versionType: "sequence", opsKind: "sequence", load: { method: "loadSequence", key: "sequenceId" } },
+  view: { kind: "view", versionType: "view", opsKind: "view", load: { method: "loadView", key: "viewId" } },
+  "view-definition": { kind: "viewDefinition", versionType: "view-definition", opsKind: "viewDefinition", load: { method: "loadViewDefinition", key: "viewDefinitionId" } },
+  "page-layout": { kind: "pageLayout", versionType: "page-layout", opsKind: null, load: { method: "loadPageLayout", key: "pageLayoutId" } },
+};
+
+/** タブの種類と資源 id から、設計 (設計のタブでなければ null) */
+export function designOfTab(tabType: string | undefined, resourceId: string | undefined): TabDesign | null {
+  if (!tabType || !resourceId) return null;
+  const d = TAB_DESIGNS[tabType];
+  return d ? { ...d, id: resourceId } : null;
+}
+
+/** 編集中の下書き (ブラウザ) の種類 (draftStorage の kind)。試作のもとにする */
+export const DRAFT_KIND: Record<HistoryKind, string> = {
+  screen: "screen-items", table: "table", processFlow: "process-flow", businessFlow: "businessFlow", report: "report", sequence: "sequence", view: "view", viewDefinition: "view-definition", pageLayout: "page-layout",
+};
+
+/**
+ * 改訂履歴の下書きの文 (続編 第 9 弾 #180)。更新された設計 (保存前の版から拾ったもの) に、変更の記録から「誰が」を添える。
+ * 記録に無い設計 (記録を始める前の保存) は、人の名前を付けない。
+ */
+export function revisionDraftText(
+  items: ReadonlyArray<{ kind: HistoryKind; id: string; name: string; saves: number }>,
+  audit: readonly AuditEntry[],
+  sinceIso: string,
+): string {
+  const recent = audit.filter((e) => e.at >= sinceIso);
+  return items.map((i) => {
+    const actors = [...new Set(designTimeline(recent, i.kind, i.id).map((e) => e.actor))];
+    return `${HISTORY_KIND_LABELS[i.kind]}「${i.name}」を更新 (${i.saves} 回${actors.length ? `、${actors.join("・")}` : ""})`;
+  }).join("\n");
+}

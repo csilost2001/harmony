@@ -15,6 +15,7 @@ import { UserNameButton } from "./common/UserNameButton";
 import { NotificationHistory } from "./common/NotificationHistory";
 import { DisplaySettings } from "./common/DisplaySettings";
 import { FavoritesMenu } from "./common/FavoritesMenu";
+import { DesignHistoryPanel } from "./history/DesignHistoryPanel";
 import { ReviewPanel } from "./operations/ReviewPanel";
 import { UpdateNotice } from "./operations/UpdateNotice";
 import { ReplaceDialog } from "./replace/ReplaceDialog";
@@ -42,6 +43,7 @@ export function CommonHeader({ notification }: Props) {
         <QuickOpen />
         <FavoritesMenu />
         <ReviewPanel />
+        <DesignHistoryPanel />
         <NotificationHistory />
         <ShortcutHelp />
         <ThemeToggle />

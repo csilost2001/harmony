@@ -10,6 +10,7 @@ import { opsApi } from "../../utils/opsApi";
 import { getUserName } from "../../utils/userIdentity";
 import { showToast } from "../../utils/toast";
 import { nextVersion } from "./docTemplateUtil";
+import { revisionDraftText } from "../../utils/designHistory";
 import "../../styles/pasteColumns.css";
 import "../../styles/docTemplate.css";
 
@@ -46,11 +47,15 @@ export function DocTemplateDialog({ input, onClose, onSaved }: Props) {
 
   const updateRev = (i: number, patch: Partial<Revision>) => setT((cur) => ({ ...cur, revisions: cur.revisions.map((r, j) => (j === i ? { ...r, ...patch } : r)) }));
   const addRev = (summary = "") => setT((cur) => ({ ...cur, revisions: [...cur.revisions, { version: nextVersion(cur.revisions.at(-1)?.version), date: new Date().toISOString().slice(0, 10), author: getUserName() || undefined, summary }] }));
+  const [sinceDate, setSinceDate] = useState("");
   const draftFromChanges = async () => {
     try {
-      const s = await opsApi.revisionsSuggest();
-      if (!s.items.length) { showToast("前回の改訂のあとに更新された設計は、見つかりませんでした"); return; }
-      addRev(`${s.text}${s.truncated ? "\n(ほかにも更新があります)" : ""}`);
+      const s = await opsApi.revisionsSuggest(sinceDate || undefined);
+      if (!s.items.length) { showToast(sinceDate ? `${sinceDate} 以降に更新された設計は、見つかりませんでした` : "前回の改訂のあとに更新された設計は、見つかりませんでした"); return; }
+      // 変更の記録から、誰が変えたかを添える (取れなければ、更新の回数だけ)
+      const audit = await (async () => { try { return (await opsApi.auditList({ limit: 2000 })).entries; } catch { return []; } })();
+      const text = revisionDraftText(s.items, audit, s.since);
+      addRev(`${text}${s.truncated ? "\n(ほかにも更新があります)" : ""}`);
       setTab("revisions");
       showToast(`${s.items.length} 件の更新から、改訂履歴の下書きを作りました`);
     } catch (e) { reportFailure(e, "改訂履歴の下書き"); }
@@ -113,6 +118,7 @@ export function DocTemplateDialog({ input, onClose, onSaved }: Props) {
               <p className="paste-cols-help">設計書の表紙のあとに、改訂履歴の表として載ります (新しい版が上)。「更新から下書き」は、前回の改訂のあとに保存された設計 (保存前の版の記録) を拾って、変更の要約を作ります。</p>
               <div className="dt-rev-actions">
                 <button type="button" className="btn btn-sm btn-secondary" onClick={() => addRev()} data-testid="dt-rev-add"><i className="bi bi-plus-lg" /> 版を追加</button>
+                <label className="dt-since" title="この日から後に更新された設計を拾います。空にすると、前回の改訂の日から (改訂がなければ 14 日前から)">期間の始まり <input type="date" value={sinceDate} onChange={(e) => setSinceDate(e.target.value)} data-testid="dt-rev-since" /></label>
                 <button type="button" className="btn btn-sm btn-secondary" onClick={() => void draftFromChanges()} data-testid="dt-rev-suggest"><i className="bi bi-magic" /> 更新から下書き</button>
               </div>
               {t.revisions.length === 0 ? <p className="paste-cols-dup">改訂履歴はまだありません。</p> : (

@@ -760,7 +760,17 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
   return { html: `<article class="hd-doc">${html}</article>`, toc: outToc, css: DESIGN_DOC_CSS + accent, issues, suppression };
 }
 
-/** 単体の HTML ファイル (CSS 同梱、目次付き) にする */
+/** 単体の HTML の、文書内の検索 (章・節の本文に含まれるものだけを残す)。textContent だけを読み、設計の文字は実行しない (続編 第 9 弾 #170) */
+const STANDALONE_SEARCH_SCRIPT = `(function(){var q=document.getElementById("hd-q"),c=document.getElementById("hd-q-count");if(!q||!c)return;
+var secs=[].slice.call(document.querySelectorAll("main .hd-section")),links=[].slice.call(document.querySelectorAll(".hd-nav a"));
+function n(s){return (s||"").normalize("NFKC").toLowerCase()}
+var texts=secs.map(function(s){return n(s.textContent)});
+q.addEventListener("input",function(){var v=n(q.value.trim()),hit=0;
+secs.forEach(function(s,i){var ok=!v||texts[i].indexOf(v)>=0;s.hidden=!ok;if(ok)hit++});
+links.forEach(function(a){var t=document.getElementById((a.getAttribute("href")||"").slice(1));a.hidden=!!t&&t.hidden});
+c.textContent=v?hit+" 件の章・節が一致":""})})();`;
+
+/** 単体の HTML ファイル (CSS 同梱、目次付き、文書内の検索つき。読み取り専用の写しとして渡せる) にする */
 export function renderStandaloneDesignDoc(input: DesignDocInput): string {
   const doc = buildDesignDocument(input);
   const nav = doc.toc.map((t) => `<a class="hd-toc-${t.level}" href="#${t.id}">${esc(t.title)}</a>`).join("");
@@ -777,10 +787,15 @@ body{margin:0;font-family:"BIZ UDPGothic","Hiragino Sans","Yu Gothic UI","Meiryo
 .hd-toc-2{padding-left:20px!important;font-size:12.5px;color:#4d576a!important}
 main{padding:24px;min-width:0}
 @media (max-width:900px){.hd-shell{grid-template-columns:1fr}.hd-nav{position:static;height:auto}}
-@media print{.hd-nav{display:none}.hd-shell{display:block}main{padding:0}body{background:#fff}}
+.hd-nav-search{margin:0 0 8px}.hd-nav-search input{width:100%;box-sizing:border-box;font:inherit;padding:4px 8px;border:1px solid #c9d0db;border-radius:4px}
+.hd-nav-count{display:block;font-size:11.5px;color:#5d677a;min-height:1.2em;margin:2px 0 6px}
+.hd-snapshot-note{margin:0 0 12px;font-size:12px;color:#5d677a}
+.hd-doc [hidden],.hd-nav [hidden]{display:none!important}
+@media print{.hd-nav,.hd-snapshot-note{display:none}.hd-shell{display:block}main{padding:0}body{background:#fff}}
 ${doc.css}
 </style></head>
-<body><div class="hd-shell"><nav class="hd-nav" aria-label="目次">${nav}</nav><main>${doc.html}</main></div></body></html>`;
+<body><div class="hd-shell"><nav class="hd-nav" aria-label="目次"><div class="hd-nav-search"><input type="search" id="hd-q" placeholder="例: 注文" aria-label="文書内を検索"><span class="hd-nav-count" id="hd-q-count" aria-live="polite"></span></div>${nav}</nav><main><p class="hd-snapshot-note">読み取り専用の写しです${input.generatedAt ? ` (生成: ${esc(input.generatedAt.slice(0, 16).replace("T", " "))})` : ""}。設計の最新の内容は、Harmony で確かめてください。</p>${doc.html}</main></div>
+<script>${STANDALONE_SEARCH_SCRIPT}</script></body></html>`;
 }
 
 /** 設計書本文の CSS。.hd-doc 配下に閉じる (アプリ内表示と単体 HTML で共通)。紙面は明色固定 */

@@ -1,7 +1,7 @@
 /**
  * ヘッダーのパネル (通知の履歴・表示の設定・検索置換) を、コマンドパレットなどほかの場所から開くための合図。
  */
-export type HeaderPanelName = "notifications" | "display" | "replace" | "tour" | "review";
+export type HeaderPanelName = "notifications" | "display" | "replace" | "tour" | "review" | "history";
 const EVENT = "harmony:open-header-panel";
 
 export function requestHeaderPanel(name: HeaderPanelName): void {

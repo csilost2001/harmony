@@ -40,6 +40,25 @@ export async function versionedRelPath(root: string, resourceType: string, resou
   return path.relative(root, file).split(path.sep).join("/");
 }
 
+/**
+ * 設計 1 件の原本ファイルの場所 (続編 第 9 弾 #179。AI や Git で扱うときに、パスを渡せるように)。
+ * 版を引ける種類に加えて、画面 (`screens/<id>.json`) も引ける。ファイルが無ければ exists は false。
+ */
+const LOCATE_DIRS: Record<string, string> = { ...DIRS, screen: "screens", "screen-item": "screens" };
+export async function locateEntityFile(root: string, resourceType: string, resourceId: string): Promise<{ relPath: string; absPath: string; exists: boolean }> {
+  if (!(resourceType in DIRS)) {
+    const dir = LOCATE_DIRS[resourceType];
+    if (!dir) throw new Error(`この種類 (${resourceType}) は、ファイルの場所を引けません`);
+    assertSafeName(resourceId, "id");
+    const dataRoot = await resolveDataRoot(root);
+    const file = path.join(dataRoot, dir, `${resourceId}.json`);
+    return { relPath: path.relative(root, file).split(path.sep).join("/"), absPath: file, exists: await fs.access(file).then(() => true, () => false) };
+  }
+  const relPath = await versionedRelPath(root, resourceType, resourceId);
+  const absPath = path.join(root, ...relPath.split("/"));
+  return { relPath, absPath, exists: await fs.access(absPath).then(() => true, () => false) };
+}
+
 export async function listEntityVersions(root: string, resourceType: string, resourceId: string): Promise<BackupVersion[]> {
   return listBackupVersions(root, await versionedRelPath(root, resourceType, resourceId));
 }

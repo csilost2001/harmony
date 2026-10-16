@@ -4,10 +4,12 @@
  * 生成は @harmony/shared の buildDesignDocument (CLI の scripts/export-design-doc.mjs と共通)。
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
-import { buildDesignDocument, renderStandaloneDesignDoc, type DesignDocInput } from "@harmony/shared";
+import { buildDesignDocument, renderStandaloneDesignDoc, type DesignDocInput, type ExportFormat } from "@harmony/shared";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { loadDesignInput } from "./loadDesignInput";
 import { DocTemplateDialog } from "./DocTemplateDialog";
+import { ExportPresetBar } from "./ExportPresetBar";
+import { inputForPreset } from "../../utils/exportPresets";
 import { designDocx, designXlsx, DOCX_MIME, XLSX_MIME, officeFileStem } from "./officeExport";
 import { saveBytesFile } from "../analysis/fileIo";
 import { reportFailure } from "../../utils/failureToast";
@@ -81,6 +83,25 @@ export function DesignDocumentView() {
     } catch (e) { reportFailure(e, kind === "docx" ? "設計書の Word への書き出し" : "設計書の Excel への書き出し"); }
   };
 
+  /** 保存した書き出しの設定で出す (載せない章だけ差し替える。体裁のファイルは書き換えない) */
+  const runPreset = (format: ExportFormat, excludeChapters: string[]) => {
+    if (!input) return;
+    const sub = inputForPreset(input, { name: "", format, excludeChapters });
+    const withDate = { ...sub, generatedAt: new Date().toISOString() };
+    try {
+      if (format === "docx") saveBytesFile(`${officeFileStem(sub)}.docx`, designDocx(withDate), DOCX_MIME);
+      else if (format === "xlsx") saveBytesFile(`${officeFileStem(sub)}.xlsx`, designXlsx(withDate), XLSX_MIME);
+      else {
+        const blob = new Blob([renderStandaloneDesignDoc(withDate)], { type: "text/html;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = `${(input.project.id ?? "").replace(/[^A-Za-z0-9_-]+/g, "") || "harmony"}-design-document.html`; a.style.display = "none";
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+    } catch (e) { reportFailure(e, "設計書の書き出し"); }
+  };
+
   const openInNewTab = () => {
     if (!input) return;
     const url = URL.createObjectURL(new Blob([standalone()], { type: "text/html;charset=utf-8" }));
@@ -102,6 +123,7 @@ export function DesignDocumentView() {
         <button type="button" className="ddv-btn" onClick={reload} disabled={loading} title="最新の設計データで作り直す"><i className="bi bi-arrow-clockwise" /> 再生成</button>
         <button type="button" className="ddv-btn" onClick={openInNewTab} disabled={!doc} title="別タブで開く (印刷はこちらから)"><i className="bi bi-box-arrow-up-right" /> 別タブで開く</button>
         <button type="button" className="ddv-btn" onClick={() => setTemplateOpen(true)} disabled={!doc} title="表紙・載せる章・改訂履歴を設定する" data-testid="ddv-template"><i className="bi bi-file-earmark-richtext" /> 体裁・改訂履歴</button>
+        {input && <ExportPresetBar input={input} onRun={runPreset} onSaved={reload} />}
         <button type="button" className="ddv-btn" onClick={() => saveOffice("docx")} disabled={!doc} title="Word (.docx) で保存 (図と画面の見本は含みません)" data-testid="ddv-save-docx"><i className="bi bi-file-earmark-word" /> Word</button>
         <button type="button" className="ddv-btn" onClick={() => saveOffice("xlsx")} disabled={!doc} title="Excel (.xlsx) で保存 (章ごとのシート)" data-testid="ddv-save-xlsx"><i className="bi bi-file-earmark-excel" /> Excel</button>
         <button type="button" className="ddv-btn primary" onClick={saveHtml} disabled={!doc} data-testid="ddv-save-html"><i className="bi bi-download" /> HTML で保存</button>

@@ -11,18 +11,20 @@ import { loadDesignInput } from "../../document/loadDesignInput";
 import { listAllDrafts } from "../../../utils/draftStorage";
 import type { MarkerItem } from "../../../utils/markerOverview";
 import { buildTodayTasks, TODAY_KIND_LABELS, type TodayKind } from "../../../utils/todayTasks";
+import { loadNotes } from "../../../utils/personalNotes";
 
 const RELOAD_EVENTS = ["projectChanged", "screenChanged", "screenItemsChanged", "processFlowChanged", "tableChanged", "businessFlowChanged", "reportChanged", "designCheckChanged", "viewChanged", "viewDefinitionChanged", "sequenceChanged", "pageLayoutChanged"] as const;
-const KIND_ICON: Record<TodayKind, string> = { draft: "bi-hourglass-split", error: "bi-x-octagon-fill", marker: "bi-megaphone", warning: "bi-exclamation-triangle-fill" };
-const KIND_COLOR: Record<TodayKind, string> = { draft: "var(--hm-hue-amber)", error: "var(--hm-danger)", marker: "var(--hm-hue-purple)", warning: "var(--hm-warning)" };
+const KIND_ICON: Record<TodayKind, string> = { draft: "bi-hourglass-split", note: "bi-journal-text", error: "bi-x-octagon-fill", marker: "bi-megaphone", warning: "bi-exclamation-triangle-fill" };
+const KIND_COLOR: Record<TodayKind, string> = { draft: "var(--hm-hue-amber)", note: "var(--hm-hue-blue)", error: "var(--hm-danger)", marker: "var(--hm-hue-purple)", warning: "var(--hm-warning)" };
 const SHOWN = 5;
 
 export function TodayPanel() {
   const navigate = useNavigate();
-  const { wsPath } = useWorkspacePath();
+  const { wsPath, wsId } = useWorkspacePath();
   const [issues, setIssues] = useState<DocIssue[]>([]);
   const [markers, setMarkers] = useState<MarkerItem[]>([]);
   const [drafts, setDrafts] = useState(() => listAllDrafts());
+  const [notes, setNotes] = useState(() => loadNotes(wsId));
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /** 「次へ」で送った数。列の先頭を、この数だけ後ろへ回して見せる */
@@ -51,13 +53,14 @@ export function TodayPanel() {
     void reload();
     const unsubs = RELOAD_EVENTS.map((ev) => mcpBridge.onBroadcast(ev, later));
     const unsubStatus = mcpBridge.onStatusChange((s) => { if (s === "connected") later(); });
-    const onStorage = () => setDrafts(listAllDrafts());
+    const onStorage = () => { setDrafts(listAllDrafts()); setNotes(loadNotes(wsId)); };
     window.addEventListener("storage", onStorage);
+    window.addEventListener("harmony:notes-changed", onStorage);
     const tid = window.setInterval(onStorage, 5000);
-    return () => { cancelled = true; clearTimeout(timer); unsubs.forEach((u) => u()); unsubStatus(); window.removeEventListener("storage", onStorage); window.clearInterval(tid); };
-  }, []);
+    return () => { cancelled = true; clearTimeout(timer); unsubs.forEach((u) => u()); unsubStatus(); window.removeEventListener("storage", onStorage); window.removeEventListener("harmony:notes-changed", onStorage); window.clearInterval(tid); };
+  }, [wsId]);
 
-  const tasks = useMemo(() => buildTodayTasks({ drafts, issues, markers }), [drafts, issues, markers]);
+  const tasks = useMemo(() => buildTodayTasks({ drafts, issues, markers, notes }), [drafts, issues, markers, notes]);
   // 「次へ」で先頭を後ろへ回す (一周したら最初に戻る)
   const rotated = tasks.length > 0 ? [...tasks.slice(skipped % tasks.length), ...tasks.slice(0, skipped % tasks.length)] : [];
   const current = rotated[0];

@@ -54,3 +54,18 @@
 .rv-pop .op-actions .an-btn { font-size: calc(12px * var(--hm-font-scale)); }
 .rv-more { align-self: flex-start; }
 @media (max-width: 900px) { .op-dl { grid-template-columns: 1fr; } }
+
+/* 宛先 (@名前)・解決済みの畳み (続編 第 9 弾 #165) */
+.op-mention { background: color-mix(in srgb, var(--hm-accent) 16%, transparent); color: inherit; border-radius: 3px; padding: 0 2px; }
+.op-mention.is-me { background: color-mix(in srgb, var(--hm-warning) 30%, transparent); font-weight: 600; }
+.op-mention-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.op-chip { border: 1px solid var(--hm-border); background: var(--hm-surface); color: var(--hm-fg); border-radius: 999px; padding: 0 8px; font-size: calc(12px * var(--hm-font-scale)); cursor: pointer; }
+.op-chip:hover, .op-chip:focus-visible { background: var(--hm-hover); }
+.op-thread-fold > summary { cursor: pointer; color: var(--hm-fg-muted); font-size: calc(12.5px * var(--hm-font-scale)); }
+.op-progress { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px; }
+.op-progress-chip { border: 1px solid var(--hm-border); background: var(--hm-surface); border-radius: 8px; padding: 4px 10px; display: flex; flex-direction: column; align-items: center; min-width: 5.5em; cursor: pointer; color: var(--hm-fg); }
+.op-progress-chip b { font-size: calc(1.2rem * var(--hm-font-scale)); font-variant-numeric: tabular-nums; }
+.op-progress-chip small { color: var(--hm-fg-muted); }
+.op-progress-chip.is-on { border-color: var(--hm-accent); background: var(--hm-accent-soft); }
+.op-stalled { margin: 0 0 8px; padding-left: 20px; }
+.op-period-text { white-space: pre-wrap; background: var(--hm-surface-2); border: 1px solid var(--hm-border); border-radius: 6px; padding: 8px 10px; font-size: calc(12.5px * var(--hm-font-scale)); max-height: 320px; overflow: auto; }

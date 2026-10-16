@@ -4,6 +4,7 @@ import { APPROVAL_LABELS, ROLE_LABELS, STATUS_LABELS, type ApprovalState, type C
 import { reportFailure } from "../../utils/failureToast";
 import { opsApi, type ApprovalRow } from "../../utils/opsApi";
 import { showToast } from "../../utils/toast";
+import { appendMention, mentionCandidates, splitMentions } from "../../utils/mentions";
 import { formatTime as fmt } from "./reviewUtils";
 
 const ACTION_LABELS: Record<ApprovalState, string> = { draft: "下書きに戻す", review: "承認を依頼", approved: "承認する", rejected: "差し戻す", };
@@ -40,12 +41,43 @@ export function ApprovalControls({ kind, id, row, onChanged }: { kind: OpsEntity
   );
 }
 
-/** コメントのスレッド 1 件 (返信・解決) */
-export function ThreadView({ thread, onChanged, compact }: { thread: CommentThread; onChanged: () => void; compact?: boolean }) {
+/** 本文を、宛先 (@名前) を強調して描く (続編 第 9 弾 #165)。`me` は、自分宛てを目立たせる */
+function MessageText({ text, people, me }: { text: string; people: readonly string[]; me?: string }) {
+  const norm = (s: string) => s.replace(/\s+/g, "").toLowerCase();
+  return (
+    <p>
+      {splitMentions(text, people).map((part, i) => (part.mention
+        ? <mark key={i} className={`op-mention${me && norm(part.mention) === norm(me) ? " is-me" : ""}`} data-testid="op-mention">{part.text}</mark>
+        : <span key={i}>{part.text}</span>))}
+    </p>
+  );
+}
+
+/** コメントのスレッド 1 件 (返信・解決)。解決済みは、やりとりを畳んで残す。`people` は、宛先の候補 (これまでに書いた人) */
+export function ThreadView({ thread, onChanged, compact, people = [], me }: { thread: CommentThread; onChanged: () => void; compact?: boolean; people?: readonly string[]; me?: string }) {
   const [reply, setReply] = useState("");
   const [busy, setBusy] = useState(false);
   const resolved = thread.status === "resolved";
   const act = async (fn: () => Promise<unknown>, what: string) => { setBusy(true); try { await fn(); onChanged(); } catch (e) { reportFailure(e, what); } finally { setBusy(false); } };
+  const messagesAndReply = (
+    <>
+      <ul className="op-msgs">
+        {thread.messages.map((m) => (
+          <li key={m.id}><b>{m.by}</b> <small>{fmt(m.at)}</small><MessageText text={m.text} people={people} me={me} /></li>
+        ))}
+      </ul>
+      {!compact || !resolved ? (
+        <>
+          <div className="op-reply">
+            <input className="an-input" value={reply} onChange={(e) => setReply(e.target.value)} placeholder="例: 20 桁にします" aria-label="返信" data-testid="op-reply-input"
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing && reply.trim()) { e.preventDefault(); void act(async () => { await opsApi.commentAdd({ threadId: thread.id, text: reply }); setReply(""); }, "コメントの返信"); } }} />
+            <button type="button" className="an-btn" disabled={busy || !reply.trim()} onClick={() => void act(async () => { await opsApi.commentAdd({ threadId: thread.id, text: reply }); setReply(""); }, "コメントの返信")} data-testid="op-reply-send">返信</button>
+          </div>
+          <MentionChips text={reply} people={people} onPick={(n) => setReply(appendMention(reply, n))} />
+        </>
+      ) : null}
+    </>
+  );
   return (
     <li className={`op-thread${resolved ? " is-resolved" : ""}${thread.source === "ai-review" ? " is-ai" : ""}`} data-testid="op-thread">
       <div className="op-thread-head">
@@ -56,24 +88,30 @@ export function ThreadView({ thread, onChanged, compact }: { thread: CommentThre
         <span className="an-hint">{resolved ? `解決済み (${thread.resolvedBy ?? ""} ${thread.resolvedAt ? fmt(thread.resolvedAt) : ""})` : "未解決"}</span>
         <button type="button" className="an-btn" disabled={busy} onClick={() => void act(() => opsApi.commentResolve(thread.id, !resolved), "コメントの解決")} data-testid="op-thread-resolve">{resolved ? "開き直す" : "解決済みにする"}</button>
       </div>
-      <ul className="op-msgs">
-        {thread.messages.map((m) => (
-          <li key={m.id}><b>{m.by}</b> <small>{fmt(m.at)}</small><p>{m.text}</p></li>
-        ))}
-      </ul>
-      {!compact || !resolved ? (
-        <div className="op-reply">
-          <input className="an-input" value={reply} onChange={(e) => setReply(e.target.value)} placeholder="例: 20 桁にします" aria-label="返信" data-testid="op-reply-input"
-            onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing && reply.trim()) { e.preventDefault(); void act(async () => { await opsApi.commentAdd({ threadId: thread.id, text: reply }); setReply(""); }, "コメントの返信"); } }} />
-          <button type="button" className="an-btn" disabled={busy || !reply.trim()} onClick={() => void act(async () => { await opsApi.commentAdd({ threadId: thread.id, text: reply }); setReply(""); }, "コメントの返信")} data-testid="op-reply-send">返信</button>
-        </div>
-      ) : null}
+      {resolved ? (
+        <details className="op-thread-fold" data-testid="op-thread-fold">
+          <summary>{thread.messages.length} 件のやりとり (解決済み): {thread.messages[0].text.replace(/\s+/g, " ").slice(0, 40)}</summary>
+          {messagesAndReply}
+        </details>
+      ) : messagesAndReply}
     </li>
   );
 }
 
+/** 宛先の候補 (クリックで本文の末尾に @名前 を足す) */
+export function MentionChips({ text, people, onPick }: { text: string; people: readonly string[]; onPick: (name: string) => void }) {
+  const names = mentionCandidates(text, people);
+  if (names.length === 0) return null;
+  return (
+    <div className="op-mention-chips" data-testid="op-mention-chips" aria-label="宛先の候補">
+      <small className="an-hint">宛先:</small>
+      {names.map((n) => <button key={n} type="button" className="op-chip" onClick={() => onPick(n)} data-testid="op-mention-chip">@{n}</button>)}
+    </div>
+  );
+}
+
 /** 新しいスレッドを書く */
-export function NewThread({ kind, id, onChanged }: { kind: OpsEntityKind; id: string; onChanged: () => void }) {
+export function NewThread({ kind, id, onChanged, people = [] }: { kind: OpsEntityKind; id: string; onChanged: () => void; people?: readonly string[] }) {
   const [text, setText] = useState("");
   const [path, setPath] = useState("");
   const [busy, setBusy] = useState(false);
@@ -86,6 +124,7 @@ export function NewThread({ kind, id, onChanged }: { kind: OpsEntityKind; id: st
     <div className="op-new-thread" data-testid="op-new-thread">
       <input className="an-input" value={path} onChange={(e) => setPath(e.target.value)} placeholder="例: columns[2] (箇所。省略できます)" aria-label="コメントの箇所" data-testid="op-thread-path" />
       <textarea className="an-input" rows={2} value={text} onChange={(e) => setText(e.target.value)} placeholder="例: 桁数を確認してください" aria-label="コメント" data-testid="op-thread-text" />
+      <MentionChips text={text} people={people} onPick={(n) => setText(appendMention(text, n))} />
       <button type="button" className="an-btn primary" disabled={busy || !text.trim()} onClick={() => void send()} data-testid="op-thread-send"><i className="bi bi-chat-left-text" /> コメントする</button>
     </div>
   );

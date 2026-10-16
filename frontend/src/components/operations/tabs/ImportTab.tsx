@@ -15,6 +15,7 @@ import { generateUUID } from "../../../utils/uuid";
 import { readFileBytes } from "../../../utils/inflate";
 import { useLoad } from "../useLoad";
 import { takePendingImport } from "../../../store/pendingImport";
+import { compareTableDefinition } from "../../../utils/importPreview";
 
 const ts = () => new Date().toISOString();
 
@@ -42,13 +43,18 @@ function DdlImport() {
   const [skip, setSkip] = useState<Set<string>>(new Set()); // 外したテーブル (既定はすべて選ぶ)
   const [busy, setBusy] = useState(false);
   // 既にあるテーブル: ファイルの実体を、毎回読み直す (一覧の登録簿は、取り込みの直後に追いつかないことがある)
-  const existing = useLoad(async () => ((await mcpBridge.request("listAllTables", {})) as Array<{ id?: string; physicalName?: string }> | null ?? []), false);
+  const existing = useLoad(async () => ((await mcpBridge.request("listAllTables", {})) as Array<{ id?: string; physicalName?: string; columns?: unknown[]; indexes?: unknown[] }> | null ?? []), false);
   const tooBig = text.length > MAX_LIVE_CHARS;
   const deferred = useDeferredValue(text);
   const result = useMemo(() => (deferred.trim() && deferred.length <= MAX_LIVE_CHARS ? parseDdl(deferred) : null), [deferred]);
   const have = new Set((existing.data ?? []).map((t) => t.id));
   const havePhysical = new Set((existing.data ?? []).map((t) => t.physicalName).filter(Boolean));
   const status = (t: ImportedTable): "new" | "exists" => (have.has(t.id) || havePhysical.has(t.physicalName) ? "exists" : "new");
+  /** すでにあるテーブルと、取り込む内容の違い (取り込みは上書きしないが、違いを見せる) */
+  const diffOf = (t: ImportedTable) => {
+    const cur = (existing.data ?? []).find((x) => x.id === t.id || x.physicalName === t.physicalName);
+    return cur ? compareTableDefinition(cur as never, t as never) : null;
+  };
   const fresh = result?.tables.filter((t) => status(t) === "new") ?? [];
   const chosen = fresh.filter((t) => !skip.has(t.id));
 
@@ -86,7 +92,17 @@ function DdlImport() {
                     <tr key={t.id} data-testid="op-ddl-row">
                       <td><input type="checkbox" disabled={st !== "new"} checked={st === "new" && !skip.has(t.id)} onChange={() => setSkip((c) => { const n = new Set(c); if (n.has(t.id)) n.delete(t.id); else n.add(t.id); return n; })} aria-label={`${t.physicalName} を取り込む`} /></td>
                       <td><code>{t.physicalName}</code>{t.name !== t.physicalName ? <small> {t.name}</small> : null}</td><td><code>{t.id}</code></td><td>{t.columns.length}</td><td>{t.constraints.length + t.indexes.length}</td>
-                      <td>{st === "new" ? "新規に作る" : <span className="an-warn">同じ id・物理名が既にあるため、作りません</span>}</td>
+                      <td>{st === "new" ? "新規に作る" : (() => {
+                        const d = diffOf(t);
+                        return (
+                          <>
+                            <span className="an-warn">同じ id・物理名が既にあるため、作りません</span>
+                            {d && (d.same
+                              ? <small className="an-hint" data-testid="op-ddl-same"> (内容は同じです: 変更なし)</small>
+                              : <details data-testid="op-ddl-diff"><summary>既存との違い ({d.lines.length} 件)</summary><ul className="an-list">{d.lines.slice(0, 30).map((l, i) => <li key={i}>{l}</li>)}</ul><small className="an-hint">既存の定義は変わりません (列の id が変わると、外部キー・画面項目の参照が切れるため)。取り込みたい違いは、テーブル編集で手で直してください。</small></details>)}
+                          </>
+                        );
+                      })()}</td>
                     </tr>
                   );
                 })}

@@ -489,3 +489,7 @@ body:has(.form-footer) {
   margin: 0;
   cursor: pointer;
 }
+
+/* 一覧の最終編集者 (続編 第 9 弾 #171) */
+.last-editor { display: block; color: var(--hm-fg-muted); font-size: calc(11px * var(--hm-font-scale)); line-height: 1.2; }
+.last-editor.is-me { color: var(--hm-accent); font-weight: 600; }

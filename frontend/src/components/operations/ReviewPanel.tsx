@@ -9,6 +9,7 @@ import { useActiveTab } from "../../hooks/useActiveTab";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
 import { opsApi } from "../../utils/opsApi";
 import { onHeaderPanelRequest } from "../../utils/headerPanels";
+import { getUserName } from "../../utils/userIdentity";
 import { useLoad } from "./useLoad";
 import { ApprovalControls, NewThread, StatusBadge, ThreadView } from "./reviewParts";
 import "../../styles/analysis.css";
@@ -44,6 +45,8 @@ export function ReviewPanel() {
   const openThreads = threads.filter((t) => t.status === "open");
   const row = approvals.data?.rows.find((r) => r.kind === kind && r.id === id);
   const reload = () => { comments.reload(); approvals.reload(); };
+  const me = getUserName();
+  const people = [...new Set((comments.data?.threads ?? []).flatMap((t) => t.messages.map((m) => m.by)).filter((n) => n && !n.startsWith("(")))];
 
   return (
     <span className="rv-wrap" ref={rootRef} onKeyDown={(e) => { if (open && e.key === "Escape") { e.stopPropagation(); setOpen(false); } }}>
@@ -57,9 +60,9 @@ export function ReviewPanel() {
           <ApprovalControls kind={kind} id={id} row={row} onChanged={reload} />
           <h3>コメント ({openThreads.length} 件が未解決)</h3>
           {threads.length === 0 ? <p className="an-hint">この設計へのコメントは、まだありません。</p> : (
-            <ul className="op-thread-list">{threads.map((t) => <ThreadView key={t.id} thread={t} onChanged={reload} compact />)}</ul>
+            <ul className="op-thread-list">{threads.map((t) => <ThreadView key={t.id} thread={t} onChanged={reload} compact people={people} me={me} />)}</ul>
           )}
-          <NewThread kind={kind} id={id} onChanged={reload} />
+          <NewThread kind={kind} id={id} onChanged={reload} people={people} />
           <button type="button" className="an-btn rv-more" onClick={() => { setOpen(false); navigate(wsPath("/operations")); }}>連携と運用を開く</button>
         </div>
       )}

@@ -32,4 +32,14 @@ describe("buildTodayTasks (続編 第 6 弾 #116)", () => {
     const t = buildTodayTasks({ drafts: [{ kind: "zzz", id: "x", key: "draft-zzz-x", size: 1 }], issues: [issue("error", "全体")], markers: [] });
     expect(t.map((x) => x.route)).toEqual([null, null]);
   });
+
+  it("今日の印のあるメモを、下書きの次・エラーの前に出す (印の無いメモは出さない)", () => {
+    const t = buildTodayTasks({
+      drafts: [{ kind: "table", id: "orders", key: "draft-table-orders", size: 10 }],
+      issues: [issue("error", "E1", { kind: "table", id: "orders" })], markers: [],
+      notes: { "table:orders": { text: "桁数を確認する", today: true, at: "2026-10-17T00:00:00Z" }, "table:other": { text: "印なし", today: false, at: "2026-10-17T00:00:00Z" } },
+    });
+    expect(t.map((x) => x.kind)).toEqual(["draft", "note", "error"]);
+    expect(t[1]).toMatchObject({ title: "桁数を確認する", detail: "テーブル「orders」のメモ", route: "/table/edit/orders" });
+  });
 });

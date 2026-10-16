@@ -18,6 +18,8 @@ import { useListGrouping } from "../../hooks/useListGrouping";
 import { maturityGroupName, type ListGroupOption } from "../../utils/listGroup";
 import { useEditingOnly } from "../../hooks/useEditingOnly";
 import { useOpenedSortAccessor } from "../../hooks/useOpenedSortAccessor";
+import { LastEditor } from "../common/LastEditor";
+import { useLastEditors } from "../../hooks/useLastEditors";
 import { computeRowMarks } from "../../utils/rowMarks";
 import { ListViewBar } from "../common/ListViewBar";
 import { FilterBar } from "../common/FilterBar";
@@ -164,6 +166,7 @@ export function ScreenListView() {
     return () => { cancelled = true; };
   }, [screens]);
 
+  const lastEditors = useLastEditors();
   const rowMarks = useMemo(() => computeRowMarks(screens, (x) => String(x.id), (x) => x.name), [screens]);
   const isEditing = useCallback((x: ScreenNode) => hasDraft("screen-item", String(x.id)), [hasDraft]);
   const editing = useEditingOnly(screens, isEditing);
@@ -581,7 +584,7 @@ export function ScreenListView() {
       width: "160px",
       sortable: true,
       sortAccessor: (s) => s.updatedAt,
-      render: (s) => <span className="screen-table-date">{formatDate(s.updatedAt)}</span>,
+      render: (s) => <><span className="screen-table-date">{formatDate(s.updatedAt)}</span><LastEditor edit={lastEditors.get(`screen:${s.id}`)} /></>,
     },
     {
       key: "screenItems",
@@ -603,7 +606,7 @@ export function ScreenListView() {
         </button>
       ),
     },
-  ], [hasDraft, navigate, wsPath, validationMap]);
+  ], [hasDraft, navigate, wsPath, validationMap, lastEditors]);
 
   const renderCard = (s: ScreenNode) => {
     const validation = validationMap.get(s.id);

@@ -51,3 +51,25 @@ describe("actionVerb", () => {
     expect(actionVerb("設計の id を改名した")).toBe("改名");
   });
 });
+
+import { designOfTab } from "./designHistory";
+describe("designOfTab", () => {
+  it("設計のタブから、種類・版の種類・読み出しを引く。一覧のタブは null", () => {
+    expect(designOfTab("table", "orders")).toMatchObject({ kind: "table", id: "orders", versionType: "table", opsKind: "table", load: { method: "loadTable", key: "tableId" } });
+    expect(designOfTab("screen-items", "cart")).toMatchObject({ kind: "screen", versionType: null });
+    expect(designOfTab("page-layout", "pl1")).toMatchObject({ kind: "pageLayout", versionType: "page-layout", opsKind: null });
+    expect(designOfTab("table-list", "main")).toBeNull();
+    expect(designOfTab(undefined, "x")).toBeNull();
+  });
+});
+
+import { revisionDraftText } from "./designHistory";
+describe("revisionDraftText", () => {
+  it("更新された設計に、期間内に変更した人を添える。記録が無ければ人は付けない", () => {
+    const items = [{ kind: "table" as const, id: "orders", name: "注文", saves: 3 }, { kind: "processFlow" as const, id: "f1", name: "確定", saves: 1 }];
+    const text = revisionDraftText(items, log, "2026-10-16T00:00:00Z");
+    expect(text.split("\n")).toEqual(["テーブル「注文」を更新 (3 回、花子・AI)", "処理フロー「確定」を更新 (1 回)"]);
+    // 期間より前の記録は数えない
+    expect(revisionDraftText(items.slice(0, 1), log, "2026-10-17T09:30:00Z")).toBe("テーブル「注文」を更新 (3 回、花子)");
+  });
+});

@@ -8,7 +8,7 @@ const base = { issues: [], unresolvedMarkers: 0, openThreads: 0, approval: "appr
 describe("completionChecklist", () => {
   it("すべて満たしていれば、完了", () => {
     const s = checklistSummary(completionChecklist(base));
-    expect(s).toEqual({ ok: 5, total: 5, done: true });
+    expect(s).toEqual({ ok: 5, total: 5, done: true, unknown: 0 });
   });
   it("命名規約の指摘は、要確認とは別に数える。情報 (info) は要確認に数えない", () => {
     const items = completionChecklist({ ...base, issues: [issue("warning", "命名規約", "物理名「A」が命名規約に合っていません"), issue("info", "画面", "メモ"), issue("error", "画面", "必須")] });
@@ -25,5 +25,11 @@ describe("completionChecklist", () => {
   it("成熟度があれば項目を足す (確定だけが ok)", () => {
     expect(completionChecklist({ ...base, maturity: "draft" }).at(-1)).toMatchObject({ id: "maturity", status: "ng", detail: "成熟度: 作成中" });
     expect(completionChecklist({ ...base, maturity: "committed" }).at(-1)?.status).toBe("ok");
+  });
+  it("判定できない項目 (null) は、数に入れず、完了の判定にも使わない", () => {
+    const items = completionChecklist({ ...base, issues: null, openThreads: null, approval: null });
+    expect(items.filter((x) => x.status === "unknown").map((x) => x.id)).toEqual(["issues", "naming", "threads", "approval"]);
+    expect(checklistSummary(items)).toEqual({ ok: 1, total: 1, done: true, unknown: 4 });
+    expect(checklistSummary(completionChecklist({ ...base, issues: null, openThreads: null, approval: null, unresolvedMarkers: 1 })).done).toBe(false);
   });
 });
