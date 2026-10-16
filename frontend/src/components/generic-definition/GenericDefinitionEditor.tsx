@@ -72,11 +72,12 @@ function GenericDefinitionEditorBody() {
   // 元に戻す・やり直し (UI 改善提案 第 5 弾 #85)。入力中の連続した変更は 1 回分にまとめる (入力が止まって 0.7 秒たつと、履歴に積む)
   const undoable = useUndoableState<GenericDefinition | null>(null);
   const def = undoable.state;
+  const { reset: resetDef, update: updateDefRaw, commit: commitDef } = undoable; // どれも、描画をまたいで同じ関数
   const commitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const flushHistory = useCallback(() => {
     if (commitTimer.current) { clearTimeout(commitTimer.current); commitTimer.current = null; }
-    undoable.commit();
-  }, [undoable]);
+    commitDef();
+  }, [commitDef]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [saveError, setSaveError] = useState("");
@@ -274,7 +275,7 @@ function GenericDefinitionEditorBody() {
         if (!loaded) {
           setError(`${decodedName} が見つかりません`);
         } else {
-          undoable.reset(loaded);
+          resetDef(loaded);
           initialSnapshotRef.current = JSON.stringify(loaded);
           setBaseline(initialSnapshotRef.current);
           setReloadBanner(false);
@@ -286,7 +287,7 @@ function GenericDefinitionEditorBody() {
       .finally(() => {
         if (!opts?.silent) setLoading(false);
       });
-  }, [kind, decodedName]);
+  }, [kind, decodedName, resetDef]);
 
   // kind / decodedName が valid な場合のみ reload を起動する。
   // 不正な場合は render 中の derived guard (kind null 早期 return + 下の `invalidParams` 分岐)
@@ -352,12 +353,12 @@ function GenericDefinitionEditorBody() {
   }, [tabResourceId]);
 
   const updateDef = useCallback((updater: (prev: GenericDefinition) => GenericDefinition) => {
-    undoable.update((prev) => prev ? updater(prev) : prev);
+    updateDefRaw((prev) => prev ? updater(prev) : prev);
     if (commitTimer.current) clearTimeout(commitTimer.current);
-    commitTimer.current = setTimeout(() => { commitTimer.current = null; undoable.commit(); }, 700);
+    commitTimer.current = setTimeout(() => { commitTimer.current = null; commitDef(); }, 700);
     // #1331: 編集が発生したら EditSession を作成 (lazy)。重複 create は ensureEditSession 内で抑制。
     ensureEditSession().catch(() => { /* logged inside */ });
-  }, [ensureEditSession, undoable]);
+  }, [ensureEditSession, updateDefRaw, commitDef]);
   const undoEdit = useCallback(() => { flushHistory(); undoable.undo(); }, [flushHistory, undoable]);
   const redoEdit = useCallback(() => { flushHistory(); undoable.redo(); }, [flushHistory, undoable]);
   useUndoKeyboard(undoEdit, redoEdit, editing);

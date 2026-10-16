@@ -51,7 +51,7 @@ export function StepOutlinePanel({ steps, selectedIds }: { steps: readonly Step[
     <div className="step-outline" data-testid="step-outline">
       <div className="process-flow-palette-search">
         <i className="bi bi-search" />
-        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="目次を絞り込む" aria-label="目次を絞り込む" />
+        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="目次を検索" aria-label="目次を絞り込む" />
       </div>
       {items.length === 0 ? <div className="process-flow-palette-empty">工程がありません</div> : (
         <ul ref={listRef} className="step-outline-list" onKeyDown={onKeyDown} aria-label="工程の目次">

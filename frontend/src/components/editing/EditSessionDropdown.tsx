@@ -295,11 +295,12 @@ export function EditSessionDropdown({
   }).length;
 
   // 誰が・いつから・どこまで: バッジに触れると見える (UI 改善提案 第 5 弾 #91)。開くと、閲覧・引き継ぎができる
-  const othersDetail = sessions
+  const othersDetail = othersEditingCount === 0 ? "" : sessions
     .filter((s) => s.state !== "Discarded")
     .map((s) => {
       const editor = Object.values(s.participants).find((p) => p.role === "Edit");
-      return editor && editor.sessionId !== currentSessionId ? `${participantDisplayLabel(editor)} が編集中 (最終操作 ${relativeTime(s.lastActivityAt)})` : null;
+      if (!editor || editor.sessionId === currentSessionId) return null;
+      try { return `${participantDisplayLabel(editor)} が編集中 (最終操作 ${relativeTime(s.lastActivityAt)})`; } catch { return null; } // 説明は補足。作れなければ、出さない
     })
     .filter((x): x is string => !!x)
     .join("\n");
