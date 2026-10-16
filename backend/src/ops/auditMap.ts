@@ -30,3 +30,11 @@ export function describeRpc(method: string, params: unknown, result?: unknown, s
   else for (const k of ID_KEYS) if (typeof p[k] === "string") { target = p[k] as string; break; }
   return { action, ...(target ? { target } : {}) };
 }
+
+/**
+ * 新しく作る tool (add_table など) の結果の文から、作られた設計の id を引く (「…を追加しました（ID: table-ab12cd34）」)。
+ * 引数には id が無く、そのままでは、名前が対象として残るため。見つからなければ undefined。
+ */
+export function createdIdFromResultText(text: string): string | undefined {
+  return /ID[:：]\s*([A-Za-z0-9][A-Za-z0-9._-]{0,99})/.exec(text)?.[1];
+}

@@ -13,7 +13,7 @@ import { isPrivateAddress, sendWebhook, dispatchNotify, type SendDeps } from "./
 import { assertBranchName, assertGitPath, execOverrides, gitBranches, gitCheckout, gitCommit, gitDiff, gitInit, gitLog, gitStatus } from "./gitOps.js";
 import { parseReleaseNotes, readVersionInfo } from "./versionInfo.js";
 import { suggestRevision } from "./revisionSuggest.js";
-import { describeRpc } from "./auditMap.js";
+import { createdIdFromResultText, describeRpc } from "./auditMap.js";
 
 let ROOT = "";
 const ts = "2026-01-01T00:00:00.000Z";
@@ -544,5 +544,14 @@ describe("設計の id の改名への追従", () => {
     await renameOpsRecords(ROOT, "pageLayout", "orders", "z"); // 対象外の種類・同じ id は、何もしない
     await renameOpsRecords(ROOT, "table", "orders", "orders");
     expect((await approvalsStore.read(ROOT)).value.items[0].id).toBe("orders");
+  });
+});
+
+describe("AI の新規作成の記録の対象 (続編 第 9 弾 レビュー M1)", () => {
+  it("作成の結果の文から、作られた設計の id を引く。見つからなければ undefined", () => {
+    expect(createdIdFromResultText("テーブル「注文」(orders) を追加しました（ID: table-ab12cd34）")).toBe("table-ab12cd34");
+    expect(createdIdFromResultText("画面「カート」を追加しました（ID: cart）")).toBe("cart");
+    expect(createdIdFromResultText("ID: x1 / 別の文")).toBe("x1");
+    expect(createdIdFromResultText("追加しました")).toBeUndefined();
   });
 });

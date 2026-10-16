@@ -13,6 +13,7 @@ import { installSelfWriteTracking } from "./externalChanges.js";
 import { ensureRecovered } from "./operationJournal.js";
 import { assertToolAllowed, filterTools, isReadOnlyTool } from "./security/mcpAccess.js";
 import { recordAudit } from "./ops/audit.js";
+import { createdIdFromResultText } from "./ops/auditMap.js";
 import { installApprovalGuard } from "./ops/policy.js";
 import { scheduleIssueCheck } from "./ops/issuesWatch.js";
 import { tools } from "./tools.js";
@@ -207,8 +208,16 @@ function createMcpServer(sessionId: string): Server {
         if (result !== null && result !== undefined) {
           // AI の書き込みの tool は、監査ログに残す (失敗した呼び出しは、残さない。isError の結果も除く)
           if (!isReadOnlyTool(name) && !(result as { isError?: boolean }).isError && !/^(editSession__(list|fetch)|designer__(list|get|find|check|export|generate|analyze)_)/.test(name)) {
-            const idArg = ["id", "tableId", "processFlowId", "screenId", "flowId", "reportId", "resourceId", "name", "path"].map((k) => argRecord[k]).find((v) => typeof v === "string") as string | undefined;
-            void recordAudit(root, { actor: "AI", action: `AI が ${name.replace(/^designer__/, "")} を実行した`, ...(idArg ? { target: idArg } : {}), via: "ai" });
+            let idArg = ["id", "tableId", "processFlowId", "screenId", "flowId", "reportId", "resourceId", "name", "path"].map((k) => argRecord[k]).find((v) => typeof v === "string") as string | undefined;
+            // 新しく作る tool (add_*) は、引数に id が無く、名前が対象になってしまう。結果の文の「ID: <id>」から、作られた設計の id を引く
+            if (/^designer__add_(table|screen|process_flow|page_layout)$/.test(name)) {
+              const text = (result as { content?: Array<{ text?: unknown }> }).content?.map((c) => (typeof c.text === "string" ? c.text : "")).join("\n") ?? "";
+              const created = createdIdFromResultText(text);
+              if (created) idArg = created;
+            }
+            // resourceType (編集セッション・版の tool の対象の種類) を、備考に残す: 設計の種類を、あとから引けるように (設計のあゆみ・最終編集者)
+            const rt = typeof argRecord.resourceType === "string" ? argRecord.resourceType : undefined;
+            void recordAudit(root, { actor: "AI", action: `AI が ${name.replace(/^designer__/, "")} を実行した`, ...(idArg ? { target: idArg } : {}), ...(rt ? { detail: rt } : {}), via: "ai" });
             scheduleIssueCheck(root);
             wsBridge.broadcast({ wsId: root, event: "opsChanged", data: { scope: "ai" } });
           }
