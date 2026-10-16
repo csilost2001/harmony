@@ -612,3 +612,15 @@ textarea.sld-input { resize: vertical; line-height: 1.5; }
   position: absolute; top: -22px; left: 50%; transform: translateX(-50%); white-space: nowrap; pointer-events: none;
   padding: 1px 6px; border-radius: 4px; font-size: calc(11px * var(--hm-font-scale)); background: var(--pv-accent); color: #fff;
 }
+
+/* ── 項目の属性のコピー & 貼り付け (UI 改善提案 第 3 弾 #54) ─────────────────── */
+.sld-attr-bar { display: flex; flex-wrap: wrap; gap: 6px; position: relative; }
+.sld-attr-pop {
+  flex-basis: 100%; padding: 8px; border: 1px solid var(--hm-border-strong); border-radius: 6px; background: var(--hm-surface);
+  font-size: calc(12px * var(--hm-font-scale));
+}
+.sld-attr-pop-title { font-weight: 600; margin-bottom: 4px; }
+.sld-attr-pop ul { list-style: none; margin: 0 0 6px; padding: 0; max-height: 260px; overflow: auto; }
+.sld-attr-pop label { display: flex; gap: 6px; align-items: baseline; padding: 1px 0; }
+.sld-attr-val { margin-left: auto; color: var(--hm-fg-muted); text-align: right; }
+.sld-attr-val.is-unset { color: var(--hm-fg-faint); font-style: italic; }

@@ -5,6 +5,8 @@
 import { LAYOUT_NODE_LABELS, type LayoutNode, type LayoutNodeProps } from "@harmony/shared";
 import type { ScreenItem } from "../../types/v3/screen-item";
 import { WRAP_TYPES, canWrap, selectedItemIds, sharedParentId } from "./layoutSelection";
+import { AttrClipboardBar } from "./AttrClipboardBar";
+import { applyAttrs } from "../../utils/itemAttrs";
 
 export interface LayoutMultiPanelProps {
   editable: boolean;
@@ -99,6 +101,7 @@ export function LayoutMultiPanel({ editable, ids, nodes, items, onSelect, onDupl
           </div>
           {triButtons("必須", "required")}
           {triButtons("読み取り専用", "readonly")}
+          <AttrClipboardBar editable={editable} targetCount={targetItems.length} onPaste={(snap, keys) => onPatchItems(itemIds, (i) => applyAttrs(i, snap, keys))} />
         </>
       )}
       {forms.length > 0 && (

@@ -161,4 +161,39 @@ test.describe("画面デザイナの直接操作", () => {
     const s = await readScreen("cart");
     expect((find(s.layout.nodes, "column4")!.props!.span as number) + (find(s.layout.nodes, "column5")!.props!.span as number)).toBe(12); // 合計は変わらない
   });
+
+  test("項目の属性だけをコピーして、別の項目 (複数でも) へ貼り付けられる。貼る属性を選べる @regression", async ({ page }) => {
+    await openEditing(page, "inventory-list");
+    const before = await readScreen("inventory-list");
+    const item = (s: Screen, id: string) => s.items.find((i) => i.id === id)!;
+    expect(item(before, "productCodeFilter").maxLength).toBe(20);
+    expect(item(before, "storeFilter").maxLength).toBeUndefined();
+
+    // コピー元 (productCodeFilter) の属性をコピー
+    await nodeLoc(page, "productCodeFilter").click({ position: { x: 10, y: 10 } });
+    await page.getByTestId("layout-attr-copy").click();
+    // 別の項目 (storeFilter) へ: 最大桁と必須だけを貼る (入力例は貼らない)
+    await nodeLoc(page, "storeFilter").click({ position: { x: 10, y: 10 } });
+    await page.getByTestId("layout-attr-paste-open").click();
+    await expect(page.getByTestId("layout-attr-pop")).toBeVisible();
+    await expect(page.getByTestId("layout-attr-key-maxLength")).toBeChecked();
+    await expect(page.getByTestId("layout-attr-key-type")).not.toBeChecked(); // 型は、自分で選んだときだけ
+    await page.getByTestId("layout-attr-key-placeholder").uncheck();
+    await page.getByTestId("layout-attr-paste").click();
+
+    // 複数 (storeFilter と lowStockOnly) へまとめて貼る
+    await nodeLoc(page, "storeFilter").click({ position: { x: 10, y: 10 } });
+    await nodeLoc(page, "lowStockOnly").click({ position: { x: 10, y: 10 }, modifiers: ["Control"] });
+    await expect(page.getByTestId("layout-multi-panel")).toContainText("2 件を選択中");
+    await page.getByTestId("layout-attr-paste-open").click();
+    await page.getByTestId("layout-attr-key-placeholder").uncheck();
+    await page.getByTestId("layout-attr-paste").click();
+
+    await save(page, "inventory-list", (s) => item(s, "lowStockOnly").maxLength === 20);
+    const after = await readScreen("inventory-list");
+    expect(item(after, "storeFilter").maxLength).toBe(20);
+    expect(item(after, "storeFilter").required).toBe(item(before, "productCodeFilter").required);
+    expect(item(after, "storeFilter").placeholder).toBe(item(before, "storeFilter").placeholder); // 選ばなかった属性は変わらない
+    expect(item(after, "lowStockOnly").type).toBe(item(before, "lowStockOnly").type); // 型は変わらない
+  });
 });
