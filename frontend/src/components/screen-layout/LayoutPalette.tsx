@@ -107,8 +107,8 @@ export function LayoutPalette({ editable, nodes, items, tables, selectedId, onAd
                     className="sld-part"
                     draggable={editable}
                     disabled={!editable}
-                    onDragStart={(e) => { remember(nodePart(t.type)); startDrag(e, { kind: "new-node", nodeType: t.type }); }}
-                    onDragEnd={() => setDragPayload(null)}
+                    onDragStart={(e) => startDrag(e, { kind: "new-node", nodeType: t.type })}
+                    onDragEnd={() => { setDragPayload(null); remember(nodePart(t.type)); }}
                     onClick={() => { remember(nodePart(t.type)); onAdd(t.type); }}
                     title={`${t.hint}（ドラッグで配置 / クリックで選択中の部品の後ろに追加）`}
                     data-testid={`layout-part-${t.type}`}
@@ -132,8 +132,8 @@ export function LayoutPalette({ editable, nodes, items, tables, selectedId, onAd
                     className="sld-part sld-part-component"
                     draggable={editable}
                     disabled={!editable}
-                    onDragStart={(e) => { remember(componentPart(c.id)); startDrag(e, { kind: "new-component", componentId: c.id, nodeType: "component" }); }}
-                    onDragEnd={() => setDragPayload(null)}
+                    onDragStart={(e) => startDrag(e, { kind: "new-component", componentId: c.id, nodeType: "component" })}
+                    onDragEnd={() => { setDragPayload(null); remember(componentPart(c.id)); }}
                     onClick={() => { remember(componentPart(c.id)); onAddComponent?.(c.id); }}
                     title={`${c.description ?? c.label}（ドラッグで配置 / クリックで選択中の部品の後ろに追加）`}
                     data-testid={`layout-component-${c.id}`}
