@@ -967,6 +967,7 @@ export function ProcessFlowListView() {
 
         <DataList
           prefsKey="process-flow-list"
+          dragRef={(g) => `@flow.${g.id}`}
           items={sort.sorted}
           columns={columns}
           getId={(g) => g.id}

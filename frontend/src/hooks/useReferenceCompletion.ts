@@ -6,6 +6,7 @@ import { applyCompletionHistory, recordCompletionPick } from "../utils/completio
 import { isImeComposing } from "../utils/imeKeys";
 import { referenceAt, requestFindReferences, requestGoToReference } from "../utils/referenceTarget";
 import { showToast } from "../utils/toast";
+import { hasRefDrag, insertRefAt, readRefDrop } from "../utils/refDrag";
 
 type El = HTMLInputElement | HTMLTextAreaElement;
 
@@ -145,6 +146,23 @@ export function useReferenceCompletion<T extends El>({ value, onValueChange, onC
       onCommit?.();
     },
     onFocus: () => setSuppressed(false),
+    // 一覧などから、参照 (@screen.cart のような指定) をドラッグして落とすと、カーソルの位置へ入れる
+    onDragOver: (e: React.DragEvent<T>) => {
+      if (!hasRefDrag(e.dataTransfer)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+    },
+    onDrop: (e: React.DragEvent<T>) => {
+      const ref = readRefDrop(e.dataTransfer);
+      if (!ref) return;
+      e.preventDefault();
+      const el = e.currentTarget as T;
+      const at = insertRefAt(value, el.selectionStart ?? value.length, el.selectionEnd ?? el.selectionStart ?? value.length, ref);
+      onValueChange(at.value);
+      setCursorPos(at.cursor);
+      setSuppressed(true);
+      requestAnimationFrame(() => { inputRef.current?.focus(); inputRef.current?.setSelectionRange(at.cursor, at.cursor); });
+    },
   };
 
   return { inputRef, candidates, isOpen, safeIndex, pick, handlers };

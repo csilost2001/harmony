@@ -594,6 +594,7 @@ export function PageLayoutListView() {
 
         <DataList
           prefsKey="page-layout-list"
+          dragRef={(v) => `@layout.${String(v.id)}`}
           items={sort.sorted}
           columns={columns}
           getId={(v) => String(v.id)}

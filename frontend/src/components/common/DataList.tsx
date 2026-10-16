@@ -31,6 +31,7 @@ import { SelectByConditionMenu } from "./SelectByConditionMenu";
 import { ListContextMenu } from "./ListContextMenu";
 import { EXPORT_FORMATS, exportRows, writeClipboardText, type ExportFormat } from "../../utils/tableExport";
 import { showToast } from "../../utils/toast";
+import { setRefDragData } from "../../utils/refDrag";
 import "../../styles/dataList.css";
 
 export interface DataListColumn<T> {
@@ -89,6 +90,11 @@ interface Props<T> {
    * この key でブラウザに覚える (UI 改善提案 第 3 弾 #47)。画面ごとに別の key にする。
    */
   prefsKey?: string;
+  /**
+   * 行が表す参照 (例: `@table.orders`)。指定すると、表表示の行を、入力欄 (参照の補完つき) へドラッグして、参照を入れられる (UI 改善提案 第 3 弾 #51)。
+   * キーボードでは「表としてコピー」のメニューの「参照をコピー」→ 入力欄へ貼り付け。null を返す行は、ドラッグできない
+   */
+  dragRef?: (item: T) => string | null;
 }
 
 export function DataList<T>({
@@ -102,6 +108,7 @@ export function DataList<T>({
   variant = "light",
   isItemGhost,
   prefsKey,
+  dragRef,
 }: Props<T>) {
   // ── 列の設定 (幅・表示・並び) ─────────────────────────────────────────
   const [prefs, setPrefs] = useColumnPrefs(prefsKey);
@@ -111,6 +118,13 @@ export function DataList<T>({
   const [showCondition, setShowCondition] = useState(false);
   const [copyMenu, setCopyMenu] = useState<{ x: number; y: number } | null>(null);
   /** 表としてコピー: 選んでいる行 (無ければ、見えている行すべて) を、画面に出ている列だけで、他のアプリへ渡せる形にする */
+  const copyRefs = async () => {
+    const picked = selection && selection.selectedIds.size > 0 ? items.filter((i) => selection.selectedIds.has(getId(i))) : [];
+    const refs = picked.map((i) => dragRef?.(i)).filter((r): r is string => !!r);
+    if (refs.length === 0) { showToast("参照をコピーする行を、先に選んでください", "info"); return; }
+    const ok = await writeClipboardText(refs.join("\n"));
+    showToast(ok ? `参照 ${refs.length} 件をコピーしました (入力欄に貼り付けられます)` : "コピーできませんでした (ブラウザがクリップボードを許可していません)", ok ? "info" : "error");
+  };
   const copyAsTable = async (format: ExportFormat) => {
     const cols = columns.filter((c) => typeof c.header === "string" && c.sortAccessor);
     const picked = selection && selection.selectedIds.size > 0 ? items.filter((i) => selection.selectedIds.has(getId(i))) : items;
@@ -311,7 +325,10 @@ export function DataList<T>({
         </button>
         {copyMenu && (
           <ListContextMenu x={copyMenu.x} y={copyMenu.y} onClose={() => setCopyMenu(null)}
-            items={EXPORT_FORMATS.map((f) => ({ key: `copy-${f.format}`, label: `${selection && selection.selectedIds.size > 0 ? `選んだ ${selection.selectedIds.size} 行` : `すべての ${items.length} 行`}を ${f.label} でコピー`, icon: "bi-clipboard", onClick: () => { void copyAsTable(f.format); } }))} />
+            items={[
+              ...EXPORT_FORMATS.map((f) => ({ key: `copy-${f.format}`, label: `${selection && selection.selectedIds.size > 0 ? `選んだ ${selection.selectedIds.size} 行` : `すべての ${items.length} 行`}を ${f.label} でコピー`, icon: "bi-clipboard", onClick: () => { void copyAsTable(f.format); } })),
+              ...(dragRef ? [{ key: "copy-refs", label: "選んだ行の参照 (@…) をコピー", icon: "bi-at", disabled: !selection || selection.selectedIds.size === 0, disabledReason: "参照をコピーする行を、先に選んでください", onClick: () => { void copyRefs(); } }] : []),
+            ]} />
         )}
         {showCondition && selection && (
           <SelectByConditionMenu items={items} getId={getId} columns={conditionColumns} selectedIds={selection.selectedIds}
@@ -405,6 +422,7 @@ export function DataList<T>({
                       handleDisabled={handleDisabled}
                       showNumColumn={showNumColumn}
                       dropIndicator={dropIndicatorFor(id)}
+                      refText={dragRef?.(item) ?? null}
                     />
                   );
                 })}
@@ -454,11 +472,13 @@ interface RowProps<T> {
   handleDisabled: boolean;
   showNumColumn: boolean;
   dropIndicator: "top" | "bottom" | null;
+  /** 入力欄へドラッグして入れられる参照 (無ければ、ドラッグできない) */
+  refText: string | null;
 }
 
 function DataListRow<T>({
   item, index, getId, getNo, columns, selection, ghost, onActivate, onRowDelete, onContextMenu,
-  showHandle, handleDisabled, showNumColumn, dropIndicator,
+  showHandle, handleDisabled, showNumColumn, dropIndicator, refText,
 }: RowProps<T>) {
   const id = getId(item);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled: handleDisabled });
@@ -497,6 +517,12 @@ function DataListRow<T>({
       onContextMenu={onContextMenu ? handleContextMenu : undefined}
       data-testid="data-list-row"
       data-row-id={id}
+      draggable={!!refText}
+      onDragStart={refText ? (e) => {
+        // 並べ替えのつまみ (dnd-kit) のドラッグとは、別のもの
+        if ((e.target as HTMLElement).closest(".data-list-td-handle")) { e.preventDefault(); return; }
+        setRefDragData(e.dataTransfer, refText);
+      } : undefined}
     >
       {showHandle && (
         <td

@@ -602,6 +602,7 @@ export function ViewListView() {
 
         <DataList
           prefsKey="view-list"
+          dragRef={(v) => `@view.${v.id}`}
           items={sort.sorted}
           columns={columns}
           getId={(v) => v.id}

@@ -739,6 +739,7 @@ export function ViewDefinitionListView() {
 
         <DataList
           prefsKey="view-definition-list"
+          dragRef={(v) => `@viewer.${String(v.id)}`}
           items={sort.sorted}
           columns={columns}
           getId={(v) => String(v.id)}
