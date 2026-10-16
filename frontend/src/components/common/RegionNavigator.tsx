@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { collectRegions, currentRegionIndex, focusRegion, nextRegionIndex } from "../../utils/regions";
+import { hasOpenModal } from "../../utils/modalScope";
 
 /** F6 / Shift+F6 で、画面の領域 (ヘッダー・タブ・一覧・詳細・マーカーなど) を順に移る。画面には何も描かない。 */
 export function RegionNavigator() {
@@ -7,7 +8,7 @@ export function RegionNavigator() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "F6" || e.ctrlKey || e.altKey || e.metaKey) return;
       // ダイアログが開いているあいだは、領域の巡回をしない (フォーカスをダイアログの外へ出さない)
-      if (document.querySelector('[aria-modal="true"]')) return;
+      if (hasOpenModal()) return;
       const regions = collectRegions();
       if (regions.length === 0) return;
       e.preventDefault();

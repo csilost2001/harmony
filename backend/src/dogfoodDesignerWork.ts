@@ -18,13 +18,14 @@
  */
 import path from "node:path";
 import { readProcessFlow, writeProcessFlow } from "./projectStorage.js";
-import {
-  listMarkers,
-  addMarker,
-  resolveMarker,
-  addCatalogEntry,
-  type ProcessFlowDoc,
-} from "./processFlowEdits.js";
+import { addCatalogEntry, type ProcessFlowDoc } from "./processFlowEdits.js";
+import { listMarkers as sharedListMarkers, addMarker as sharedAddMarker, resolveMarker as sharedResolveMarker, migrateLegacyMarkers, type MarkerHost, type NewMarker } from "@harmony/shared";
+
+// マーカーは、画面と同じ場所 (authoring.markers) を読み書きする共通の処理 (@harmony/shared) を使う (#1509)
+const asHost = (ag: ProcessFlowDoc) => ag as unknown as MarkerHost;
+const listMarkers = (ag: ProcessFlowDoc, f: { unresolvedOnly?: boolean }) => { migrateLegacyMarkers(asHost(ag)); return sharedListMarkers(asHost(ag), f); };
+const addMarker = (ag: ProcessFlowDoc, m: NewMarker) => sharedAddMarker(asHost(ag), m);
+const resolveMarker = (ag: ProcessFlowDoc, id: string, r?: string) => sharedResolveMarker(asHost(ag), id, r);
 import WebSocket from "ws";
 
 async function broadcastSave(id: string, data: ProcessFlowDoc): Promise<void> {
@@ -100,7 +101,7 @@ async function main() {
         kind: "chat",
         body: "自動回答: 詳細分析が必要です。人間の判断で回答してください。",
         author: "ai",
-        stepId: m.stepId,
+        stepId: m.anchor?.stepId,
       });
       aiRepliesAdded++;
       resolveMarker(ag, m.id, "chat 返信で応答");

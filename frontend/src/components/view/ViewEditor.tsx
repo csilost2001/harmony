@@ -32,6 +32,8 @@ import "../../styles/table.css";
 import "../../styles/editMode.css";
 import { reportFailure } from "../../utils/failureToast";
 import { useResyncDraftOnReconnect } from "../../hooks/useResyncDraftOnReconnect";
+import { EntityMarkerSection } from "../common/EntityMarkerSection";
+import { authoringWithMarkers } from "../../utils/markerDoc";
 
 interface TableOption {
   id: string;
@@ -407,6 +409,8 @@ export function ViewEditor() {
       <div className="seq-editor-body">
         {/* 左カラム（基本設定・SELECT・依存テーブル・出力列） */}
         <div className="seq-editor-left-col">
+          <EntityMarkerSection type="view" entity={{ id: String(view.id), name: view.name }} markers={view.authoring?.markers} readOnly={isReadonly} sectionClassName="seq-editor-section"
+          onChange={(next) => updateWithDraft((d) => { d.authoring = authoringWithMarkers(d.authoring, next); })} />
 
           {/* 基本設定 */}
           <section className="seq-editor-section">

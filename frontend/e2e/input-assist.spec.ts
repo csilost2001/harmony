@@ -13,7 +13,8 @@ const uniq = (base: string) => `${base}_${Date.now().toString(36)}${Math.random(
 
 /** 「前回の編集の続き」ダイアログが (遅れて) 出ることがある。出ていれば「破棄して本体を読み込む」で閉じる */
 async function dismissResume(page: Page) {
-  await page.waitForTimeout(500);
+  // 負荷のあるときは、ダイアログが遅れて出る。出るのを少し待つ (出なければ、そのまま進む)
+  await page.locator(".edit-mode-modal-backdrop").waitFor({ state: "visible", timeout: 2000 }).catch(() => undefined);
   for (let i = 0; i < 3; i++) {
     if (!(await page.locator(".edit-mode-modal-backdrop").isVisible().catch(() => false))) break;
     await page.evaluate(() => (document.querySelector('[data-testid="resume-discard"]') as HTMLButtonElement | null)?.click());
@@ -169,7 +170,7 @@ test.describe("入力補助", { tag: ["@regression"] }, () => {
     await page.getByTestId("edit-mode-start").click();
     await expect(page.getByTestId("edit-mode-save")).toBeVisible();
     await page.locator(".marker-panel .catalog-panel-toggle").click();
-    const input = page.locator(".marker-panel .marker-add-row input");
+    const input = page.locator(".marker-panel .marker-add-row textarea");
     await expect(input).toBeVisible();
     const body = "変換中の文字を確定したところ";
     await input.fill(body);
@@ -178,10 +179,10 @@ test.describe("入力補助", { tag: ["@regression"] }, () => {
       el.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", isComposing: true, keyCode: 229, bubbles: true, cancelable: true }));
     });
     await expect(input).toHaveValue(body);
-    await expect(page.locator(".marker-panel").getByText(body)).toHaveCount(0);
+    await expect(page.locator(".marker-panel .marker-row").filter({ hasText: body })).toHaveCount(0);
     // ふつうの Enter は、マーカーを追加する (入力欄は空になる)
     await input.press("Enter");
     await expect(input).toHaveValue("");
-    await expect(page.locator(".marker-panel").getByText(body).first()).toBeVisible();
+    await expect(page.locator(".marker-panel .marker-row").filter({ hasText: body }).first()).toBeVisible();
   });
 });

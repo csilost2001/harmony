@@ -78,6 +78,8 @@ import { SortDefaultsSection } from "./internal/SortDefaultsSection";
 import { FilterDefaultsSection } from "./internal/FilterDefaultsSection";
 import { MiscSection } from "./internal/MiscSection";
 import { reportFailure } from "../../utils/failureToast";
+import { EntityMarkerSection } from "../common/EntityMarkerSection";
+import { authoringWithMarkers } from "../../utils/markerDoc";
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
@@ -669,6 +671,8 @@ export function ViewDefinitionEditor() {
 
       <div className="seq-editor-body">
         <div className="seq-editor-left-col">
+          <EntityMarkerSection type="viewDefinition" entity={{ id: String(viewDefinition.id), name: viewDefinition.name }} markers={viewDefinition.authoring?.markers} readOnly={isReadonly} sectionClassName="seq-editor-section"
+          onChange={(next) => updateWithDraft((d) => { d.authoring = authoringWithMarkers(d.authoring, next); })} />
 
           {/* ───── Section 1: 基本情報 ────────────────────────────────────── */}
           <BasicInfoSection

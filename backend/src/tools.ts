@@ -1219,23 +1219,26 @@ export const tools = [
   },
   {
     name: "designer__list_markers",
-    description: "ProcessFlow の人間→AI マーカー (指示・質問・TODO・チャット) を取得します。/designer-work の最初に呼ぶ想定。",
+    description: "設計 (処理フロー・画面・テーブル・ビュー・ビュー定義・シーケンス・ページレイアウト) の人間→AI マーカー (指示・質問・TODO・チャット) を取得します。マーカーは authoring.markers (位置は anchor)。/designer-work の最初に呼ぶ想定。処理フロー以外では、anchor.fieldPath に設計の中の位置 ($.columns[<カラム id>] / $.items[<項目 id>] / $.layout.nodes[<部品 id>] など) が入る。",
     inputSchema: {
       type: "object" as const,
       properties: {
-        processFlowId: { type: "string" },
+        entityType: { type: "string", enum: ["processFlow", "screen", "table", "view", "viewDefinition", "sequence", "pageLayout"], description: "対象の設計の種類 (省略時は processFlow)" },
+        entityId: { type: "string", description: "対象の設計の ID (processFlow のときは processFlowId でもよい)" },
+        processFlowId: { type: "string", description: "処理フローの ID (entityType=processFlow の別名)" },
         unresolvedOnly: { type: "boolean", description: "true で未解決のみ (既定 true)" },
-        stepId: { type: "string", description: "特定 step の marker のみ取得" },
+        stepId: { type: "string", description: "特定 step の marker のみ取得 (処理フロー)" },
+        fieldPathPrefix: { type: "string", description: "anchor.fieldPath がこの文字で始まる marker のみ (例: $.columns[)" },
       },
-      required: ["processFlowId"],
     },
   },
   {
     name: "designer__find_all_markers",
-    description: "全 ProcessFlow を横断して未解決マーカーを取得します。/designer-work で「今対応すべき人間指示をまず一望する」ために使用。各マーカーに processFlowId / processFlowName が付く。",
+    description: "全設計を横断して未解決マーカーを取得します。/designer-work で「今対応すべき人間指示をまず一望する」ために使用。各マーカーに entityType / entityId / entityName が付く (処理フローには processFlowId / processFlowName も付く)。",
     inputSchema: {
       type: "object" as const,
       properties: {
+        entityType: { type: "string", enum: ["processFlow", "screen", "table", "view", "viewDefinition", "sequence", "pageLayout"], description: "特定の種類の設計だけ (省略時は全種類)" },
         unresolvedOnly: { type: "boolean", description: "true で未解決のみ (既定 true)" },
         kind: {
           type: "string",
@@ -1247,18 +1250,20 @@ export const tools = [
   },
   {
     name: "designer__add_marker",
-    description: "ProcessFlow にマーカーを追加します。AI 側からの質問・返信・報告等を人間に届ける用途。",
+    description: "設計にマーカーを追加します。AI 側からの質問・返信・報告等を人間に届ける用途。位置は stepId (処理フロー) または fieldPath ($.columns[<カラム id>] など) で指す。",
     inputSchema: {
       type: "object" as const,
       properties: {
-        processFlowId: { type: "string" },
+        entityType: { type: "string", enum: ["processFlow", "screen", "table", "view", "viewDefinition", "sequence", "pageLayout"], description: "対象の設計の種類 (省略時は processFlow)" },
+        entityId: { type: "string", description: "対象の設計の ID (processFlow のときは processFlowId でもよい)" },
+        processFlowId: { type: "string", description: "処理フローの ID (entityType=processFlow の別名)" },
         kind: { type: "string", enum: ["chat", "attention", "todo", "question"], description: "Marker 種別 (schema の \"validator\" は意図的に除外 — validator marker は validator runtime のみが追加可能、AI 手動付与は想定外)" },
         body: { type: "string" },
-        stepId: { type: "string", description: "紐付ける step id (省略時はグループ全体宛)" },
-        fieldPath: { type: "string" },
+        stepId: { type: "string", description: "紐付ける step id (処理フロー。省略時は設計全体宛)" },
+        fieldPath: { type: "string", description: "設計の中の位置 (例: $.columns[col-02] / $.items[email] / $.layout.nodes[form-1])" },
         author: { type: "string", enum: ["human", "ai"], description: "既定 \"ai\"" },
       },
-      required: ["processFlowId", "kind", "body"],
+      required: ["kind", "body"],
     },
   },
   {
@@ -1267,11 +1272,13 @@ export const tools = [
     inputSchema: {
       type: "object" as const,
       properties: {
-        processFlowId: { type: "string" },
+        entityType: { type: "string", enum: ["processFlow", "screen", "table", "view", "viewDefinition", "sequence", "pageLayout"], description: "対象の設計の種類 (省略時は processFlow)" },
+        entityId: { type: "string", description: "対象の設計の ID (processFlow のときは processFlowId でもよい)" },
+        processFlowId: { type: "string", description: "処理フローの ID (entityType=processFlow の別名)" },
         markerId: { type: "string" },
         resolution: { type: "string", description: "AI 側の対応メモ (例: \"sql を修正しました\")" },
       },
-      required: ["processFlowId", "markerId"],
+      required: ["markerId"],
     },
   },
   // ── 画面項目 ID リネーム ──
@@ -1347,10 +1354,12 @@ export const tools = [
     inputSchema: {
       type: "object" as const,
       properties: {
-        processFlowId: { type: "string" },
+        entityType: { type: "string", enum: ["processFlow", "screen", "table", "view", "viewDefinition", "sequence", "pageLayout"], description: "対象の設計の種類 (省略時は processFlow)" },
+        entityId: { type: "string", description: "対象の設計の ID (processFlow のときは processFlowId でもよい)" },
+        processFlowId: { type: "string", description: "処理フローの ID (entityType=processFlow の別名)" },
         markerId: { type: "string" },
       },
-      required: ["processFlowId", "markerId"],
+      required: ["markerId"],
     },
   },
 

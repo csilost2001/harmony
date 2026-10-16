@@ -58,6 +58,7 @@ import {
   DesignDocumentView,
   DesignAnalysisView,
   OperationsView,
+  MarkersView,
   ScreenItemsView,
   SequenceListView,
   SequenceEditor,
@@ -296,6 +297,7 @@ export function AppShell() {
         <Route path="document" element={<DesignDocumentView />} />
         <Route path="analysis" element={<DesignAnalysisView />} />
         <Route path="operations" element={<OperationsView />} />
+        <Route path="markers" element={<MarkersView />} />
         <Route path="screen/items/:screenId" element={<ScreenItemsView />} />
         <Route path="sequence/list" element={<SequenceListView />} />
         <Route path="sequence/edit/:sequenceId" element={<SequenceEditor />} />
@@ -923,6 +925,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       { path: `${wsPrefix}/document`,           type: "design-document",    label: "設計書" },
       { path: `${wsPrefix}/analysis`,           type: "design-analysis",    label: "設計の分析" },
       { path: `${wsPrefix}/operations`,         type: "operations",         label: "連携と運用" },
+      { path: `${wsPrefix}/markers`,            type: "markers",            label: "マーカー" },
       { path: `${wsPrefix}/sequence/list`,      type: "sequence-list",      label: "シーケンス一覧" },
       { path: `${wsPrefix}/business-flow/list`, type: "business-flow-list", label: "業務フロー" },
       { path: `${wsPrefix}/report/list`,        type: "report-list",        label: "帳票" },

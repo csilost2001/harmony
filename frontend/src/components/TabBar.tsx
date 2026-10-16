@@ -79,6 +79,7 @@ function TabItem({
     : tab.type === "design-document" ? "bi-journal-text"
     : tab.type === "design-analysis" ? "bi-search-heart"
     : tab.type === "operations" ? "bi-diagram-2"
+    : tab.type === "markers" ? "bi-megaphone"
     : tab.type === "report" || tab.type === "report-list" ? "bi-file-earmark-text"
     : tab.type === "business-flow" || tab.type === "business-flow-list" ? "bi-diagram-2"
     : tab.type === "screen-list" ? "bi-list-ul"

@@ -34,6 +34,8 @@ import type { NumberingEntry } from "../../types/v3";
 import "../../styles/table.css";
 import "../../styles/editMode.css";
 import { reportFailure } from "../../utils/failureToast";
+import { EntityMarkerSection } from "../common/EntityMarkerSection";
+import { authoringWithMarkers } from "../../utils/markerDoc";
 
 interface TableColumnOption {
   tableId: string;
@@ -392,6 +394,8 @@ export function SequenceEditor() {
       <div className="seq-editor-body">
         {/* 4K: 左カラム（基本設定・値設定・規約・使用先） */}
         <div className="seq-editor-left-col">
+        <EntityMarkerSection type="sequence" entity={{ id: String(seq.id), name: seq.name }} markers={seq.authoring?.markers} readOnly={isReadonly} sectionClassName="seq-editor-section"
+          onChange={(next) => updateWithDraft((d) => { d.authoring = authoringWithMarkers(d.authoring, next); })} />
         {/* 基本設定 */}
         <section className="seq-editor-section">
           <h3 className="seq-editor-section-title">基本設定</h3>

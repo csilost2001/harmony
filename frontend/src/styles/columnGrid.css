@@ -20,3 +20,5 @@
 .cg-name-cell .cg-input { flex: 1; min-width: 0; }
 .cg-hint-btn { border: none; background: transparent; color: var(--hm-warning); cursor: pointer; padding: 0 2px; font-size: 0.9rem; line-height: 1; }
 .cg-hint-btn:hover:not(:disabled) { color: var(--hm-accent); }
+.col-marker-badge { border: none; background: var(--hm-accent-soft); color: var(--hm-accent); border-radius: 10px; padding: 0 7px; margin-left: 6px; font-size: calc(11px * var(--hm-font-scale)); cursor: pointer; display: inline-flex; align-items: center; gap: 3px; }
+.col-marker-badge:hover { background: var(--hm-accent); color: var(--hm-on-solid); }

@@ -30,6 +30,7 @@ export const ConventionsCatalogView = lazyNamed(() => import("../components/conv
 export const DesignDocumentView = lazyNamed(() => import("../components/document/DesignDocumentView"), "DesignDocumentView");
 export const DesignAnalysisView = lazyNamed(() => import("../components/analysis/DesignAnalysisView"), "DesignAnalysisView");
 export const OperationsView = lazyNamed(() => import("../components/operations/OperationsView"), "OperationsView");
+export const MarkersView = lazyNamed(() => import("../components/markers/MarkersView"), "MarkersView");
 export const ScreenItemsView = lazyNamed(() => import("../components/screen-items/ScreenItemsView"), "ScreenItemsView");
 export const SequenceListView = lazyNamed(() => import("../components/sequence/SequenceListView"), "SequenceListView");
 export const SequenceEditor = lazyNamed(() => import("../components/sequence/SequenceEditor"), "SequenceEditor");

@@ -36,18 +36,6 @@ type Action = {
   [k: string]: unknown;
 };
 
-type Marker = {
-  id: string;
-  kind: "chat" | "attention" | "todo" | "question";
-  body: string;
-  stepId?: string;
-  fieldPath?: string;
-  author: "human" | "ai";
-  createdAt: string;
-  resolvedAt?: string;
-  resolution?: string;
-};
-
 export type ProcessFlowDoc = {
   id: string;
   maturity?: string;
@@ -55,7 +43,6 @@ export type ProcessFlowDoc = {
   errorCatalog?: Record<string, unknown>;
   secretsCatalog?: Record<string, unknown>;
   externalSystemCatalog?: Record<string, unknown>;
-  markers?: Marker[];
   updatedAt?: string;
   [k: string]: unknown;
 };
@@ -292,61 +279,4 @@ export function insertStepAt(
   act.steps = steps;
 }
 
-// ─── Marker 操作 (#261) ─────────────────────────────────────────────
-
-export function listMarkers(ag: ProcessFlowDoc, filter: { unresolvedOnly?: boolean; stepId?: string } = {}): Marker[] {
-  let list = ag.markers ?? [];
-  if (filter.unresolvedOnly) list = list.filter((m) => !m.resolvedAt);
-  if (filter.stepId !== undefined) list = list.filter((m) => m.stepId === filter.stepId);
-  return list;
-}
-
-/**
- * 複数 ProcessFlow を横断して marker を収集する (#261)。
- * 各 marker に processFlowId / processFlowName を prepend して返す。
- */
-export interface MarkerWithAg extends Marker {
-  processFlowId: string;
-  processFlowName: string;
-}
-export function findAllMarkers(
-  groups: Array<{ id: string; name: string; ag: ProcessFlowDoc }>,
-  filter: { unresolvedOnly?: boolean; kind?: Marker["kind"] } = {},
-): MarkerWithAg[] {
-  const results: MarkerWithAg[] = [];
-  for (const { id, name, ag } of groups) {
-    const markers = listMarkers(ag, { unresolvedOnly: filter.unresolvedOnly });
-    for (const m of markers) {
-      if (filter.kind && m.kind !== filter.kind) continue;
-      results.push({ processFlowId: id, processFlowName: name, ...m });
-    }
-  }
-  return results;
-}
-
-export function addMarker(ag: ProcessFlowDoc, marker: Omit<Marker, "id" | "createdAt">): Marker {
-  const next: Marker = {
-    id: `mk-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    createdAt: new Date().toISOString(),
-    ...marker,
-  };
-  const markers = ag.markers ?? [];
-  markers.push(next);
-  ag.markers = markers;
-  return next;
-}
-
-export function resolveMarker(ag: ProcessFlowDoc, markerId: string, resolution?: string): void {
-  const m = (ag.markers ?? []).find((x) => x.id === markerId);
-  if (!m) throw new Error(`marker ${markerId} が見つかりません`);
-  m.resolvedAt = new Date().toISOString();
-  if (resolution !== undefined) m.resolution = resolution;
-}
-
-export function removeMarker(ag: ProcessFlowDoc, markerId: string): void {
-  const list = ag.markers ?? [];
-  const idx = list.findIndex((m) => m.id === markerId);
-  if (idx < 0) throw new Error(`marker ${markerId} が見つかりません`);
-  list.splice(idx, 1);
-  ag.markers = list.length > 0 ? list : undefined;
-}
+// マーカーの操作は、設計の種類によらない共通の処理 (@harmony/shared の markers.ts) と markerStore.ts へ移した (#1509)

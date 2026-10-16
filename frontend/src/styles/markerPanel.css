@@ -1,0 +1,162 @@
+/* マーカーのパネル (処理フロー・テーブルなど、どの編集画面でも使う) と、折りたたみのパネルの基本の見た目。
+   以前は processFlow.css にあった。processFlow.css は、これを読み込む。 */
+.catalog-panel {
+  margin: 6px 0;
+  border: 1px solid var(--hm-border);
+  border-radius: 6px;
+  background: var(--hm-surface-2);
+}
+.catalog-panel-toggle {
+  width: 100%;
+  text-align: left;
+  padding: 6px 10px;
+  background: transparent;
+  border: none;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--hm-fg-2);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.catalog-panel-toggle:hover { background: var(--hm-surface-2); }
+.catalog-panel-body {
+  padding: 8px 12px;
+  border-top: 1px solid var(--hm-border);
+  /* 長くなった panel (MarkerPanel に marker が大量 等) が上部領域を押し広げて
+     下のステップ領域を viewport 外に押し出すのを防ぐ。各 panel 個別に内部スクロール。
+     #309 タブバー化以降は .process-flow-meta-body 内で overrideされる (max-height: none)。 */
+  max-height: 40vh;
+  overflow-y: auto;
+}
+.catalog-help {
+  font-size: 0.75rem;
+  color: var(--hm-fg-muted);
+  margin-bottom: 8px;
+}
+.catalog-empty {
+  font-size: 0.8rem;
+  color: var(--hm-fg-faint);
+  padding: 8px;
+  text-align: center;
+  font-style: italic;
+}
+.catalog-row {
+  background: var(--hm-surface);
+  border: 1px solid var(--hm-border);
+  border-radius: 4px;
+  padding: 6px 10px;
+  margin-bottom: 6px;
+}
+.catalog-row-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.catalog-row-add {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.catalog-row-add > button,
+.marker-row button,
+.marker-resolve-form button {
+  gap: 4px;
+}
+/* マーカーパネル (#261) */
+.marker-row {
+  border-left: 3px solid #3b82f6;
+}
+.marker-row.resolved {
+  opacity: 0.55;
+}
+.marker-kind-chat { border-left-color: #3b82f6; }
+.marker-kind-attention { border-left-color: #f59e0b; }
+.marker-kind-todo { border-left-color: #10b981; }
+.marker-kind-question { border-left-color: #8b5cf6; }
+.marker-kind-badge {
+  font-family: ui-sans-serif, system-ui;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  background: var(--hm-surface-3);
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.marker-row.marker-kind-attention .marker-kind-badge { background: color-mix(in srgb, var(--hm-hue-amber) 9%, var(--hm-surface)); color: color-mix(in srgb, var(--hm-hue-orange) 80%, var(--hm-fg)); }
+.marker-row.marker-kind-todo .marker-kind-badge { background: var(--hm-surface-3); color: color-mix(in srgb, var(--hm-hue-green) 80%, var(--hm-fg)); }
+.marker-row.marker-kind-question .marker-kind-badge { background: var(--hm-surface-3); color: color-mix(in srgb, var(--hm-hue-purple) 80%, var(--hm-fg)); }
+.marker-author, .marker-step-ref { padding: 0 4px; }
+.marker-body {
+  padding: 4px 2px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.85rem;
+  color: var(--hm-fg-2);
+}
+.marker-resolution {
+  margin-top: 4px;
+  padding: 4px 8px;
+  background: var(--hm-surface-2);
+  border: 1px solid color-mix(in srgb, var(--hm-hue-green) 38%, var(--hm-surface));
+  border-radius: 3px;
+  font-size: 0.78rem;
+  color: color-mix(in srgb, var(--hm-hue-green) 80%, var(--hm-fg));
+}
+.marker-timestamps { padding-top: 4px; }
+.marker-add-row { flex-wrap: wrap; gap: 4px; }
+.marker-orphan-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  background: var(--hm-surface-3);
+  color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg));
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+.marker-orphan-badge i { font-size: 0.7rem; }
+.marker-resolve-form {
+  margin-top: 6px;
+  padding: 8px;
+  background: var(--hm-surface-2);
+  border: 1px dashed color-mix(in srgb, var(--hm-hue-green) 38%, var(--hm-surface));
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.marker-resolve-form-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+.marker-panel .catalog-panel-toggle {
+  background: var(--hm-surface-2);
+  color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
+}
+
+/* 一覧の絞り込み・凡例・AI へ渡す文 */
+.marker-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-bottom: 8px; }
+.marker-filter-chip {
+  border: 1px solid var(--hm-border);
+  background: var(--hm-surface);
+  color: var(--hm-fg-2);
+  border-radius: 12px;
+  padding: 1px 9px;
+  font-size: 0.74rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.marker-filter-chip[aria-pressed="true"] { background: var(--hm-accent-soft); border-color: var(--hm-accent); color: var(--hm-accent); }
+.marker-add-row textarea.marker-add-input { flex: 1 1 14em; min-width: 10em; resize: none; }
+.marker-anchor-ref { padding: 0 4px; }
+.marker-jump-btn { padding: 0 4px; }

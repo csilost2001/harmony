@@ -23,7 +23,7 @@ import path from "path";
 import crypto from "node:crypto";
 import type { ErrorObject, ValidateFunction } from "ajv";
 import { logWarn } from "./serverLog.js";
-import { buildHarmonyAjv, DOC_CONFLICT_MARK, DOC_EXISTS_MARK } from "@harmony/shared";
+import { buildHarmonyAjv, DOC_CONFLICT_MARK, DOC_EXISTS_MARK, migrateLegacyMarkers } from "@harmony/shared";
 import { workspaceContextManager } from "./workspaceState.js";
 import { assertPathContained } from "./security/idValidator.js";
 export {
@@ -288,6 +288,8 @@ async function readEntityAndEnsureUuid(
 ): Promise<unknown | null> {
   const data = await readJSON<any>(filePath);
   if (!data || typeof data !== "object") return data;
+  // 古い形のマーカー (最上位の markers) は、読むとき authoring.markers へ移す (画面・MCP・一覧のどれから読んでも同じに見える。#1509)
+  migrateLegacyMarkers(data);
   const holder = kind === "processFlow" ? (data.meta && typeof data.meta === "object" ? data.meta : null) : data;
   if (kind === "processFlow" && !holder) return data;
   if (holder && !holder.uuid) {

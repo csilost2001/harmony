@@ -25,6 +25,9 @@ interface Props {
   onDuplicate?: (index: number) => void;
   /** Alt+Delete: i 行目を削除する */
   onDelete?: (index: number) => void;
+  /** カラムごとの未解決のマーカーの件数 (anchor.fieldPath = $.columns[<id>])。あれば行にバッジを出す */
+  markerCounts?: Map<string, number>;
+  onOpenMarkers?: (anchorPath?: string) => void;
   /** 物理名についてのヒント (用語・表記のずれ)。あれば行に電球を出し、クリックで合わせる */
   hintsFor?: (c: Column) => ColumnNameHint[];
 }
@@ -50,7 +53,7 @@ function NumberCell({ value, label, readonly, disabled, onCommit }: { value: num
   );
 }
 
-export function ColumnGrid({ columns, readonly, onUpdateColumn, onAppend, onInsertBelow, onDuplicate, onDelete, hintsFor }: Props) {
+export function ColumnGrid({ columns, readonly, onUpdateColumn, onAppend, onInsertBelow, onDuplicate, onDelete, hintsFor, markerCounts, onOpenMarkers }: Props) {
   // 挿入・複製のあと、新しい行の表示名の欄へ移る (すぐ打ち始められるように)
   const focusRow = (index: number) => setTimeout(() => {
     document.querySelector<HTMLInputElement>(`.cg-table tr[data-grid-row="${index}"] input[aria-label$="の表示名"]`)?.focus();
@@ -78,11 +81,17 @@ export function ColumnGrid({ columns, readonly, onUpdateColumn, onAppend, onInse
         </thead>
         <tbody>
           {columns.map((c, i) => (
-            <tr key={c.id} data-testid="column-grid-row" data-grid-row={i}>
+            <tr key={c.id} data-testid="column-grid-row" data-grid-row={i} data-column-id={c.id}>
               <td className="cg-no">{i + 1}</td>
               <td>
                 <div className="cg-name-cell">
                   <TextCell value={c.physicalName} label={`${i + 1} 行目の物理名`} readonly={readonly} mono onCommit={(v) => onUpdateColumn(c.id, { physicalName: v as PhysicalName })} />
+                  {(markerCounts?.get(`$.columns[${c.id}]`) ?? 0) > 0 && (
+                    <button type="button" className="col-marker-badge" title="このカラムへの、未解決のマーカー (クリックで開く)" data-testid={`col-marker-badge-${c.physicalName}`}
+                      onClick={() => onOpenMarkers?.(`$.columns[${c.id}]`)}>
+                      <i className="bi bi-megaphone" /> {markerCounts?.get(`$.columns[${c.id}]`)}
+                    </button>
+                  )}
                   {(hintsFor?.(c) ?? []).slice(0, 1).map((h) => (
                     <button key={h.kind} type="button" className="cg-hint-btn" disabled={readonly} data-testid={`column-hint-${h.kind}`}
                       title={`${h.message}。クリックで ${h.fix} に合わせます`} aria-label={`${h.message}。${h.fix} に合わせる`}

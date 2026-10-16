@@ -62,17 +62,29 @@ import { SnippetMenu } from "../common/SnippetMenu";
 import { ColumnGrid } from "./ColumnGrid";
 import { useColumnSuggestionSource } from "../../hooks/useColumnSuggestionSource";
 import { usePageCommands } from "../../hooks/usePageCommands";
+import { MarkerListPanel } from "../common/MarkerListPanel";
+import { authoringWithMarkers, unresolvedCount, unresolvedCountByPath } from "../../utils/markerDoc";
+import { anchorPathColumn } from "@harmony/shared";
 import { columnNameHints, planColumnAutofill } from "../../utils/columnSuggestion";
 import { usePersistentState } from "../../hooks/usePersistentState";
 import { HelpHint } from "../help/HelpHint";
+import { isInsideModal } from "../../utils/modalScope";
 
-type TabId = "columns" | "constraints" | "indexes" | "triggers" | "comment";
+type TabId = "columns" | "constraints" | "indexes" | "triggers" | "comment" | "markers";
 
 export function TableEditor() {
   const { tableId } = useParams<{ tableId: string }>();
   const navigate = useNavigate();
   const { wsPath, wsId } = useWorkspacePath();
   const [tab, setTab] = useState<TabId>("columns");
+  // マーカー (AI への指示・質問)。どのカラムについてかを、行のバッジ・キー操作から指定して、マーカーの画面を開く
+  const [markerAnchor, setMarkerAnchor] = useState<string>("");
+  const [markerFocus, setMarkerFocus] = useState(0);
+  const openMarkers = useCallback((anchorPath?: string) => {
+    setTab("markers");
+    setMarkerAnchor(anchorPath ?? "");
+    setMarkerFocus((n) => n + 1);
+  }, []);
   const [ddlDialect, setDdlDialect] = useState<SqlDialect>("postgresql");
   const ddlOpen = window.innerWidth >= 2560;
   const [editingMeta, setEditingMeta] = useState(false);
@@ -246,6 +258,8 @@ export function TableEditor() {
     })();
     return () => { cancelled = true; };
   }, [tableId, sessionLoading, mode.kind]);
+
+  const markerCounts = useMemo(() => unresolvedCountByPath(table?.authoring?.markers), [table?.authoring?.markers]);
 
   useEffect(() => {
     mcpBridge.startWithoutEditor();
@@ -444,12 +458,16 @@ export function TableEditor() {
         <button className={tab === "comment" ? "active" : ""} onClick={() => setTab("comment")}>
           <i className="bi bi-chat-left-text" /> コメント
         </button>
+        <button className={tab === "markers" ? "active" : ""} onClick={() => setTab("markers")} data-testid="table-tab-markers" title="AI への指示・質問 (Ctrl+Alt+M で追加)">
+          <i className="bi bi-megaphone" /> マーカー
+          {unresolvedCount(table.authoring?.markers) > 0 && <span className="tab-count" data-testid="table-marker-count">{unresolvedCount(table.authoring?.markers)}</span>}
+        </button>
       </div>
 
       <div className="table-editor-content-area">
         <div className="table-editor-body">
           {tab === "columns" && (
-            <ColumnsTab table={table} update={isReadonly ? () => {} : updateWithDraft} isReadonly={isReadonly} />
+            <ColumnsTab table={table} update={isReadonly ? () => {} : updateWithDraft} isReadonly={isReadonly} markerCounts={markerCounts} onOpenMarkers={openMarkers} />
           )}
           {tab === "constraints" && (
             <ConstraintsTab table={table} update={isReadonly ? () => {} : updateWithDraft} allTables={allTables} />
@@ -462,6 +480,22 @@ export function TableEditor() {
           )}
           {tab === "comment" && (
             <CommentTab table={table} update={isReadonly ? () => {} : updateWithDraft} />
+          )}
+          {tab === "markers" && (
+            <MarkerListPanel
+              markers={table.authoring?.markers ?? []}
+              onChange={(next) => updateWithDraft((t) => { t.authoring = authoringWithMarkers(t.authoring, next); })}
+              entity={{ type: "table", id: table.id, name: table.name }}
+              anchorChoices={table.columns.map((c) => ({ value: anchorPathColumn(c.id), label: `${c.name || c.physicalName} (${c.physicalName})` }))}
+              presetAnchor={markerAnchor}
+              focusToken={markerFocus}
+              readOnly={isReadonly}
+              expanded
+              render="bodyOnly"
+              isOrphan={(m) => { const mm = m.anchor?.fieldPath?.match(/^\$\.columns\[([^\]]+)\]$/); return !!mm && !table.columns.some((c) => c.id === mm[1]); }}
+              orphanTitle="紐付くカラムが削除されました"
+              onJump={(m) => { setTab("columns"); const mm = m.anchor?.fieldPath?.match(/^\$\.columns\[([^\]]+)\]$/); if (mm) setTimeout(() => document.querySelector<HTMLElement>(`[data-column-id="${CSS.escape(mm[1])}"]`)?.scrollIntoView({ block: "center" }), 60); }}
+            />
           )}
         </div>
 
@@ -617,10 +651,14 @@ function TableMetaEditor({
 // ── カラムタブ ────────────────────────────────────────────────────────────────
 
 function ColumnsTab({
-  table, update, isReadonly = false,
+  table, update, isReadonly = false, markerCounts, onOpenMarkers,
 }: {
   table: Table;
   update: (fn: (t: Table) => void) => void;
+  /** カラムごとの、未解決のマーカーの件数 (anchor.fieldPath の位置で数える) */
+  markerCounts?: Map<string, number>;
+  /** マーカーの画面を開く (カラムの位置つき) */
+  onOpenMarkers?: (anchorPath?: string) => void;
   /** 閲覧中 (編集を始めていない)。追加の操作を止める */
   isReadonly?: boolean;
 }) {
@@ -728,6 +766,25 @@ function ColumnsTab({
     setActiveColId(newColId);
   };
 
+  // いまフォーカスのあるカラム (表の行・一覧の選択) の、マーカーの位置。無ければ全体
+  const focusedColumnPath = (): string | undefined => {
+    const row = document.activeElement?.closest("[data-column-id], [data-row-id]");
+    const id = row?.getAttribute("data-column-id") ?? row?.getAttribute("data-row-id") ?? activeColId ?? [...selection.selectedIds][0];
+    return id && table.columns.some((c) => c.id === id) ? anchorPathColumn(id) : undefined;
+  };
+  // Ctrl+Alt+M: マーカーを追加 (フォーカスのあるカラムについて)
+  useEffect(() => {
+    if (!onOpenMarkers) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && (e.key === "m" || e.key === "M") && !isInsideModal(e.target as HTMLElement | null)) {
+        e.preventDefault();
+        onOpenMarkers(focusedColumnPath());
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  });
+
   // コマンドパレット (Ctrl+K の「>」) に、この画面の操作を載せる
   usePageCommands(`table:${table.id}:columns`, [
     ...(isReadonly ? [] : [
@@ -735,6 +792,7 @@ function ColumnsTab({
       { id: "col-template", label: "テンプレートからカラムを追加", keywords: ["てんぷれーと", "template", "id", "作成日時"], icon: "bi-collection", run: () => setShowTemplates(true) },
       { id: "col-paste", label: "表 (Excel) から貼り付けてカラムを追加", keywords: ["ぺーすと", "paste", "excel", "えくせる", "貼り付け"], icon: "bi-clipboard-data", run: () => { setPasteInitial(""); setShowPaste(true); } },
     ]),
+    ...(onOpenMarkers ? [{ id: "marker-add", label: "マーカーを追加 (AI への指示・質問)", keywords: ["まーかー", "marker", "ai", "しじ", "ついか", "注釈", "指示"], icon: "bi-megaphone", hint: "Ctrl+Alt+M", run: () => onOpenMarkers(focusedColumnPath()) }] : []),
     { id: "col-grid", label: gridMode ? "カラムを「一覧で編集」に切り替える" : "カラムを「表で編集」に切り替える", keywords: ["ひょう", "grid", "ichiran", "切り替え", "表計算"], icon: gridMode ? "bi-list-ul" : "bi-grid-3x3", run: () => setGridMode((v) => !v) },
   ]);
 
@@ -1069,6 +1127,12 @@ function ColumnsTab({
         <>
           <code className="col-name-code">{c.physicalName}</code>
           {fkColumnIds.has(c.id) && <i className="bi bi-link-45deg col-fk-icon" title="外部キー (Constraint で定義)" />}
+          {(markerCounts?.get(anchorPathColumn(c.id)) ?? 0) > 0 && (
+            <button type="button" className="col-marker-badge" title="このカラムへの、未解決のマーカー (クリックで開く)" data-testid={`col-marker-badge-${c.physicalName}`}
+              onClick={(e) => { e.stopPropagation(); onOpenMarkers?.(anchorPathColumn(c.id)); }}>
+              <i className="bi bi-megaphone" /> {markerCounts?.get(anchorPathColumn(c.id))}
+            </button>
+          )}
         </>
       ),
     },
@@ -1095,7 +1159,7 @@ function ColumnsTab({
     { key: "unique", header: "UK", width: "44px", align: "center", sortable: true, sortAccessor: (c) => (c.unique ? 1 : 0), render: (c) => (c.unique ? <i className="bi bi-check-lg" /> : null) },
     { key: "autoIncrement", header: "AI", width: "44px", align: "center", sortable: true, sortAccessor: (c) => (c.autoIncrement ? 1 : 0), render: (c) => (c.autoIncrement ? <i className="bi bi-check-lg" /> : null) },
     { key: "defaultValue", header: "デフォルト", width: "14%", sortable: true, sortAccessor: (c) => c.defaultValue ?? "", render: (c) => <code className="col-default-code">{c.defaultValue ?? ""}</code> },
-  ], [fkColumnIds]);
+  ], [fkColumnIds, markerCounts, onOpenMarkers]);
 
   const templateCategories = COLUMN_TEMPLATES.reduce<Record<string, ColumnTemplate[]>>((acc, tpl) => {
     (acc[tpl.category] ??= []).push(tpl);
@@ -1196,7 +1260,8 @@ function ColumnsTab({
       {gridMode && (
         <ColumnGrid columns={table.columns} readonly={isReadonly} onUpdateColumn={handleUpdateCol} onAppend={handleAddBlank}
           onInsertBelow={handleInsertBelow} onDuplicate={handleDuplicateAt} onDelete={handleDeleteAt}
-          hintsFor={(c) => columnNameHints(c, suggestionSource.index, suggestionSource.convention)} />
+          hintsFor={(c) => columnNameHints(c, suggestionSource.index, suggestionSource.convention)}
+          markerCounts={markerCounts} onOpenMarkers={onOpenMarkers} />
       )}
       {!gridMode && (<>
       <SortBar sort={sort} columnLabels={columnLabels} />
