@@ -3,6 +3,7 @@
  * 監査ログの対象 (target) は、画面からの保存では設計の id、編集セッションの保存では「種類 id」(例: `table orders`)。
  * 動作 (action) の文言から、設計の種類も読み取る (同じ id の画面とテーブルを取り違えないため)。
  */
+import { aiToolDesignKind } from "@harmony/shared";
 import type { AuditEntry } from "./opsApi";
 
 export type HistoryKind = "screen" | "table" | "processFlow" | "businessFlow" | "report" | "sequence" | "view" | "viewDefinition" | "pageLayout";
@@ -23,32 +24,15 @@ export const HISTORY_KIND_LABELS: Record<HistoryKind, string> = {
 };
 
 /**
- * AI (MCP) の記録 (`AI が <tool> を実行した`) の tool 名 → 設計の種類。設計を変える tool だけ。
- * 編集セッションの保存・保存前の版の書き戻しは、対象の種類が tool 名に無いので、記録の備考 (detail) の resourceType から引く。
+ * AI (MCP) の記録 (`AI が <tool> を実行した`) の tool 名 → 設計の種類。対応表は shared (aiToolDesignKind。backend の試験が、書き込みの tool の取りこぼしを見張る)。
+ * 編集セッションの保存・版の書き戻し・改名は、記録の備考 (detail) の種類から引く。
  */
-const AI_TOOL_KIND: Array<[RegExp, HistoryKind]> = [
-  [/^(add|update|remove)_table$/, "table"],
-  [/^(add|update|remove)_screen$|^set_screen_layout$|^save_screen$|^rename_screen_item$/, "screen"],
-  [/^(add|update|delete)_process_flow$|^(add|update|remove|nest|move)_step$|^add_action$/, "processFlow"],
-  [/^(save|delete)_business_flow$/, "businessFlow"],
-  [/^(save|delete)_report$/, "report"],
-  [/^(add|update|remove|save)_page_layout$/, "pageLayout"],
-];
-const AI_TOOL_BY_SESSION = /^(editSession__save|restore_version)$/;
 const aiTool = (e: AuditEntry): string | null => /^AI が (\S+) を実行した$/.exec(e.action)?.[1] ?? null;
-
-/** AI の記録が指す設計の種類 (設計を変える tool でなければ null) */
-function aiEntryKind(e: AuditEntry, tool: string): HistoryKind | null {
-  const byName = AI_TOOL_KIND.find(([re]) => re.test(tool));
-  if (byName) return byName[1];
-  if (AI_TOOL_BY_SESSION.test(tool)) return SESSION_KIND[(e.detail ?? "").trim()] ?? null;
-  return null;
-}
 
 /** 変更を表す動作 (保存・削除。承認・コメントなどは含めない。AI の記録は、設計を変える tool のものだけ) */
 const isChangeAction = (e: AuditEntry): boolean => {
   const tool = aiTool(e);
-  if (tool) return aiEntryKind(e, tool) !== null;
+  if (tool) return aiToolDesignKind(tool, e.detail) !== null;
   return /(保存した|削除した|改名した|置換した|編集内容を保存)/.test(e.action);
 };
 
@@ -57,7 +41,7 @@ export function entryDesign(e: AuditEntry): { kind: HistoryKind; id: string } | 
   const t = (e.target ?? "").trim();
   if (!t) return null;
   const tool = aiTool(e);
-  if (tool) { const kind = aiEntryKind(e, tool); return kind ? { kind, id: t } : null; }
+  if (tool) { const kind = aiToolDesignKind(tool, e.detail); return kind ? { kind, id: t } : null; }
   const sp = t.indexOf(" ");
   if (sp > 0) {
     const kind = SESSION_KIND[t.slice(0, sp)];
@@ -97,7 +81,7 @@ export function lastEditIndex(entries: readonly AuditEntry[]): Map<string, LastE
 /** 動作の文を、「何を」に短くする (「テーブルを保存した」→ 保存) */
 export function actionVerb(action: string): string {
   const tool = /^AI が (\S+) を実行した$/.exec(action)?.[1];
-  if (tool) return /^(remove|delete)_/.test(tool) ? "削除" : /^rename_/.test(tool) ? "改名" : /^restore_version$/.test(tool) ? "版の書き戻し" : "変更";
+  if (tool) return /^(remove|delete)_/.test(tool) ? "削除" : /^rename_/.test(tool) ? "改名" : /^editSession__save$/.test(tool) ? "保存" : /^restore_version$/.test(tool) ? "版の書き戻し" : "変更";
   if (action.includes("削除")) return "削除";
   if (action.includes("改名")) return "改名";
   if (action.includes("置換")) return "置換";

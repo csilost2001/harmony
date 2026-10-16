@@ -38,3 +38,29 @@ export function describeRpc(method: string, params: unknown, result?: unknown, s
 export function createdIdFromResultText(text: string): string | undefined {
   return /ID[:：]\s*([A-Za-z0-9][A-Za-z0-9._-]{0,99})/.exec(text)?.[1];
 }
+
+const AI_ID_KEYS = ["id", "tableId", "processFlowId", "screenId", "flowId", "reportId", "pageLayoutId", "resourceId", "name", "path"];
+
+/**
+ * AI (MCP) の書き込みの tool の記録の、対象と備考 (続編 第 9 弾 レビュー M1・M1')。
+ * 対象は、引数の id。新しく作る tool (add_*) は、引数に id が無いので、結果の文の「ID: …」から。改名は、新しい id。
+ * 編集セッションの tool は、引数が編集セッションの id だけなので、`sessionTarget` (「種類 id」) から。
+ * 備考には、設計の種類 (resourceType / entityType) を残す: 設計のあゆみ・最終編集者が、種類を引く。
+ */
+export function describeAiTool(name: string, args: Record<string, unknown>, resultText: string, sessionTarget?: string): { target?: string; detail?: string } {
+  const tool = name.replace(/^designer__/, "");
+  if (tool.startsWith("editSession__") && sessionTarget) {
+    const sp = sessionTarget.indexOf(" ");
+    if (sp > 0) return { target: sessionTarget.slice(sp + 1), detail: sessionTarget.slice(0, sp) };
+  }
+  let target = AI_ID_KEYS.map((k) => args[k]).find((v): v is string => typeof v === "string");
+  if (tool === "rename_entity" && typeof args.newId === "string") target = args.newId;
+  if (/^add_(table|screen|process_flow|page_layout)$/.test(tool)) target = createdIdFromResultText(resultText) ?? target;
+  const detail = typeof args.resourceType === "string" ? args.resourceType : typeof args.entityType === "string" ? args.entityType : undefined;
+  return { ...(target ? { target } : {}), ...(detail ? { detail } : {}) };
+}
+
+/** 予行 (apply を付けない) の呼び出しは、変更ではないので、監査ログに残さない。tool が apply を持つときだけ判定する */
+export function isAiDryRun(args: Record<string, unknown>, toolHasApply: boolean): boolean {
+  return toolHasApply && args.apply !== true;
+}

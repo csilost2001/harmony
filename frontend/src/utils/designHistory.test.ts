@@ -32,6 +32,10 @@ describe("AI (MCP) の記録 (続編 第 9 弾 レビュー M1)", () => {
     ai("2026-10-17T11:00:00Z", "save_process_flow", "order-confirm"),
     ai("2026-10-17T10:30:00Z", "add_step", "order-confirm"),
     ai("2026-10-17T10:00:00Z", "editSession__save", "orders", "table"),
+    ai("2026-10-17T09:45:00Z", "editSession__update", "orders", "table"),
+    ai("2026-10-17T09:40:00Z", "update_page_layout", "pl1"),
+    ai("2026-10-17T09:35:00Z", "set_maturity", "order-confirm"),
+    ai("2026-10-17T09:34:00Z", "rename_entity", "orders-new", "table"),
     ai("2026-10-17T09:30:00Z", "remove_table", "old"),
     ai("2026-10-17T09:00:00Z", "get_table", "orders"),
     ai("2026-10-17T08:30:00Z", "add_marker", "orders"),
@@ -42,9 +46,13 @@ describe("AI (MCP) の記録 (続編 第 9 弾 レビュー M1)", () => {
     expect(entryDesign(aiLog[0])).toEqual({ kind: "table", id: "orders" });
     expect(entryDesign(aiLog[2])).toEqual({ kind: "processFlow", id: "order-confirm" });
     expect(entryDesign(aiLog[3])).toEqual({ kind: "table", id: "orders" }); // 編集セッションの保存は、備考の resourceType から
-    expect(entryDesign(aiLog[5])).toBeNull();
-    expect(entryDesign(aiLog[6])).toBeNull();
-    expect(entryDesign(aiLog[7])).toEqual({ kind: "table", id: "orders" });
+    expect(entryDesign(aiLog[4])).toBeNull(); // 編集セッションの下書きの更新は、原本の変更ではない
+    expect(entryDesign(aiLog[5])).toEqual({ kind: "pageLayout", id: "pl1" });
+    expect(entryDesign(aiLog[6])).toEqual({ kind: "processFlow", id: "order-confirm" }); // set_maturity
+    expect(entryDesign(aiLog[7])).toEqual({ kind: "table", id: "orders-new" }); // 改名は、新しい id で
+    expect(entryDesign(aiLog[9])).toBeNull();
+    expect(entryDesign(aiLog[10])).toBeNull();
+    expect(entryDesign(aiLog[11])).toEqual({ kind: "table", id: "orders" });
   });
   it("最終編集は、AI の変更のほうが新しければ AI になる (人の古い記録に隠れない)", () => {
     const ordered = [...aiLog].sort((a, b) => b.at.localeCompare(a.at));
@@ -54,7 +62,7 @@ describe("AI (MCP) の記録 (続編 第 9 弾 レビュー M1)", () => {
   });
   it("変更の記録には、AI の変更も並ぶ (動作は、保存でなく「変更」「削除」)", () => {
     const t = designTimeline([...aiLog].sort((a, b) => b.at.localeCompare(a.at)), "table", "orders");
-    expect(t.map((x) => `${x.actor}:${actionVerb(x.action)}`)).toEqual(["AI:変更", "AI:変更", "花子:保存", "AI:保存", "AI:版の書き戻し"]);
+    expect(t.map((x) => `${x.actor}:${actionVerb(x.action)}`)).toEqual(["AI:変更", "AI:保存", "花子:保存", "AI:保存", "AI:版の書き戻し"]);
     expect(actionVerb("AI が remove_table を実行した")).toBe("削除");
     expect(actionVerb("AI が rename_screen_item を実行した")).toBe("改名");
   });
