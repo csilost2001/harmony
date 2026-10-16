@@ -124,33 +124,48 @@ describe("neighborIds (続編 第 7 弾 #139)", () => {
 
 describe("layoutWithGroups (続編 第 7 弾 #126)", () => {
   const g = (id: string, x: number, y: number, w = 400, h = 300) => ({ id, x, y, w, h, isGroup: true });
-  const s = (id: string, parentId?: string) => ({ id, x: 0, y: 0, w: 120, h: 60, ...(parentId ? { parentId } : {}) });
+  const s = (id: string, parentId?: string, w = 120) => ({ id, x: 0, y: 0, w, h: 60, ...(parentId ? { parentId } : {}) });
+  const overlaps = (a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
   const nodes = [g("g1", 100, 100), g("g2", 100, 500), s("a", "g1"), s("b", "g1"), s("c", "g2"), s("solo")];
   const edges = [{ source: "a", target: "b" }, { source: "b", target: "c" }, { source: "c", target: "solo" }];
-  const pos = layoutWithGroups(nodes, edges);
+  const { positions: pos, sizes } = layoutWithGroups(nodes, edges);
   it("グループと、グループに入っていない画面を、つながりの向きに階層配置する", () => {
     expect(pos.get("g1")!.x).toBeLessThan(pos.get("g2")!.x); // g1 → g2 (b → c)
     expect(pos.get("g2")!.x).toBeLessThan(pos.get("solo")!.x);
-    // 原点は、いまの最上位の左上
-    expect(Math.min(...["g1", "g2", "solo"].map((id) => pos.get(id)!.x))).toBe(0);
+    expect(Math.min(...["g1", "g2", "solo"].map((id) => pos.get(id)!.x))).toBe(0); // 原点は、いまの最上位の左上
+    expect(sizes.size).toBe(0); // 収まるときは、枠を広げない
   });
-  it("グループの中の画面は、グループの左上から、遷移の向きに並ぶ (グループの枠の中に収まる)", () => {
+  it("グループの中の画面は、グループの左上から、遷移の向きに並び、枠の中に収まる", () => {
     const a = pos.get("a")!, b = pos.get("b")!;
     expect(a.x).toBeGreaterThanOrEqual(24);
     expect(a.x).toBeLessThan(b.x);
     expect(b.x + 120).toBeLessThanOrEqual(400);
-    expect(Math.max(a.y, b.y) + 60).toBeLessThanOrEqual(300);
   });
-  it("枠に入りきらないときは、間隔を縮めて収める", () => {
-    const many = [g("big", 0, 0, 260, 200), ...["a", "b", "c", "d"].map((id) => s(id, "big"))];
+  it("枠に入りきらないときは、画面を縮めず・重ねず、まず間隔を詰め、それでも入らなければ枠を広げる", () => {
+    const wide = (id: string) => s(id, "big", 200);
+    const many = [g("big", 0, 0, 320, 200), ...["a", "b", "c", "d"].map(wide)];
     const chain = [{ source: "a", target: "b" }, { source: "b", target: "c" }, { source: "c", target: "d" }];
-    const p = layoutWithGroups(many, chain);
-    for (const id of ["a", "b", "c", "d"]) expect(p.get(id)!.x).toBeGreaterThanOrEqual(24);
-    // 縮めた結果、右端がはみ出しすぎない (縮小率の下限 0.3 で、画面の幅 120 を越えて重ならないことまでは求めない)
-    expect(p.get("d")!.x).toBeLessThan(260);
+    const r = layoutWithGroups(many, chain);
+    const box = r.sizes.get("big");
+    expect(box).toBeDefined(); // 幅 200 の画面が 4 列 → 320 には入らないので、枠を広げた
+    expect(box!.w).toBeGreaterThan(320);
+    const rects = ["a", "b", "c", "d"].map((id) => ({ ...r.positions.get(id)!, w: 200, h: 60 }));
+    for (let i = 0; i < rects.length; i++) {
+      expect(rects[i].x + rects[i].w).toBeLessThanOrEqual(box!.w - 24 + 1); // 枠の中
+      for (let j = i + 1; j < rects.length; j++) expect(overlaps(rects[i], rects[j])).toBe(false); // 重ならない
+    }
+  });
+  it("広げた枠の大きさで、最上位を並べる (枠どうし・画面と枠が重ならない)", () => {
+    const wide = (id: string) => s(id, "g1", 200);
+    const ns = [g("g1", 0, 0, 320, 200), g("g2", 0, 400, 320, 200), ...["a", "b", "c"].map(wide), s("x", "g2", 200)];
+    const r = layoutWithGroups(ns, [{ source: "a", target: "b" }, { source: "b", target: "c" }, { source: "c", target: "x" }]);
+    const size = (id: string) => r.sizes.get(id) ?? { w: 320, h: 200 };
+    const rect = (id: string) => ({ ...r.positions.get(id)!, ...{ w: size(id).w, h: size(id).h } });
+    expect(overlaps(rect("g1"), rect("g2"))).toBe(false);
   });
   it("グループが無くても動く / 空でも動く", () => {
-    expect(layoutWithGroups([s("x"), s("y")], [{ source: "x", target: "y" }]).get("x")!.x).toBeLessThan(layoutWithGroups([s("x"), s("y")], [{ source: "x", target: "y" }]).get("y")!.x);
-    expect(layoutWithGroups([], []).size).toBe(0);
+    const l = layoutWithGroups([s("x"), s("y")], [{ source: "x", target: "y" }]);
+    expect(l.positions.get("x")!.x).toBeLessThan(l.positions.get("y")!.x);
+    expect(layoutWithGroups([], []).positions.size).toBe(0);
   });
 });

@@ -200,39 +200,66 @@ export function neighborIds(edges: readonly GeomEdge[], id: string, order?: read
 
 export interface GroupedGeomNode extends GeomNode { /** 入っているグループの id (無ければ最上位) */ parentId?: string; /** グループの枠か */ isGroup?: boolean }
 
+export interface GroupedLayout {
+  /** id → 位置 (最上位は図の座標・グループの中の画面は、グループの左上からの位置) */
+  positions: Map<string, { x: number; y: number }>;
+  /** 中の画面が入りきらないために、広げたグループの大きさ (広げていないグループは含まない) */
+  sizes: Map<string, { w: number; h: number }>;
+}
+
 /**
  * グループのある図の自動配置 (画面フロー)。
- * 1) 最上位 (グループに入っていない画面 + グループの枠) を、グループの中の画面どうしの遷移も、グループ単位につないで階層配置する
- * 2) 各グループの中の画面は、グループの左上を基準に、中で階層配置する。グループの大きさは変えないので、はみ出すなら、はみ出さないよう間隔を縮める
- * 戻り値: id → 位置 (最上位は図の座標・グループの中の画面はグループの左上からの位置)。原点は、いまの最上位の左上に合わせる
+ * 1) 各グループの中の画面を、グループの左上を基準に階層配置する。画面は縮めない。入りきらないときは、まず画面どうしのすき間を詰め、
+ *    それでも入らなければ、グループの枠を広げる (広げた大きさを sizes に返す)
+ * 2) 最上位 (グループに入っていない画面 + グループの枠) を、グループ内の遷移も、グループ単位につないで階層配置する (広げた枠の大きさで)
+ * 原点は、いまの最上位の左上に合わせる
  */
-export function layoutWithGroups(nodes: readonly GroupedGeomNode[], edges: readonly GeomEdge[], opts: { dx?: number; dy?: number; groupPadding?: { x: number; top: number; bottom: number } } = {}): Map<string, { x: number; y: number }> {
+export function layoutWithGroups(nodes: readonly GroupedGeomNode[], edges: readonly GeomEdge[], opts: { dx?: number; dy?: number; groupPadding?: { x: number; top: number; bottom: number } } = {}): GroupedLayout {
   const dx = opts.dx ?? 100, dy = opts.dy ?? 50;
   const pad = opts.groupPadding ?? { x: 24, top: 40, bottom: 24 };
+  const positions = new Map<string, { x: number; y: number }>();
+  const sizes = new Map<string, { w: number; h: number }>();
   const rep = new Map<string, string>(nodes.map((n) => [n.id, n.parentId ?? n.id]));
   const top = nodes.filter((n) => !n.parentId);
-  const out = new Map<string, { x: number; y: number }>();
-  if (top.length === 0) return out;
+  if (top.length === 0) return { positions, sizes };
 
+  // 1) グループの中
+  const extent = (kids: readonly GroupedGeomNode[], inner: Map<string, { x: number; y: number }>) => ({
+    w: Math.max(...kids.map((k) => inner.get(k.id)!.x + k.w)),
+    h: Math.max(...kids.map((k) => inner.get(k.id)!.y + k.h)),
+  });
+  const finalTop: GroupedGeomNode[] = top.map((n) => ({ ...n }));
+  for (const g of nodes.filter((n) => n.isGroup)) {
+    const kids = nodes.filter((n) => n.parentId === g.id);
+    if (kids.length === 0) continue;
+    const ids = new Set(kids.map((k) => k.id));
+    const innerEdges = edges.filter((e) => ids.has(e.source) && ids.has(e.target));
+    const availW = g.w - pad.x * 2, availH = g.h - pad.top - pad.bottom;
+    const fits = (inner: Map<string, { x: number; y: number }>) => { const e = extent(kids, inner); return e.w <= availW && e.h <= availH; };
+    let inner = layeredLayout(kids, innerEdges, { dx: Math.round(dx * 0.5), dy: Math.round(dy * 0.5) });
+    if (!fits(inner)) {
+      const tight = layeredLayout(kids, innerEdges, { dx: 16, dy: 12 });
+      if (fits(tight)) inner = tight;
+      else {
+        // 入りきらない: 標準の間隔のまま、枠を広げる
+        const e = extent(kids, inner);
+        const size = { w: Math.max(g.w, Math.ceil(e.w + pad.x * 2)), h: Math.max(g.h, Math.ceil(e.h + pad.top + pad.bottom)) };
+        sizes.set(g.id, size);
+        const t = finalTop.find((x) => x.id === g.id);
+        if (t) { t.w = size.w; t.h = size.h; }
+      }
+    }
+    for (const k of kids) { const p = inner.get(k.id)!; positions.set(k.id, { x: Math.round(pad.x + p.x), y: Math.round(pad.top + p.y) }); }
+  }
+
+  // 2) 最上位 (広げた枠の大きさで)
   const lifted: GeomEdge[] = [];
   for (const e of edges) {
     const a = rep.get(e.source), b = rep.get(e.target);
     if (a && b && a !== b) lifted.push({ source: a, target: b });
   }
-  const topPos = layeredLayout(top, lifted, { dx, dy });
+  const topPos = layeredLayout(finalTop, lifted, { dx, dy });
   const ox = Math.min(...top.map((n) => n.x)), oy = Math.min(...top.map((n) => n.y));
-  for (const n of top) { const p = topPos.get(n.id)!; out.set(n.id, { x: p.x + ox, y: p.y + oy }); }
-
-  for (const g of nodes.filter((n) => n.isGroup)) {
-    const kids = nodes.filter((n) => n.parentId === g.id);
-    if (kids.length === 0) continue;
-    const ids = new Set(kids.map((k) => k.id));
-    const inner = layeredLayout(kids, edges.filter((e) => ids.has(e.source) && ids.has(e.target)), { dx: Math.round(dx * 0.5), dy: Math.round(dy * 0.5) });
-    const right = Math.max(...kids.map((k) => inner.get(k.id)!.x + k.w));
-    const bottom = Math.max(...kids.map((k) => inner.get(k.id)!.y + k.h));
-    const sx = Math.min(1, Math.max(0.3, (g.w - pad.x * 2) / Math.max(1, right)));
-    const sy = Math.min(1, Math.max(0.3, (g.h - pad.top - pad.bottom) / Math.max(1, bottom)));
-    for (const k of kids) { const p = inner.get(k.id)!; out.set(k.id, { x: Math.round(pad.x + p.x * sx), y: Math.round(pad.top + p.y * sy) }); }
-  }
-  return out;
+  for (const n of top) { const p = topPos.get(n.id)!; positions.set(n.id, { x: p.x + ox, y: p.y + oy }); }
+  return { positions, sizes };
 }

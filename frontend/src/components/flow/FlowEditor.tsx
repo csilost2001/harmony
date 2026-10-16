@@ -501,6 +501,9 @@ function FlowEditorInner() {
     for (const n of moved) {
       const target = draft.screens.find((s) => s.id === n.id) ?? (draft.groups ?? []).find((g) => g.id === n.id);
       if (target) target.position = n.position;
+      // 自動配置で広げたグループの大きさも、保存する
+      const g = (draft.groups ?? []).find((x) => x.id === n.id);
+      if (g && typeof n.style?.width === "number" && typeof n.style?.height === "number") g.size = { width: n.style.width, height: n.style.height };
     }
     setProject(draft);
     syncAndSave(draft);
@@ -508,14 +511,18 @@ function FlowEditorInner() {
   const onCanvasKeyUp = useKeyboardNodeMove<RFNode>(() => nodesForKeyboardRef.current, commitMoved, !isReadonly);
 
   // 画面フローの自動配置 (続編 第 7 弾 #126): 遷移の向きに沿って、左から右へ階層配置する。
-  // グループは、グループの枠ごと (グループの中の遷移は、枠のあいだのつながりとして) 並べ、グループの中の画面は、枠の中で並べる。グループの大きさは変えない
+  // グループは、グループの枠ごと (グループの中の遷移は、枠のあいだのつながりとして) 並べ、グループの中の画面は、枠の中で並べる。
+  // 画面は縮めない。入りきらないときは、画面どうしのすき間を詰め、それでも入らなければ、グループの枠を広げる
   const handleAutoLayout = () => {
     const all = nodesForKeyboardRef.current.filter((n) => !n.hidden);
     const screens = all.filter((n) => n.type === "screenNode");
     if (screens.length < 2) { showToast("自動配置できる画面が 2 つ以上ありません", "info"); return; }
     const geom = all.map((n) => ({ ...toGeom(n), ...(n.parentId ? { parentId: n.parentId } : {}), ...(n.type === "groupNode" ? { isGroup: true } : {}) }));
-    const pos = layoutWithGroups(geom, edges.map((e) => ({ source: e.source, target: e.target })), { dx: 100, dy: 50 });
-    const moved = all.filter((n) => pos.has(n.id)).map((n) => ({ ...n, position: pos.get(n.id)! }));
+    const { positions: pos, sizes } = layoutWithGroups(geom, edges.map((e) => ({ source: e.source, target: e.target })), { dx: 100, dy: 50 });
+    const moved = all.filter((n) => pos.has(n.id)).map((n) => {
+      const size = sizes.get(n.id);
+      return { ...n, position: pos.get(n.id)!, ...(size ? { style: { ...n.style, width: size.w, height: size.h } } : {}) };
+    });
     const byId = new Map(moved.map((n) => [n.id, n]));
     setNodes((nds) => nds.map((n) => byId.get(n.id) ?? n));
     commitMoved(moved);
