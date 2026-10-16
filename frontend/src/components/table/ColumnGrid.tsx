@@ -12,6 +12,7 @@ import type { BuiltinDataType, Column, DisplayName, PhysicalName } from "../../t
 import { DATA_TYPE_LABELS, DATA_TYPES_WITH_LENGTH, DATA_TYPES_WITH_SCALE } from "./tableConstants";
 import type { ColumnNameHint } from "../../utils/columnSuggestion";
 import "../../styles/columnGrid.css";
+import { GridFillHandle } from "../common/GridFillHandle";
 
 interface Props {
   columns: readonly Column[];
@@ -71,6 +72,7 @@ export function ColumnGrid({ columns, readonly, onUpdateColumn, onAppend, onInse
 
   return (
     <div className="cg-wrap" data-testid="column-grid">
+      <GridFillHandle />
       <table className="cg-table" onKeyDown={grid.onKeyDown}>
         <thead>
           <tr>

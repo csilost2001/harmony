@@ -108,6 +108,7 @@ import { conflictingItemIds, planItemPaste } from "../../utils/itemClipboard";
 import { showToast } from "../../utils/toast";
 import { SnippetMenu } from "../common/SnippetMenu";
 import { HelpHint } from "../help/HelpHint";
+import { GridFillHandle } from "../common/GridFillHandle";
 
 type ScreenMeta = { id: string; name: string };
 
@@ -1137,6 +1138,7 @@ export function ScreenItemsView() {
             </div>
           )}
           <div className="screen-items-table-wrap" data-region="項目の表">
+            <GridFillHandle />
             <table className="screen-items-table" onKeyDown={onTableKeyDown}>
               <colgroup>
                 <col style={{ width: 24 }} />

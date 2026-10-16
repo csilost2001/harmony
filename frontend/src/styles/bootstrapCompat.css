@@ -143,3 +143,11 @@ textarea.form-control { min-height: 2.6rem; resize: vertical; }
 .modal-footer { justify-content: flex-end; border-top: 1px solid var(--hm-border); }
 .modal-title { margin: 0; font-size: 1rem; font-weight: 600; }
 .modal-body { padding: 1rem; }
+
+/* ── 表のオートフィル (UI 改善提案 第 3 弾 #53) ───────────────────────────── */
+.grid-fill-anchor { display: contents; }
+.grid-fill-handle {
+  position: fixed; z-index: 60; width: 9px; height: 9px; box-sizing: border-box; cursor: crosshair; touch-action: none;
+  background: var(--hm-accent-solid); border: 1px solid var(--hm-surface); border-radius: 1px;
+}
+.grid-fill-target { background: color-mix(in srgb, var(--hm-accent-solid) 18%, transparent); }

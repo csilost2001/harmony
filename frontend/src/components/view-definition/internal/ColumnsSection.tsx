@@ -19,6 +19,7 @@ import { IssueHints } from "./IssueHints";
 import { FIELD_TYPE_OPTIONS } from "./viewDefinitionConstants";
 import type { TableOption } from "./useViewDefinitionTables";
 import type { ViewLevel } from "../viewDefinitionLevels";
+import { GridFillHandle } from "../../common/GridFillHandle";
 
 interface InScopeTable {
   tableId: string;
@@ -73,6 +74,7 @@ export function ColumnsSection({
 
   return (
     <section className="seq-editor-section" onKeyDown={gridKeys.onKeyDown}>
+      <GridFillHandle />
       <h3 className="seq-editor-section-title">
         カラム定義
         <span className="vd-editor-col-count">

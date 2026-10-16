@@ -60,6 +60,7 @@ import { TxPanel } from "./internal/categories/TxPanel";
 import { ExternalOutcomeDefaultsPanel } from "./internal/categories/ExternalOutcomeDefaultsPanel";
 import { ExtensionCategoriesPanel } from "./internal/categories/ExtensionCategoriesPanel";
 import { reportFailure, runReporting } from "../../utils/failureToast";
+import { GridFillHandle } from "../common/GridFillHandle";
 
 type Category =
   | "msg" | "regex" | "limit"
@@ -358,6 +359,7 @@ export function ConventionsCatalogView() {
 
   return (
     <div className={`conventions-catalog-view${isReadonly ? " readonly-mode" : ""}`} onKeyDown={gridKeys.onKeyDown}>
+      <GridFillHandle />
       <TableSubToolbar />
 
       {serverChanged && (
