@@ -6,6 +6,7 @@
  */
 import { isConnectionError } from "./connectionError";
 import { showToast } from "./toast";
+import { focusFirstIssue } from "./pageIssues";
 
 /** 同じ内容の通知を続けて出さない間隔 */
 const SAME_MESSAGE_MS = 5000;
@@ -69,6 +70,8 @@ export function reportFailure(e: unknown, what?: string, retry?: () => void): vo
   if (!text) return; // 中断など、通知にしない失敗
   // 接続できない失敗は、どの操作でも同じ案内 (サーバの状態) を出す。ほかは、操作の名前つき
   const detail = failureDetail(err);
+  // 保存が止まったときは、最初の要確認の欄へ移る (原因の欄を探さなくてよいように。UI 改善提案 第 5 弾 #92)
+  if (what && /保存/.test(what) && !isConnectionError(err)) setTimeout(() => { const m = document.getElementById("app-main"); if (m) focusFirstIssue(m); }, 100);
   showFailureToast(what && !isConnectionError(err) ? (detail ? `${what}に失敗しました: ${detail}` : `${what}に失敗しました`) : text, retry);
 }
 

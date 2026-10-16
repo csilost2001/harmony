@@ -78,6 +78,7 @@ import type { RpcMethod } from "@harmony/shared";
 import { getAuthToken, isUnauthorizedClose, setAuthToken, wsUrlWithToken } from "./authToken";
 import { invalidateAllInflight, isReadOnlyRpc } from "../utils/sharedInflight";
 import { getUserName } from "../utils/userIdentity";
+import { saveStatus } from "../store/saveStatus";
 
 export type McpStatus = "disconnected" | "connecting" | "connected" | "failed";
 export type ThemeIdLike = "standard" | "card" | "compact" | "dark";
@@ -281,8 +282,15 @@ class McpBridgeImpl {
 
       const readOnly = isReadOnlyRpc(method);
       this.pendingRequests.set(id, {
-        resolve: (v) => { if (!readOnly) invalidateAllInflight(); resolve(v); },
-        reject,
+        resolve: (v) => {
+          if (!readOnly) invalidateAllInflight();
+          // 保存の状態の見える化: 下書きの送信・原本の保存の成功を記録する
+          if (method === "editSession.update") saveStatus.draftSynced();
+          else if (method === "editSession.save") saveStatus.saved();
+          else if (method === "editSession.create" || method === "editSession.discard") saveStatus.reset();
+          resolve(v);
+        },
+        reject: (err) => { if (method === "editSession.update") saveStatus.draftFailed(); reject(err); },
         timer,
       });
       this.ws!.send(JSON.stringify({ type: "request", id, method, params, actor: getUserName() }));

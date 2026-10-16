@@ -69,6 +69,8 @@ import { columnNameHints, planColumnAutofill } from "../../utils/columnSuggestio
 import { usePersistentState } from "../../hooks/usePersistentState";
 import { HelpHint } from "../help/HelpHint";
 import { isInsideModal } from "../../utils/modalScope";
+import { asciiFieldProps } from "../../utils/fieldNormalize";
+import { LoadingBlock } from "../common/LoadingBlock";
 
 type TabId = "columns" | "constraints" | "indexes" | "triggers" | "comment" | "markers";
 
@@ -117,7 +119,7 @@ export function TableEditor() {
   });
 
   const {
-    state: table,
+    state: table, baseline,
     isDirty, isSaving, serverChanged,
     update, undo, redo, canUndo, canRedo, history, jumpTo,
     postSave, handleReset, dismissServerBanner,
@@ -269,7 +271,7 @@ export function TableEditor() {
   }, [tableId]);
 
   if (!table || sessionLoading) {
-    return <div className="table-editor-loading"><i className="bi bi-hourglass-split" /> 読み込み中...</div>;
+    return <LoadingBlock what="テーブル" onRetry={() => { void reload(); }} />;
   }
 
   const ddl = generateDdl(table, ddlDialect, allTables);
@@ -467,7 +469,7 @@ export function TableEditor() {
       <div className="table-editor-content-area">
         <div className="table-editor-body">
           {tab === "columns" && (
-            <ColumnsTab table={table} update={isReadonly ? () => {} : updateWithDraft} isReadonly={isReadonly} markerCounts={markerCounts} onOpenMarkers={openMarkers} />
+            <ColumnsTab table={table} baselineColumns={baseline?.columns} update={isReadonly ? () => {} : updateWithDraft} isReadonly={isReadonly} markerCounts={markerCounts} onOpenMarkers={openMarkers} />
           )}
           {tab === "constraints" && (
             <ConstraintsTab table={table} update={isReadonly ? () => {} : updateWithDraft} allTables={allTables} />
@@ -589,6 +591,7 @@ function TableMetaEditor({
         value={physicalName}
         onChange={(e) => setPhysicalName(e.target.value)}
         placeholder="物理名 (snake_case)"
+        {...asciiFieldProps}
         autoFocus
       />
       {physicalNameEmpty && (
@@ -651,9 +654,11 @@ function TableMetaEditor({
 // ── カラムタブ ────────────────────────────────────────────────────────────────
 
 function ColumnsTab({
-  table, update, isReadonly = false, markerCounts, onOpenMarkers,
+  table, baselineColumns, update, isReadonly = false, markerCounts, onOpenMarkers,
 }: {
   table: Table;
+  /** 保存済みのカラム (変更した欄の強調・欄ごとの取り消しの基準) */
+  baselineColumns?: readonly Column[];
   update: (fn: (t: Table) => void) => void;
   /** カラムごとの、未解決のマーカーの件数 (anchor.fieldPath の位置で数える) */
   markerCounts?: Map<string, number>;
@@ -792,7 +797,7 @@ function ColumnsTab({
       { id: "col-template", label: "テンプレートからカラムを追加", keywords: ["てんぷれーと", "template", "id", "作成日時"], icon: "bi-collection", run: () => setShowTemplates(true) },
       { id: "col-paste", label: "表 (Excel) から貼り付けてカラムを追加", keywords: ["ぺーすと", "paste", "excel", "えくせる", "貼り付け"], icon: "bi-clipboard-data", run: () => { setPasteInitial(""); setShowPaste(true); } },
     ]),
-    ...(onOpenMarkers ? [{ id: "marker-add", label: "マーカーを追加 (AI への指示・質問)", keywords: ["まーかー", "marker", "ai", "しじ", "ついか", "注釈", "指示"], icon: "bi-megaphone", hint: "Ctrl+Alt+M", run: () => onOpenMarkers(focusedColumnPath()) }] : []),
+    ...(onOpenMarkers ? [{ id: "marker-add", label: "AI に頼む (選んだ項目・カラムへのマーカーを追加)", keywords: ["まーかー", "marker", "ai", "しじ", "ついか", "注釈", "指示"], icon: "bi-megaphone", hint: "Ctrl+Alt+M", run: () => onOpenMarkers(focusedColumnPath()) }] : []),
     { id: "col-grid", label: gridMode ? "カラムを「一覧で編集」に切り替える" : "カラムを「表で編集」に切り替える", keywords: ["ひょう", "grid", "ichiran", "切り替え", "表計算"], icon: gridMode ? "bi-list-ul" : "bi-grid-3x3", run: () => setGridMode((v) => !v) },
   ]);
 
@@ -1259,7 +1264,7 @@ function ColumnsTab({
 
       {gridMode && (
         <ColumnGrid columns={table.columns} readonly={isReadonly} onUpdateColumn={handleUpdateCol} onAppend={handleAddBlank}
-          onInsertBelow={handleInsertBelow} onDuplicate={handleDuplicateAt} onDelete={handleDeleteAt} onMove={handleReorder}
+          onInsertBelow={handleInsertBelow} onDuplicate={handleDuplicateAt} onDelete={handleDeleteAt} onMove={handleReorder} baseline={baselineColumns}
           hintsFor={(c) => columnNameHints(c, suggestionSource.index, suggestionSource.convention)}
           markerCounts={markerCounts} onOpenMarkers={onOpenMarkers} />
       )}

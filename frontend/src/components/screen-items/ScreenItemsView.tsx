@@ -111,6 +111,9 @@ import { HelpHint } from "../help/HelpHint";
 import { GridFillHandle } from "../common/GridFillHandle";
 import { useRowDragReorder } from "../../hooks/useRowDragReorder";
 import { moveItem, remapIndexSet } from "../../utils/rowReorder";
+import { asciiFieldProps } from "../../utils/fieldNormalize";
+import { identifierHint, isValidIdentifier } from "../../utils/identifierHints";
+import { FieldHint } from "../common/FieldHint";
 
 type ScreenMeta = { id: string; name: string };
 
@@ -625,7 +628,7 @@ export function ScreenItemsView() {
     return () => document.removeEventListener("keydown", onKey);
   });
   usePageCommands(`screen-items:${screenId ?? ""}:markers`, [
-    { id: "marker-add", label: "マーカーを追加 (AI への指示・質問)", keywords: ["まーかー", "marker", "ai", "しじ", "ついか", "注釈", "指示"], icon: "bi-megaphone", hint: "Ctrl+Alt+M", run: () => openMarkers(focusedItemPath()) },
+    { id: "marker-add", label: "AI に頼む (選んだ項目・カラムへのマーカーを追加)", keywords: ["まーかー", "marker", "ai", "しじ", "ついか", "注釈", "指示"], icon: "bi-megaphone", hint: "Ctrl+Alt+M", run: () => openMarkers(focusedItemPath()) },
   ]);
   usePageCommands(`screen-items:${screenId ?? ""}`, isReadonly ? [] : [
     { id: "item-add", label: "画面項目を追加", keywords: ["こうもく", "item", "add", "ついか", "追加"], icon: "bi-plus-lg", run: handleAddItem },
@@ -1206,7 +1209,7 @@ export function ScreenItemsView() {
                 )}
                 {file.items.map((item, i) => (
                   <React.Fragment key={i}>
-                  <tr className={`${selectedIndices.has(i) ? "screen-items-row-selected" : ""} ${rowDrag.rowClass(i)}`.trim()} data-grid-row={i} {...rowDrag.rowProps(i)}>
+                  <tr className={`${selectedIndices.has(i) ? "screen-items-row-selected" : ""} ${rowDrag.rowClass(i)}`.trim()} data-grid-row={i} data-deeplink={item.id ? `item:${item.id}` : undefined} data-issue={lintByRow.has(i) ? "" : undefined} {...rowDrag.rowProps(i)}>
                     <td className="text-center">
                       <input
                         type="checkbox"
@@ -1240,9 +1243,12 @@ export function ScreenItemsView() {
                         onFocus={(e) => idFocusVals.current.set(i, e.target.value)}
                         onBlur={(e) => handleIdBlur(i, e)}
                         placeholder="例: email"
+                        {...asciiFieldProps}
+                        aria-invalid={item.id !== "" && !isValidIdentifier(item.id as string, "camel") ? true : undefined}
                         aria-label={`行${i + 1}の項目 ID`}
                         disabled={isReadonly}
                       />
+                      <FieldHint hint={item.id ? identifierHint(item.id as string, "camel") : null} testId={`item-id-hint-${i}`} />
                     </td>
                     <td>
                       <input

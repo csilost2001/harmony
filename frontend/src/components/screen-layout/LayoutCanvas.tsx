@@ -381,6 +381,7 @@ function NodeView({ node, parentType, frozen = false }: { node: LayoutNode; pare
   return (
     <div
       data-node-id={node.id}
+      data-deeplink={`node:${node.id}`}
       data-node-type={node.type}
       className={`sld-node${selected ? " is-selected" : ""}${issue ? ` has-${issue}` : ""}`}
       style={{ ...style, ...span }}

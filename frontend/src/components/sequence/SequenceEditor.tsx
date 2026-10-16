@@ -36,6 +36,7 @@ import "../../styles/editMode.css";
 import { reportFailure } from "../../utils/failureToast";
 import { EntityMarkerSection } from "../common/EntityMarkerSection";
 import { authoringWithMarkers } from "../../utils/markerDoc";
+import { LoadingBlock } from "../common/LoadingBlock";
 
 interface TableColumnOption {
   tableId: string;
@@ -241,7 +242,7 @@ export function SequenceEditor() {
   }, [sequenceId]);
 
   if (!seq || sessionLoading) {
-    return <div className="table-editor-loading"><i className="bi bi-hourglass-split" /> 読み込み中...</div>;
+    return <LoadingBlock what="シーケンス" onRetry={() => { void reload(); }} />;
   }
 
   const selectedConvEntry = numberingKeys.find((k) => k.key === seq.conventionRef)?.entry ?? null;

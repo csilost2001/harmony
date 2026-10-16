@@ -191,7 +191,7 @@ export function MarkerListPanel({
             const isResolving = resolvingId === m.id;
             const where = textOf(m);
             return (
-              <div className={`catalog-row marker-row marker-kind-${m.kind} ${resolved ? "resolved" : ""}`} key={m.id} data-marker-id={m.id}>
+              <div className={`catalog-row marker-row marker-kind-${m.kind} ${resolved ? "resolved" : ""}`} key={m.id} data-marker-id={m.id} data-deeplink={`marker:${m.id}`}>
                 <div className="catalog-row-header">
                   <span className="marker-kind-badge"><i className={`bi ${MARKER_KIND_ICONS[m.kind]}`} /> {MARKER_KIND_LABELS[m.kind]}</span>
                   <span className="marker-author small text-muted">{m.author === "human" ? "人間" : "AI"}</span>

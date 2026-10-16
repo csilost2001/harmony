@@ -1,7 +1,7 @@
 // Phase-3 (#1145): ProcessFlowEditor.tsx 左サイドバー (パレット) を抽出。
 // 基本ステップ button / カスタムステップ button / テンプレート dropdown。
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type { StepKind as StepType } from "../../../types/v3";
 import { STEP_TEMPLATES } from "../../../utils/processFlowMetadata";
 import { ToolbarStepButton, CustomStepButton } from "./PaletteButtons";
@@ -19,6 +19,8 @@ export interface PalettePanelProps {
   isReadonly: boolean;
   /** 利用者が保存した工程の並び (スニペット) のメニュー */
   snippetSlot?: ReactNode;
+  /** 工程の目次 (入れ子の構造を見渡し、該当の工程へ移る)。渡すと、パレットの上に「ブロック / 目次」の切り替えが出る */
+  outlineSlot?: ReactNode;
 }
 
 export function PalettePanel({
@@ -32,7 +34,9 @@ export function PalettePanel({
   onAddTemplate,
   isReadonly,
   snippetSlot,
+  outlineSlot,
 }: PalettePanelProps) {
+  const [tab, setTab] = useState<"blocks" | "outline">("blocks");
   return (
     <aside className="process-flow-palette-pane">
       <div className="process-flow-pane-header">
@@ -40,8 +44,15 @@ export function PalettePanel({
           <span className="process-flow-pane-kicker">Blocks</span>
           <h2>ブロック<HelpHint topic="processFlow.overview" /></h2>
         </div>
-        {!isReadonly && <span className="process-flow-pane-badge">D&D</span>}
+        {!isReadonly && tab === "blocks" && <span className="process-flow-pane-badge">D&D</span>}
       </div>
+      {outlineSlot && (
+        <div className="process-flow-palette-tabs" role="tablist" aria-label="左の欄の切り替え">
+          <button type="button" role="tab" aria-selected={tab === "blocks"} className={tab === "blocks" ? "on" : ""} onClick={() => setTab("blocks")} data-testid="palette-tab-blocks">ブロック</button>
+          <button type="button" role="tab" aria-selected={tab === "outline"} className={tab === "outline" ? "on" : ""} onClick={() => setTab("outline")} data-testid="palette-tab-outline">目次</button>
+        </div>
+      )}
+      {tab === "outline" && outlineSlot ? outlineSlot : (<>
       <div className="process-flow-palette-search">
         <i className="bi bi-search" />
         <input
@@ -106,6 +117,7 @@ export function PalettePanel({
         </div>
         {snippetSlot && <div className="process-flow-template-anchor">{snippetSlot}</div>}
       </div>
+      </>)}
     </aside>
   );
 }

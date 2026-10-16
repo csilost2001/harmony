@@ -7,6 +7,7 @@ import { isImeComposing } from "../utils/imeKeys";
 import { referenceAt, requestFindReferences, requestGoToReference } from "../utils/referenceTarget";
 import { showToast } from "../utils/toast";
 import { hasRefDrag, insertRefAt, readRefDrop } from "../utils/refDrag";
+import { analyzeExpression, analyzeReferences, describeCondition, type ReferenceHint } from "../utils/referenceHints";
 
 type El = HTMLInputElement | HTMLTextAreaElement;
 
@@ -18,6 +19,8 @@ interface Options {
   ctx: CompletionContext;
   /** Enter でも候補を確定する (input)。textarea は改行のため Tab だけ。 */
   pickOnEnter: boolean;
+  /** 式・条件の欄。入力が終わったとき、書き間違いの指摘と、平文の言い直しを出す (UI 改善提案 第 5 弾 #82) */
+  expression?: boolean;
 }
 
 /**
@@ -25,7 +28,7 @@ interface Options {
  * 操作: ↑↓ で選ぶ / Tab (input は Enter も) で確定 / Esc で閉じる / Ctrl+Space で開く。
  * 日本語の変換中は何もしない。選んだ候補は覚えて、次から上位に出す。
  */
-export function useReferenceCompletion<T extends El>({ value, onValueChange, onCommit, resolvers, ctx, pickOnEnter }: Options) {
+export function useReferenceCompletion<T extends El>({ value, onValueChange, onCommit, resolvers, ctx, pickOnEnter, expression }: Options) {
   const inputRef = useRef<T>(null);
   const [cursorPos, setCursorPos] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -43,6 +46,15 @@ export function useReferenceCompletion<T extends El>({ value, onValueChange, onC
     });
   }, [suppressed, value, cursorPos, resolvers, ctx]);
   const isOpen = candidates.length > 0;
+
+  // 入力が終わった欄 (フォーカスが外れている・開いた直後) の、その場の指摘: 参照の打ち間違い (近い名前) と、式の書き間違い。
+  // 入力中は出さない (補完の候補と重なり、打っている途中の文字に反応してしまうため。UI 改善提案 第 5 弾 #82・#100)
+  const hints = useMemo<ReferenceHint[]>(() => {
+    if (!suppressed || !value) return [];
+    return [...analyzeReferences(value, resolvers, ctx), ...(expression ? analyzeExpression(value) : [])];
+  }, [suppressed, value, resolvers, ctx, expression]);
+  const preview = useMemo(() => (expression && suppressed && value && hints.length === 0 ? describeCondition(value) : null), [expression, suppressed, value, hints.length]);
+  const applyFix = (fixed: string) => { onValueChange(fixed); onCommit?.(); };
   const safeIndex = isOpen ? Math.min(activeIndex, candidates.length - 1) : 0;
 
   const pick = useCallback(
@@ -165,5 +177,5 @@ export function useReferenceCompletion<T extends El>({ value, onValueChange, onC
     },
   };
 
-  return { inputRef, candidates, isOpen, safeIndex, pick, handlers };
+  return { inputRef, candidates, isOpen, safeIndex, pick, handlers, hints, preview, applyFix };
 }

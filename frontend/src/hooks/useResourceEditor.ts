@@ -63,6 +63,8 @@ export interface UseResourceEditorOptions<T> {
 
 export interface UseResourceEditorResult<T> {
   state: T | null;
+  /** 読み込んだ (または最後に保存した) 内容 */
+  baseline: T | null;
   isDirty: boolean;
   isSaving: boolean;
   serverChanged: boolean;
@@ -140,6 +142,8 @@ export function useResourceEditor<T>(opts: UseResourceEditorOptions<T>): UseReso
 
   // 「変更点」の表示用: 読み込んだ (または最後に保存した) 内容を持っておく
   const baselineRef = useRef<T | null>(null);
+  // 画面の中で使えるように、同じ内容を state でも持つ (保存した内容と違う欄の印 = 変更した欄の強調に使う。UI 改善提案 第 5 弾 #84)
+  const [baseline, setBaseline] = useState<T | null>(null);
   const stateRef = useRef<T | null>(null);
   useEffect(() => { stateRef.current = state; }, [state]);
   useEffect(() => {
@@ -157,6 +161,7 @@ export function useResourceEditor<T>(opts: UseResourceEditorOptions<T>): UseReso
   const markClean = useCallback(() => {
     if (!id) return;
     baselineRef.current = stateRef.current == null ? null : structuredClone(stateRef.current);
+    setBaseline(baselineRef.current);
     clearDraft(draftKind, id);
     setIsDirty(false);
     isDirtyRef.current = false;
@@ -205,6 +210,7 @@ export function useResourceEditor<T>(opts: UseResourceEditorOptions<T>): UseReso
       return;
     }
     baselineRef.current = structuredClone(loaded);
+    setBaseline(baselineRef.current);
     const draft = loadDraft<T>(draftKind, id);
     if (draft) {
       resetState(draft);
@@ -268,6 +274,7 @@ export function useResourceEditor<T>(opts: UseResourceEditorOptions<T>): UseReso
       return;
     }
     baselineRef.current = structuredClone(loaded);
+    setBaseline(baselineRef.current);
     resetState(loaded);
     setIsDirty(false);
     isDirtyRef.current = false;
@@ -399,6 +406,8 @@ export function useResourceEditor<T>(opts: UseResourceEditorOptions<T>): UseReso
 
   return {
     state,
+    /** 読み込んだ (または最後に保存した) 内容。変更した欄の強調・欄ごとの取り消しの基準 */
+    baseline,
     isDirty,
     isSaving,
     serverChanged,

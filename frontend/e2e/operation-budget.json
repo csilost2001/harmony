@@ -1,0 +1,7 @@
+{
+  "_doc": "主要な作業の「操作数」(クリック + キー入力の数) の上限 (UI 改善提案 第 5 弾 #97)。UI を直して数が減ったら、ここも下げる。増やすなら、理由を commit に書く。試験: e2e/operation-budget.spec.ts",
+  "table-add-column": 9,
+  "step-insert": 6,
+  "screen-item-add": 11,
+  "reference-input": 16
+}

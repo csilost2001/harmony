@@ -67,3 +67,32 @@ describe("useUndoableState の履歴", () => {
     expect(hook.result.current.history).toEqual({ past: [], future: [] });
   });
 });
+
+describe("useUndoableState: StrictMode でも、commit と undo が続けて動く (更新関数が純粋)", () => {
+  it("commit → undo → redo を、同じ操作の中で続けても、戻せる", async () => {
+    const { StrictMode } = await import("react");
+    const wrapper = ({ children }: { children: React.ReactNode }) => <StrictMode>{children}</StrictMode>;
+    const { result } = renderHook(() => useUndoableState<{ v: string }>({ v: "O" }), { wrapper });
+    act(() => { result.current.reset({ v: "O" }); });
+    act(() => { result.current.update((p) => ({ v: `${p.v}A` })); });
+    act(() => { result.current.commit(); });
+    expect([result.current.state.v, result.current.canUndo]).toEqual(["OA", true]);
+    act(() => { result.current.commit(); result.current.undo(); });
+    expect([result.current.state.v, result.current.canUndo, result.current.canRedo]).toEqual(["O", false, true]);
+    act(() => { result.current.commit(); result.current.redo(); });
+    expect(result.current.state.v).toBe("OA");
+  });
+
+  it("undo の通知 (トースト) は、1 回だけ出る", async () => {
+    const { getToastHistory, clearToastHistory } = await import("../utils/toast");
+    const { StrictMode } = await import("react");
+    clearToastHistory();
+    const wrapper = ({ children }: { children: React.ReactNode }) => <StrictMode>{children}</StrictMode>;
+    const { result } = renderHook(() => useUndoableState<{ columns: Array<{ name: string }> }>({ columns: [] }), { wrapper });
+    act(() => { result.current.updateAndCommit(() => ({ columns: [{ name: "金額" }] })); });
+    act(() => { result.current.undo(); });
+    const notices = getToastHistory().filter((t) => t.text.startsWith("元に戻しました"));
+    expect(notices).toHaveLength(1);
+    expect(notices[0].text).toContain("カラム『金額』の削除");
+  });
+});

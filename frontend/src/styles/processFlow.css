@@ -3014,3 +3014,18 @@
   background: var(--hm-surface-2);
   color: color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg));
 }
+
+/* ── 工程の目次 (UI 改善提案 第 5 弾 #90) ─────────────────────────────────── */
+.process-flow-palette-tabs { display: flex; gap: 2px; padding: 4px 8px 0; border-bottom: 1px solid var(--hm-border); }
+.process-flow-palette-tabs button { flex: 1; padding: 4px 8px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--hm-fg-muted); font: inherit; font-size: calc(12.5px * var(--hm-font-scale)); cursor: pointer; }
+.process-flow-palette-tabs button.on { color: var(--hm-fg); border-bottom-color: var(--hm-accent-solid); font-weight: 600; }
+.step-outline { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.step-outline-list { list-style: none; margin: 0; padding: 4px 0; overflow: auto; flex: 1; min-height: 0; }
+.step-outline-group { padding-top: 4px; font-size: calc(11px * var(--hm-font-scale)); color: var(--hm-fg-faint); }
+.step-outline-item { display: flex; gap: 6px; align-items: baseline; width: 100%; padding: 3px 8px; border: 0; border-left: 3px solid transparent; background: transparent; color: var(--hm-fg-2); text-align: left; font: inherit; font-size: calc(12.5px * var(--hm-font-scale)); cursor: pointer; overflow: hidden; }
+.step-outline-item:hover, .step-outline-item:focus-visible { background: var(--hm-surface-2); }
+.step-outline-item.is-visible { border-left-color: var(--hm-border-strong); }
+.step-outline-item.is-selected { border-left-color: var(--hm-accent-solid); background: var(--hm-accent-soft, var(--hm-surface-2)); color: var(--hm-fg); }
+.step-outline-no { color: var(--hm-fg-faint); font-variant-numeric: tabular-nums; flex: none; }
+.step-outline-type { font-weight: 600; flex: none; }
+.step-outline-text { color: var(--hm-fg-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }

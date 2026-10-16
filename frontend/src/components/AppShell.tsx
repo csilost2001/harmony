@@ -90,6 +90,10 @@ import { SplitPane } from "./shell/SplitPane";
 import { isPaneMode, postToParent } from "../utils/paneMode";
 import { ToastHost } from "./common/ToastHost";
 import { FileDropImport } from "./shell/FileDropImport";
+import { FocusModeControl } from "./shell/FocusModeControl";
+import { PageIssueNav } from "./shell/PageIssueNav";
+import { DeepLinkControl } from "./shell/DeepLinkControl";
+import { useFieldNormalizer } from "../hooks/useFieldNormalizer";
 import { setSplit, useSplit } from "../store/splitStore";
 
 function useTabs() {
@@ -346,6 +350,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
   const navigate = useNavigate();
   const { showError } = useErrorDialog();
   useTabKeyboard();
+  useFieldNormalizer(); // ID・物理名の欄の、全角・空白の正規化
   // 設計ファイルが外部で書き換えられたときの全体の知らせ (1 回だけ登録する)
   useEffect(() => { installExternalChangeNotice(); }, []);
 
@@ -1043,6 +1048,9 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       {!pane && <CommonHeader />}
       {!pane && <TabBar />}
       {!pane && <FileDropImport />}
+      {!pane && <FocusModeControl />}
+      {!pane && <PageIssueNav />}
+      <DeepLinkControl />
       {pane && <ToastHost />}
       <main id="app-main" className={split && !pane ? "split-root" : undefined} style={split && !pane ? { height: "calc(100vh - var(--common-header-h, 0px) - var(--tabbar-h, 0px))" } : undefined} data-testid={split && !pane ? "split-root" : undefined}>
         <div className={split && !pane ? "split-left" : undefined}>

@@ -46,6 +46,9 @@ import { useKeyboardNodeMove } from "../../hooks/useKeyboardNodeMove";
 import { EmptyState } from "../common/EmptyState";
 import { isImeComposing } from "../../utils/imeKeys";
 import { SearchableSelect } from "../common/SearchableSelect";
+import { asciiFieldProps } from "../../utils/fieldNormalize";
+import { showToast } from "../../utils/toast";
+import { LoadingBlock } from "../common/LoadingBlock";
 
 const nodeTypes = { erTableNode: ErTableNodeComponent };
 
@@ -438,7 +441,7 @@ function ErDiagramInner() {
       <div className="er-diagram-page">
         <TableSubToolbar />
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--hm-fg-muted)" }}>
-          <i className="bi bi-hourglass-split" /> 読み込み中...
+          <LoadingBlock what="ER 図" />
         </div>
       </div>
     );
@@ -493,9 +496,9 @@ function ErDiagramInner() {
             onEdgeDoubleClick={(_e, edge) => {
               if (isReadonly) return;
               if (!(edge.data as { physical?: boolean })?.physical) {
-                if (confirm("この論理リレーションを削除しますか？")) {
-                  handleRemoveEdge(edge.id);
-                }
+                // 取り消せる削除は、確認を出さずに実行する (UI 改善提案 第 5 弾 #87)
+                handleRemoveEdge(edge.id);
+                showToast("論理リレーションを削除しました (Ctrl+Z で戻せます)", "info");
               }
             }}
             deleteKeyCode={[]}
@@ -799,6 +802,7 @@ function AddTableFromErModal({
             value={physicalName}
             onChange={(e) => setPhysicalName(e.target.value)}
             placeholder="例: customers"
+            {...asciiFieldProps}
             autoFocus
             onKeyDown={(e) => { if (e.key === "Enter" && !isImeComposing(e)) submit(); }}
           />

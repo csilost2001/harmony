@@ -16,6 +16,7 @@ import { clearToastHistory } from "../../utils/toast";
 import { tourForTab } from "../../utils/tours";
 import { getSplit, setSplit } from "../../store/splitStore";
 import { getPageCommands } from "../../store/pageCommands";
+import { isFocusMode, toggleFocusMode } from "../../store/focusMode";
 
 export interface PaletteCommand {
   id: string;
@@ -67,6 +68,7 @@ export function buildPaletteCommands(ctx: CommandContext): PaletteCommand[] {
   }
 
   // ── 配色・表示 ──
+  add({ id: "focus-mode", label: isFocusMode() ? "入力専用モードをやめる" : "入力専用モード (ヘッダー・タブを畳む)", keywords: ["にゅうりょくせんよう", "focus", "集中", "全画面", "かくす"], icon: "bi-fullscreen", hint: "Ctrl+Alt+F", run: () => toggleFocusMode() });
   add({ id: "theme-light", label: "配色: ライト", keywords: ["はいしょく", "theme", "light", "明るい"], icon: "bi-sun", run: () => setAppThemePref("light") });
   add({ id: "theme-dark", label: "配色: ダーク", keywords: ["はいしょく", "theme", "dark", "暗い"], icon: "bi-moon-stars", run: () => setAppThemePref("dark") });
   add({ id: "theme-system", label: "配色: OS の設定に合わせる", keywords: ["はいしょく", "theme", "system", "自動"], icon: "bi-circle-half", run: () => setAppThemePref("system") });

@@ -101,6 +101,7 @@ import { useListClipboard } from "../../hooks/useListClipboard";
 import { SnippetMenu } from "../common/SnippetMenu";
 import { showToast } from "../../utils/toast";
 import { cloneStepsWithNewIds } from "../../utils/stepClone";
+import { StepOutlinePanel } from "./internal/StepOutlinePanel";
 
 export function ProcessFlowEditor() {
   const { processFlowId } = useParams<{ processFlowId: string }>();
@@ -480,13 +481,14 @@ export function ProcessFlowEditor() {
   };
 
   const handleDeleteAction = (actionId: string) => {
-    if (!confirm("このアクションを削除しますか？")) return;
+    // 取り消せる削除は、確認を出さずに実行する (UI 改善提案 第 5 弾 #87)
     updateGroupWithDraft((g) => {
       removeAction(g, actionId);
       if (activeActionId === actionId) {
         setActiveActionId(g.actions.length > 0 ? g.actions[0].id : null);
       }
     });
+    showToast("アクションを削除しました (Ctrl+Z で戻せます)", "info");
   };
 
   // ActionHelpPopover の位置 / open-close debounce は useActionHelpPopover に集約済 (Phase-3)。
@@ -1152,6 +1154,7 @@ export function ProcessFlowEditor() {
               onAddStep={handleAddStep}
               onAddTemplate={handleAddTemplate}
               isReadonly={isReadonly}
+              outlineSlot={<StepOutlinePanel steps={activeAction?.steps ?? []} selectedIds={selectedIds} />}
               snippetSlot={
                 <SnippetMenu kind="steps" popAlign="left" className="step-template-btn" selectionCount={selectedIds.size} readonly={isReadonly}
                   getSelection={() => (activeAction?.steps ?? []).filter((st) => selectedIds.has(st.id))}

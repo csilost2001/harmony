@@ -28,6 +28,7 @@ import "../../styles/businessFlow.css";
 import "../../styles/report.css";
 import { UndoHistoryPanel } from "../common/UndoHistoryPanel";
 import { SearchableSelect } from "../common/SearchableSelect";
+import { LoadingBlock } from "../common/LoadingBlock";
 
 type Selection = { sectionId: string; fieldId?: string } | null;
 const SECTION_KINDS = Object.keys(REPORT_SECTION_LABELS) as ReportSectionKind[];
@@ -246,7 +247,7 @@ export function ReportEditor() {
       </div>
     );
   }
-  if (!report || sessionLoading) return <div className="bfe-empty"><p>読み込み中…</p></div>;
+  if (!report || sessionLoading) return <div className="bfe-empty"><LoadingBlock what="帳票" /></div>;
 
   const counts = { error: issues.filter((i) => i.severity === "error").length, warning: issues.filter((i) => i.severity === "warning").length };
   const csv = report.output?.format === "csv";

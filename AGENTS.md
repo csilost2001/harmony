@@ -16,6 +16,7 @@ Claude Code 固有の補足は `CLAUDE.md`、Codex 固有の設定は `.codex/co
 | マーカー (AI への指示・質問。どの設計にも付けられる・`/markers` の一覧と集計・AI に渡す文・Ctrl+Alt+M・`authoring.markers` を画面と MCP が共通に読み書き) | [ui-markers.md](docs/spec/ui-markers.md) |
 | キーボード・移動 (画面内の検索 Ctrl+F・参照元 Shift+F12・表の Ctrl+D と行の挿入・複製・削除・コマンドパレットの画面の操作・F6 で領域・部品の追加 /・ダイアログの Esc とフォーカス) | [ui-keyboard.md](docs/spec/ui-keyboard.md) |
 | ドラッグ・直接操作・一括 (画面デザイナの文言のその場編集・右クリック・複数選択・段の幅・属性コピー / 一覧の列の設定・条件で選ぶ・表としてコピー・行の並べ替え・オートフィル / 図の拡大縮小・ER のカラムから線・画面フローの線 / タブを右へドラッグ・ファイルのドロップで取り込み・参照の一括付け替え) | [ui-direct-manipulation.md](docs/spec/ui-direct-manipulation.md) |
+| 入力の信頼性・見通し (欄の直下の指摘と直し方・式の書き間違い・近い名前・保存の状態・変更した欄・元に戻した内容の通知・取り消せる削除・F8 次の要確認・処理フローの目次・直接のリンク・入力専用モード・全角の正規化・操作数の予算) | [ui-input-reliability.md](docs/spec/ui-input-reliability.md) |
 | 入力補助 (参照の補完・SQL の表名とカラム名・定義へ移動 F12・検索できる選択・カラムの物理名と型の提案・外部キーの候補・テーブルから画面項目・ID の候補・工程のおすすめ・日本語入力の Enter) | [ui-input-assist.md](docs/spec/ui-input-assist.md) |
 | 完了判定 (回帰テストの trace 照合) | [docs/conventions/completion-gate.md](docs/conventions/completion-gate.md) |
 | 進行中の再設計計画と設計者判断 | [docs/plans/redesign-2026-10.md](docs/plans/redesign-2026-10.md) |

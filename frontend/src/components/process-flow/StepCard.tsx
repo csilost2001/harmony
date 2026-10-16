@@ -29,6 +29,7 @@ import { StepAdvancedMetadataPanel } from "./StepAdvancedMetadataPanel";
 import { AutoResizeTextarea } from "./internal/AutoResizeTextarea";
 import { ALL_SUB_STEP_TYPES } from "./internal/stepCardConstants";
 import { stepSummaryText } from "./internal/stepSummaryText";
+import { HelpHint } from "../help/HelpHint";
 import {
   AiAgentStepCardBody,
   AiCallStepCardBody,
@@ -186,7 +187,7 @@ export function StepCard({
   ].filter(Boolean).join(" ");
 
   return (
-    <div className="step-card-wrapper" data-edit-level={editLevel}>
+    <div className="step-card-wrapper" data-edit-level={editLevel} data-deeplink={`step:${step.id}`}>
       {showMarkerDialog && onAddMarker && (
         <StepMarkerDialog
           stepLabel={`${label} ${STEP_TYPE_LABELS[step.kind]}`}
@@ -507,7 +508,7 @@ export function StepCard({
               <div className="col-12">
                 <label className="form-label small">
                   <i className="bi bi-funnel me-1" />
-                  条件実行 (runIf)
+                  条件実行 (runIf)<HelpHint topic="processFlow.runIf" />
                   <span className="text-muted ms-1" style={{ fontSize: "0.75rem" }}>
                     — 真偽式、偽なら本ステップを skip
                   </span>

@@ -60,6 +60,7 @@ import { isImeComposing } from "../../utils/imeKeys";
 import { showToast } from "../../utils/toast";
 import { EntityMarkerSection } from "../common/EntityMarkerSection";
 import { authoringWithMarkers } from "../../utils/markerDoc";
+import { LoadingBlock } from "../common/LoadingBlock";
 
 const MATURITY_OPTIONS: Maturity[] = ["draft", "provisional", "committed"];
 const MATURITY_LABELS: Record<Maturity, string> = {
@@ -325,7 +326,7 @@ export function PageLayoutEditor() {
   }, [pl, samplePageId]);
 
   if (!pl || sessionLoading) {
-    return <div className="table-editor-loading"><i className="bi bi-hourglass-split" /> 読み込み中...</div>;
+    return <LoadingBlock what="ページレイアウト" onRetry={() => { void reload(); }} />;
   }
 
   const lockedByOther = mode.kind === "locked-by-other" ? mode : null;

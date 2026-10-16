@@ -188,3 +188,31 @@ tr.row-drop-after > td { box-shadow: inset 0 -3px 0 var(--hm-accent-solid); }
 }
 .file-drop-overlay > div { padding: 18px 28px; border-radius: 10px; background: var(--hm-surface); color: var(--hm-accent); font-weight: 600; font-size: calc(18px * var(--hm-font-scale)); box-shadow: 0 8px 30px color-mix(in srgb, var(--hm-fg) 30%, transparent); }
 .file-drop-overlay small { display: block; margin-top: 4px; font-weight: 400; font-size: calc(12px * var(--hm-font-scale)); color: var(--hm-fg-muted); }
+
+/* ── 入力専用モード (UI 改善提案 第 5 弾 #98) ─────────────────────────────── */
+html.hm-focus-mode { --common-header-h: 0px !important; --tabbar-h: 0px !important; }
+html.hm-focus-mode .common-header, html.hm-focus-mode .tabbar { display: none !important; }
+.focus-mode-exit {
+  position: fixed; top: 6px; right: 12px; z-index: 9400; padding: 3px 10px; border: 1px solid var(--hm-border-strong); border-radius: 14px;
+  background: var(--hm-surface); color: var(--hm-fg-2); font: inherit; font-size: calc(12px * var(--hm-font-scale)); cursor: pointer; opacity: 0.85;
+}
+.focus-mode-exit:hover, .focus-mode-exit:focus-visible { opacity: 1; color: var(--hm-fg); }
+
+/* ── 次の要確認へ (UI 改善提案 第 5 弾 #88・#92) ─────────────────────────── */
+.page-issue-nav {
+  position: fixed; left: 12px; bottom: 10px; z-index: 9300; padding: 3px 12px; border: 1px solid var(--hm-warning); border-radius: 14px;
+  background: var(--hm-surface); color: var(--hm-warning); font: inherit; font-size: calc(12px * var(--hm-font-scale)); font-weight: 600; cursor: pointer;
+}
+.page-issue-nav kbd { margin-left: 4px; padding: 0 4px; border: 1px solid var(--hm-border-strong); border-radius: 3px; background: var(--hm-surface-2); color: var(--hm-fg-2); font-size: 0.85em; }
+@keyframes page-issue-flash { from { box-shadow: 0 0 0 3px var(--hm-warning); } to { box-shadow: 0 0 0 3px transparent; } }
+.page-issue-flash { animation: page-issue-flash 1.2s ease-out; }
+
+/* ── 欄の直下の指摘 (UI 改善提案 第 5 弾 #81・#100) ───────────────────────── */
+.field-hint { margin-top: 2px; font-size: calc(11.5px * var(--hm-font-scale)); line-height: 1.4; color: var(--hm-danger); }
+.field-hint-fix { margin-left: 6px; padding: 0 6px; border: 1px solid var(--hm-danger); border-radius: 4px; background: transparent; color: var(--hm-danger); font: inherit; cursor: pointer; }
+.field-hint-fix:hover, .field-hint-fix:focus-visible { background: var(--hm-danger); color: var(--hm-on-solid, #fff); }
+input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--hm-danger) !important; }
+.field-preview { margin-top: 2px; font-size: calc(11.5px * var(--hm-font-scale)); line-height: 1.4; color: var(--hm-fg-muted); }
+
+/* ── 読み込み中の共通の表示 (UI 改善提案 第 5 弾 #96) ──────────────────────── */
+.loading-block-slow { margin-top: 8px; color: var(--hm-fg-muted); font-size: calc(12.5px * var(--hm-font-scale)); display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; }
