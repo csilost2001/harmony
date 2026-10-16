@@ -119,7 +119,7 @@ export function TableEditor() {
   });
 
   const {
-    state: table,
+    state: table, baseline,
     isDirty, isSaving, serverChanged,
     update, undo, redo, canUndo, canRedo, history, jumpTo,
     postSave, handleReset, dismissServerBanner,
@@ -469,7 +469,7 @@ export function TableEditor() {
       <div className="table-editor-content-area">
         <div className="table-editor-body">
           {tab === "columns" && (
-            <ColumnsTab table={table} update={isReadonly ? () => {} : updateWithDraft} isReadonly={isReadonly} markerCounts={markerCounts} onOpenMarkers={openMarkers} />
+            <ColumnsTab table={table} baselineColumns={baseline?.columns} update={isReadonly ? () => {} : updateWithDraft} isReadonly={isReadonly} markerCounts={markerCounts} onOpenMarkers={openMarkers} />
           )}
           {tab === "constraints" && (
             <ConstraintsTab table={table} update={isReadonly ? () => {} : updateWithDraft} allTables={allTables} />
@@ -654,9 +654,11 @@ function TableMetaEditor({
 // ── カラムタブ ────────────────────────────────────────────────────────────────
 
 function ColumnsTab({
-  table, update, isReadonly = false, markerCounts, onOpenMarkers,
+  table, baselineColumns, update, isReadonly = false, markerCounts, onOpenMarkers,
 }: {
   table: Table;
+  /** 保存済みのカラム (変更した欄の強調・欄ごとの取り消しの基準) */
+  baselineColumns?: readonly Column[];
   update: (fn: (t: Table) => void) => void;
   /** カラムごとの、未解決のマーカーの件数 (anchor.fieldPath の位置で数える) */
   markerCounts?: Map<string, number>;
@@ -1262,7 +1264,7 @@ function ColumnsTab({
 
       {gridMode && (
         <ColumnGrid columns={table.columns} readonly={isReadonly} onUpdateColumn={handleUpdateCol} onAppend={handleAddBlank}
-          onInsertBelow={handleInsertBelow} onDuplicate={handleDuplicateAt} onDelete={handleDeleteAt} onMove={handleReorder}
+          onInsertBelow={handleInsertBelow} onDuplicate={handleDuplicateAt} onDelete={handleDeleteAt} onMove={handleReorder} baseline={baselineColumns}
           hintsFor={(c) => columnNameHints(c, suggestionSource.index, suggestionSource.convention)}
           markerCounts={markerCounts} onOpenMarkers={onOpenMarkers} />
       )}

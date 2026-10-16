@@ -26,3 +26,10 @@
 /* 物理名の直下の指摘 (UI 改善提案 第 5 弾 #81) */
 .cg-name-cell { flex-wrap: wrap; }
 .cg-name-cell .field-hint { flex-basis: 100%; }
+
+/* 保存した内容と違う欄・新しい行 (UI 改善提案 第 5 弾 #84) */
+.cg-table td.cg-changed { background: color-mix(in srgb, var(--hm-accent-solid) 12%, transparent); box-shadow: inset 3px 0 0 var(--hm-accent-solid); position: relative; }
+.cg-revert { margin-left: 4px; padding: 0 4px; border: 0; border-radius: 4px; background: transparent; color: var(--hm-accent); cursor: pointer; font-size: calc(12px * var(--hm-font-scale)); line-height: 1.4; }
+.cg-revert:hover, .cg-revert:focus-visible { background: var(--hm-accent-solid); color: var(--hm-on-solid, #fff); }
+.cg-table tr.cg-new > td { background: color-mix(in srgb, var(--hm-success, var(--hm-accent-solid)) 10%, transparent); }
+.cg-new-mark { margin-right: 4px; padding: 0 5px; border-radius: 8px; background: var(--hm-accent-solid); color: var(--hm-on-solid, #fff); font-size: calc(10px * var(--hm-font-scale)); }
