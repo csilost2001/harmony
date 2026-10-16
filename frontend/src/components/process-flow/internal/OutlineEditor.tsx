@@ -14,6 +14,7 @@ import { collectAllProcessFlowLocalIds } from "../../../utils/localIdGenerator";
 import { StepInsertMenu } from "./StepInsertMenu";
 import { OutlineRefMenu, type RefCandidate } from "./OutlineRefMenu";
 import "../../../styles/processFlowOutline.css";
+import { showToast } from "../../../utils/toast";
 
 interface Props {
   steps: readonly Step[];
@@ -78,9 +79,10 @@ export function OutlineEditor({ steps, kinds, readonly, onApply, refCandidates }
 
   const apply = () => {
     if (!analysis?.result || !hasChange) return;
-    if (removedCount > 0 && !window.confirm(`${removedCount} 件の工程を削除します。よろしいですか? (元に戻す操作で戻せます)`)) return;
+    // 取り消せる削除は、確認を出さずに実行し、取り消しの方法を知らせる (UI 改善提案 第 5 弾 #87)
     onApply(analysis.parsed.lines);
     setDraft(null);
+    if (removedCount > 0) showToast(`${removedCount} 件の工程を削除しました (Ctrl+Z で戻せます)`, "info");
   };
 
   /** 選んだ行 (カーソルのある行) の字下げを 1 段 (空白 2 つ) 増減する。選択も、字下げに合わせて動かす */

@@ -480,13 +480,14 @@ export function ProcessFlowEditor() {
   };
 
   const handleDeleteAction = (actionId: string) => {
-    if (!confirm("このアクションを削除しますか？")) return;
+    // 取り消せる削除は、確認を出さずに実行する (UI 改善提案 第 5 弾 #87)
     updateGroupWithDraft((g) => {
       removeAction(g, actionId);
       if (activeActionId === actionId) {
         setActiveActionId(g.actions.length > 0 ? g.actions[0].id : null);
       }
     });
+    showToast("アクションを削除しました (Ctrl+Z で戻せます)", "info");
   };
 
   // ActionHelpPopover の位置 / open-close debounce は useActionHelpPopover に集約済 (Phase-3)。

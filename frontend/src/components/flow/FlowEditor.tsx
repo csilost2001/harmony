@@ -22,6 +22,7 @@ import {
   BackgroundVariant,
 } from "@xyflow/react";
 import { DiagramControls } from "../common/DiagramControls";
+import { showToast } from "../../utils/toast";
 import "@xyflow/react/dist/style.css";
 
 import ScreenNodeComponent from "./ScreenNode";
@@ -874,16 +875,15 @@ function FlowEditorInner() {
     if (!contextMenu || !project) return;
     const group = (project.groups ?? []).find((g) => g.id === contextMenu.targetId);
     if (!group) return;
-    if (!confirm(`グループ「${group.name}」を削除しますか？\n（画面はグループから外れますが削除されません）`)) {
-      setContextMenu(null);
-      return;
-    }
+    // 画面はグループから外れるだけで、取り消せる削除は、確認を出さずに実行する (UI 改善提案 第 5 弾 #87)
+    pushUndoSnapshot();
     const draft = structuredClone(project);
     await storeRemoveGroup(draft, contextMenu.targetId);
     setProject(draft);
     setNodes(toRFNodesWithGroups(draft.screens, draft.groups ?? [], screenEntitiesRef.current));
     setContextMenu(null);
-  }, [project, contextMenu, setNodes]);
+    showToast(`グループ「${group.name}」を削除しました (画面は残ります。Ctrl+Z で戻せます)`, "info");
+  }, [project, contextMenu, setNodes, pushUndoSnapshot]);
 
   const handleAssignGroup = useCallback(async (groupId: ScreenGroupId) => {
     if (!contextMenu || !project) return;
