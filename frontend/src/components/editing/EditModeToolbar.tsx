@@ -3,6 +3,7 @@ import "../../styles/editMode.css";
 import { friendlyLabel } from "../../utils/participantLabel";
 import { getActiveTabId } from "../../store/tabStore";
 import { getChangeSource, requestShowChanges } from "../../utils/changeSource";
+import { describeSaveStatus, useSaveStatus } from "../../store/saveStatus";
 
 interface Props {
   mode: EditMode;
@@ -26,6 +27,7 @@ export function EditModeToolbar({
   dirty,
   ownerLabel,
 }: Props) {
+  const status = useSaveStatus();
   if (mode.kind === "readonly") {
     return (
       <div className="edit-mode-toolbar edit-mode-toolbar--readonly">
@@ -96,6 +98,10 @@ export function EditModeToolbar({
           <i className="bi bi-x-lg me-1" />
           破棄
         </button>
+        {dirty !== undefined && (() => {
+          const st = describeSaveStatus(dirty, status);
+          return <span className={`edit-mode-save-status is-${st.tone}`} role="status" data-testid="edit-mode-save-status">{st.text}</span>;
+        })()}
       </div>
     );
   }

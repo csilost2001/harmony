@@ -195,3 +195,8 @@
 /* 保存に失敗したときの案内 */
 .edit-save-error { display: flex; align-items: center; gap: 8px; margin: 0; padding: 8px 14px; background: var(--hm-surface-2); border-bottom: 1px solid var(--hm-danger); color: var(--hm-danger); font-size: calc(13px * var(--hm-font-scale)); }
 .edit-save-error__close { margin-left: auto; border: 0; background: none; color: inherit; cursor: pointer; padding: 2px 6px; }
+
+/* 保存の状態 (UI 改善提案 第 5 弾 #83) */
+.edit-mode-save-status { margin-left: 8px; font-size: calc(12px * var(--hm-font-scale)); color: var(--hm-fg-muted); white-space: nowrap; }
+.edit-mode-save-status.is-ok { color: var(--hm-success, var(--hm-fg-2)); }
+.edit-mode-save-status.is-warn { color: var(--hm-warning); font-weight: 600; }
