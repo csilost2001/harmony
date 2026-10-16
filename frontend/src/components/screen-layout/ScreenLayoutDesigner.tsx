@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  autoPlaceItems, designToLayout, detachComponentNode, findNode, removeNode, updateNode, validateLayoutWithComponents, walkLayout,
+  autoPlaceItems, designToLayout, detachComponentNode, findNode, findParent, removeNode, updateNode, validateLayoutWithComponents, walkLayout,
   type LayoutComponentDef,
 } from "@harmony/shared";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
@@ -43,6 +43,11 @@ import { GROUPS as PALETTE_GROUPS } from "./layoutPaletteGroups";
 import { QuickPickMenu, type QuickPickItem } from "../common/QuickPickMenu";
 import { LAYOUT_NODE_LABELS } from "@harmony/shared";
 import { LayoutInspector } from "./LayoutInspector";
+import { LayoutMultiPanel } from "./LayoutMultiPanel";
+import { ListContextMenu, type ContextMenuItem } from "../common/ListContextMenu";
+import { applyInline, inlineIds, inlineTarget } from "./layoutInline";
+import { columnPairOf, resizeColumnPair } from "./layoutResize";
+import { WRAP_TYPES, canWrap, rangeSelect, sharedParentId } from "./layoutSelection";
 import { RegisterComponentDialog } from "./RegisterComponentDialog";
 import { ComponentManager } from "./ComponentManager";
 import { ReferencesButton } from "../common/ReferencesButton";
@@ -143,7 +148,11 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
   const title = screenName ?? screens.find((s) => s.id === screenId)?.name ?? screenId;
 
   // ── 表示設定 ───────────────────────────────────────────────────────────
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // 選択: 末尾が「主の選択」(右パネルに詳細を出す部品)。2 つ以上あれば複数選択 (一括の操作)
+  const [selection, setSelection] = useState<string[]>([]);
+  const setSelectedId = useCallback((id: string | null) => setSelection(id ? [id] : []), []);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null);
   const [viewport, setViewport] = useState(VIEWPORTS[0]);
   const [density, setDensity] = useState<"standard" | "compact">("standard");
   const [showNotes, setShowNotes] = useState(false);
@@ -180,6 +189,9 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
   const docItems = doc?.items;
   const items = useMemo(() => docItems ?? [], [docItems]);
   // 削除・取り消しで消えた部品の選択は自動的に外れる
+  const liveSelection = useMemo(() => selection.filter((id) => !!findNode(nodes, id)), [selection, nodes]);
+  const selectedId = liveSelection.length ? liveSelection[liveSelection.length - 1] : null;
+  const selectedSet = useMemo(() => new Set(liveSelection), [liveSelection]);
   const selected = selectedId ? findNode(nodes, selectedId) : null;
   // 遷移先の画面一覧を読み込むまでは遷移先の存在確認をしない (読み込み前に警告が出ないように)
   const screenIds = useMemo(() => (screens.length ? new Set(screens.map((s) => s.id)) : undefined), [screens]);
@@ -191,10 +203,45 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
   }, [issues]);
 
   const {
-    insertionPoint, addNode, addComponent, placeItem, addColumnItem, handleDrop,
+    multi, wrapSelected, insertionPoint, addNode, addComponent, placeItem, addColumnItem, handleDrop,
     deleteSelected, duplicateSelected, moveSelected, outdentSelected, indentSelected, renameNode, addChild,
-  } = useLayoutOps({ apply, nodes, items, tables, components, selectedId, setSelectedId });
+  } = useLayoutOps({ apply, nodes, items, tables, components, selectedId, setSelectedId, selectedIds: liveSelection, setSelection });
   void insertionPoint;
+
+  /** 紙面のクリック: Ctrl / Cmd = 選択に入れる・外す、Shift = 範囲 */
+  const handleSelect = useCallback((id: string | null, mod?: "toggle" | "range") => {
+    if (!id) { setSelection([]); return; }
+    if (mod === "toggle") setSelection((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+    else if (mod === "range" && selectedId) setSelection([...rangeSelect(nodes, selectedId, id).filter((x) => x !== id), id]);
+    else setSelection([id]);
+  }, [nodes, selectedId]);
+
+  // ── 文言をその場で直す (ダブルクリック / F2) ──────────────────────────────
+  const startInline = useCallback((id: string) => {
+    if (!editable) return;
+    const n = findNode(nodes, id);
+    if (!n || !inlineTarget(n, n.itemRef ? items.find((i) => i.id === n.itemRef) : undefined)) return;
+    setSelectedId(id);
+    setEditingId(id);
+  }, [editable, nodes, items, setSelectedId]);
+  const commitInline = useCallback((id: string, value: string, move: -1 | 0 | 1 = 0) => {
+    const n = findNode(nodes, id);
+    const before = n ? inlineTarget(n, n.itemRef ? items.find((i) => i.id === n.itemRef) : undefined)?.value : undefined;
+    if (before !== undefined && before !== value) apply((d) => applyInline(d, id, value));
+    if (move === 0) { setEditingId(null); return; }
+    const order = inlineIds(nodes, items);
+    const next = order[order.indexOf(id) + move];
+    if (next) { setSelectedId(next); setEditingId(next); } else setEditingId(null);
+  }, [nodes, items, apply, setSelectedId]);
+
+  // ── 段の幅を、境界のドラッグ・キーで変える ──────────────────────────────
+  const resizeColumns = useCallback((leftId: string, rightId: string, leftSpan: number, rightSpan: number, final: boolean) => {
+    apply((d) => ({
+      ...d,
+      layout: { version: 1, nodes: updateNode(updateNode(d.layout?.nodes ?? [], leftId, (n) => ({ ...n, props: { ...(n.props ?? {}), span: leftSpan } })), rightId, (n) => ({ ...n, props: { ...(n.props ?? {}), span: rightSpan } })) },
+    }), false);
+    if (final) commit();
+  }, [apply, commit]);
 
   // ── 独自部品 ───────────────────────────────────────────────────────────
   const [registering, setRegistering] = useState(false);
@@ -229,7 +276,7 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
       return docReplaceNode(d, selected.id, detachComponentNode(selected, components, rest));
     });
     setSelectedId(null);
-  }, [selected, components, apply]);
+  }, [selected, components, apply, setSelectedId]);
 
   // ── 保存 / 破棄 ───────────────────────────────────────────────────────
   const [showDiscard, setShowDiscard] = useState(false);
@@ -270,7 +317,39 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
-      if (e.key === "Escape") { setSelectedId(null); return; }
+      if (e.key === "Escape") { setSelection([]); return; }
+      // F2: 選んでいる部品の文言を、その場で直す
+      if (e.key === "F2" && selectedId && editable) { e.preventDefault(); startInline(selectedId); return; }
+      // Shift+F10 / メニューキー: 右クリックのメニュー (選んでいる部品の位置に)
+      if (selectedId && ((e.shiftKey && e.key === "F10") || e.key === "ContextMenu")) {
+        e.preventDefault();
+        const r = document.querySelector(`[data-node-id="${CSS.escape(selectedId)}"]`)?.getBoundingClientRect();
+        setMenuAt({ x: (r?.left ?? 200) + 12, y: (r?.top ?? 200) + 12 });
+        return;
+      }
+      // Ctrl+A: 選んでいる部品と同じ入れ物の中の部品を、すべて選ぶ
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "a" && selectedId && !(t && t.closest('[role="listbox"], [role="menu"], dialog, [aria-modal="true"]'))) {
+        e.preventDefault();
+        const pos = findParent(nodes, selectedId);
+        const sibs = pos ? (pos.parent ? pos.parent.children ?? [] : nodes) : [];
+        setSelection([...sibs.map((n) => n.id).filter((x) => x !== selectedId), selectedId]);
+        return;
+      }
+      // Shift+↑↓: 選択を、見た目の順の前後へ広げる
+      if (selectedId && e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown") && !(t && t.closest('[role="tab"], [role="listbox"], [role="combobox"], [role="menu"], dialog, [aria-modal="true"]'))) {
+        const to = neighborId(nodes, selectedId, e.key === "ArrowUp" ? -1 : 1);
+        if (to) { e.preventDefault(); setSelection((s) => [...s.filter((x) => x !== to), to]); }
+        return;
+      }
+      // Alt+Shift+←→: 選んでいる段の幅を、隣の段とのあいだで 1 つぶん動かす
+      if (editable && selectedId && e.altKey && e.shiftKey && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+        e.preventDefault();
+        const pair = columnPairOf(nodes, selectedId);
+        const r = resizeColumnPair(nodes, selectedId, e.key === "ArrowRight" ? 1 : -1);
+        if (!pair || !r) showToast("段の幅は、段 (右に次の段があるもの) を選んで動かせます", "info");
+        else if (r.leftSpan !== pair.baseLeft) resizeColumns(r.leftId, r.rightId, r.leftSpan, r.rightSpan, true);
+        return;
+      }
       // / または Insert: 部品を追加するメニュー (選んでいる部品の後ろに追加する。パレットのクリックと同じ)
       if (editable && (e.key === "/" || e.key === "Insert") && !e.ctrlKey && !e.metaKey && !e.altKey && !(t && t.closest('[aria-modal="true"]'))) {
         e.preventDefault();
@@ -301,7 +380,44 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [isActive, editable, selectedId, nodes, deleteSelected, duplicateSelected, moveSelected, outdentSelected, indentSelected]);
+  }, [isActive, editable, selectedId, nodes, deleteSelected, duplicateSelected, moveSelected, outdentSelected, indentSelected, startInline, resizeColumns, setSelectedId]);
+
+  // ── 右クリック / Shift+F10 のメニュー ─────────────────────────────────
+  const menuItems = useMemo<ContextMenuItem[]>(() => {
+    const ids = multi.length > 1 ? multi : selectedId ? [selectedId] : [];
+    const many = ids.length > 1;
+    const single = !many && selected ? selected : null;
+    const ro = editable ? undefined : "閲覧のみのため、変更できません";
+    const items: ContextMenuItem[] = [];
+    if (single && inlineTarget(single, single.itemRef ? docItems?.find((i) => i.id === single.itemRef) : undefined)) {
+      items.push({ key: "inline", label: "文言を直す", icon: "bi-pencil", shortcut: "F2", disabled: !editable, disabledReason: ro, onClick: () => { setMenuAt(null); (() => startInline(single.id))(); } });
+    }
+    items.push(
+      { key: "dup", label: many ? `${ids.length} 件を複製` : "複製", icon: "bi-copy", shortcut: "Ctrl+D", disabled: !editable, disabledReason: ro, onClick: () => { setMenuAt(null); duplicateSelected(); } },
+      { key: "up", label: "前へ", icon: "bi-arrow-up", shortcut: "Alt+↑", disabled: !editable || (many && !sharedParentId(nodes, ids).ok), disabledReason: ro ?? "違う入れ物の部品が混ざっています", onClick: () => { setMenuAt(null); (() => moveSelected(-1))(); } },
+      { key: "down", label: "後ろへ", icon: "bi-arrow-down", shortcut: "Alt+↓", disabled: !editable || (many && !sharedParentId(nodes, ids).ok), disabledReason: ro ?? "違う入れ物の部品が混ざっています", onClick: () => { setMenuAt(null); (() => moveSelected(1))(); } },
+    );
+    if (!many) {
+      items.push(
+        { key: "out", label: "親の外へ出す", icon: "bi-box-arrow-in-left", shortcut: "Alt+←", disabled: !editable, disabledReason: ro, onClick: () => { setMenuAt(null); (() => { if (!outdentSelected()) showToast("これ以上、外へは出せません (最上位、または外に置けない部品です)", "info"); })(); } },
+        { key: "in", label: "直前の部品の中へ入れる", icon: "bi-box-arrow-in-right", shortcut: "Alt+→", disabled: !editable, disabledReason: ro, onClick: () => { setMenuAt(null); (() => { if (!indentSelected()) showToast("直前の部品の中へは入れられません (直前に、この部品を置ける入れ物がありません)", "info"); })(); } },
+      );
+    }
+    items.push({ key: "sep1", separator: true });
+    for (const w of WRAP_TYPES) {
+      const ok = canWrap(nodes, ids, w.type);
+      items.push({ key: `wrap-${w.type}`, label: `${w.label}で包む`, icon: "bi-box", disabled: !editable || !ok, disabledReason: ro ?? "この組み合わせは、その入れ物で包めません", onClick: () => { setMenuAt(null); (() => { wrapSelected(w.type); })(); } });
+    }
+    if (single && single.type !== "component") {
+      items.push({ key: "register", label: "独自部品として登録…", icon: "bi-puzzle", disabled: !editable, disabledReason: ro, onClick: () => { setMenuAt(null); (() => setRegistering(true))(); } });
+    }
+    if (single?.type === "component") {
+      // eslint-disable-next-line react-hooks/refs -- 操作は、押されたときにだけ呼ぶ (描画のあいだに、ref は読まない)
+      items.push({ key: "detach", label: "展開して通常の部品に戻す", icon: "bi-box-arrow-up-right", disabled: !editable, disabledReason: ro, onClick: () => { setMenuAt(null); detachSelected(); } });
+    }
+    items.push({ key: "sep2", separator: true }, { key: "del", label: many ? `${ids.length} 件を削除` : "削除", icon: "bi-trash", shortcut: "Delete", danger: true, disabled: !editable, disabledReason: ro, onClick: () => { setMenuAt(null); deleteSelected(); } });
+    return items;
+  }, [multi, selectedId, selected, editable, docItems, nodes, startInline, duplicateSelected, moveSelected, outdentSelected, indentSelected, wrapSelected, detachSelected, deleteSelected]);
 
   // 部品を追加するメニューの候補 (標準の部品 + プロジェクト独自の部品)
   const partMenuItems = useMemo<QuickPickItem[]>(() => [
@@ -487,14 +603,38 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
               density={density}
               showNotes={showNotes}
               selectedId={selected ? selectedId : null}
+              selectedIds={selectedSet}
               editable={editable}
               screenNameById={screenNameById}
               issuesByNode={issuesByNode}
               components={components}
-              onSelect={setSelectedId}
+              onSelect={handleSelect}
               onDrop={handleDrop}
+              editingId={editingId}
+              onStartInline={startInline}
+              onInlineCommit={commitInline}
+              onInlineCancel={() => setEditingId(null)}
+              onContextMenu={(id, x, y) => { if (!selectedSet.has(id)) setSelectedId(id); setMenuAt({ x, y }); }}
+              onResizeColumns={resizeColumns}
             />
           </section>
+          {liveSelection.length > 1 ? (
+            <aside className="sld-right" aria-label="詳細 (複数選択)">
+              <LayoutMultiPanel
+                editable={editable}
+                ids={multi.length ? multi : liveSelection}
+                nodes={nodes}
+                items={items}
+                onSelect={setSelection}
+                onDuplicate={duplicateSelected}
+                onDelete={deleteSelected}
+                onMove={moveSelected}
+                onWrap={(t) => { if (!wrapSelected(t)) showToast("この組み合わせは、その入れ物で包めません", "info"); }}
+                onPatchItems={(ids, patch) => apply((d) => ({ ...d, items: d.items.map((i) => (ids.includes(i.id as string) ? patch(i) : i)) }))}
+                onPatchNodes={(ids, patch) => apply((d) => ({ ...d, layout: { version: 1, nodes: ids.reduce((acc, id) => updateNode(acc, id, patch), d.layout?.nodes ?? []) } }))}
+              />
+            </aside>
+          ) : (
           <LayoutInspector
             editable={editable}
             node={selected}
@@ -519,6 +659,7 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
             onDetachComponent={detachSelected}
             onRegisterComponent={() => setRegistering(true)}
           />
+          )}
         </div>
       )}
 
@@ -527,6 +668,9 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
       )}
       {showPartMenu && editable && (
         <QuickPickMenu title="部品を追加" where={selectedId ? "選んだ部品の後ろに" : "末尾に"} placeholder="部品の種類を入力 (例: フォーム、ボタン、一覧)" items={partMenuItems} onPick={pickPart} onClose={() => setShowPartMenu(false)} />
+      )}
+      {menuAt && selectedId && (
+        <ListContextMenu items={menuItems} x={menuAt.x} y={menuAt.y} onClose={() => setMenuAt(null)} />
       )}
       {managing && (
         <ComponentManager initialEditId={managing.editId} screens={screens} onClose={() => setManaging(null)} />

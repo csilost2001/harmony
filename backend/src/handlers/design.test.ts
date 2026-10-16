@@ -6,7 +6,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { handleDesignTool } from "./design.js";
-import { writeScreenEntity, writeBusinessFlow } from "../projectStorage.js";
+import { writeScreenEntity, writeBusinessFlow, writeTable, writeProcessFlow } from "../projectStorage.js";
 
 const ROOT = path.join(os.tmpdir(), `design-tool-${process.pid}-${Date.now()}`);
 const call = async (name: string, args: Record<string, unknown> = {}) => {
@@ -122,5 +122,39 @@ describe("designer__rename_entity / designer__undo_rename", () => {
     await fs.stat(path.join(ROOT, "harmony", "screens", "cart.json"));
     const flow2 = JSON.parse(await fs.readFile(path.join(ROOT, "harmony", "business-flows", "ship.json"), "utf-8"));
     expect(flow2.steps[0].screenRef).toBe("cart");
+  });
+});
+
+describe("designer__replace_references / designer__undo_replace_references", () => {
+  const replace = async (args: Record<string, unknown>) => JSON.parse(await call("designer__replace_references", args));
+  const flowFile = path.join(ROOT, "harmony", "process-flows", "flow-x.json");
+  beforeAll(async () => {
+    await writeTable("t-old", { id: "t-old", name: "旧", columns: [] }, ROOT);
+    await writeTable("t-new", { id: "t-new", name: "新", columns: [] }, ROOT);
+    await writeProcessFlow("flow-x", { id: "flow-x", name: "x", steps: [{ id: "s1", kind: "db", tableId: "t-old" }] }, ROOT);
+  });
+
+  it("既定は予行: 付け替わる参照元を返すだけで、何も書き換えない", async () => {
+    const r = await replace({ entityType: "table", fromId: "t-old", toId: "t-new" });
+    expect(r.applied).toBe(false);
+    expect(r.blockers).toEqual([]);
+    expect(r.files.map((f: { entityId: string }) => f.entityId)).toEqual(["flow-x"]);
+    expect(JSON.parse(await fs.readFile(flowFile, "utf-8")).steps[0].tableId).toBe("t-old");
+  });
+
+  it("apply でも、参照元 (referrers) を選ばなければ実行しない。付け替え先が無ければ止める", async () => {
+    expect((await replace({ entityType: "table", fromId: "t-old", toId: "t-new", apply: true })).applied).toBe(false);
+    const missing = await replace({ entityType: "table", fromId: "t-old", toId: "nowhere", referrers: ["process-flows/flow-x.json"], apply: true });
+    expect(missing.applied).toBe(false);
+    expect(missing.blockers.join("")).toContain("見つかりません");
+  });
+
+  it("選んだ参照元だけ付け替え、undo で戻せる", async () => {
+    const done = await replace({ entityType: "table", fromId: "t-old", toId: "t-new", referrers: ["process-flows/flow-x.json"], apply: true });
+    expect(done.applied).toBe(true);
+    expect(JSON.parse(await fs.readFile(flowFile, "utf-8")).steps[0].tableId).toBe("t-new");
+    const undone = JSON.parse(await call("designer__undo_replace_references", { operationId: done.operationId }));
+    expect(undone.undone).toBe(true);
+    expect(JSON.parse(await fs.readFile(flowFile, "utf-8")).steps[0].tableId).toBe("t-old");
   });
 });

@@ -11,6 +11,7 @@ import type {
   StructuredField,
 } from "../../types/v3";
 import { fieldsToText, isStructuredFields, textToStructuredFields } from "../../utils/actionFields";
+import { GridFillHandle } from "../common/GridFillHandle";
 
 /** 画面項目ピッカーで返る型 — StructuredField にコピー元の値を載せて返す */
 export interface ScreenItemPickResult {
@@ -158,6 +159,7 @@ export function StructuredFieldsEditor({ label, fields, onChange, onCommit, plac
 
   return (
     <div className="structured-fields-editor" onKeyDown={gridKeys.onKeyDown}>
+      <GridFillHandle />
       <div className="structured-fields-header">
         <label className="form-label mb-0">{label}</label>
         <div className="btn-group btn-group-sm" role="group" aria-label="表示モード">

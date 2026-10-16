@@ -404,7 +404,7 @@ function jsonDeepEqual(a: unknown, b: unknown): boolean {
   return true;
 }
 
-async function writeFileContent(absPath: string, content: string): Promise<void> {
+export async function writeFileContent(absPath: string, content: string): Promise<void> {
   await fs.mkdir(path.dirname(absPath), { recursive: true });
   await fs.writeFile(absPath, content, "utf-8");
 }
@@ -454,7 +454,7 @@ function escapeRegExp(value: string): string {
 }
 
 /** dataRoot 相対 path 表示用 (snapshot/preview の filePath カラム表記) */
-function toRel(absPath: string, dataRoot: string): string {
+export function toRel(absPath: string, dataRoot: string): string {
   return path.relative(dataRoot, absPath).replace(/\\/g, "/");
 }
 
@@ -714,7 +714,7 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
 
 // ── ref scan (preview 計算 + 実際の update に共通利用) ─────────────────────────
 
-interface RefScanResult {
+export interface RefScanResult {
   /** 各参照 location */
   locations: RefLocation[];
   /** ref 更新を伴う各 file の更新後 content (JSON.stringify, indent=2) */
@@ -889,7 +889,7 @@ async function assertReferenceSourcesReadable(
  *
  * 注: harmony.json / screen-flow-positions.json も参照側として走査する (screen rename 等)。
  */
-async function scanAllRefs(
+export async function scanAllRefs(
   entityType: RenameEntityType, oldId: string, newId: string, root: string,
   options: { enforceFresh?: boolean } = {},
 ): Promise<RefScanResult> {
@@ -1317,7 +1317,7 @@ export function entityTypeToResourceType(entityType: RenameEntityType): string {
  *   callback 側で kebab に変換する責務を持つ
  * - 副次 file (project / screenFlowPositions / erLayout) は EditSession 対象外なので skip
  */
-async function detectConcurrentEditRefs(
+export async function detectConcurrentEditRefs(
   refScan: RefScanResult,
   entityType: RenameEntityType,
   oldId: string,

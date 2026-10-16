@@ -2,7 +2,7 @@
  * 連携と運用。外へつなぐ・配る・チームで使う機能を 1 か所にまとめた画面: レビューと承認・変更の記録・Git・通知・生成の管理・取り込み・利用者と権限・版と更新。
  * 設計の原本は、取り込み (新規作成のみ) と、各設定の保存以外では書き換えない。仕様: docs/spec/integration-ops.md
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ReviewTab } from "./tabs/ReviewTab";
 import { AuditTab } from "./tabs/AuditTab";
 import { GitTab } from "./tabs/GitTab";
@@ -33,6 +33,12 @@ function initialTab(): OpsTabId {
 
 export function OperationsView() {
   const [tab, setTab] = useState<OpsTabId>(initialTab);
+  // ファイルのドロップ (FileDropImport) から、取り込みを開かれたとき
+  useEffect(() => {
+    const on = (e: Event) => { const t = (e as CustomEvent<string>).detail; if (TABS.some((x) => x.id === t)) setTab(t as OpsTabId); };
+    window.addEventListener("harmony:ops-tab", on);
+    return () => window.removeEventListener("harmony:ops-tab", on);
+  }, []);
   const choose = (t: OpsTabId) => { setTab(t); try { localStorage.setItem(KEY, t); } catch { /* 保存できなくても、画面は動く */ } };
   return (
     <div className="an-root" data-testid="operations-view">

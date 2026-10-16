@@ -89,6 +89,7 @@ import { tabPath } from "../routing/tabPaths";
 import { SplitPane } from "./shell/SplitPane";
 import { isPaneMode, postToParent } from "../utils/paneMode";
 import { ToastHost } from "./common/ToastHost";
+import { FileDropImport } from "./shell/FileDropImport";
 import { setSplit, useSplit } from "../store/splitStore";
 
 function useTabs() {
@@ -1041,6 +1042,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     <>
       {!pane && <CommonHeader />}
       {!pane && <TabBar />}
+      {!pane && <FileDropImport />}
       {pane && <ToastHost />}
       <main id="app-main" className={split && !pane ? "split-root" : undefined} style={split && !pane ? { height: "calc(100vh - var(--common-header-h, 0px) - var(--tabbar-h, 0px))" } : undefined} data-testid={split && !pane ? "split-root" : undefined}>
         <div className={split && !pane ? "split-left" : undefined}>

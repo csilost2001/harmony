@@ -80,6 +80,7 @@ import { MiscSection } from "./internal/MiscSection";
 import { reportFailure } from "../../utils/failureToast";
 import { EntityMarkerSection } from "../common/EntityMarkerSection";
 import { authoringWithMarkers } from "../../utils/markerDoc";
+import { moveItem, remapIndex } from "../../utils/rowReorder";
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
@@ -449,6 +450,18 @@ export function ViewDefinitionEditor() {
     });
   };
 
+  // つまみのドラッグ / Alt+↑↓: from 行目を to の位置へ (参照テーブルの選択も、行といっしょに動かす)
+  const reorderColumn = (from: number, to: number) => {
+    const n = (viewDefinition.columns ?? []).length;
+    if (from === to || from < 0 || to < 0 || from >= n || to >= n) return;
+    updateWithDraft((d) => { d.columns = moveItem(d.columns, from, to); });
+    setColRefTableIds((prev) => {
+      const next: Record<number, string> = {};
+      Object.entries(prev).forEach(([k, v]) => { next[remapIndex(Number(k), from, to)] = v; });
+      return next;
+    });
+  };
+
   const updateColumn = <K extends keyof ViewColumn>(ci: number, field: K, value: ViewColumn[K]) => {
     updateWithDraft((d) => {
       d.columns[ci] = { ...d.columns[ci], [field]: value };
@@ -739,6 +752,7 @@ export function ViewDefinitionEditor() {
             addColumn={addColumn}
             removeColumn={removeColumn}
             moveColumn={moveColumn}
+            reorderColumn={reorderColumn}
             updateColumn={updateColumn}
             setColRefTable={setColRefTable}
             setColRefColumn={setColRefColumn}

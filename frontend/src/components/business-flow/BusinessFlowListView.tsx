@@ -131,6 +131,7 @@ export function BusinessFlowListView() {
         </p>
       )}
       <DataList
+        prefsKey="business-flow-list"
         items={sort.sorted}
         columns={columns}
         getId={(f) => f.id}

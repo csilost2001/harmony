@@ -8,10 +8,12 @@
  * 並べ替え・コピー・貼り付け・一括変更などは、従来の一覧 (「一覧で編集」) で行う。
  */
 import { useGridKeyboard } from "../../hooks/useGridKeyboard";
+import { useRowDragReorder } from "../../hooks/useRowDragReorder";
 import type { BuiltinDataType, Column, DisplayName, PhysicalName } from "../../types/v3";
 import { DATA_TYPE_LABELS, DATA_TYPES_WITH_LENGTH, DATA_TYPES_WITH_SCALE } from "./tableConstants";
 import type { ColumnNameHint } from "../../utils/columnSuggestion";
 import "../../styles/columnGrid.css";
+import { GridFillHandle } from "../common/GridFillHandle";
 
 interface Props {
   columns: readonly Column[];
@@ -25,6 +27,8 @@ interface Props {
   onDuplicate?: (index: number) => void;
   /** Alt+Delete: i 行目を削除する */
   onDelete?: (index: number) => void;
+  /** 行のつまみのドラッグ / Alt+↑↓: from 行目を、to の位置へ動かす */
+  onMove?: (from: number, to: number) => void;
   /** カラムごとの未解決のマーカーの件数 (anchor.fieldPath = $.columns[<id>])。あれば行にバッジを出す */
   markerCounts?: Map<string, number>;
   onOpenMarkers?: (anchorPath?: string) => void;
@@ -53,12 +57,14 @@ function NumberCell({ value, label, readonly, disabled, onCommit }: { value: num
   );
 }
 
-export function ColumnGrid({ columns, readonly, onUpdateColumn, onAppend, onInsertBelow, onDuplicate, onDelete, hintsFor, markerCounts, onOpenMarkers }: Props) {
+export function ColumnGrid({ columns, readonly, onUpdateColumn, onAppend, onInsertBelow, onDuplicate, onDelete, onMove, hintsFor, markerCounts, onOpenMarkers }: Props) {
+  const rowDrag = useRowDragReorder({ onMove: (f, t) => { onMove?.(f, t); focusRow(t); }, disabled: readonly || !onMove });
   // 挿入・複製のあと、新しい行の表示名の欄へ移る (すぐ打ち始められるように)
   const focusRow = (index: number) => setTimeout(() => {
     document.querySelector<HTMLInputElement>(`.cg-table tr[data-grid-row="${index}"] input[aria-label$="の表示名"]`)?.focus();
   }, 0);
   const grid = useGridKeyboard({
+    onMoveRow: readonly || !onMove ? undefined : (i, dir) => { if (i + dir >= 0 && i + dir < columns.length) { onMove(i, i + dir); focusRow(i + dir); } },
     onAppendRow: readonly ? undefined : onAppend,
     onInsertRowBelow: readonly || !onInsertBelow ? undefined : (i) => { onInsertBelow(i); focusRow(i + 1); },
     onDuplicateRow: readonly || !onDuplicate ? undefined : (i) => { onDuplicate(i); focusRow(i + 1); },
@@ -71,6 +77,7 @@ export function ColumnGrid({ columns, readonly, onUpdateColumn, onAppend, onInse
 
   return (
     <div className="cg-wrap" data-testid="column-grid">
+      <GridFillHandle />
       <table className="cg-table" onKeyDown={grid.onKeyDown}>
         <thead>
           <tr>
@@ -81,8 +88,11 @@ export function ColumnGrid({ columns, readonly, onUpdateColumn, onAppend, onInse
         </thead>
         <tbody>
           {columns.map((c, i) => (
-            <tr key={c.id} data-testid="column-grid-row" data-grid-row={i} data-column-id={c.id}>
-              <td className="cg-no">{i + 1}</td>
+            <tr key={c.id} className={rowDrag.rowClass(i)} data-testid="column-grid-row" data-grid-row={i} data-column-id={c.id} {...rowDrag.rowProps(i)}>
+              <td className="cg-no">
+                {!readonly && onMove && <span className="row-grip" role="button" tabIndex={-1} aria-label={`${i + 1} 行目をドラッグして並べ替え (Alt+↑↓ でも動かせます)`} title="ドラッグして並べ替え (Alt+↑↓)" data-testid={`row-grip-${i}`} {...rowDrag.gripProps(i)}><i className="bi bi-grip-vertical" /></span>}
+                {i + 1}
+              </td>
               <td>
                 <div className="cg-name-cell">
                   <TextCell value={c.physicalName} label={`${i + 1} 行目の物理名`} readonly={readonly} mono onCommit={(v) => onUpdateColumn(c.id, { physicalName: v as PhysicalName })} />
@@ -120,7 +130,7 @@ export function ColumnGrid({ columns, readonly, onUpdateColumn, onAppend, onInse
           ))}
         </tbody>
       </table>
-      <p className="cg-hint">Tab = 次のセル / Enter = 下の行 (最後の行では、カラムを追加) / ↑↓ = 上下のセル / Esc = セルから出る / Ctrl+D = 上の行の値を写す / Ctrl+Enter = 下に行を挿入 / Ctrl+Shift+Enter = 行を複製 / Alt+Delete = 行を削除。文字のセルは、セルを出るときに反映されます。</p>
+      <p className="cg-hint">Tab = 次のセル / Enter = 下の行 (最後の行では、カラムを追加) / ↑↓ = 上下のセル / Esc = セルから出る / Ctrl+D = 上の行の値を写す / Ctrl+Enter = 下に行を挿入 / Ctrl+Shift+Enter = 行を複製 / Alt+Delete = 行を削除 / Alt+↑↓ = 行を動かす (行頭のつまみのドラッグでも)。文字のセルは、セルを出るときに反映されます。</p>
     </div>
   );
 }

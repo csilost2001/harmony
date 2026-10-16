@@ -721,7 +721,7 @@ describe("MCP の権限 (mcpAccess)", () => {
   });
   it("readonly: 読み取りの tool だけが残り、書き込みは拒否される", () => {
     const env = { HARMONY_MCP_MODE: "readonly" };
-    for (const w of ["designer__remove_table", "designer__rename_entity", "designer__save_all", "designer__update_step", "designer__restore_version", "designer__repair_registry", "designer__persist_uuids", "designer__solution_pack", "editSession__save", "editSession__create"]) {
+    for (const w of ["designer__remove_table", "designer__rename_entity", "designer__replace_references", "designer__undo_replace_references", "designer__save_all", "designer__update_step", "designer__restore_version", "designer__repair_registry", "designer__persist_uuids", "designer__solution_pack", "editSession__save", "editSession__create"]) {
       expect(isToolAllowed(w, env), w).toBe(false);
       expect(() => assertToolAllowed(w, env)).toThrow(/読み取り専用/);
     }

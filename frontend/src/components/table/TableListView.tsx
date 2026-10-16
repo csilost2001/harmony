@@ -728,6 +728,8 @@ export function TableListView() {
         <SortBar sort={sort} columnLabels={columnLabels} />
 
         <DataList
+          prefsKey="table-list"
+          dragRef={(t) => `@table.${t.id}`}
           items={sort.sorted}
           columns={columns}
           getId={(t) => t.id}

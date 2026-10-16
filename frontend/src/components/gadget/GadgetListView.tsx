@@ -530,6 +530,7 @@ export function GadgetListView() {
 
       <div className="screen-list-body">
         <DataList
+          prefsKey="gadget-list"
           items={sort.sorted}
           columns={columns}
           getId={(s) => s.id}

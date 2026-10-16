@@ -5,6 +5,7 @@
  * - ↑ / ↓ (文字を打つ欄だけ。数値・選択・候補が開いている欄は除く) = 上下の行の同じ列へ
  * - Esc = 欄から出る
  * - Ctrl+D = 1 つ上の行の同じ列の値を、この欄へ写す (表計算ソフトの「下方向へコピー」)
+ * - Alt+↑ / Alt+↓ = この行を 1 つ上 / 下へ動かす (onMoveRow)
  * - Ctrl+Enter = この行の下に行を挿入 (onInsertRowBelow) / Ctrl+Shift+Enter = この行を複製 (onDuplicateRow) / Alt+Delete = この行を削除 (onDeleteRow)
  *   (行の番号は、行 (`<tr>`) の `data-grid-row` から読む。行を表す印が無い表では、この 3 つは使えない)
  *
@@ -37,6 +38,8 @@ export interface GridKeyboardOptions {
   onDuplicateRow?: (rowIndex: number) => void;
   /** Alt+Delete: 行を削除する */
   onDeleteRow?: (rowIndex: number) => void;
+  /** Alt+↑ / Alt+↓: 行を 1 つ上 (-1) / 下 (1) へ動かす */
+  onMoveRow?: (rowIndex: number, dir: -1 | 1) => void;
 }
 
 /** 入力欄・選択欄の値を、画面の部品 (React) にも伝わる形で入れる */
@@ -53,7 +56,7 @@ const rowIndexOf = (row: Element): number | null => {
   return Number.isInteger(n) ? n : null;
 };
 
-export function useGridKeyboard({ onAppendRow, onInsertRowBelow, onDuplicateRow, onDeleteRow }: GridKeyboardOptions = {}) {
+export function useGridKeyboard({ onAppendRow, onInsertRowBelow, onDuplicateRow, onDeleteRow, onMoveRow }: GridKeyboardOptions = {}) {
   const onKeyDown = useCallback((e: ReactKeyboardEvent<HTMLElement>) => {
     if (e.defaultPrevented || e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) return;
     const target = e.target as HTMLElement;
@@ -86,6 +89,10 @@ export function useGridKeyboard({ onAppendRow, onInsertRowBelow, onDuplicateRow,
         if (onDeleteRow) { e.preventDefault(); onDeleteRow(idx); }
         return;
       }
+      if (e.altKey && !mod && !e.shiftKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+        if (onMoveRow) { e.preventDefault(); onMoveRow(idx, e.key === "ArrowUp" ? -1 : 1); }
+        return;
+      }
     }
     if (mod || e.altKey) return;
 
@@ -110,7 +117,7 @@ export function useGridKeyboard({ onAppendRow, onInsertRowBelow, onDuplicateRow,
       e.preventDefault();
       onAppendRow();
     }
-  }, [onAppendRow, onInsertRowBelow, onDuplicateRow, onDeleteRow]);
+  }, [onAppendRow, onInsertRowBelow, onDuplicateRow, onDeleteRow, onMoveRow]);
 
   return { onKeyDown };
 }

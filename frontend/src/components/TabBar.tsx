@@ -5,6 +5,8 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragMoveEvent,
+  type DragStartEvent,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -28,6 +30,7 @@ import {
 import "../styles/tabbar.css";
 import { tabPath } from "../routing/tabPaths";
 import { setSplit } from "../store/splitStore";
+import { splitDrop, useSplitDrop } from "../store/splitDropStore";
 import { useWorkspacePath } from "../hooks/useWorkspacePath";
 
 type ContextMenu = {
@@ -166,8 +169,28 @@ export function TabBar() {
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
   );
 
+  // タブを、本文の右の領域へドラッグして離すと、右側に並べて表示する (キーボードでは、タブの右クリックメニューの「右側に並べて表示」)
+  const drop = useSplitDrop();
+  const pointerOf = (e: { activatorEvent: Event; delta: { x: number; y: number } }) => {
+    const a = e.activatorEvent as PointerEvent;
+    return { x: a.clientX + e.delta.x, y: a.clientY + e.delta.y };
+  };
+  const handleDragStart = (e: DragStartEvent) => {
+    const tab = tabs.find((t) => t.id === e.active.id);
+    const canSplit = !!wsId && !!tab && tab.id !== activeTabId && tab.type !== "workspace-list";
+    splitDrop.begin(canSplit ? document.getElementById("app-main")?.getBoundingClientRect() ?? null : null);
+  };
+  const handleDragMove = (e: DragMoveEvent) => { const p = pointerOf(e); splitDrop.move(p.x, p.y); };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+    const toSplit = splitDrop.isHot();
+    splitDrop.end();
+    if (toSplit) {
+      const tab = tabs.find((t) => t.id === active.id);
+      const path = tab && wsId ? tabPath("", tab) : null;
+      if (tab && path && wsId) { setSplit(wsId, { path, label: tab.label, tabId: tab.id }); return; }
+    }
     if (!over || active.id === over.id) return;
     const oldIdx = tabs.findIndex((t) => t.id === active.id);
     const newIdx = tabs.findIndex((t) => t.id === over.id);
@@ -246,6 +269,12 @@ export function TabBar() {
 
   return (
     <>
+      {drop.zone && (
+        <div className={`split-drop-zone${drop.hot ? " is-hot" : ""}`} aria-hidden="true" data-testid="split-drop-zone"
+          style={{ left: drop.zone.left, top: drop.zone.top, width: drop.zone.width, height: drop.zone.height }}>
+          <span><i className="bi bi-layout-sidebar-inset-reverse" /> ここで離すと、右側に並べて表示</span>
+        </div>
+      )}
       <nav
         aria-label="開いているタブ"
         className={[
@@ -265,7 +294,7 @@ export function TabBar() {
             <i className="bi bi-chevron-left" />
           </button>
         )}
-        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragMove={handleDragMove} onDragEnd={handleDragEnd} onDragCancel={() => splitDrop.end()}>
           <SortableContext
             items={tabs.map((t) => t.id)}
             strategy={horizontalListSortingStrategy}

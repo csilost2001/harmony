@@ -108,6 +108,9 @@ import { conflictingItemIds, planItemPaste } from "../../utils/itemClipboard";
 import { showToast } from "../../utils/toast";
 import { SnippetMenu } from "../common/SnippetMenu";
 import { HelpHint } from "../help/HelpHint";
+import { GridFillHandle } from "../common/GridFillHandle";
+import { useRowDragReorder } from "../../hooks/useRowDragReorder";
+import { moveItem, remapIndexSet } from "../../utils/rowReorder";
 
 type ScreenMeta = { id: string; name: string };
 
@@ -483,8 +486,22 @@ export function ScreenItemsView() {
     focusItemRow(Math.max(0, idx - 1));
   }, [updateWithDraft, focusItemRow]);
 
+  // 行を動かす (つまみのドラッグ / Alt+↑↓)。展開・選択の印は、行といっしょに動かす
+  const handleMoveItem = useCallback((from: number, to: number) => {
+    const f = fileRef.current;
+    if (!f || from === to || from < 0 || to < 0 || from >= f.items.length || to >= f.items.length) return;
+    updateWithDraft((doc) => { doc.items = moveItem(doc.items, from, to); });
+    setSelectedIndices((s) => remapIndexSet(s, from, to));
+    setExpandedErrorRows((s) => remapIndexSet(s, from, to));
+    setExpandedDetailRows((s) => remapIndexSet(s, from, to));
+    setExpandedEventRows((s) => remapIndexSet(s, from, to));
+    focusItemRow(to);
+  }, [updateWithDraft, focusItemRow]);
+  const rowDrag = useRowDragReorder({ onMove: handleMoveItem, disabled: isReadonly });
+
   // 表計算ソフトのように、Enter / ↑↓ で上下の行の同じ列へ移る (最後の行の Enter で行を追加)
   const gridKeys = useGridKeyboard({
+    onMoveRow: isReadonly ? undefined : (i, dir) => handleMoveItem(i, i + dir),
     onAppendRow: isReadonly ? undefined : handleAddItem,
     onInsertRowBelow: isReadonly ? undefined : handleInsertItemBelow,
     onDuplicateRow: isReadonly ? undefined : handleDuplicateItemAt,
@@ -1137,6 +1154,7 @@ export function ScreenItemsView() {
             </div>
           )}
           <div className="screen-items-table-wrap" data-region="項目の表">
+            <GridFillHandle />
             <table className="screen-items-table" onKeyDown={onTableKeyDown}>
               <colgroup>
                 <col style={{ width: 24 }} />
@@ -1188,7 +1206,7 @@ export function ScreenItemsView() {
                 )}
                 {file.items.map((item, i) => (
                   <React.Fragment key={i}>
-                  <tr className={selectedIndices.has(i) ? "screen-items-row-selected" : ""} data-grid-row={i}>
+                  <tr className={`${selectedIndices.has(i) ? "screen-items-row-selected" : ""} ${rowDrag.rowClass(i)}`.trim()} data-grid-row={i} {...rowDrag.rowProps(i)}>
                     <td className="text-center">
                       <input
                         type="checkbox"
@@ -1199,6 +1217,7 @@ export function ScreenItemsView() {
                       />
                     </td>
                     <td className="screen-items-no">
+                      {!isReadonly && <span className="row-grip" role="button" tabIndex={-1} aria-label={`行${i + 1}をドラッグして並べ替え (Alt+↑↓ でも動かせます)`} title="ドラッグして並べ替え (Alt+↑↓)" data-testid={`row-grip-${i}`} {...rowDrag.gripProps(i)}><i className="bi bi-grip-vertical" /></span>}
                       {i + 1}
                       {item.id && (itemMarkerCounts.get(anchorPathItem(item.id)) ?? 0) > 0 && (
                         <button type="button" className="col-marker-badge" title="この項目への、未解決のマーカー (クリックで開く)" data-testid={`item-marker-badge-${item.id}`}

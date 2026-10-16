@@ -378,4 +378,72 @@ test.describe("並べて表示", () => {
     await page.getByTestId("split-close").click();
     await expect(page.getByTestId("split-pane")).toBeHidden();
   });
+
+  test("タブを、本文の右の領域へドラッグして離すと、右側に並べて表示できる (領域の外で離すと、並べ替えだけ) @regression", async ({ page }) => {
+    await ws.gotoActive(page, "/table/list");
+    await ws.gotoActive(page, "/screen/list");
+    const tab = page.locator(".tab-item, .tabbar-tab").filter({ hasText: /テーブル/ }).first();
+    const box = (await tab.boundingBox())!;
+    const main = (await page.locator("#app-main").boundingBox())!;
+    const start = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+
+    // 領域の外で離す: 並んで表示はしない
+    await page.mouse.move(start.x, start.y);
+    await page.mouse.down();
+    await page.mouse.move(start.x + 12, start.y, { steps: 3 });
+    await page.mouse.move(main.x + main.width * 0.3, main.y + 200, { steps: 4 });
+    await expect(page.getByTestId("split-drop-zone")).toBeVisible();
+    await expect(page.getByTestId("split-drop-zone")).not.toHaveClass(/is-hot/);
+    await page.mouse.up();
+    await expect(page.getByTestId("split-pane")).toBeHidden();
+    await expect(page.getByTestId("split-drop-zone")).toHaveCount(0);
+
+    // 右の領域で離す
+    const box2 = (await tab.boundingBox())!;
+    await page.mouse.move(box2.x + box2.width / 2, box2.y + box2.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box2.x + box2.width / 2 + 12, box2.y + box2.height / 2, { steps: 3 });
+    await page.mouse.move(main.x + main.width * 0.85, main.y + 200, { steps: 6 });
+    await expect(page.getByTestId("split-drop-zone")).toHaveClass(/is-hot/);
+    await page.mouse.up();
+    await expect(page.getByTestId("split-pane")).toBeVisible();
+    await expect(page.frameLocator('[data-testid="split-frame"]').locator("body")).toContainText(/テーブル/, { timeout: 20000 });
+    await page.getByTestId("split-close").click();
+  });
+
+  test("並べて表示の一覧の行を、入力欄 (参照の補完つき) へドラッグすると、参照が入る @regression", async ({ page }) => {
+    // 一覧を表表示にしておく (並べて表示の右側で使う)
+    await ws.gotoActive(page, "/table/list");
+    await page.getByRole("button", { name: "表表示" }).click();
+    await expect(page.locator("tr.data-list-row").first()).toBeVisible({ timeout: 15000 });
+    await ws.gotoActive(page, "/screen/items/cart");
+    const start = page.getByTestId("edit-mode-start");
+    await expect(start).toBeVisible({ timeout: 15000 });
+    await start.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.getByTestId("edit-mode-save")).toBeVisible();
+
+    const tab = page.locator(".tab-item, .tabbar-tab").filter({ hasText: /テーブル/ }).first();
+    await tab.click({ button: "right" });
+    await page.getByTestId("tab-open-split").click();
+    const frame = page.frameLocator('[data-testid="split-frame"]');
+    const row = frame.locator("tr.data-list-row").first();
+    await expect(row).toBeVisible({ timeout: 20000 });
+    const tableId = await row.getAttribute("data-row-id");
+
+    // 行を、左の表の「入力書式」欄へドラッグ (別の枠をまたいで)
+    const target = page.locator('.screen-items-table tbody tr[data-grid-row="0"] input[placeholder^="例: @conv.regex"]');
+    await target.scrollIntoViewIfNeeded();
+    // boundingBox は、枠の中の要素でも、ページ全体の座標で返る
+    const rb = (await row.boundingBox())!;
+    const tb = (await target.boundingBox())!;
+    const ry = rb.y + rb.height / 2;
+    await page.mouse.move(rb.x + rb.width / 3, ry);
+    await page.mouse.down();
+    await page.mouse.move(rb.x + rb.width / 3 - 40, ry, { steps: 5 });
+    await page.mouse.move(tb.x + 20, tb.y + tb.height / 2, { steps: 12 });
+    await page.mouse.up();
+    await expect(target).toHaveValue(new RegExp(`@table\\.${tableId}$`)); // 入力欄のカーソル (末尾) の位置に入る
+    await page.getByTestId("split-close").click();
+  });
 });

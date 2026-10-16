@@ -43,6 +43,7 @@ ID の改名と**同じ走査** (`previewEntityRename`、存在しない ID へ�
 |---|---|
 | `designer__rename_entity` | ID を改名する。**既定は予行** (`apply` なし): 影響するファイル・参照元・止める理由 (`blockers`: 存在しない / ID の重複 / 編集中のセッション / 同名で曖昧 / 図の座標の衝突) を返す。内容を確かめて `apply: true` で実行。止める理由があるときは `apply: true` でも実行しない |
 | `designer__undo_rename` | 実行した改名を戻す (`operation.operationId`。一定時間のみ) |
+| `designer__replace_references` / `designer__undo_replace_references` | 参照元を選んで、別の設計へ付け替える (A は残る。既定は予行、`referrers` + `apply: true`)。5 分以内なら戻せる。仕様: [ui-direct-manipulation.md](ui-direct-manipulation.md) §4 |
 
 画面の「ID 変更」と同じ処理 (参照の一括追従・編集中セッションの確認・reload の通知) を使う。実行後は開いている画面に reload が届く。
 

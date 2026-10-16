@@ -1,7 +1,7 @@
 {
   "_doc": "ドラッグ操作のある画面と、マウスを使わずに同じことをする方法の台帳。新しくドラッグ操作を足したら、ここに代替を書く (検査: node scripts/verify/drag-alternatives.mjs)。仕様: docs/spec/keyboard-alternatives.md",
-  "frontend/src/components/TabBar.tsx": "タブの並べ替え → Ctrl+Shift+PageUp / PageDown、タブの右クリックメニューの「左へ動かす / 右へ動かす」",
-  "frontend/src/components/common/DataList.tsx": "一覧の行の並べ替え → 行を選んで Alt+↑↓ (useListKeyboard)",
+  "frontend/src/components/TabBar.tsx": "タブの並べ替え → Ctrl+Shift+PageUp / PageDown、タブの右クリックメニューの「左へ動かす / 右へ動かす」。タブを右の領域へドラッグして並べて表示 → タブの右クリックメニューの「右側に並べて表示」",
+  "frontend/src/components/common/DataList.tsx": "一覧の行の並べ替え → 行を選んで Alt+↑↓ (useListKeyboard)。列の並び・表示・幅 (見出しのドラッグ) → 一覧の右上の「列の設定」で、列ごとの ↑↓ ボタン・表示のチェック・幅の数値。行を入力欄へドラッグして参照を入れる → 一覧の右上の「表としてコピー」メニューの「選んだ行の参照をコピー」→ 入力欄へ貼り付け",
   "frontend/src/components/common/SortableList.tsx": "業務フロー・帳票の左の一覧の並べ替え → 持ち手にフォーカスして Space → ↑↓ → Space (KeyboardSensor)、各行の上へ / 下へのボタン",
   "frontend/src/components/dashboard/DashboardView.tsx": "ダッシュボードのパネルの移動・大きさ → パネルの見出しにフォーカスして Alt+矢印 (移動) / Alt+Shift+矢印 (大きさ)",
   "frontend/src/components/flow/FlowEditor.tsx": "画面フロー図: 画面の位置 → 画面を選んで矢印キー (React Flow の標準)。遷移の追加 (線を引く) → 「遷移を追加」ボタン (遷移元・遷移先を選ぶ)",
@@ -9,7 +9,7 @@
   "frontend/src/components/process-flow/SortableStepCard.tsx": "工程の並べ替え → 工程の見出しにフォーカスして Alt+↑↓、Tab / Shift+Tab で入れ子の出入り (useStepKeyboard)",
   "frontend/src/components/process-flow/internal/PaletteButtons.tsx": "パレットから工程を挿入 → ボタンのクリック / Enter (ドラッグしなくても末尾へ挿入。工程の見出しで Insert なら位置を選べる)",
   "frontend/src/components/report/ReportEditor.tsx": "帳票の用紙の見本の項目の並べ替え → 項目を選んで、右の欄の「左へ / 右へ」、部の「上へ / 下へ」ボタン",
-  "frontend/src/components/screen-layout/LayoutCanvas.tsx": "部品の移動 → 部品を選んで ↑↓←→ (選択の移動)、Alt+↑↓ (同じ入れ物の中)、Alt+←→ (入れ物の外へ / 中へ)、右の欄の同じボタン",
+  "frontend/src/components/screen-layout/LayoutCanvas.tsx": "部品の移動 → 部品を選んで ↑↓←→ (選択の移動)、Alt+↑↓ (同じ入れ物の中)、Alt+←→ (入れ物の外へ / 中へ)、右の欄の同じボタン。段の幅 (境界のドラッグ) → 段を選んで Alt+Shift+←→、右の欄の「幅 (12 分割)」",
   "frontend/src/components/screen-layout/LayoutPalette.tsx": "パレットからの部品の追加 → 部品名のクリック / Enter (選んでいる部品の隣・中へ追加)",
   "frontend/src/components/table/ErDiagram.tsx": "ER 図: テーブルの位置 → テーブルを選んで矢印キー (React Flow の標準)。論理リレーションの追加 (線を引く) → 「論理リレーション追加」ボタン"
 }

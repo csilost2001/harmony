@@ -738,6 +738,8 @@ export function ViewDefinitionListView() {
         <SortBar sort={sort} columnLabels={columnLabels} />
 
         <DataList
+          prefsKey="view-definition-list"
+          dragRef={(v) => `@viewer.${String(v.id)}`}
           items={sort.sorted}
           columns={columns}
           getId={(v) => String(v.id)}

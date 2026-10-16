@@ -6,6 +6,8 @@ import { useState, type ReactNode } from "react";
 import { LAYOUT_NODE_LABELS, type LayoutComponentDef, type LayoutComponentParam, type LayoutIssue, type LayoutNode, type LayoutNodeProps } from "@harmony/shared";
 import type { ScreenItem, ScreenItemPresentationColumn } from "../../types/v3/screen-item";
 import { isValidNodeId } from "./layoutModel";
+import { AttrClipboardBar } from "./AttrClipboardBar";
+import { applyAttrs } from "../../utils/itemAttrs";
 
 export interface LayoutInspectorProps {
   editable: boolean;
@@ -357,6 +359,7 @@ function ItemEditor({ item, editable, onItemChange, onCommit, isTable }: {
   return (
     <div className="sld-item-editor" data-testid="layout-item-editor">
       <h2 className="sld-group-title">画面項目の定義 <code>{id}</code></h2>
+      <AttrClipboardBar editable={editable} source={item} targetCount={1} onPaste={(snap, keys) => onItemChange(id, (i) => applyAttrs(i, snap, keys), true)} />
       <Row label="項目名" htmlFor="sld-item-label"><TextInput id="sld-item-label" value={(item.label as string) ?? ""} disabled={!editable} onLive={(v) => set("label", v as ScreenItem["label"], false)} onDone={onCommit} /></Row>
       {!isTable && (
         <div className="sld-row-2">

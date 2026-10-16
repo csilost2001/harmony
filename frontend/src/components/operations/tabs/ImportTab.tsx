@@ -14,6 +14,7 @@ import { showToast } from "../../../utils/toast";
 import { generateUUID } from "../../../utils/uuid";
 import { readFileBytes } from "../../../utils/inflate";
 import { useLoad } from "../useLoad";
+import { takePendingImport } from "../../../store/pendingImport";
 
 const ts = () => new Date().toISOString();
 
@@ -36,7 +37,8 @@ async function readText(file: File): Promise<string> {
 const MAX_LIVE_CHARS = 20_000_000;
 
 function DdlImport() {
-  const [text, setText] = useState("");
+  // ファイルのドロップで開かれたときは、その内容を入れる
+  const [text, setText] = useState(() => takePendingImport("ddl") ?? "");
   const [skip, setSkip] = useState<Set<string>>(new Set()); // 外したテーブル (既定はすべて選ぶ)
   const [busy, setBusy] = useState(false);
   // 既にあるテーブル: ファイルの実体を、毎回読み直す (一覧の登録簿は、取り込みの直後に追いつかないことがある)
@@ -100,7 +102,7 @@ function DdlImport() {
 }
 
 function OpenApiImport() {
-  const [text, setText] = useState("");
+  const [text, setText] = useState(() => takePendingImport("openapi") ?? "");
   const [error, setError] = useState<string | null>(null);
   const [skip, setSkip] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);

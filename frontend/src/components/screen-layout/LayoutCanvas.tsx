@@ -5,11 +5,15 @@
  * キャンバスは設計対象アプリの見本なので、アプリ UI のテーマ (ライト / ダーク) に関係なく
  * 紙面 (明色) で描く。色は styles/screenLayout.css の --pv-* を使う。
  */
-import { createContext, useContext, useMemo, useState, type DragEvent, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import DOMPurify from "dompurify";
-import { CONTAINER_TYPES, LAYOUT_NODE_LABELS, expandComponentNode, type LayoutComponentDef, type LayoutNode, type LayoutNodeType } from "@harmony/shared";
+import { CONTAINER_TYPES, LAYOUT_NODE_LABELS, expandComponentNode, findParent, type LayoutComponentDef, type LayoutNode, type LayoutNodeType } from "@harmony/shared";
 import type { ScreenItem } from "../../types/v3/screen-item";
 import { ROOT_ID, computeDropTarget, getDragPayload, setDragPayload, DND_MIME, type DropTarget, type DragPayload } from "./layoutDnd";
+import { inlineTarget } from "./layoutInline";
+import { columnPairOf, pairAfterDelta, spanDeltaFromPixels } from "./layoutResize";
+import { isImeComposing, isPlainEnter } from "../../utils/imeKeys";
+import { useLongPress } from "../../hooks/useLongPress";
 
 export interface CanvasContextValue {
   itemsById: Map<string, ScreenItem>;
@@ -20,7 +24,22 @@ export interface CanvasContextValue {
   issuesByNode: Map<string, "error" | "warning">;
   /** プロジェクト独自部品の定義 (参照部品を展開して描くため) */
   components: LayoutComponentDef[];
-  onSelect: (id: string | null) => void;
+  /** mod: toggle = Ctrl / Cmd+クリック (選択に入れる / 外す)、range = Shift+クリック (範囲) */
+  onSelect: (id: string | null, mod?: "toggle" | "range") => void;
+  /** 複数選択のとき、選ばれている部品すべて (省略すると selectedId だけ) */
+  selectedIds?: ReadonlySet<string>;
+  /** 部品の木 (段の幅をドラッグで変えるときに、隣の段を知るため) */
+  nodes?: readonly LayoutNode[];
+  /** 紙面の上で文言を直している部品 (未指定なら、その場の編集は使えない) */
+  editingId?: string | null;
+  onStartInline?: (id: string) => void;
+  /** move: 確定して、次 (1) / 前 (-1) の文言へ移る */
+  onInlineCommit?: (id: string, value: string, move?: -1 | 0 | 1) => void;
+  onInlineCancel?: () => void;
+  /** 右クリック / Shift+F10 のメニュー (座標は画面) */
+  onContextMenu?: (id: string, x: number, y: number) => void;
+  /** 段の境界のドラッグ。2 つの段の幅を、live=入力中 / commit=確定 で書き換える */
+  onResizeColumns?: (leftId: string, rightId: string, leftSpan: number, rightSpan: number, commit: boolean) => void;
 }
 
 const Ctx = createContext<CanvasContextValue | null>(null);
@@ -215,16 +234,90 @@ function ComponentBody({ node, parentType }: { node: LayoutNode; parentType: Lay
   );
 }
 
+/** 紙面の上で、文言をその場で直す小さな入力欄。Enter 確定・Esc 取り消し・Tab で次の文言へ */
+function InlineEditor({ node }: { node: LayoutNode }) {
+  const { itemsById, onInlineCommit, onInlineCancel } = useCanvas();
+  const target = inlineTarget(node, node.itemRef ? itemsById.get(node.itemRef) : undefined);
+  const [value, setValue] = useState(target?.value ?? "");
+  const ref = useRef<HTMLInputElement & HTMLTextAreaElement>(null);
+  const done = useRef(false);
+  useEffect(() => { ref.current?.focus(); ref.current?.select(); }, []);
+  if (!target) return null;
+  const finish = (move: -1 | 0 | 1) => { if (done.current) return; done.current = true; onInlineCommit?.(node.id, value, move); };
+  const onKeyDown = (e: ReactKeyboardEvent) => {
+    e.stopPropagation();
+    if (isImeComposing(e)) return;
+    if (e.key === "Escape") { e.preventDefault(); done.current = true; onInlineCancel?.(); }
+    else if (isPlainEnter(e)) { e.preventDefault(); finish(0); }
+    else if (e.key === "Tab") { e.preventDefault(); finish(e.shiftKey ? -1 : 1); }
+  };
+  const common = {
+    ref, value, className: "sld-inline-editor", "aria-label": `${LAYOUT_NODE_LABELS[node.type]}の文言`, placeholder: target.placeholder,
+    "data-testid": "layout-inline-editor", onKeyDown, onBlur: () => finish(0),
+    onClick: (e: { stopPropagation: () => void }) => e.stopPropagation(), onDoubleClick: (e: { stopPropagation: () => void }) => e.stopPropagation(),
+    onMouseDown: (e: { stopPropagation: () => void }) => e.stopPropagation(),
+  };
+  return target.multiline
+    ? <textarea {...common} rows={Math.max(2, value.split("\n").length)} onChange={(e) => setValue(e.target.value)} />
+    : <input {...common} onChange={(e) => setValue(e.target.value)} />;
+}
+
+/** 段の右端の境界。ドラッグ (または Alt+Shift+←→) で、隣の段との幅の配分を変える */
+function ColumnHandle({ node }: { node: LayoutNode }) {
+  const { nodes, onResizeColumns } = useCanvas();
+  const [tip, setTip] = useState<string | null>(null);
+  const drag = useRef<{ x: number; rowWidth: number; total: number; baseLeft: number; baseRight: number; rightId: string; last: string } | null>(null);
+  const pair = nodes ? columnPairOf(nodes, node.id) : null;
+  if (!pair || !onResizeColumns) return null;
+  const pos = findParent(nodes ?? [], node.id);
+  const total = (pos?.parent?.children ?? []).reduce((a, c) => a + (c.props?.span ?? 6), 0);
+  const down = (e: ReactPointerEvent<HTMLDivElement>) => {
+    e.preventDefault(); e.stopPropagation();
+    const row = e.currentTarget.closest(".pv-columns")?.getBoundingClientRect().width ?? 0;
+    drag.current = { x: e.clientX, rowWidth: row, total, baseLeft: pair.baseLeft, baseRight: pair.baseRight, rightId: pair.right.id, last: "" };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const move = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    if (!d) return;
+    const r = pairAfterDelta(d.baseLeft, d.baseRight, spanDeltaFromPixels(e.clientX - d.x, d.rowWidth, d.total));
+    const key = `${r.leftSpan}:${r.rightSpan}`;
+    if (key === d.last) return;
+    d.last = key;
+    setTip(`${r.leftSpan} : ${r.rightSpan}`);
+    onResizeColumns(node.id, d.rightId, r.leftSpan, r.rightSpan, false);
+  };
+  const up = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    drag.current = null;
+    setTip(null);
+    if (!d) return;
+    e.currentTarget.releasePointerCapture(e.pointerId);
+    const r = pairAfterDelta(d.baseLeft, d.baseRight, spanDeltaFromPixels(e.clientX - d.x, d.rowWidth, d.total));
+    onResizeColumns(node.id, d.rightId, r.leftSpan, r.rightSpan, true);
+  };
+  return (
+    <div className="sld-col-handle" role="separator" aria-orientation="vertical" aria-label={`${node.id} と次の段の境界 (ドラッグで幅を変える。Alt+Shift+←→ でも)`}
+      title="ドラッグで、この段と次の段の幅の配分を変える" data-testid={`layout-col-handle-${node.id}`}
+      onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onClick={(e) => e.stopPropagation()} draggable={false}>
+      {tip && <span className="sld-col-tip">{tip}</span>}
+    </div>
+  );
+}
+
 function NodeView({ node, parentType, frozen = false }: { node: LayoutNode; parentType: LayoutNodeType | null; frozen?: boolean }) {
-  const { selectedId, editable, onSelect, issuesByNode } = useCanvas();
+  const { selectedId, selectedIds, editable, onSelect, issuesByNode, editingId, itemsById, onStartInline, onContextMenu } = useCanvas();
   const [activeTab, setActiveTab] = useState(0);
-  const selected = selectedId === node.id;
+  const selected = selectedIds ? selectedIds.has(node.id) : selectedId === node.id;
+  const editing = editingId === node.id;
+  // タッチ・ペンの長押し = 右クリック (UI 改善提案 第 3 弾 #59)
+  const longPress = useLongPress((x, y) => { onContextMenu?.(node.id, x, y); }, !!onContextMenu && !frozen);
   const issue = issuesByNode.get(node.id);
   const isContainer = CONTAINER_TYPES.has(node.type);
   const p = node.props ?? {};
 
   const onDragStart = (e: DragEvent) => {
-    if (!editable) { e.preventDefault(); return; }
+    if (!editable || (e.target as HTMLElement).closest?.(".sld-col-handle")) { e.preventDefault(); return; }
     e.stopPropagation();
     const payload: DragPayload = { kind: "move-node", nodeId: node.id, nodeType: node.type };
     setDragPayload(payload);
@@ -291,21 +384,34 @@ function NodeView({ node, parentType, frozen = false }: { node: LayoutNode; pare
       data-node-type={node.type}
       className={`sld-node${selected ? " is-selected" : ""}${issue ? ` has-${issue}` : ""}`}
       style={{ ...style, ...span }}
-      draggable={editable}
+      draggable={editable && !editing}
       onDragStart={onDragStart}
       onDragEnd={() => setDragPayload(null)}
-      onClick={(e) => { e.stopPropagation(); onSelect(node.id); }}
+      onClick={(e) => { e.stopPropagation(); onSelect(node.id, e.ctrlKey || e.metaKey ? "toggle" : e.shiftKey ? "range" : undefined); }}
+      onDoubleClick={(e) => {
+        if (!editable || !onStartInline || !inlineTarget(node, node.itemRef ? itemsById.get(node.itemRef) : undefined)) return;
+        e.stopPropagation();
+        onStartInline(node.id);
+      }}
+      onContextMenu={(e) => {
+        if (!onContextMenu) return;
+        e.preventDefault(); e.stopPropagation();
+        onContextMenu(node.id, e.clientX, e.clientY);
+      }}
       data-testid={`layout-node-${node.id}`}
+      {...longPress}
     >
       <span className="sld-node-tag">{LAYOUT_NODE_LABELS[node.type]}<code>{node.id}</code></span>
       {body}
+      {editing && <InlineEditor node={node} />}
+      {editable && node.type === "column" && <ColumnHandle node={node} />}
     </div>
   );
 }
 
 // ── キャンバス本体 ─────────────────────────────────────────────────────────
 
-export interface LayoutCanvasProps extends Omit<CanvasContextValue, "itemsById"> {
+export interface LayoutCanvasProps extends Omit<CanvasContextValue, "itemsById" | "nodes"> {
   nodes: LayoutNode[];
   items: ScreenItem[];
   width: number;
@@ -316,11 +422,16 @@ export interface LayoutCanvasProps extends Omit<CanvasContextValue, "itemsById">
 export function LayoutCanvas({ nodes, items, width, density, onDrop, ...ctx }: LayoutCanvasProps) {
   const itemsById = useMemo(() => new Map(items.map((i) => [i.id as string, i])), [items]);
   const [target, setTarget] = useState<DropTarget | null>(null);
-  const value = useMemo(() => ({ ...ctx, itemsById }), [ctx, itemsById]);
+  const value = useMemo(() => ({ ...ctx, itemsById, nodes }), [ctx, itemsById, nodes]);
 
   const handleDragOver = (e: DragEvent) => {
     const payload = getDragPayload();
     if (!payload || !ctx.editable) return;
+    // 紙面の上下の端へ寄せると、自動でスクロールする (長い画面でも、端まで運べる)
+    const sc = e.currentTarget as HTMLElement;
+    const sr = sc.getBoundingClientRect();
+    if (e.clientY < sr.top + 56) sc.scrollTop -= 18;
+    else if (e.clientY > sr.bottom - 56) sc.scrollTop += 18;
     const t = computeDropTarget(e.target as Element, e.clientX, e.clientY, payload, nodes);
     if (t) {
       e.preventDefault();
