@@ -7,6 +7,7 @@
  *
  * 仕様: docs/spec/screen-layout.md
  */
+import { PREVIEW_STATE_LABELS, SAMPLE_MODE_LABELS, type PreviewState, type SampleMode } from "../../utils/sampleValues";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -157,6 +158,10 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
   const [viewport, setViewport] = useState(VIEWPORTS[0]);
   const [density, setDensity] = useState<"standard" | "compact">("standard");
   const [showNotes, setShowNotes] = useState(false);
+  // 紙面に流し込むサンプル値と、確かめる画面の状態 (続編 第 8 弾 #141 #142)。保存せず、開くたびに「なし」「通常」
+  const [showMeasures, setShowMeasures] = useState(false);
+  const [sampleMode, setSampleMode] = useState<SampleMode>("off");
+  const [previewState, setPreviewState] = useState<PreviewState>("normal");
 
   // ── 更新 (draft 同期付き) ───────────────────────────────────────────────
   const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -521,6 +526,21 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
             <button type="button" className={`sld-toggle${showNotes ? " active" : ""}`} onClick={() => setShowNotes((v) => !v)} title="項目 ID・型・桁数を表示" data-testid="layout-toggle-notes">
               <i className="bi bi-tags" /> 設計情報
             </button>
+            <button type="button" className={`sld-toggle${showMeasures ? " active" : ""}`} onClick={() => setShowMeasures((v) => !v)} title="選んだ部品の寸法と、まわりとのすき間 (px) を表示" aria-pressed={showMeasures} data-testid="layout-toggle-measures">
+              <i className="bi bi-rulers" /> 寸法
+            </button>
+            <label className="sld-select" title="項目にサンプル値を流し込んで、長い値・桁数いっぱい・空のときの崩れを確かめます (設計には保存されません)">
+              <i className="bi bi-input-cursor-text" aria-hidden="true" />
+              <select value={sampleMode} onChange={(e) => setSampleMode(e.target.value as SampleMode)} aria-label="サンプル値" data-testid="layout-sample-mode">
+                {(Object.keys(SAMPLE_MODE_LABELS) as SampleMode[]).map((m) => <option key={m} value={m}>サンプル: {SAMPLE_MODE_LABELS[m]}</option>)}
+              </select>
+            </label>
+            <label className="sld-select" title="画面の状態 (データなし・読み込み中・エラー) の見た目を確かめます (設計には保存されません)">
+              <i className="bi bi-hourglass-split" aria-hidden="true" />
+              <select value={previewState} onChange={(e) => setPreviewState(e.target.value as PreviewState)} aria-label="画面の状態" data-testid="layout-preview-state">
+                {(Object.keys(PREVIEW_STATE_LABELS) as PreviewState[]).map((m) => <option key={m} value={m}>状態: {PREVIEW_STATE_LABELS[m]}</option>)}
+              </select>
+            </label>
           </div>
         ) : undefined}
         extraRight={
@@ -603,6 +623,9 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
               width={viewport.width}
               density={density}
               showNotes={showNotes}
+              sampleMode={sampleMode}
+              showMeasures={showMeasures}
+              previewState={previewState}
               selectedId={selected ? selectedId : null}
               selectedIds={selectedSet}
               editable={editable}

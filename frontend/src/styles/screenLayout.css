@@ -624,3 +624,27 @@ textarea.sld-input { resize: vertical; line-height: 1.5; }
 .sld-attr-pop label { display: flex; gap: 6px; align-items: baseline; padding: 1px 0; }
 .sld-attr-val { margin-left: auto; color: var(--hm-fg-muted); text-align: right; }
 .sld-attr-val.is-unset { color: var(--hm-fg-faint); font-style: italic; }
+
+/* サンプル値と画面の状態 (UI 改善提案 続編 第 8 弾 #141 #142) */
+.sld-select { display: inline-flex; align-items: center; gap: 4px; color: var(--hm-fg-muted); }
+.sld-select select { border: 1px solid var(--hm-border-strong); background: var(--hm-surface); color: var(--hm-fg); border-radius: 6px; padding: 2px 6px; font: inherit; font-size: 0.8rem; }
+.pv-input.pv-sample { align-items: flex-start; min-height: 32px; }
+.pv-input.pv-sample span { white-space: normal; overflow-wrap: anywhere; font-style: normal; color: inherit; }
+.pv-skeleton { height: 16px; width: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--pv-line) 25%, transparent 50%, var(--pv-line) 75%); background-size: 200% 100%; animation: pv-skeleton 1.4s ease-in-out infinite; }
+@keyframes pv-skeleton { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+@media (prefers-reduced-motion: reduce) { .pv-skeleton { animation: none; } }
+.pv-error { color: var(--pv-danger); font-size: 0.85em; display: flex; align-items: center; gap: 4px; }
+.pv-table-state { text-align: center; color: var(--pv-muted); padding: 14px 8px; }
+.pv-message.pv-error { background: color-mix(in srgb, var(--pv-danger) 10%, var(--pv-bg)); border-color: var(--pv-danger); }
+
+/* 部品の検索 (UI 改善提案 続編 第 8 弾 #144) */
+.sld-part-search { display: flex; align-items: center; gap: 6px; padding: 4px 8px; margin: 0 0 6px; border: 1px solid var(--hm-border-strong); border-radius: 6px; background: var(--hm-surface); }
+.sld-part-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--hm-fg); font: inherit; }
+.sld-part-search:focus-within { outline: 2px solid var(--hm-accent); outline-offset: 1px; }
+
+/* 選んだ部品の寸法と、まわりとのすき間 (UI 改善提案 続編 第 8 弾 #143) */
+.sld-paper { position: relative; }
+.sld-measures { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
+.sld-measure-size { position: absolute; transform: translateY(2px); background: var(--hm-accent-solid); color: var(--hm-on-solid); font-size: calc(11px * var(--hm-font-scale)); line-height: 1; padding: 2px 5px; border-radius: 3px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sld-measure-gap { position: absolute; background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--hm-hue-orange) 35%, transparent) 0 4px, transparent 4px 8px); outline: 1px solid var(--hm-hue-orange); display: flex; align-items: center; justify-content: center; overflow: visible; }
+.sld-measure-gap b { background: var(--hm-hue-orange); color: var(--hm-on-solid); font-size: calc(10px * var(--hm-font-scale)); line-height: 1; padding: 1px 4px; border-radius: 3px; font-variant-numeric: tabular-nums; }

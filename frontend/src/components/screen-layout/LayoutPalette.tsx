@@ -12,6 +12,9 @@ import type { Table } from "../../types/v3/table";
 import { DND_MIME, setDragPayload, type DragPayload } from "./layoutDnd";
 import { nodeTypeForItem } from "./layoutModel";
 import { GROUPS } from "./layoutPaletteGroups";
+import { useWorkspacePath } from "../../hooks/useWorkspacePath";
+import { componentPart, loadRecentParts, nodePart, rememberPart } from "../../utils/recentParts";
+import { normalizeForMatch } from "../../utils/textMatch";
 
 function startDrag(e: DragEvent, payload: DragPayload) {
   setDragPayload(payload);
@@ -43,6 +46,17 @@ export interface LayoutPaletteProps {
 export function LayoutPalette({ editable, nodes, items, tables, selectedId, onAdd, onPlaceItem, onAddColumn, onSelect, components = [], onAddComponent, onManageComponents, onAutoPlace }: LayoutPaletteProps) {
   const [tab, setTab] = useState<Tab>("parts");
   const [tableId, setTableId] = useState<string>("");
+  // 部品の検索と、最近使った部品 (続編 第 8 弾 #144)
+  const { wsId } = useWorkspacePath();
+  const [partQuery, setPartQuery] = useState("");
+  const [recent, setRecent] = useState<string[]>(() => loadRecentParts(wsId));
+  const remember = (part: string) => setRecent(rememberPart(wsId, part));
+  const q = normalizeForMatch(partQuery.trim());
+  const allTypes = GROUPS.flatMap((g) => g.types);
+  const typeMatches = (t: { type: LayoutNodeType; hint: string }) => !q || normalizeForMatch(`${LAYOUT_NODE_LABELS[t.type]} ${t.hint} ${t.type}`).includes(q);
+  const compMatches = (c: LayoutComponentDef) => !q || normalizeForMatch(`${c.label} ${c.description ?? ""} ${c.id}`).includes(q);
+  const recentTypes = recent.filter((p) => p.startsWith("node:")).map((p) => allTypes.find((t) => t.type === p.slice(5))).filter((t): t is (typeof allTypes)[number] => !!t);
+  const recentComps = recent.filter((p) => p.startsWith("component:")).map((p) => components.find((c) => c.id === p.slice(10))).filter((c): c is LayoutComponentDef => !!c);
   // 独自部品の中 (args 経由) で使われている項目も「配置済み」に数える
   const placed = useMemo(() => collectExpandedItemRefs(nodes, components), [nodes, components]);
   const unplaced = items.filter((i) => !placed.has(i.id as string) && !i.nonVisual);
@@ -60,20 +74,42 @@ export function LayoutPalette({ editable, nodes, items, tables, selectedId, onAd
       {tab === "parts" && (
         <div className="sld-left-body">
           {!editable && <p className="sld-hint">「編集開始」すると部品を置けます。</p>}
-          {GROUPS.map((g) => (
+          <div className="sld-part-search">
+            <i className="bi bi-search" aria-hidden="true" />
+            <input type="search" value={partQuery} onChange={(e) => setPartQuery(e.target.value)} placeholder="例: ボタン、表、見出し" aria-label="部品を検索" data-testid="layout-part-search" />
+          </div>
+          {!q && (recentTypes.length > 0 || recentComps.length > 0) && (
+            <section data-testid="layout-recent-parts">
+              <h2 className="sld-group-title">最近使った</h2>
+              <div className="sld-parts">
+                {recentTypes.map((t) => (
+                  <button key={t.type} type="button" className="sld-part" disabled={!editable} onClick={() => { remember(nodePart(t.type)); onAdd(t.type); }} title={`${t.hint}（クリックで選択中の部品の後ろに追加）`} data-testid={`layout-recent-${t.type}`}>
+                    <i className={`bi ${t.icon}`} /><span>{LAYOUT_NODE_LABELS[t.type]}</span>
+                  </button>
+                ))}
+                {recentComps.map((c) => (
+                  <button key={c.id} type="button" className="sld-part sld-part-component" disabled={!editable} onClick={() => { remember(componentPart(c.id)); onAddComponent?.(c.id); }} title={c.description ?? c.label} data-testid={`layout-recent-component-${c.id}`}>
+                    <i className="bi bi-puzzle" /><span>{c.label}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+          {q && !allTypes.some(typeMatches) && !components.some(compMatches) && <p className="sld-hint" data-testid="layout-part-search-empty">「{partQuery.trim()}」に合う部品がありません。</p>}
+          {GROUPS.map((g) => g.types.some(typeMatches) && (
             <section key={g.title}>
               <h2 className="sld-group-title">{g.title}</h2>
               <div className="sld-parts">
-                {g.types.map((t) => (
+                {g.types.filter(typeMatches).map((t) => (
                   <button
                     key={t.type}
                     type="button"
                     className="sld-part"
                     draggable={editable}
                     disabled={!editable}
-                    onDragStart={(e) => startDrag(e, { kind: "new-node", nodeType: t.type })}
+                    onDragStart={(e) => { remember(nodePart(t.type)); startDrag(e, { kind: "new-node", nodeType: t.type }); }}
                     onDragEnd={() => setDragPayload(null)}
-                    onClick={() => onAdd(t.type)}
+                    onClick={() => { remember(nodePart(t.type)); onAdd(t.type); }}
                     title={`${t.hint}（ドラッグで配置 / クリックで選択中の部品の後ろに追加）`}
                     data-testid={`layout-part-${t.type}`}
                   >
@@ -84,21 +120,21 @@ export function LayoutPalette({ editable, nodes, items, tables, selectedId, onAd
               </div>
             </section>
           ))}
-          {(components.length > 0 || onManageComponents) && (
+          {(components.length > 0 || onManageComponents) && (!q || components.some(compMatches)) && (
             <section data-testid="layout-components-section">
               <h2 className="sld-group-title">独自部品</h2>
               {components.length === 0 && <p className="sld-hint">このプロジェクト専用の部品はまだありません。画面の部品を選んで「独自部品として登録」すると、ここに並びます。</p>}
               <div className="sld-parts">
-                {components.map((c) => (
+                {components.filter(compMatches).map((c) => (
                   <button
                     key={c.id}
                     type="button"
                     className="sld-part sld-part-component"
                     draggable={editable}
                     disabled={!editable}
-                    onDragStart={(e) => startDrag(e, { kind: "new-component", componentId: c.id, nodeType: "component" })}
+                    onDragStart={(e) => { remember(componentPart(c.id)); startDrag(e, { kind: "new-component", componentId: c.id, nodeType: "component" }); }}
                     onDragEnd={() => setDragPayload(null)}
-                    onClick={() => onAddComponent?.(c.id)}
+                    onClick={() => { remember(componentPart(c.id)); onAddComponent?.(c.id); }}
                     title={`${c.description ?? c.label}（ドラッグで配置 / クリックで選択中の部品の後ろに追加）`}
                     data-testid={`layout-component-${c.id}`}
                   >

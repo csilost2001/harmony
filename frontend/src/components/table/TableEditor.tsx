@@ -1,3 +1,5 @@
+import { ColumnImpactNotice } from "./ColumnImpactNotice";
+import "../../styles/columnImpact.css";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
@@ -20,6 +22,9 @@ import { useEditSession } from "../../hooks/useEditSession";
 import { useSaveShortcut } from "../../hooks/useSaveShortcut";
 import { useSessionUrlSync } from "../../hooks/useSessionUrlSync";
 import { useListSelection } from "../../hooks/useListSelection";
+import { TermVariantHint } from "../common/TermVariantHint";
+import { useKnownTermNames } from "../../hooks/useKnownTermNames";
+import { ClipboardHistoryMenu } from "../common/ClipboardHistoryMenu";
 import { useListClipboard } from "../../hooks/useListClipboard";
 import { useListKeyboard } from "../../hooks/useListKeyboard";
 import { useDetailPanelKeyboard } from "../../hooks/useDetailPanelKeyboard";
@@ -1095,6 +1100,11 @@ function ColumnsTab({
   // activeColId が table.columns 内に存在しないなら render 中に null 化 (React 19 公式 pattern:
   // "Adjusting state while rendering" — setActiveColId が same value なら React は re-render を
   // skip するので無限ループにはならない)。
+  const otherTableTerms = useKnownTermNames(table.id as string);
+  const knownTerms = useMemo(
+    () => [...otherTableTerms, table.name as string, ...table.columns.filter((c) => c.id !== activeColId).map((c) => c.name as string)].filter(Boolean),
+    [otherTableTerms, table.name, table.columns, activeColId],
+  );
   const detailCol = activeColId ? table.columns.find((c) => c.id === activeColId) ?? null : null;
   if (activeColId && !detailCol) {
     setActiveColId(null);
@@ -1262,6 +1272,8 @@ function ColumnsTab({
         </div>
       </div>
 
+      <ColumnImpactNotice tableId={table.id} baseline={baselineColumns} columns={table.columns} />
+
       {gridMode && (
         <ColumnGrid columns={table.columns} readonly={isReadonly} onUpdateColumn={handleUpdateCol} onAppend={handleAddBlank}
           onInsertBelow={handleInsertBelow} onDuplicate={handleDuplicateAt} onDelete={handleDeleteAt} onMove={handleReorder} baseline={baselineColumns}
@@ -1309,6 +1321,8 @@ function ColumnsTab({
             onNameCommit={() => handleNameCommit(detailCol.id)}
             showLength={DATA_TYPES_WITH_LENGTH.includes(detailCol.dataType as BuiltinDataType)}
             showScale={DATA_TYPES_WITH_SCALE.includes(detailCol.dataType as BuiltinDataType)}
+            knownNames={knownTerms}
+            readonly={isReadonly}
           />
         </div>
       )}
@@ -1339,6 +1353,7 @@ function ColumnsTab({
         >
           <i className="bi bi-clipboard-data" /> 表から貼り付け
         </button>
+        <ClipboardHistoryMenu clipboard={clipboard} noun="カラム" disabled={isReadonly || sortActive} describe={(c) => c.name || c.physicalName || c.id} />
       </div>
       {showBulk && (
         <BulkEditDialog<Column>
@@ -1409,9 +1424,12 @@ function ColumnsTab({
 // ── カラム詳細編集 (FK は ConstraintsTab で管理) ────────────────────────────
 
 export function ColumnDetailEditor({
-  col, onUpdate, onNameCommit, showLength, showScale,
+  col, onUpdate, onNameCommit, showLength, showScale, knownNames, readonly,
 }: {
   col: Column;
+  /** 書き方のゆれを調べる基準の名前 (この欄の値は含まなくてよい。同じ値は自動で除く) */
+  knownNames?: readonly string[];
+  readonly?: boolean;
   onUpdate: (patch: Partial<Column>) => void;
   /** 表示名の入力を終えたとき (欄を出たとき)。物理名・型の提案を入れる */
   onNameCommit: () => void;
@@ -1439,6 +1457,7 @@ export function ColumnDetailEditor({
             onBlur={onNameCommit}
             placeholder="例: カラムの日本語名"
           />
+          {knownNames && <TermVariantHint value={col.name} known={knownNames} disabled={readonly} onApply={(v) => { onUpdate({ name: v as DisplayName }); onNameCommit(); }} />}
         </label>
         <label className="tbl-field">
           <span>データ型<HelpHint topic="table.dataType" /></span>

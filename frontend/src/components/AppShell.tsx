@@ -95,6 +95,7 @@ import { FileDropImport } from "./shell/FileDropImport";
 import { FocusModeControl } from "./shell/FocusModeControl";
 import { PageIssueNav } from "./shell/PageIssueNav";
 import { DeepLinkControl } from "./shell/DeepLinkControl";
+import { ScrollMemory } from "./shell/ScrollMemory";
 import { useFieldNormalizer } from "../hooks/useFieldNormalizer";
 import { setSplit, useSplit } from "../store/splitStore";
 
@@ -1056,6 +1057,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       {!pane && <FocusModeControl />}
       {!pane && <PageIssueNav />}
       <DeepLinkControl />
+      <ScrollMemory />
       {pane && <ToastHost />}
       <main id="app-main" className={split && !pane ? "split-root" : undefined} style={split && !pane ? { height: "calc(100vh - var(--common-header-h, 0px) - var(--tabbar-h, 0px))" } : undefined} data-testid={split && !pane ? "split-root" : undefined}>
         <div className={split && !pane ? "split-left" : undefined}>

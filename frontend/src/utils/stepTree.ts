@@ -62,6 +62,27 @@ export function outdentStep(steps: Step[], id: string): boolean {
   return true;
 }
 
+export type WrapResult = { ok: true } | { ok: false; reason: string };
+
+/**
+ * 選んだ工程 (ids) を、新しい入れ物の工程 (wrapper。`steps` を持つ繰り返し・トランザクション) で囲む (続編 第 8 弾 #147)。
+ * 入れ物は、選んだ先頭の位置に入り、選んだ工程は、元の順のまま、入れ物の `steps` へ移る。
+ * 選んだ工程が、同じ配列の中で隣り合っているときだけ囲める (離れていると、間の工程の実行順が変わるため)。steps は直接書き換える。
+ */
+export function wrapSteps(steps: Step[], ids: readonly string[], wrapper: Step): WrapResult {
+  if (ids.length === 0) return { ok: false, reason: "囲む工程を選んでください" };
+  const locs = ids.map((id) => locateStep(steps, id));
+  if (locs.some((l) => !l)) return { ok: false, reason: "選んだ工程が見つかりません" };
+  const list = locs[0]!.list;
+  if (locs.some((l) => l!.list !== list)) return { ok: false, reason: "入れ子の違う工程は、いっしょに囲めません" };
+  const idx = locs.map((l) => l!.index).sort((a, b) => a - b);
+  if (idx.some((v, i) => i > 0 && v !== idx[i - 1] + 1)) return { ok: false, reason: "離れた工程は囲めません (間の工程も選ぶか、隣り合う工程だけを選んでください)" };
+  const moved = list.splice(idx[0], idx.length);
+  (wrapper as unknown as { steps: Step[] }).steps = moved;
+  list.splice(idx[0], 0, wrapper);
+  return { ok: true };
+}
+
 /** 工程の中にある、工程の配列 (subSteps・分岐の枝・繰り返しの本体・TX・ワークフロー・入力チェックの枝・外部呼び出しの後処理) */
 function childLists(s: Step): Step[][] {
   const x = s as unknown as Record<string, unknown>;

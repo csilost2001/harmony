@@ -3,6 +3,7 @@ import { type SqlDialect, SQL_DIALECT_LABELS } from "../../utils/ddlGenerator";
 import { alterToText, generateAlterDdl } from "../../utils/ddlAlter";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import type { Table } from "../../types/v3";
+import { generateSampleInserts } from "../../utils/sampleInserts";
 
 interface FileVersion { id: string; savedAt: string; size: number }
 
@@ -25,7 +26,8 @@ interface Loaded<T> { key: string; value: T; error?: string }
 export function DdlPreviewDrawer({ ddl, dialect, onDialectChange, defaultOpen = false, diff }: Props) {
   const [open, setOpen] = useState(defaultOpen);
   const [copied, setCopied] = useState(false);
-  const [mode, setMode] = useState<"create" | "alter">("create");
+  const [mode, setMode] = useState<"create" | "alter" | "sample">("create");
+  const [sampleRows, setSampleRows] = useState(3);
   const [picked, setPicked] = useState("");
   const [versionsRes, setVersionsRes] = useState<Loaded<FileVersion[]> | null>(null);
   const [baseRes, setBaseRes] = useState<Loaded<Table | null> | null>(null);
@@ -64,7 +66,9 @@ export function DdlPreviewDrawer({ ddl, dialect, onDialectChange, defaultOpen = 
     return alterToText(generateAlterDdl(base.value, diff.table, dialect, diff.allTables));
   }, [mode, diff, base, dialect]);
 
-  const shown = mode === "alter" ? alterText : ddl;
+  // サンプルの INSERT (続編 第 8 弾 #153): 保存はせず、コピーして使う下書き
+  const sampleText = useMemo(() => (mode === "sample" && diff ? generateSampleInserts(diff.table, sampleRows) : ""), [mode, diff, sampleRows]);
+  const shown = mode === "alter" ? alterText : mode === "sample" ? sampleText : ddl;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(shown);
@@ -83,9 +87,15 @@ export function DdlPreviewDrawer({ ddl, dialect, onDialectChange, defaultOpen = 
         {open && (
           <div className="ddl-drawer-controls" onClick={(e) => e.stopPropagation()}>
             {diff && (
-              <select value={mode} onChange={(e) => setMode(e.target.value as "create" | "alter")} className="ddl-dialect-select" aria-label="表示する DDL" data-testid="ddl-mode">
+              <select value={mode} onChange={(e) => setMode(e.target.value as "create" | "alter" | "sample")} className="ddl-dialect-select" aria-label="表示する DDL" data-testid="ddl-mode">
                 <option value="create">テーブルの作成 (CREATE)</option>
                 <option value="alter">保存前の版との差分 (ALTER)</option>
+                <option value="sample">サンプルの INSERT (動作確認の下書き)</option>
+              </select>
+            )}
+            {mode === "sample" && (
+              <select value={sampleRows} onChange={(e) => setSampleRows(Number(e.target.value))} className="ddl-dialect-select" aria-label="行数" data-testid="ddl-sample-rows">
+                {[1, 3, 5, 10, 20].map((n) => <option key={n} value={n}>{n} 行</option>)}
               </select>
             )}
             {mode === "alter" && (
@@ -104,7 +114,7 @@ export function DdlPreviewDrawer({ ddl, dialect, onDialectChange, defaultOpen = 
                 <option key={k} value={k}>{String(v)}</option>
               ))}
             </select>
-            <button className="tbl-btn tbl-btn-ghost tbl-btn-sm" onClick={handleCopy} disabled={mode === "alter" && !alterText}>
+            <button className="tbl-btn tbl-btn-ghost tbl-btn-sm" onClick={handleCopy} disabled={(mode === "alter" && !alterText) || (mode === "sample" && !sampleText)}>
               <i className={`bi ${copied ? "bi-check-lg" : "bi-clipboard"}`} />
               {copied ? "コピーしました" : "コピー"}
             </button>
@@ -116,6 +126,7 @@ export function DdlPreviewDrawer({ ddl, dialect, onDialectChange, defaultOpen = 
           {mode === "alter" && error && <div className="ddl-diff-note" role="alert">版を読めませんでした: {error}</div>}
           {mode === "alter" && !error && versions !== null && versions.length === 0 && <div className="ddl-diff-note">この設計には、保存前の版がまだありません (保存すると、上書きされる前の内容が残ります)。</div>}
           {mode === "alter" && !error && base !== null && base.value === null && <div className="ddl-diff-note">選んだ版を読めませんでした。</div>}
+          {mode === "sample" && <div className="ddl-diff-note">カラムの名前・型・桁数から作った、サンプルの値です (自動採番の列は含みません)。設計には保存されません。実際のデータに合わせて、手で直してください。</div>}
           <pre className="ddl-preview" data-testid="ddl-text"><code>{shown}</code></pre>
         </div>
       )}

@@ -3029,3 +3029,23 @@
 .step-outline-no { color: var(--hm-fg-faint); font-variant-numeric: tabular-nums; flex: none; }
 .step-outline-type { font-weight: 600; flex: none; }
 .step-outline-text { color: var(--hm-fg-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+
+/* 工程カードのまとめての開閉 (UI 改善提案 続編 第 8 弾 #145) */
+.step-outline-expand { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px 8px 6px; }
+.step-outline-expand button { border: 1px solid var(--hm-border-strong); background: var(--hm-surface); color: var(--hm-fg); border-radius: 6px; padding: 2px 8px; cursor: pointer; font: inherit; font-size: 0.76rem; }
+.step-outline-expand button:hover { background: var(--hm-hover); }
+.step-outline-expand button:focus-visible { outline: 2px solid var(--hm-accent); outline-offset: 1px; }
+
+/* 変数の使われ方 (UI 改善提案 続編 第 8 弾 #146) */
+.step-outline-vars { margin: 0 8px 8px; border: 1px solid var(--hm-border); border-radius: 6px; background: var(--hm-surface); font-size: 0.78rem; }
+.step-outline-vars summary { cursor: pointer; padding: 4px 8px; color: var(--hm-fg-muted); }
+.step-outline-vars ul { list-style: none; margin: 0; padding: 0 4px 4px; max-height: 180px; overflow-y: auto; }
+.step-outline-var { display: flex; width: 100%; justify-content: space-between; gap: 8px; border: 0; background: transparent; color: var(--hm-fg); padding: 2px 6px; border-radius: 4px; cursor: pointer; font: inherit; text-align: left; }
+.step-outline-var:hover { background: var(--hm-hover); }
+.step-outline-var.is-picked { background: var(--hm-accent-soft); color: var(--hm-accent); }
+.step-outline-var.is-unused .step-outline-var-n { color: var(--hm-warning); }
+.step-outline-var:focus-visible { outline: 2px solid var(--hm-accent); outline-offset: -1px; }
+.step-outline-var-n { color: var(--hm-fg-muted); white-space: nowrap; }
+.step-outline-var-note { padding: 2px 8px 6px; color: var(--hm-fg-muted); }
+.step-card-wrapper[data-var-hit="use"] > .step-card { box-shadow: 0 0 0 3px var(--hm-find-bg); }
+.step-card-wrapper[data-var-hit="define"] > .step-card { box-shadow: 0 0 0 3px color-mix(in srgb, var(--hm-success) 55%, transparent); }

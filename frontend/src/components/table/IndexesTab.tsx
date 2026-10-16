@@ -2,6 +2,11 @@ import { useState } from "react";
 import type { Table, Index, LocalId, PhysicalName } from "../../types/v3";
 import { addIndex, removeIndex } from "../../store/tableStore";
 import { EmptyState } from "../common/EmptyState";
+import "../../styles/columnImpact.css";
+import { loadDesignInput } from "../document/loadDesignInput";
+import { suggestIndexes, type IndexSuggestion } from "../../utils/indexSuggestion";
+import { reportFailure } from "../../utils/failureToast";
+import { showToast } from "../../utils/toast";
 
 type IndexMethod = "btree" | "hash" | "gin" | "gist";
 const INDEX_METHODS: IndexMethod[] = ["btree", "hash", "gin", "gist"];
@@ -13,6 +18,24 @@ interface Props {
 
 export function IndexesTab({ table, update }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
+  // インデックスの提案 (続編 第 8 弾 #154): 押したときだけ、設計全体を読む
+  const [suggestions, setSuggestions] = useState<IndexSuggestion[] | null>(null);
+  const [busy, setBusy] = useState(false);
+  const runSuggest = async () => {
+    setBusy(true);
+    try {
+      const { input } = await loadDesignInput();
+      setSuggestions(suggestIndexes(table, input.flows as never));
+    } catch (e) { reportFailure(e, "インデックスの提案"); } finally { setBusy(false); }
+  };
+  const adopt = (s: IndexSuggestion) => {
+    const byName = new Map(table.columns.map((c) => [String(c.physicalName).toLowerCase(), c.id as string]));
+    const cols = s.columns.map((n) => byName.get(n)).filter((x): x is string => !!x).map((id) => ({ columnId: id as LocalId }));
+    if (cols.length === 0) return;
+    update((t) => { addIndex(t, { physicalName: `idx_${t.physicalName}_${s.columns.join("_")}` as PhysicalName, columns: cols, description: `提案: ${s.reason}` as never }); });
+    setSuggestions((cur) => (cur ? cur.filter((x) => x !== s) : cur));
+    showToast("インデックスを追加しました (保存すると反映されます)", "info");
+  };
 
   const indexes = table.indexes ?? [];
 
@@ -43,10 +66,31 @@ export function IndexesTab({ table, update }: Props) {
         <span className="indexes-count">
           {indexes.length === 0 ? "インデックスがまだありません" : `${indexes.length} 件`}
         </span>
+        <button className="tbl-btn tbl-btn-ghost" onClick={() => void runSuggest()} disabled={busy} title="処理フローの検索条件 (WHERE) と外部キーから、まだ索引の無い列を探します" data-testid="index-suggest">
+          <i className="bi bi-lightbulb" /> {busy ? "調べています…" : "インデックスを提案"}
+        </button>
         <button className="tbl-btn tbl-btn-primary" onClick={handleAdd}>
           <i className="bi bi-plus-lg" /> 追加
         </button>
       </div>
+      {suggestions && (
+        <div className="index-suggest" data-testid="index-suggest-list">
+          {suggestions.length === 0 ? <p className="indexes-count">提案はありません (検索条件・外部キーの列は、すでに索引で覆われています)。</p> : (
+            <>
+              <p className="indexes-count">{suggestions.length} 件の候補 (SQL の WHERE を簡易に読んだ結果です。採用するかは、判断してください)</p>
+              <ul>
+                {suggestions.map((s) => (
+                  <li key={s.columns.join(",")}>
+                    <code>{s.columns.join(", ")}</code>
+                    <span className="index-suggest-why">{s.reason} — {s.sources.slice(0, 2).join("、")}{s.sources.length > 2 ? ` ほか ${s.sources.length - 2} 件` : ""}</span>
+                    <button className="tbl-btn tbl-btn-ghost tbl-btn-sm" onClick={() => adopt(s)} data-testid="index-suggest-adopt"><i className="bi bi-plus-lg" /> 追加</button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      )}
 
       {indexes.length === 0 ? (
         <div className="indexes-empty2">

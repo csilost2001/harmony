@@ -9,6 +9,8 @@ import { DEEP_LINK_LABELS, buildDeepLinkUrl, findDeepLinkElement, linkFromKey, p
 import { focusIssue } from "../../utils/pageIssues";
 import { showToast } from "../../utils/toast";
 import { writeClipboardText } from "../../utils/tableExport";
+import { getActiveTabId, setActiveTab } from "../../store/tabStore";
+import { nextEditSpot, recordEdit } from "../../store/lastEdit";
 
 /** 起動時の URL の末尾 (画面の切り替えで URL が書き換わっても残す) */
 let pending: DeepLink | null = typeof window !== "undefined" ? parseDeepLink(window.location.hash) : null;
@@ -23,6 +25,36 @@ function currentTarget(): HTMLElement | null {
 
 export function DeepLinkControl() {
   const location = useLocation();
+
+  // 入力した場所を覚える (最後に編集した場所へ戻るため。続編 第 8 弾 #158)。Ctrl+Alt+Backspace で戻る
+  useEffect(() => {
+    const onEdit = (e: Event) => {
+      const t = e.target as HTMLElement | null;
+      if (!t?.closest || !t.closest("#app-main")) return;
+      const key = t.closest<HTMLElement>("[data-deeplink]")?.getAttribute("data-deeplink");
+      if (key && linkFromKey(key)) recordEdit(getActiveTabId(), key);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && e.key === "Backspace")) return;
+      e.preventDefault();
+      const spot = nextEditSpot();
+      const link = spot ? linkFromKey(spot.key) : null;
+      if (!spot || !link) { showToast("まだ、編集した場所がありません (入力すると、その場所を覚えます)", "info"); return; }
+      if (spot.tabId !== getActiveTabId()) {
+        pending = link; // 切り替え後の画面で探す
+        setActiveTab(spot.tabId);
+        return;
+      }
+      const root = document.getElementById("app-main");
+      const el = root ? findDeepLinkElement(root, link) : null;
+      if (el) focusIssue(el);
+      else showToast(`${DEEP_LINK_LABELS[link.kind]}「${link.id}」は、見つかりませんでした (削除された・畳まれている可能性があります)`, "info");
+    };
+    document.addEventListener("input", onEdit, true);
+    document.addEventListener("change", onEdit, true);
+    window.addEventListener("keydown", onKey);
+    return () => { document.removeEventListener("input", onEdit, true); document.removeEventListener("change", onEdit, true); window.removeEventListener("keydown", onKey); };
+  }, []);
 
   // 開いたときと、画面の中でリンクの末尾が変わったとき
   useEffect(() => {
