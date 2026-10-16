@@ -30,6 +30,18 @@ export function toJsonRows(headers: readonly string[], rows: ReadonlyArray<Reado
   return JSON.stringify(objs, null, 2);
 }
 
+/** CSV (RFC 4180。`,` `"` 改行を含むセルは "…" で囲む)。ファイルにするときは先頭に BOM を付ける (Excel で文字化けしない) */
+export function toCsv(headers: readonly string[], rows: ReadonlyArray<ReadonlyArray<string | number | null | undefined>>): string {
+  const esc = (c: string | number | null | undefined) => {
+    let t = cell(c);
+    // Excel が式として実行する先頭の文字 (= + - @) は、' を付けて文字として開かせる (取り込んだ名前・説明が式にならないように)。数値はそのまま
+    if (typeof c === "string" && /^[=+\-@\t\r]/.test(t)) t = `'${t}`;
+    return /[",\r\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+  };
+  const line = (cells: ReadonlyArray<string | number | null | undefined>) => cells.map(esc).join(",");
+  return [line(headers), ...rows.map(line)].join("\r\n");
+}
+
 export function exportRows(format: ExportFormat, headers: readonly string[], rows: ReadonlyArray<ReadonlyArray<string | number | null | undefined>>): string {
   return format === "tsv" ? toTsv(headers, rows) : format === "markdown" ? toMarkdownTable(headers, rows) : toJsonRows(headers, rows);
 }

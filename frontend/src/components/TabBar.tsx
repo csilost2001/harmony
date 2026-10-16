@@ -26,6 +26,13 @@ import {
   closeTabsToRight,
   type TabItem,
   moveTabBy,
+  canGoBack,
+  canGoForward,
+  goBackTab,
+  goForwardTab,
+  getClosedTabs,
+  reopenClosedTab,
+  getTabFlash,
 } from "../store/tabStore";
 import "../styles/tabbar.css";
 import { tabPath } from "../routing/tabPaths";
@@ -42,23 +49,28 @@ type ContextMenu = {
 function useTabs() {
   const [tabs, setTabs] = useState<readonly TabItem[]>(getTabs);
   const [activeTabId, setActiveTabIdState] = useState(getActiveTabId);
+  const [flash, setFlash] = useState(getTabFlash);
   useEffect(() => {
     return subscribe(() => {
       setTabs(getTabs());
       setActiveTabIdState(getActiveTabId());
+      setFlash(getTabFlash());
     });
   }, []);
-  return { tabs, activeTabId };
+  return { tabs, activeTabId, flash };
 }
 
 function TabItem({
   tab,
   isActive,
+  flashSeq,
   onClose,
   onContextMenu,
 }: {
   tab: TabItem;
   isActive: boolean;
+  /** 既存のタブへ移ったとき、タブを光らせる (seq が変わるたびに、もう一度光る) */
+  flashSeq?: number;
   onClose: (e: React.MouseEvent) => void;
   onContextMenu: (e: React.MouseEvent) => void;
 }) {
@@ -125,6 +137,7 @@ function TabItem({
       onContextMenu={onContextMenu}
       title={tab.label}
     >
+      {flashSeq != null && <span key={flashSeq} className="tabbar-tab-flash" aria-hidden="true" data-testid="tab-flash" />}
       <i className={`bi ${icon} tabbar-tab-icon`} />
       <span className="tabbar-tab-label">{tab.label}</span>
       {tab.isDirty && <span className="tabbar-tab-dirty">●</span>}
@@ -141,7 +154,7 @@ function TabItem({
 }
 
 export function TabBar() {
-  const { tabs, activeTabId } = useTabs();
+  const { tabs, activeTabId, flash } = useTabs();
   const { wsId } = useWorkspacePath();
 
   // 未保存の変更があるタブが 1 つでもあれば、ブラウザを閉じる・再読み込みする前に確認を出す
@@ -160,6 +173,11 @@ export function TabBar() {
     return () => { document.title = "Harmony"; };
   }, [tabs, activeTabId]);
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
+  // 閉じたタブの一覧 (開き直す)。tabs / activeTabId が変わるたびに読み直す (履歴の戻る / 進むの有効判定も)
+  const [closedMenu, setClosedMenu] = useState<{ x: number; y: number } | null>(null);
+  const closed = getClosedTabs();
+  const back = canGoBack();
+  const forward = canGoForward();
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
@@ -283,6 +301,12 @@ export function TabBar() {
           canScrollRight ? "tabbar-can-scroll-right" : "",
         ].filter(Boolean).join(" ")}
       >
+        <div className="tabbar-history" role="group" aria-label="タブの履歴">
+          <button type="button" className="tabbar-history-btn" onClick={() => goBackTab()} disabled={!back}
+            title="前に見ていたタブへ戻る (Ctrl+Alt+←)" aria-label="前に見ていたタブへ戻る" data-testid="tab-history-back"><i className="bi bi-arrow-left" /></button>
+          <button type="button" className="tabbar-history-btn" onClick={() => goForwardTab()} disabled={!forward}
+            title="戻る前のタブへ進む (Ctrl+Alt+→)" aria-label="戻る前のタブへ進む" data-testid="tab-history-forward"><i className="bi bi-arrow-right" /></button>
+        </div>
         {canScrollLeft && (
           <button
             type="button"
@@ -305,6 +329,7 @@ export function TabBar() {
                   key={tab.id}
                   tab={tab}
                   isActive={tab.id === activeTabId}
+                  flashSeq={flash?.id === tab.id ? flash.seq : undefined}
                   onClose={(e) => { e.stopPropagation(); handleClose(tab.id); }}
                   onContextMenu={(e) => handleContextMenu(e, tab.id)}
                 />
@@ -323,6 +348,21 @@ export function TabBar() {
             <i className="bi bi-chevron-right" />
           </button>
         )}
+        <div className="tabbar-closed">
+          <button type="button" className="tabbar-history-btn" disabled={closed.length === 0} aria-haspopup="menu" aria-expanded={!!closedMenu}
+            title="閉じたタブを開き直す (Ctrl+Alt+T。Ctrl+Shift+T はブラウザが先に使うことがあります)" aria-label="閉じたタブを開き直す" data-testid="tab-reopen-btn"
+            onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setClosedMenu((v) => (v ? null : { x: Math.max(0, r.right - 220), y: r.bottom + 2 })); }}><i className="bi bi-arrow-counterclockwise" /></button>
+          {closedMenu && closed.length > 0 && (
+            <div className="tab-context-menu tabbar-closed-menu" role="menu" data-testid="tab-closed-menu" style={{ top: closedMenu.y, left: closedMenu.x }} onMouseLeave={() => setClosedMenu(null)}>
+              {closed.map((c) => (
+                <button key={c.id} type="button" role="menuitem" className="tab-context-item" data-testid="tab-closed-item"
+                  onClick={() => { reopenClosedTab(c.id); setClosedMenu(null); }}>
+                  <i className="bi bi-window-stack" /> {c.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </nav>
 
       {contextMenu && ctxTab && (

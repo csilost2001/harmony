@@ -594,3 +594,15 @@
   width: 100%; padding: 3px 6px; border: 1px solid var(--hm-border); border-radius: 4px; background: var(--hm-surface-2); color: var(--hm-fg); font-size: inherit; box-sizing: border-box;
 }
 .select-by-condition .sbc-count { margin: 6px 0; color: var(--hm-fg-muted); }
+
+/* グループ表示 (UI 改善提案 続編 第 6 弾 #102) */
+.data-list-group-row > td { background: var(--hm-surface-3); border-top: 1px solid var(--hm-border-strong); padding: 0; }
+.data-list-group-toggle { display: flex; align-items: center; gap: 8px; width: 100%; border: 0; background: transparent; color: var(--hm-fg); cursor: pointer; padding: 4px 10px; font: inherit; text-align: left; }
+.data-list-group-toggle:hover { background: var(--hm-hover); }
+.data-list-group-toggle:focus-visible { outline: 2px solid var(--hm-accent); outline-offset: -2px; }
+.data-list-group-count { color: var(--hm-fg-muted); font-size: 0.78rem; }
+.data-list-group-head { grid-column: 1 / -1; padding: 4px 6px; border-bottom: 1px solid var(--hm-border-strong); color: var(--hm-fg); }
+
+/* 行の印 (UI 改善提案 続編 第 6 弾 #118) */
+.data-list-row-mark { color: var(--hm-warning); margin-right: 4px; font-size: 0.8em; cursor: help; }
+.data-list-colmenu-btn.is-on { background: var(--hm-accent-soft); color: var(--hm-accent); border-color: var(--hm-accent); }

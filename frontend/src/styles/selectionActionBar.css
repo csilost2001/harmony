@@ -1,0 +1,12 @@
+/* 一覧で複数の設計を選んだときの、まとめての操作 (UI 改善提案 続編 第 6 弾 #110) */
+.selection-bar { position: sticky; bottom: 8px; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 12px 0; padding: 6px 10px; background: var(--hm-inverse-bg); color: var(--hm-inverse-fg); border-radius: 8px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25); font-size: 0.82rem; }
+.selection-bar-count { font-weight: 600; }
+.selection-bar-btn { border: 1px solid transparent; background: transparent; color: inherit; border-radius: 6px; padding: 2px 8px; cursor: pointer; font: inherit; }
+.selection-bar-btn:hover:not(:disabled) { background: rgba(127, 127, 127, 0.25); }
+.selection-bar-btn:disabled { opacity: 0.5; cursor: default; }
+.selection-bar-btn.is-primary { background: var(--hm-accent-solid); color: var(--hm-on-solid); }
+.selection-bar-clear { margin-left: auto; }
+.selection-bar-marker-form { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.selection-bar-marker-form select, .selection-bar-marker-form input { border: 1px solid var(--hm-border); background: var(--hm-surface); color: var(--hm-fg); border-radius: 4px; padding: 2px 6px; font: inherit; }
+.selection-bar-marker-form input { width: 22em; max-width: 60vw; }
+.selection-bar-btn:focus-visible, .selection-bar-marker-form select:focus-visible, .selection-bar-marker-form input:focus-visible { outline: 2px solid var(--hm-accent); outline-offset: 1px; }

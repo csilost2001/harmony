@@ -17,3 +17,9 @@
 .empty-state--compact { padding: 16px 12px; gap: 4px; }
 .empty-state--compact .empty-state-icon { font-size: calc(20px * var(--hm-font-scale)); }
 .empty-state-hint code { font-family: "Consolas", "Monaco", monospace; background: var(--hm-hover); padding: 1px 5px; border-radius: 3px; }
+
+/* 近い名前の候補 (UI 改善提案 続編 第 6 弾 #120) */
+.empty-state-near { margin: 6px 0 0; color: var(--hm-fg-muted); font-size: 0.85rem; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; }
+.empty-state-near-btn { border: 1px solid var(--hm-border); background: var(--hm-surface); color: var(--hm-accent); border-radius: 999px; padding: 1px 10px; cursor: pointer; font: inherit; }
+.empty-state-near-btn:hover { background: var(--hm-accent-soft); }
+.empty-state-near-btn:focus-visible { outline: 2px solid var(--hm-accent); outline-offset: 1px; }

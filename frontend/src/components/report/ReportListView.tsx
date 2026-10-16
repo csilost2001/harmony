@@ -13,6 +13,11 @@ import { useWorkspacePath } from "../../hooks/useWorkspacePath";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { buildDefaultReport, deleteReport, errorText, saveReport, useReports } from "../../store/reportStore";
 import { DataList, type DataListColumn } from "../common/DataList";
+import { useListGrouping } from "../../hooks/useListGrouping";
+import { maturityGroupName, type ListGroupOption } from "../../utils/listGroup";
+import { useOpenedSortAccessor } from "../../hooks/useOpenedSortAccessor";
+import { computeRowMarks } from "../../utils/rowMarks";
+import { ListViewBar } from "../common/ListViewBar";
 import { EntityIdInput, type EntityIdValidationState } from "../common/EntityIdInput";
 import { useListSelection } from "../../hooks/useListSelection";
 import { useListSort } from "../../hooks/useListSort";
@@ -44,6 +49,7 @@ export function ReportListView() {
     return off;
   }, [reload]);
 
+  const rowMarks = useMemo(() => computeRowMarks(flows, (x) => x.id, (x) => x.name), [flows]);
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return q ? flows.filter((f) => f.name.toLowerCase().includes(q) || f.id.includes(q)) : flows;
@@ -58,7 +64,12 @@ export function ReportListView() {
       default: return "";
     }
   }, []);
-  const sort = useListSort(filtered, sortAccessor);
+    const groupOptions = useMemo<ListGroupOption<Report>[]>(() => [
+    { id: "maturity", label: "成熟度", keyOf: (f) => maturityGroupName(f.maturity) },
+  ], []);
+  const grouping = useListGrouping(groupOptions, "report-list");
+  const sortAccessorOpened = useOpenedSortAccessor(sortAccessor, "report", (x: Report) => String(x.id));
+  const sort = useListSort(filtered, sortAccessorOpened, grouping.active?.keyOf ?? null);
   const selection = useListSelection(sort.sorted, (f) => f.id);
 
   const open = useCallback((f: Report) => navigate(wsPath(`/report/edit/${encodeURIComponent(f.id)}`)), [navigate, wsPath]);
@@ -132,8 +143,13 @@ export function ReportListView() {
           <i className="bi bi-exclamation-triangle" /> 読めない帳票のファイルがあります (JSON が壊れています): {unreadable.map((f) => <code key={f}>{f}</code>)}。ファイルを直すか、同じ ID で保存し直すと退避して置き換えます。
         </p>
       )}
+      <ListViewBar listKey="report-list" query={query} onQuery={setQuery} sort={sort} />
       <DataList
         prefsKey="report-list"
+          rowMark={(x) => rowMarks.get(x.id) ?? null}
+          recentSort
+          bulk={{ favoriteKey: (x) => `report:${x.id}` }}
+          grouping={grouping}
         items={sort.sorted}
         columns={columns}
         getId={(f) => f.id}
@@ -146,7 +162,7 @@ export function ReportListView() {
         variant="dark"
         className="bfl-data-list"
         emptyMessage={loaded
-          ? <EmptyState noun="帳票" icon="bi-file-earmark-text" hint="納品書・一覧表などの出力を、部と項目で決めます" filtered={!!query} onCreate={() => setShowAdd(true)} onClear={() => setQuery("")} />
+          ? <EmptyState suggest={{ names: flows.map((x) => x.name ?? ""), query: query, onPick: setQuery }} noun="帳票" icon="bi-file-earmark-text" hint="納品書・一覧表などの出力を、部と項目で決めます" filtered={!!query} onCreate={() => setShowAdd(true)} onClear={() => setQuery("")} />
           : <p>読み込み中…</p>}
       />
       {showAdd && (

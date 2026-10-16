@@ -4,6 +4,7 @@
  * - 検索・絞り込みで 0 件のとき (filtered): 「該当する<名前>がありません」+ 絞り込みの解除 (onClear があるとき)
  */
 import type { ReactNode } from "react";
+import { nearNames } from "../../utils/nearNames";
 import "../../styles/emptyState.css";
 
 export interface EmptyStateProps {
@@ -23,10 +24,13 @@ export interface EmptyStateProps {
   /** 小さく出す (タブの中・パネルの中) */
   compact?: boolean;
   testId?: string;
+  /** 検索で 0 件のとき、近い名前を出して 1 回で検索語にできる (続編 第 6 弾 #120) */
+  suggest?: { names: readonly string[]; query: string; onPick: (name: string) => void };
   children?: ReactNode;
 }
 
-export function EmptyState({ noun, icon = "bi-inbox", hint, filtered, onCreate, createLabel, onClear, compact, testId, children }: EmptyStateProps) {
+export function EmptyState({ noun, icon = "bi-inbox", hint, filtered, onCreate, createLabel, onClear, compact, testId, suggest, children }: EmptyStateProps) {
+  const near = filtered && suggest ? nearNames(suggest.query, suggest.names) : [];
   return (
     <div className={`empty-state${compact ? " empty-state--compact" : ""}`} data-testid={testId ?? "empty-state"} data-filtered={filtered ? "true" : undefined}>
       <i className={`bi ${filtered ? "bi-search" : icon} empty-state-icon`} aria-hidden="true" />
@@ -34,6 +38,12 @@ export function EmptyState({ noun, icon = "bi-inbox", hint, filtered, onCreate, 
       {filtered
         ? <p className="empty-state-hint">検索の語や絞り込みを変えてみてください。</p>
         : hint && <p className="empty-state-hint">{hint}</p>}
+      {near.length > 0 && (
+        <p className="empty-state-near" data-testid="empty-state-near">
+          近い名前:{" "}
+          {near.map((n) => <button key={n} type="button" className="empty-state-near-btn" onClick={() => suggest!.onPick(n)} data-testid="empty-state-near-item">{n}</button>)}
+        </p>
+      )}
       {filtered && onClear && (
         <button type="button" className="empty-state-btn" onClick={onClear} data-testid="empty-state-clear"><i className="bi bi-x-circle" /> 絞り込みを解除</button>
       )}

@@ -144,3 +144,6 @@
 .quick-open-star:hover { color: var(--hm-warning); background: var(--hm-hover); }
 .quick-open-star.is-on { color: var(--hm-warning); }
 .quick-open-item > .quick-open-star > i { width: auto; color: inherit; }
+
+/* 本文の一致の抜粋で、検索語に合う部分 (UI 改善提案 続編 第 6 弾 #114) */
+.quick-open-mark { background: var(--hm-find-bg); color: inherit; border-radius: 2px; padding: 0 1px; }

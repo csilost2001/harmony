@@ -25,6 +25,12 @@ import { mcpBridge } from "../../mcp/mcpBridge";
 import { makeTabId, openTab } from "../../store/tabStore";
 import { MaturityBadge } from "../process-flow/MaturityBadge";
 import { DataList, type DataListColumn } from "../common/DataList";
+import { useListGrouping } from "../../hooks/useListGrouping";
+import { maturityGroupName, type ListGroupOption } from "../../utils/listGroup";
+import { useOpenedSortAccessor } from "../../hooks/useOpenedSortAccessor";
+import { useEditingOnly } from "../../hooks/useEditingOnly";
+import { computeRowMarks } from "../../utils/rowMarks";
+import { ListViewBar } from "../common/ListViewBar";
 import { FilterBar } from "../common/FilterBar";
 import { SortBar } from "../common/SortBar";
 import { ListContextMenu, type ContextMenuItem } from "../common/ListContextMenu";
@@ -176,7 +182,10 @@ export function ViewDefinitionListView() {
     return 0;
   }, [validationMap]);
 
-  const filter = useListFilter(allViewDefs);
+  const rowMarks = useMemo(() => computeRowMarks(allViewDefs, (x) => String(x.id), (x) => x.name), [allViewDefs]);
+  const isEditing = useCallback((x: ViewDefinitionEntry) => hasDraft("view-definition", String(x.id)), [hasDraft]);
+  const editing = useEditingOnly(allViewDefs, isEditing);
+  const filter = useListFilter(editing.items);
   useEffect(() => {
     const q = query.trim().toLowerCase();
     if (!q) {
@@ -202,7 +211,13 @@ export function ViewDefinitionListView() {
     }
   }, [tableNameMap]);
 
-  const sort = useListSort(filter.filtered, sortAccessor);
+    const groupOptions = useMemo<ListGroupOption<ViewDefinitionEntry>[]>(() => [
+    { id: "kind", label: "種別", keyOf: (v) => v.kind ?? "" },
+    { id: "maturity", label: "成熟度", keyOf: (v) => maturityGroupName(v.maturity) },
+  ], []);
+  const grouping = useListGrouping(groupOptions, "view-definition-list");
+  const sortAccessorOpened = useOpenedSortAccessor(sortAccessor, "view-definition", (x: ViewDefinitionEntry) => String(x.id));
+  const sort = useListSort(filter.filtered, sortAccessorOpened, grouping.active?.keyOf ?? null);
   const selection = useListSelection(sort.sorted, (v) => String(v.id));
   const clipboard = useListClipboard<ViewDefinitionEntry>((v) => String(v.id));
 
@@ -737,8 +752,14 @@ export function ViewDefinitionListView() {
 
         <SortBar sort={sort} columnLabels={columnLabels} />
 
+        <ListViewBar listKey="view-definition-list" query={query} onQuery={setQuery} sort={sort} facets={[editing.facet]} />
+
         <DataList
           prefsKey="view-definition-list"
+          rowMark={(x) => rowMarks.get(String(x.id)) ?? null}
+          recentSort
+          bulk={{ favoriteKey: (x) => `view-definition:${x.id}` , marker: (x) => ({ entityType: "viewDefinition", entityId: x.id }) }}
+          grouping={grouping}
           dragRef={(v) => `@viewer.${String(v.id)}`}
           items={sort.sorted}
           columns={columns}
@@ -758,7 +779,7 @@ export function ViewDefinitionListView() {
           className="view-definitions-data-list"
           isItemGhost={(id) => editor.isDeleted(id)}
           emptyMessage={
-            <EmptyState noun="ビュー定義" icon="bi-layout-text-window" hint="画面の一覧表の列・並び・絞り込みを定義します" filtered={!!query} onCreate={() => setShowAdd(true)} createLabel="ビュー定義を追加" onClear={() => setQuery("")} />
+            <EmptyState suggest={{ names: allViewDefs.map((x) => x.name ?? ""), query: query, onPick: setQuery }} noun="ビュー定義" icon="bi-layout-text-window" hint="画面の一覧表の列・並び・絞り込みを定義します" filtered={!!query} onCreate={() => setShowAdd(true)} createLabel="ビュー定義を追加" onClear={() => setQuery("")} />
           }
         />
 

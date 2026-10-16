@@ -14,6 +14,12 @@ import { makeTabId } from "../../store/tabStore";
 import { renumber } from "../../utils/listOrder";
 import { makeDuplicatedEntityId } from "../../utils/entityIdSuggestion";
 import { DataList, type DataListColumn } from "../common/DataList";
+import { useListGrouping } from "../../hooks/useListGrouping";
+import { maturityGroupName, type ListGroupOption } from "../../utils/listGroup";
+import { useEditingOnly } from "../../hooks/useEditingOnly";
+import { useOpenedSortAccessor } from "../../hooks/useOpenedSortAccessor";
+import { computeRowMarks } from "../../utils/rowMarks";
+import { ListViewBar } from "../common/ListViewBar";
 import { FilterBar } from "../common/FilterBar";
 import { SortBar } from "../common/SortBar";
 import { ListContextMenu, type ContextMenuItem } from "../common/ListContextMenu";
@@ -158,7 +164,10 @@ export function ScreenListView() {
     return () => { cancelled = true; };
   }, [screens]);
 
-  const filter = useListFilter(screens);
+  const rowMarks = useMemo(() => computeRowMarks(screens, (x) => String(x.id), (x) => x.name), [screens]);
+  const isEditing = useCallback((x: ScreenNode) => hasDraft("screen-item", String(x.id)), [hasDraft]);
+  const editing = useEditingOnly(screens, isEditing);
+  const filter = useListFilter(editing.items);
 
   useEffect(() => {
     const q = query.trim().toLowerCase();
@@ -185,7 +194,13 @@ export function ScreenListView() {
     }
   }, []);
 
-  const sort = useListSort(filter.filtered, sortAccessor);
+    const groupOptions = useMemo<ListGroupOption<ScreenNode>[]>(() => [
+    { id: "kind", label: "種別", keyOf: (s) => SCREEN_KIND_LABELS[s.kind] ?? "" },
+    { id: "maturity", label: "成熟度", keyOf: (s) => maturityGroupName(s.maturity) },
+  ], []);
+  const grouping = useListGrouping(groupOptions, "screen-list");
+  const sortAccessorOpened = useOpenedSortAccessor(sortAccessor, "design", (x: ScreenNode) => String(x.id));
+  const sort = useListSort(filter.filtered, sortAccessorOpened, grouping.active?.keyOf ?? null);
   const selection = useListSelection(sort.sorted, (s) => s.id);
   const clipboard = useListClipboard<ScreenNode>((s) => s.id);
 
@@ -705,9 +720,15 @@ export function ScreenListView() {
 
       <SortBar sort={sort} columnLabels={columnLabels} />
 
+      <ListViewBar listKey="screen-list" query={query} onQuery={setQuery} sort={sort} facets={[editing.facet]} />
+
       <div className="screen-list-body">
         <DataList
           prefsKey="screen-list"
+          rowMark={(x) => rowMarks.get(String(x.id)) ?? null}
+          recentSort
+          bulk={{ favoriteKey: (x) => `screen:${x.id}` , marker: (x) => ({ entityType: "screen", entityId: x.id }) }}
+          grouping={grouping}
           dragRef={(s) => `@screen.${s.id}`}
           items={sort.sorted}
           columns={columns}
@@ -725,7 +746,7 @@ export function ScreenListView() {
           showNumColumn={viewMode === "table"}
           isItemGhost={(id) => editor.isDeleted(id)}
           emptyMessage={
-            <EmptyState noun="画面" icon="bi-window" hint="画面の入力項目や配置を設計します。最初の 1 画面から始めましょう" filtered={!!query} onCreate={handleAddNew} createLabel="画面を追加" onClear={() => setQuery("")} />
+            <EmptyState suggest={{ names: screens.map((x) => x.name ?? ""), query: query, onPick: setQuery }} noun="画面" icon="bi-window" hint="画面の入力項目や配置を設計します。最初の 1 画面から始めましょう" filtered={!!query} onCreate={handleAddNew} createLabel="画面を追加" onClear={() => setQuery("")} />
           }
         />
       </div>

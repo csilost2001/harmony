@@ -20,6 +20,10 @@ import { mcpBridge } from "../../mcp/mcpBridge";
 import { makeTabId, openTab } from "../../store/tabStore";
 import { MaturityBadge } from "../process-flow/MaturityBadge";
 import { DataList, type DataListColumn } from "../common/DataList";
+import { useOpenedSortAccessor } from "../../hooks/useOpenedSortAccessor";
+import { useEditingOnly } from "../../hooks/useEditingOnly";
+import { computeRowMarks } from "../../utils/rowMarks";
+import { ListViewBar } from "../common/ListViewBar";
 import { FilterBar } from "../common/FilterBar";
 import { SortBar } from "../common/SortBar";
 import { ListContextMenu, type ContextMenuItem } from "../common/ListContextMenu";
@@ -109,7 +113,10 @@ export function PageLayoutListView() {
 
   const allPageLayouts = editor.items;
 
-  const filter = useListFilter(allPageLayouts);
+  const rowMarks = useMemo(() => computeRowMarks(allPageLayouts, (x) => String(x.id), (x) => x.name), [allPageLayouts]);
+  const isEditing = useCallback((x: PageLayoutEntry) => hasDraft("page-layout", String(x.id)), [hasDraft]);
+  const editing = useEditingOnly(allPageLayouts, isEditing);
+  const filter = useListFilter(editing.items);
   useEffect(() => {
     const q = query.trim().toLowerCase();
     if (!q) {
@@ -130,7 +137,8 @@ export function PageLayoutListView() {
     }
   }, []);
 
-  const sort = useListSort(filter.filtered, sortAccessor);
+  const sortAccessorOpened = useOpenedSortAccessor(sortAccessor, "page-layout", (x: PageLayoutEntry) => String(x.id));
+  const sort = useListSort(filter.filtered, sortAccessorOpened);
   const selection = useListSelection(sort.sorted, (v) => String(v.id));
   const clipboard = useListClipboard<PageLayoutEntry>((v) => String(v.id));
 
@@ -592,8 +600,13 @@ export function PageLayoutListView() {
 
         <SortBar sort={sort} columnLabels={columnLabels} />
 
+        <ListViewBar listKey="page-layout-list" query={query} onQuery={setQuery} sort={sort} facets={[editing.facet]} />
+
         <DataList
           prefsKey="page-layout-list"
+          rowMark={(x) => rowMarks.get(String(x.id)) ?? null}
+          recentSort
+          bulk={{ favoriteKey: (x) => `page-layout:${x.id}` , marker: (x) => ({ entityType: "pageLayout", entityId: x.id }) }}
           dragRef={(v) => `@layout.${String(v.id)}`}
           items={sort.sorted}
           columns={columns}
@@ -613,7 +626,7 @@ export function PageLayoutListView() {
           className="page-layouts-data-list"
           isItemGhost={(id) => editor.isDeleted(id)}
           emptyMessage={
-            <EmptyState noun="ページレイアウト" icon="bi-layout-wtf" hint="画面の外枠 (ヘッダー・メニュー・本文の置き場所) を定義します" filtered={!!query} onCreate={() => setShowAdd(true)} createLabel="ページレイアウトを追加" onClear={() => setQuery("")} />
+            <EmptyState suggest={{ names: allPageLayouts.map((x) => x.name ?? ""), query: query, onPick: setQuery }} noun="ページレイアウト" icon="bi-layout-wtf" hint="画面の外枠 (ヘッダー・メニュー・本文の置き場所) を定義します" filtered={!!query} onCreate={() => setShowAdd(true)} createLabel="ページレイアウトを追加" onClear={() => setQuery("")} />
           }
         />
 

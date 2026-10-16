@@ -6,7 +6,7 @@
  * (画面ごとの保存の処理を、パレット側で持たない)。
  */
 import type { TabItem } from "../../store/tabStore";
-import { closeOtherTabs, setPinned } from "../../store/tabStore";
+import { canGoBack, canGoForward, closeOtherTabs, getClosedTabs, goBackTab, goForwardTab, reopenClosedTab, setPinned } from "../../store/tabStore";
 import { setAppThemePref } from "../../theme/appTheme";
 import { setDisplayPrefs } from "../../theme/displayPrefs";
 import { isFavorite, tabFavoriteKey, toggleFavorite } from "../../utils/favorites";
@@ -50,6 +50,9 @@ export function buildPaletteCommands(ctx: CommandContext): PaletteCommand[] {
     add({ id: "undo", label: "元に戻す", keywords: ["もとにもどす", "undo", "アンドゥ"], icon: "bi-arrow-counterclockwise", hint: "Ctrl+Z", run: afterClose(() => pressShortcut({ key: "z", ctrlKey: true })) });
     add({ id: "redo", label: "やり直す", keywords: ["やりなおす", "redo", "リドゥ"], icon: "bi-arrow-clockwise", hint: "Ctrl+Y", run: afterClose(() => pressShortcut({ key: "y", ctrlKey: true })) });
   }
+  if (getClosedTabs().length > 0) add({ id: "tab-reopen", label: "閉じたタブを開き直す", keywords: ["ひらきなおす", "reopen", "とじた", "タブ", "復元"], icon: "bi-arrow-counterclockwise", hint: "Ctrl+Alt+T", run: () => { reopenClosedTab(); } });
+  if (canGoBack()) add({ id: "tab-back", label: "前に見ていたタブへ戻る", keywords: ["もどる", "back", "履歴", "タブ"], icon: "bi-arrow-left", hint: "Ctrl+Alt+←", run: () => { goBackTab(); } });
+  if (canGoForward()) add({ id: "tab-forward", label: "戻る前のタブへ進む", keywords: ["すすむ", "forward", "履歴", "タブ"], icon: "bi-arrow-right", hint: "Ctrl+Alt+→", run: () => { goForwardTab(); } });
   if (activeTab) {
     add({ id: "tab-close", label: "いまのタブを閉じる", keywords: ["とじる", "close", "タブ"], icon: "bi-x-lg", hint: "Ctrl+W", run: afterClose(() => pressShortcut({ key: "w", ctrlKey: true })) });
     add({ id: "tab-close-others", label: "ほかのタブをすべて閉じる", keywords: ["とじる", "close", "other", "タブ"], icon: "bi-x-circle", run: () => closeOtherTabs(activeTab.id) });

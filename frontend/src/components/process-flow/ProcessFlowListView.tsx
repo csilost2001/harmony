@@ -28,6 +28,12 @@ import { makeTabId } from "../../store/tabStore";
 import { TableSubToolbar } from "../table/TableSubToolbar";
 import { DataList, type DataListColumn } from "../common/DataList";
 import { FilterBar } from "../common/FilterBar";
+import { useListGrouping } from "../../hooks/useListGrouping";
+import { maturityGroupName, type ListGroupOption } from "../../utils/listGroup";
+import { useEditingOnly } from "../../hooks/useEditingOnly";
+import { useOpenedSortAccessor } from "../../hooks/useOpenedSortAccessor";
+import { computeRowMarks } from "../../utils/rowMarks";
+import { ListViewBar, type ListFacet } from "../common/ListViewBar";
 import { SortBar } from "../common/SortBar";
 import { ListContextMenu, type ContextMenuItem } from "../common/ListContextMenu";
 import { ViewModeToggle, type ViewMode } from "../common/ViewModeToggle";
@@ -244,7 +250,18 @@ export function ProcessFlowListView() {
     return 0;
   }, [validationMap]);
 
-  const filter = useListFilter(groups);
+  /** 絞り込みのチップと、保存した絞り込みに渡す (種別・要確認・マーカー・成熟度。検索語は無い) */
+  const listFacets: ListFacet[] = [
+    { key: "type", label: "種別", value: filterType === "all" ? "" : filterType, text: PROCESS_FLOW_TYPE_LABELS[filterType as ProcessFlowType] ?? String(filterType), set: (v) => setFilterType((v || "all") as ProcessFlowType | "all") },
+    { key: "errors", label: "要確認", value: filterErrorsOnly ? "1" : "", text: "あり", set: (v) => setFilterErrorsOnly(v === "1") },
+    { key: "markers", label: "マーカー", value: filterMarkersOnly ? "1" : "", text: "あり", set: (v) => setFilterMarkersOnly(v === "1") },
+    { key: "maturity", label: "成熟度", value: filterMaturity === "all" ? "" : filterMaturity, text: filterMaturity, set: (v) => setFilterMaturity((v || "all") as typeof filterMaturity) },
+  ];
+
+  const rowMarks = useMemo(() => computeRowMarks(groups, (x) => String(x.id), (x) => x.name), [groups]);
+  const isEditing = useCallback((x: ProcessFlowMeta) => hasDraft("process-flow", String(x.id)), [hasDraft]);
+  const editing = useEditingOnly(groups, isEditing);
+  const filter = useListFilter(editing.items);
 
   useEffect(() => {
     const hasTypeFilter = filterType !== "all";
@@ -284,7 +301,13 @@ export function ProcessFlowListView() {
     }
   }, [getErrorPriority, markerMap]);
 
-  const sort = useListSort(filter.filtered, sortAccessor);
+    const groupOptions = useMemo<ListGroupOption<ProcessFlowMeta>[]>(() => [
+    { id: "type", label: "種別", keyOf: (g) => PROCESS_FLOW_TYPE_LABELS[g.flowType as ProcessFlowType] ?? g.flowType ?? "" },
+    { id: "maturity", label: "成熟度", keyOf: (g) => maturityGroupName(g.maturity) },
+  ], []);
+  const grouping = useListGrouping(groupOptions, "process-flow-list");
+  const sortAccessorOpened = useOpenedSortAccessor(sortAccessor, "process-flow", (x: ProcessFlowMeta) => String(x.id));
+  const sort = useListSort(filter.filtered, sortAccessorOpened, grouping.active?.keyOf ?? null);
   const selection = useListSelection(sort.sorted, (g) => g.id);
   const clipboard = useListClipboard<ProcessFlowMeta>((g) => g.id);
 
@@ -965,8 +988,14 @@ export function ProcessFlowListView() {
 
         <SortBar sort={sort} columnLabels={columnLabels} />
 
+        <ListViewBar listKey="process-flow-list" query="" onQuery={() => undefined} facets={listFacets} sort={sort} />
+
         <DataList
           prefsKey="process-flow-list"
+          rowMark={(x) => rowMarks.get(String(x.id)) ?? null}
+          recentSort
+          bulk={{ favoriteKey: (x) => `process-flow:${x.id}` , marker: (x) => ({ entityType: "processFlow", entityId: x.id }) }}
+          grouping={grouping}
           dragRef={(g) => `@flow.${g.id}`}
           items={sort.sorted}
           columns={columns}

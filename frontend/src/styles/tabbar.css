@@ -230,3 +230,40 @@
   color: color-mix(in srgb, var(--hm-hue-red) 80%, var(--hm-fg));
 }
 .tab-context-item.disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* 画面の履歴 (戻る / 進む) と、閉じたタブの開き直し (UI 改善提案 続編 第 6 弾 #106 #107) */
+.tabbar-history,
+.tabbar-closed {
+  display: flex;
+  align-items: stretch;
+  flex: 0 0 auto;
+}
+.tabbar-history { border-right: 1px solid var(--dz-border); }
+.tabbar-closed { border-left: 1px solid var(--dz-border); }
+.tabbar-history-btn {
+  width: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: var(--dz-text);
+  cursor: pointer;
+}
+.tabbar-history-btn:hover:not(:disabled) { background: var(--dz-bg-3); }
+.tabbar-history-btn:disabled { opacity: 0.35; cursor: default; }
+.tabbar-closed-menu { position: fixed; min-width: 200px; max-width: 320px; z-index: 1000; }
+.tabbar-closed-menu .tab-context-item { display: flex; gap: 6px; width: 100%; background: transparent; border: 0; text-align: left; color: inherit; font: inherit; }
+
+/* 同じ設計をもう一度開こうとしたとき、既存のタブが一瞬光る (新しいタブは作らない) */
+.tabbar-tab { position: relative; }
+.tabbar-tab-flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--hm-accent);
+  opacity: 0;
+  animation: tabbar-tab-flash 0.9s ease-out;
+}
+@keyframes tabbar-tab-flash { 0% { opacity: 0.45; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .tabbar-tab-flash { animation-duration: 0.01s; } }

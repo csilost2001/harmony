@@ -20,6 +20,7 @@ import { DesignIssuesPanel } from "./panels/DesignIssuesPanel";
 import { GettingStartedPanel } from "./panels/GettingStartedPanel";
 import { DesignProgressPanel } from "./panels/DesignProgressPanel";
 import { FavoritesPanel } from "./panels/FavoritesPanel";
+import { TodayPanel } from "./panels/TodayPanel";
 
 /** react-grid-layout の 1 パネルのレイアウト指定 */
 export interface PanelLayout {
@@ -59,6 +60,13 @@ export interface DashboardPanel {
  * 配列の順序が初期表示順を決める（y, x が未指定の場合）。
  */
 export const dashboardPanels: DashboardPanel[] = [
+  {
+    id: "today",
+    title: "今日やること",
+    icon: "bi-check2-square",
+    defaultLayout: { w: 6, h: 4, minW: 4, minH: 3 },
+    component: TodayPanel,
+  },
   {
     id: "getting-started",
     title: "はじめかた",

@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { groupOrder } from "../utils/listGroup";
 
 export interface SortKey {
   columnKey: string;
@@ -7,6 +8,8 @@ export interface SortKey {
 
 export interface ListSort<T> {
   sortKeys: SortKey[];
+  /** 並びをまとめて置き換える (保存した絞り込みを呼び出すとき) */
+  setSortKeys: (keys: SortKey[]) => void;
   sorted: T[];
   /**
    * 列ヘッダクリック時に呼ぶ。
@@ -29,6 +32,8 @@ export interface ListSort<T> {
 export function useListSort<T>(
   items: T[],
   getSortAccessor: (item: T, columnKey: string) => string | number,
+  /** 指定すると、並べたあとに、同じグループの行を続けて並べる (一覧のグループ表示。グループの中の並びは保つ) */
+  groupBy?: ((item: T) => string) | null,
 ): ListSort<T> {
   const [sortKeys, setSortKeys] = useState<SortKey[]>([]);
 
@@ -85,7 +90,7 @@ export function useListSort<T>(
     [sortKeys],
   );
 
-  const sorted = useMemo(() => {
+  const sortedOnly = useMemo(() => {
     if (sortKeys.length === 0) return items;
     const decorated = items.map((item, index) => ({ item, index }));
     decorated.sort((a, b) => {
@@ -105,9 +110,11 @@ export function useListSort<T>(
     });
     return decorated.map((d) => d.item);
   }, [items, sortKeys, getSortAccessor]);
+  const sorted = useMemo(() => (groupBy ? groupOrder(sortedOnly, groupBy) : sortedOnly), [sortedOnly, groupBy]);
 
   return {
     sortKeys,
+    setSortKeys,
     sorted,
     toggleSort,
     clearSort,
