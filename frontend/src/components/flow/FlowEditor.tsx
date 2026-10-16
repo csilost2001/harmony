@@ -14,6 +14,7 @@ import {
   useReactFlow,
   ConnectionMode,
   type Connection,
+  type FinalConnectionState,
   type Edge as RFEdge,
   type Node as RFNode,
   type NodeMouseHandler,
@@ -192,7 +193,7 @@ function FlowEditorInner() {
   //
   // 全 callback の deps に `project` を加える (= callback 再生成許容、cost 不問前提)。
   const [project, setProject] = useState<FlowProject | null>(null);
-  const { fitView, zoomTo } = useReactFlow();
+  const { fitView, zoomTo, screenToFlowPosition } = useReactFlow();
   const { showError } = useErrorDialog();
 
   const [nodes, setNodes, onNodesChange] = useNodesState<RFNode>([]);
@@ -379,6 +380,10 @@ function FlowEditorInner() {
     initial?: Partial<ScreenFormData>;
   }>({ open: false });
   const [showAddTransition, setShowAddTransition] = useState(false);
+  // 線を引いたあと、その場で遷移のラベルを入れる小さな入力欄 / 何もない所へ線を落としたときの、新しい画面の作成 (UI 改善提案 第 3 弾 #50)
+  const [quickLabel, setQuickLabel] = useState<{ edgeId: string; x: number; y: number } | null>(null);
+  const quickPointer = useRef<{ x: number; y: number } | null>(null);
+  const [pendingFrom, setPendingFrom] = useState<{ nodeId: string; handle: string; pos: { x: number; y: number } } | null>(null);
   const [edgeModal, setEdgeModal] = useState<{
     open: boolean;
     editId?: string;
@@ -487,6 +492,10 @@ function FlowEditorInner() {
       connection.targetHandle ?? undefined,
     ).then((edge) => {
       setProject(draft);
+      // 線を引いた直後の位置に、ラベルの入力欄を出す (「遷移を追加」ボタンからのときは出さない)
+      const at = quickPointer.current;
+      quickPointer.current = null;
+      if (at) setQuickLabel({ edgeId: edge.id, x: at.x, y: at.y });
       setEdges((eds) => rfAddEdge({
         ...connection,
         id: edge.id,
@@ -503,6 +512,29 @@ function FlowEditorInner() {
     // 返すため deps から外せたが、useState 化後は closure capture pattern になるため deps 必須。
     // 初回 render で project===null を捕捉すると以降の接続作成が常に no-op になる regression。
   }, [project, isReadonly, setEdges, pushUndoSnapshot]);
+
+  /** 線を離したとき: つながった (ラベルの入力欄を出す) / 何もない所へ落とした (その位置に、新しい画面を作って、つなぐ) */
+  const onConnectEnd = useCallback((event: MouseEvent | TouchEvent, state: FinalConnectionState) => {
+    if (isReadonly) return;
+    const pt = "changedTouches" in event ? event.changedTouches[0] : event;
+    if (state.isValid) { quickPointer.current = { x: pt.clientX, y: pt.clientY }; return; }
+    if (!state.toNode && state.fromNode && state.fromHandle?.type === "source") {
+      setPendingFrom({ nodeId: state.fromNode.id, handle: state.fromHandle.id ?? "bottom", pos: screenToFlowPosition({ x: pt.clientX, y: pt.clientY }) });
+      setScreenModal({ open: true });
+    }
+  }, [isReadonly, screenToFlowPosition]);
+
+  const commitQuickLabel = useCallback(async (value: string) => {
+    const target = quickLabel;
+    setQuickLabel(null);
+    const label = value.trim();
+    if (!target || !project || !label) return;
+    pushUndoSnapshot();
+    const draft = structuredClone(project);
+    await storeUpdateEdge(draft, target.edgeId, { label });
+    setProject(draft);
+    setEdges((eds) => eds.map((e) => (e.id === target.edgeId ? { ...e, label } : e)));
+  }, [quickLabel, project, setEdges, pushUndoSnapshot]);
 
   const onNodeDoubleClick: NodeMouseHandler = useCallback((_event, node) => {
     if (node.type === "screenNode") {
@@ -580,6 +612,12 @@ function FlowEditorInner() {
       // RFC #1284 / #1297 I-5: kebab-case id を modal から受け取って addScreen に渡す
       const screen = await addScreen(draft, data.name, data.type as ScreenKind, { path: data.path, id: data.id });
       screen.description = data.description;
+      // 線を何もない所へ落として作るときは、その位置に置き、元の画面からの遷移もつなぐ
+      let newEdge: Awaited<ReturnType<typeof storeAddEdge>> | null = null;
+      if (pendingFrom && draft.screens.some((sc) => sc.id === pendingFrom.nodeId)) {
+        screen.position = pendingFrom.pos;
+        newEdge = await storeAddEdge(draft, pendingFrom.nodeId, screen.id, "", "click", pendingFrom.handle, "top");
+      }
       await saveProject(draft);
       // 新しい画面は空の業務部品レイアウト (見出しだけ) を持つ
       await saveScreenEntity(await buildDefaultScreen(screen.id));
@@ -589,10 +627,24 @@ function FlowEditorInner() {
         position: screen.position,
         data: { ...screen },
       }]);
+      if (newEdge && pendingFrom) {
+        const from = pendingFrom;
+        const made = newEdge;
+        setEdges((eds) => rfAddEdge({
+          id: made.id, source: from.nodeId, target: screen.id, sourceHandle: from.handle, targetHandle: "top",
+          markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
+          style: { strokeWidth: 2, stroke: "var(--hm-border-strong)" },
+          labelStyle: { fontSize: 11, fill: "var(--hm-fg-2)" },
+          labelBgStyle: { fill: "var(--hm-surface)", fillOpacity: 0.95 },
+          labelBgPadding: [6, 4] as [number, number],
+          labelBgBorderRadius: 4,
+        }, eds));
+      }
     }
+    setPendingFrom(null);
     setProject(draft);
     setScreenModal({ open: false });
-  }, [project, screenModal.editId, setNodes, pushUndoSnapshot]);
+  }, [project, screenModal.editId, setNodes, setEdges, pushUndoSnapshot, pendingFrom]);
 
   // ── Edge Modal Actions ──
 
@@ -1259,6 +1311,7 @@ function FlowEditorInner() {
             onNodesChange={onNodesChange}
             onEdgesChange={isReadonly ? undefined : onEdgesChange}
             onConnect={isReadonly ? undefined : onConnect}
+            onConnectEnd={isReadonly ? undefined : onConnectEnd}
             onNodeDragStop={onNodeDragStop}
             onNodeDoubleClick={onNodeDoubleClick}
             onNodeContextMenu={isReadonly ? undefined : onNodeContextMenu}
@@ -1374,6 +1427,19 @@ function FlowEditorInner() {
         </div>
       )}
 
+      {quickLabel && (
+        <input
+          className="flow-quick-label" style={{ left: quickLabel.x, top: quickLabel.y }} autoFocus placeholder="遷移ラベル (Enter で確定・Esc でスキップ)"
+          aria-label="遷移ラベル" data-testid="flow-quick-label"
+          onKeyDown={(e) => {
+            if (isImeComposing(e)) return;
+            if (e.key === "Enter") { e.preventDefault(); commitQuickLabel(e.currentTarget.value).catch((err) => reportFailure(err, "画面遷移のラベルの保存")); }
+            else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); setQuickLabel(null); }
+          }}
+          onBlur={(e) => { commitQuickLabel(e.currentTarget.value).catch((err) => reportFailure(err, "画面遷移のラベルの保存")); }}
+        />
+      )}
+
       {/* Screen Modal */}
       <ScreenEditModal
         open={screenModal.open}
@@ -1383,7 +1449,7 @@ function FlowEditorInner() {
         pageLayouts={screenModal.editId ? pageLayouts : undefined}
         existingScreenIds={project?.screens.map((s) => s.id) ?? []}
         onSave={(data) => { handleScreenSave(data).catch((err) => reportFailure(err, "画面の保存")); }}
-        onClose={() => setScreenModal({ open: false })}
+        onClose={() => { setScreenModal({ open: false }); setPendingFrom(null); }}
       />
 
       {/* Edge Modal */}
