@@ -17,6 +17,7 @@ import { GridFillHandle } from "../common/GridFillHandle";
 import { asciiFieldProps } from "../../utils/fieldNormalize";
 import { identifierHint, isValidIdentifier } from "../../utils/identifierHints";
 import { FieldHint } from "../common/FieldHint";
+import { HelpHint } from "../help/HelpHint";
 import { changedKeys } from "../../utils/fieldDiff";
 
 /** 保存済みの値を、戻すボタンの説明に出す短い文字にする */
@@ -105,9 +106,9 @@ export function ColumnGrid({ columns, readonly, onUpdateColumn, onAppend, onInse
       <table className="cg-table" onKeyDown={grid.onKeyDown}>
         <thead>
           <tr>
-            <th className="cg-no">No</th><th>物理名</th><th>表示名</th><th>データ型</th><th className="cg-num">長さ</th><th className="cg-num">スケール</th>
-            <th className="cg-flag" title="NOT NULL">NN</th><th className="cg-flag" title="PRIMARY KEY">PK</th><th className="cg-flag" title="UNIQUE">UK</th><th className="cg-flag" title="AUTO INCREMENT">AI</th>
-            <th>デフォルト</th><th>備考</th>
+            <th className="cg-no">No</th><th>物理名<HelpHint topic="table.physicalName" /></th><th>表示名<HelpHint topic="table.name" /></th><th>データ型<HelpHint topic="table.dataType" /></th><th className="cg-num">長さ<HelpHint topic="table.length" /></th><th className="cg-num">スケール</th>
+            <th className="cg-flag" title="NOT NULL">NN</th><th className="cg-flag" title="PRIMARY KEY">PK</th><th className="cg-flag" title="UNIQUE">UK</th><th className="cg-flag" title="AUTO INCREMENT">AI<HelpHint topic="table.keys" /></th>
+            <th>デフォルト<HelpHint topic="table.defaultValue" /></th><th>備考<HelpHint topic="table.comment" /></th>
           </tr>
         </thead>
         <tbody>

@@ -37,6 +37,21 @@ export const HELP_TOPICS: Record<string, HelpTopic> = {
     body: ["値を入れなかったときに入る値です (例: 0、CURRENT_TIMESTAMP)。空なら、デフォルトなし。", "文字の値は、DDL に書くとき引用符で囲む必要があるか、データベースによって違うので、DDL プレビューで確かめてください。"],
     doc: "docs/spec/schema-v3-design.md",
   },
+  "table.length": {
+    title: "長さ・スケール",
+    body: ["長さ: VARCHAR・CHAR は最大の文字数、DECIMAL は全体の桁数。スケール: DECIMAL の小数点以下の桁数 (例: 長さ 10・スケール 2 = 99999999.99 まで)。", "長さの要らない型 (INTEGER・DATE など) では、入力できません。"],
+    doc: "docs/spec/schema-v3-design.md",
+  },
+  "table.comment": {
+    title: "備考",
+    body: ["そのカラムについての補足です (例: 「税込」「論理削除の印」)。DDL のコメントと、設計書に出ます。AI がコードを作るときの手がかりにもなるので、業務上の意味を書いてください。"],
+    doc: "docs/spec/schema-v3-design.md",
+  },
+  "processFlow.runIf": {
+    title: "条件実行 (runIf)",
+    body: ["この工程を実行する条件です。偽 (満たさない) のときは、この工程を飛ばします。空なら、いつも実行します。", "例: @inputs.amount >= 10000 / @inputs.status !== 'locked' / @inputs.coupon && @inputs.amount > 0。参照は @ で始めます (@ を打つと候補が出ます)。", "入力が終わると、書き間違い (括弧・引用符・演算子・「=」) を指摘し、単純な条件は日本語で言い直します。"],
+    doc: "docs/spec/process-flow-runtime-conventions.md",
+  },
   "screenItem.id": {
     title: "項目 ID",
     body: ["画面の中で項目を区別する名前です。英字で始め、英数字だけで書きます (camelCase。例: customerName)。同じ画面の中で重ねられません。", "処理フローや画面デザインから、この ID で参照されます。変えるときは「ID 変更」を使うと、参照も一緒に直ります。"],

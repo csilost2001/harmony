@@ -4,6 +4,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { collectIssueElements, focusIssue, nextIssueIndex } from "../../utils/pageIssues";
+import { hasOpenModal } from "../../utils/modalScope";
 
 const mainRoot = (): HTMLElement | null => document.getElementById("app-main");
 
@@ -40,7 +41,7 @@ export function PageIssueNav() {
     schedule();
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "F8" || e.ctrlKey || e.altKey || e.metaKey) return;
-      if (document.querySelector('[aria-modal="true"]')) return; // ダイアログの中では、画面の要確認へ移らない
+      if (hasOpenModal()) return; // ダイアログが開いているあいだは、画面の要確認へ移らない
       e.preventDefault();
       go(e.shiftKey ? -1 : 1);
     };
