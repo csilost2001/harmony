@@ -43,7 +43,7 @@ export function ColumnPrefsMenu({ columns, prefs, measured, onChange, onClose, a
                 {c.label}
               </label>
               <input
-                type="number" className="column-prefs-width" min={MIN_COLUMN_WIDTH} max={MAX_COLUMN_WIDTH} placeholder="自動"
+                type="number" className="column-prefs-width" min={MIN_COLUMN_WIDTH} max={MAX_COLUMN_WIDTH} placeholder={"既定: 自動"}
                 aria-label={`${c.label}の幅 (px)`} disabled={hidden}
                 value={prefs.widths[c.key] ?? ""}
                 onChange={(e) => onChange(setWidth(prefs, c.key, e.target.value === "" ? null : Number(e.target.value)))}

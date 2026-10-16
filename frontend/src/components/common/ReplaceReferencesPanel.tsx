@@ -37,7 +37,7 @@ export function ReplaceReferencesPanel({ entityType, id, onChanged }: { entityTy
     return () => { cancelled = true; };
   }, [entityType, id, toId, done]);
 
-  const files = preview?.files ?? [];
+  const files = useMemo(() => preview?.files ?? [], [preview]);
   const chosen = useMemo(() => files.filter((f) => !picked || picked.has(f.filePath)), [files, picked]);
   const refCount = chosen.reduce((a, f) => a + f.count, 0);
   const blockers = [

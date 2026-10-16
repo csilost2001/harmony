@@ -276,7 +276,7 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
       return docReplaceNode(d, selected.id, detachComponentNode(selected, components, rest));
     });
     setSelectedId(null);
-  }, [selected, components, apply]);
+  }, [selected, components, apply, setSelectedId]);
 
   // ── 保存 / 破棄 ───────────────────────────────────────────────────────
   const [showDiscard, setShowDiscard] = useState(false);
@@ -380,7 +380,7 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [isActive, editable, selectedId, nodes, deleteSelected, duplicateSelected, moveSelected, outdentSelected, indentSelected, startInline, resizeColumns]);
+  }, [isActive, editable, selectedId, nodes, deleteSelected, duplicateSelected, moveSelected, outdentSelected, indentSelected, startInline, resizeColumns, setSelectedId]);
 
   // ── 右クリック / Shift+F10 のメニュー ─────────────────────────────────
   const menuItems = useMemo<ContextMenuItem[]>(() => {
@@ -388,34 +388,34 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
     const many = ids.length > 1;
     const single = !many && selected ? selected : null;
     const ro = editable ? undefined : "閲覧のみのため、変更できません";
-    const run = (fn: () => void) => () => { setMenuAt(null); fn(); };
     const items: ContextMenuItem[] = [];
     if (single && inlineTarget(single, single.itemRef ? docItems?.find((i) => i.id === single.itemRef) : undefined)) {
-      items.push({ key: "inline", label: "文言を直す", icon: "bi-pencil", shortcut: "F2", disabled: !editable, disabledReason: ro, onClick: run(() => startInline(single.id)) });
+      items.push({ key: "inline", label: "文言を直す", icon: "bi-pencil", shortcut: "F2", disabled: !editable, disabledReason: ro, onClick: () => { setMenuAt(null); (() => startInline(single.id))(); } });
     }
     items.push(
-      { key: "dup", label: many ? `${ids.length} 件を複製` : "複製", icon: "bi-copy", shortcut: "Ctrl+D", disabled: !editable, disabledReason: ro, onClick: run(duplicateSelected) },
-      { key: "up", label: "前へ", icon: "bi-arrow-up", shortcut: "Alt+↑", disabled: !editable || (many && !sharedParentId(nodes, ids).ok), disabledReason: ro ?? "違う入れ物の部品が混ざっています", onClick: run(() => moveSelected(-1)) },
-      { key: "down", label: "後ろへ", icon: "bi-arrow-down", shortcut: "Alt+↓", disabled: !editable || (many && !sharedParentId(nodes, ids).ok), disabledReason: ro ?? "違う入れ物の部品が混ざっています", onClick: run(() => moveSelected(1)) },
+      { key: "dup", label: many ? `${ids.length} 件を複製` : "複製", icon: "bi-copy", shortcut: "Ctrl+D", disabled: !editable, disabledReason: ro, onClick: () => { setMenuAt(null); duplicateSelected(); } },
+      { key: "up", label: "前へ", icon: "bi-arrow-up", shortcut: "Alt+↑", disabled: !editable || (many && !sharedParentId(nodes, ids).ok), disabledReason: ro ?? "違う入れ物の部品が混ざっています", onClick: () => { setMenuAt(null); (() => moveSelected(-1))(); } },
+      { key: "down", label: "後ろへ", icon: "bi-arrow-down", shortcut: "Alt+↓", disabled: !editable || (many && !sharedParentId(nodes, ids).ok), disabledReason: ro ?? "違う入れ物の部品が混ざっています", onClick: () => { setMenuAt(null); (() => moveSelected(1))(); } },
     );
     if (!many) {
       items.push(
-        { key: "out", label: "親の外へ出す", icon: "bi-box-arrow-in-left", shortcut: "Alt+←", disabled: !editable, disabledReason: ro, onClick: run(() => { if (!outdentSelected()) showToast("これ以上、外へは出せません (最上位、または外に置けない部品です)", "info"); }) },
-        { key: "in", label: "直前の部品の中へ入れる", icon: "bi-box-arrow-in-right", shortcut: "Alt+→", disabled: !editable, disabledReason: ro, onClick: run(() => { if (!indentSelected()) showToast("直前の部品の中へは入れられません (直前に、この部品を置ける入れ物がありません)", "info"); }) },
+        { key: "out", label: "親の外へ出す", icon: "bi-box-arrow-in-left", shortcut: "Alt+←", disabled: !editable, disabledReason: ro, onClick: () => { setMenuAt(null); (() => { if (!outdentSelected()) showToast("これ以上、外へは出せません (最上位、または外に置けない部品です)", "info"); })(); } },
+        { key: "in", label: "直前の部品の中へ入れる", icon: "bi-box-arrow-in-right", shortcut: "Alt+→", disabled: !editable, disabledReason: ro, onClick: () => { setMenuAt(null); (() => { if (!indentSelected()) showToast("直前の部品の中へは入れられません (直前に、この部品を置ける入れ物がありません)", "info"); })(); } },
       );
     }
     items.push({ key: "sep1", separator: true });
     for (const w of WRAP_TYPES) {
       const ok = canWrap(nodes, ids, w.type);
-      items.push({ key: `wrap-${w.type}`, label: `${w.label}で包む`, icon: "bi-box", disabled: !editable || !ok, disabledReason: ro ?? "この組み合わせは、その入れ物で包めません", onClick: run(() => { wrapSelected(w.type); }) });
+      items.push({ key: `wrap-${w.type}`, label: `${w.label}で包む`, icon: "bi-box", disabled: !editable || !ok, disabledReason: ro ?? "この組み合わせは、その入れ物で包めません", onClick: () => { setMenuAt(null); (() => { wrapSelected(w.type); })(); } });
     }
     if (single && single.type !== "component") {
-      items.push({ key: "register", label: "独自部品として登録…", icon: "bi-puzzle", disabled: !editable, disabledReason: ro, onClick: run(() => setRegistering(true)) });
+      items.push({ key: "register", label: "独自部品として登録…", icon: "bi-puzzle", disabled: !editable, disabledReason: ro, onClick: () => { setMenuAt(null); (() => setRegistering(true))(); } });
     }
     if (single?.type === "component") {
-      items.push({ key: "detach", label: "展開して通常の部品に戻す", icon: "bi-box-arrow-up-right", disabled: !editable, disabledReason: ro, onClick: run(detachSelected) });
+      // eslint-disable-next-line react-hooks/refs -- 操作は、押されたときにだけ呼ぶ (描画のあいだに、ref は読まない)
+      items.push({ key: "detach", label: "展開して通常の部品に戻す", icon: "bi-box-arrow-up-right", disabled: !editable, disabledReason: ro, onClick: () => { setMenuAt(null); detachSelected(); } });
     }
-    items.push({ key: "sep2", separator: true }, { key: "del", label: many ? `${ids.length} 件を削除` : "削除", icon: "bi-trash", shortcut: "Delete", danger: true, disabled: !editable, disabledReason: ro, onClick: run(deleteSelected) });
+    items.push({ key: "sep2", separator: true }, { key: "del", label: many ? `${ids.length} 件を削除` : "削除", icon: "bi-trash", shortcut: "Delete", danger: true, disabled: !editable, disabledReason: ro, onClick: () => { setMenuAt(null); deleteSelected(); } });
     return items;
   }, [multi, selectedId, selected, editable, docItems, nodes, startInline, duplicateSelected, moveSelected, outdentSelected, indentSelected, wrapSelected, detachSelected, deleteSelected]);
 

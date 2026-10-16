@@ -572,7 +572,7 @@
 .column-prefs-title { font-weight: 600; margin-bottom: 6px; }
 .column-prefs-title small { font-weight: 400; color: var(--hm-fg-muted); }
 .column-prefs-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
-.column-prefs-list li { display: grid; grid-template-columns: 1fr 64px 26px 26px; gap: 4px; align-items: center; }
+.column-prefs-list li { display: grid; grid-template-columns: 1fr 96px 26px 26px; gap: 4px; align-items: center; }
 .column-prefs-list li.is-hidden .column-prefs-show { color: var(--hm-fg-faint); text-decoration: line-through; }
 .column-prefs-show { display: flex; gap: 6px; align-items: center; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .column-prefs-width { width: 100%; padding: 2px 4px; border: 1px solid var(--hm-border); border-radius: 4px; background: var(--hm-surface-2); color: var(--hm-fg); font-size: inherit; }

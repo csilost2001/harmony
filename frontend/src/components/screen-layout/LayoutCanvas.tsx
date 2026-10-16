@@ -12,7 +12,7 @@ import type { ScreenItem } from "../../types/v3/screen-item";
 import { ROOT_ID, computeDropTarget, getDragPayload, setDragPayload, DND_MIME, type DropTarget, type DragPayload } from "./layoutDnd";
 import { inlineTarget } from "./layoutInline";
 import { columnPairOf, pairAfterDelta, spanDeltaFromPixels } from "./layoutResize";
-import { isImeComposing } from "../../utils/imeKeys";
+import { isImeComposing, isPlainEnter } from "../../utils/imeKeys";
 import { useLongPress } from "../../hooks/useLongPress";
 
 export interface CanvasContextValue {
@@ -248,7 +248,7 @@ function InlineEditor({ node }: { node: LayoutNode }) {
     e.stopPropagation();
     if (isImeComposing(e)) return;
     if (e.key === "Escape") { e.preventDefault(); done.current = true; onInlineCancel?.(); }
-    else if (e.key === "Enter" && !(target.multiline && e.shiftKey)) { e.preventDefault(); finish(0); }
+    else if (isPlainEnter(e)) { e.preventDefault(); finish(0); }
     else if (e.key === "Tab") { e.preventDefault(); finish(e.shiftKey ? -1 : 1); }
   };
   const common = {

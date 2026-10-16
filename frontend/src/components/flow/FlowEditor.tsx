@@ -1,4 +1,4 @@
-import { isImeComposing } from "../../utils/imeKeys";
+import { isImeComposing, isPlainEnter } from "../../utils/imeKeys";
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
@@ -1433,7 +1433,7 @@ function FlowEditorInner() {
           aria-label="遷移ラベル" data-testid="flow-quick-label"
           onKeyDown={(e) => {
             if (isImeComposing(e)) return;
-            if (e.key === "Enter") { e.preventDefault(); commitQuickLabel(e.currentTarget.value).catch((err) => reportFailure(err, "画面遷移のラベルの保存")); }
+            if (isPlainEnter(e)) { e.preventDefault(); commitQuickLabel(e.currentTarget.value).catch((err) => reportFailure(err, "画面遷移のラベルの保存")); }
             else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); setQuickLabel(null); }
           }}
           onBlur={(e) => { commitQuickLabel(e.currentTarget.value).catch((err) => reportFailure(err, "画面遷移のラベルの保存")); }}

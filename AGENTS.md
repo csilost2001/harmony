@@ -15,6 +15,7 @@ Claude Code 固有の補足は `CLAUDE.md`、Codex 固有の設定は `.codex/co
 | 連携と運用 (Word / Excel 書き出し・設計書の体裁と改訂履歴・図の書き出し・Git・レビューコメント・承認・利用者と権限・変更の記録・通知・取り込み・生成の管理・技術スタックのプリセット・版とリリースノート・資料の鮮度検査) | [integration-ops.md](docs/spec/integration-ops.md) |
 | マーカー (AI への指示・質問。どの設計にも付けられる・`/markers` の一覧と集計・AI に渡す文・Ctrl+Alt+M・`authoring.markers` を画面と MCP が共通に読み書き) | [ui-markers.md](docs/spec/ui-markers.md) |
 | キーボード・移動 (画面内の検索 Ctrl+F・参照元 Shift+F12・表の Ctrl+D と行の挿入・複製・削除・コマンドパレットの画面の操作・F6 で領域・部品の追加 /・ダイアログの Esc とフォーカス) | [ui-keyboard.md](docs/spec/ui-keyboard.md) |
+| ドラッグ・直接操作・一括 (画面デザイナの文言のその場編集・右クリック・複数選択・段の幅・属性コピー / 一覧の列の設定・条件で選ぶ・表としてコピー・行の並べ替え・オートフィル / 図の拡大縮小・ER のカラムから線・画面フローの線 / タブを右へドラッグ・ファイルのドロップで取り込み・参照の一括付け替え) | [ui-direct-manipulation.md](docs/spec/ui-direct-manipulation.md) |
 | 入力補助 (参照の補完・SQL の表名とカラム名・定義へ移動 F12・検索できる選択・カラムの物理名と型の提案・外部キーの候補・テーブルから画面項目・ID の候補・工程のおすすめ・日本語入力の Enter) | [ui-input-assist.md](docs/spec/ui-input-assist.md) |
 | 完了判定 (回帰テストの trace 照合) | [docs/conventions/completion-gate.md](docs/conventions/completion-gate.md) |
 | 進行中の再設計計画と設計者判断 | [docs/plans/redesign-2026-10.md](docs/plans/redesign-2026-10.md) |
@@ -66,7 +67,7 @@ npm run kill           # 5173 / 5179 を握るプロセスを停止
 | 初回セットアップ (診断して、足りないものをそろえる。`-- --check` は診断だけ、`-- --sample retail` でサンプルを複製) | `npm run setup` |
 | 資料の鮮度検査 (相対リンク・`npm run` の名前・Routing の表と画面の経路・UI 操作リファレンス・スキル表。`npm run check` に含まれる) / スクリーンショットの撮り直し / リリースノート (git の履歴から `docs/release-notes.md`) | `npm run check:docs [-- --info]` / `npm run docs:shots [-- --all]` / `npm run release:notes` |
 | スキーマの版の移行 (予行が既定。`--apply` で書く。登録された移行はいまは空) | `npm run migrate:schema -- <workspace-dir> [--apply]` ([schema-migration.md](docs/spec/schema-migration.md)) |
-| AI (MCP) から: 設計の点検・参照元・改名・テスト観点 | `designer__check_design` (設計を直したら、完了報告の前に呼び error / warning 0 件にする。要確認は、画面か design-check.json で人が理由つきで抑制するもので、AI は黙らせない) / `designer__analyze_design` (影響分析・対応表・未使用・用語ほか。読み取りのみ) / `designer__find_references` (誰が参照しているか) / `designer__rename_entity` (既定は予行、`apply: true` で実行) と `designer__undo_rename` / `designer__get_test_viewpoints` / コード生成のあとは `designer__record_generation` (どの設計からどのファイルを作ったか) → 再生成の前は `designer__check_generation_drift` と `designer__get_regeneration_diff` / レビューの指摘は `designer__add_review_findings` (位置つきのコメント) と `designer__list_review_comments` |
+| AI (MCP) から: 設計の点検・参照元・改名・テスト観点 | `designer__check_design` (設計を直したら、完了報告の前に呼び error / warning 0 件にする。要確認は、画面か design-check.json で人が理由つきで抑制するもので、AI は黙らせない) / `designer__analyze_design` (影響分析・対応表・未使用・用語ほか。読み取りのみ) / `designer__find_references` (誰が参照しているか) / `designer__rename_entity` (既定は予行、`apply: true` で実行) と `designer__undo_rename` / `designer__replace_references` (参照元を選んで別の設計へ付け替え。既定は予行) と `designer__undo_replace_references` / `designer__get_test_viewpoints` / コード生成のあとは `designer__record_generation` (どの設計からどのファイルを作ったか) → 再生成の前は `designer__check_generation_drift` と `designer__get_regeneration_diff` / レビューの指摘は `designer__add_review_findings` (位置つきのコメント) と `designer__list_review_comments` |
 
 - E2E は自前で起動した backend を再利用すると E2E 用環境変数が効かず失敗する。E2E 実行前は `npm run kill` して Playwright にサーバを起動させる。
 - AI が検証のために dev server を起動した場合は、作業の終わりに必ず `npm run kill` で止める。
