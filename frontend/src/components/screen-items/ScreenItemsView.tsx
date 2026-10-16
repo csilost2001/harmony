@@ -112,6 +112,8 @@ import { GridFillHandle } from "../common/GridFillHandle";
 import { useRowDragReorder } from "../../hooks/useRowDragReorder";
 import { moveItem, remapIndexSet } from "../../utils/rowReorder";
 import { asciiFieldProps } from "../../utils/fieldNormalize";
+import { identifierHint, isValidIdentifier } from "../../utils/identifierHints";
+import { FieldHint } from "../common/FieldHint";
 
 type ScreenMeta = { id: string; name: string };
 
@@ -1207,7 +1209,7 @@ export function ScreenItemsView() {
                 )}
                 {file.items.map((item, i) => (
                   <React.Fragment key={i}>
-                  <tr className={`${selectedIndices.has(i) ? "screen-items-row-selected" : ""} ${rowDrag.rowClass(i)}`.trim()} data-grid-row={i} {...rowDrag.rowProps(i)}>
+                  <tr className={`${selectedIndices.has(i) ? "screen-items-row-selected" : ""} ${rowDrag.rowClass(i)}`.trim()} data-grid-row={i} data-issue={lintByRow.has(i) ? "" : undefined} {...rowDrag.rowProps(i)}>
                     <td className="text-center">
                       <input
                         type="checkbox"
@@ -1242,9 +1244,11 @@ export function ScreenItemsView() {
                         onBlur={(e) => handleIdBlur(i, e)}
                         placeholder="例: email"
                         {...asciiFieldProps}
+                        aria-invalid={item.id !== "" && !isValidIdentifier(item.id as string, "camel") ? true : undefined}
                         aria-label={`行${i + 1}の項目 ID`}
                         disabled={isReadonly}
                       />
+                      <FieldHint hint={item.id ? identifierHint(item.id as string, "camel") : null} testId={`item-id-hint-${i}`} />
                     </td>
                     <td>
                       <input

@@ -22,3 +22,7 @@
 .cg-hint-btn:hover:not(:disabled) { color: var(--hm-accent); }
 .col-marker-badge { border: none; background: var(--hm-accent-soft); color: var(--hm-accent); border-radius: 10px; padding: 0 7px; margin-left: 6px; font-size: calc(11px * var(--hm-font-scale)); cursor: pointer; display: inline-flex; align-items: center; gap: 3px; }
 .col-marker-badge:hover { background: var(--hm-accent); color: var(--hm-on-solid); }
+
+/* 物理名の直下の指摘 (UI 改善提案 第 5 弾 #81) */
+.cg-name-cell { flex-wrap: wrap; }
+.cg-name-cell .field-hint { flex-basis: 100%; }

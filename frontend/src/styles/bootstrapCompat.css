@@ -197,3 +197,18 @@ html.hm-focus-mode .common-header, html.hm-focus-mode .tabbar { display: none !i
   background: var(--hm-surface); color: var(--hm-fg-2); font: inherit; font-size: calc(12px * var(--hm-font-scale)); cursor: pointer; opacity: 0.85;
 }
 .focus-mode-exit:hover, .focus-mode-exit:focus-visible { opacity: 1; color: var(--hm-fg); }
+
+/* ── 次の要確認へ (UI 改善提案 第 5 弾 #88・#92) ─────────────────────────── */
+.page-issue-nav {
+  position: fixed; left: 12px; bottom: 10px; z-index: 9300; padding: 3px 12px; border: 1px solid var(--hm-warning); border-radius: 14px;
+  background: var(--hm-surface); color: var(--hm-warning); font: inherit; font-size: calc(12px * var(--hm-font-scale)); font-weight: 600; cursor: pointer;
+}
+.page-issue-nav kbd { margin-left: 4px; padding: 0 4px; border: 1px solid var(--hm-border-strong); border-radius: 3px; background: var(--hm-surface-2); color: var(--hm-fg-2); font-size: 0.85em; }
+@keyframes page-issue-flash { from { box-shadow: 0 0 0 3px var(--hm-warning); } to { box-shadow: 0 0 0 3px transparent; } }
+.page-issue-flash { animation: page-issue-flash 1.2s ease-out; }
+
+/* ── 欄の直下の指摘 (UI 改善提案 第 5 弾 #81・#100) ───────────────────────── */
+.field-hint { margin-top: 2px; font-size: calc(11.5px * var(--hm-font-scale)); line-height: 1.4; color: var(--hm-danger); }
+.field-hint-fix { margin-left: 6px; padding: 0 6px; border: 1px solid var(--hm-danger); border-radius: 4px; background: transparent; color: var(--hm-danger); font: inherit; cursor: pointer; }
+.field-hint-fix:hover, .field-hint-fix:focus-visible { background: var(--hm-danger); color: var(--hm-on-solid, #fff); }
+input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--hm-danger) !important; }

@@ -91,6 +91,7 @@ import { isPaneMode, postToParent } from "../utils/paneMode";
 import { ToastHost } from "./common/ToastHost";
 import { FileDropImport } from "./shell/FileDropImport";
 import { FocusModeControl } from "./shell/FocusModeControl";
+import { PageIssueNav } from "./shell/PageIssueNav";
 import { useFieldNormalizer } from "../hooks/useFieldNormalizer";
 import { setSplit, useSplit } from "../store/splitStore";
 
@@ -1047,6 +1048,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       {!pane && <TabBar />}
       {!pane && <FileDropImport />}
       {!pane && <FocusModeControl />}
+      {!pane && <PageIssueNav />}
       {pane && <ToastHost />}
       <main id="app-main" className={split && !pane ? "split-root" : undefined} style={split && !pane ? { height: "calc(100vh - var(--common-header-h, 0px) - var(--tabbar-h, 0px))" } : undefined} data-testid={split && !pane ? "split-root" : undefined}>
         <div className={split && !pane ? "split-left" : undefined}>

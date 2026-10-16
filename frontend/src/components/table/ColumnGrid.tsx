@@ -15,6 +15,8 @@ import type { ColumnNameHint } from "../../utils/columnSuggestion";
 import "../../styles/columnGrid.css";
 import { GridFillHandle } from "../common/GridFillHandle";
 import { asciiFieldProps } from "../../utils/fieldNormalize";
+import { identifierHint, isValidIdentifier } from "../../utils/identifierHints";
+import { FieldHint } from "../common/FieldHint";
 
 interface Props {
   columns: readonly Column[];
@@ -41,6 +43,7 @@ interface Props {
 function TextCell({ value, label, readonly, mono, placeholder, ascii, onCommit }: { value: string; label: string; readonly: boolean; mono?: boolean; placeholder?: string; ascii?: boolean; onCommit: (v: string) => void }) {
   return (
     <input key={value} type="text" defaultValue={value} readOnly={readonly} aria-label={label} placeholder={placeholder} spellCheck={false} {...(ascii ? asciiFieldProps : {})}
+      aria-invalid={ascii && value !== "" && !isValidIdentifier(value, "snake") ? true : undefined}
       className={`cg-input${mono ? " is-mono" : ""}`}
       onBlur={(e) => { if (!readonly && e.currentTarget.value !== value) onCommit(e.currentTarget.value); }} />
   );
@@ -97,6 +100,7 @@ export function ColumnGrid({ columns, readonly, onUpdateColumn, onAppend, onInse
               <td>
                 <div className="cg-name-cell">
                   <TextCell value={c.physicalName} label={`${i + 1} 行目の物理名`} readonly={readonly} mono ascii onCommit={(v) => onUpdateColumn(c.id, { physicalName: v as PhysicalName })} />
+                  {!readonly && <FieldHint hint={c.physicalName ? identifierHint(c.physicalName, "snake") : null} onFix={(v) => onUpdateColumn(c.id, { physicalName: v as PhysicalName })} testId={`column-name-hint-${i}`} />}
                   {(markerCounts?.get(`$.columns[${c.id}]`) ?? 0) > 0 && (
                     <button type="button" className="col-marker-badge" title="このカラムへの、未解決のマーカー (クリックで開く)" data-testid={`col-marker-badge-${c.physicalName}`}
                       onClick={() => onOpenMarkers?.(`$.columns[${c.id}]`)}>
