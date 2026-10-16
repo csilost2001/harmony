@@ -20,6 +20,7 @@ import {
   MarkerType,
   BackgroundVariant,
 } from "@xyflow/react";
+import { DiagramControls } from "../common/DiagramControls";
 import "@xyflow/react/dist/style.css";
 
 import ScreenNodeComponent from "./ScreenNode";
@@ -1279,6 +1280,7 @@ function FlowEditorInner() {
             }}
           >
             <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
+            <DiagramControls buttons={false} />
             <MiniMap
               nodeColor="var(--hm-accent)"
               maskColor="color-mix(in srgb, var(--hm-bg) 70%, transparent)"

@@ -159,3 +159,9 @@ textarea.form-control { min-height: 2.6rem; resize: vertical; }
 tr.row-dragging { opacity: 0.45; }
 tr.row-drop-before > td { box-shadow: inset 0 3px 0 var(--hm-accent-solid); }
 tr.row-drop-after > td { box-shadow: inset 0 -3px 0 var(--hm-accent-solid); }
+
+/* ── 図の拡大縮小の操作 (UI 改善提案 第 3 弾 #56) ─────────────────────────── */
+.diagram-controls { display: flex; gap: 2px; padding: 2px; background: var(--hm-surface); border: 1px solid var(--hm-border-strong); border-radius: 6px; }
+.diagram-controls button { min-width: 26px; height: 26px; padding: 0 6px; border: 0; border-radius: 4px; background: transparent; color: var(--hm-fg-2); cursor: pointer; font: inherit; font-size: calc(12px * var(--hm-font-scale)); }
+.diagram-controls button:hover, .diagram-controls button:focus-visible { background: var(--hm-surface-3); color: var(--hm-fg); }
+.diagram-controls .diagram-zoom-level { min-width: 48px; font-variant-numeric: tabular-nums; }
