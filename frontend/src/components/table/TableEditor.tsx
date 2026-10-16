@@ -797,7 +797,7 @@ function ColumnsTab({
       { id: "col-template", label: "テンプレートからカラムを追加", keywords: ["てんぷれーと", "template", "id", "作成日時"], icon: "bi-collection", run: () => setShowTemplates(true) },
       { id: "col-paste", label: "表 (Excel) から貼り付けてカラムを追加", keywords: ["ぺーすと", "paste", "excel", "えくせる", "貼り付け"], icon: "bi-clipboard-data", run: () => { setPasteInitial(""); setShowPaste(true); } },
     ]),
-    ...(onOpenMarkers ? [{ id: "marker-add", label: "マーカーを追加 (AI への指示・質問)", keywords: ["まーかー", "marker", "ai", "しじ", "ついか", "注釈", "指示"], icon: "bi-megaphone", hint: "Ctrl+Alt+M", run: () => onOpenMarkers(focusedColumnPath()) }] : []),
+    ...(onOpenMarkers ? [{ id: "marker-add", label: "AI に頼む (選んだ項目・カラムへのマーカーを追加)", keywords: ["まーかー", "marker", "ai", "しじ", "ついか", "注釈", "指示"], icon: "bi-megaphone", hint: "Ctrl+Alt+M", run: () => onOpenMarkers(focusedColumnPath()) }] : []),
     { id: "col-grid", label: gridMode ? "カラムを「一覧で編集」に切り替える" : "カラムを「表で編集」に切り替える", keywords: ["ひょう", "grid", "ichiran", "切り替え", "表計算"], icon: gridMode ? "bi-list-ul" : "bi-grid-3x3", run: () => setGridMode((v) => !v) },
   ]);
 

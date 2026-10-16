@@ -628,7 +628,7 @@ export function ScreenItemsView() {
     return () => document.removeEventListener("keydown", onKey);
   });
   usePageCommands(`screen-items:${screenId ?? ""}:markers`, [
-    { id: "marker-add", label: "マーカーを追加 (AI への指示・質問)", keywords: ["まーかー", "marker", "ai", "しじ", "ついか", "注釈", "指示"], icon: "bi-megaphone", hint: "Ctrl+Alt+M", run: () => openMarkers(focusedItemPath()) },
+    { id: "marker-add", label: "AI に頼む (選んだ項目・カラムへのマーカーを追加)", keywords: ["まーかー", "marker", "ai", "しじ", "ついか", "注釈", "指示"], icon: "bi-megaphone", hint: "Ctrl+Alt+M", run: () => openMarkers(focusedItemPath()) },
   ]);
   usePageCommands(`screen-items:${screenId ?? ""}`, isReadonly ? [] : [
     { id: "item-add", label: "画面項目を追加", keywords: ["こうもく", "item", "add", "ついか", "追加"], icon: "bi-plus-lg", run: handleAddItem },
