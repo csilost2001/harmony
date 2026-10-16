@@ -52,4 +52,35 @@ test.describe("汎用定義の編集", () => {
     await expect(purpose).toHaveValue(saved);
     await expect(purpose).toBeDisabled();
   });
+
+  test("元に戻す・やり直しができ、何を戻したかを知らせる。入力中の連続した変更は 1 回分 (UI 改善提案 第 5 弾 #85・#86) @regression", async ({ page }) => {
+    await ws.gotoActive(page, PATH);
+    const purpose = page.locator("textarea").first();
+    await expect(purpose).toBeVisible({ timeout: 10000 });
+    await page.getByTestId("edit-mode-start").click();
+    const original = await purpose.inputValue();
+    await expect(page.getByTestId("gd-undo")).toBeDisabled();
+    // 1 回の入力 (連続した文字) = 1 回分。末尾へカーソルを置いて打つ
+    await purpose.click();
+    await page.keyboard.press("Control+End");
+    await page.keyboard.type(" 追記A", { delay: 30 });
+    await page.waitForTimeout(900); // 入力が止まると、履歴に積まれる
+    await page.keyboard.type(" 追記B", { delay: 30 });
+    await expect(page.getByTestId("gd-undo")).toBeEnabled();
+
+    await page.getByTestId("gd-undo").click();
+    await expect(purpose).toHaveValue(`${original} 追記A`);
+    await expect(page.getByText(/元に戻しました: .*目的/)).toBeVisible();
+    await page.getByTestId("gd-undo").click();
+    await expect(purpose).toHaveValue(original);
+    await expect(page.getByTestId("gd-undo")).toBeDisabled();
+    await page.getByTestId("gd-redo").click();
+    await expect(purpose).toHaveValue(`${original} 追記A`);
+    await expect(page.getByText(/やり直しました: /)).toBeVisible();
+
+    // Ctrl+Z (入力欄の外で)
+    await page.locator("h2").first().click();
+    await page.keyboard.press("Control+z");
+    await expect(purpose).toHaveValue(original);
+  });
 });

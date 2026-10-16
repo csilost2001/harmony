@@ -30,6 +30,9 @@ import { SaveConflictDialog, type ConflictInfo } from "../editing/SaveConflictDi
 import { EditModeToolbar } from "../editing/EditModeToolbar";
 import { DiscardConfirmDialog } from "../editing/ConfirmDialogs";
 import { runReporting } from "../../utils/failureToast";
+import { useUndoableState } from "../../hooks/useUndoableState";
+import { useUndoKeyboard } from "../../hooks/useUndoKeyboard";
+import { UndoHistoryPanel } from "../common/UndoHistoryPanel";
 
 function isValidKind(k: string): k is GenericDefinitionKind {
   return (GENERIC_DEFINITION_KINDS as string[]).includes(k);
@@ -65,7 +68,14 @@ function GenericDefinitionEditorBody() {
   const kind = isValidKind(kindParam) ? kindParam : null;
   const decodedName = decodeURIComponent(nameParam);
 
-  const [def, setDef] = useState<GenericDefinition | null>(null);
+  // 元に戻す・やり直し (UI 改善提案 第 5 弾 #85)。入力中の連続した変更は 1 回分にまとめる (入力が止まって 0.7 秒たつと、履歴に積む)
+  const undoable = useUndoableState<GenericDefinition | null>(null);
+  const def = undoable.state;
+  const commitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flushHistory = useCallback(() => {
+    if (commitTimer.current) { clearTimeout(commitTimer.current); commitTimer.current = null; }
+    undoable.commit();
+  }, [undoable]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [saveError, setSaveError] = useState("");
@@ -263,7 +273,7 @@ function GenericDefinitionEditorBody() {
         if (!loaded) {
           setError(`${decodedName} が見つかりません`);
         } else {
-          setDef(loaded);
+          undoable.reset(loaded);
           initialSnapshotRef.current = JSON.stringify(loaded);
           setBaseline(initialSnapshotRef.current);
           setReloadBanner(false);
@@ -341,10 +351,15 @@ function GenericDefinitionEditorBody() {
   }, [tabResourceId]);
 
   const updateDef = useCallback((updater: (prev: GenericDefinition) => GenericDefinition) => {
-    setDef((prev) => prev ? updater(prev) : prev);
+    undoable.update((prev) => prev ? updater(prev) : prev);
+    if (commitTimer.current) clearTimeout(commitTimer.current);
+    commitTimer.current = setTimeout(() => { commitTimer.current = null; undoable.commit(); }, 700);
     // #1331: 編集が発生したら EditSession を作成 (lazy)。重複 create は ensureEditSession 内で抑制。
     ensureEditSession().catch(() => { /* logged inside */ });
-  }, [ensureEditSession]);
+  }, [ensureEditSession, undoable]);
+  const undoEdit = useCallback(() => { flushHistory(); undoable.undo(); }, [flushHistory, undoable]);
+  const redoEdit = useCallback(() => { flushHistory(); undoable.redo(); }, [flushHistory, undoable]);
+  useUndoKeyboard(undoEdit, redoEdit, editing);
 
   // #1331: unmount 時に EditSession を discard (cleanup)。
   // discardEditSession に target を渡し、await 中の resource 切替で誤って新 session を
@@ -633,6 +648,13 @@ function GenericDefinitionEditorBody() {
         </h2>
         <span style={{ fontFamily: "monospace", fontWeight: 600, color: "color-mix(in srgb, var(--hm-hue-blue) 80%, var(--hm-fg))" }}>{def.name}</span>
         <div style={{ marginLeft: "auto", display: "flex", gap: "8px", alignItems: "center" }}>
+          {editing && (
+            <>
+              <button type="button" className="btn btn-outline-secondary btn-sm" onClick={undoEdit} disabled={!undoable.canUndo && !dirty} title="元に戻す (Ctrl+Z)" aria-label="元に戻す" data-testid="gd-undo"><i className="bi bi-arrow-counterclockwise" /></button>
+              <button type="button" className="btn btn-outline-secondary btn-sm" onClick={redoEdit} disabled={!undoable.canRedo} title="やり直し (Ctrl+Y)" aria-label="やり直し" data-testid="gd-redo"><i className="bi bi-arrow-clockwise" /></button>
+              <UndoHistoryPanel history={undoable.history} present={def} onJump={(d) => { flushHistory(); undoable.jumpTo(d); }} buttonClassName="btn btn-outline-secondary btn-sm" />
+            </>
+          )}
           {issues.length > 0 && (
             <span style={{ display: "inline-flex", gap: "4px", marginRight: "4px" }}>
               <ValidationBadge severity="error" count={issues.filter((i) => i.severity === "error").length} />
