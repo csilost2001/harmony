@@ -16,7 +16,8 @@ export interface SaveStatus {
 
 let state: SaveStatus = { draftAt: null, savedAt: null, draftFailed: false };
 const listeners = new Set<() => void>();
-const emit = (next: SaveStatus) => { state = next; listeners.forEach((l) => l()); };
+// 通知は、少し遅らせる (応答を受け取った処理の中で、画面を同期して描き直さない。直接 listeners を呼ぶと、保存の直後のドラッグ操作などが乱れた)
+const emit = (next: SaveStatus) => { state = next; setTimeout(() => listeners.forEach((l) => l()), 0); };
 
 export const saveStatus = {
   draftSynced(at = Date.now()): void { emit({ ...state, draftAt: at, draftFailed: false }); },
