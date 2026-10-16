@@ -27,6 +27,7 @@ function GroupNodeComponent({ data, selected }: GroupNodeProps) {
       <div className="group-node-label" style={{ color }}>
         <i className="bi bi-collection-fill" />
         <span>{data.name}</span>
+        {(data as { collapsed?: boolean }).collapsed && <span className="group-node-collapsed" title="畳んでいます。中の画面と線は隠れています">(畳んでいます)</span>}
       </div>
     </div>
   );

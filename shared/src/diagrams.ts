@@ -5,7 +5,7 @@
  */
 import type { BusinessFlow } from "./businessFlow.js";
 import type { DesignDocInput, DocFlow, DocTable } from "./designDocument.js";
-import { kindLabel, stepText, branchConditionText, layoutFlow, type FlowStep } from "./flowStructure.js";
+import { kindLabel, stepText, branchConditionText, dbOperationLabel, layoutFlow, type FlowStep } from "./flowStructure.js";
 import { businessFlowToSvg } from "./businessFlow.js";
 import { DESIGN_DOC_CSS, diagramToSvg } from "./designDocument.js";
 
@@ -154,6 +154,114 @@ export function processFlowGraph(actions: DocFlow["actions"], opts: { tableName?
   }
   void opts;
   return { direction: "TD", nodes, edges, groups: [] };
+}
+
+// ── 処理フローのシーケンス図 (UI 改善提案 続編 第 7 弾 #134) ───────────────────────────
+// 1 つの処理 (action) の、呼び出し元・処理・DB・外部システム・共通処理のあいだのやりとり。工程の順に、メッセージを並べる。
+// 画面 (座標) は使わない。原本の工程だけから作る。
+
+type SeqLine =
+  | { t: "msg"; from: string; to: string; text: string; reply?: boolean }
+  | { t: "note"; over: string; text: string }
+  | { t: "open"; word: "alt" | "loop"; text: string }
+  | { t: "else"; text: string }
+  | { t: "end" };
+
+export interface SequenceDiagramInput { name?: string; trigger?: string; steps: FlowStep[] }
+export interface SequenceContext { tableName?: (id: string) => string | undefined; screenName?: (id: string) => string | undefined }
+
+/** 処理フロー 1 件 (action 1 つ) のシーケンス図を、Mermaid か PlantUML の文にする */
+export function processFlowSequenceText(action: SequenceDiagramInput, format: DiagramFormat, ctx: SequenceContext = {}): string {
+  const participants: Array<{ id: string; label: string; actor?: boolean }> = [];
+  const known = new Map<string, string>();
+  const part = (key: string, label: string, actor = false): string => {
+    const hit = known.get(key);
+    if (hit) return hit;
+    const id = `P${participants.length + 1}`;
+    known.set(key, id);
+    participants.push({ id, label: clean(label, 30), ...(actor ? { actor: true } : {}) });
+    return id;
+  };
+  const caller = part("caller", "呼び出し元", true);
+  const self = part("self", clean(action.name ?? "処理", 24));
+  const lines: SeqLine[] = [{ t: "msg", from: caller, to: self, text: clean(action.trigger ? `${action.name ?? "実行"} (${action.trigger})` : action.name ?? "実行", 40) }];
+
+  const walk = (steps: readonly FlowStep[]) => {
+    for (const step of steps) {
+      const s = step as FlowStep & Record<string, unknown>;
+      const text = clean(stepText(step), 40);
+      switch (step.kind) {
+        case "dbAccess": {
+          const tid = String(s.tableId ?? "");
+          const db = part(`db:${tid}`, `DB: ${ctx.tableName?.(tid) ?? (tid || "テーブル")}`);
+          lines.push({ t: "msg", from: self, to: db, text: clean(`${dbOperationLabel(String(s.operation ?? ""))}${s.description ? ` (${String(s.description)})` : ""}`, 40) || "DB アクセス" });
+          lines.push({ t: "msg", from: db, to: self, text: "結果", reply: true });
+          break;
+        }
+        case "externalSystem": case "componentCall": case "commonProcess": case "eventPublish": {
+          const ref = String(s.systemRef ?? s.componentRef ?? s.component ?? s.refId ?? s.topic ?? "");
+          const label = step.kind === "externalSystem" ? `外部: ${ref || "システム"}` : step.kind === "commonProcess" ? `共通処理: ${ref}` : step.kind === "componentCall" ? `部品: ${ref}` : `イベント: ${ref}`;
+          const other = part(`${step.kind}:${ref}`, label);
+          lines.push({ t: "msg", from: self, to: other, text });
+          if (step.kind !== "eventPublish") lines.push({ t: "msg", from: other, to: self, text: "応答", reply: true });
+          break;
+        }
+        case "screenTransition": {
+          const id = String(s.targetScreenId ?? "");
+          lines.push({ t: "msg", from: self, to: caller, text: `画面遷移: ${clean(ctx.screenName?.(id) ?? id, 30)}`, reply: true });
+          break;
+        }
+        case "return": lines.push({ t: "msg", from: self, to: caller, text: clean(`${kindLabel(step)}: ${stepText(step)}`, 40), reply: true }); break;
+        case "branch": {
+          const arms = (s.branches as Array<{ code: string; label?: string; condition: unknown; steps: FlowStep[] }> | undefined) ?? [];
+          arms.forEach((b, i) => {
+            const cond = clean(`${b.label ?? b.code}${branchConditionText(b.condition) ? ` [${branchConditionText(b.condition)}]` : ""}`, 50);
+            lines.push(i === 0 ? { t: "open", word: "alt", text: cond } : { t: "else", text: cond });
+            walk(b.steps ?? []);
+          });
+          const e = s.elseBranch as { code: string; label?: string; steps: FlowStep[] } | undefined;
+          if (e) { lines.push(arms.length ? { t: "else", text: clean(e.label ?? "上記以外", 50) } : { t: "open", word: "alt", text: clean(e.label ?? "上記以外", 50) }); walk(e.steps ?? []); }
+          if (arms.length || e) lines.push({ t: "end" });
+          break;
+        }
+        case "loop": lines.push({ t: "open", word: "loop", text }); walk((s.steps as FlowStep[]) ?? []); lines.push({ t: "end" }); break;
+        case "transactionScope":
+          lines.push({ t: "note", over: self, text: "トランザクション開始" });
+          walk((s.steps as FlowStep[]) ?? []);
+          lines.push({ t: "note", over: self, text: "コミット" });
+          break;
+        case "validation": case "compute": case "displayUpdate": case "workflow": case "aiCall":
+          lines.push({ t: "msg", from: self, to: self, text: `${kindLabel(step)}: ${text}` });
+          break;
+        default: break; // ログ・監査・ループ制御などは、やりとりではないので載せない
+      }
+    }
+  };
+  walk(action.steps ?? []);
+
+  if (format === "mermaid") {
+    const out = ["sequenceDiagram"];
+    for (const p of participants) out.push(`  ${p.actor ? "actor" : "participant"} ${p.id} as ${p.label}`);
+    for (const l of lines) {
+      if (l.t === "msg") out.push(`  ${l.from}${l.reply ? "-->>" : "->>"}${l.to}: ${l.text}`);
+      else if (l.t === "note") out.push(`  Note over ${l.over}: ${l.text}`);
+      else if (l.t === "open") out.push(`  ${l.word} ${l.text}`);
+      else if (l.t === "else") out.push(`  else ${l.text}`);
+      else out.push("  end");
+    }
+    return out.join("\n");
+  }
+  const out = ["@startuml", "skinparam shadowing false"];
+  for (const p of participants) out.push(`${p.actor ? "actor" : "participant"} "${p.label}" as ${p.id}`);
+  for (const l of lines) {
+    if (l.t === "msg") out.push(`${l.from} ${l.reply ? "-->" : "->"} ${l.to} : ${l.text}`);
+    else if (l.t === "note") out.push(`note over ${l.over} : ${l.text}`);
+    else if (l.t === "open") out.push(`${l.word} ${l.text}`);
+    else if (l.t === "else") out.push(`else ${l.text}`);
+    else out.push("end");
+  }
+  out.push("@enduml");
+  return out.join("\n");
 }
 
 // ── ER 図 ─────────────────────────────────────────────────────────────────────

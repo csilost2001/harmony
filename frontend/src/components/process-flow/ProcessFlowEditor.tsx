@@ -102,6 +102,7 @@ import { SnippetMenu } from "../common/SnippetMenu";
 import { showToast } from "../../utils/toast";
 import { cloneStepsWithNewIds } from "../../utils/stepClone";
 import { StepOutlinePanel } from "./internal/StepOutlinePanel";
+import { FlowDiagramDialog } from "./internal/FlowDiagramDialog";
 
 export function ProcessFlowEditor() {
   const { processFlowId } = useParams<{ processFlowId: string }>();
@@ -130,6 +131,7 @@ export function ProcessFlowEditor() {
   } = useProcessFlowCatalogs();
   const [showTemplates, setShowTemplates] = useState(false);
   const [showWarningsPanel, setShowWarningsPanel] = useState(false);
+  const [showFlowDiagram, setShowFlowDiagram] = useState(false);
   const [drawingMode, setDrawingMode] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; stepId: string } | null>(null);
   const [contextMenuSubTypePicker, setContextMenuSubTypePicker] = useState(false);
@@ -1047,6 +1049,15 @@ export function ProcessFlowEditor() {
       />
 
 
+      {showFlowDiagram && activeAction && (
+        <FlowDiagramDialog
+          flowName={group?.meta?.name ?? processFlowId ?? ""}
+          action={activeAction as unknown as { id: string; name?: string; trigger?: string; steps: import("@harmony/shared").FlowStep[] }}
+          tables={tables}
+          screens={screens}
+          onClose={() => setShowFlowDiagram(false)}
+        />
+      )}
       <EditorHeader
         title={
           <div className="process-flow-editor-breadcrumb">
@@ -1075,6 +1086,10 @@ export function ProcessFlowEditor() {
               onAttachAsView={editAttach}
               onTakeOver={editTakeOver}
             />
+            <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setShowFlowDiagram(true)} disabled={!activeAction}
+              title="いまの処理を、流れ図とシーケンス図で見る (読み取り専用。編集中の内容がそのまま映ります)" data-testid="flow-diagram-open">
+              <i className="bi bi-diagram-3" /> 図で見る
+            </button>
             {processFlowId && <ReferencesButton entityType="processFlow" id={processFlowId} name={group.meta?.name ?? ""} />}
             {/* #1298 I-6 (RFC #1284): id rename refactor */}
             <button

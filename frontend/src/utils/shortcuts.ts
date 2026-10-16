@@ -98,6 +98,8 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
   {
     title: "図 (ER 図・画面フロー)",
     entries: [
+      { keys: ["Ctrl", "F"], label: "図の中を検索 (名前・ID。一致したものを強調して寄る。Enter で次へ)" },
+      { keys: ["]", "["], label: "選んでいるノードから、つながっている次のノードへ移る / 前に戻る (つながりを、キーでたどる)" },
       { keys: ["Tab"], label: "次のテーブル / 画面 (ノード) へフォーカスを移す (Shift+Tab で前へ)" },
       { keys: ["Enter"], label: "フォーカスのあるテーブル / 画面を開く (ダブルクリックの代わり)" },
       { keys: ["矢印"], label: "選んでいるテーブル / 画面を動かす (編集中。保存の対象になります)" },

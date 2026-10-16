@@ -13,12 +13,14 @@ import { OpsTab } from "./tabs/OpsTab";
 import { ProgressTab } from "./tabs/ProgressTab";
 import { RulesTab } from "./tabs/RulesTab";
 import { ExportTab } from "./tabs/ExportTab";
+import { GraphTab } from "./tabs/GraphTab";
 import "../../styles/analysis.css";
 
-type TabId = "issues" | "impact" | "maps" | "cleanup" | "ops" | "progress" | "rules" | "export";
+type TabId = "issues" | "graph" | "impact" | "maps" | "cleanup" | "ops" | "progress" | "rules" | "export";
 const TABS: Array<{ id: TabId; label: string; icon: string }> = [
   { id: "issues", label: "要確認", icon: "bi-clipboard2-check" },
   { id: "impact", label: "影響分析", icon: "bi-diagram-3" },
+  { id: "graph", label: "つながり図", icon: "bi-bezier2" },
   { id: "maps", label: "対応表", icon: "bi-table" },
   { id: "cleanup", label: "整理", icon: "bi-trash3" },
   { id: "ops", label: "運用", icon: "bi-speedometer" },
@@ -58,6 +60,7 @@ export function DesignAnalysisView() {
           : !input || !settings ? <div className="an-message">設計を読み込んでいます…</div>
             : tab === "issues" ? <IssuesTab input={input} skipped={data.skipped} reload={data.reload} />
               : tab === "impact" ? <ImpactTab input={input} />
+                : tab === "graph" ? <GraphTab input={input} />
                 : tab === "maps" ? <MapsTab input={input} />
                   : tab === "cleanup" ? <CleanupTab input={input} />
                     : tab === "ops" ? <OpsTab input={input} />

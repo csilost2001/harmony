@@ -20,8 +20,16 @@ import {
   type NodeMouseHandler,
   MarkerType,
   BackgroundVariant,
+  getNodesBounds,
+  useStoreApi,
 } from "@xyflow/react";
 import { DiagramControls } from "../common/DiagramControls";
+import { DiagramTools, type LegendItem } from "../common/DiagramTools";
+import { DiagramGuides } from "../common/DiagramGuides";
+import { useDiagramView, useViewportMemory } from "../../hooks/useDiagramView";
+import { useSnapGuides, toGeom } from "../../hooks/useSnapGuides";
+import { layoutWithGroups } from "../../utils/diagramGeom";
+import { fingerprint, type DiagramConfig } from "../../utils/diagramView";
 import { showToast } from "../../utils/toast";
 import "@xyflow/react/dist/style.css";
 
@@ -93,6 +101,14 @@ import { EmptyState } from "../common/EmptyState";
 import { AddTransitionDialog } from "./AddTransitionDialog";
 import { useKeyboardNodeMove } from "../../hooks/useKeyboardNodeMove";
 
+const FLOW_EDGE_KINDS = (Object.keys(TRIGGER_LABELS) as Array<keyof typeof TRIGGER_LABELS>).map((k) => ({ id: k, label: `遷移: ${TRIGGER_LABELS[k]}` }));
+const FLOW_LEGEND: LegendItem[] = [
+  { kind: "line", label: "画面から画面への遷移 (矢印の向きに進む。線の文字は、きっかけ)" },
+  { kind: "box", label: "画面 (ダブルクリックで画面デザイナ)" },
+  { kind: "box", label: "グループ (画面をまとめる枠。設定の「表示の絞り込み」で畳める)", className: "dgm-legend-group" },
+  { kind: "icon", icon: "bi-megaphone", label: "未解決のマーカーがある画面" },
+];
+
 const nodeTypes = {
   screenNode: ScreenNodeComponent,
   groupNode: GroupNodeComponent,
@@ -144,6 +160,7 @@ function toRFEdges(edges: ScreenEdge[]): RFEdge[] {
     sourceHandle: e.sourceHandle,
     targetHandle: e.targetHandle,
     label: e.label || (TRIGGER_LABELS[e.trigger] ?? ""),
+    data: { trigger: e.trigger },
     reconnectable: true,
     markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
     style: { strokeWidth: 2, stroke: "var(--hm-border-strong)" },
@@ -194,9 +211,11 @@ function FlowEditorInner() {
   //
   // 全 callback の deps に `project` を加える (= callback 再生成許容、cost 不問前提)。
   const [project, setProject] = useState<FlowProject | null>(null);
-  const { fitView, zoomTo, screenToFlowPosition } = useReactFlow();
+  const { fitView, zoomTo, screenToFlowPosition, setViewport } = useReactFlow();
+  const rfStore = useStoreApi();
   const { showError } = useErrorDialog();
 
+  const viewportMemory = useViewportMemory(`screen-flow:${wsId ?? "default"}`);
   const [nodes, setNodes, onNodesChange] = useNodesState<RFNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<RFEdge>([]);
   const [projectName, setProjectName] = useState("読み込み中...");
@@ -303,10 +322,12 @@ function FlowEditorInner() {
     if (!isLoading && needsFitViewRef.current && nodes.length > 0) {
       needsFitViewRef.current = false;
       requestAnimationFrame(() => {
-        fitView({ padding: 0.3, maxZoom: 1, duration: 200 });
+        // 前に見ていた位置へ (覚えていなければ全体を収める)
+        const { width, height } = rfStore.getState();
+        viewportMemory.restoreOrFit(setViewport, () => fitView({ padding: 0.3, maxZoom: 1, duration: 200 }), { bounds: getNodesBounds(nodes), size: { width, height } });
       });
     }
-  }, [isLoading, nodes, fitView]);
+  }, [isLoading, nodes, fitView, setViewport, viewportMemory, rfStore]);
 
   const { serverChanged, dismissServerBanner, markExternalChangeForBanner } = useFlowProjectSync({
     reload: reloadProject,
@@ -445,8 +466,14 @@ function FlowEditorInner() {
     if (editSession?.id && project) mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: project }).catch((err) => reportFailure(err, "下書きの保存"));
   });
 
-  const onNodeDragStop = useCallback((_: unknown, node: RFNode) => {
+  const nodesRef = useRef<RFNode[]>([]);
+  const snap = useSnapGuides(() => nodesRef.current, !isReadonly);
+  const onNodeDragStop = useCallback((e: React.MouseEvent | MouseEvent | TouchEvent, dragged: RFNode) => {
     if (!project) return;
+    // ほかの画面の端・中央にそろっていれば、その位置に吸い付かせる (Shift を押していたら、そのまま)
+    const at = snap.finish(dragged, (e as MouseEvent).shiftKey);
+    const node = at.x === dragged.position.x && at.y === dragged.position.y ? dragged : { ...dragged, position: at };
+    if (node !== dragged) setNodes((nds) => nds.map((n) => (n.id === node.id ? { ...n, position: at } : n)));
     // #1388 follow-up: in-place mutation を排し、draft (structuredClone) で位置更新 → setProject(draft) で commit。
     const draft = structuredClone(project);
     const screen = draft.screens.find((s) => s.id === node.id);
@@ -462,13 +489,14 @@ function FlowEditorInner() {
       setProject(draft);
       syncAndSave(draft);
     }
-  }, [project, syncAndSave]);
+  }, [project, syncAndSave, snap, setNodes]);
 
-  // 矢印キーで動かした画面・グループの位置を、保存へ回す (React Flow は、キーでの移動を onNodeDragStop に通知しない)
+  // 矢印キー・整列・等間隔・自動配置で動かした画面・グループの位置を、保存へ回す (React Flow は、キーでの移動を onNodeDragStop に通知しない)
   const nodesForKeyboardRef = useRef(nodes);
-  useEffect(() => { nodesForKeyboardRef.current = nodes; });
-  const onCanvasKeyUp = useKeyboardNodeMove<RFNode>(() => nodesForKeyboardRef.current, (moved) => {
+  useEffect(() => { nodesForKeyboardRef.current = nodes; nodesRef.current = nodes; });
+  const commitMoved = (moved: RFNode[]) => {
     if (!project) return;
+    pushUndoSnapshot();
     const draft = structuredClone(project);
     for (const n of moved) {
       const target = draft.screens.find((s) => s.id === n.id) ?? (draft.groups ?? []).find((g) => g.id === n.id);
@@ -476,7 +504,35 @@ function FlowEditorInner() {
     }
     setProject(draft);
     syncAndSave(draft);
-  }, !isReadonly);
+  };
+  const onCanvasKeyUp = useKeyboardNodeMove<RFNode>(() => nodesForKeyboardRef.current, commitMoved, !isReadonly);
+
+  // 画面フローの自動配置 (続編 第 7 弾 #126): 遷移の向きに沿って、左から右へ階層配置する。
+  // グループは、グループの枠ごと (グループの中の遷移は、枠のあいだのつながりとして) 並べ、グループの中の画面は、枠の中で並べる。グループの大きさは変えない
+  const handleAutoLayout = () => {
+    const all = nodesForKeyboardRef.current.filter((n) => !n.hidden);
+    const screens = all.filter((n) => n.type === "screenNode");
+    if (screens.length < 2) { showToast("自動配置できる画面が 2 つ以上ありません", "info"); return; }
+    const geom = all.map((n) => ({ ...toGeom(n), ...(n.parentId ? { parentId: n.parentId } : {}), ...(n.type === "groupNode" ? { isGroup: true } : {}) }));
+    const pos = layoutWithGroups(geom, edges.map((e) => ({ source: e.source, target: e.target })), { dx: 100, dy: 50 });
+    const moved = all.filter((n) => pos.has(n.id)).map((n) => ({ ...n, position: pos.get(n.id)! }));
+    const byId = new Map(moved.map((n) => [n.id, n]));
+    setNodes((nds) => nds.map((n) => byId.get(n.id) ?? n));
+    commitMoved(moved);
+    setTimeout(() => fitView({ padding: 0.3, maxZoom: 1, duration: 300 }), 60);
+    showToast("画面とグループを自動で並べました (Ctrl+Z で戻せます)", "info");
+  };
+
+  // 図の見え方 (検索・強調・絞り込み・線の形・グループの折りたたみ・基準との差分)
+  const diagramConfig = useMemo<DiagramConfig>(() => ({
+    textsOf: (n) => { const d = n.data as unknown as { name?: string; path?: string; kind?: string }; return [n.id, d.name ?? "", d.path ?? ""]; },
+    kindOfEdge: (e) => String((e.data as { trigger?: string } | undefined)?.trigger ?? "other"),
+    fingerprintOf: (n) => { const d = n.data as unknown as { name?: string; path?: string; kind?: string }; return fingerprint(JSON.stringify([d.name, d.path, d.kind, n.parentId ?? ""])); },
+    labelOf: (n) => `${n.type === "groupNode" ? "グループ" : "画面"} ${(n.data as { name?: string }).name ?? n.id}`,
+  }), []);
+  const dv = useDiagramView(`screen-flow:${wsId ?? "default"}`, nodes, edges, diagramConfig);
+  const flowCanvasRef = useRef<HTMLDivElement>(null);
+  const flowGroups = useMemo(() => nodes.filter((n) => n.type === "groupNode").map((n) => ({ id: n.id, label: String((n.data as { name?: string }).name ?? n.id) })), [nodes]);
 
   const onConnect = useCallback((connection: Connection) => {
     if (isReadonly || !connection.source || !connection.target || !project) return;
@@ -1298,7 +1354,7 @@ function FlowEditorInner() {
         </div>
       )}
 
-      <div className="flow-canvas" onKeyUp={onCanvasKeyUp} onKeyDown={onCanvasKeyDown}>
+      <div className="flow-canvas" ref={flowCanvasRef} onKeyUp={onCanvasKeyUp} onKeyDown={onCanvasKeyDown}>
         {isLoading ? (
           <div className="flow-loading">
             <div className="spinner" />
@@ -1306,8 +1362,10 @@ function FlowEditorInner() {
           </div>
         ) : (
           <ReactFlow
-            nodes={nodes}
-            edges={edges}
+            nodes={dv.decorated.nodes}
+            edges={dv.decorated.edges}
+            onNodeDrag={snap.onNodeDrag}
+            onMoveEnd={viewportMemory.onMoveEnd}
             onNodesChange={onNodesChange}
             onEdgesChange={isReadonly ? undefined : onEdgesChange}
             onConnect={isReadonly ? undefined : onConnect}
@@ -1334,6 +1392,14 @@ function FlowEditorInner() {
           >
             <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
             <DiagramControls buttons={false} />
+            <DiagramGuides guides={snap.guides} />
+            <DiagramTools
+              title="画面フロー" fileStem="screen-flow" textKind="screenFlow" api={dv} nodes={nodes} readOnly={isReadonly}
+              onMoved={commitMoved} onNodesChange={(fn) => setNodes(fn)} canvasRef={flowCanvasRef}
+              edgeKinds={FLOW_EDGE_KINDS} legend={FLOW_LEGEND} groups={flowGroups}
+              extraButtons={!isReadonly ? (
+                <button type="button" className="dgm-btn" onClick={handleAutoLayout} title="自動配置: 遷移の向きに沿って、画面とグループを左から右へ並べる (グループの中の画面は、枠の中で並べる)" aria-label="自動配置" data-testid="flow-auto-layout"><i className="bi bi-diagram-3" /></button>
+              ) : null} />
             <MiniMap
               nodeColor="var(--hm-accent)"
               maskColor="color-mix(in srgb, var(--hm-bg) 70%, transparent)"

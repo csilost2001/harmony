@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
 import { useSessionUrlSync } from "../../hooks/useSessionUrlSync";
@@ -10,6 +10,8 @@ import {
   useNodesState,
   useEdgesState,
   useReactFlow,
+  getNodesBounds,
+  useStoreApi,
   type Edge as RFEdge,
   type Node as RFNode,
   type NodeMouseHandler,
@@ -19,6 +21,12 @@ import {
   BackgroundVariant,
 } from "@xyflow/react";
 import { DiagramControls } from "../common/DiagramControls";
+import { DiagramTools, type LegendItem } from "../common/DiagramTools";
+import { DiagramGuides } from "../common/DiagramGuides";
+import { useDiagramView, useViewportMemory } from "../../hooks/useDiagramView";
+import { useSnapGuides } from "../../hooks/useSnapGuides";
+import { fingerprint, type DiagramConfig } from "../../utils/diagramView";
+import { diagramToPngDataUrl, downloadDataUrl } from "../../utils/diagramExport";
 import { columnTypeMismatch } from "../../utils/columnTypeCompat";
 import "@xyflow/react/dist/style.css";
 
@@ -39,7 +47,6 @@ import { useEditSession } from "../../hooks/useEditSession";
 import { EntityIdInput, type EntityIdValidationState } from "../common/EntityIdInput";
 import { EditSessionDropdown } from "../editing/EditSessionDropdown";
 import { SaveConflictDialog } from "../editing/SaveConflictDialog";
-import html2canvas from "html2canvas";
 import "../../styles/er.css";
 import { reportFailure, runReporting } from "../../utils/failureToast";
 import { useKeyboardNodeMove } from "../../hooks/useKeyboardNodeMove";
@@ -52,10 +59,20 @@ import { LoadingBlock } from "../common/LoadingBlock";
 
 const nodeTypes = { erTableNode: ErTableNodeComponent };
 
+const ER_EDGE_KINDS = [{ id: "physical", label: "物理リレーション (外部キー)" }, { id: "logical", label: "論理リレーション" }];
+const ER_LEGEND: LegendItem[] = [
+  { kind: "line", label: "物理リレーション (外部キー制約のあるつながり)" },
+  { kind: "dashed", label: "論理リレーション (設計上のつながり。制約は無い)" },
+  { kind: "icon", icon: "bi-key-fill", label: "主キー" },
+  { kind: "icon", icon: "bi-link-45deg", label: "外部キー" },
+  { kind: "box", label: "テーブル (ダブルクリック / Enter で編集画面。カラムの行の端から線を引くとカラム間のリレーション)" },
+];
+
 function ErDiagramInner() {
   const navigate = useNavigate();
-  const { wsPath } = useWorkspacePath();
-  const { fitView } = useReactFlow();
+  const { wsPath, wsId } = useWorkspacePath();
+  const { fitView, setViewport } = useReactFlow();
+  const rfStore = useStoreApi();
   const [nodes, setNodes, onNodesChange] = useNodesState<RFNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<RFEdge>([]);
   const [projectName, setProjectName] = useState("プロジェクト");
@@ -70,6 +87,8 @@ function ErDiagramInner() {
   const layoutRef = useRef<ErLayout | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const sessionId = mcpBridge.getSessionId();
+  const viewportMemory = useViewportMemory(`er:${wsId ?? "default"}`);
+  const firstFitDone = useRef(false);
 
   const { syncSessionToUrl, initialEditSessionId } = useSessionUrlSync({
     resourceType: "er-layout",
@@ -190,7 +209,8 @@ function ErDiagramInner() {
         columns: t.columns,
       } satisfies ErTableNodeData,
     }));
-    setNodes(rfNodes);
+    // 位置を動かして作り直しても、選んでいるテーブルは選んだまま (整列・等間隔のあとも、続けて操作できる)
+    setNodes((prev) => { const sel = new Set(prev.filter((n) => n.selected).map((n) => n.id)); return sel.size ? rfNodes.map((n) => (sel.has(n.id) ? { ...n, selected: true } : n)) : rfNodes; });
 
     const relations = getAllRelations(tables, layout);
     const rfEdges: RFEdge[] = relations.map((rel) => {
@@ -221,9 +241,15 @@ function ErDiagramInner() {
     });
     setEdges(rfEdges);
 
-    // Fit view on first load
-    setTimeout(() => fitView({ padding: 0.3, maxZoom: 1, duration: 200 }), 100);
-  }, [isLoading, tables, layout, setNodes, setEdges, fitView]);
+    // 最初に開いたときだけ、前に見ていた位置へ (覚えていなければ全体を収める)。動かすたびに全体へ戻さない
+    if (!firstFitDone.current) {
+      firstFitDone.current = true;
+      setTimeout(() => {
+        const { width, height } = rfStore.getState();
+        viewportMemory.restoreOrFit(setViewport, () => fitView({ padding: 0.3, maxZoom: 1, duration: 200 }), { bounds: getNodesBounds(rfNodes), size: { width, height } });
+      }, 100);
+    }
+  }, [isLoading, tables, layout, setNodes, setEdges, fitView, setViewport, viewportMemory, rfStore]);
 
   useEffect(() => {
     if (mode.kind === "editing" && editSession?.id && layoutRef.current) {
@@ -247,8 +273,14 @@ function ErDiagramInner() {
     }
   }, [pushLayoutUndo]);
 
-  const onNodeDragStop = useCallback((_: unknown, node: RFNode) => {
+  const nodesRef = useRef<RFNode[]>([]);
+  const snap = useSnapGuides(() => nodesRef.current, !isReadonly);
+  const onNodeDragStop = useCallback((e: React.MouseEvent | MouseEvent | TouchEvent, dragged: RFNode) => {
     dragStartedRef.current = false;
+    // ほかのテーブルの端・中央にそろっていれば、その位置に吸い付かせる (Shift を押していたら、そのまま)
+    const at = snap.finish(dragged, (e as MouseEvent).shiftKey);
+    const node = at.x === dragged.position.x && at.y === dragged.position.y ? dragged : { ...dragged, position: at };
+    if (node !== dragged) setNodes((nds) => nds.map((n) => (n.id === node.id ? { ...n, position: at } : n)));
     const current = layoutRef.current ?? { positions: {} as Record<string, { x: number; y: number }>, logicalRelations: [] as LogicalRelation[], updatedAt: new Date().toISOString() as never };
     const ly = {
       ...current,
@@ -260,12 +292,12 @@ function ErDiagramInner() {
     layoutRef.current = ly;
     setLayout({ ...ly });
     persistLayoutChange(ly);
-  }, [persistLayoutChange]);
+  }, [persistLayoutChange, snap, setNodes]);
 
-  // 矢印キーで動かしたテーブルの位置を、保存へ回す (React Flow は、キーでの移動を onNodeDragStop に通知しない)
+  // 矢印キー・整列・等間隔で動かしたテーブルの位置を、保存へ回す (React Flow は、キーでの移動を onNodeDragStop に通知しない)
   const nodesForKeyboardRef = useRef(nodes);
-  useEffect(() => { nodesForKeyboardRef.current = nodes; });
-  const onCanvasKeyUp = useKeyboardNodeMove<RFNode>(() => nodesForKeyboardRef.current, (moved) => {
+  useEffect(() => { nodesForKeyboardRef.current = nodes; nodesRef.current = nodes; });
+  const commitMoved = (moved: RFNode[]) => {
     pushLayoutUndo();
     const current = layoutRef.current ?? { positions: {} as Record<string, { x: number; y: number }>, logicalRelations: [] as LogicalRelation[], updatedAt: new Date().toISOString() as never };
     const positions = { ...current.positions };
@@ -274,7 +306,17 @@ function ErDiagramInner() {
     layoutRef.current = ly;
     setLayout({ ...ly });
     persistLayoutChange(ly);
-  }, !isReadonly);
+  };
+  const onCanvasKeyUp = useKeyboardNodeMove<RFNode>(() => nodesForKeyboardRef.current, commitMoved, !isReadonly);
+
+  // 図の見え方 (検索・強調・絞り込み・線の形・カラム表示・基準との差分)
+  const diagramConfig = useMemo<DiagramConfig>(() => ({
+    textsOf: (n) => { const d = n.data as unknown as ErTableNodeData; return [n.id, d.physicalName, d.name, d.category ?? ""]; },
+    kindOfEdge: (e) => ((e.data as { physical?: boolean } | undefined)?.physical ? "physical" : "logical"),
+    fingerprintOf: (n) => { const d = n.data as unknown as ErTableNodeData; return fingerprint(JSON.stringify([d.physicalName, d.name, d.category, d.columns.map((c) => [c.id, c.physicalName, c.dataType, c.length, c.scale, c.primaryKey])])); },
+    labelOf: (n) => { const d = n.data as unknown as ErTableNodeData; return `テーブル ${d.name} (${d.physicalName})。Enter で編集画面を開く`; },
+  }), []);
+  const dv = useDiagramView(`er:${wsId ?? "default"}`, nodes, edges, diagramConfig);
 
   // Double click to navigate to table editor
   const onNodeDoubleClick: NodeMouseHandler = useCallback((_event, node) => {
@@ -423,17 +465,16 @@ function ErDiagramInner() {
     URL.revokeObjectURL(url);
   }, [projectName, tables, layout]);
 
-  // Export PNG
+  // Export PNG (図の全体。表示している範囲だけではない)
   const handleExportPng = useCallback(async () => {
     setShowExport(false);
-    const el = canvasRef.current?.querySelector(".react-flow__viewport") as HTMLElement | null;
-    if (!el) return;
-    const canvas = await html2canvas(el, { backgroundColor: "var(--hm-surface)", scale: 2, logging: false, useCORS: true });
-    const url = canvas.toDataURL("image/png");
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${projectName}_er.png`;
-    a.click();
+    const root = canvasRef.current?.querySelector(".react-flow") as HTMLElement | null;
+    if (!root) return;
+    const visible = nodesRef.current.filter((n) => !n.hidden);
+    if (visible.length === 0) return;
+    try {
+      downloadDataUrl(`${projectName}_er.png`, await diagramToPngDataUrl(root, getNodesBounds(visible)));
+    } catch (e) { reportFailure(e, "ER 図の画像の書き出し"); }
   }, [projectName]);
 
   if (isLoading) {
@@ -483,12 +524,14 @@ function ErDiagramInner() {
           <ReactFlow
             onKeyUp={onCanvasKeyUp}
             onKeyDown={onCanvasKeyDown}
-            nodes={nodes}
-            edges={edges}
+            nodes={dv.decorated.nodes}
+            edges={dv.decorated.edges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             nodeTypes={nodeTypes}
             onNodeDragStart={onNodeDragStart}
+            onNodeDrag={snap.onNodeDrag}
+            onMoveEnd={viewportMemory.onMoveEnd}
             onNodeDragStop={onNodeDragStop}
             onNodeDoubleClick={onNodeDoubleClick}
             onConnect={onConnect}
@@ -503,8 +546,6 @@ function ErDiagramInner() {
             }}
             deleteKeyCode={[]}
             nodesConnectable={!isReadonly}
-            fitView
-            fitViewOptions={{ padding: 0.3, maxZoom: 1 }}
             defaultEdgeOptions={{
               markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
               style: { strokeWidth: 2, stroke: "var(--hm-border-strong)" },
@@ -512,6 +553,11 @@ function ErDiagramInner() {
           >
             <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
             <DiagramControls />
+            <DiagramGuides guides={snap.guides} />
+            <DiagramTools
+              title="ER 図" fileStem="er-diagram" textKind="er" api={dv} nodes={nodes} readOnly={isReadonly}
+              onMoved={commitMoved} onNodesChange={(fn) => setNodes(fn)} canvasRef={canvasRef}
+              edgeKinds={ER_EDGE_KINDS} legend={ER_LEGEND} columnModes />
             <MiniMap
               nodeColor="var(--hm-accent)"
               maskColor="color-mix(in srgb, var(--hm-bg) 70%, transparent)"

@@ -16,6 +16,8 @@ export interface ErTableNodeData {
   columns: Column[];
   /** Constraint.foreignKey から導出された FK column.id 集合。未指定なら表示で FK アイコン非表示。 */
   fkColumnIds?: Set<string>;
+  /** カラムの見せ方 (図の「表示の絞り込み」から。続編 第 7 弾 #125)。省略 = 主キー・外部キー + 他のカラムの数 (押すと開く) */
+  columnMode?: "default" | "all" | "keys" | "none";
   [key: string]: unknown;
 }
 
@@ -28,6 +30,10 @@ function ErTableNodeComponent({ data, selected }: NodeProps) {
   const fkColumns = d.columns.filter((c) => fkSet.has(c.id) && !c.primaryKey);
   const otherColumns = d.columns.filter((c) => !c.primaryKey && !fkSet.has(c.id));
   const hiddenCount = otherColumns.length;
+  const mode = d.columnMode ?? "default";
+  const showKeyColumns = mode !== "none";
+  const showOthers = mode === "all" || (mode === "default" && expanded);
+  const showToggle = mode === "default" && hiddenCount > 0;
 
   /** カラムの行の左右の端のつまみ。ここから線を引くと、カラムからカラムへのリレーションになる (UI 改善提案 第 3 弾 #49) */
   const colHandles = (col: Column) => (
@@ -65,7 +71,7 @@ function ErTableNodeComponent({ data, selected }: NodeProps) {
         <div className="er-node-logical">{d.name}</div>
 
         <div className="er-node-columns">
-          {pkColumns.map((col) => (
+          {showKeyColumns && pkColumns.map((col) => (
             <div key={col.id} className="er-col pk">
               <i className="bi bi-key-fill er-col-icon pk-icon" />
               <span className="er-col-name">{col.physicalName}</span>
@@ -74,7 +80,7 @@ function ErTableNodeComponent({ data, selected }: NodeProps) {
             </div>
           ))}
 
-          {fkColumns.map((col) => (
+          {showKeyColumns && fkColumns.map((col) => (
             <div key={col.id} className="er-col fk">
               <i className="bi bi-link-45deg er-col-icon fk-icon" />
               <span className="er-col-name">{col.physicalName}</span>
@@ -83,7 +89,7 @@ function ErTableNodeComponent({ data, selected }: NodeProps) {
             </div>
           ))}
 
-          {expanded && otherColumns.map((col) => (
+          {showKeyColumns && showOthers && otherColumns.map((col) => (
             <div key={col.id} className="er-col">
               <span className="er-col-icon-space" />
               <span className="er-col-name">{col.physicalName}</span>
@@ -92,7 +98,7 @@ function ErTableNodeComponent({ data, selected }: NodeProps) {
             </div>
           ))}
 
-          {hiddenCount > 0 && (
+          {showToggle && (
             <div className="er-col-toggle" onClick={toggleExpand}>
               {expanded ? (
                 <><i className="bi bi-chevron-up" /> 折りたたむ</>

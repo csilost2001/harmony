@@ -1,0 +1,22 @@
+/* 処理フローの「図で見る」 (UI 改善提案 続編 第 7 弾 #133 #134) */
+.fdd-overlay { position: fixed; inset: 0; z-index: 1500; background: rgba(0, 0, 0, 0.45); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.fdd-modal { width: min(1100px, 100%); height: min(760px, 100%); display: flex; flex-direction: column; background: var(--hm-surface); color: var(--hm-fg); border: 1px solid var(--hm-border-strong); border-radius: 10px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35); overflow: hidden; }
+.fdd-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--hm-border); background: var(--hm-surface-2); }
+.fdd-head h2 { margin: 0; font-size: 1rem; display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.fdd-head h2 small { color: var(--hm-fg-muted); font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fdd-close { border: 0; background: transparent; color: var(--hm-fg-muted); cursor: pointer; padding: 4px 6px; border-radius: 6px; }
+.fdd-close:hover { background: var(--hm-hover); }
+.fdd-tabs { display: flex; gap: 2px; padding: 6px 12px 0; border-bottom: 1px solid var(--hm-border); }
+.fdd-tabs button { border: 1px solid transparent; border-bottom: 0; background: transparent; color: var(--hm-fg-muted); padding: 4px 14px; border-radius: 6px 6px 0 0; cursor: pointer; font: inherit; }
+.fdd-tabs button.is-on { background: var(--hm-surface); border-color: var(--hm-border); color: var(--hm-fg); font-weight: 600; margin-bottom: -1px; }
+.fdd-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 14px; font-size: 0.82rem; }
+.fdd-tools button, .fdd-tools select { border: 1px solid var(--hm-border-strong); background: var(--hm-surface); color: var(--hm-fg); border-radius: 6px; padding: 2px 10px; cursor: pointer; font: inherit; }
+.fdd-tools button:hover { background: var(--hm-hover); }
+.fdd-tools button:focus-visible, .fdd-tabs button:focus-visible, .fdd-close:focus-visible { outline: 2px solid var(--hm-accent); outline-offset: 1px; }
+.fdd-sep { flex: 1; }
+.fdd-muted { color: var(--hm-fg-muted); }
+.fdd-body { flex: 1; min-height: 0; overflow: auto; padding: 12px 14px; background: var(--hm-surface); }
+/* 図そのものは、設計書と同じ配色 (明色の紙面) で描く */
+.fdd-svg { display: inline-block; color-scheme: light; background: Canvas; color: CanvasText; border: 1px solid var(--hm-border); border-radius: 6px; padding: 8px; }
+.fdd-svg svg { display: block; }
+.fdd-pre { margin: 0; padding: 12px; background: var(--hm-surface-2); border: 1px solid var(--hm-border); border-radius: 6px; font-size: 0.8rem; white-space: pre; overflow: auto; user-select: text; }

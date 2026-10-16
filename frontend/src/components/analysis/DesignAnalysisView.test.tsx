@@ -52,11 +52,11 @@ const open = async (tab?: string) => {
 };
 
 describe("設計の分析: 全体", () => {
-  it("8 つのタブがあり、選んだタブを覚えて、次に開いたときの初期値にする", async () => {
+  it("9 つのタブがあり (つながり図を足した)、選んだタブを覚えて、次に開いたときの初期値にする", async () => {
     await open("maps");
     expect(screen.getByTestId("an-maps")).toBeTruthy();
     expect(localStorage.getItem("harmony.analysis.tab")).toBe("maps");
-    expect(screen.getAllByRole("tab")).toHaveLength(8);
+    expect(screen.getAllByRole("tab")).toHaveLength(9);
   });
 
   it("読み込みに失敗したら、理由を出す", async () => {

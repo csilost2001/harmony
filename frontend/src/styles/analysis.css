@@ -66,3 +66,21 @@
 @media (max-width: 900px) { .an-body { padding: 10px; } .an-section { padding: 10px; } }
 .an-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .an-paper { background: var(--hm-surface-2); } /* SVG は、白い背景を自分で持つので、どのテーマでも読める */
+
+/* つながり図 (UI 改善提案 続編 第 7 弾 #132) */
+.an-graph { display: flex; flex-direction: column; gap: 8px; height: calc(100vh - var(--common-header-h, 40px) - var(--tabbar-h, 32px) - 150px); min-height: 360px; }
+.an-graph-kinds { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.an-gchip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--hm-border-strong); background: var(--hm-surface); cursor: pointer; font-size: 0.8rem; }
+.an-gchip.is-off { opacity: 0.55; text-decoration: line-through; }
+.an-gchip-n { color: var(--hm-fg-muted); font-variant-numeric: tabular-nums; }
+.an-graph-note { margin-left: auto; color: var(--hm-fg-muted); font-size: 0.8rem; }
+.an-graph-canvas { flex: 1; min-height: 0; border: 1px solid var(--hm-border); border-radius: 8px; overflow: hidden; background: var(--hm-surface); }
+.an-gnode { font-size: 0.78rem; border-radius: 6px; border: 2px solid var(--hm-border-strong); background: var(--hm-surface); color: var(--hm-fg); padding: 4px 8px; display: flex; align-items: center; justify-content: center; text-align: center; overflow: hidden; }
+.an-gnode-screen { border-color: var(--hm-hue-blue); }
+.an-gnode-processFlow { border-color: var(--hm-hue-green); }
+.an-gnode-table { border-color: var(--hm-hue-orange); }
+.an-gnode-businessFlow { border-color: var(--hm-hue-purple); }
+.an-gnode-report { border-color: var(--hm-hue-cyan); }
+.an-gnode-component { border-color: var(--hm-hue-amber); }
+.an-gnode-message, .an-gnode-regex, .an-gnode-limit, .an-gnode-genericDefinition { border-color: var(--hm-fg-faint); border-style: dashed; }
+.an-gchip.an-gnode-screen, .an-gchip.an-gnode-processFlow, .an-gchip.an-gnode-table, .an-gchip.an-gnode-businessFlow, .an-gchip.an-gnode-report, .an-gchip.an-gnode-component, .an-gchip.an-gnode-message, .an-gchip.an-gnode-regex, .an-gchip.an-gnode-limit, .an-gchip.an-gnode-genericDefinition { padding: 2px 10px; display: inline-flex; font-size: 0.8rem; background: var(--hm-surface); }
