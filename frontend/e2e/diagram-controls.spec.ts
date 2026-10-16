@@ -61,4 +61,44 @@ test.describe("図の拡大縮小", { tag: ["@regression"] }, () => {
     await page.keyboard.press("-");
     await expect.poll(scale).toBeLessThan(mid - 0.1);
   });
+
+  test("ER 図: カラムの行のつまみから、別のテーブルのカラムへ線を引くと、カラムを入れたリレーション追加が開く。型が違えば知らせる", async ({ page }) => {
+    await ws.gotoActive(page, "/table/er");
+    await expect(page.locator('.react-flow__node[data-id="cart"]')).toBeVisible({ timeout: 20000 });
+    // 線を引けるのは、編集中だけ (右上の編集のメニューから、新しい編集を始める)
+    await page.getByTestId("esd-toggle-btn").click();
+    await page.getByTestId("esd-new-draft-btn").click();
+    await expect(page.getByRole("button", { name: /保存/ }).first()).toBeVisible({ timeout: 10000 });
+    await page.getByTestId("diagram-fit").click();
+    await page.waitForTimeout(500); // 全体表示の動き (0.2 秒) が終わってから、位置を読む
+    const handle = (table: string, type: "source" | "target", rowText?: string) => {
+      const row = page.locator(`.react-flow__node[data-id="${table}"] .er-col`).filter({ hasText: rowText ?? "" }).first();
+      return row.locator(`.react-flow__handle.${type}`).first();
+    };
+    const drag = async (from: ReturnType<typeof handle>, to: ReturnType<typeof handle>) => {
+      const a = (await from.boundingBox())!;
+      const b = (await to.boundingBox())!;
+      await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(b.x + b.width / 2 - 30, b.y + b.height / 2, { steps: 12 });
+      await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 4 });
+      await page.mouse.up();
+    };
+
+    // (1) 型が合う: 主キー (BIGINT) どうし
+    await drag(handle("cart", "source", "BIGINT"), handle("customer-master", "target", "BIGINT"));
+    const modal = page.locator(".er-relation-modal");
+    await expect(modal).toBeVisible();
+    await expect(modal.getByLabel("参照元カラム")).not.toHaveValue("");
+    await expect(modal.getByLabel("参照先カラム")).not.toHaveValue("");
+    await expect(page.getByTestId("er-relation-type-warning")).toHaveCount(0);
+    await modal.getByRole("button", { name: "キャンセル" }).click();
+
+    // (2) 型が違う: 「他 N カラム」を開いて、文字のカラムへ
+    await page.locator('.react-flow__node[data-id="customer-master"] .er-col-toggle').click();
+    await drag(handle("cart", "source", "BIGINT"), handle("customer-master", "target", "VARCHAR"));
+    await expect(modal).toBeVisible();
+    await expect(page.getByTestId("er-relation-type-warning")).toContainText("型が違います");
+    await modal.getByRole("button", { name: "キャンセル" }).click();
+  });
 });

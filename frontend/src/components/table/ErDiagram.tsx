@@ -19,6 +19,7 @@ import {
   BackgroundVariant,
 } from "@xyflow/react";
 import { DiagramControls } from "../common/DiagramControls";
+import { columnTypeMismatch } from "../../utils/columnTypeCompat";
 import "@xyflow/react/dist/style.css";
 
 import ErTableNodeComponent, { type ErTableNodeData } from "./ErTableNode";
@@ -59,7 +60,7 @@ function ErDiagramInner() {
   const [layout, setLayout] = useState<ErLayout | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddRelation, setShowAddRelation] = useState(false);
-  const [pendingConnection, setPendingConnection] = useState<{ sourceTableId: string; targetTableId: string } | null>(null);
+  const [pendingConnection, setPendingConnection] = useState<{ sourceTableId: string; targetTableId: string; sourceColumnId?: string; targetColumnId?: string } | null>(null);
   const [showExport, setShowExport] = useState(false);
   const [showAddTable, setShowAddTable] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -291,9 +292,13 @@ function ErDiagramInner() {
     if (isReadonly) return;
     if (!connection.source || !connection.target) return;
     if (connection.source === connection.target) return;
+    // カラムの行のつまみ (col:<カラム ID>) からつないだときは、カラムも入れておく
+    const colOf = (h: string | null | undefined) => (h && h.startsWith("col:") ? h.slice(4) : undefined);
     setPendingConnection({
       sourceTableId: connection.source,
       targetTableId: connection.target,
+      sourceColumnId: colOf(connection.sourceHandle),
+      targetColumnId: colOf(connection.targetHandle),
     });
     setShowAddRelation(true);
   }, [isReadonly]);
@@ -601,6 +606,8 @@ function ErDiagramInner() {
           tables={tables}
           initialSourceTableId={pendingConnection?.sourceTableId}
           initialTargetTableId={pendingConnection?.targetTableId}
+          initialSourceColumnId={pendingConnection?.sourceColumnId}
+          initialTargetColumnId={pendingConnection?.targetColumnId}
           onAdd={handleAddLogicalRelation}
           onClose={() => { setShowAddRelation(false); setPendingConnection(null); }}
         />
@@ -620,18 +627,21 @@ export function ErDiagram() {
 // ── 論理リレーション追加モーダル ──────────────────────────────────────────
 
 function AddRelationModal({
-  tables, initialSourceTableId, initialTargetTableId, onAdd, onClose,
+  tables, initialSourceTableId, initialTargetTableId, initialSourceColumnId, initialTargetColumnId, onAdd, onClose,
 }: {
   tables: Table[];
   initialSourceTableId?: string;
   initialTargetTableId?: string;
+  initialSourceColumnId?: string;
+  initialTargetColumnId?: string;
   onAdd: (rel: Omit<LogicalRelation, "id">) => void;
   onClose: () => void;
 }) {
   const [srcTableId, setSrcTableId] = useState(initialSourceTableId ?? "");
-  const [srcColId, setSrcColId] = useState("");
+  const [srcColId, setSrcColId] = useState(initialSourceColumnId ?? "");
   const [tgtTableId, setTgtTableId] = useState(initialTargetTableId ?? "");
   const [tgtColId, setTgtColId] = useState(() => {
+    if (initialTargetColumnId) return initialTargetColumnId;
     if (initialTargetTableId) {
       const tgt = tables.find((t) => t.id === initialTargetTableId);
       const pk = tgt?.columns.find((c) => c.primaryKey);
@@ -645,6 +655,10 @@ function AddRelationModal({
   const srcTable = tables.find((t) => t.id === srcTableId);
   const tgtTable = tables.find((t) => t.id === tgtTableId);
   const hasColumns = srcTable && srcTable.columns.length > 0 && tgtTable && tgtTable.columns.length > 0;
+  // カラムを両方選んでいて、型が合わないときは知らせる (追加はできる)
+  const srcCol = srcTable?.columns.find((c) => c.id === srcColId);
+  const tgtCol = tgtTable?.columns.find((c) => c.id === tgtColId);
+  const typeWarning = srcCol && tgtCol ? columnTypeMismatch(srcCol, tgtCol) : null;
 
   const handleSubmit = () => {
     if (!srcTableId || !tgtTableId) return;
@@ -719,6 +733,8 @@ function AddRelationModal({
             )}
           </div>
         </div>
+
+        {typeWarning && <div className="er-relation-warning" role="alert" data-testid="er-relation-type-warning"><i className="bi bi-exclamation-triangle" /> {typeWarning}</div>}
 
         <label className="tbl-field">
           <span>カーディナリティ</span>

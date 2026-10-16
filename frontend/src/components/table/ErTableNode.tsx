@@ -29,6 +29,14 @@ function ErTableNodeComponent({ data, selected }: NodeProps) {
   const otherColumns = d.columns.filter((c) => !c.primaryKey && !fkSet.has(c.id));
   const hiddenCount = otherColumns.length;
 
+  /** カラムの行の左右の端のつまみ。ここから線を引くと、カラムからカラムへのリレーションになる (UI 改善提案 第 3 弾 #49) */
+  const colHandles = (col: Column) => (
+    <>
+      <Handle type="target" position={Position.Left} id={`col:${col.id}`} className="er-col-handle" isConnectableStart={false} title={`${col.physicalName} へつなぐ`} />
+      <Handle type="source" position={Position.Right} id={`col:${col.id}`} className="er-col-handle" title={`${col.physicalName} からつなぐ (ドラッグ)`} />
+    </>
+  );
+
   const toggleExpand = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     setExpanded((v) => !v);
@@ -62,6 +70,7 @@ function ErTableNodeComponent({ data, selected }: NodeProps) {
               <i className="bi bi-key-fill er-col-icon pk-icon" />
               <span className="er-col-name">{col.physicalName}</span>
               <span className="er-col-type">{dataTypeShort(col)}</span>
+              {colHandles(col)}
             </div>
           ))}
 
@@ -70,6 +79,7 @@ function ErTableNodeComponent({ data, selected }: NodeProps) {
               <i className="bi bi-link-45deg er-col-icon fk-icon" />
               <span className="er-col-name">{col.physicalName}</span>
               <span className="er-col-type">{dataTypeShort(col)}</span>
+              {colHandles(col)}
             </div>
           ))}
 
@@ -78,6 +88,7 @@ function ErTableNodeComponent({ data, selected }: NodeProps) {
               <span className="er-col-icon-space" />
               <span className="er-col-name">{col.physicalName}</span>
               <span className="er-col-type">{dataTypeShort(col)}</span>
+              {colHandles(col)}
             </div>
           ))}
 
