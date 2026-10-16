@@ -79,4 +79,32 @@ test.describe("一覧の列の設定", () => {
     await page.getByTestId("data-list-colmenu").click();
     await page.getByTestId("column-prefs-reset").click();
   });
+
+  test("条件で行を選ぶ: 列と条件を決めて、該当する行を選択に反映できる (含む・いま選んでいる行と同じ) @regression", async ({ page }) => {
+    await openTable(page);
+    const selectedRows = page.locator("tr.data-list-row.selected");
+    await page.getByTestId("data-list-condmenu").click();
+    const menu = page.getByTestId("select-by-condition");
+    await expect(menu).toBeVisible();
+    await menu.getByTestId("sbc-column").selectOption({ label: "種別" });
+    await menu.getByTestId("sbc-value").fill("一覧");
+    const count = Number(((await menu.getByTestId("sbc-count").textContent()) ?? "").match(/^(\d+)/)![1]);
+    expect(count).toBeGreaterThan(0);
+    await menu.getByTestId("sbc-replace").click();
+    await expect(menu).toHaveCount(0);
+    await expect(selectedRows).toHaveCount(count);
+
+    // 1 行だけ選んで、「いま選んでいる行と同じ」種別の行を、選択に加える
+    await page.locator("tr.data-list-row:not(.selected)").first().locator(".screen-table-name").click();
+    await expect(selectedRows).toHaveCount(1);
+    await page.getByTestId("data-list-condmenu").click();
+    await menu.getByTestId("sbc-column").selectOption({ label: "種別" });
+    await menu.getByTestId("sbc-op").selectOption("sameAsSelected");
+    const same = Number(((await menu.getByTestId("sbc-count").textContent()) ?? "").match(/^(\d+)/)![1]);
+    expect(same).toBeGreaterThanOrEqual(1);
+    await menu.getByTestId("sbc-add").click();
+    await expect(selectedRows).toHaveCount(same);
+    await page.keyboard.press("Escape");
+    await expect(menu).toHaveCount(0);
+  });
 });

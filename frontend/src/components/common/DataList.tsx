@@ -27,6 +27,7 @@ import type { ListSort } from "../../hooks/useListSort";
 import { useColumnPrefs } from "../../hooks/useColumnPrefs";
 import { applyColumnPrefs, moveColumnTo, setWidth, type ColumnPrefs } from "../../utils/columnPrefs";
 import { ColumnPrefsMenu } from "./ColumnPrefsMenu";
+import { SelectByConditionMenu } from "./SelectByConditionMenu";
 import "../../styles/dataList.css";
 
 export interface DataListColumn<T> {
@@ -104,6 +105,12 @@ export function DataList<T>({
   const columns = useMemo(() => (prefsKey ? applyColumnPrefs(allColumns, prefs) : allColumns), [prefsKey, allColumns, prefs]);
   const orderedAll = useMemo(() => applyColumnPrefs(allColumns, { ...prefs, hidden: [] }), [allColumns, prefs]);
   const [menuAt, setMenuAt] = useState<{ x: number; y: number } | "button" | null>(null);
+  const [showCondition, setShowCondition] = useState(false);
+  // 条件で選べる列 (並べ替えに使う値の取り出し方がある列)
+  const conditionColumns = useMemo(
+    () => allColumns.filter((c) => typeof c.header === "string" && c.sortAccessor).map((c) => ({ key: c.key, label: c.header as string, accessor: c.sortAccessor! })),
+    [allColumns],
+  );
   const [dragCol, setDragCol] = useState<string | null>(null);
   const [overCol, setOverCol] = useState<string | null>(null);
   const headRef = useRef<HTMLTableRowElement>(null);
@@ -274,9 +281,19 @@ export function DataList<T>({
     >
       {prefsKey && layout === "list" && (
       <div className="data-list-colmenu-bar">
-        <button type="button" className="data-list-colmenu-btn" title="列の設定 (表示・並び・幅)" aria-label="列の設定" aria-haspopup="true" onClick={(e) => { e.stopPropagation(); setMenuAt(menuAt ? null : "button"); }} data-testid="data-list-colmenu">
+        {selection && conditionColumns.length > 0 && (
+          <button type="button" className="data-list-colmenu-btn data-list-condmenu-btn" title="条件で行を選ぶ" aria-label="条件で行を選ぶ" aria-haspopup="true"
+            onClick={(e) => { e.stopPropagation(); setMenuAt(null); setShowCondition((v) => !v); }} data-testid="data-list-condmenu">
+            <i className="bi bi-ui-checks" />
+          </button>
+        )}
+        <button type="button" className="data-list-colmenu-btn" title="列の設定 (表示・並び・幅)" aria-label="列の設定" aria-haspopup="true" onClick={(e) => { e.stopPropagation(); setShowCondition(false); setMenuAt(menuAt ? null : "button"); }} data-testid="data-list-colmenu">
           <i className="bi bi-layout-three-columns" />
         </button>
+        {showCondition && selection && (
+          <SelectByConditionMenu items={items} getId={getId} columns={conditionColumns} selectedIds={selection.selectedIds}
+            onSelect={(ids) => selection.setSelectedIds(ids)} onClose={() => setShowCondition(false)} />
+        )}
         {menuAt && (
         <ColumnPrefsMenu
           columns={orderedAll.map((c) => ({ key: c.key, label: typeof c.header === "string" ? c.header : c.key }))}
