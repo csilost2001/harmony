@@ -14,7 +14,7 @@ export function graphKindOf(entityType: string): GraphKind | null {
 
 export interface UsedItem { kind: NodeKind; kindLabel: string; id: string; name: string; /** どういうつながりか (重複は「、」で連ねる) */ how: string; route: string | null }
 
-const ROUTES: Partial<Record<NodeKind, (id: string) => string>> = {
+export const ROUTES: Partial<Record<NodeKind, (id: string) => string>> = {
   screen: (id) => `/screen/design/${encodeURIComponent(id)}`,
   processFlow: (id) => `/process-flow/edit/${encodeURIComponent(id)}`,
   table: (id) => `/table/edit/${encodeURIComponent(id)}`,

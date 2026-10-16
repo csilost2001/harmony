@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
-  BUSINESS_LANE_KIND_LABELS, layoutBusinessFlow, BUSINESS_STEP_KIND_LABELS, businessFlowToSvg, nextLaneId, nextStepId, removeStep, validateBusinessFlow,
+  BUSINESS_LANE_KIND_LABELS, buildDiagramText, standaloneSvg, layoutBusinessFlow, BUSINESS_STEP_KIND_LABELS, businessFlowToSvg, nextLaneId, nextStepId, removeStep, validateBusinessFlow,
   type BusinessFlow, type BusinessLane, type BusinessStep, type LaneKind, type StepKind,
 } from "@harmony/shared";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
@@ -27,6 +27,9 @@ import "../../styles/businessFlow.css";
 import { UndoHistoryPanel } from "../common/UndoHistoryPanel";
 import { SearchableSelect } from "../common/SearchableSelect";
 import { LoadingBlock } from "../common/LoadingBlock";
+import { saveTextFile } from "../analysis/fileIo";
+import { writeClipboardText } from "../../utils/tableExport";
+import { showToast } from "../../utils/toast";
 
 type Selection = { kind: "step" | "lane"; id: string } | null;
 const STEP_ICON: Record<StepKind, string> = { start: "bi-play-circle", task: "bi-square", decision: "bi-diamond", end: "bi-stop-circle" };
@@ -302,6 +305,18 @@ export function BusinessFlowEditor() {
             <button type="button" className="bfe-btn" onClick={() => setZoom((z) => Math.min(2, +(z + 0.1).toFixed(2)))} aria-label="拡大" data-testid="bf-zoom-in"><i className="bi bi-zoom-in" /></button>
             <button type="button" className="bfe-btn" onClick={fitZoom} data-testid="bf-zoom-fit">全体を表示</button>
             <button type="button" className="bfe-btn" onClick={() => setZoom(1)}>100%</button>
+            <span className="bfe-zoom-sep" aria-hidden="true" />
+            <button type="button" className="bfe-btn" disabled={!flow} data-testid="bf-export-svg" title="図を SVG ファイルで保存 (設計書と同じ描画)"
+              onClick={() => { if (flow) saveTextFile(`${(flow.id || "business-flow").replace(/[^A-Za-z0-9_-]+/g, "")}.svg`, standaloneSvg(businessFlowToSvg(flow, { showRefs: true })), "image/svg+xml"); }}><i className="bi bi-filetype-svg" /> SVG</button>
+            {(["mermaid", "plantuml"] as const).map((f) => (
+              <button key={f} type="button" className="bfe-btn" disabled={!flow} data-testid={`bf-copy-${f}`} title={`${f === "mermaid" ? "Mermaid" : "PlantUML"} の図の文をコピー (Wiki・設計書に貼れます)`}
+                onClick={async () => {
+                  if (!flow) return;
+                  const text = buildDiagramText({ businessFlows: [flow], flows: [], tables: [], screens: [] } as never, { kind: "businessFlow", id: flow.id }, f);
+                  const ok = text ? await writeClipboardText(text) : false;
+                  showToast(ok ? `${f === "mermaid" ? "Mermaid" : "PlantUML"} の図をコピーしました` : "コピーできませんでした", ok ? "info" : "error");
+                }}><i className="bi bi-clipboard" /> {f === "mermaid" ? "Mermaid" : "PlantUML"}</button>
+            ))}
           </div>
           <div ref={paperRef} className="bfe-paper" style={{ ["--bf-zoom" as string]: zoom }} onClick={onDiagramClick} onKeyDown={onDiagramKey} data-testid="bf-diagram" dangerouslySetInnerHTML={{ __html: svg }} />
           <section className="bfe-issues" aria-label="要確認">
