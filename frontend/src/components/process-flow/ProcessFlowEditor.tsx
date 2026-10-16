@@ -101,6 +101,7 @@ import { useListClipboard } from "../../hooks/useListClipboard";
 import { SnippetMenu } from "../common/SnippetMenu";
 import { showToast } from "../../utils/toast";
 import { cloneStepsWithNewIds } from "../../utils/stepClone";
+import { StepOutlinePanel } from "./internal/StepOutlinePanel";
 
 export function ProcessFlowEditor() {
   const { processFlowId } = useParams<{ processFlowId: string }>();
@@ -1153,6 +1154,7 @@ export function ProcessFlowEditor() {
               onAddStep={handleAddStep}
               onAddTemplate={handleAddTemplate}
               isReadonly={isReadonly}
+              outlineSlot={<StepOutlinePanel steps={activeAction?.steps ?? []} selectedIds={selectedIds} />}
               snippetSlot={
                 <SnippetMenu kind="steps" popAlign="left" className="step-template-btn" selectionCount={selectedIds.size} readonly={isReadonly}
                   getSelection={() => (activeAction?.steps ?? []).filter((st) => selectedIds.has(st.id))}
