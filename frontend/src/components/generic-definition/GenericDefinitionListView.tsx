@@ -422,6 +422,7 @@ export function GenericDefinitionListView() {
           <div style={{ padding: "24px", color: "var(--hm-fg-muted)", textAlign: "center" }}>読み込み中...</div>
         ) : (
           <DataList
+            prefsKey="generic-definition-list"
             items={sort.sorted}
             columns={columns}
             getId={getId}

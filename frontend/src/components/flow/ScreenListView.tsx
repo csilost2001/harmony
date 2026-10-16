@@ -707,6 +707,7 @@ export function ScreenListView() {
 
       <div className="screen-list-body">
         <DataList
+          prefsKey="screen-list"
           items={sort.sorted}
           columns={columns}
           getId={(s) => s.id}

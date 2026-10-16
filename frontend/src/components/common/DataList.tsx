@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode, type MouseEvent as ReactMouseEvent } from "react";
+import { useMemo, useRef, useState, type DragEvent as ReactDragEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type MouseEvent as ReactMouseEvent } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -24,6 +24,9 @@ import {
 import type { ListSelection } from "../../hooks/useListSelection";
 import type { ListClipboard } from "../../hooks/useListClipboard";
 import type { ListSort } from "../../hooks/useListSort";
+import { useColumnPrefs } from "../../hooks/useColumnPrefs";
+import { applyColumnPrefs, moveColumnTo, setWidth, type ColumnPrefs } from "../../utils/columnPrefs";
+import { ColumnPrefsMenu } from "./ColumnPrefsMenu";
 import "../../styles/dataList.css";
 
 export interface DataListColumn<T> {
@@ -77,10 +80,15 @@ interface Props<T> {
   variant?: "light" | "dark";
   /** 削除マーク等で ghost 表示する項目判定 (clipboard.isItemCut と OR される) */
   isItemGhost?: (id: string) => boolean;
+  /**
+   * 指定すると、列の幅 (見出しの右端のドラッグ)・表示 / 非表示・並び (見出しのドラッグ・「列の設定」) を、
+   * この key でブラウザに覚える (UI 改善提案 第 3 弾 #47)。画面ごとに別の key にする。
+   */
+  prefsKey?: string;
 }
 
 export function DataList<T>({
-  items, columns, getId, getNo, selection, clipboard, sort,
+  items, columns: allColumns, getId, getNo, selection, clipboard, sort,
   onActivate, onReorder, onRowDelete, onContextMenu,
   layout = "list",
   renderCard,
@@ -89,7 +97,43 @@ export function DataList<T>({
   className,
   variant = "light",
   isItemGhost,
+  prefsKey,
 }: Props<T>) {
+  // ── 列の設定 (幅・表示・並び) ─────────────────────────────────────────
+  const [prefs, setPrefs] = useColumnPrefs(prefsKey);
+  const columns = useMemo(() => (prefsKey ? applyColumnPrefs(allColumns, prefs) : allColumns), [prefsKey, allColumns, prefs]);
+  const orderedAll = useMemo(() => applyColumnPrefs(allColumns, { ...prefs, hidden: [] }), [allColumns, prefs]);
+  const [menuAt, setMenuAt] = useState<{ x: number; y: number } | "button" | null>(null);
+  const [dragCol, setDragCol] = useState<string | null>(null);
+  const [overCol, setOverCol] = useState<string | null>(null);
+  const headRef = useRef<HTMLTableRowElement>(null);
+  const measured = () => {
+    const out: Record<string, number> = {};
+    headRef.current?.querySelectorAll<HTMLElement>("th[data-col-key]").forEach((th) => { out[th.dataset.colKey!] = th.getBoundingClientRect().width; });
+    return out;
+  };
+  const startResize = (e: ReactPointerEvent<HTMLElement>, key: string) => {
+    e.preventDefault(); e.stopPropagation();
+    const th = e.currentTarget.closest("th") as HTMLElement;
+    const startX = e.clientX;
+    const startW = th.getBoundingClientRect().width;
+    const target = e.currentTarget;
+    target.setPointerCapture(e.pointerId);
+    const move = (ev: PointerEvent) => setPrefs((p) => setWidth(p, key, startW + ev.clientX - startX));
+    const up = () => { target.removeEventListener("pointermove", move); target.removeEventListener("pointerup", up); target.removeEventListener("pointercancel", up); };
+    target.addEventListener("pointermove", move);
+    target.addEventListener("pointerup", up);
+    target.addEventListener("pointercancel", up);
+  };
+  const onHeaderDrop = (e: ReactDragEvent, target: string) => {
+    e.preventDefault();
+    if (dragCol && dragCol !== target) {
+      const keys = orderedAll.map((c) => c.key);
+      setPrefs((p: ColumnPrefs) => ({ ...p, order: moveColumnTo(keys, dragCol, target) }));
+    }
+    setDragCol(null); setOverCol(null);
+  };
+
   // docs/spec/list-common.md §3.9: ソート中は「並び替え Read-only モード」
   // D&D ハンドル・ドロップを無効化する
   const sortActive = (sort?.sortKeys.length ?? 0) > 0;
@@ -157,6 +201,7 @@ export function DataList<T>({
     `data-list-layout-${layout}`,
     `data-list-${variant}`,
     items.length === 0 ? "data-list-empty" : "",
+    prefsKey ? "data-list-has-prefs" : "",
     className ?? "",
   ].filter(Boolean).join(" ");
 
@@ -227,6 +272,23 @@ export function DataList<T>({
       onClick={handleRootClick}
       onContextMenu={onContextMenu ? handleRootContextMenu : undefined}
     >
+      {prefsKey && layout === "list" && (
+      <div className="data-list-colmenu-bar">
+        <button type="button" className="data-list-colmenu-btn" title="列の設定 (表示・並び・幅)" aria-label="列の設定" aria-haspopup="true" onClick={(e) => { e.stopPropagation(); setMenuAt(menuAt ? null : "button"); }} data-testid="data-list-colmenu">
+          <i className="bi bi-layout-three-columns" />
+        </button>
+        {menuAt && (
+        <ColumnPrefsMenu
+          columns={orderedAll.map((c) => ({ key: c.key, label: typeof c.header === "string" ? c.header : c.key }))}
+          prefs={prefs}
+          measured={measured()}
+          onChange={setPrefs}
+          onClose={() => setMenuAt(null)}
+          at={menuAt === "button" ? undefined : menuAt}
+        />
+        )}
+      </div>
+      )}
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -239,27 +301,45 @@ export function DataList<T>({
           {layout === "list" ? (
             <table className="data-list-table">
               <thead>
-                <tr>
+                <tr ref={headRef}>
                   {showHandle && <th className="data-list-th-handle" aria-label="並び替えハンドル" />}
                   {showNumColumn && <th className="data-list-th-num">No</th>}
                   {onRowDelete && <th className="data-list-th-row-delete" aria-label="削除" />}
                   {table.getHeaderGroups()[0].headers.map((header) => {
                     const col = columns.find((c) => c.key === header.column.id)!;
+                    const widthPx = prefs.widths[col.key];
                     const dir = sort?.getSortDirection(col.key) ?? null;
                     const rank = sort?.getSortRank(col.key) ?? null;
                     const isSortable = !!col.sortable && !!sort;
                     return (
                       <th
                         key={col.key}
-                        className={[col.className, isSortable ? "data-list-th-sortable" : "", dir ? "data-list-th-sorted" : ""].filter(Boolean).join(" ")}
-                        style={{ width: col.width, textAlign: col.align }}
+                        data-col-key={col.key}
+                        className={[col.className, isSortable ? "data-list-th-sortable" : "", dir ? "data-list-th-sorted" : "", overCol === col.key && dragCol !== col.key ? "data-list-th-dropover" : ""].filter(Boolean).join(" ")}
+                        style={widthPx ? { width: widthPx, minWidth: widthPx, maxWidth: widthPx, textAlign: col.align } : { width: col.width, textAlign: col.align }}
                         onClick={isSortable ? (e) => sort!.toggleSort(col.key, { addKey: e.shiftKey }) : undefined}
+                        draggable={!!prefsKey}
+                        onDragStart={prefsKey ? (e) => { setDragCol(col.key); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", col.key); } : undefined}
+                        onDragOver={prefsKey && dragCol ? (e) => { e.preventDefault(); setOverCol(col.key); } : undefined}
+                        onDrop={prefsKey ? (e) => onHeaderDrop(e, col.key) : undefined}
+                        onDragEnd={prefsKey ? () => { setDragCol(null); setOverCol(null); } : undefined}
+                        onContextMenu={prefsKey ? (e) => { e.preventDefault(); e.stopPropagation(); setMenuAt({ x: e.clientX, y: e.clientY }); } : undefined}
                       >
                         <span className="data-list-th-content">
                           {rank !== null && <span className="data-list-sort-rank">{toCircled(rank)}</span>}
                           {col.header as ReactNode}
                           {dir && <i className={`bi ${dir === "asc" ? "bi-caret-up-fill" : "bi-caret-down-fill"} data-list-sort-icon`} />}
                         </span>
+                        {prefsKey && (
+                          <span
+                            className="data-list-col-resize" role="separator" aria-orientation="vertical" aria-label="列の幅 (ドラッグで変える。ダブルクリックで自動)"
+                            title="ドラッグで幅を変える / ダブルクリックで自動に戻す" data-testid={`data-list-col-resize-${col.key}`}
+                            draggable={false}
+                            onPointerDown={(e) => startResize(e, col.key)}
+                            onClick={(e) => e.stopPropagation()}
+                            onDoubleClick={(e) => { e.stopPropagation(); setPrefs((p) => setWidth(p, col.key, null)); }}
+                          />
+                        )}
                       </th>
                     );
                   })}

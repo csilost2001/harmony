@@ -545,3 +545,37 @@
   top: 6px;
   right: 6px;
 }
+
+/* ------- 列の設定 (幅・表示・並び。UI 改善提案 第 3 弾 #47) -------- */
+
+.data-list-colmenu-bar { position: sticky; top: 0; z-index: 5; height: 0; text-align: right; }
+.data-list-colmenu-btn {
+  position: relative; margin: 3px 4px 0 0; width: 24px; height: 24px; padding: 0; line-height: 1;
+  border: 1px solid var(--hm-border); border-radius: 4px; background: var(--hm-surface); color: var(--hm-fg-muted); cursor: pointer;
+}
+.data-list-colmenu-btn:hover, .data-list-colmenu-btn:focus-visible { color: var(--hm-fg); border-color: var(--hm-border-strong); }
+.data-list-has-prefs .data-list-table thead th:last-child { padding-right: 36px; }
+.data-list-has-prefs .data-list-table thead th[data-col-key] { cursor: grab; }
+.data-list-has-prefs .data-list-table thead th[data-col-key].data-list-th-sortable { cursor: pointer; }
+.data-list-th-dropover { box-shadow: inset 3px 0 0 var(--hm-accent-solid); }
+.data-list-col-resize { position: absolute; top: 0; right: -3px; bottom: 0; width: 8px; cursor: col-resize; z-index: 2; touch-action: none; }
+.data-list-col-resize::after { content: ""; position: absolute; top: 25%; bottom: 25%; left: 3px; width: 2px; border-radius: 1px; background: var(--hm-border-strong); opacity: 0; }
+.data-list-table thead th:hover > .data-list-col-resize::after, .data-list-col-resize:hover::after { opacity: 1; }
+.data-list-table thead th[data-col-key] { overflow: visible; }
+
+.column-prefs-menu {
+  z-index: 10000; width: 300px; max-height: 70vh; overflow: auto; text-align: left; padding: 8px;
+  background: var(--hm-surface); color: var(--hm-fg); border: 1px solid var(--hm-border-strong); border-radius: 8px;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--hm-fg) 25%, transparent); font-size: calc(13px * var(--hm-font-scale)); font-weight: 400;
+}
+.column-prefs-menu.is-anchored { position: absolute; top: 30px; right: 4px; }
+.column-prefs-title { font-weight: 600; margin-bottom: 6px; }
+.column-prefs-title small { font-weight: 400; color: var(--hm-fg-muted); }
+.column-prefs-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.column-prefs-list li { display: grid; grid-template-columns: 1fr 64px 26px 26px; gap: 4px; align-items: center; }
+.column-prefs-list li.is-hidden .column-prefs-show { color: var(--hm-fg-faint); text-decoration: line-through; }
+.column-prefs-show { display: flex; gap: 6px; align-items: center; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.column-prefs-width { width: 100%; padding: 2px 4px; border: 1px solid var(--hm-border); border-radius: 4px; background: var(--hm-surface-2); color: var(--hm-fg); font-size: inherit; }
+.column-prefs-move { padding: 0; height: 24px; border: 1px solid var(--hm-border); border-radius: 4px; background: var(--hm-surface); color: var(--hm-fg-2); cursor: pointer; }
+.column-prefs-move:disabled { opacity: 0.4; cursor: not-allowed; }
+.column-prefs-foot { display: flex; justify-content: space-between; gap: 6px; margin-top: 8px; }

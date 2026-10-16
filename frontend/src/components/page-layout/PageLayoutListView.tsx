@@ -593,6 +593,7 @@ export function PageLayoutListView() {
         <SortBar sort={sort} columnLabels={columnLabels} />
 
         <DataList
+          prefsKey="page-layout-list"
           items={sort.sorted}
           columns={columns}
           getId={(v) => String(v.id)}

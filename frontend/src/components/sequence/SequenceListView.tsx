@@ -540,6 +540,7 @@ export function SequenceListView() {
         <SortBar sort={sort} columnLabels={columnLabels} />
 
         <DataList
+          prefsKey="sequence-list"
           items={sort.sorted}
           columns={columns}
           getId={(s) => s.id}

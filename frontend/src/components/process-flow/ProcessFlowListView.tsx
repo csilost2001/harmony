@@ -966,6 +966,7 @@ export function ProcessFlowListView() {
         <SortBar sort={sort} columnLabels={columnLabels} />
 
         <DataList
+          prefsKey="process-flow-list"
           items={sort.sorted}
           columns={columns}
           getId={(g) => g.id}

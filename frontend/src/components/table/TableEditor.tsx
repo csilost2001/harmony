@@ -1267,6 +1267,7 @@ function ColumnsTab({
       <SortBar sort={sort} columnLabels={columnLabels} />
 
       <DataList
+        prefsKey="table-columns"
         items={sort.sorted}
         columns={columns}
         getId={(c) => c.id}

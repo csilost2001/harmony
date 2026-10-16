@@ -133,6 +133,7 @@ export function ReportListView() {
         </p>
       )}
       <DataList
+        prefsKey="report-list"
         items={sort.sorted}
         columns={columns}
         getId={(f) => f.id}

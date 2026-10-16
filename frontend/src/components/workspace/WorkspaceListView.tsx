@@ -1058,6 +1058,7 @@ export function WorkspaceListView() {
           </div>
         ) : (
           <DataList
+            prefsKey="workspace-list"
             items={sort.sorted}
             columns={columns}
             getId={(w) => w.id}
