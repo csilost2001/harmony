@@ -186,7 +186,7 @@ export function StepCard({
   ].filter(Boolean).join(" ");
 
   return (
-    <div className="step-card-wrapper" data-edit-level={editLevel}>
+    <div className="step-card-wrapper" data-edit-level={editLevel} data-deeplink={`step:${step.id}`}>
       {showMarkerDialog && onAddMarker && (
         <StepMarkerDialog
           stepLabel={`${label} ${STEP_TYPE_LABELS[step.kind]}`}

@@ -1209,7 +1209,7 @@ export function ScreenItemsView() {
                 )}
                 {file.items.map((item, i) => (
                   <React.Fragment key={i}>
-                  <tr className={`${selectedIndices.has(i) ? "screen-items-row-selected" : ""} ${rowDrag.rowClass(i)}`.trim()} data-grid-row={i} data-issue={lintByRow.has(i) ? "" : undefined} {...rowDrag.rowProps(i)}>
+                  <tr className={`${selectedIndices.has(i) ? "screen-items-row-selected" : ""} ${rowDrag.rowClass(i)}`.trim()} data-grid-row={i} data-deeplink={item.id ? `item:${item.id}` : undefined} data-issue={lintByRow.has(i) ? "" : undefined} {...rowDrag.rowProps(i)}>
                     <td className="text-center">
                       <input
                         type="checkbox"

@@ -92,7 +92,7 @@ export function ColumnGrid({ columns, readonly, onUpdateColumn, onAppend, onInse
         </thead>
         <tbody>
           {columns.map((c, i) => (
-            <tr key={c.id} className={rowDrag.rowClass(i)} data-testid="column-grid-row" data-grid-row={i} data-column-id={c.id} {...rowDrag.rowProps(i)}>
+            <tr key={c.id} className={rowDrag.rowClass(i)} data-testid="column-grid-row" data-grid-row={i} data-column-id={c.id} data-deeplink={`column:${c.id}`} {...rowDrag.rowProps(i)}>
               <td className="cg-no">
                 {!readonly && onMove && <span className="row-grip" role="button" tabIndex={-1} aria-label={`${i + 1} 行目をドラッグして並べ替え (Alt+↑↓ でも動かせます)`} title="ドラッグして並べ替え (Alt+↑↓)" data-testid={`row-grip-${i}`} {...rowDrag.gripProps(i)}><i className="bi bi-grip-vertical" /></span>}
                 {i + 1}
