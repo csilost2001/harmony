@@ -82,8 +82,12 @@ function covered(cols: readonly string[], table: Table): boolean {
 
 export function suggestIndexes(table: Table, flows: readonly FlowLike[]): IndexSuggestion[] {
   const out = new Map<string, IndexSuggestion>();
+  // 主キーが 1 列なら、その列を使う検索は、主キーの索引で足りる (主キーの列を先頭にした組は、勧めない)
+  const soloPk = table.columns.filter((c) => c.primaryKey);
+  const soloPkName = soloPk.length === 1 ? String(soloPk[0].physicalName).toLowerCase() : null;
   const add = (cols: string[], reason: string, source: string) => {
     if (cols.length === 0 || covered(cols, table)) return;
+    if (soloPkName && cols.includes(soloPkName)) return;
     const key = cols.join(",");
     const cur = out.get(key);
     if (cur) { if (!cur.sources.includes(source)) cur.sources.push(source); return; }

@@ -52,7 +52,7 @@ export function termVariantHints(text: string, known: readonly string[]): TermHi
   return out;
 }
 
-/** 入力の中の語を、統一先の書き方に置き換える (全角半角をそろえた上で) */
+/** 入力の中の語を、統一先の書き方に置き換える。カタカナの連なりが、その語と同じ (全角半角の違いは無視) ものだけを置き換え、ほかの文字・別の語 (ユーザビリティ) は変えない */
 export function applyTermHint(text: string, hint: TermHint): string {
-  return text.normalize("NFKC").split(hint.from).join(hint.to);
+  return text.replace(/[ァ-ヶーｦ-ﾟ]{2,}/g, (run) => (run.normalize("NFKC") === hint.from ? hint.to : run));
 }

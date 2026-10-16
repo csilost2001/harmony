@@ -20,8 +20,8 @@ describe("generateSampleInserts (続編 第 8 弾 #153)", () => {
   const lines = sql.split("\n");
   it("行数ぶんの INSERT を作る。自動採番の列は含めない", () => {
     expect(lines).toHaveLength(3);
-    expect(lines[0]).toContain("INSERT INTO orders (order_no, customer_name, amount, ordered_on, shipped_at, is_paid, note) VALUES");
-    expect(sql).not.toContain("(id,");
+    expect(lines[0]).toContain('INSERT INTO "orders" ("order_no", "customer_name", "amount", "ordered_on", "shipped_at", "is_paid", "note") VALUES');
+    expect(sql).not.toContain('("id"');
   });
   it("型に合った値: 数値は引用符なし・文字と日付は引用符あり・真偽は TRUE / FALSE", () => {
     expect(lines[0]).toMatch(/'山田 太郎'/);
@@ -44,6 +44,14 @@ describe("generateSampleInserts (続編 第 8 弾 #153)", () => {
     expect(generateSampleInserts(t, 1)).toContain("VALUES ('");
     expect(generateSampleInserts(tbl("t", []), 3)).toBe("");
     expect(generateSampleInserts(table, 0)).toBe("");
+  });
+  it("識別子は引用符で囲む: 予約語の名前・記号を含む名前でも文が壊れない (方言ごと)", () => {
+    const t = tbl("user", [col("order", "順", "INTEGER"), col("a\"b", "x", "INTEGER")]);
+    expect(generateSampleInserts(t, 1)).toContain('INSERT INTO "user" ("order", "a""b") VALUES');
+    expect(generateSampleInserts(t, 1, "mysql")).toContain("INSERT INTO `user` (`order`, `a\"b`) VALUES");
+    expect(generateSampleInserts(t, 1, "sqlserver")).toContain("INSERT INTO [user] ([order], [a\"b]) VALUES");
+    const evil = tbl("orders; DROP TABLE users; --", [col("c", "c", "INTEGER")]);
+    expect(generateSampleInserts(evil, 1)).toContain('INSERT INTO "orders; DROP TABLE users; --" ("c")');
   });
   it("行数の上限は 50", () => { expect(generateSampleInserts(table, 999).split("\n")).toHaveLength(50); });
 });

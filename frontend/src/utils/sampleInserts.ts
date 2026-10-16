@@ -5,6 +5,7 @@
  */
 import type { Column, Table } from "../types/v3";
 import { sampleText } from "./sampleValues";
+import { quoteIdentifier, type SqlDialect } from "./ddlGenerator";
 
 type Kind = "int" | "num" | "date" | "datetime" | "bool" | "text";
 
@@ -47,10 +48,12 @@ function valueFor(c: Column, row: number, unique: boolean): string {
 }
 
 /** rows 行ぶんの INSERT 文 (1 行 1 文)。自動採番の列は含めない。列が無ければ空 */
-export function generateSampleInserts(table: Pick<Table, "physicalName" | "columns">, rows: number): string {
+export function generateSampleInserts(table: Pick<Table, "physicalName" | "columns">, rows: number, dialect: SqlDialect = "postgresql"): string {
   const cols = (table.columns ?? []).filter((c) => !c.autoIncrement);
   if (cols.length === 0 || rows <= 0) return "";
-  const head = `INSERT INTO ${table.physicalName} (${cols.map((c) => c.physicalName).join(", ")}) VALUES`;
+  // 識別子は DDL と同じく引用符で囲む (予約語の名前・記号を含む名前でも、文が壊れないように)
+  const q = (n: string) => quoteIdentifier(String(n), dialect);
+  const head = `INSERT INTO ${q(table.physicalName)} (${cols.map((c) => q(c.physicalName)).join(", ")}) VALUES`;
   const lines: string[] = [];
   for (let r = 0; r < Math.min(rows, 50); r++) lines.push(`${head} (${cols.map((c) => valueFor(c, r, !!c.unique)).join(", ")});`);
   return lines.join("\n");

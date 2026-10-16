@@ -67,7 +67,7 @@ export function DdlPreviewDrawer({ ddl, dialect, onDialectChange, defaultOpen = 
   }, [mode, diff, base, dialect]);
 
   // サンプルの INSERT (続編 第 8 弾 #153): 保存はせず、コピーして使う下書き
-  const sampleText = useMemo(() => (mode === "sample" && diff ? generateSampleInserts(diff.table, sampleRows) : ""), [mode, diff, sampleRows]);
+  const sampleText = useMemo(() => (mode === "sample" && diff ? generateSampleInserts(diff.table, sampleRows, dialect) : ""), [mode, diff, sampleRows, dialect]);
   const shown = mode === "alter" ? alterText : mode === "sample" ? sampleText : ddl;
 
   const handleCopy = () => {

@@ -49,4 +49,8 @@ describe("suggestIndexes", () => {
     const pk = suggestIndexes({ ...table, constraints: [] } as unknown as Table, [{ meta: { id: "f" }, actions: [{ steps: [{ id: "x", kind: "dbAccess", tableId: "inventory", operation: "SELECT", sql: "SELECT * FROM inventory WHERE id = 1" }] }] }]);
     expect(pk).toEqual([]);
   });
+  it("主キーが 1 列なら、その列を含む組は勧めない (主キーの索引で足りる)", () => {
+    const r = suggestIndexes({ ...table, constraints: [] } as unknown as Table, [{ meta: { id: "f" }, actions: [{ steps: [{ id: "x", kind: "dbAccess", tableId: "inventory", operation: "SELECT", sql: "SELECT * FROM inventory WHERE id = 1 AND store_id = 2" }] }] }]);
+    expect(r.map((s) => s.columns.join(","))).not.toContain("id,store_id");
+  });
 });

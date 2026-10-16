@@ -26,6 +26,17 @@ describe("termVariantHints", () => {
   it("半角カナも全角にそろえて比べる", () => {
     expect(termVariantHints("ｻｰﾊﾞ", known)).toEqual([{ from: "サーバ", to: "サーバー", count: 1 }]);
   });
+  it("置き換えは、同じ語の連なりだけ (正しい書き方・別の語・全角の記号は変えない)", () => {
+    const k = ["ユーザー名", "ユーザー種別", "ユーザー"];
+    const [h] = termVariantHints("ユーザー名とユーザ名", k);
+    expect(applyTermHint("ユーザー名とユーザ名", h)).toBe("ユーザー名とユーザー名");
+    const [h2] = termVariantHints("ユーザ名とユーザビリティ", k);
+    expect(applyTermHint("ユーザ名とユーザビリティ", h2)).toBe("ユーザー名とユーザビリティ");
+    const [h3] = termVariantHints("ユーザ名(ＡＢＣ)", k);
+    expect(applyTermHint("ユーザ名(ＡＢＣ)", h3)).toBe("ユーザー名(ＡＢＣ)");
+    const [h4] = termVariantHints("ｻｰﾊﾞ", ["サーバー"]);
+    expect(applyTermHint("ｻｰﾊﾞ", h4)).toBe("サーバー");
+  });
   it("置き換える", () => {
     const [h] = termVariantHints("ユーザ名", known);
     expect(applyTermHint("ユーザ名", h)).toBe("ユーザー名");
