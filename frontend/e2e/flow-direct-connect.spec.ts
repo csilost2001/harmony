@@ -69,7 +69,12 @@ test.describe("画面フローの線の直接操作", { tag: ["@regression"] }, 
 
   test("線を何もない所へ落とすと、その位置に新しい画面を作って、つなぐ", async ({ page }) => {
     await startEditing(page);
+    // 前の試験が作った画面に頼らない (この試験だけを単独で再実行しても動くように。画面が無ければ、足す)
+    await page.waitForTimeout(800);
+    if ((await page.locator(".react-flow__node-screenNode").count()) === 0) await addScreen(page, "入力画面");
     await expect(page.locator(".react-flow__node-screenNode").first()).toBeVisible({ timeout: 10000 });
+    // 画面を描き終えて、線を引ける状態になるのを待つ (前の試験と同じ。コールドスタートの直後に、落とす操作が空振りしていた)
+    await page.waitForTimeout(800);
     const before = await page.locator(".react-flow__node-screenNode").count();
     const edgesBefore = await page.locator(".react-flow__edge").count();
     const a = page.locator(".react-flow__node-screenNode").first();
