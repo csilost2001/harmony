@@ -37,7 +37,7 @@
 .dgm-guide { position: absolute; background: var(--hm-hue-red); opacity: 0.7; }
 .dgm-guide-v { width: 1px; height: 100000px; }
 .dgm-guide-h { height: 1px; width: 100000px; }
-@media (prefers-reduced-motion: reduce) { .react-flow__node.dgm-dim, .react-flow__edge.dgm-dim { transition: none; } }
+@media (prefers-reduced-motion: reduce) { :root:not([data-motion="full"]) .react-flow__node.dgm-dim, :root:not([data-motion="full"]) .react-flow__edge.dgm-dim { transition: none; } }
 /* 道具の吹き出しは、ミニマップ・拡大縮小のボタンより前に出す。長いときは、中で縦にスクロールする */
 .react-flow__panel.dgm-tools { z-index: 20; }
 .dgm-pop { max-height: calc(100vh - 300px); overflow-y: auto; }

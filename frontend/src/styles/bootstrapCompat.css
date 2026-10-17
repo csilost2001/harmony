@@ -127,7 +127,7 @@ textarea.form-control { min-height: 2.6rem; resize: vertical; }
 .spinner { display: inline-block; width: 1.4rem; height: 1.4rem; border: 0.18em solid var(--hm-border-strong); border-top-color: var(--hm-accent); border-radius: 50%; animation: hm-spin 0.8s linear infinite; }
 .spinner-border-sm { width: 1em; height: 1em; border-width: 0.15em; }
 @keyframes hm-spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .spinner-border { animation-duration: 2s; } }
+@media (prefers-reduced-motion: reduce) { :root:not([data-motion="full"]) .spinner-border { animation-duration: 2s; } }
 .list-group { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
 .list-group-flush > .list-group-item { border-inline: 0; border-radius: 0; }
 .list-group-item { padding: 0.5rem 0.75rem; border: 1px solid var(--hm-border); background: var(--hm-surface); color: var(--hm-fg); }

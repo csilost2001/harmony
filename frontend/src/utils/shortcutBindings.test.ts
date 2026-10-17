@@ -78,3 +78,27 @@ describe("ヘルプの一覧との整合", () => {
     expect(BINDABLE_SHORTCUTS.filter((b) => !listed.has(b.default)).map((b) => b.id)).toEqual([]);
   });
 });
+
+describe("固定のキー (ショートカット一覧から導く。続編 第 10 弾 レビュー M1)", () => {
+  it("一覧の、変えられない項目のキーは、すべて断る (一覧に足すと、自動で固定になる)", () => {
+    const fixed = ["F8", "F6", "F2", "Shift+F12", "Shift+F10", "Ctrl+Space", "Ctrl+Enter", "Ctrl+Shift+Enter", "Alt+Delete", "Alt+Up", "Alt+Down", "Alt+Left", "Ctrl+1", "Ctrl+9", "Ctrl+Shift+PageUp", "Ctrl+Shift+PageDown", "Ctrl+Alt+Left", "Ctrl+Alt+Right", "Ctrl+Alt+T", "F12"];
+    expect(fixed.filter((c) => validateBinding("copyLink", c).ok)).toEqual([]);
+  });
+  it("変えられる項目のキーは、断らない (自分の既定は使える)", () => {
+    for (const b of BINDABLE_SHORTCUTS) expect(validateBinding(b.id, b.default)).toMatchObject({ ok: true });
+  });
+  it("一覧の、変えられない項目のキーを、機械的にすべて確かめる", () => {
+    const bad: string[] = [];
+    for (const g of SHORTCUT_GROUPS) for (const e of g.entries) {
+      if (e.bindId) continue;
+      const arrow = e.keys.indexOf("→");
+      const head = arrow > 0 ? e.keys.slice(0, arrow) : e.keys;
+      if (head.length < 2) continue; // 修飾キーの無いキー (Enter・Home・? など) は、もともと断る
+      const first = head[head.length - 1].split(" / ")[0];
+      if (/[↑↓←→〜]/.test(first)) continue; // 範囲の書き方は、上で確かめた
+      const combo = normalizeCombo([...head.slice(0, -1), first].join("+"));
+      if (combo && validateBinding("copyLink", combo).ok) bad.push(`${g.title}: ${combo}`);
+    }
+    expect(bad).toEqual([]);
+  });
+});

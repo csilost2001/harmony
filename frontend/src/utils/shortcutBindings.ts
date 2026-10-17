@@ -4,6 +4,7 @@
  * (保存 Ctrl+S・元に戻す・一覧のキーなど、編集の基本のキーは固定)。衝突 (台帳の別のキー・固定のキー・ブラウザが使うキー) は、断る。
  */
 import { useSyncExternalStore } from "react";
+import { SHORTCUT_GROUPS } from "./shortcuts";
 
 export interface BindableShortcut { id: string; label: string; default: string }
 
@@ -21,7 +22,36 @@ export const RESERVED_COMBOS: ReadonlySet<string> = new Set([
   "Ctrl+S", "Ctrl+Z", "Ctrl+Y", "Ctrl+Shift+Z", "Ctrl+F", "Ctrl+A", "Ctrl+C", "Ctrl+X", "Ctrl+V", "Ctrl+D", "Ctrl+W", "Ctrl+T", "Ctrl+N", "Ctrl+R", "Ctrl+P", "Ctrl+L", "Ctrl+O",
   "Ctrl+K", "Ctrl+Shift+P", "Ctrl+Tab", "Ctrl+Shift+Tab", "Ctrl+Alt+T", "Ctrl+Shift+T", "Ctrl+Alt+Left", "Ctrl+Alt+Right", "Ctrl+Shift+PageUp", "Ctrl+Shift+PageDown",
   "Alt+F4", "F5", "F11", "F12", "Ctrl+Shift+I", "Ctrl+Shift+N",
+  // 一覧の説明文の中で触れているだけのキー (キーの欄には出ない)
+  "F2", "Shift+F8", "Ctrl+Shift+Z", "Alt+Left", "Alt+Right", "Ctrl+Enter", "Ctrl+Shift+Enter", "Ctrl+Space", "Alt+Delete",
 ]);
+
+/** ヘルプの 1 項目のキー (例: ["Ctrl","Shift","PageUp / PageDown"]・["Alt","↑↓"]・["Ctrl","1〜9"]・["Ctrl","K","→","t:"]) を、組み合わせの一覧にする */
+function combosOfHelpKeys(keys: readonly string[]): string[] {
+  const arrow = keys.indexOf("→");
+  const head = arrow > 0 ? keys.slice(0, arrow) : keys; // 「Ctrl+K → t:」は、最初の組み合わせだけ
+  const last = head[head.length - 1] ?? "";
+  const mods = head.slice(0, -1);
+  const lasts: string[] = [];
+  for (const alt of last.split(" / ")) {
+    if (alt === "↑↓") lasts.push("Up", "Down");
+    else if (alt === "←→") lasts.push("Left", "Right");
+    else if (alt === "1〜9") for (let i = 1; i <= 9; i++) lasts.push(String(i));
+    else lasts.push(alt);
+  }
+  return lasts.map((l) => normalizeCombo([...mods, l].join("+"))).filter((c): c is string => !!c);
+}
+
+let helpReserved: Set<string> | null = null;
+/** ショートカット一覧にある、変えられない項目 (bindId の無いもの) のキー。割り当てに使えない。一覧に足すと、自動で固定になる */
+function reservedFromHelp(): ReadonlySet<string> {
+  if (!helpReserved) {
+    helpReserved = new Set<string>();
+    for (const g of SHORTCUT_GROUPS) for (const e of g.entries) if (!e.bindId) for (const c of combosOfHelpKeys(e.keys)) helpReserved.add(c);
+  }
+  return helpReserved;
+}
+const isReserved = (combo: string): boolean => RESERVED_COMBOS.has(combo) || reservedFromHelp().has(combo);
 
 const MODS = ["Ctrl", "Alt", "Shift"] as const;
 const KEY_ALIASES: Record<string, string> = { " ": "Space", Esc: "Escape", ArrowLeft: "Left", ArrowRight: "Right", ArrowUp: "Up", ArrowDown: "Down", Del: "Delete" };
@@ -55,7 +85,7 @@ function comboProblem(combo: string): string | null {
   const isFn = /^F([1-9]|1[0-2])$/.test(key);
   if (parts.length === 1 && !isFn) return "Ctrl・Alt・Shift のどれかと組み合わせてください (ファンクションキーは単独でも使えます)";
   if (parts.length > 1 && !parts.slice(0, -1).some((m) => m === "Ctrl" || m === "Alt") && !isFn) return "Shift だけとの組み合わせは、入力と重なるため使えません (Ctrl か Alt を含めてください)";
-  if (RESERVED_COMBOS.has(combo)) return `${combo} は、固定のキー (編集の基本・タブ・ブラウザ) と重なるため使えません`;
+  if (isReserved(combo)) return `${combo} は、固定のキー (編集の基本・タブ・ブラウザ) と重なるため使えません`;
   return null;
 }
 

@@ -77,8 +77,9 @@ function DdlImport() {
       }, { signal: abort.current.signal, onProgress: (done, total) => setProgress({ done, total }) });
       if (r.failed.length > 0) reportFailure(r.failed[0].error, "DDL の取り込み");
       if (!r.cancelled && r.failed.length === 0) showToast(`${r.done} 件のテーブルを取り込みました`);
-      else showToast(batchSummary(r, "取り込みました"), r.failed.length ? "error" : "info");
-      if (!r.cancelled) { setText(""); setSkip(new Set()); }
+      else showToast(`${batchSummary(r, "取り込みました")}${r.failed.length ? `。失敗: ${r.failed.map((f) => f.item.physicalName).join("、")} (入力は残しています。取り込めたものは「作りません」になるので、そのまま、もう一度取り込めます)` : ""}`, r.failed.length ? "error" : "info");
+      // すべて取り込めたときだけ、入力を空にする (失敗・中止があれば残し、残りをやり直せるようにする)
+      if (!r.cancelled && r.failed.length === 0) { setText(""); setSkip(new Set()); }
       existing.reload();
     } catch (e) { reportFailure(e, "DDL の取り込み"); } finally { setBusy(false); setProgress(null); abort.current = null; }
   };
@@ -157,8 +158,8 @@ function OpenApiImport() {
       }, { signal: abort.current.signal, onProgress: (done, total) => setProgress({ done, total }) });
       if (r.failed.length > 0) { const e = r.failed[0].error; setError(e instanceof Error ? e.message : String(e)); reportFailure(e, "OpenAPI の取り込み"); }
       if (!r.cancelled && r.failed.length === 0) showToast(`${r.done} 件の処理フローの骨組みを作りました`);
-      else showToast(batchSummary(r, "作りました"), r.failed.length ? "error" : "info");
-      if (!r.cancelled) { setText(""); setSkip(new Set()); }
+      else showToast(`${batchSummary(r, "作りました")}${r.failed.length ? `。失敗: ${r.failed.map((f) => f.item.name).join("、")} (入力は残しています。作れたものは「作りません」になるので、そのまま、もう一度作れます)` : ""}`, r.failed.length ? "error" : "info");
+      if (!r.cancelled && r.failed.length === 0) { setText(""); setSkip(new Set()); }
       existing.reload();
     } catch (e) { setError(e instanceof Error ? e.message : String(e)); reportFailure(e, "OpenAPI の取り込み"); } finally { setBusy(false); setProgress(null); abort.current = null; }
   };

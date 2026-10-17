@@ -71,7 +71,12 @@ export function reportFailure(e: unknown, what?: string, retry?: () => void): vo
   // 接続できない失敗は、どの操作でも同じ案内 (サーバの状態) を出す。ほかは、操作の名前つき
   const detail = failureDetail(err);
   // 保存が止まったときは、最初の要確認の欄へ移る (原因の欄を探さなくてよいように。UI 改善提案 第 5 弾 #92)
-  if (what && /保存/.test(what) && !isConnectionError(err)) setTimeout(() => { const m = document.getElementById("app-main"); if (m) focusFirstIssue(m); }, 100);
+  if (what && /保存/.test(what) && !isConnectionError(err)) setTimeout(() => {
+    // 100ms のあいだに、画面 (または、試験の環境) が無くなっていることがある (間欠的に、「document is not defined」で試験が落ちていた)
+    if (typeof document === "undefined") return;
+    const m = document.getElementById("app-main");
+    if (m) focusFirstIssue(m);
+  }, 100);
   showFailureToast(what && !isConnectionError(err) ? (detail ? `${what}に失敗しました: ${detail}` : `${what}に失敗しました`) : text, retry);
 }
 

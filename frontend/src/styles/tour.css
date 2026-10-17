@@ -12,4 +12,4 @@
 .tour-card p { margin: 0; font-size: calc(13px * var(--hm-font-scale)); line-height: 1.7; color: var(--hm-fg-2); }
 .tour-actions { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
 .tour-spacer { flex: 1 1 auto; }
-@media (prefers-reduced-motion: reduce) { .tour-spot { transition: none; } }
+@media (prefers-reduced-motion: reduce) { :root:not([data-motion="full"]) .tour-spot { transition: none; } }
