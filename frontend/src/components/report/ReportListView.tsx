@@ -16,6 +16,8 @@ import { DataList, type DataListColumn } from "../common/DataList";
 import { useListGrouping } from "../../hooks/useListGrouping";
 import { maturityGroupName, type ListGroupOption } from "../../utils/listGroup";
 import { useOpenedSortAccessor } from "../../hooks/useOpenedSortAccessor";
+import { LastEditor } from "../common/LastEditor";
+import { useLastEditors } from "../../hooks/useLastEditors";
 import { computeRowMarks } from "../../utils/rowMarks";
 import { ListViewBar } from "../common/ListViewBar";
 import { EntityIdInput, type EntityIdValidationState } from "../common/EntityIdInput";
@@ -49,6 +51,7 @@ export function ReportListView() {
     return off;
   }, [reload]);
 
+  const lastEditors = useLastEditors();
   const rowMarks = useMemo(() => computeRowMarks(flows, (x) => x.id, (x) => x.name), [flows]);
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -121,8 +124,8 @@ export function ReportListView() {
       },
     },
     { key: "maturity", header: "成熟度", width: "100px", render: (f) => MATURITY[f.maturity ?? ""] ?? "" },
-    { key: "updatedAt", header: "更新", width: "110px", sortable: true, sortAccessor: (f) => f.updatedAt ?? "", render: (f) => (f.updatedAt ? new Date(f.updatedAt).toLocaleDateString("ja-JP") : "") },
-  ], []);
+    { key: "updatedAt", header: "更新", width: "110px", sortable: true, sortAccessor: (f) => f.updatedAt ?? "", render: (f) => <>{f.updatedAt ? new Date(f.updatedAt).toLocaleDateString("ja-JP") : ""}<LastEditor edit={lastEditors.get(`report:${f.id}`)} /></> },
+  ], [lastEditors]);
 
   const selected = flows.filter((f) => selection.selectedIds.has(f.id));
 

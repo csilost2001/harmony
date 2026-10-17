@@ -2,7 +2,7 @@
  * 保存前の版 (上書きされる前のファイルの内容) と、ワークスペースの保守の RPC。
  * 仕様: docs/spec/file-backup.md / docs/spec/workspace-health.md
  */
-import { listEntityVersions, readEntityVersion } from "../fileVersions.js";
+import { listEntityVersions, locateEntityFile, readEntityVersion } from "../fileVersions.js";
 import { persistDerivedUuids, repairRegistry, scanWorkspaceHealth } from "../workspaceHealth.js";
 import type { RpcHandlerMap } from "./types.js";
 
@@ -18,6 +18,13 @@ export const versionHandlers: RpcHandlerMap = {
   "fileVersions.get": async ({ params, root, respond, respondError }) => {
     const { resourceType, resourceId, versionId } = (params ?? {}) as { resourceType?: string; resourceId?: string; versionId?: string };
     try { respond({ snapshot: await readEntityVersion(root(), String(resourceType), String(resourceId), String(versionId)) }); }
+    catch (e) { respondError(e instanceof Error ? e.message : String(e)); }
+  },
+
+  /** 設計 1 件の原本ファイルの場所 (相対・絶対)。読むだけ */
+  "fileVersions.locate": async ({ params, root, respond, respondError }) => {
+    const { resourceType, resourceId } = (params ?? {}) as { resourceType?: string; resourceId?: string };
+    try { respond(await locateEntityFile(root(), String(resourceType), String(resourceId))); }
     catch (e) { respondError(e instanceof Error ? e.message : String(e)); }
   },
 

@@ -1,0 +1,34 @@
+/* 設計のあゆみ (続編 第 9 弾) */
+.dh-modal { width: min(940px, 96vw); }
+.dh-body { min-height: 320px; }
+.dh-id { font-size: calc(11px * var(--hm-font-scale)); color: var(--hm-fg-muted); font-weight: 400; }
+.dh-last { margin: 0 0 8px; }
+.dh-link { border: 0; background: transparent; color: var(--hm-accent); padding: 0; cursor: pointer; text-decoration: underline; font: inherit; }
+.dh-h { font-size: calc(13px * var(--hm-font-scale)); margin: 14px 0 6px; }
+.dh-table, .dh-diff { width: 100%; }
+.dh-compare-pick { align-items: flex-end; }
+.dh-counts { margin: 10px 0 4px; }
+.dh-summary { margin: 0 0 8px; padding-left: 20px; }
+.dh-copy-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
+.dh-diff-wrap { max-height: 280px; overflow: auto; border: 1px solid var(--hm-border); }
+.dh-diff td, .dh-diff th { vertical-align: top; }
+.dh-diff-added .dh-after { background: color-mix(in srgb, var(--hm-success) 18%, transparent); }
+.dh-diff-removed .dh-before { background: color-mix(in srgb, var(--hm-danger) 16%, transparent); text-decoration: line-through; }
+.dh-diff-changed .dh-before { background: color-mix(in srgb, var(--hm-danger) 12%, transparent); }
+.dh-diff-changed .dh-after { background: color-mix(in srgb, var(--hm-success) 14%, transparent); }
+.dh-verdict { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-weight: 600; }
+.dh-verdict.is-done { color: var(--hm-success); }
+.dh-checks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.dh-check { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--hm-border); border-radius: 6px; }
+.dh-check-ok > i { color: var(--hm-success); }
+.dh-check-ng > i { color: var(--hm-danger); }
+.dh-check-unknown > i { color: var(--hm-fg-muted); }
+.dh-check-text { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.dh-check-text small { color: var(--hm-fg-muted); }
+.dh-check-state { font-size: calc(12px * var(--hm-font-scale)); color: var(--hm-fg-muted); white-space: nowrap; }
+.dh-memo-text { width: 100%; resize: vertical; }
+.dh-inline { display: inline-flex; align-items: center; gap: 6px; }
+.dh-path { overflow-wrap: anywhere; }
+.dh-trials { list-style: none; margin: 10px 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.dh-trial { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid var(--hm-border); border-radius: 6px; }
+.dh-trial-name { flex: 1; min-width: 160px; }

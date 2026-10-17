@@ -8,6 +8,7 @@ import {
   subscribeToastHistory, type ToastKind,
 } from "../../utils/toast";
 import { onHeaderPanelRequest } from "../../utils/headerPanels";
+import { NOTIFY_KIND_LABELS, NOTIFY_MODE_LABELS, setNotifyPrefs, useNotifyPrefs, type NotifyMode } from "../../utils/notifyPrefs";
 import "../../styles/notificationHistory.css";
 
 const KIND_ICON: Record<ToastKind, string> = { success: "bi-check-circle-fill", error: "bi-exclamation-octagon-fill", info: "bi-info-circle-fill" };
@@ -17,6 +18,7 @@ export function NotificationHistory() {
   const history = useSyncExternalStore(subscribeToastHistory, getToastHistory);
   const unseen = useSyncExternalStore(subscribeToastHistory, getUnseenErrorCount);
   const [open, setOpen] = useState(false);
+  const prefs = useNotifyPrefs();
   const rootRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => onHeaderPanelRequest("notifications", () => setOpen(true)), []);
@@ -59,6 +61,26 @@ export function NotificationHistory() {
               ))}
             </ul>
           )}
+          <details className="notif-prefs" data-testid="notif-prefs">
+            <summary>通知の受け取り方</summary>
+            {(["success", "info", "error"] as const).map((k) => (
+              <label key={k} className="notif-pref-row">
+                <span>{NOTIFY_KIND_LABELS[k]}</span>
+                <select value={prefs[k]} onChange={(e) => setNotifyPrefs({ [k]: e.target.value as NotifyMode })} aria-label={NOTIFY_KIND_LABELS[k]} data-testid={`notif-mode-${k}`}>
+                  {(Object.keys(NOTIFY_MODE_LABELS) as NotifyMode[]).map((m) => <option key={m} value={m}>{NOTIFY_MODE_LABELS[m]}</option>)}
+                </select>
+              </label>
+            ))}
+            <label className="notif-pref-row">
+              <span><input type="checkbox" checked={prefs.quiet.on} onChange={(e) => setNotifyPrefs({ quiet: { ...prefs.quiet, on: e.target.checked } })} data-testid="notif-quiet-on" /> 静かな時間帯 (保存・お知らせを出さない)</span>
+              <span className="notif-quiet-range">
+                <input type="time" value={prefs.quiet.from} disabled={!prefs.quiet.on} onChange={(e) => e.target.value && setNotifyPrefs({ quiet: { ...prefs.quiet, from: e.target.value } })} aria-label="静かな時間帯の始まり" data-testid="notif-quiet-from" />
+                〜
+                <input type="time" value={prefs.quiet.to} disabled={!prefs.quiet.on} onChange={(e) => e.target.value && setNotifyPrefs({ quiet: { ...prefs.quiet, to: e.target.value } })} aria-label="静かな時間帯の終わり" data-testid="notif-quiet-to" />
+              </span>
+            </label>
+            <small>失敗の通知は、静かな時間帯でも出ます (「出さない」を選んだときを除く)。どの選び方でも、この履歴には残ります。このブラウザにだけ保存されます。</small>
+          </details>
         </div>
       )}
     </span>

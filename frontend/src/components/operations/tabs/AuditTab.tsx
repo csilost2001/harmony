@@ -5,6 +5,7 @@ import { saveTextFile, withBom } from "../../analysis/fileIo";
 import { opsApi } from "../../../utils/opsApi";
 import { useLoad } from "../useLoad";
 import { formatTime } from "../reviewUtils";
+import { PeriodSummarySection } from "./PeriodSummarySection";
 
 export function AuditTab() {
   const [actor, setActor] = useState("");
@@ -36,6 +37,7 @@ export function AuditTab() {
         <AnTable testId="op-audit-table" headers={["日時", "利用者", "操作", "対象", "内容"]} empty="記録はまだありません。設計を保存すると、ここに残ります。" limit={500}
           rows={(d?.entries ?? []).map((e) => [<span key="t" style={{ whiteSpace: "nowrap" }}>{formatTime(e.at)}</span>, <span key="a">{e.actor}{e.via === "ai" ? <small className="an-hint"> (AI)</small> : null}</span>, e.action, e.target ?? "", e.detail ?? ""])} />
       </Section>
+      <PeriodSummarySection />
     </div>
   );
 }

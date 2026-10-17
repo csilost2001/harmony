@@ -117,6 +117,11 @@ export class WsBridge extends EventEmitter {
     };
   }
 
+  /** 編集セッションの「種類 id」 (監査ログの対象)。見つからなければ undefined */
+  describeEditSession(sessionId: string, editSessionId: string): string | undefined {
+    return this.editSessionService.describeSession(sessionId, editSessionId);
+  }
+
   // ── EditSession adapter (#906, MCP tool + WS handler 共有 — 実装は wsBridge/editSessionService.ts) ──
   // sessionId は workspace 解決 + actor (participant.sessionId) として使われる。
   // WS 経由は WebSocket clientId、MCP 経由は MCP sessionId をそのまま渡す

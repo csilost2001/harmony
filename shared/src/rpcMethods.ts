@@ -65,6 +65,7 @@ export const RPC_METHODS = [
   "editSession.update",
   "fileVersions.get",
   "fileVersions.list",
+  "fileVersions.locate",
   "findEntityReferences",
   "findLayoutComponentUsages",
   "generation.diff",

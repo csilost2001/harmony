@@ -1,0 +1,26 @@
+/*
+ * 印刷用スタイル (UI 改善提案 続編 第 9 弾 #167・#168)。編集画面からそのまま印刷 (Ctrl+P) したとき、操作用の部品 (ヘッダー・タブ・パンくず・編集のバー・通知) を隠し、
+ * 画面の高さの固定を外して、全体を流し込む。表の見出しは、ページをまたぐたびに繰り返し、行・工程カードの途中では改ページしない。
+ * PDF にしたいときは、ブラウザの印刷で「PDF に保存」を選ぶ (設計書は /document の「別タブで開く」から印刷すると、表紙・目次つきの紙面になる)。
+ */
+@media print {
+  @page { margin: 12mm; }
+
+  .common-header, .tabbar, .page-breadcrumb, .toast-host, .edit-mode-toolbar, .page-issue-nav, .focus-mode-exit,
+  .tabbar-history, .tabbar-closed, [data-print="hide"] { display: none !important; }
+
+  html, body, #root { height: auto !important; min-height: 0 !important; overflow: visible !important; background: #fff !important; }
+  #app-main, #app-main > div, .app-main { height: auto !important; max-height: none !important; overflow: visible !important; padding: 0 !important; }
+  /* 画面の高さに合わせて固定した領域の高さ・スクロールを外す (表・一覧・図の入れ物) */
+  .data-list, .data-list-body, .an-pane, .dh-diff-wrap { max-height: none !important; overflow: visible !important; }
+
+  table { border-collapse: collapse; }
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
+  tr, .step-card, .data-list-row, .an-sev, figure, img { break-inside: avoid; }
+  h1, h2, h3, h4 { break-after: avoid; }
+
+  /* 色の再現 (淡い塗り・強調の色を紙に出す) */
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  a { color: inherit; text-decoration: none; }
+}

@@ -13,6 +13,7 @@ import { installSelfWriteTracking } from "./externalChanges.js";
 import { ensureRecovered } from "./operationJournal.js";
 import { assertToolAllowed, filterTools, isReadOnlyTool } from "./security/mcpAccess.js";
 import { recordAudit } from "./ops/audit.js";
+import { describeAiTool, isAiDryRun, isAiNoWrite } from "./ops/auditMap.js";
 import { installApprovalGuard } from "./ops/policy.js";
 import { scheduleIssueCheck } from "./ops/issuesWatch.js";
 import { tools } from "./tools.js";
@@ -202,15 +203,22 @@ function createMcpServer(sessionId: string): Server {
         handleWorkspaceTool,
         handleEditSessionTool,
       ];
+      // 編集セッションの tool は、引数が編集セッションの id だけ。実行の前に (保存で閉じる前に)、どの設計の編集かを引いておく
+      const sessionTarget = /^editSession__/.test(name) && typeof argRecord.editSessionId === "string" ? wsBridge.describeEditSession(sessionId, argRecord.editSessionId) : undefined;
       for (const handler of dispatchers) {
         const result = await handler(name, argRecord, root, sessionId);
         if (result !== null && result !== undefined) {
           // AI の書き込みの tool は、監査ログに残す (失敗した呼び出しは、残さない。isError の結果も除く)
           if (!isReadOnlyTool(name) && !(result as { isError?: boolean }).isError && !/^(editSession__(list|fetch)|designer__(list|get|find|check|export|generate|analyze)_)/.test(name)) {
-            const idArg = ["id", "tableId", "processFlowId", "screenId", "flowId", "reportId", "resourceId", "name", "path"].map((k) => argRecord[k]).find((v) => typeof v === "string") as string | undefined;
-            void recordAudit(root, { actor: "AI", action: `AI が ${name.replace(/^designer__/, "")} を実行した`, ...(idArg ? { target: idArg } : {}), via: "ai" });
-            scheduleIssueCheck(root);
-            wsBridge.broadcast({ wsId: root, event: "opsChanged", data: { scope: "ai" } });
+            const resultText = (result as { content?: Array<{ text?: unknown }> }).content?.map((x) => (typeof x.text === "string" ? x.text : "")).join("\n") ?? "";
+            const toolDef = tools.find((t) => t.name === name);
+            const hasApply = !!(toolDef?.inputSchema as { properties?: Record<string, unknown> } | undefined)?.properties && "apply" in ((toolDef!.inputSchema as { properties: Record<string, unknown> }).properties);
+            if (!isAiDryRun(argRecord, hasApply) && !isAiNoWrite(name, argRecord, resultText)) {
+              const d = describeAiTool(name, argRecord, resultText, sessionTarget);
+              void recordAudit(root, { actor: "AI", action: `AI が ${name.replace(/^designer__/, "")} を実行した`, ...d, via: "ai" });
+              scheduleIssueCheck(root);
+              wsBridge.broadcast({ wsId: root, event: "opsChanged", data: { scope: "ai" } });
+            }
           }
           return result;
         }

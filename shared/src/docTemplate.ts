@@ -14,6 +14,12 @@ export interface Revision {
   summary: string;
 }
 
+/** 書き出しの設定の組 (名前をつけて保存し、ワンクリックで同じ内容を出し直す)。形式と、載せない章 */
+export const EXPORT_FORMATS = ["html", "docx", "xlsx"] as const;
+export type ExportFormat = (typeof EXPORT_FORMATS)[number];
+export interface ExportPreset { name: string; format: ExportFormat; excludeChapters: string[] }
+export const MAX_EXPORT_PRESETS = 20;
+
 export interface DocTemplate {
   version: 1;
   /** 文書名 (既定: 基本設計書・処理設計書) */
@@ -39,6 +45,8 @@ export interface DocTemplate {
   excludeChapters: string[];
   /** 改訂履歴 (新しいものが後ろ) */
   revisions: Revision[];
+  /** 書き出しの設定の組 (続編 第 9 弾 #175) */
+  exportPresets?: ExportPreset[];
 }
 
 export const DEFAULT_DOCUMENT_TITLE = "基本設計書・処理設計書";
@@ -101,6 +109,24 @@ export function parseDocTemplate(raw: unknown): ParsedDocTemplate {
         t.revisions.push({ version: r.version.trim(), date: r.date, summary: r.summary.trim(), ...(typeof r.author === "string" && r.author.trim() ? { author: r.author.trim() } : {}) });
       });
       if (raw.revisions.length > MAX_REVISIONS) problems.push(`改訂履歴が多すぎます (${MAX_REVISIONS} 件まで)`);
+    }
+  }
+  if (raw.exportPresets !== undefined) {
+    if (!Array.isArray(raw.exportPresets)) problems.push("書き出しの設定は配列で書いてください");
+    else {
+      const seen = new Set<string>();
+      const presets: ExportPreset[] = [];
+      raw.exportPresets.slice(0, MAX_EXPORT_PRESETS).forEach((p, i) => {
+        if (!isRecord(p) || typeof p.name !== "string" || !p.name.trim() || p.name.length > 40) { problems.push(`書き出しの設定の ${i + 1} 件目: 名前を書いてください (40 文字まで)`); return; }
+        if (!(EXPORT_FORMATS as readonly string[]).includes(p.format as string)) { problems.push(`書き出しの設定「${p.name}」: 形式は html / docx / xlsx のどれかです`); return; }
+        const name = p.name.trim();
+        if (seen.has(name)) { problems.push(`書き出しの設定「${name}」が重複しています (2 つ目を捨てました)`); return; }
+        seen.add(name);
+        const ex = Array.isArray(p.excludeChapters) ? p.excludeChapters.filter((c): c is string => typeof c === "string" && CHAPTER_ID_RE.test(c)) : [];
+        presets.push({ name, format: p.format as ExportFormat, excludeChapters: [...new Set(ex)] });
+      });
+      if (raw.exportPresets.length > MAX_EXPORT_PRESETS) problems.push(`書き出しの設定が多すぎます (${MAX_EXPORT_PRESETS} 件まで)`);
+      if (presets.length) t.exportPresets = presets;
     }
   }
   return { template: t, problems };

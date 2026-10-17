@@ -24,14 +24,14 @@
 
 | 経路 | 操作 |
 |---|---|
-| 画面 | 編集画面の編集セッションのメニュー → 「履歴 (過去の draft)」→ 下段「保存前の版」→「この版を読み込む」。読み込んだ内容は**未保存の変更**になり (編集中でなければ、先に編集を始める)、保存するまで原本は変わらない。「変更点」で現在との差を確かめられる。対応: テーブル / 処理フロー / ビュー / ビュー定義 / シーケンス / 業務フロー / 帳票 |
+| 画面 | 編集画面の編集セッションのメニュー → 「履歴 (過去の draft)」→ 下段「保存前の版」→「この版を読み込む」。読み込んだ内容は**未保存の変更**になり (編集中でなければ、先に編集を始める)、保存するまで原本は変わらない。「変更点」で現在との差を確かめられる。対応: テーブル / 処理フロー / ビュー / ビュー定義 / シーケンス / 業務フロー / 帳票 / ページレイアウト (続編 第 9 弾 #161) |
 | AI (MCP) | `designer__list_versions` で一覧、`designer__restore_version` で書き戻す。**通常の保存と同じ書き込み関数**で書き (uuid はいまの設計のものを保つ)、`harmony.json` の一覧の要約 (名前・列数・更新日時など。一覧に載っている項目だけ) も、画面の保存・`update_table` と同じく書き戻した内容に合わせる。書き戻す前の内容も版に残る (取り消せる)。ほかの人・AI が編集中の設計には書き戻せない |
 
 ## 実装
 
 - `backend/src/fileBackup.ts` — 上書き直前の保存・世代の管理 (`backupBeforeOverwrite`)・一覧・読み出し
 - `backend/src/fileVersions.ts` — 設計の種類 + id からファイルを引く、版の中身の検査 (JSON であること・id が合うこと)
-- `backend/src/wsHandlers/versions.ts` — RPC `fileVersions.list` / `fileVersions.get`
+- `backend/src/wsHandlers/versions.ts` — RPC `fileVersions.list` / `fileVersions.get` / `fileVersions.locate` (設計の原本ファイルの場所。画面も引ける。続編 第 9 弾 #179)
 - `frontend/src/components/editing/DraftHistoryModal.tsx` — 履歴の画面 (保存前の版の段)
 - `frontend/src/utils/applyVersionBus.ts` + `useResourceEditor` — 読み込んだ内容を編集状態へ入れる取り次ぎ
 

@@ -29,3 +29,11 @@
 .notif-time { font-size: calc(11px * var(--hm-font-scale)); color: var(--hm-fg-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .notif-retry { grid-column: 2 / -1; justify-self: start; padding: 2px 10px; font-size: calc(12px * var(--hm-font-scale)); border-radius: 6px; border: 1px solid var(--hm-border-strong); background: var(--hm-surface-2); color: var(--hm-fg); cursor: pointer; }
 .notif-retry:hover { border-color: var(--hm-accent); color: var(--hm-accent); }
+
+/* 通知の受け取り方 (続編 第 9 弾 #176) */
+.notif-prefs { margin-top: 8px; border-top: 1px solid var(--hm-border); padding-top: 6px; font-size: 0.82rem; }
+.notif-prefs summary { cursor: pointer; font-weight: 600; }
+.notif-pref-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 6px 0; }
+.notif-pref-row select, .notif-pref-row input[type="time"] { font-size: 0.82rem; }
+.notif-quiet-range { display: inline-flex; align-items: center; gap: 4px; }
+.notif-prefs small { display: block; color: var(--hm-fg-muted); }

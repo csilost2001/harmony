@@ -8,9 +8,9 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import type { IncomingMessage } from "node:http";
-import { ensureDataDir, harmonyFile, writeTable, writeProcessFlow, readProject, readScreen, readScreenEntity, writeScreenEntity } from "./projectStorage.js";
+import { ensureDataDir, harmonyFile, writeTable, writePageLayout, writeProcessFlow, readProject, readScreen, readScreenEntity, writeScreenEntity } from "./projectStorage.js";
 import { BACKUP_KEEP, backupBeforeOverwrite, listBackupVersions, assertRelPath } from "./fileBackup.js";
-import { listEntityVersions, readEntityVersion, restoreEntityVersionToFile, versionedRelPath } from "./fileVersions.js";
+import { listEntityVersions, locateEntityFile, readEntityVersion, restoreEntityVersionToFile, versionedRelPath } from "./fileVersions.js";
 import { explainWriteError } from "./writeErrors.js";
 import { describeJsonError, findJsonErrorOffset, MAX_JSON_BYTES, persistDerivedUuids, repairRegistry, scanWorkspaceHealth } from "./workspaceHealth.js";
 import { collectExtraIssues } from "./schemaIssues.js";
@@ -82,6 +82,30 @@ describe("保存前の版 (fileBackup / fileVersions)", () => {
     const after = await listEntityVersions(root, "table", "t1");
     const names = await Promise.all(after.map(async (v) => (await readEntityVersion(root, "table", "t1", v.id) as { name: string }).name));
     expect(names).toContain("変更後");
+  });
+
+  it("ページレイアウトの版も、引けて・書き戻せる (続編 第 9 弾 #161)", async () => {
+    const root = await makeWs();
+    const pl = (name: string) => ({ id: "pl1", name, regions: [] });
+    await writePageLayout("pl1", pl("最初"), root);
+    await writePageLayout("pl1", pl("変更後"), root);
+    expect(await versionedRelPath(root, "page-layout", "pl1")).toBe("harmony/page-layouts/pl1.json");
+    const [prev] = await listEntityVersions(root, "page-layout", "pl1");
+    expect((await readEntityVersion(root, "page-layout", "pl1", prev.id) as { name: string }).name).toBe("最初");
+    await restoreEntityVersionToFile(root, "page-layout", "pl1", prev.id);
+    expect((await read(path.join(root, "harmony", "page-layouts", "pl1.json"))).name).toBe("最初");
+    expect((await listEntityVersions(root, "page-layout", "pl1")).length).toBeGreaterThan(0); // 書き戻す前の内容も版に残る
+  });
+
+  it("設計の原本ファイルの場所を引ける (画面も。無ければ exists は false。不正な id は拒む)", async () => {
+    const root = await makeWs();
+    await writeTable("orders", table("orders", "注文"), root);
+    const t = await locateEntityFile(root, "table", "orders");
+    expect(t).toMatchObject({ relPath: "harmony/tables/orders.json", exists: true });
+    expect(t.absPath).toBe(path.join(root, "harmony", "tables", "orders.json"));
+    expect(await locateEntityFile(root, "screen", "cart")).toMatchObject({ relPath: "harmony/screens/cart.json", exists: false });
+    await expect(locateEntityFile(root, "table", "../x")).rejects.toThrow();
+    await expect(locateEntityFile(root, "generic-definition", "x")).rejects.toThrow();
   });
 
   it("書き戻すと、一覧 (harmony.json) の要約 (名前・列数) も、書き戻した内容に合わせる。一覧に載っていなければ足さない", async () => {

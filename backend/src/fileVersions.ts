@@ -6,7 +6,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import {
-  actionsDir, readEntityReadOnly, readProject, resolveDataRoot, writeProject, writeBusinessFlow, writeProcessFlow, writeReport, writeSequence, writeTable, writeView, writeViewDefinition,
+  actionsDir, readEntityReadOnly, readProject, resolveDataRoot, writeProject, writeBusinessFlow, writePageLayout, writeProcessFlow, writeReport, writeSequence, writeTable, writeView, writeViewDefinition,
 } from "./projectStorage.js";
 import { listBackupVersions, readBackupVersion, versionIdToIso, type BackupVersion } from "./fileBackup.js";
 import { assertSafeName } from "./security/idValidator.js";
@@ -20,6 +20,7 @@ const DIRS: Record<string, string> = {
   "sequence": "sequences",
   "business-flow": "business-flows",
   "report": "reports",
+  "page-layout": "page-layouts",
 };
 export const VERSIONED_RESOURCE_TYPES = Object.keys(DIRS);
 
@@ -37,6 +38,25 @@ export async function versionedRelPath(root: string, resourceType: string, resou
     if (!exists && await fs.access(legacy).then(() => true, () => false)) file = legacy;
   }
   return path.relative(root, file).split(path.sep).join("/");
+}
+
+/**
+ * 設計 1 件の原本ファイルの場所 (続編 第 9 弾 #179。AI や Git で扱うときに、パスを渡せるように)。
+ * 版を引ける種類に加えて、画面 (`screens/<id>.json`) も引ける。ファイルが無ければ exists は false。
+ */
+const LOCATE_DIRS: Record<string, string> = { ...DIRS, screen: "screens", "screen-item": "screens" };
+export async function locateEntityFile(root: string, resourceType: string, resourceId: string): Promise<{ relPath: string; absPath: string; exists: boolean }> {
+  if (!(resourceType in DIRS)) {
+    const dir = LOCATE_DIRS[resourceType];
+    if (!dir) throw new Error(`この種類 (${resourceType}) は、ファイルの場所を引けません`);
+    assertSafeName(resourceId, "id");
+    const dataRoot = await resolveDataRoot(root);
+    const file = path.join(dataRoot, dir, `${resourceId}.json`);
+    return { relPath: path.relative(root, file).split(path.sep).join("/"), absPath: file, exists: await fs.access(file).then(() => true, () => false) };
+  }
+  const relPath = await versionedRelPath(root, resourceType, resourceId);
+  const absPath = path.join(root, ...relPath.split("/"));
+  return { relPath, absPath, exists: await fs.access(absPath).then(() => true, () => false) };
 }
 
 export async function listEntityVersions(root: string, resourceType: string, resourceId: string): Promise<BackupVersion[]> {
@@ -66,6 +86,7 @@ const writerFor = (resourceType: string): ((id: string, data: unknown, root: str
   "sequence": writeSequence,
   "business-flow": (id: string, data: unknown, root: string) => writeBusinessFlow(id, data, root),
   "report": (id: string, data: unknown, root: string) => writeReport(id, data, root),
+  "page-layout": (id: string, data: unknown, root: string) => writePageLayout(id, data, root),
 } as Record<string, (id: string, data: unknown, root: string) => Promise<unknown>>)[resourceType];
 
 /**

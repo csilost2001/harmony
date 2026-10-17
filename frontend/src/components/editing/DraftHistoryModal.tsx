@@ -41,7 +41,7 @@ interface DraftHistoryEntry {
 interface FileVersion { id: string; savedAt: string; size: number }
 
 /** 保存前の版を引ける設計の種類 (backend の fileVersions.VERSIONED_RESOURCE_TYPES と同じ) */
-const VERSIONED_TYPES = new Set(["table", "process-flow", "view", "view-definition", "sequence", "business-flow", "report"]);
+const VERSIONED_TYPES = new Set(["table", "process-flow", "view", "view-definition", "sequence", "business-flow", "report", "page-layout"]);
 
 function formatSize(bytes: number): string {
   return bytes < 1024 ? `${bytes} B` : bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;

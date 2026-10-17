@@ -30,3 +30,50 @@ export function describeRpc(method: string, params: unknown, result?: unknown, s
   else for (const k of ID_KEYS) if (typeof p[k] === "string") { target = p[k] as string; break; }
   return { action, ...(target ? { target } : {}) };
 }
+
+/**
+ * 新しく作る tool (add_table など) の結果の文から、作られた設計の id を引く (「…を追加しました（ID: table-ab12cd34）」)。
+ * 引数には id が無く、そのままでは、名前が対象として残るため。見つからなければ undefined。
+ */
+export function createdIdFromResultText(text: string): string | undefined {
+  return /ID[:：]\s*([A-Za-z0-9][A-Za-z0-9._-]{0,99})/.exec(text)?.[1];
+}
+
+const AI_ID_KEYS = ["id", "tableId", "processFlowId", "screenId", "flowId", "reportId", "pageLayoutId", "resourceId", "name", "path"];
+
+/**
+ * AI (MCP) の書き込みの tool の記録の、対象と備考 (続編 第 9 弾 レビュー M1・M1')。
+ * 対象は、引数の id。新しく作る tool (add_*) は、引数に id が無いので、結果の文の「ID: …」から。改名は、新しい id。
+ * 編集セッションの tool は、引数が編集セッションの id だけなので、`sessionTarget` (「種類 id」) から。
+ * 備考には、設計の種類 (resourceType / entityType) を残す: 設計のあゆみ・最終編集者が、種類を引く。
+ */
+export function describeAiTool(name: string, args: Record<string, unknown>, resultText: string, sessionTarget?: string): { target?: string; detail?: string } {
+  const tool = name.replace(/^designer__/, "");
+  if (tool.startsWith("editSession__") && sessionTarget) {
+    const sp = sessionTarget.indexOf(" ");
+    if (sp > 0) return { target: sessionTarget.slice(sp + 1), detail: sessionTarget.slice(0, sp) };
+  }
+  let target = AI_ID_KEYS.map((k) => args[k]).find((v): v is string => typeof v === "string");
+  if (tool === "rename_entity" && typeof args.newId === "string") target = args.newId;
+  if (/^add_(table|screen|process_flow|page_layout)$/.test(tool)) target = createdIdFromResultText(resultText) ?? target;
+  const detail = typeof args.resourceType === "string" ? args.resourceType : typeof args.entityType === "string" ? args.entityType : undefined;
+  return { ...(target ? { target } : {}), ...(detail ? { detail } : {}) };
+}
+
+/** 予行 (apply を付けない) の呼び出しは、変更ではないので、監査ログに残さない。tool が apply を持つときだけ判定する */
+export function isAiDryRun(args: Record<string, unknown>, toolHasApply: boolean): boolean {
+  return toolHasApply && args.apply !== true;
+}
+
+/**
+ * 何も書いていない AI の呼び出し (続編 第 9 弾 レビュー M1''): 編集セッションの保存の、衝突の確認だけ (stage: checkOnly)・衝突で保存されなかったもの (ok: false)。
+ * 結果が isError でなくても、原本は変わっていないので、変更として残さない。
+ */
+export function isAiNoWrite(name: string, args: Record<string, unknown>, resultText: string): boolean {
+  if (name.replace(/^designer__/, "") !== "editSession__save") return false;
+  if (args.stage === "checkOnly") return true;
+  try {
+    const r = JSON.parse(resultText) as { ok?: unknown } | null;
+    return !r || r.ok !== true;
+  } catch { return true; } // 結果が読めないときは、保存できたと言い切れないので、残さない
+}

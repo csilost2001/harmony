@@ -95,6 +95,9 @@ export function buildPaletteCommands(ctx: CommandContext): PaletteCommand[] {
   if (activeTab && ["design", "screen-items", "table", "process-flow", "business-flow", "report", "sequence", "view", "view-definition"].includes(activeTab.type)) {
     add({ id: "open-review", label: "この設計のレビュー (承認・コメント) を開く", keywords: ["れびゅー", "review", "しょうにん", "承認", "こめんと", "コメント", "approve"], icon: "bi-chat-square-text", run: afterClose(() => requestHeaderPanel("review")) });
   }
+  if (activeTab && ["design", "screen-items", "table", "process-flow", "business-flow", "report", "sequence", "view", "view-definition", "page-layout"].includes(activeTab.type)) {
+    add({ id: "open-history", label: "この設計のあゆみ (変更の記録・版の比較・完了の確認・メモ) を開く", keywords: ["あゆみ", "れきし", "履歴", "history", "ひかく", "比較", "めも", "メモ", "かんりょう", "完了", "かきだし", "書き出し", "しさく", "試作"], icon: "bi-clock-history", run: afterClose(() => requestHeaderPanel("history")) });
+  }
   add({ id: "open-notifications", label: "通知の履歴を開く", keywords: ["つうち", "notification", "toast", "履歴", "失敗"], icon: "bi-bell", run: afterClose(() => requestHeaderPanel("notifications")) });
   if (tourForTab(activeTab?.type)) add({ id: "tour", label: "この画面の操作ツアーを始める", keywords: ["つあー", "tour", "ガイド", "使い方", "はじめかた", "help", "ヘルプ"], icon: "bi-signpost-split", run: afterClose(() => requestHeaderPanel("tour")) });
   add({ id: "open-shortcuts", label: "キーボードショートカット一覧を開く", keywords: ["しょーとかっと", "shortcut", "help", "ヘルプ", "キー"], icon: "bi-keyboard", hint: "?", run: afterClose(() => pressShortcut({ key: "?" })) });

@@ -65,3 +65,7 @@
 .ddv-skipped { margin: 0; padding: 8px 12px; font-size: calc(12.5px * var(--hm-font-scale)); color: var(--hm-fg); background: var(--hm-surface-2); border: 1px solid var(--hm-warning); border-radius: 6px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .ddv-skipped i { color: var(--hm-warning); }
 .ddv-issues-info { opacity: 0.75; font-size: calc(11px * var(--hm-font-scale)); }
+
+/* 書き出しの設定 (続編 第 9 弾 #175) */
+.ddv-presets, .ddv-preset-new { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.ddv-preset-select, .ddv-preset-name { font-size: calc(12.5px * var(--hm-font-scale)); max-width: 15em; }

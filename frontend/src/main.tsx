@@ -6,6 +6,7 @@ import "./styles/tokens.css";
 import "./styles/bootstrapCompat.css";
 import "./styles/viewEditors.css";
 import "./index.css";
+import "./styles/print.css";
 import App from "./App.tsx";
 import { ErrorBoundary } from "./components/common/ErrorBoundary";
 import { AppErrorFallback } from "./components/common/ErrorFallback";

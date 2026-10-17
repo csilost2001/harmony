@@ -13,7 +13,7 @@ import { isPrivateAddress, sendWebhook, dispatchNotify, type SendDeps } from "./
 import { assertBranchName, assertGitPath, execOverrides, gitBranches, gitCheckout, gitCommit, gitDiff, gitInit, gitLog, gitStatus } from "./gitOps.js";
 import { parseReleaseNotes, readVersionInfo } from "./versionInfo.js";
 import { suggestRevision } from "./revisionSuggest.js";
-import { describeRpc } from "./auditMap.js";
+import { createdIdFromResultText, describeAiTool, describeRpc, isAiDryRun, isAiNoWrite } from "./auditMap.js";
 
 let ROOT = "";
 const ts = "2026-01-01T00:00:00.000Z";
@@ -544,5 +544,44 @@ describe("設計の id の改名への追従", () => {
     await renameOpsRecords(ROOT, "pageLayout", "orders", "z"); // 対象外の種類・同じ id は、何もしない
     await renameOpsRecords(ROOT, "table", "orders", "orders");
     expect((await approvalsStore.read(ROOT)).value.items[0].id).toBe("orders");
+  });
+});
+
+describe("AI の新規作成の記録の対象 (続編 第 9 弾 レビュー M1)", () => {
+  it("作成の結果の文から、作られた設計の id を引く。見つからなければ undefined", () => {
+    expect(createdIdFromResultText("テーブル「注文」(orders) を追加しました（ID: table-ab12cd34）")).toBe("table-ab12cd34");
+    expect(createdIdFromResultText("画面「カート」を追加しました（ID: cart）")).toBe("cart");
+    expect(createdIdFromResultText("ID: x1 / 別の文")).toBe("x1");
+    expect(createdIdFromResultText("追加しました")).toBeUndefined();
+  });
+});
+
+describe("AI の記録の対象と備考 (続編 第 9 弾 レビュー M1')", () => {
+  it("引数の id が対象。ページレイアウトも。新しく作る tool は、結果の文の id。改名は、新しい id と、備考に種類", () => {
+    expect(describeAiTool("designer__update_table", { tableId: "orders" }, "")).toEqual({ target: "orders" });
+    expect(describeAiTool("designer__update_page_layout", { pageLayoutId: "pl1" }, "")).toEqual({ target: "pl1" });
+    expect(describeAiTool("designer__add_table", { name: "orders", logicalName: "注文" }, "テーブル「注文」(orders) を追加しました（ID: table-ab12cd34）")).toEqual({ target: "table-ab12cd34" });
+    expect(describeAiTool("designer__rename_entity", { entityType: "table", oldId: "a", newId: "b", apply: true }, "")).toEqual({ target: "b", detail: "table" });
+    expect(describeAiTool("designer__restore_version", { resourceType: "report", id: "r1", versionId: "x" }, "")).toEqual({ target: "r1", detail: "report" });
+  });
+  it("編集セッションの tool は、編集セッションの「種類 id」から、対象と種類を引く", () => {
+    expect(describeAiTool("editSession__save", { editSessionId: "es-1" }, "", "process-flow order-confirm")).toEqual({ target: "order-confirm", detail: "process-flow" });
+    expect(describeAiTool("editSession__save", { editSessionId: "es-1" }, "", undefined)).toEqual({}); // 引けなければ、対象なし
+  });
+  it("予行 (apply を付けない) は、apply を持つ tool のときだけ、監査ログに残さない", () => {
+    expect(isAiDryRun({}, true)).toBe(true);
+    expect(isAiDryRun({ apply: false }, true)).toBe(true);
+    expect(isAiDryRun({ apply: true }, true)).toBe(false);
+    expect(isAiDryRun({}, false)).toBe(false);
+  });
+
+  it("編集セッションの保存は、衝突の確認だけ (checkOnly)・衝突で保存できなかったもの (ok: false) は、残さない。保存できたものだけ残す", () => {
+    expect(isAiNoWrite("editSession__save", { editSessionId: "e", stage: "checkOnly" }, JSON.stringify({ ok: true }))).toBe(true);
+    expect(isAiNoWrite("editSession__save", { editSessionId: "e" }, JSON.stringify({ ok: false, conflict: { changedBy: "x" } }))).toBe(true);
+    expect(isAiNoWrite("editSession__save", { editSessionId: "e", stage: "commit" }, JSON.stringify({ ok: true }))).toBe(false);
+    expect(isAiNoWrite("editSession__save", { editSessionId: "e" }, JSON.stringify({ ok: true }))).toBe(false);
+    expect(isAiNoWrite("designer__editSession__save", { editSessionId: "e", stage: "checkOnly" }, "{}")).toBe(true);
+    expect(isAiNoWrite("editSession__save", { editSessionId: "e" }, "壊れた結果")).toBe(true);
+    expect(isAiNoWrite("designer__update_table", { tableId: "t" }, "{}")).toBe(false); // ほかの tool は対象外
   });
 });

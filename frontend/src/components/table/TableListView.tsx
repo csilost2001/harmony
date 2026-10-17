@@ -16,6 +16,8 @@ import { useListGrouping } from "../../hooks/useListGrouping";
 import { maturityGroupName, type ListGroupOption } from "../../utils/listGroup";
 import { useEditingOnly } from "../../hooks/useEditingOnly";
 import { useOpenedSortAccessor } from "../../hooks/useOpenedSortAccessor";
+import { LastEditor } from "../common/LastEditor";
+import { useLastEditors } from "../../hooks/useLastEditors";
 import { computeRowMarks } from "../../utils/rowMarks";
 import { ListViewBar } from "../common/ListViewBar";
 import { FilterBar } from "../common/FilterBar";
@@ -149,6 +151,7 @@ export function TableListView() {
     return 0;
   }, [validationMap]);
 
+  const lastEditors = useLastEditors();
   const rowMarks = useMemo(() => computeRowMarks(allTables, (x) => String(x.id), (x) => x.name), [allTables]);
   const isEditing = useCallback((x: TableEntry) => hasDraft("table", String(x.id)), [hasDraft]);
   const editing = useEditingOnly(allTables, isEditing);
@@ -622,9 +625,9 @@ export function TableListView() {
       width: "120px",
       sortable: true,
       sortAccessor: (t) => t.updatedAt,
-      render: (t) => <span className="table-list-date">{formatDate(t.updatedAt)}</span>,
+      render: (t) => <><span className="table-list-date">{formatDate(t.updatedAt)}</span><LastEditor edit={lastEditors.get(`table:${t.id}`)} /></>,
     },
-  ], [getErrorPriority, validationMap, hasDraft]);
+  ], [getErrorPriority, validationMap, hasDraft, lastEditors]);
 
   const renderCard = (t: TableEntry) => {
     const validation = validationMap.get(t.id);
