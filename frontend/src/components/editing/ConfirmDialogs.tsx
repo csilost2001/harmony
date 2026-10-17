@@ -64,7 +64,7 @@ export interface DiscardConfirmDialogProps {
 export function DiscardConfirmDialog({ onConfirm, onCancel }: DiscardConfirmDialogProps) {
   return (
     <SimpleModal title="編集内容を破棄" onClose={onCancel}>
-      <p>編集中の内容を破棄してよいですか？この操作は元に戻せません。</p>
+      <p>編集中の内容を破棄してよいですか？保存していない変更は失われます (保存した内容は残ります)。この操作は元に戻せません。</p>
       <div className="edit-mode-modal-footer">
         <button
           type="button"

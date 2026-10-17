@@ -710,7 +710,7 @@ export function ViewDefinitionListView() {
               disabled={sortActive}
               title={sortActive ? "ソート中は無効 (ソート解除で利用可能)" : undefined}
             >
-              <i className="bi bi-plus-lg" /> ビュー定義追加
+              <i className="bi bi-plus-lg" /> ビュー定義を追加
             </button>
             <button
               className="tbl-btn tbl-btn-ghost danger"

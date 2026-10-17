@@ -3,7 +3,7 @@
  * 「画面を開いただけでは原本を書き換えない (明示保存)」の入口なので、閲覧中は編集開始だけ、変更が無ければ保存を押せない、を見張る。
  */
 import { describe, it, expect, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { EditModeToolbar } from "./EditModeToolbar";
 import type { EditMode } from "../../hooks/useEditSession";
 
@@ -20,6 +20,24 @@ describe("EditModeToolbar", () => {
     expect(screen.queryByTestId("edit-mode-save")).toBeNull();
     fireEvent.click(screen.getByTestId("edit-mode-start"));
     expect(h.onStartEditing).toHaveBeenCalledTimes(1);
+  });
+
+  it("閲覧中: 押せない理由の案内 (押すと入力や追加ができるようになる) が、編集開始の隣に出る (ISSUE #1528 b)", () => {
+    setup({ kind: "readonly" });
+    expect(screen.getByTestId("edit-mode-readonly-hint").textContent).toContain("入力や追加ができるようになります");
+  });
+
+  it("編集中: 変更が無い (保存済み) ときは「編集を終える」、変更があるときは「破棄」と出る。どちらも同じ操作 (ISSUE #1528 e)", () => {
+    const h1 = setup({ kind: "editing" }, { dirty: false });
+    expect(screen.getByTestId("edit-mode-discard").textContent).toContain("編集を終える");
+    fireEvent.click(screen.getByTestId("edit-mode-discard"));
+    expect(h1.onDiscardClick).toHaveBeenCalledTimes(1);
+    cleanup();
+    setup({ kind: "editing" }, { dirty: true });
+    expect(screen.getByTestId("edit-mode-discard").textContent).toContain("破棄");
+    cleanup();
+    setup({ kind: "editing" });
+    expect(screen.getByTestId("edit-mode-discard").textContent).toContain("破棄");
   });
 
   it("編集中: 保存・破棄が押せる。変更が無い (dirty=false) あいだは保存を押せない。保存中も押せない", () => {

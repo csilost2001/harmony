@@ -127,7 +127,7 @@ export function BusinessFlowListView() {
         <h2><i className="bi bi-diagram-2" /> 業務フロー</h2>
         <input className="bfl-search" type="search" placeholder="名前・ID で絞り込み" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="絞り込み" />
         <div className="bfl-actions">
-          <button type="button" className="bfe-btn bfe-btn-primary" onClick={() => setShowAdd(true)} data-testid="bf-add"><i className="bi bi-plus-lg" /> 業務フロー追加</button>
+          <button type="button" className="bfe-btn bfe-btn-primary" onClick={() => setShowAdd(true)} data-testid="bf-add"><i className="bi bi-plus-lg" /> 業務フローを追加</button>
           <button type="button" className="bfe-btn" disabled={!selected.length} onClick={() => duplicate(selected)} data-testid="bf-duplicate"><i className="bi bi-files" /> 複製</button>
           <button type="button" className="bfe-btn bfe-btn-danger" disabled={!selected.length} onClick={() => remove(selected)} data-testid="bf-delete"><i className="bi bi-trash" /> 削除</button>
         </div>

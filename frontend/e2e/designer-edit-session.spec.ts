@@ -167,6 +167,11 @@ test.describe("画面デザイナー edit-session — シナリオ 3: 再オー�
     await expect(editStartBtn).toBeVisible({ timeout: 5000 });
     await editStartBtn.click();
     await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 5000 });
+    // 保存していない変更を 1 つ作る。「前回の編集の続き」の確認は、保存していない変更が残っているときだけ出る
+    // (ISSUE #1528: 保存したまま・変更の無いまま残っているセッションは、続きではないので出さない)
+    // (この画面は、まだ業務部品形式ではないので、「空の画面から作る」が、保存していない変更になる)
+    await page.getByText("空の画面から作る").click();
+    await page.waitForTimeout(1200); // 変更がサーバの下書きへ届くのを待つ (デバウンス)
 
     // 同一 tab で navigation (sessionStorage 経由 clientId 維持、#991)
     await ws.gotoActive(page, "/screen/list");

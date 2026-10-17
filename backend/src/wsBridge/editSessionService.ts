@@ -23,6 +23,7 @@ import {
   EditSessionStore,
   EditSessionNotFoundError,
   EditSessionStateError,
+  hasUnsavedChangesInSession,
   type DraftResourceType as EditSessionResourceType,
   type EditSession,
   type EditSessionMigrationResult,
@@ -333,8 +334,21 @@ export class EditSessionService {
         targetSession?.resourceType ?? "process-flow",
         targetSession?.resourceId ?? "",
       );
+      // 衝突 = 「自分の編集の元になった内容より後に、別のセッションが保存した」(spec §9.3 「他の EditSession が後で save していた場合」)。
+      // 自分が始まる前に済んだ保存や、自分の最後の保存より前の保存は、衝突ではない。
+      // (以前は「保存済みの別の Active セッションが 1 つでもあれば」衝突としていたため、同じ人が同じ画面のデザインと項目定義を
+      //  行き来すると、保存のたびに「別の編集セッションで更新されています」(相手は自分) が出ていた。ISSUE #1528)
+      const lastSavedMs = (es: { saveHistory: Array<{ savedAt: string }> }): number => {
+        const last = es.saveHistory[es.saveHistory.length - 1];
+        const t = last ? Date.parse(last.savedAt) : NaN;
+        return Number.isNaN(t) ? Number.NEGATIVE_INFINITY : t;
+      };
+      const ms = (iso: string | undefined): number => { const t = iso ? Date.parse(iso) : NaN; return Number.isNaN(t) ? Number.NEGATIVE_INFINITY : t; };
+      const myBaseMs = targetSession
+        ? Math.max(ms(targetSession.createdAt), lastSavedMs(targetSession), ms(targetSession.baseAt))
+        : Number.NEGATIVE_INFINITY;
       const conflicting = allSessions.find(
-        (s) => s.id !== editSessionId && s.state === "Active" && s.saveHistory.length > 0,
+        (s) => s.id !== editSessionId && s.state === "Active" && s.saveHistory.length > 0 && lastSavedMs(s) > myBaseMs,
       );
       if (conflicting) {
         const lastSave = conflicting.saveHistory[conflicting.saveHistory.length - 1];
@@ -392,6 +406,13 @@ export class EditSessionService {
     // 本体 resource file へ atomic write (P1-1, #907 regression 解消)
     const session = store.getById(editSessionId);
     let resourceChange: { event: string; data: Record<string, string> } | null = null;
+    // 同じリソースの、保存していない変更が無い別の Active セッションは、この保存の内容を取り込んだものとして、元を進める
+    // (画面側は、変更の通知で、変更が無いときは読み直す)。保存していない変更があるセッションは、そのまま (あとで保存すれば衝突になる)
+    if (session) {
+      for (const other of store.listByResource(session.resourceType, session.resourceId)) {
+        if (other.id !== editSessionId && other.state === "Active" && !hasUnsavedChangesInSession(other)) other.baseAt = saveEvent.savedAt;
+      }
+    }
     if (session && session.payload !== null && session.payload !== undefined) {
       const root = resolveRoot(sessionId);
       const type = session.resourceType;

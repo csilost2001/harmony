@@ -704,7 +704,7 @@ export function TableListView() {
               disabled={sortActive}
               title={sortActive ? "ソート中は無効 (ソート解除で利用可能)" : undefined}
             >
-              <i className="bi bi-plus-lg" /> テーブル追加
+              <i className="bi bi-plus-lg" /> テーブルを追加
             </button>
             <button
               className="tbl-btn tbl-btn-ghost danger"

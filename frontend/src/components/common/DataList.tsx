@@ -43,6 +43,7 @@ import { showToast } from "../../utils/toast";
 import { setRefDragData } from "../../utils/refDrag";
 import { useLongPress } from "../../hooks/useLongPress";
 import "../../styles/dataList.css";
+import { markOpenHintSeen, useOpenHint } from "../../utils/openHint";
 
 export interface DataListColumn<T> {
   key: string;
@@ -152,6 +153,9 @@ export function DataList<T>({
     if (announcedCount.current !== null && announcedCount.current !== items.length) announce(`${items.length} 件を表示`);
     announcedCount.current = items.length;
   }, [items.length]);
+  // 開き方の案内 (ダブルクリック / Enter)。一度でも開いた (または消した) ら、このブラウザでは以後出さない (ISSUE #1528 a)
+  const showOpenHint = useOpenHint();
+  const activate = useMemo(() => (onActivate ? (item: T, index: number) => { markOpenHintSeen(); onActivate(item, index); } : undefined), [onActivate]);
   const [showCondition, setShowCondition] = useState(false);
   const [copyMenu, setCopyMenu] = useState<{ x: number; y: number } | null>(null);
   const [groupMenu, setGroupMenu] = useState<{ x: number; y: number } | null>(null);
@@ -439,6 +443,12 @@ export function DataList<T>({
       onClick={handleRootClick}
       onContextMenu={onContextMenu ? handleRootContextMenu : undefined}
     >
+      {activate && showOpenHint && items.length > 0 && (
+        <p className="data-list-open-hint" data-testid="data-list-open-hint">
+          <i className="bi bi-info-circle" aria-hidden="true" /> 行 (カード) を<strong>ダブルクリック</strong>、または選んで <kbd>Enter</kbd> で開きます。1 回のクリックは選ぶだけです。
+          <button type="button" className="data-list-open-hint-close" aria-label="この案内を消す" onClick={(e) => { e.stopPropagation(); markOpenHintSeen(); }}><i className="bi bi-x-lg" aria-hidden="true" /></button>
+        </p>
+      )}
       {prefsKey && layout === "list" && (
       <div className="data-list-colmenu-bar">
         {grouping && grouping.options.length > 0 && (
@@ -576,7 +586,7 @@ export function DataList<T>({
                         columns={columns}
                         selection={selection}
                         ghost={isRowGhost(id)}
-                        onActivate={onActivate}
+                        onActivate={activate}
                         onRowDelete={onRowDelete}
                         onContextMenu={onContextMenu}
                         showHandle={showHandle}
@@ -629,7 +639,7 @@ export function DataList<T>({
                     getId={getId}
                     selection={selection}
                     ghost={isRowGhost(id)}
-                    onActivate={onActivate}
+                    onActivate={activate}
                     onRowDelete={onRowDelete}
                     onContextMenu={onContextMenu}
                     renderCard={renderCard}

@@ -98,3 +98,18 @@ describe("useEditLevel", () => {
     expect(localStorage.getItem("processFlow:editLevel:flow-Y")).toBe('"rough"');
   });
 });
+
+describe("presetEditLevel (ISSUE #1528 f)", () => {
+  it("覚えている深さが無い処理フローには、最初の深さを書く", async () => {
+    const { presetEditLevel } = await import("./useEditLevel");
+    window.localStorage.clear();
+    presetEditLevel("new-flow", "rough");
+    expect(JSON.parse(window.localStorage.getItem("processFlow:editLevel:new-flow") ?? "null")).toBe("rough");
+  });
+  it("すでに覚えている深さは、上書きしない", async () => {
+    const { presetEditLevel } = await import("./useEditLevel");
+    window.localStorage.setItem("processFlow:editLevel:old-flow", JSON.stringify("implementation"));
+    presetEditLevel("old-flow", "rough");
+    expect(JSON.parse(window.localStorage.getItem("processFlow:editLevel:old-flow") ?? "null")).toBe("implementation");
+  });
+});

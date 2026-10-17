@@ -66,7 +66,7 @@ export function LayoutPalette({ editable, nodes, items, tables, selectedId, onAd
   return (
     <aside className="sld-left" aria-label="部品パネル">
       <div className="sld-tabs" role="tablist">
-        {([["parts", "部品"], ["items", `項目${unplaced.length ? ` (${unplaced.length})` : ""}`], ["tables", "テーブル"], ["outline", "構成"]] as Array<[Tab, string]>).map(([k, l]) => (
+        {([["parts", "部品"], ["items", (unplaced.length ? `未配置 (${unplaced.length})` : "項目")], ["tables", "テーブル"], ["outline", "構成"]] as Array<[Tab, string]>).map(([k, l]) => (
           <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? "active" : ""} onClick={() => setTab(k)} data-testid={`layout-palette-tab-${k}`}>{l}</button>
         ))}
       </div>

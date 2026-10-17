@@ -558,7 +558,7 @@ export function PageLayoutListView() {
               disabled={sortActive}
               title={sortActive ? "ソート中は無効 (ソート解除で利用可能)" : undefined}
             >
-              <i className="bi bi-plus-lg" /> ページレイアウト追加
+              <i className="bi bi-plus-lg" /> ページレイアウトを追加
             </button>
             <button
               className="tbl-btn tbl-btn-ghost danger"

@@ -18,6 +18,7 @@ import type { DraftResourceType } from "../types/draft";
 import type { EditSessionChromeProps } from "../components/editing/EditSessionChrome";
 import { reportFailure, runReporting } from "../utils/failureToast";
 import { useResyncDraftOnReconnect } from "./useResyncDraftOnReconnect";
+import { hasUnsavedOwnSession } from "../utils/editSessionHints";
 
 export interface UseEditableDocumentOptions<T> {
   resourceType: DraftResourceType;
@@ -135,7 +136,7 @@ export function useEditableDocument<T extends object>(opts: UseEditableDocumentO
           const res = await mcpBridge.request("editSession.list", { resourceType, resourceId: id }) as { sessions: Array<{ state?: string; participants?: Record<string, unknown> }> } | null;
           if (cancelled) return;
           const mine = mcpBridge.getSessionId();
-          if ((res?.sessions ?? []).some((s) => s.state === "Active" && !!s.participants?.[mine])) setShowResume(true);
+          if (hasUnsavedOwnSession(res?.sessions ?? [], mine)) setShowResume(true);
           return;
         } catch (err) {
           if (cancelled) return;

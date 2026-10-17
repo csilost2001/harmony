@@ -101,6 +101,7 @@ import { useResyncDraftOnReconnect } from "../../hooks/useResyncDraftOnReconnect
 import { EmptyState } from "../common/EmptyState";
 import { AddTransitionDialog } from "./AddTransitionDialog";
 import { useKeyboardNodeMove } from "../../hooks/useKeyboardNodeMove";
+import { hasUnsavedOwnSession } from "../../utils/editSessionHints";
 
 const FLOW_EDGE_KINDS = (Object.keys(TRIGGER_LABELS) as Array<keyof typeof TRIGGER_LABELS>).map((k) => ({ id: k, label: `遷移: ${TRIGGER_LABELS[k]}` }));
 const FLOW_LEGEND: LegendItem[] = [
@@ -384,9 +385,7 @@ function FlowEditorInner() {
       if (cancelled) return;
       // #980-A: 自分が participant として参加していた Active session のみ対象。
       const mySessionId = mcpBridge.getSessionId();
-      const hasMyActiveSession = (res?.sessions ?? []).some((s) =>
-        s.state === "Active" && !!s.participants?.[mySessionId],
-      );
+      const hasMyActiveSession = hasUnsavedOwnSession(res?.sessions ?? [], mySessionId);
       if (hasMyActiveSession) setShowResumeDialog(true);
     })().catch((err) => reportFailure(err, "編集セッションの確認"));
     return () => { cancelled = true; };

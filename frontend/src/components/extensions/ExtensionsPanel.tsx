@@ -22,6 +22,7 @@ import { setDirty as setTabDirty, makeTabId } from "../../store/tabStore";
 import "../../styles/extensions.css";
 import "../../styles/editMode.css";
 import { reportFailure } from "../../utils/failureToast";
+import { hasUnsavedOwnSession } from "../../utils/editSessionHints";
 
 export type ExtensionKind = "steps" | "fieldTypes" | "triggers" | "dbOperations" | "responseTypes";
 
@@ -119,9 +120,7 @@ export function ExtensionsPanel() {
       // #980-A: 自分が participant として参加していた Active session のみ対象。
       // 他人の session の場合は ResumeOrDiscardDialog を出さない。
       const mySessionId = mcpBridge.getSessionId();
-      const hasMyActiveSession = (res?.sessions ?? []).some((s) =>
-        s.state === "Active" && !!s.participants?.[mySessionId],
-      );
+      const hasMyActiveSession = hasUnsavedOwnSession(res?.sessions ?? [], mySessionId);
       if (hasMyActiveSession) setShowResumeDialog(true);
     })().catch((err) => reportFailure(err, "編集セッションの確認"));
     return () => { cancelled = true; };

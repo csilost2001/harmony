@@ -37,6 +37,7 @@ import { reportFailure } from "../../utils/failureToast";
 import { EntityMarkerSection } from "../common/EntityMarkerSection";
 import { authoringWithMarkers } from "../../utils/markerDoc";
 import { LoadingBlock } from "../common/LoadingBlock";
+import { hasUnsavedOwnSession } from "../../utils/editSessionHints";
 
 interface TableColumnOption {
   tableId: string;
@@ -209,9 +210,7 @@ export function SequenceEditor() {
       if (cancelled) return;
       // #980-A: 自分が participant として参加していた Active session のみ対象。
       const mySessionId = mcpBridge.getSessionId();
-      const hasMyActiveSession = (res?.sessions ?? []).some((s) =>
-        s.state === "Active" && !!s.participants?.[mySessionId],
-      );
+      const hasMyActiveSession = hasUnsavedOwnSession(res?.sessions ?? [], mySessionId);
       if (hasMyActiveSession) setShowResumeDialog(true);
     })().catch((err) => reportFailure(err, "編集セッションの確認"));
     return () => { cancelled = true; };

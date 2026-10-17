@@ -201,3 +201,6 @@
 .edit-mode-save-status { margin-left: auto; min-width: 0; max-width: 45%; overflow: hidden; text-overflow: ellipsis; font-size: calc(12px * var(--hm-font-scale)); color: var(--hm-fg-muted); white-space: nowrap; }
 .edit-mode-save-status.is-ok { color: var(--hm-success, var(--hm-fg-2)); }
 .edit-mode-save-status.is-warn { color: var(--hm-warning); font-weight: 600; }
+
+/* 閲覧中の案内 (ISSUE #1528 b): 入力・追加などが押せない理由を、見える形で出す */
+.edit-mode-hint { font-size: 0.8rem; color: var(--hm-fg-muted); margin-left: 4px; }

@@ -349,3 +349,79 @@ describe("EditSessionService.save resource change broadcast", () => {
     expect(sentByClient.get("client-other-workspace")).not.toContain(tableChangedMessage);
   });
 });
+
+
+describe("EditSessionService.save の衝突判定 (ISSUE #1528: 自分の編集の元より後に保存された場合だけ衝突)", () => {
+  const edit = (id: string, extra: Record<string, unknown> = {}) => ({ id, name: "受注", columns: [], ...extra });
+  const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+  it("別のセッションの保存が、自分が始まる前に済んでいれば、衝突しない (保存したまま残っている別ページのセッション)", async () => {
+    const first = (service.create("client-editor", "table", "orders", "受注").editSession as { id: string }).id;
+    service.update("client-editor", first, edit("orders"));
+    expect((await service.save("client-editor", first)).ok).toBe(true);
+    await wait(5);
+    // first は保存したまま Active。そのあとで、同じ人の別のセッションが始まる
+    const second = (service.create("client-editor", "table", "orders", "受注").editSession as { id: string }).id;
+    service.update("client-editor", second, edit("orders", { note: "後から" }));
+    const r = await service.save("client-editor", second);
+    expect(r.ok).toBe(true);
+  });
+
+  it("自分が保存していない変更を持っている間に、別のセッションが保存したら、衝突する。上書きして保存すると、その後の保存は衝突しない", async () => {
+    const a = (service.create("client-editor", "table", "orders", "受注").editSession as { id: string }).id;
+    const b = (service.create("client-consumer", "table", "orders", "別の人").editSession as { id: string }).id;
+    await wait(5);
+    service.update("client-consumer", b, edit("orders", { v: "B" })); // b は、保存していない変更を持つ
+    service.update("client-editor", a, edit("orders", { v: "A" }));
+    expect((await service.save("client-editor", a)).ok).toBe(true);
+    const conflict = await service.save("client-consumer", b);
+    expect(conflict.ok).toBe(false);
+    // 上書き (force) で保存する
+    expect((await service.save("client-consumer", b, { force: true })).ok).toBe(true);
+    await wait(5);
+    // 続けて保存しても、もう衝突しない (自分の最後の保存のほうが新しい)
+    service.update("client-consumer", b, edit("orders", { v: "B2" }));
+    expect((await service.save("client-consumer", b)).ok).toBe(true);
+  });
+
+  it("自分の最後の保存のあとに、別のセッションが保存したら、また衝突する (自分が保存していない変更を持っている間)", async () => {
+    const a = (service.create("client-editor", "table", "orders", "受注").editSession as { id: string }).id;
+    const b = (service.create("client-consumer", "table", "orders", "別の人").editSession as { id: string }).id;
+    service.update("client-editor", a, edit("orders", { v: 1 }));
+    service.update("client-consumer", b, edit("orders", { v: 2 }));
+    expect((await service.save("client-editor", a)).ok).toBe(true);
+    await wait(5);
+    service.update("client-editor", a, edit("orders", { v: 3 })); // a は、また変更した (未保存)
+    expect((await service.save("client-consumer", b, { force: true })).ok).toBe(true);
+    await wait(5);
+    expect((await service.save("client-editor", a)).ok).toBe(false);
+  });
+
+  it("保存していない変更が無い (clean) 別のセッションは、別のセッションの保存を取り込んだものとして、元が進む。続けて保存しても衝突しない (デザイン → 項目定義 → デザインの行き来)", async () => {
+    const design = (service.create("client-editor", "table", "orders", "デザイン").editSession as { id: string }).id;
+    service.update("client-editor", design, edit("orders", { v: "デザイン" }));
+    expect((await service.save("client-editor", design)).ok).toBe(true);
+    await wait(5);
+    const items = (service.create("client-editor", "table", "orders", "項目定義").editSession as { id: string }).id;
+    service.update("client-editor", items, edit("orders", { v: "項目定義" }));
+    expect((await service.save("client-editor", items)).ok).toBe(true);
+    await wait(5);
+    // デザインは、変更が無い (clean) ので、項目定義の保存を取り込んだ扱い。続けて変更して保存しても、衝突しない
+    service.update("client-editor", design, edit("orders", { v: "デザイン 2 回目" }));
+    expect((await service.save("client-editor", design)).ok).toBe(true);
+  });
+
+  it("保存していない変更が残っているセッションは、元が進まない。別のセッションが保存したあとに保存すると、衝突する", async () => {
+    const a = (service.create("client-editor", "table", "orders", "A").editSession as { id: string }).id;
+    service.update("client-editor", a, edit("orders", { v: 1 }));
+    expect((await service.save("client-editor", a)).ok).toBe(true);
+    await wait(5);
+    const b = (service.create("client-consumer", "table", "orders", "B").editSession as { id: string }).id;
+    // a は、保存のあとに、さらに変更した (未保存)
+    service.update("client-editor", a, edit("orders", { v: 2 }));
+    service.update("client-consumer", b, edit("orders", { v: "B" }));
+    expect((await service.save("client-consumer", b)).ok).toBe(true);
+    await wait(5);
+    expect((await service.save("client-editor", a)).ok).toBe(false);
+  });
+});
