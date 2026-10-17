@@ -175,7 +175,7 @@ export const WORKFLOW_PATTERN_LABELS: Record<string, string> = {
 
 // ── DB Operation (frontend 表示専用、schema には DbAccessStep.operation 直接) ──
 /** DB 操作の日本語名 (定義は @harmony/shared) */
-export { DB_OPERATION_LABELS } from "@harmony/shared";
+export { DB_OPERATION_LABELS, dbOperationLabel } from "@harmony/shared";
 
 // ── StepTemplate (Palette 表示用、空配列、将来 fill 予定) ──────────────────
 export interface StepTemplate {

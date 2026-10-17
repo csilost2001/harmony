@@ -11,9 +11,16 @@ Harmony の各 UI 画面の操作マニュアル。**エンドユーザー (業�
 
 仕様書 (`docs/spec/`) は設計者・実装者向けで、本ディレクトリは **画面の使い方** にフォーカス。両者で重複する内容 (例: ProcessFlow の variable lifecycle) は spec を canonical とし、本書からはリンクのみ張る。
 
+## 記述が実際の画面と合っているか (確認状況)
+
+各ページの先頭に「**実画面で確認した日**」が書いてあるものは、その日に実際の画面で操作して確かめた内容を含む。確認した範囲もそこに書いてある。**書いていないページは、確認していない** (続編の前の記述のまま。たとえば、一覧は「クリックで開く」ではなく「ダブルクリックで開く」だった)。画面と食い違いを見つけたら、直して、日付を付ける。
+
+- 2026-10-17 に確認したページ: [`workspace-list`](./workspace-list.md) / [`dashboard`](./dashboard.md) / [`table-list`](./table-list.md) / [`table-editor`](./table-editor.md) / [`screen-list`](./screen-list.md) / [`screen-designer`](./screen-designer.md) / [`screen-items`](./screen-items.md) / [`process-flow-list`](./process-flow-list.md) / [`process-flow-editor`](./process-flow-editor.md) / [`common-operations`](./common-operations.md) の早見表
+- 確認の方法: 空のフォルダから、備品の貸出管理 (テーブル 2・画面 1・画面項目 10・処理フロー 1) を Playwright で通して作り、各操作の結果と画面を見た
+
 ## 共通の操作
 
-- [`common-operations`](./common-operations.md) — 開く・探す (`Ctrl+K`)、編集開始 → 保存、タブの「●」、ID の入力、共同編集、並べ替え
+- [`common-operations`](./common-operations.md) — **迷いやすい操作の早見 (ダブルクリックで開く・編集開始・ID の入力など)**、開く・探す (`Ctrl+K`)、編集開始 → 保存、タブの「●」、ID の入力、共同編集、並べ替え
 
 ## 画面一覧 (全 34 画面)
 

@@ -4,7 +4,7 @@
 // #1308 Phase B: SQL body textarea に @this / @self 補完を追加 (currentDocumentKind="processFlow" + currentSelfRef step)。
 
 import type { DbAccessStep, DbOperation, TableId, ErrorCode } from "../../../../types/v3";
-import { DB_OPERATION_LABELS } from "../../../../utils/processFlowMetadata";
+import { dbOperationLabel } from "../../../../utils/processFlowMetadata";
 import { DB_OPS } from "../stepCardConstants";
 import type { StepCardBodyBaseProps, StepCardBodyCatalogProps, StepCardBodyTableProps } from "./types";
 import { ReferenceCompletionTextarea } from "../../../common/ReferenceCompletionTextarea";
@@ -67,7 +67,7 @@ export function DbAccessStepCardBody({
             onChange={(e) => onChange({ operation: e.target.value as DbOperation })}
           >
             {DB_OPS.map((op) => (
-              <option key={op} value={op}>{DB_OPERATION_LABELS[op]}</option>
+              <option key={op} value={op}>{op}（{dbOperationLabel(op)}）</option>
             ))}
           </select>
         </div>

@@ -96,6 +96,16 @@ describe("DbAccessStepCardBody", () => {
     expect(selects.length).toBeGreaterThanOrEqual(2); // table + operation
   });
 
+  it("操作の選択肢に、値と日本語の名前が並ぶ (名前が空にならない)", () => {
+    const step = baseStep({ kind: "dbAccess", tableId: "", operation: "SELECT" });
+    const { container } = render(
+      <DbAccessStepCardBody step={step} allSteps={[]} tables={tables} onChange={noop} />,
+    );
+    const ops = Array.from(container.querySelectorAll("select")).find((s) => Array.from(s.options).some((o) => o.value === "INSERT"));
+    expect(ops).toBeTruthy();
+    expect(Array.from(ops!.options).map((o) => o.text)).toEqual(["SELECT（検索）", "INSERT（登録）", "UPDATE（更新）", "DELETE（削除）"]);
+  });
+
   it("UPDATE 選択時に影響行数チェック UI が描画される", () => {
     const step = baseStep({ kind: "dbAccess", tableId: "t1", operation: "UPDATE" });
     const { container } = render(
