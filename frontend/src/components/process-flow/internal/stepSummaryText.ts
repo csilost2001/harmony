@@ -8,13 +8,16 @@ import { getBranchConditionText } from "../../../utils/branchCondition";
  * StepCard の summary 表示文字列を生成。
  * 元: components/process-flow/StepCard.tsx の summaryText() (#1145 で分離)
  */
+/** 「INSERT（登録）」の形。台帳に無い操作 (拡張など) は、値だけ (同じ語を 2 回出さない) */
+const dbOperationText = (op: string): string => { const label = dbOperationLabel(op); return label === op ? op : `${op}（${label}）`; };
+
 export function stepSummaryText(step: Step, allSteps: Step[]): string {
   if (isExtensionStep(step)) return step.description || "拡張ステップ";
   switch (step.kind) {
     case "validation":
       return step.conditions || step.description || "バリデーション";
     case "dbAccess":
-      return `${step.tableId || "?"} ${step.operation}（${dbOperationLabel(step.operation)}）${step.description ? ` - ${step.description}` : ""}`;
+      return `${step.tableId || "?"} ${dbOperationText(step.operation)}${step.description ? ` - ${step.description}` : ""}`;
     case "externalSystem":
       // silent bug: step.protocol は v3 schema に存在しない (#1233)
       return `${step.systemRef || "?"}${step.httpCall?.method ? ` (${step.httpCall.method})` : ""}${step.description ? ` - ${step.description}` : ""}`;

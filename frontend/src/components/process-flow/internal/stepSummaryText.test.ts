@@ -47,6 +47,7 @@ describe("stepSummaryText", () => {
       description: "明細取得",
     } as unknown as Step;
     expect(stepSummaryText(step, [])).toBe("orders SELECT（検索） - 明細取得");
+    expect(stepSummaryText({ ...step, operation: "MERGE" } as never, [])).toBe("orders MERGE - 明細取得");
   });
 
   it("dbAccess: tableId 未設定時は ? 表示", () => {

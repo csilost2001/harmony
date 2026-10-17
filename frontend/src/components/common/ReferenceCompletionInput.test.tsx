@@ -196,3 +196,20 @@ describe("ReferenceCompletionInput — 定義へ移動 (F12 / Ctrl+クリック)
     off();
   });
 });
+
+describe("ReferenceCompletionInput — 入力欄を離れた直後に画面が外れる", () => {
+  it("150ms 後の「候補を隠す」処理が、外れたあとに残らない (テスト環境が無くなったあとの未処理エラーの防止)", () => {
+    vi.useFakeTimers();
+    try {
+      const { unmount } = render(
+        <ReferenceCompletionInput value="string" onValueChange={() => undefined} resolvers={[alwaysActiveResolver]} ctx={{}} />,
+      );
+      fireEvent.blur(screen.getByRole("textbox"));
+      expect(vi.getTimerCount()).toBeGreaterThan(0);
+      unmount();
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
