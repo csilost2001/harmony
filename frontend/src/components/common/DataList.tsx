@@ -76,6 +76,8 @@ interface Props<T> {
   clipboard?: ListClipboard<T>;
   sort?: ListSort<T>;
   onActivate?: (item: T, index: number) => void;
+  /** 一覧の上に、開き方の案内 (ダブルクリック / Enter) を出す。画面・テーブルなどの一覧に付ける (ISSUE #1528)。表の中の行 (カラムの表など) には付けない */
+  openHint?: boolean;
   onReorder?: (fromIndex: number, toIndex: number) => void;
   /**
    * 行の削除ボタン (行ゴミ箱, docs/spec/list-common.md §3.11 / §4.6)。
@@ -126,7 +128,7 @@ interface Props<T> {
 export function DataList<T>({
   ariaLabel,
   items, columns: allColumns, getId, getNo, selection, clipboard, sort,
-  onActivate, onReorder, onRowDelete, onContextMenu,
+  onActivate, openHint, onReorder, onRowDelete, onContextMenu,
   layout = "list",
   renderCard,
   showNumColumn = true,
@@ -155,7 +157,7 @@ export function DataList<T>({
   }, [items.length]);
   // 開き方の案内 (ダブルクリック / Enter)。一度でも開いた (または消した) ら、このブラウザでは以後出さない (ISSUE #1528 a)
   const showOpenHint = useOpenHint();
-  const activate = useMemo(() => (onActivate ? (item: T, index: number) => { markOpenHintSeen(); onActivate(item, index); } : undefined), [onActivate]);
+  const activate = useMemo(() => (onActivate ? (item: T, index: number) => { if (openHint) markOpenHintSeen(); onActivate(item, index); } : undefined), [onActivate, openHint]);
   const [showCondition, setShowCondition] = useState(false);
   const [copyMenu, setCopyMenu] = useState<{ x: number; y: number } | null>(null);
   const [groupMenu, setGroupMenu] = useState<{ x: number; y: number } | null>(null);
@@ -443,7 +445,7 @@ export function DataList<T>({
       onClick={handleRootClick}
       onContextMenu={onContextMenu ? handleRootContextMenu : undefined}
     >
-      {activate && showOpenHint && items.length > 0 && (
+      {openHint && activate && showOpenHint && items.length > 0 && (
         <p className="data-list-open-hint" data-testid="data-list-open-hint">
           <i className="bi bi-info-circle" aria-hidden="true" /> 行 (カード) を<strong>ダブルクリック</strong>、または選んで <kbd>Enter</kbd> で開きます。1 回のクリックは選ぶだけです。
           <button type="button" className="data-list-open-hint-close" aria-label="この案内を消す" onClick={(e) => { e.stopPropagation(); markOpenHintSeen(); }}><i className="bi bi-x-lg" aria-hidden="true" /></button>

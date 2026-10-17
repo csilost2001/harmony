@@ -3,7 +3,6 @@ import type { ListSelection } from "./useListSelection";
 import type { ListClipboard } from "./useListClipboard";
 import type { ListSort } from "./useListSort";
 import { isImeComposing } from "../utils/imeKeys";
-import { markOpenHintSeen } from "../utils/openHint";
 
 interface ListKeyboardOpts<T> {
   items: T[];
@@ -154,7 +153,6 @@ export function useListKeyboard<T>(opts: ListKeyboardOpts<T>): void {
       if (((e.key === "Enter" && !isImeComposing(e)) || e.key === "F2") && !ctrl && !e.altKey) {
         if (onActivate && selection.selectedItems.length === 1) {
           e.preventDefault();
-          markOpenHintSeen();
           onActivate(selection.selectedItems[0]);
         }
         return;

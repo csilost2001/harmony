@@ -490,8 +490,8 @@ export function ProcessFlowListView() {
     setAddScreenId("");
     setAddDescription("");
     setAddId("");
-    // 作った直後は、概要だけの「ラフ」から始める (深さは、編集画面の切り替えで変えられる)
-    presetEditLevel(group.meta.id, "rough");
+    // 作った直後は、SQL・結果変数などの実装の欄を隠した「詳細」から始める (テーブル・遷移先などは選べる。深さは、編集画面の切り替えで変えられる)
+    presetEditLevel(group.meta.id, "detail");
     // 作成した処理フローは、編集を始めた状態で開く
     try { sessionStorage.setItem(`harmony-auto-edit:process-flow:${group.meta.id}`, "1"); } catch { /* 使えなくても開くだけ */ }
     navigate(wsPath(`/process-flow/edit/${group.meta.id}`));
@@ -1009,7 +1009,7 @@ export function ProcessFlowListView() {
           selection={selection}
           clipboard={clipboard}
           sort={sort}
-          onActivate={handleActivate}
+          openHint onActivate={handleActivate}
           onReorder={handleReorder}
           layout={viewMode === "card" ? "grid" : "list"}
           renderCard={renderCard}

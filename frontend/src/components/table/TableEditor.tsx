@@ -77,7 +77,6 @@ import { HelpHint } from "../help/HelpHint";
 import { isInsideModal } from "../../utils/modalScope";
 import { asciiFieldProps } from "../../utils/fieldNormalize";
 import { LoadingBlock } from "../common/LoadingBlock";
-import { hasUnsavedOwnSession } from "../../utils/editSessionHints";
 
 type TabId = "columns" | "constraints" | "indexes" | "triggers" | "comment" | "markers";
 
@@ -249,7 +248,9 @@ export function TableEditor() {
           // #980-A: 自分が participant として参加していた Active session のみ対象。
           // 他人の Active session で自分が unparticipated の場合は ResumeOrDiscardDialog を出さない。
           const mySessionId = mcpBridge.getSessionId();
-          const hasMyActiveSession = hasUnsavedOwnSession(res?.sessions ?? [], mySessionId);
+          const hasMyActiveSession = (res?.sessions ?? []).some((s) =>
+            s.state === "Active" && !!s.participants?.[mySessionId],
+          );
           if (hasMyActiveSession) setShowResumeDialog(true);
           return;
         } catch (err) {

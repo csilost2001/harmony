@@ -4,7 +4,7 @@
  * - 一覧の開き方の案内 (ダブルクリック / Enter)。開く (または消す) と、以後出ない
  * - 同じ画面の「デザイン」と「項目定義」を、保存しながら行き来しても、「前回の編集の続き」「上書き確認」が出ない
  * - 保存済みのときは、帯の「破棄」が「編集を終える」になる
- * - 一覧から新しく作った処理フローは、「ラフ」の深さで始まる
+ * - 一覧から新しく作った処理フローは、「詳細」の深さで始まる (すでにあるフローは「実装」のまま)
  */
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -92,15 +92,15 @@ test.describe("初めての人が迷いやすいところ (#1528)", { tag: ["@re
     expect(saved.items.length).toBeGreaterThan(0);
   });
 
-  test("一覧から新しく作った処理フローは、「ラフ」の深さで始まる", async ({ page }) => {
+  test("一覧から新しく作った処理フローは、「詳細」の深さで始まる", async ({ page }) => {
     await ws.gotoActive(page, "/process-flow/list");
     await page.getByRole("button", { name: "処理フローを追加" }).first().click();
     await page.getByPlaceholder("例: ログイン画面、月次集計バッチ").fill("深さの試験");
     await page.getByPlaceholder("例: today-sales").fill("depth-check");
     await page.getByRole("button", { name: /^作成$/ }).click();
     await expect(page).toHaveURL(/\/process-flow\/edit\/depth-check/, { timeout: 15000 });
-    const rough = page.getByRole("button", { name: /ラフ/ }).first();
-    await expect(rough).toHaveAttribute("aria-pressed", "true", { timeout: 10000 });
+    const detail = page.getByRole("button", { name: /詳細/ }).first();
+    await expect(detail).toHaveAttribute("aria-pressed", "true", { timeout: 10000 });
     // すでにあるフロー (サンプル) は、これまでどおり「実装」から
     await ws.gotoActive(page, "/process-flow/list");
     const firstRow = page.locator(".data-list-row, .data-list-card").first();

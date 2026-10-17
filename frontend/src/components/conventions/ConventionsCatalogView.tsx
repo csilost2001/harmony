@@ -61,7 +61,6 @@ import { ExternalOutcomeDefaultsPanel } from "./internal/categories/ExternalOutc
 import { ExtensionCategoriesPanel } from "./internal/categories/ExtensionCategoriesPanel";
 import { reportFailure, runReporting } from "../../utils/failureToast";
 import { GridFillHandle } from "../common/GridFillHandle";
-import { hasUnsavedOwnSession } from "../../utils/editSessionHints";
 
 type Category =
   | "msg" | "regex" | "limit"
@@ -259,7 +258,9 @@ export function ConventionsCatalogView() {
       if (cancelled) return;
       // #980-A: 自分が participant として参加していた Active session のみ対象。
       const mySessionId = mcpBridge.getSessionId();
-      const hasMyActiveSession = hasUnsavedOwnSession(res?.sessions ?? [], mySessionId);
+      const hasMyActiveSession = (res?.sessions ?? []).some((s) =>
+        s.state === "Active" && !!s.participants?.[mySessionId],
+      );
       if (hasMyActiveSession) setShowResumeDialog(true);
     })().catch((err) => reportFailure(err, "編集セッションの確認"));
     return () => { cancelled = true; };

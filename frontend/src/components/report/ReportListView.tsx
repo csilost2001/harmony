@@ -158,7 +158,7 @@ export function ReportListView() {
         getId={(f) => f.id}
         selection={selection}
         sort={sort}
-        onActivate={open}
+        openHint onActivate={open}
         onRowDelete={(f) => remove([f])}
         layout="list"
         showNumColumn

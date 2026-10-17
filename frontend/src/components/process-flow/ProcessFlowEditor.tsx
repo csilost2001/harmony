@@ -107,7 +107,6 @@ import { showToast } from "../../utils/toast";
 import { cloneStepsWithNewIds } from "../../utils/stepClone";
 import { StepOutlinePanel } from "./internal/StepOutlinePanel";
 import { FlowDiagramDialog } from "./internal/FlowDiagramDialog";
-import { hasUnsavedOwnSession } from "../../utils/editSessionHints";
 
 export function ProcessFlowEditor() {
   const { processFlowId } = useParams<{ processFlowId: string }>();
@@ -419,7 +418,9 @@ export function ProcessFlowEditor() {
           // 他人の Active session で自分が unparticipated の場合は ResumeOrDiscardDialog を出さない
           // (= 「未保存の自分の draft があります」というメッセージ意図と矛盾するため)。
           const mySessionId = mcpBridge.getSessionId();
-          const hasMyActiveSession = hasUnsavedOwnSession(res?.sessions ?? [], mySessionId);
+          const hasMyActiveSession = (res?.sessions ?? []).some((s) =>
+            s.state === "Active" && !!s.participants?.[mySessionId],
+          );
           if (hasMyActiveSession) setShowResumeDialog(true);
           return;
         } catch (err) {

@@ -61,7 +61,6 @@ import { showToast } from "../../utils/toast";
 import { EntityMarkerSection } from "../common/EntityMarkerSection";
 import { authoringWithMarkers } from "../../utils/markerDoc";
 import { LoadingBlock } from "../common/LoadingBlock";
-import { hasUnsavedOwnSession } from "../../utils/editSessionHints";
 
 const MATURITY_OPTIONS: Maturity[] = ["draft", "provisional", "committed"];
 const MATURITY_LABELS: Record<Maturity, string> = {
@@ -255,7 +254,9 @@ export function PageLayoutEditor() {
       }) as { sessions: Array<{ state?: string; participants?: Record<string, unknown> }> } | null;
       if (cancelled) return;
       const mySessionId = mcpBridge.getSessionId();
-      const hasMyActiveSession = hasUnsavedOwnSession(res?.sessions ?? [], mySessionId);
+      const hasMyActiveSession = (res?.sessions ?? []).some((s) =>
+        s.state === "Active" && !!s.participants?.[mySessionId],
+      );
       if (hasMyActiveSession) setShowResumeDialog(true);
     })().catch((err) => reportFailure(err, "編集セッションの確認"));
     return () => { cancelled = true; };
