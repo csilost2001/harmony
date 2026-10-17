@@ -459,6 +459,7 @@ export function ScreenListView() {
   };
 
   useListKeyboard({
+    markOpenHint: true,
     items: sort.sorted,
     getId: (s) => s.id,
     selection,

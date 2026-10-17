@@ -140,6 +140,25 @@ describe("useListKeyboard", () => {
     expect(onActivate).toHaveBeenCalledWith({ id: "b", name: "B" });
   });
 
+  it("markOpenHint を付けた一覧で Enter で開くと、一覧の開き方の案内を、以後出さない (ISSUE #1528)", async () => {
+    const { resetOpenHintForTest, markOpenHintSeen } = await import("../utils/openHint");
+    const { act: actReact } = await import("@testing-library/react");
+    resetOpenHintForTest();
+    const onActivate = vi.fn();
+    const { result } = renderHook(() => {
+      const sel = useListSelection(items, (it) => it.id);
+      useListKeyboard({ items, getId: (it: Item) => it.id, selection: sel, onActivate, markOpenHint: true } as unknown as Parameters<typeof useListKeyboard<Item>>[0]);
+      return sel;
+    });
+    actReact(() => result.current.handleRowClick("a", {}));
+    actReact(() => fireKey({ key: "Enter" }));
+    expect(onActivate).toHaveBeenCalledTimes(1);
+    // 印が付いたので、もう一度付けても何も起きない (すでに見たことになっている)
+    const seen = localStorage.getItem("harmony.listOpenHintSeen");
+    expect(seen).toBe("1");
+    markOpenHintSeen();
+  });
+
   it("Enter は複数選択時は onActivate を呼ばない", () => {
     const onActivate = vi.fn();
     const { result } = setup({ onActivate });

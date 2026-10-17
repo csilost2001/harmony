@@ -222,6 +222,7 @@ export function GenericDefinitionListView() {
   }, [kind, loadItems]);
 
   useListKeyboard({
+    markOpenHint: true,
     items: sort.sorted,
     getId,
     selection,

@@ -500,6 +500,7 @@ export function ViewDefinitionListView() {
   };
 
   useListKeyboard({
+    markOpenHint: true,
     items: sort.sorted,
     getId: (v) => String(v.id),
     selection,

@@ -614,6 +614,7 @@ export function ProcessFlowListView() {
   };
 
   useListKeyboard({
+    markOpenHint: true,
     items: sort.sorted,
     getId: (g) => g.id,
     selection,

@@ -944,6 +944,7 @@ export function WorkspaceListView() {
   const selectedItem = selection.selectedItems[0] ?? null;
 
   useListKeyboard({
+    markOpenHint: true,
     items: sort.sorted,
     getId: (w) => w.id,
     selection,

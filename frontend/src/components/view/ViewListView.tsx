@@ -403,6 +403,7 @@ export function ViewListView() {
   };
 
   useListKeyboard({
+    markOpenHint: true,
     items: sort.sorted,
     getId: (v) => v.id,
     selection,

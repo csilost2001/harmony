@@ -489,6 +489,7 @@ export function TableListView() {
   };
 
   useListKeyboard({
+    markOpenHint: true,
     items: sort.sorted,
     getId: (t) => t.id,
     selection,

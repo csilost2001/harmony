@@ -336,6 +336,7 @@ export function GadgetListView() {
   };
 
   useListKeyboard({
+    markOpenHint: true,
     items: sort.sorted,
     getId: (s) => s.id,
     selection,
