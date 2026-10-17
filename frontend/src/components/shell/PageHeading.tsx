@@ -15,17 +15,18 @@ export function PageHeading() {
     if (!el || !main) return;
     // 設計の中身 (画面の見本・帳票の紙面・設計書の本文) の見出しは、画面の見出しではない
     const CONTENT = ".sld-paper, .pv-root, .rp-paper, .lv-paper, .hd-doc";
-    // 見えている h1 (開いていないタブの中の、隠れた h1 は数えない) があれば、補わない
-    // 画面の見出し (h1 と、role=heading・aria-level=1 の見出し。エディタのヘッダーなど。本文の外にある場合もあるので、文書全体から探す) が見えていれば、補わない
-    const sync = () => { el.hidden = [...document.querySelectorAll('h1:not(.page-auto-h1), [role="heading"][aria-level="1"]')].some((h) => !h.closest(CONTENT) && (h as HTMLElement).getClientRects().length > 0); };
+    // 画面の見出し (h1 と、role=heading・aria-level=1 の見出し。エディタのヘッダーなど。本文の外にある場合もあるので、文書全体から探す) が
+    // 見えていれば (開いていないタブの中の、隠れたものは数えない)、補わない。最初は隠しておき、見つからないと確かめてから出す
+    const sync = () => {
+      const own = [...document.querySelectorAll('h1:not(.page-auto-h1), [role="heading"][aria-level="1"]')].some((h) => !h.closest(CONTENT) && (h as HTMLElement).getClientRects().length > 0);
+      // 変わるときだけ書く (同じ値でも、属性の書き込みは変化として見張りに届き、きりなく繰り返すため)
+      if (el.hidden !== own) el.hidden = own;
+    };
     sync();
-    // 本文の変化は多い (描画のたび) ので、続けて起きた分は、まとめて 1 回だけ確かめる
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const later = () => { if (timer === undefined) timer = setTimeout(() => { timer = undefined; sync(); }, 150); };
-    const mo = new MutationObserver(later);
-    // タブの切り替え (display の変更) も見張る。画面の見出しは、本文の外 (エディタのヘッダー) にもあるので、文書全体を見る
+    // 本文の変化のたびに確かめる (画面の見出しと、一瞬でも、重ならないよう、すぐに)。タブの切り替え (display の変更) も見張る
+    const mo = new MutationObserver(sync);
     mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["style", "hidden"] });
-    return () => { mo.disconnect(); clearTimeout(timer); };
+    return () => mo.disconnect();
   }, []);
-  return <h1 ref={ref} className="an-sr page-auto-h1" data-testid="page-auto-h1">{tab?.label ?? "Harmony"}</h1>;
+  return <h1 ref={ref} hidden className="an-sr page-auto-h1" data-testid="page-auto-h1">{tab?.label ?? "Harmony"}</h1>;
 }
