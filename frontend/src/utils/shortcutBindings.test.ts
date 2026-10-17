@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { BINDABLE_SHORTCUTS, _resetBindings, comboOfEvent, defaultCombo, effectiveCombo, matchesBinding, normalizeCombo, resetBinding, setBinding, validateBinding } from "./shortcutBindings";
+import { BINDABLE_SHORTCUTS, _resetBindings, combosOfHelpKeys, comboOfEvent, defaultCombo, effectiveCombo, matchesBinding, normalizeCombo, resetBinding, setBinding, validateBinding } from "./shortcutBindings";
 import { SHORTCUT_GROUPS } from "./shortcuts";
 
 beforeEach(() => { localStorage.clear(); _resetBindings(); });
@@ -87,18 +87,36 @@ describe("固定のキー (ショートカット一覧から導く。続編 第 
   it("変えられる項目のキーは、断らない (自分の既定は使える)", () => {
     for (const b of BINDABLE_SHORTCUTS) expect(validateBinding(b.id, b.default)).toMatchObject({ ok: true });
   });
-  it("一覧の、変えられない項目のキーを、機械的にすべて確かめる", () => {
+  it("一覧の、変えられない項目のキーを、機械的にすべて確かめる (範囲の書き方は、広げてから)", () => {
+    const NOT_KEYS = new Set(["ポインタを合わせる", "ドラッグ", "クリック"]); // マウスの操作の説明
     const bad: string[] = [];
     for (const g of SHORTCUT_GROUPS) for (const e of g.entries) {
       if (e.bindId) continue;
       const arrow = e.keys.indexOf("→");
       const head = arrow > 0 ? e.keys.slice(0, arrow) : e.keys;
-      if (head.length < 2) continue; // 修飾キーの無いキー (Enter・Home・? など) は、もともと断る
-      const first = head[head.length - 1].split(" / ")[0];
-      if (/[↑↓←→〜]/.test(first)) continue; // 範囲の書き方は、上で確かめた
-      const combo = normalizeCombo([...head.slice(0, -1), first].join("+"));
-      if (combo && validateBinding("copyLink", combo).ok) bad.push(`${g.title}: ${combo}`);
+      if (head.length < 2 || NOT_KEYS.has(head[head.length - 1])) continue; // 修飾キーの無いキー (Enter・Home・? など) は、もともと断る
+      for (const combo of combosOfHelpKeys(head)) if (validateBinding("copyLink", combo).ok) bad.push(`${g.title}: ${combo}`);
     }
     expect(bad).toEqual([]);
+  });
+  it("ダッシュボードの Alt+Shift+矢印 も、固定 (矢印の書き方を、4 方向に広げる)", () => {
+    for (const c of ["Alt+Shift+Up", "Alt+Shift+Down", "Alt+Shift+Left", "Alt+Shift+Right", "Alt+Up", "Alt+Left"]) expect(validateBinding("copyLink", c).ok).toBe(false);
+  });
+  it("一覧のキーの欄の最後の語は、実在のキー名に直せる (「矢印」のような、広げ方を知らない書き方が増えたら、気づく)", () => {
+    const NOT_KEYS = new Set(["ポインタを合わせる", "ドラッグ", "クリック"]); // マウスの操作の説明
+    const KEY = /^(Up|Down|Left|Right|Enter|Tab|Space|Backspace|Delete|Insert|Home|End|PageUp|PageDown|Escape|F([1-9]|1[0-2])|.)$/;
+    const unknown: string[] = [];
+    for (const g of SHORTCUT_GROUPS) for (const e of g.entries) {
+      if (e.bindId) continue;
+      const arrow = e.keys.indexOf("→");
+      const head = arrow > 0 ? e.keys.slice(0, arrow) : e.keys;
+      if (head.length < 2) continue;
+      const rawLast = head[head.length - 1];
+      if (NOT_KEYS.has(rawLast)) continue;
+      const combos = combosOfHelpKeys(head);
+      if (combos.length === 0) continue; // 修飾キーが 1 つも無い組 (↑ + ↓ など)
+      for (const c of combos) { const k = c.split("+").pop()!; if (!KEY.test(k)) unknown.push(`${g.title}: ${head.join("+")} → ${k}`); }
+    }
+    expect(unknown).toEqual([]);
   });
 });

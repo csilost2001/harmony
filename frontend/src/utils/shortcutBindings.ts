@@ -27,7 +27,7 @@ export const RESERVED_COMBOS: ReadonlySet<string> = new Set([
 ]);
 
 /** ヘルプの 1 項目のキー (例: ["Ctrl","Shift","PageUp / PageDown"]・["Alt","↑↓"]・["Ctrl","1〜9"]・["Ctrl","K","→","t:"]) を、組み合わせの一覧にする */
-function combosOfHelpKeys(keys: readonly string[]): string[] {
+export function combosOfHelpKeys(keys: readonly string[]): string[] {
   const arrow = keys.indexOf("→");
   const head = arrow > 0 ? keys.slice(0, arrow) : keys; // 「Ctrl+K → t:」は、最初の組み合わせだけ
   const last = head[head.length - 1] ?? "";
@@ -36,6 +36,7 @@ function combosOfHelpKeys(keys: readonly string[]): string[] {
   for (const alt of last.split(" / ")) {
     if (alt === "↑↓") lasts.push("Up", "Down");
     else if (alt === "←→") lasts.push("Left", "Right");
+    else if (alt === "矢印") lasts.push("Up", "Down", "Left", "Right");
     else if (alt === "1〜9") for (let i = 1; i <= 9; i++) lasts.push(String(i));
     else lasts.push(alt);
   }
