@@ -13,7 +13,7 @@ import { isPrivateAddress, sendWebhook, dispatchNotify, type SendDeps } from "./
 import { assertBranchName, assertGitPath, execOverrides, gitBranches, gitCheckout, gitCommit, gitDiff, gitInit, gitLog, gitStatus } from "./gitOps.js";
 import { parseReleaseNotes, readVersionInfo } from "./versionInfo.js";
 import { suggestRevision } from "./revisionSuggest.js";
-import { createdIdFromResultText, describeAiTool, describeRpc, isAiDryRun } from "./auditMap.js";
+import { createdIdFromResultText, describeAiTool, describeRpc, isAiDryRun, isAiNoWrite } from "./auditMap.js";
 
 let ROOT = "";
 const ts = "2026-01-01T00:00:00.000Z";
@@ -573,5 +573,15 @@ describe("AI の記録の対象と備考 (続編 第 9 弾 レビュー M1')", (
     expect(isAiDryRun({ apply: false }, true)).toBe(true);
     expect(isAiDryRun({ apply: true }, true)).toBe(false);
     expect(isAiDryRun({}, false)).toBe(false);
+  });
+
+  it("編集セッションの保存は、衝突の確認だけ (checkOnly)・衝突で保存できなかったもの (ok: false) は、残さない。保存できたものだけ残す", () => {
+    expect(isAiNoWrite("editSession__save", { editSessionId: "e", stage: "checkOnly" }, JSON.stringify({ ok: true }))).toBe(true);
+    expect(isAiNoWrite("editSession__save", { editSessionId: "e" }, JSON.stringify({ ok: false, conflict: { changedBy: "x" } }))).toBe(true);
+    expect(isAiNoWrite("editSession__save", { editSessionId: "e", stage: "commit" }, JSON.stringify({ ok: true }))).toBe(false);
+    expect(isAiNoWrite("editSession__save", { editSessionId: "e" }, JSON.stringify({ ok: true }))).toBe(false);
+    expect(isAiNoWrite("designer__editSession__save", { editSessionId: "e", stage: "checkOnly" }, "{}")).toBe(true);
+    expect(isAiNoWrite("editSession__save", { editSessionId: "e" }, "壊れた結果")).toBe(true);
+    expect(isAiNoWrite("designer__update_table", { tableId: "t" }, "{}")).toBe(false); // ほかの tool は対象外
   });
 });

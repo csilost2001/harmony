@@ -64,3 +64,16 @@ export function describeAiTool(name: string, args: Record<string, unknown>, resu
 export function isAiDryRun(args: Record<string, unknown>, toolHasApply: boolean): boolean {
   return toolHasApply && args.apply !== true;
 }
+
+/**
+ * 何も書いていない AI の呼び出し (続編 第 9 弾 レビュー M1''): 編集セッションの保存の、衝突の確認だけ (stage: checkOnly)・衝突で保存されなかったもの (ok: false)。
+ * 結果が isError でなくても、原本は変わっていないので、変更として残さない。
+ */
+export function isAiNoWrite(name: string, args: Record<string, unknown>, resultText: string): boolean {
+  if (name.replace(/^designer__/, "") !== "editSession__save") return false;
+  if (args.stage === "checkOnly") return true;
+  try {
+    const r = JSON.parse(resultText) as { ok?: unknown } | null;
+    return !r || r.ok !== true;
+  } catch { return true; } // 結果が読めないときは、保存できたと言い切れないので、残さない
+}

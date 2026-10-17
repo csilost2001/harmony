@@ -13,7 +13,7 @@ import { installSelfWriteTracking } from "./externalChanges.js";
 import { ensureRecovered } from "./operationJournal.js";
 import { assertToolAllowed, filterTools, isReadOnlyTool } from "./security/mcpAccess.js";
 import { recordAudit } from "./ops/audit.js";
-import { describeAiTool, isAiDryRun } from "./ops/auditMap.js";
+import { describeAiTool, isAiDryRun, isAiNoWrite } from "./ops/auditMap.js";
 import { installApprovalGuard } from "./ops/policy.js";
 import { scheduleIssueCheck } from "./ops/issuesWatch.js";
 import { tools } from "./tools.js";
@@ -213,7 +213,7 @@ function createMcpServer(sessionId: string): Server {
             const resultText = (result as { content?: Array<{ text?: unknown }> }).content?.map((x) => (typeof x.text === "string" ? x.text : "")).join("\n") ?? "";
             const toolDef = tools.find((t) => t.name === name);
             const hasApply = !!(toolDef?.inputSchema as { properties?: Record<string, unknown> } | undefined)?.properties && "apply" in ((toolDef!.inputSchema as { properties: Record<string, unknown> }).properties);
-            if (!isAiDryRun(argRecord, hasApply)) {
+            if (!isAiDryRun(argRecord, hasApply) && !isAiNoWrite(name, argRecord, resultText)) {
               const d = describeAiTool(name, argRecord, resultText, sessionTarget);
               void recordAudit(root, { actor: "AI", action: `AI が ${name.replace(/^designer__/, "")} を実行した`, ...d, via: "ai" });
               scheduleIssueCheck(root);
