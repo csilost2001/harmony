@@ -500,6 +500,7 @@ export function ViewDefinitionListView() {
   };
 
   useListKeyboard({
+    markOpenHint: true,
     items: sort.sorted,
     getId: (v) => String(v.id),
     selection,
@@ -710,7 +711,7 @@ export function ViewDefinitionListView() {
               disabled={sortActive}
               title={sortActive ? "ソート中は無効 (ソート解除で利用可能)" : undefined}
             >
-              <i className="bi bi-plus-lg" /> ビュー定義追加
+              <i className="bi bi-plus-lg" /> ビュー定義を追加
             </button>
             <button
               className="tbl-btn tbl-btn-ghost danger"
@@ -770,7 +771,7 @@ export function ViewDefinitionListView() {
           selection={selection}
           clipboard={clipboard}
           sort={sort}
-          onActivate={handleActivate}
+          openHint onActivate={handleActivate}
           onReorder={handleReorder}
           layout={viewMode === "card" ? "grid" : "list"}
           renderCard={renderCard}

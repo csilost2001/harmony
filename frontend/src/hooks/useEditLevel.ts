@@ -50,6 +50,18 @@ function writeLevel(flowId: string, level: EditLevel): void {
   }
 }
 
+/**
+ * 新しく作った処理フローの、最初の深さを決める (ISSUE #1528 f)。まだ覚えている深さが無いときだけ書く。
+ * 作ったばかりのフローは、「詳細」(テーブル・操作・遷移先などを選べる。「実装」との差は、詳細メタ情報の欄だけ) から始める。
+ * 「ラフ」(概要だけ) だと、テーブルや遷移先を選ぶ欄まで隠れて、案内どおりに進めないので、始めには使わない。あとから、深さの切り替えで変えられる。
+ */
+export function presetEditLevel(flowId: string, level: EditLevel): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (window.localStorage.getItem(storageKeyFor(flowId)) === null) writeLevel(flowId, level);
+  } catch { /* 読めなければ、既定のまま */ }
+}
+
 export interface UseEditLevelResult {
   editLevel: EditLevel;
   setEditLevel: (level: EditLevel) => void;

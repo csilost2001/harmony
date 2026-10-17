@@ -62,6 +62,7 @@ import { useQuickCreate } from "../../hooks/useQuickCreate";
 import { useReferencesDialog } from "../common/ReferencesButton";
 import { reportFailure } from "../../utils/failureToast";
 import { EmptyState } from "../common/EmptyState";
+import { presetEditLevel } from "../../hooks/useEditLevel";
 
 const ALL_TYPES: ProcessFlowType[] = ["screen", "batch", "scheduled", "system", "common", "other"];
 const STORAGE_KEY = "list-view-mode:process-flow-list";
@@ -489,6 +490,8 @@ export function ProcessFlowListView() {
     setAddScreenId("");
     setAddDescription("");
     setAddId("");
+    // 作った直後は、SQL・結果変数などの実装の欄を隠した「詳細」から始める (テーブル・遷移先などは選べる。深さは、編集画面の切り替えで変えられる)
+    presetEditLevel(group.meta.id, "detail");
     // 作成した処理フローは、編集を始めた状態で開く
     try { sessionStorage.setItem(`harmony-auto-edit:process-flow:${group.meta.id}`, "1"); } catch { /* 使えなくても開くだけ */ }
     navigate(wsPath(`/process-flow/edit/${group.meta.id}`));
@@ -611,6 +614,7 @@ export function ProcessFlowListView() {
   };
 
   useListKeyboard({
+    markOpenHint: true,
     items: sort.sorted,
     getId: (g) => g.id,
     selection,
@@ -879,7 +883,7 @@ export function ProcessFlowListView() {
               disabled={sortActive}
               title={sortActive ? "ソート中は無効 (ソート解除で利用可能)" : undefined}
             >
-              <i className="bi bi-plus-lg me-1" />新規作成
+              <i className="bi bi-plus-lg me-1" />処理フローを追加
             </button>
             <button
               className="btn btn-outline-danger btn-sm"
@@ -1006,7 +1010,7 @@ export function ProcessFlowListView() {
           selection={selection}
           clipboard={clipboard}
           sort={sort}
-          onActivate={handleActivate}
+          openHint onActivate={handleActivate}
           onReorder={handleReorder}
           layout={viewMode === "card" ? "grid" : "list"}
           renderCard={renderCard}
@@ -1014,7 +1018,7 @@ export function ProcessFlowListView() {
           className="process-flow-data-list"
           isItemGhost={(id) => editor.isDeleted(id)}
           emptyMessage={
-            <EmptyState noun="処理フロー定義" icon="bi-lightning" hint="ボタンを押したときの処理を、入力チェック・DB アクセスなどの手順で書きます" filtered={groups.length > 0} onCreate={() => setShowAdd(true)} createLabel="処理フローを作成" />
+            <EmptyState noun="処理フロー定義" icon="bi-lightning" hint="ボタンを押したときの処理を、入力チェック・DB アクセスなどの手順で書きます" filtered={groups.length > 0} onCreate={() => setShowAdd(true)} createLabel="処理フローを追加" />
           }
         />
       </div>

@@ -25,7 +25,7 @@ async function dismissResume(page: Page) {
 async function openTableDialog(page: Page) {
   await ws.gotoActive(page, "/table/list");
   await expect(page.locator(".table-list-page")).toBeVisible();
-  const addBtn = page.getByRole("button", { name: /テーブル追加/ }).first();
+  const addBtn = page.getByRole("button", { name: /テーブルを?追加/ }).first();
   await expect(addBtn).toBeVisible({ timeout: 10000 });
   await addBtn.click();
   await expect(page.locator(".tbl-modal")).toBeVisible();

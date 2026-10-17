@@ -336,6 +336,7 @@ export function GadgetListView() {
   };
 
   useListKeyboard({
+    markOpenHint: true,
     items: sort.sorted,
     getId: (s) => s.id,
     selection,
@@ -557,7 +558,7 @@ export function GadgetListView() {
           selection={selection}
           clipboard={clipboard}
           sort={sort}
-          onActivate={handleActivate}
+          openHint onActivate={handleActivate}
           onReorder={handleReorder}
           layout={viewMode === "card" ? "grid" : "list"}
           renderCard={renderCard}

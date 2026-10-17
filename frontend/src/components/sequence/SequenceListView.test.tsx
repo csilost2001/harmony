@@ -168,7 +168,7 @@ describe("SequenceListView", () => {
   it("renders 追加 button", () => {
     const { container } = renderList();
     const buttons = Array.from(container.querySelectorAll("button"));
-    const addBtn = buttons.find((b) => b.textContent?.includes("シーケンス追加"));
+    const addBtn = buttons.find((b) => b.textContent?.includes("シーケンスを追加"));
     expect(addBtn).toBeTruthy();
   });
 });

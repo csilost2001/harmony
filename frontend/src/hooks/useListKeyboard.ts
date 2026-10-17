@@ -3,6 +3,7 @@ import type { ListSelection } from "./useListSelection";
 import type { ListClipboard } from "./useListClipboard";
 import type { ListSort } from "./useListSort";
 import { isImeComposing } from "../utils/imeKeys";
+import { markOpenHintSeen } from "../utils/openHint";
 
 interface ListKeyboardOpts<T> {
   items: T[];
@@ -24,6 +25,8 @@ interface ListKeyboardOpts<T> {
    */
   getItemRect?: (id: string) => DOMRect | null;
   onActivate?: (item: T) => void;
+  /** Enter で開いたら、一覧の開き方の案内を、以後出さない (画面・テーブルなどの一覧に付ける。ISSUE #1528) */
+  markOpenHint?: boolean;
   onDelete?: (items: T[]) => void;
   /** @deprecated clipboard を渡すと自動連動する。手動で処理したい場合のみ指定 */
   onCopy?: (items: T[]) => void;
@@ -58,7 +61,7 @@ export function useListKeyboard<T>(opts: ListKeyboardOpts<T>): void {
     sort,
     layout = "list",
     getItemRect,
-    onActivate, onDelete, onCopy, onCut, onPaste, onDuplicate,
+    onActivate, markOpenHint, onDelete, onCopy, onCut, onPaste, onDuplicate,
     onMoveUp, onMoveDown, onContextMenuKey,
     enabled = true,
   } = opts;
@@ -153,6 +156,7 @@ export function useListKeyboard<T>(opts: ListKeyboardOpts<T>): void {
       if (((e.key === "Enter" && !isImeComposing(e)) || e.key === "F2") && !ctrl && !e.altKey) {
         if (onActivate && selection.selectedItems.length === 1) {
           e.preventDefault();
+          if (markOpenHint) markOpenHintSeen();
           onActivate(selection.selectedItems[0]);
         }
         return;
@@ -252,7 +256,7 @@ export function useListKeyboard<T>(opts: ListKeyboardOpts<T>): void {
     return () => window.removeEventListener("keydown", handler);
   }, [
     enabled, items, getId, selection, clipboard, sort, layout, getItemRect,
-    onActivate, onDelete, onCopy, onCut, onPaste, onDuplicate, onMoveUp, onMoveDown, onContextMenuKey,
+    onActivate, markOpenHint, onDelete, onCopy, onCut, onPaste, onDuplicate, onMoveUp, onMoveDown, onContextMenuKey,
   ]);
 }
 

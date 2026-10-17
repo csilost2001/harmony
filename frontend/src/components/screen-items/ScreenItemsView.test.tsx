@@ -1017,7 +1017,9 @@ describe("ScreenItemsView (Step 3: autosave / draft / lock)", () => {
                 resourceId: "test-screen-id",
                 state: "Active",
                 participants: { "test-session-id": { role: "Edit" } },
-                sequence: 0,
+                // 保存していない変更が残っている (sequence が、最後の保存より進んでいる)。ISSUE #1528 で、確認を出す条件を「未保存の変更が残っているとき」に絞った
+                sequence: 2,
+                saveHistory: [],
                 payload: null,
               },
             ],
@@ -1034,6 +1036,31 @@ describe("ScreenItemsView (Step 3: autosave / draft / lock)", () => {
       }, { timeout: 3000 });
     });
 
+    it("22b. 保存したまま (編集中のまま) 残っている自分のセッションは、続きではないので、確認を出さない (ISSUE #1528)", async () => {
+      vi.mocked(mcpBridge.request).mockImplementation(
+        makeDefaultBridgeImpl({
+          "editSession.list": () => ({
+            sessions: [
+              {
+                id: "es-saved",
+                resourceType: "screen-item",
+                resourceId: "test-screen-id",
+                state: "Active",
+                participants: { "test-session-id": { role: "Edit" } },
+                sequence: 2,
+                saveHistory: [{ savedBy: "test-session-id", savedAt: "2026-10-17T00:00:00.000Z", sequence: 2 }],
+                payload: null,
+              },
+            ],
+          }),
+        }) as never,
+      );
+
+      const { container } = renderWithRouter();
+      await act(async () => { await new Promise((r) => setTimeout(r, 400)); });
+      expect(container.querySelector('[data-testid="resume-or-discard-dialog"]')).toBeNull();
+    });
+
     it("23. Resume click → startEditing (editSession.create) が呼ばれる", async () => {
       vi.mocked(mcpBridge.request).mockImplementation(
         makeDefaultBridgeImpl({
@@ -1045,7 +1072,9 @@ describe("ScreenItemsView (Step 3: autosave / draft / lock)", () => {
                 resourceId: "test-screen-id",
                 state: "Active",
                 participants: { "test-session-id": { role: "Edit" } },
-                sequence: 0,
+                // 保存していない変更が残っている (sequence が、最後の保存より進んでいる)。ISSUE #1528 で、確認を出す条件を「未保存の変更が残っているとき」に絞った
+                sequence: 2,
+                saveHistory: [],
                 payload: null,
               },
             ],

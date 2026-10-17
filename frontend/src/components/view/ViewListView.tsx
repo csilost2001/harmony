@@ -403,6 +403,7 @@ export function ViewListView() {
   };
 
   useListKeyboard({
+    markOpenHint: true,
     items: sort.sorted,
     getId: (v) => v.id,
     selection,
@@ -566,7 +567,7 @@ export function ViewListView() {
               disabled={sortActive}
               title={sortActive ? "ソート中は無効 (ソート解除で利用可能)" : undefined}
             >
-              <i className="bi bi-plus-lg" /> ビュー追加
+              <i className="bi bi-plus-lg" /> ビューを追加
             </button>
             <button
               className="tbl-btn tbl-btn-ghost danger"
@@ -625,7 +626,7 @@ export function ViewListView() {
           selection={selection}
           clipboard={clipboard}
           sort={sort}
-          onActivate={handleActivate}
+          openHint onActivate={handleActivate}
           onReorder={handleReorder}
           layout={viewMode === "card" ? "grid" : "list"}
           renderCard={renderCard}

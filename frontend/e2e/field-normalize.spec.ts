@@ -20,7 +20,7 @@ test.describe("ID・物理名の欄の正規化", { tag: ["@regression"] }, () =
   test("テーブル追加の物理名: 全角を貼り付けると半角になり、Ctrl+Z で戻せる。入力モードの属性が付いている", async ({ page, context }) => {
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
     await ws.gotoActive(page, "/table/list");
-    await page.getByRole("button", { name: /テーブル追加/ }).first().click();
+    await page.getByRole("button", { name: /テーブルを?追加/ }).first().click();
     const modal = page.locator(".tbl-modal");
     const phys = modal.getByPlaceholder("例: customers");
     await expect(phys).toBeVisible();
@@ -40,7 +40,7 @@ test.describe("ID・物理名の欄の正規化", { tag: ["@regression"] }, () =
 
   test("入力が終わったとき (フォーカスが外れたとき)、残っている全角・前後の空白を直す。名称の欄は変換しない", async ({ page }) => {
     await ws.gotoActive(page, "/table/list");
-    await page.getByRole("button", { name: /テーブル追加/ }).first().click();
+    await page.getByRole("button", { name: /テーブルを?追加/ }).first().click();
     const modal = page.locator(".tbl-modal");
     const phys = modal.getByPlaceholder("例: customers");
     const display = modal.getByPlaceholder("例: 顧客マスタ");

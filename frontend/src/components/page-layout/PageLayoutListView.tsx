@@ -394,6 +394,7 @@ export function PageLayoutListView() {
   };
 
   useListKeyboard({
+    markOpenHint: true,
     items: sort.sorted,
     getId: (v) => String(v.id),
     selection,
@@ -558,7 +559,7 @@ export function PageLayoutListView() {
               disabled={sortActive}
               title={sortActive ? "ソート中は無効 (ソート解除で利用可能)" : undefined}
             >
-              <i className="bi bi-plus-lg" /> ページレイアウト追加
+              <i className="bi bi-plus-lg" /> ページレイアウトを追加
             </button>
             <button
               className="tbl-btn tbl-btn-ghost danger"
@@ -617,7 +618,7 @@ export function PageLayoutListView() {
           selection={selection}
           clipboard={clipboard}
           sort={sort}
-          onActivate={handleActivate}
+          openHint onActivate={handleActivate}
           onReorder={handleReorder}
           layout={viewMode === "card" ? "grid" : "list"}
           renderCard={renderCard}

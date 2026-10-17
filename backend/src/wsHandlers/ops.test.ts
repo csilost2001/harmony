@@ -38,7 +38,8 @@ beforeEach(async () => {
   await fs.writeFile(path.join(ROOT, "harmony.json"), JSON.stringify({ schemaVersion: "v3", dataDir: "harmony", meta: { id: "00000000-0000-4000-8000-00000000000c", name: "試験", createdAt: ts, updatedAt: ts }, entities: { tables: [{ id: "orders", no: 1, name: "注文", physicalName: "orders", maturity: "draft", updatedAt: ts }] } }));
   await writeTable("orders", { id: "orders", uuid: "44444444-4444-4444-8444-444444444441", physicalName: "orders", name: "注文", createdAt: ts, updatedAt: ts, columns: [{ id: "id", no: 1, physicalName: "id", name: "ID", dataType: "BIGINT", primaryKey: true, notNull: true }] }, ROOT);
 });
-afterEach(async () => { await fs.rm(ROOT, { recursive: true, force: true }); });
+// 後ろで動いている書き込み (記録の追記など) と重なって、ENOTEMPTY になることがあるので、少し待って、やり直す
+afterEach(async () => { await fs.rm(ROOT, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
 
 describe("設計書の体裁・改訂履歴", () => {
   it("保存すると、検証して書き、読み戻せる。ほかの画面へ通知する (自分には送らない)。監査ログに残る。検証に通らなければ、書かずに理由を返す", async () => {

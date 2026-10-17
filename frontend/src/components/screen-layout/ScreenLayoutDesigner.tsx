@@ -62,6 +62,8 @@ import { firstChildId, neighborId, parentId } from "./layoutKeyboard";
 import { showToast } from "../../utils/toast";
 import { HelpHint } from "../help/HelpHint";
 import { LoadingBlock } from "../common/LoadingBlock";
+import { hasUnsavedOwnSession } from "../../utils/editSessionHints";
+import { hasDraft } from "../../utils/draftStorage";
 
 const VIEWPORTS: Array<{ key: string; label: string; icon: string; width: number }> = [
   { key: "pc", label: "PC", icon: "bi-display", width: 1200 },
@@ -312,7 +314,8 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
       const res = await mcpBridge.request("editSession.list", { resourceType: "screen-item", resourceId: screenId }) as { sessions: Array<{ state?: string; participants?: Record<string, unknown> }> } | null;
       if (cancelled) return;
       const mine = mcpBridge.getSessionId();
-      if ((res?.sessions ?? []).some((s) => s.state === "Active" && !!s.participants?.[mine])) setShowResume(true);
+      // 続きの確認は、自分のセッションに保存していない変更が残っているとき (サーバへ届いていない編集は、このブラウザの下書きで見る)。保存したまま残っている別のページ (項目定義) のセッションは、続きではない (ISSUE #1528)
+      if (hasUnsavedOwnSession(res?.sessions ?? [], mine) || hasDraft("screen-layout", screenId)) setShowResume(true);
     })().catch((err) => reportFailure(err, "編集セッションの確認"));
     return () => { cancelled = true; };
   }, [sessionLoading, mode.kind, screenId]);

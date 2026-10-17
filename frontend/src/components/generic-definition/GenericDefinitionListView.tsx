@@ -222,6 +222,7 @@ export function GenericDefinitionListView() {
   }, [kind, loadItems]);
 
   useListKeyboard({
+    markOpenHint: true,
     items: sort.sorted,
     getId,
     selection,
@@ -433,7 +434,7 @@ export function GenericDefinitionListView() {
             sort={sort}
             layout={viewMode === "card" ? "grid" : "list"}
             renderCard={renderCard}
-            onActivate={(item) => handleActivate(item)}
+            openHint onActivate={(item) => handleActivate(item)}
             onContextMenu={(e, item) => {
               e.preventDefault();
               if (item) setContextMenu({ x: e.clientX, y: e.clientY, name: item.name });

@@ -50,7 +50,7 @@ test.describe("EntityIdInput — 創成ダイアログ kebab-case id 入力 (#12
     await ws.gotoActive(page, "/table/list");
     await expect(page.locator(".table-list-page")).toBeVisible();
     await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => undefined);
-    const addBtn = page.getByRole("button", { name: /テーブル追加/ }).first();
+    const addBtn = page.getByRole("button", { name: /テーブルを?追加/ }).first();
     await expect(addBtn).toBeVisible({ timeout: 10000 });
     await addBtn.click();
     await expect(page.locator(".tbl-modal")).toBeVisible();

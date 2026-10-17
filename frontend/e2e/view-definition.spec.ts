@@ -91,7 +91,8 @@ test.describe("ビュー定義 E2E", { tag: ["@regression"] }, () => {
       await editStart.click();
     }
 
-    await page.getByRole("button", { name: /ビュー定義追加/ }).click();
+    // 追加ボタンの名前を「〜を追加」にそろえた (ISSUE #1528) ので、ヘッダーと、0 件のときの案内の 2 つが同じ名前になる。ヘッダーのほうを押す
+    await page.getByRole("button", { name: /ビュー定義を?追加/ }).first().click();
     await expect(page.getByText("ビュー定義追加").first()).toBeVisible();
     // モーダル内のフィールドは label 内に <span> が入る複合構造のため、placeholder + select で指定
     await page.locator('.tbl-modal input[placeholder="例: 顧客一覧"]').fill(CREATED_NAME);

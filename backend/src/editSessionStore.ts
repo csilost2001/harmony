@@ -86,6 +86,18 @@ export interface EditSession {
   saveHistory: SaveEvent[];
   lastActivityAt: string;
   discardedAt?: string;
+  /**
+   * この EditSession の「元」の時刻 (ISSUE #1528)。保存時の衝突判定は、「元より後に、別の EditSession が保存したか」で決める。
+   * 保存の記録が無い間は createdAt が元。別の EditSession が保存したとき、保存していない変更が無い (clean) セッションは、
+   * その保存の内容を取り込んだ (画面側が、変更の通知で読み直す) ものとして、元を進める。無ければ、createdAt と最後の保存の遅いほう
+   */
+  baseAt?: string;
+}
+
+/** 保存していない変更が残っているか (変更のたびに増える sequence が、最後の保存の sequence より進んでいるか) */
+export function hasUnsavedChangesInSession(s: Pick<EditSession, "sequence" | "saveHistory">): boolean {
+  const last = s.saveHistory.length > 0 ? s.saveHistory[s.saveHistory.length - 1].sequence : 0;
+  return s.sequence > last;
 }
 
 /** EditSession に対する cleanupExpired の操作種別 */

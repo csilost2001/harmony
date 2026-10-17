@@ -944,6 +944,7 @@ export function WorkspaceListView() {
   const selectedItem = selection.selectedItems[0] ?? null;
 
   useListKeyboard({
+    markOpenHint: true,
     items: sort.sorted,
     getId: (w) => w.id,
     selection,
@@ -1063,7 +1064,7 @@ export function WorkspaceListView() {
             columns={columns}
             getId={(w) => w.id}
             selection={selection}
-            onActivate={handleActivate}
+            openHint onActivate={handleActivate}
             layout={viewMode === "card" ? "grid" : "list"}
             renderCard={renderCard}
             showNumColumn={viewMode === "table"}

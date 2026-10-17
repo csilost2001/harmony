@@ -44,6 +44,7 @@ export function EditModeToolbar({
           <i className="bi bi-pencil me-1" />
           編集開始
         </button>
+        <span className="edit-mode-hint" data-testid="edit-mode-readonly-hint">← 押すと、入力や追加ができるようになります</span>
       </div>
     );
   }
@@ -93,10 +94,12 @@ export function EditModeToolbar({
           className="edit-mode-btn edit-mode-btn-secondary"
           onClick={onDiscardClick}
           disabled={saving}
+          title={dirty === false ? "編集をやめて、閲覧に戻ります (保存した内容は残ります)" : "編集をやめて、保存していない変更を捨てます"}
           data-testid="edit-mode-discard"
         >
-          <i className="bi bi-x-lg me-1" />
-          破棄
+          {/* 変更が無い (保存済み) ときは、「破棄」だと、保存した内容まで消えるように読めるので、「編集を終える」と出す (ISSUE #1528 e) */}
+          <i className={`bi ${dirty === false ? "bi-box-arrow-left" : "bi-x-lg"} me-1`} />
+          {dirty === false ? "編集を終える" : "破棄"}
         </button>
         {dirty !== undefined && (() => {
           const st = describeSaveStatus(dirty, status);

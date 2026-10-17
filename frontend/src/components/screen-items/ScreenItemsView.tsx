@@ -118,6 +118,8 @@ import { moveItem, remapIndexSet } from "../../utils/rowReorder";
 import { asciiFieldProps } from "../../utils/fieldNormalize";
 import { identifierHint, isValidIdentifier } from "../../utils/identifierHints";
 import { FieldHint } from "../common/FieldHint";
+import { hasUnsavedOwnSession } from "../../utils/editSessionHints";
+import { hasDraft } from "../../utils/draftStorage";
 
 type ScreenMeta = { id: string; name: string };
 
@@ -440,9 +442,8 @@ export function ScreenItemsView() {
       if (cancelled) return;
       // #980-A: 自分が participant として参加していた Active session のみ対象。
       const mySessionId = mcpBridge.getSessionId();
-      const hasMyActiveSession = (res?.sessions ?? []).some((s) =>
-        s.state === "Active" && !!s.participants?.[mySessionId],
-      );
+      // 保存していない変更が残っているとき (サーバへ届いていない編集は、このブラウザの下書きで見る)。保存したまま残っている別のページ (画面デザイン) のセッションは、続きではない (ISSUE #1528)
+      const hasMyActiveSession = hasUnsavedOwnSession(res?.sessions ?? [], mySessionId) || hasDraft("screen-items", screenId);
       if (hasMyActiveSession) setShowResumeDialog(true);
     })().catch((err) => reportFailure(err, "編集セッションの確認"));
     return () => { cancelled = true; };

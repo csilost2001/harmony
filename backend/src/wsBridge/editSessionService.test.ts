@@ -349,3 +349,69 @@ describe("EditSessionService.save resource change broadcast", () => {
     expect(sentByClient.get("client-other-workspace")).not.toContain(tableChangedMessage);
   });
 });
+
+
+describe("EditSessionService.save の衝突判定 (ISSUE #1528: 同じ画面の、同じブラウザの、デザインと項目定義だけを緩める)", () => {
+  const edit = (id: string, extra: Record<string, unknown> = {}) => ({ id, name: "受注", columns: [], ...extra });
+  const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  const create = (client: string, type: "table" | "screen-item", id: string, label: string) =>
+    (service.create(client, type, id, label).editSession as { id: string }).id;
+
+  it("screen-item: 同じブラウザの別のセッションの保存が、自分が始まる前に済んでいれば、衝突しない (デザイン → 項目定義)", async () => {
+    const design = create("client-editor", "screen-item", "scr-1", "デザイン");
+    service.update("client-editor", design, edit("scr-1"));
+    expect((await service.save("client-editor", design)).ok).toBe(true);
+    await wait(5);
+    const items = create("client-editor", "screen-item", "scr-1", "項目定義");
+    service.update("client-editor", items, edit("scr-1", { note: "後から" }));
+    expect((await service.save("client-editor", items)).ok).toBe(true);
+  });
+
+  it("screen-item: 保存していない変更が無い (clean) 同じブラウザの別のセッションは、元が進む。続けて保存しても衝突しない (デザイン → 項目定義 → デザイン)", async () => {
+    const design = create("client-editor", "screen-item", "scr-1", "デザイン");
+    service.update("client-editor", design, edit("scr-1", { v: "デザイン" }));
+    expect((await service.save("client-editor", design)).ok).toBe(true);
+    await wait(5);
+    const items = create("client-editor", "screen-item", "scr-1", "項目定義");
+    service.update("client-editor", items, edit("scr-1", { v: "項目定義" }));
+    expect((await service.save("client-editor", items)).ok).toBe(true);
+    await wait(5);
+    service.update("client-editor", design, edit("scr-1", { v: "デザイン 2 回目" }));
+    expect((await service.save("client-editor", design)).ok).toBe(true);
+  });
+
+  it("screen-item: 保存していない変更が残っているセッションは、元が進まない。別のセッションが保存したあとに保存すると、衝突する。上書きすれば、その後は衝突しない", async () => {
+    const a = create("client-editor", "screen-item", "scr-1", "デザイン");
+    const b = create("client-editor", "screen-item", "scr-1", "項目定義");
+    service.update("client-editor", a, edit("scr-1", { v: "A" })); // a は、保存していない変更を持つ
+    service.update("client-editor", b, edit("scr-1", { v: "B" }));
+    expect((await service.save("client-editor", b)).ok).toBe(true);
+    await wait(5);
+    const conflict = await service.save("client-editor", a);
+    expect(conflict.ok).toBe(false);
+    expect((await service.save("client-editor", a, { force: true })).ok).toBe(true);
+    await wait(5);
+    service.update("client-editor", a, edit("scr-1", { v: "A2" }));
+    expect((await service.save("client-editor", a)).ok).toBe(true);
+  });
+
+  it("screen-item でも、別のブラウザ (別の利用者) のセッションには、緩和を使わない: 自分が始まる前の保存でも衝突する (従来どおり)", async () => {
+    const other = create("client-consumer", "screen-item", "scr-1", "別の人");
+    service.update("client-consumer", other, edit("scr-1", { v: "他" }));
+    expect((await service.save("client-consumer", other)).ok).toBe(true);
+    await wait(5);
+    const mine = create("client-editor", "screen-item", "scr-1", "自分");
+    service.update("client-editor", mine, edit("scr-1", { v: "自分" }));
+    expect((await service.save("client-editor", mine)).ok).toBe(false);
+  });
+
+  it("screen-item 以外 (table など) は、同じブラウザでも、緩和を使わない: 保存済みの別のセッションがあれば衝突する (従来どおり)", async () => {
+    const first = create("client-editor", "table", "orders", "受注");
+    service.update("client-editor", first, edit("orders"));
+    expect((await service.save("client-editor", first)).ok).toBe(true);
+    await wait(5);
+    const second = create("client-editor", "table", "orders", "受注");
+    service.update("client-editor", second, edit("orders", { note: "後から" }));
+    expect((await service.save("client-editor", second)).ok).toBe(false);
+  });
+});

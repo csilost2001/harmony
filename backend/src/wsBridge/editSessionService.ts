@@ -23,6 +23,7 @@ import {
   EditSessionStore,
   EditSessionNotFoundError,
   EditSessionStateError,
+  hasUnsavedChangesInSession,
   type DraftResourceType as EditSessionResourceType,
   type EditSession,
   type EditSessionMigrationResult,
@@ -333,8 +334,27 @@ export class EditSessionService {
         targetSession?.resourceType ?? "process-flow",
         targetSession?.resourceId ?? "",
       );
+      // 衝突 = 保存の記録がある、別の Active なセッションがある (従来どおり。last-save-wins の警告)。
+      // ただし、次の場合だけは、「自分の編集の元になった内容より後に、別のセッションが保存した」ときだけを衝突とする (ISSUE #1528):
+      //   同じ画面 (`screen-item`) の、画面デザインと項目定義を、**同じブラウザ (同じ利用者)** で行き来するとき。
+      //   どちらのページも、変更の通知で、変更が無いとき (clean) は最新の原本を読み直すので、保存した内容を取り込み済みとみなせる。
+      //   (以前は、保存のたびに「別の編集セッションで更新されています」(相手は自分) が出て、上書きしても、次の保存でまた出た)
+      // 他の資源・別の利用者・別のブラウザには、この緩和を使わない (画面が古い内容のまま保存して、他の人の保存を気づかず上書きするのを防ぐ)。
+      const lastSavedMs = (es: { saveHistory: Array<{ savedAt: string }> }): number => {
+        const last = es.saveHistory[es.saveHistory.length - 1];
+        const t = last ? Date.parse(last.savedAt) : NaN;
+        return Number.isNaN(t) ? Number.NEGATIVE_INFINITY : t;
+      };
+      const ms = (iso: string | undefined): number => { const t = iso ? Date.parse(iso) : NaN; return Number.isNaN(t) ? Number.NEGATIVE_INFINITY : t; };
+      // 同じ時刻 (ミリ秒) のときは、衝突とする (安全側)。ただし、元を進めた (baseAt) 時刻と同じ保存は、取り込み済みなので衝突ではない
+      const myLooseBaseMs = targetSession ? Math.max(ms(targetSession.createdAt), lastSavedMs(targetSession)) : Number.NEGATIVE_INFINITY;
+      const myRebasedMs = targetSession ? ms(targetSession.baseAt) : Number.NEGATIVE_INFINITY;
+      const savedAfterMyBase = (other: EditSession): boolean => lastSavedMs(other) >= myLooseBaseMs && lastSavedMs(other) > myRebasedMs;
+      const sameBrowserScreenPair = (other: EditSession): boolean =>
+        targetSession?.resourceType === "screen-item" && other.participants.has(sessionId);
       const conflicting = allSessions.find(
-        (s) => s.id !== editSessionId && s.state === "Active" && s.saveHistory.length > 0,
+        (s) => s.id !== editSessionId && s.state === "Active" && s.saveHistory.length > 0
+          && (sameBrowserScreenPair(s) ? savedAfterMyBase(s) : true),
       );
       if (conflicting) {
         const lastSave = conflicting.saveHistory[conflicting.saveHistory.length - 1];
@@ -392,6 +412,14 @@ export class EditSessionService {
     // 本体 resource file へ atomic write (P1-1, #907 regression 解消)
     const session = store.getById(editSessionId);
     let resourceChange: { event: string; data: Record<string, string> } | null = null;
+    // 同じ画面 (`screen-item`) の、同じブラウザの、保存していない変更が無い別の Active セッション (画面デザインと項目定義の片方) は、
+    // この保存の内容を取り込んだものとして、元を進める (画面側は、変更の通知で、変更が無いときは読み直す)。
+    // 保存していない変更があるセッションは、そのまま (あとで保存すれば衝突になる)。他の資源・別のブラウザには使わない (ISSUE #1528)
+    if (session && session.resourceType === "screen-item") {
+      for (const other of store.listByResource(session.resourceType, session.resourceId)) {
+        if (other.id !== editSessionId && other.state === "Active" && other.participants.has(sessionId) && !hasUnsavedChangesInSession(other)) other.baseAt = saveEvent.savedAt;
+      }
+    }
     if (session && session.payload !== null && session.payload !== undefined) {
       const root = resolveRoot(sessionId);
       const type = session.resourceType;
