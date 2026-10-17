@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent as ReactDragEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type MouseEvent as ReactMouseEvent } from "react";
+import { DEFAULT_ROW_HEIGHT, shouldWindow, useWindowingSuspended, visibleRange, type WindowRange } from "../../utils/windowing";
+import { announce } from "../../utils/announce";
 import {
   DndContext,
   PointerSensor,
@@ -58,6 +60,8 @@ export interface DataListColumn<T> {
 export type DataListLayout = "list" | "grid";
 
 interface Props<T> {
+  /** 表の名前 (読み上げ用。例: 「テーブルのカラム」)。省略すると、名前なし */
+  ariaLabel?: string;
   items: T[];
   columns: DataListColumn<T>[];
   getId: (item: T) => string;
@@ -119,6 +123,7 @@ interface Props<T> {
 }
 
 export function DataList<T>({
+  ariaLabel,
   items, columns: allColumns, getId, getNo, selection, clipboard, sort,
   onActivate, onReorder, onRowDelete, onContextMenu,
   layout = "list",
@@ -141,6 +146,12 @@ export function DataList<T>({
   const columns = useMemo(() => (prefsKey ? applyColumnPrefs(allColumns, prefs) : allColumns), [prefsKey, allColumns, prefs]);
   const orderedAll = useMemo(() => applyColumnPrefs(allColumns, { ...prefs, hidden: [] }), [allColumns, prefs]);
   const [menuAt, setMenuAt] = useState<{ x: number; y: number } | "button" | null>(null);
+  // 件数の変化を、スクリーンリーダーへ伝える (絞り込み・追加・削除。最初の表示では伝えない。続編 第 10 弾 #187)
+  const announcedCount = useRef<number | null>(null);
+  useEffect(() => {
+    if (announcedCount.current !== null && announcedCount.current !== items.length) announce(`${items.length} 件を表示`);
+    announcedCount.current = items.length;
+  }, [items.length]);
   const [showCondition, setShowCondition] = useState(false);
   const [copyMenu, setCopyMenu] = useState<{ x: number; y: number } | null>(null);
   const [groupMenu, setGroupMenu] = useState<{ x: number; y: number } | null>(null);
@@ -313,6 +324,41 @@ export function DataList<T>({
     setOverId(null);
   };
 
+  // 行が多い一覧は、見える範囲の行だけ描く (続編 第 10 弾 #192)。画面内の検索を開いている間は止める
+  const windowSuspended = useWindowingSuspended();
+  const windowed = layout === "list" && shouldWindow(items.length, groupActive, windowSuspended);
+  const bodyRef = useRef<HTMLTableSectionElement>(null);
+  const rowHeight = useRef(DEFAULT_ROW_HEIGHT);
+  const [range, setRange] = useState<WindowRange>({ start: 0, end: 60 });
+  useEffect(() => {
+    if (!windowed) return;
+    const body = bodyRef.current;
+    if (!body) return;
+    // スクロールする入れ物 (いちばん近い overflow が auto / scroll の親。なければ、文書全体)
+    let parent: HTMLElement | null = body.parentElement;
+    while (parent && !/(auto|scroll)/.test(getComputedStyle(parent).overflowY)) parent = parent.parentElement;
+    const scroller: HTMLElement | Window = parent ?? window;
+    let raf = 0;
+    const compute = () => {
+      raf = 0;
+      const row = body.querySelector<HTMLElement>("tr.data-list-row");
+      if (row) rowHeight.current = Math.max(20, row.getBoundingClientRect().height);
+      const top = body.getBoundingClientRect().top;
+      const scrollTop = parent ? parent.scrollTop : window.scrollY;
+      const viewport = parent ? parent.clientHeight : window.innerHeight;
+      const base = parent ? parent.getBoundingClientRect().top : 0;
+      // 一覧の先頭 (tbody の先頭。上の余白の行も tbody の中にある) の、入れ物の先頭からの距離
+      const listTop = top - base + scrollTop;
+      const next = visibleRange({ scrollTop, viewport, listTop, rowHeight: rowHeight.current, count: items.length });
+      setRange((cur) => (cur.start === next.start && cur.end === next.end ? cur : next));
+    };
+    const schedule = () => { if (!raf) raf = requestAnimationFrame(compute); };
+    scroller.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    schedule(); // 最初の範囲 (描画のあとに測る)
+    return () => { scroller.removeEventListener("scroll", schedule); window.removeEventListener("resize", schedule); if (raf) cancelAnimationFrame(raf); };
+  }, [windowed, items.length]);
+
   const showHandle = !!onReorder && layout === "list";
   const handleDisabled = showHandle && (sortActive || groupActive);
   const ids = items.map(getId);
@@ -466,7 +512,7 @@ export function DataList<T>({
       >
         <SortableContext items={ids} strategy={strategy}>
           {layout === "list" ? (
-            <table className="data-list-table">
+            <table className="data-list-table" role="grid" aria-multiselectable={selection ? true : undefined} aria-rowcount={items.length + 1} aria-label={ariaLabel}>
               <thead>
                 <tr ref={headRef}>
                   {showHandle && <th className="data-list-th-handle" aria-label="並び替えハンドル" />}
@@ -481,6 +527,8 @@ export function DataList<T>({
                     return (
                       <th
                         key={col.key}
+                        role="columnheader"
+                        aria-sort={isSortable ? (dir === "asc" ? "ascending" : dir === "desc" ? "descending" : "none") : undefined}
                         data-col-key={col.key}
                         className={[col.className, isSortable ? "data-list-th-sortable" : "", dir ? "data-list-th-sorted" : "", overCol === col.key && dragCol !== col.key ? "data-list-th-dropover" : ""].filter(Boolean).join(" ")}
                         style={widthPx ? { width: widthPx, minWidth: widthPx, maxWidth: widthPx, textAlign: col.align } : { width: col.width, textAlign: col.align }}
@@ -512,7 +560,7 @@ export function DataList<T>({
                   })}
                 </tr>
               </thead>
-              <tbody>
+              <tbody ref={bodyRef}>
                 {(() => {
                   const segs = groupActive ? groupSegments(items, groupKeyOf!) : null;
                   const colSpan = (showHandle ? 1 : 0) + (showNumColumn ? 1 : 0) + (onRowDelete ? 1 : 0) + columns.length;
@@ -542,6 +590,14 @@ export function DataList<T>({
                       />
                     );
                   };
+                  if (!segs && windowed) {
+                    const start = Math.min(range.start, items.length);
+                    const end = Math.min(Math.max(range.end, start), items.length);
+                    const spacer = (key: string, rows: number) => rows > 0 ? (
+                      <tr key={key} className="data-list-spacer" aria-hidden="true" data-testid={key}><td colSpan={colSpan} style={{ height: rows * rowHeight.current, padding: 0, border: 0 }} /></tr>
+                    ) : null;
+                    return [spacer("data-list-spacer-top", start), ...items.slice(start, end).map((item, i) => rowOf(item, start + i)), spacer("data-list-spacer-bottom", items.length - end)];
+                  }
                   if (!segs) return items.map(rowOf);
                   return segs.flatMap((seg) => {
                     const open = !collapsedGroups.has(seg.key);
@@ -673,6 +729,8 @@ function DataListRow<T>({
       ref={setNodeRef}
       style={style}
       className={`data-list-row${selected ? " selected" : ""}${ghost ? " ghost" : ""}${indicatorClass}`}
+      aria-selected={selection ? selected : undefined}
+      aria-rowindex={index + 2}
       onClick={(e) => selection?.handleRowClick(id, e)}
       onDoubleClick={() => onActivate?.(item, index)}
       onContextMenu={onContextMenu ? handleContextMenu : undefined}

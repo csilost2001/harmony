@@ -610,7 +610,7 @@ export function ViewListView() {
 
         <ListViewBar listKey="view-list" query={query} onQuery={setQuery} sort={sort} facets={[editing.facet]} />
 
-        <DataList
+        <DataList ariaLabel="DB ビューの一覧"
           prefsKey="view-list"
           rowMark={(x) => rowMarks.get(String(x.id)) ?? null}
           recentSort

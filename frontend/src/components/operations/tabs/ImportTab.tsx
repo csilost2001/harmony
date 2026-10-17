@@ -3,7 +3,7 @@
  * どちらも、まず予行 (何が作られるか・既にあるものは作らない・読み飛ばしたもの) を見せ、選んだものだけを新規に作る。既存の設計は上書きしない。
  * Excel (.xlsx) の表は、テーブルの「カラムを貼り付け」・画面項目の「項目を貼り付け」の、Excel ファイルの読み込みから。
  */
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useRef, useState } from "react";
 import { importOpenApi, parseDdl, type ImportedTable } from "@harmony/shared";
 import { Section } from "../../analysis/ui";
 import { saveTable } from "../../../store/tableStore";
@@ -16,6 +16,8 @@ import { readFileBytes } from "../../../utils/inflate";
 import { useLoad } from "../useLoad";
 import { takePendingImport } from "../../../store/pendingImport";
 import { compareTableDefinition } from "../../../utils/importPreview";
+import { batchSummary, runBatch } from "../../../utils/batchTask";
+import { ProgressBar } from "../../common/ProgressBar";
 
 const ts = () => new Date().toISOString();
 
@@ -42,6 +44,8 @@ function DdlImport() {
   const [text, setText] = useState(() => takePendingImport("ddl") ?? "");
   const [skip, setSkip] = useState<Set<string>>(new Set()); // 外したテーブル (既定はすべて選ぶ)
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const abort = useRef<AbortController | null>(null);
   // 既にあるテーブル: ファイルの実体を、毎回読み直す (一覧の登録簿は、取り込みの直後に追いつかないことがある)
   const existing = useLoad(async () => ((await mcpBridge.request("listAllTables", {})) as Array<{ id?: string; physicalName?: string; columns?: unknown[]; indexes?: unknown[] }> | null ?? []), false);
   const tooBig = text.length > MAX_LIVE_CHARS;
@@ -64,16 +68,20 @@ function DdlImport() {
   };
   const apply = async () => {
     setBusy(true);
+    abort.current = new AbortController();
+    setProgress({ done: 0, total: chosen.length });
     try {
-      let n = 0;
-      for (const t of chosen) {
+      const r = await runBatch(chosen, async (t) => {
         const now = ts();
         await saveTable({ $schema: "", ...t, uuid: generateUUID(), maturity: "draft", createdAt: now, updatedAt: now } as never);
-        n++;
-      }
-      showToast(`${n} 件のテーブルを取り込みました`);
-      setText(""); setSkip(new Set()); existing.reload();
-    } catch (e) { reportFailure(e, "DDL の取り込み"); } finally { setBusy(false); }
+      }, { signal: abort.current.signal, onProgress: (done, total) => setProgress({ done, total }) });
+      if (r.failed.length > 0) reportFailure(r.failed[0].error, "DDL の取り込み");
+      if (!r.cancelled && r.failed.length === 0) showToast(`${r.done} 件のテーブルを取り込みました`);
+      else showToast(`${batchSummary(r, "取り込みました")}${r.failed.length ? `。失敗: ${r.failed.map((f) => f.item.physicalName).join("、")} (入力は残しています。取り込めたものは「作りません」になるので、そのまま、もう一度取り込めます)` : ""}`, r.failed.length ? "error" : "info");
+      // すべて取り込めたときだけ、入力を空にする (失敗・中止があれば残し、残りをやり直せるようにする)
+      if (!r.cancelled && r.failed.length === 0) { setText(""); setSkip(new Set()); }
+      existing.reload();
+    } catch (e) { reportFailure(e, "DDL の取り込み"); } finally { setBusy(false); setProgress(null); abort.current = null; }
   };
 
   return (
@@ -110,6 +118,7 @@ function DdlImport() {
           )}
           {result.warnings.length > 0 && <details open><summary>注意 ({result.warnings.length} 件)</summary><ul className="an-list" data-testid="op-ddl-warnings">{result.warnings.map((w, i) => <li key={i}>{w}</li>)}</ul></details>}
           {result.skipped.length > 0 && <details><summary>読み飛ばしたもの ({result.skipped.length} 件)</summary><ul className="an-list" data-testid="op-ddl-skipped">{result.skipped.map((w, i) => <li key={i}>{w}</li>)}</ul></details>}
+          {progress && <ProgressBar label="取り込み中" done={progress.done} total={progress.total} onCancel={() => abort.current?.abort()} />}
           <div className="an-row"><button type="button" className="an-btn primary" disabled={busy || chosen.length === 0} onClick={() => void apply()} data-testid="op-ddl-apply"><i className="bi bi-box-arrow-in-down" /> 選んだ {chosen.length} 件を取り込む</button><span className="an-hint">既存のテーブルは上書きしません。取り込んだテーブルは「下書き」です。</span></div>
         </div>
       )}
@@ -122,6 +131,8 @@ function OpenApiImport() {
   const [error, setError] = useState<string | null>(null);
   const [skip, setSkip] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const abort = useRef<AbortController | null>(null);
   const existing = useLoad(async () => [...(await loadAllProcessFlows()).keys()], false);
   const tooBig = text.length > MAX_LIVE_CHARS;
   const deferred = useDeferredValue(text);
@@ -137,17 +148,20 @@ function OpenApiImport() {
 
   const apply = async () => {
     setBusy(true); setError(null);
+    abort.current = new AbortController();
+    setProgress({ done: 0, total: chosen.length });
     try {
-      let n = 0;
-      for (const f of chosen) {
+      const r = await runBatch(chosen, async (f) => {
         // 作成は、画面からの新規作成と同じ経路 (一覧への登録を含む)。そのうえで、取り込んだ入口・入力・応答を書き込む
         const created = await createProcessFlow(String(f.flow.meta.name), "common", undefined, typeof f.flow.meta.description === "string" ? f.flow.meta.description : "", { id: f.id });
         await saveProcessFlow({ ...created, actions: f.flow.actions as never });
-        n++;
-      }
-      showToast(`${n} 件の処理フローの骨組みを作りました`);
-      setText(""); setSkip(new Set()); existing.reload();
-    } catch (e) { setError(e instanceof Error ? e.message : String(e)); reportFailure(e, "OpenAPI の取り込み"); } finally { setBusy(false); }
+      }, { signal: abort.current.signal, onProgress: (done, total) => setProgress({ done, total }) });
+      if (r.failed.length > 0) { const e = r.failed[0].error; setError(e instanceof Error ? e.message : String(e)); reportFailure(e, "OpenAPI の取り込み"); }
+      if (!r.cancelled && r.failed.length === 0) showToast(`${r.done} 件の処理フローの骨組みを作りました`);
+      else showToast(`${batchSummary(r, "作りました")}${r.failed.length ? `。失敗: ${r.failed.map((f) => f.item.name).join("、")} (入力は残しています。作れたものは「作りません」になるので、そのまま、もう一度作れます)` : ""}`, r.failed.length ? "error" : "info");
+      if (!r.cancelled && r.failed.length === 0) { setText(""); setSkip(new Set()); }
+      existing.reload();
+    } catch (e) { setError(e instanceof Error ? e.message : String(e)); reportFailure(e, "OpenAPI の取り込み"); } finally { setBusy(false); setProgress(null); abort.current = null; }
   };
 
   return (
@@ -174,6 +188,7 @@ function OpenApiImport() {
           )}
           {parsed.warnings.length > 0 && <details open><summary>注意 ({parsed.warnings.length} 件)</summary><ul className="an-list" data-testid="op-openapi-warnings">{parsed.warnings.map((w, i) => <li key={i}>{w}</li>)}</ul></details>}
           {error && <p className="an-alert" role="alert">{error}</p>}
+          {progress && <ProgressBar label="作成中" done={progress.done} total={progress.total} onCancel={() => abort.current?.abort()} />}
           <div className="an-row"><button type="button" className="an-btn primary" disabled={busy || chosen.length === 0} onClick={() => void apply()} data-testid="op-openapi-apply"><i className="bi bi-box-arrow-in-down" /> 選んだ {chosen.length} 件を作る</button><span className="an-hint">既存の処理フローは上書きしません。</span></div>
         </div>
       )}

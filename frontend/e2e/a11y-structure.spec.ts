@@ -40,6 +40,10 @@ test("主要画面は、ランドマーク・見出し・状態の読み上げ�
       // 見出し: main の中に、見出しが 1 つ以上。段が 2 つ以上飛ばない
       const headingEls = [...document.querySelectorAll("h1, h2, h3, h4, h5, h6, [role=heading]")].filter(visible);
       const levelOf = (h: Element) => Number(h.getAttribute("aria-level")) || (/^H[1-6]$/.test(h.tagName) ? Number(h.tagName[1]) : 2);
+      // h1 は、画面ごとに 1 つ (画面が持たないときは、見えない h1 を補う。aria-level で段を変えたものは、その段で数える。続編 第 10 弾 #186)
+      // 開いていないタブ (display: none) の中の h1 は、数えない (position: fixed の見出しは、上の visible では、隠れていても見えるものとして数えるので、描画の有無で確かめる)
+      const h1s = headingEls.filter((h) => levelOf(h) === 1 && (h as HTMLElement).getClientRects().length > 0 && !(h as HTMLElement).hidden && !h.closest(".sld-paper, .pv-root, .rp-paper, .lv-paper, .hd-doc"));
+      if (h1s.length !== 1) out.push(`h1 が ${h1s.length} 個 (1 個が必要): ${h1s.map((h) => `${h.className}「${(h.textContent ?? "").trim().slice(0, 12)}」`).join(" / ")}`);
       if (headingEls.length === 0) out.push("見出しが無い");
       let prev = 0;
       for (const h of headingEls) {

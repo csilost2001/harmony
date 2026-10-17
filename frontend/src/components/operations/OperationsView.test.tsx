@@ -268,6 +268,25 @@ describe("取り込み", () => {
     expect(toast).toHaveBeenCalledWith("1 件のテーブルを取り込みました");
   });
 
+  it("一部の取り込みが失敗したら、入力を残し、失敗した名前を知らせる。全部できたときだけ入力を空にする (続編 第 10 弾 レビュー M2)", async () => {
+    rpc.listAllTables = () => [];
+    const { saveTable } = await import("../../store/tableStore");
+    const mocked = saveTable as unknown as { mockClear: () => void; mockImplementationOnce: (f: (t: { id: string }) => Promise<void>) => void };
+    mocked.mockClear();
+    // 2 件目だけ失敗する
+    mocked.mockImplementationOnce(async () => undefined);
+    mocked.mockImplementationOnce(async () => { throw new Error("保存できません"); });
+    await open("import");
+    const text = "CREATE TABLE a1 (id int); CREATE TABLE b2 (id int); CREATE TABLE c3 (id int);";
+    fireEvent.change(await screen.findByTestId("op-ddl-text"), { target: { value: text } });
+    await waitFor(() => expect(screen.getAllByTestId("op-ddl-row")).toHaveLength(3));
+    fireEvent.click(screen.getByTestId("op-ddl-apply"));
+    await waitFor(() => expect(toast.mock.calls.some((c) => String(c[0]).includes("失敗: b2"))).toBe(true));
+    expect(toast.mock.calls.some((c) => String(c[0]).includes("3 件中 2 件を取り込みました (1 件は失敗しました)"))).toBe(true);
+    expect((screen.getByTestId("op-ddl-text") as HTMLTextAreaElement).value).toBe(text); // 入力は残る
+    expect(screen.getByTestId("op-ddl-apply")).toBeTruthy(); // やり直せる
+  });
+
   it("DDL でない文には、理由を出す。OpenAPI は JSON でないと理由を出す", async () => {
     await open("import");
     fireEvent.change(await screen.findByTestId("op-ddl-text"), { target: { value: "SELECT 1" } });

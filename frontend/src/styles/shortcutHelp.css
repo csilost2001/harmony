@@ -104,3 +104,19 @@
 .shortcut-help-group > summary::before { content: "▸"; margin-right: 6px; color: var(--hm-fg-muted); }
 .shortcut-help-group[open] > summary::before { content: "▾"; }
 .shortcut-help-here { margin-left: 8px; font-size: calc(11px * var(--hm-font-scale)); font-weight: 400; padding: 0 8px; border-radius: 10px; background: var(--hm-accent-soft); color: var(--hm-accent); }
+
+/* ヘルプの検索・この画面の項目のヘルプ (続編 第 10 弾 #189) */
+.shortcut-help-search { padding: 0 16px 8px; }
+.shortcut-help-search input { width: 100%; box-sizing: border-box; font: inherit; padding: 6px 10px; border: 1px solid var(--hm-border); border-radius: 6px; background: var(--hm-surface); color: var(--hm-fg); }
+.help-hits { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.help-hit p { margin: 2px 0 0; color: var(--hm-fg-2); }
+.help-hit small, .help-hit-empty { color: var(--hm-fg-muted); }
+.help-hit-keys kbd { font: inherit; font-size: 0.85em; }
+.help-here { margin-bottom: 10px; }
+.help-here h3 { margin: 0 0 6px; font-size: calc(14px * var(--hm-font-scale)); }
+
+/* キーの割り当て (続編 第 10 弾 #188) */
+.shortcut-help-edit { display: inline-flex; gap: 6px; margin-left: 10px; }
+.shortcut-help-capture { color: var(--hm-warning); font-weight: 600; }
+.shortcut-help-changed { color: var(--hm-fg-muted); }
+.shortcut-help-error { margin: 0; padding: 4px 16px; color: var(--hm-danger); }

@@ -820,7 +820,7 @@ export function ProcessFlowListView() {
 
       <div className="process-flow-content">
         <div className="process-flow-list-header">
-          <h5>
+          <h5 aria-level={2}>
             <i className="bi bi-diagram-3 me-2" />処理フロー定義
             {deletedCount > 0 && <span className="process-flow-list-deleted-count"> (削除予定 {deletedCount})</span>}
           </h5>
@@ -990,7 +990,7 @@ export function ProcessFlowListView() {
 
         <ListViewBar listKey="process-flow-list" query="" onQuery={() => undefined} facets={listFacets} sort={sort} />
 
-        <DataList
+        <DataList ariaLabel="処理フローの一覧"
           prefsKey="process-flow-list"
           rowMark={(x) => rowMarks.get(String(x.id)) ?? null}
           recentSort

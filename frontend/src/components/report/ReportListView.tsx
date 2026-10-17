@@ -147,7 +147,7 @@ export function ReportListView() {
         </p>
       )}
       <ListViewBar listKey="report-list" query={query} onQuery={setQuery} sort={sort} />
-      <DataList
+      <DataList ariaLabel="帳票の一覧"
         prefsKey="report-list"
           rowMark={(x) => rowMarks.get(x.id) ?? null}
           recentSort

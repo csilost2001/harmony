@@ -542,7 +542,7 @@ export function GadgetListView() {
       <ListViewBar listKey="gadget-list" query={query} onQuery={setQuery} sort={sort} />
 
       <div className="screen-list-body">
-        <DataList
+        <DataList ariaLabel="ガジェットの一覧"
           prefsKey="gadget-list"
           rowMark={(x) => rowMarks.get(String(x.id)) ?? null}
           recentSort

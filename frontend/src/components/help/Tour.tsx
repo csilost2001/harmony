@@ -7,6 +7,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { useActiveTab } from "../../hooks/useActiveTab";
 import { onHeaderPanelRequest } from "../../utils/headerPanels";
+import { WalkthroughDialog } from "./WalkthroughDialog";
 import { tourForTab, type Tour as TourDef } from "../../utils/tours";
 import { showToast } from "../../utils/toast";
 import "../../styles/tour.css";
@@ -35,6 +36,8 @@ function rectOf(selector: string | undefined): DOMRect | null {
 export function TourHost() {
   const tab = useActiveTab();
   const [tour, setTour] = useState<TourDef | null>(null);
+  const [walkthrough, setWalkthrough] = useState(false);
+  useEffect(() => onHeaderPanelRequest("walkthrough", () => setWalkthrough(true)), []);
 
   // コマンド「この画面の操作ツアー」で始める。いまのタブのツアーを開く
   const tabRef = useRef(tab);
@@ -53,7 +56,10 @@ export function TourHost() {
     return () => clearTimeout(timer);
   }, [tab?.type]);
 
-  return tour ? <TourOverlay tour={tour} onClose={() => setTour(null)} /> : null;
+  return (<>
+    {tour && <TourOverlay tour={tour} onClose={() => setTour(null)} />}
+    {walkthrough && <WalkthroughDialog onClose={() => setWalkthrough(false)} />}
+  </>);
 }
 
 export function TourOverlay({ tour, onClose }: { tour: TourDef; onClose: () => void }) {

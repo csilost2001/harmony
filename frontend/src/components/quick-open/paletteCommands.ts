@@ -83,6 +83,8 @@ export function buildPaletteCommands(ctx: CommandContext): PaletteCommand[] {
   add({ id: "density-standard", label: "密度: 標準", keywords: ["みつど", "density", "余白"], icon: "bi-distribute-vertical", run: () => setDisplayPrefs({ density: "standard" }) });
   add({ id: "contrast-high", label: "コントラスト: 高", keywords: ["こんとらすと", "contrast", "high", "見やすい"], icon: "bi-circle-half", run: () => setDisplayPrefs({ contrast: "high" }) });
   add({ id: "contrast-standard", label: "コントラスト: 標準", keywords: ["こんとらすと", "contrast"], icon: "bi-circle-half", run: () => setDisplayPrefs({ contrast: "standard" }) });
+  add({ id: "walkthrough", label: "初めての通しの案内 (受注の例で、テーブルから設計書まで)", keywords: ["はじめて", "つうし", "あんない", "walkthrough", "チュートリアル", "tutorial", "使い方", "入門", "受注"], icon: "bi-signpost-split", run: afterClose(() => requestHeaderPanel("walkthrough")) });
+  add({ id: "settings-backup", label: "設定の書き出し・読み込み (別のブラウザへ持ち出す)", keywords: ["せってい", "かきだし", "よみこみ", "settings", "export", "import", "バックアップ", "持ち出し", "引っ越し"], icon: "bi-arrow-left-right", run: afterClose(() => requestHeaderPanel("settings-backup")) });
   add({ id: "open-display", label: "表示の設定を開く", keywords: ["ひょうじ", "display", "settings", "設定"], icon: "bi-type", run: afterClose(() => requestHeaderPanel("display")) });
 
   // ── 並べて表示 ──

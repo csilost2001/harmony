@@ -632,7 +632,7 @@ textarea.sld-input { resize: vertical; line-height: 1.5; }
 .pv-input.pv-sample span { white-space: normal; overflow-wrap: anywhere; font-style: normal; color: inherit; }
 .pv-skeleton { height: 16px; width: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--pv-line) 25%, transparent 50%, var(--pv-line) 75%); background-size: 200% 100%; animation: pv-skeleton 1.4s ease-in-out infinite; }
 @keyframes pv-skeleton { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
-@media (prefers-reduced-motion: reduce) { .pv-skeleton { animation: none; } }
+@media (prefers-reduced-motion: reduce) { :root:not([data-motion="full"]) .pv-skeleton { animation: none; } }
 .pv-error { color: var(--pv-danger); font-size: 0.85em; display: flex; align-items: center; gap: 4px; }
 .pv-table-state { text-align: center; color: var(--pv-muted); padding: 14px 8px; }
 .pv-message.pv-error { background: color-mix(in srgb, var(--pv-danger) 10%, var(--pv-bg)); border-color: var(--pv-danger); }

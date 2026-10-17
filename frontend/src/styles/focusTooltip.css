@@ -1,0 +1,11 @@
+/* キーボードのフォーカスで出るツールチップ (続編 第 10 弾 #196) */
+.focus-tooltip {
+  position: fixed; z-index: 9000; max-width: 320px; pointer-events: none;
+  display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 6px;
+  background: var(--hm-inverse-bg); color: var(--hm-inverse-fg); font-size: calc(12.5px * var(--hm-font-scale)); line-height: 1.4;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--hm-fg) 25%, transparent);
+}
+.focus-tooltip-keys { display: inline-flex; align-items: center; gap: 2px; white-space: nowrap; }
+.focus-tooltip kbd { font: inherit; font-size: calc(11px * var(--hm-font-scale)); padding: 0 4px; border: 1px solid color-mix(in srgb, var(--hm-inverse-fg) 45%, transparent); border-radius: 3px; background: transparent; color: inherit; }
+@media print { .focus-tooltip { display: none !important; } }
+@media (forced-colors: active) { .focus-tooltip { border: 1px solid CanvasText; background: Canvas; color: CanvasText; } }

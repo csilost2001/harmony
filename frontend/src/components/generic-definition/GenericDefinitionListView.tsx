@@ -423,7 +423,7 @@ export function GenericDefinitionListView() {
         {loading ? (
           <div style={{ padding: "24px", color: "var(--hm-fg-muted)", textAlign: "center" }}>読み込み中...</div>
         ) : (
-          <DataList
+          <DataList ariaLabel="汎用定義の一覧"
             prefsKey="generic-definition-list"
             items={sort.sorted}
             columns={columns}

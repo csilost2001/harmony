@@ -12,6 +12,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+import { countOutlineNone } from "./no-new-outline-none.mjs";
 import {
   parseArgs,
   extractFailedTests,
@@ -722,6 +723,11 @@ group("release:notes (リリースノート)", () => {
   assert("PR 番号がなければ、番号なし", toNoteLine("2026-10-14\x1f直接のコミット") === "- 2026-10-14 直接のコミット");
   assert("マージコミット・空の件名・壊れた行は除く", toNoteLine("2026-10-14\x1fMerge pull request #1 from x") === null && toNoteLine("2026-10-14\x1f (#1)") === null && toNoteLine("壊れた") === null);
   assert("見出しと行を出す", renderNotes(["- 2026-10-14 a (#1)"]).startsWith("# リリースノート") && renderNotes(["- 2026-10-14 a (#1)"]).includes("\n- 2026-10-14 a (#1)\n"));
+});
+
+group("no-new-outline-none (フォーカス輪郭の検査)", () => {
+  assert("outline: none / 0 を数える (空白の違いも)", countOutlineNone(".a{outline:none}.b{ outline : 0 }.c{outline: 2px solid red}") === 2);
+  assert("コメントの中は数えない。outline-offset などは数えない", countOutlineNone("/* outline: none */ .a{outline-offset:0;outline-style:none}") === 0);
 });
 
 // ─────────────────────────────────────────────────────────────

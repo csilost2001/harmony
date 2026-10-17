@@ -1,4 +1,5 @@
 import { shouldBeOpen, useStepExpandCommand } from "../../store/stepExpand";
+import { matchesBinding } from "../../utils/shortcutBindings";
 import { ConvCompletionInput } from "../common/ConvCompletionInput";
 import { StepMarkerDialog } from "./internal/StepMarkerDialog";
 import { useState } from "react";
@@ -219,7 +220,7 @@ export function StepCard({
           aria-label={`${label} ${STEP_TYPE_LABELS[step.kind]} (${expanded ? "開いています" : "閉じています"})`}
           onKeyDown={(e) => {
             // Ctrl+Alt+M: この工程に、AI への指示・質問を付ける (工程の見出しにフォーカスがあるとき)
-            if (e.target === e.currentTarget && onAddMarker && !readOnly && e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && (e.key === "m" || e.key === "M")) {
+            if (e.target === e.currentTarget && onAddMarker && !readOnly && matchesBinding(e.nativeEvent, "addMarker")) {
               e.preventDefault();
               e.stopPropagation();
               setShowMarkerDialog(true);

@@ -3,6 +3,7 @@
  * - 開いた URL の `#step=s3` などの要素を、画面が読み込まれたら探して、スクロール・フォーカス・強調する (最大 8 秒、要素が出るのを待つ)
  * - Ctrl+Alt+L: フォーカス / 選択のある要素へのリンクをコピーする (レビューや AI への指示に貼れる)
  */
+import { matchesBinding } from "../../utils/shortcutBindings";
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { DEEP_LINK_LABELS, buildDeepLinkUrl, findDeepLinkElement, linkFromKey, parseDeepLink, type DeepLink } from "../../utils/deepLink";
@@ -35,7 +36,7 @@ export function DeepLinkControl() {
       if (key && linkFromKey(key)) recordEdit(getActiveTabId(), key);
     };
     const onKey = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && e.key === "Backspace")) return;
+      if (!matchesBinding(e, "lastEdit")) return;
       e.preventDefault();
       const spot = nextEditSpot();
       const link = spot ? linkFromKey(spot.key) : null;
@@ -79,7 +80,7 @@ export function DeepLinkControl() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && (e.key === "l" || e.key === "L"))) return;
+      if (!matchesBinding(e, "copyLink")) return;
       e.preventDefault();
       const el = currentTarget();
       const link = el ? linkFromKey(el.getAttribute("data-deeplink") ?? "") : null;

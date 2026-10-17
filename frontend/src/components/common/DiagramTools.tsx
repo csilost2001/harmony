@@ -4,6 +4,7 @@
  *   書き出し (PNG・Mermaid・PlantUML・印刷)・基準との差分。
  * 見え方は useDiagramView が持ち、ここは操作の画面だけ。座標を動かす操作 (整列・等間隔) は、onMoved で保存へ回す。
  */
+import { motionMs } from "../../theme/motionPrefs";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Panel, getNodesBounds, useReactFlow, type Node } from "@xyflow/react";
 import { buildDiagramText, type DiagramFormat, type DesignDocInput } from "@harmony/shared";
@@ -114,7 +115,7 @@ export function DiagramTools({ title, fileStem = "diagram", textKind, api, nodes
       const n = getNodes().find((x) => x.id === id);
       if (n) {
         const parent = n.parentId ? getNodes().find((p) => p.id === n.parentId) : undefined;
-        setCenter((parent?.position.x ?? 0) + n.position.x + (n.measured?.width ?? 160) / 2, (parent?.position.y ?? 0) + n.position.y + (n.measured?.height ?? 60) / 2, { zoom: Math.max(getZoom(), 0.8), duration: 200 });
+        setCenter((parent?.position.x ?? 0) + n.position.x + (n.measured?.width ?? 160) / 2, (parent?.position.y ?? 0) + n.position.y + (n.measured?.height ?? 60) / 2, { zoom: Math.max(getZoom(), 0.8), duration: motionMs(200) });
         setTimeout(() => document.querySelector<HTMLElement>(`.react-flow__node[data-id="${CSS.escape(id!)}"]`)?.focus({ preventScroll: true }), 0);
       }
     };
@@ -131,7 +132,7 @@ export function DiagramTools({ title, fileStem = "diagram", textKind, api, nodes
     if (!n) return;
     const abs = n.parentId ? { x: n.position.x + (getNodes().find((p) => p.id === n.parentId)?.position.x ?? 0), y: n.position.y + (getNodes().find((p) => p.id === n.parentId)?.position.y ?? 0) } : n.position;
     const w = n.measured?.width ?? 160, h = n.measured?.height ?? 60;
-    setCenter(abs.x + w / 2, abs.y + h / 2, { zoom: Math.max(getZoom(), 0.8), duration: 200 });
+    setCenter(abs.x + w / 2, abs.y + h / 2, { zoom: Math.max(getZoom(), 0.8), duration: motionMs(200) });
   }, [matches, getNodes, setCenter, getZoom]);
   const goTo = useCallback((i: number) => {
     if (matches.length === 0) return;
@@ -295,7 +296,7 @@ export function DiagramTools({ title, fileStem = "diagram", textKind, api, nodes
             ) : (
               <div className="dgm-pop-row">
                 {[1, 2, 3].map((d) => (
-                  <button key={d} type="button" className="dgm-small" disabled={selected.length === 0} onClick={() => { update({ scope: { ids: selected.map((n) => n.id), depth: d } }); setTimeout(() => fitView({ padding: 0.3, maxZoom: 1, duration: 200 }), 60); }} data-testid={`dgm-scope-${d}`}>選んだものから {d} 段</button>
+                  <button key={d} type="button" className="dgm-small" disabled={selected.length === 0} onClick={() => { update({ scope: { ids: selected.map((n) => n.id), depth: d } }); setTimeout(() => fitView({ padding: 0.3, maxZoom: 1, duration: motionMs(200) }), 60); }} data-testid={`dgm-scope-${d}`}>選んだものから {d} 段</button>
                 ))}
                 {selected.length === 0 && <span className="dgm-muted">先にノードを選んでください</span>}
               </div>

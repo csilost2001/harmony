@@ -266,4 +266,7 @@
   animation: tabbar-tab-flash 0.9s ease-out;
 }
 @keyframes tabbar-tab-flash { 0% { opacity: 0.45; } 100% { opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .tabbar-tab-flash { animation-duration: 0.01s; } }
+@media (prefers-reduced-motion: reduce) { :root:not([data-motion="full"]) .tabbar-tab-flash { animation-duration: 0.01s; } }
+
+/* タブの右クリックメニューのキーの併記 (続編 第 10 弾 #197) */
+.tab-context-key { margin-left: 16px; color: var(--hm-fg-muted); font-size: calc(11.5px * var(--hm-font-scale)); float: right; }

@@ -726,7 +726,7 @@ export function ScreenListView() {
       <ListViewBar listKey="screen-list" query={query} onQuery={setQuery} sort={sort} facets={[editing.facet]} />
 
       <div className="screen-list-body">
-        <DataList
+        <DataList ariaLabel="画面の一覧"
           prefsKey="screen-list"
           rowMark={(x) => rowMarks.get(String(x.id)) ?? null}
           recentSort

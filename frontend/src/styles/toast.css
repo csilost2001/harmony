@@ -43,4 +43,4 @@
 .toast--error i { color: var(--hm-danger); }
 .toast--info i { color: var(--hm-accent); }
 @keyframes toast-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
+@media (prefers-reduced-motion: reduce) { :root:not([data-motion="full"]) .toast { animation: none; } }

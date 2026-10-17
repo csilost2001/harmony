@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * check — コミット前の一括検証。各工程を順に実行し、最後に結果を一覧表示する。
- *   1. shared build  2. frontend 型検査  2b. frontend lint (エラー 0・警告を増やさない)  3. backend 型検査  4. 直書き色検査  4b. CSS 未定義クラス検査 (Bootstrap 風のクラス)  4c. エラー通知の書き方の検査 (.catch(console.error) を増やさない)  4d. 文字サイズの検査 (font-size の px 直書きなし)  4e. ドラッグ操作の代替の検査 (台帳にない新しいドラッグ操作を増やさない)
+ *   1. shared build  2. frontend 型検査  2b. frontend lint (エラー 0・警告を増やさない)  3. backend 型検査  4. 直書き色検査  4b. CSS 未定義クラス検査 (Bootstrap 風のクラス)  4c. エラー通知の書き方の検査 (.catch(console.error) を増やさない)  4d. 文字サイズの検査 (font-size の px 直書きなし)  4e. ドラッグ操作の代替の検査 (台帳にない新しいドラッグ操作を増やさない)  4f. フォーカス輪郭の検査 (outline: none を増やさない)
  *   5. サンプル設計の要確認 (examples/ 全件が警告なし)  5b. ビルドサイズの予算 (入口を小さく保つ)  5c. 資料の鮮度検査 (リンク・npm run・Routing の表・UI 操作リファレンス・スキル表)  6. frontend 単体テスト  7. backend 単体テスト
  * 使い方: npm run check   (--skip-tests でテスト工程を省略)
  */
@@ -31,6 +31,7 @@ const steps = [
   ["スキーマと型の食い違い検査", "node", ["scripts/verify/types-drift.mjs"], root],
   ["文字サイズの検査", "node", ["scripts/dev/scale-font-sizes.mjs", "--check"], root],
   ["ドラッグ操作の代替の検査", "node", ["scripts/verify/drag-alternatives.mjs"], root],
+  ["フォーカス輪郭の検査", "node", ["scripts/verify/no-new-outline-none.mjs"], root],
   ["CSS 未定義クラス検査", "node", ["scripts/verify/no-undefined-bootstrap-classes.mjs"], root],
   ["サンプル設計の要確認", "node", ["scripts/check-design.mjs", ...sampleDirs, "--strict"], root],
   ["ビルドサイズの予算", "node", ["scripts/verify/bundle-budget.mjs"], root],

@@ -3,7 +3,8 @@
  * useTabKeyboard / useSaveShortcut / useUndoKeyboard / useListKeyboard / QuickOpen / 画面デザイナ。
  * 変更したらここも直す (ヘルプが実際と食い違うと混乱するため)。
  */
-export interface ShortcutEntry { keys: string[]; label: string }
+/** `bindId`: キーを変えられるショートカットの台帳の id (utils/shortcutBindings.ts)。ヘルプには、変えたあとのキーを出す */
+export interface ShortcutEntry { keys: string[]; label: string; bindId?: string }
 export interface ShortcutGroup { title: string; entries: ShortcutEntry[] }
 
 export const SHORTCUT_GROUPS: ShortcutGroup[] = [
@@ -21,13 +22,13 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { keys: ["Ctrl", "Alt", "T"], label: "閉じたタブを開き直す (直近 10 件。Ctrl+Shift+T も同じですが、ブラウザが先に使うことがあります。タブバー右端のボタンで一覧から選べます)" },
       { keys: ["Ctrl", "Alt", "←→"], label: "前に見ていたタブへ戻る / 戻る前のタブへ進む (画面の履歴。タブバー左端のボタンでも)" },
       { keys: ["Ctrl", "Shift", "PageUp / PageDown"], label: "いまのタブを左 / 右へ動かす (タブのドラッグの代わり)" },
-      { keys: ["Ctrl", "Shift", "H"], label: "設計全体の検索置換 (名前・説明などの文章を、一覧で確かめて置き換える)" },
-      { keys: ["Ctrl", "Alt", "M"], label: "AI への指示・質問 (マーカー) を追加 (テーブル・画面項目: フォーカスのある行について / 処理フロー: 工程の見出しにカーソルがあるとき)" },
+      { keys: ["Ctrl", "Shift", "H"], bindId: "replace", label: "設計全体の検索置換 (名前・説明などの文章を、一覧で確かめて置き換える)" },
+      { keys: ["Ctrl", "Alt", "M"], bindId: "addMarker", label: "AI への指示・質問 (マーカー) を追加 (テーブル・画面項目: フォーカスのある行について / 処理フロー: 工程の見出しにカーソルがあるとき)" },
       { keys: ["F8"], label: "次の「要確認」(形式が違う欄・書き間違いのある条件など) へ移る (Shift+F8 で前へ)。左下に件数が出ます。保存が止まったときは、最初の要確認へ自動で移ります" },
-      { keys: ["Ctrl", "Alt", "F"], label: "入力専用モード: ヘッダーとタブを畳んで、編集の画面だけにする (もう一度で戻す。右上のボタンでも戻せます)" },
-      { keys: ["Ctrl", "Alt", "Backspace"], label: "最後に編集した場所へ戻る (工程・項目・カラム・部品。続けて押すと、さらに前の場所へ。別のタブの場所へも移ります)" },
-      { keys: ["Ctrl", "Alt", "L"], label: "選んでいる工程・項目・カラム・部品・マーカーへの、直接のリンク (URL) をコピー (開くと、その要素へ移って強調します)" },
-      { keys: ["Ctrl", "Shift", "V"], label: "直近にコピーした工程・項目・カラムの履歴から選び直す (「履歴」ボタン。選ぶとクリップボードに戻り、Ctrl+V で貼り付け)" },
+      { keys: ["Ctrl", "Alt", "F"], bindId: "focusMode", label: "入力専用モード: ヘッダーとタブを畳んで、編集の画面だけにする (もう一度で戻す。右上のボタンでも戻せます)" },
+      { keys: ["Ctrl", "Alt", "Backspace"], bindId: "lastEdit", label: "最後に編集した場所へ戻る (工程・項目・カラム・部品。続けて押すと、さらに前の場所へ。別のタブの場所へも移ります)" },
+      { keys: ["Ctrl", "Alt", "L"], bindId: "copyLink", label: "選んでいる工程・項目・カラム・部品・マーカーへの、直接のリンク (URL) をコピー (開くと、その要素へ移って強調します)" },
+      { keys: ["Ctrl", "Shift", "V"], bindId: "clipboardHistory", label: "直近にコピーした工程・項目・カラムの履歴から選び直す (「履歴」ボタン。選ぶとクリップボードに戻り、Ctrl+V で貼り付け)" },
       { keys: ["F6"], label: "画面の領域 (ヘッダー → タブ → 一覧・詳細・マーカーなど) を順に移る (Shift 付きで逆順)" },
       { keys: ["Ctrl", "Shift", "P"], label: "操作を探して実行する (コマンドパレット。Ctrl+K のあと「>」でも同じ)" },
     ],
@@ -51,7 +52,9 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { keys: ["Home", "End"], label: "先頭 / 末尾へ" },
       { keys: ["Ctrl", "A"], label: "すべて選択" },
       { keys: ["Enter"], label: "選んだ 1 件を開く (F2 も可)" },
-      { keys: ["Ctrl", "C"], label: "コピー (Ctrl+X で切り取り、Ctrl+V で貼り付け)" },
+      { keys: ["Ctrl", "C"], label: "コピー" },
+      { keys: ["Ctrl", "X"], label: "切り取り" },
+      { keys: ["Ctrl", "V"], label: "貼り付け (別のテーブル・画面・処理フローのコピーも、貼り付けられます)" },
       { keys: ["Ctrl", "D"], label: "複製" },
       { keys: ["Delete"], label: "削除" },
       { keys: ["Alt", "↑↓"], label: "選んだ項目を上下へ動かす (ページレイアウトの region は、行の入力欄からも。Alt+Delete で削除)" },
