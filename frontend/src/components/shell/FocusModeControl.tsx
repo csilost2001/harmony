@@ -1,6 +1,7 @@
 /**
  * 入力専用モードのキー (Ctrl+Alt+F) と、戻すための小さなボタン (UI 改善提案 第 5 弾 #98)。
  */
+import { matchesBinding } from "../../utils/shortcutBindings";
 import { useEffect } from "react";
 import { installFocusMode, setFocusMode, toggleFocusMode, useFocusMode } from "../../store/focusMode";
 
@@ -9,7 +10,7 @@ export function FocusModeControl() {
   useEffect(() => {
     installFocusMode();
     const onKey = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && (e.key === "f" || e.key === "F")) { e.preventDefault(); toggleFocusMode(); }
+      if (matchesBinding(e, "focusMode")) { e.preventDefault(); toggleFocusMode(); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);

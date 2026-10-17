@@ -1057,7 +1057,7 @@ export function WorkspaceListView() {
             )}
           </div>
         ) : (
-          <DataList
+          <DataList ariaLabel="ワークスペースの一覧"
             prefsKey="workspace-list"
             items={sort.sorted}
             columns={columns}

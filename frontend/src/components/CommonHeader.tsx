@@ -11,6 +11,8 @@ import { RegionNavigator } from "./common/RegionNavigator";
 import { ShortcutHelp } from "./help/ShortcutHelp";
 import { ConnectionStatus } from "./common/ConnectionStatus";
 import { ToastHost } from "./common/ToastHost";
+import { LiveAnnouncer } from "./common/LiveAnnouncer";
+import { FocusTooltips } from "./common/FocusTooltips";
 import { UserNameButton } from "./common/UserNameButton";
 import { NotificationHistory } from "./common/NotificationHistory";
 import { DisplaySettings } from "./common/DisplaySettings";
@@ -58,6 +60,8 @@ export function CommonHeader({ notification }: Props) {
       <TourHost />
       <UpdateNotice />
       <ToastHost />
+      <LiveAnnouncer />
+      <FocusTooltips />
       <ChangesHost />
     </header>
   );

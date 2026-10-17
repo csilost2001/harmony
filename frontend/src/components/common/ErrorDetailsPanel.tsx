@@ -8,6 +8,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { clearErrorLog, getErrorLog, type ErrorLogEntry } from "../../utils/errorLog";
 import { listAllDrafts } from "../../utils/draftStorage";
 import { mcpBridge } from "../../mcp/mcpBridge";
+import { buildErrorReportText } from "../../utils/errorReport";
+import { getToastHistory } from "../../utils/toast";
+import { getActiveTabId, getTabs } from "../../store/tabStore";
+import { opsApi, type VersionInfo } from "../../utils/opsApi";
 
 interface Props {
   /** 見出しの次に出るエラーメッセージ。error.message などを想定。 */
@@ -105,6 +109,21 @@ export function ErrorDetailsPanel({ message, stack, context, hideHistory, includ
     setTimeout(() => setCopyState("idle"), 2000);
   }, [report]);
 
+  // 報告用の文 (版・コミット・URL・画面・直前の操作 5 件・エラーを、貼れる形に。続編 第 10 弾 #200)。版は、つながっているときだけ (2 秒で諦める)
+  const [textCopyState, setTextCopyState] = useState<"idle" | "copied" | "failed">("idle");
+  const handleCopyText = useCallback(async () => {
+    const version = await Promise.race([opsApi.version().catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), 2000))]) as VersionInfo | null;
+    const tab = getTabs().find((t) => t.id === getActiveTabId());
+    const text = buildErrorReportText({
+      message, stack, version: version ?? undefined, url: typeof location !== "undefined" ? location.href : undefined, screen: tab?.label,
+      recentOperations: getToastHistory().map((t) => ({ at: t.at, text: t.text })), drafts,
+      userAgent: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
+    });
+    const ok = await copyText(text);
+    setTextCopyState(ok ? "copied" : "failed");
+    setTimeout(() => setTextCopyState("idle"), 2000);
+  }, [message, stack, drafts]);
+
   const handleDownload = useCallback(() => {
     const blob = new Blob([report], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -171,6 +190,17 @@ export function ErrorDetailsPanel({ message, stack, context, hideHistory, includ
         >
           <i className="bi bi-clipboard" />{" "}
           {copyState === "copied" ? "コピー済み" : copyState === "failed" ? "コピー失敗" : "状況をまとめてコピー"}
+        </button>
+        <button
+          type="button"
+          className="btn btn-secondary btn-sm"
+          onClick={() => void handleCopyText()}
+          title="版・コミット・URL・開いていた画面・直前の操作 5 件・エラーを、ISSUE やチャットに貼れる文でコピー (設計の中身・サーバのログは含みません)"
+          data-testid="error-copy-text-btn"
+          data-copy-state={textCopyState}
+        >
+          <i className="bi bi-card-text" />{" "}
+          {textCopyState === "copied" ? "コピー済み" : textCopyState === "failed" ? "コピー失敗" : "報告用の文をコピー"}
         </button>
         <button
           type="button"

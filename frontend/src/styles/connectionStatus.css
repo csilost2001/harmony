@@ -23,3 +23,9 @@
   background: color-mix(in srgb, var(--hm-success) 35%, var(--hm-chrome-bg));
   border: 1px solid var(--hm-success);
 }
+
+/* 切れている間の案内 (続編 第 10 弾 #195) */
+.connection-help-btn { margin-left: 8px; border: 0; background: transparent; color: inherit; text-decoration: underline; font: inherit; cursor: pointer; padding: 0; }
+.connection-help { display: block; position: absolute; top: 100%; right: 0; z-index: 50; width: min(420px, 90vw); margin-top: 4px; padding: 8px 12px; text-align: left; font-weight: 400; line-height: 1.6;
+  background: var(--hm-surface); color: var(--hm-fg); border: 1px solid var(--hm-border-strong); border-radius: 6px; box-shadow: 0 6px 18px color-mix(in srgb, var(--hm-fg) 25%, transparent); }
+.connection-status--lost { position: relative; }

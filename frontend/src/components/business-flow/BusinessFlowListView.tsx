@@ -139,7 +139,7 @@ export function BusinessFlowListView() {
         </p>
       )}
       <ListViewBar listKey="business-flow-list" query={query} onQuery={setQuery} sort={sort} />
-      <DataList
+      <DataList ariaLabel="業務フローの一覧"
         prefsKey="business-flow-list"
           rowMark={(x) => rowMarks.get(x.id) ?? null}
           recentSort

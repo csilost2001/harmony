@@ -147,7 +147,8 @@ export function DesignDocumentView() {
           </nav>
           <div className="ddv-page" ref={bodyRef} onClick={onBodyClick} data-theme-audit-skip>
             <style>{doc.css}</style>
-            <div dangerouslySetInnerHTML={{ __html: doc.html }} />
+            {/* 表紙の題名 (h1) は、設計書の中のものなので、画面では 1 段下げる (画面の見出しの h1 と重ねない。続編 第 10 弾 #186)。単体 HTML は、そのまま h1 */}
+            <div dangerouslySetInnerHTML={{ __html: doc.html.replace(/<h1 class="hd-cover-title"/, '<h1 aria-level="2" class="hd-cover-title"') }} />
           </div>
         </div>
       )}

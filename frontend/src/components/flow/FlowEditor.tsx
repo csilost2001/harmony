@@ -1,4 +1,5 @@
 import { isImeComposing, isPlainEnter } from "../../utils/imeKeys";
+import { motionMs } from "../../theme/motionPrefs";
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
@@ -324,7 +325,7 @@ function FlowEditorInner() {
       requestAnimationFrame(() => {
         // 前に見ていた位置へ (覚えていなければ全体を収める)
         const { width, height } = rfStore.getState();
-        viewportMemory.restoreOrFit(setViewport, () => fitView({ padding: 0.3, maxZoom: 1, duration: 200 }), { bounds: getNodesBounds(nodes), size: { width, height } });
+        viewportMemory.restoreOrFit(setViewport, () => fitView({ padding: 0.3, maxZoom: 1, duration: motionMs(200) }), { bounds: getNodesBounds(nodes), size: { width, height } });
       });
     }
   }, [isLoading, nodes, fitView, setViewport, viewportMemory, rfStore]);
@@ -1123,7 +1124,7 @@ function FlowEditorInner() {
   }, [zoomTo]);
 
   const handleFitView = useCallback(() => {
-    fitView({ padding: 0.3, maxZoom: 1, duration: 200 });
+    fitView({ padding: 0.3, maxZoom: 1, duration: motionMs(200) });
   }, [fitView]);
 
   const handleCopyMermaid = useCallback(() => {

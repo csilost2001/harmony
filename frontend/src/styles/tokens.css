@@ -40,6 +40,7 @@
   --hm-accent-solid: #5458d8; /* 白文字を載せる塗り (両テーマ共通) */
   --hm-accent-solid-hover: #4447c4;
   --hm-focus: rgba(84, 88, 216, 0.35);
+  --hm-focus-ring: #3b40c9; /* キーボードのフォーカスの輪郭 (どの背景でも、3:1 以上で見える色。styles/a11y.css) */
   --hm-danger: #d03434;
   --hm-warning: #c27a0e;
   --hm-find-bg: #fff3b0;
@@ -101,6 +102,7 @@
   --hm-accent-hover: #a5a8f8;
   --hm-accent-soft: #252949;
   --hm-focus: rgba(143, 147, 245, 0.4);
+  --hm-focus-ring: #aab0ff;
   --hm-danger: #f07373;
   --hm-warning: #e3a43c;
   --hm-find-bg: #5a4d12;

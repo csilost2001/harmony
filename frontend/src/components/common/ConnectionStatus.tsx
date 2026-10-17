@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { mcpBridge, type McpStatus } from "../../mcp/mcpBridge";
 import { useErrorDialog } from "./ErrorDialogProvider";
 import { isConnectionError } from "../../utils/connectionError";
+import { listAllDrafts } from "../../utils/draftStorage";
 import "../../styles/connectionStatus.css";
 
 /** 同じ知らせを続けて出さない間隔 */
@@ -54,7 +55,7 @@ export function ConnectionStatus() {
         if (lost) {
           lost = false;
           setPhase("restored");
-          timer = setTimeout(() => setPhase("ok"), RESTORED_MS);
+          timer = setTimeout(() => { timer = undefined; setPhase("ok"); }, RESTORED_MS);
         }
         return;
       }
@@ -66,17 +67,28 @@ export function ConnectionStatus() {
     return () => { off(); clear(); };
   }, []);
 
+  const [helpOpen, setHelpOpen] = useState(false);
   const show = phase !== "ok";
   const restored = phase === "restored";
   if (!show) return null;
+  // 未保存の下書き (このブラウザに残っているもの)。切れている間の編集と、復旧後の保存し忘れを知らせる (続編 第 10 弾 #195)
+  const unsaved = listAllDrafts().length;
   return restored ? (
     <span className="connection-status connection-status--restored" role="status" data-testid="connection-status">
-      <i className="bi bi-check-circle-fill" /> 接続が復旧しました
+      <i className="bi bi-check-circle-fill" /> 接続が復旧しました{unsaved > 0 ? `。未保存の下書きが ${unsaved} 件あります。編集中の画面で保存してください` : ""}
     </span>
   ) : (
     <span className="connection-status connection-status--lost" role="alert" data-testid="connection-status"
       title="backend サーバとの接続が切れています。保存・読み込みはできません。自動で再接続します。">
       <i className="bi bi-plug-fill" /> サーバとの接続が切れています — 再接続しています
+      <button type="button" className="connection-help-btn" onClick={() => setHelpOpen((v) => !v)} aria-expanded={helpOpen} data-testid="connection-help-toggle">切れている間は?</button>
+      {helpOpen && (
+        <span className="connection-help" role="note" data-testid="connection-help">
+          <b>できること</b>: 開いている画面での入力・編集と Ctrl+Z (内容は、この画面とブラウザの下書きに残ります)。<br />
+          <b>できないこと</b>: 保存・新しい設計を開く・一覧の更新・AI との連携・ほかの人の変更の受け取り。<br />
+          {unsaved > 0 ? <>未保存の下書き {unsaved} 件が、このブラウザに残っています。接続が戻ったら、保存してください。</> : "接続が戻ると、自動で再接続し、お知らせします。"}
+        </span>
+      )}
     </span>
   );
 }

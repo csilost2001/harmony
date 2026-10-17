@@ -3,6 +3,7 @@
  * 選んだものだけを置換する。置換するのは、人が読む文章の欄だけ (ID・参照・物理名・式は触れない)。
  * 編集中の設計は飛ばす。置換したあと、30 分は取り消せる。ヘッダーの「検索置換」/ Ctrl+Shift+H / コマンド「設計全体で検索・置換」で開く。
  */
+import { matchesBinding } from "../../utils/shortcutBindings";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
@@ -29,7 +30,7 @@ export function ReplaceDialog() {
   useEffect(() => onHeaderPanelRequest("replace", () => setOpen(true)), []);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && e.key.toLowerCase() === "h") { e.preventDefault(); setOpen(true); }
+      if (matchesBinding(e, "replace")) { e.preventDefault(); setOpen(true); }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);

@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { announce } from "../utils/announce";
+import { menuShortcut } from "../utils/menuShortcuts";
 import {
   DndContext,
   PointerSensor,
@@ -171,6 +173,13 @@ export function TabBar() {
     const active = tabs.find((t) => t.id === activeTabId);
     document.title = active ? `${active.isDirty ? "● " : ""}${active.label} - Harmony` : "Harmony";
     return () => { document.title = "Harmony"; };
+  }, [tabs, activeTabId]);
+  // タブを切り替えたことを、スクリーンリーダーへ伝える (続編 第 10 弾 #187)。最初の表示では伝えない
+  const announcedTab = useRef<string | null>(null);
+  useEffect(() => {
+    const active = tabs.find((t) => t.id === activeTabId);
+    if (announcedTab.current !== null && active && announcedTab.current !== active.id) announce(`${active.label} のタブに移りました`);
+    announcedTab.current = active?.id ?? announcedTab.current;
   }, [tabs, activeTabId]);
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
   // 閉じたタブの一覧 (開き直す)。tabs / activeTabId が変わるたびに読み直す (履歴の戻る / 進むの有効判定も)
@@ -373,7 +382,7 @@ export function TabBar() {
           onMouseDown={(e) => e.stopPropagation()}
         >
           <div className="tab-context-item" onClick={() => { handleClose(contextMenu.tabId); setContextMenu(null); }}>
-            <i className="bi bi-x" /> 閉じる
+            <i className="bi bi-x" /> 閉じる<span className="tab-context-key">{menuShortcut("tab.close")}</span>
           </div>
           <div className="tab-context-item" onClick={() => { closeOtherTabs(contextMenu.tabId); setContextMenu(null); }}>
             <i className="bi bi-x-circle" /> 他を全て閉じる
@@ -395,10 +404,10 @@ export function TabBar() {
             </div>
           )}
           <div className="tab-context-item" onClick={() => { moveTabBy(contextMenu.tabId, -1); setContextMenu(null); }} data-testid="tab-move-left">
-            <i className="bi bi-arrow-left" /> 左へ動かす
+            <i className="bi bi-arrow-left" /> 左へ動かす<span className="tab-context-key">{menuShortcut("tab.moveLeft")}</span>
           </div>
           <div className="tab-context-item" onClick={() => { moveTabBy(contextMenu.tabId, 1); setContextMenu(null); }} data-testid="tab-move-right">
-            <i className="bi bi-arrow-right" /> 右へ動かす
+            <i className="bi bi-arrow-right" /> 右へ動かす<span className="tab-context-key">{menuShortcut("tab.moveRight")}</span>
           </div>
           <div className="tab-context-item" onClick={() => { setPinned(contextMenu.tabId, !ctxTab.isPinned); setContextMenu(null); }}>
             <i className={`bi bi-pin${ctxTab.isPinned ? "-angle" : ""}`} />

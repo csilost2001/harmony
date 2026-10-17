@@ -21,3 +21,12 @@ describe("LoadingBlock", () => {
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("骨組み (続編 第 10 弾 #193)", () => {
+  it("読み込みが 200ms を過ぎたら、骨組みを出す。それまでは、文だけ", () => {
+    render(<LoadingBlock what="テーブル" />);
+    expect(screen.queryByTestId("skeleton")).toBeNull();
+    act(() => { vi.advanceTimersByTime(250); });
+    expect(screen.getByTestId("skeleton").getAttribute("aria-hidden")).toBe("true");
+  });
+});

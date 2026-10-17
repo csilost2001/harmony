@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { suspendWindowing } from "../../utils/windowing";
 import { useLocation } from "react-router-dom";
 import { collectHits, isEditorPath, type FindHit } from "../../utils/editorFind";
 import { isImeComposing } from "../../utils/imeKeys";
@@ -89,6 +90,12 @@ export function EditorFind() {
     setIndex(at);
     show(hits, at);
   }, [index, show]);
+
+  // 画面内の検索を開いている間は、長い一覧の窓表示を止める (すべての行を探せるように。続編 第 10 弾 #192)
+  useEffect(() => {
+    suspendWindowing("editor-find", open);
+    return () => suspendWindowing("editor-find", false);
+  }, [open]);
 
   // 入力のたびに探し直す (打ち終わるのを少し待つ)
   useEffect(() => {

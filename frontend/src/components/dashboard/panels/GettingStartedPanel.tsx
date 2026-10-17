@@ -9,6 +9,7 @@ import { mcpBridge } from "../../../mcp/mcpBridge";
 import { loadProject } from "../../../store/flowStore";
 import { listBusinessFlows } from "../../../store/businessFlowStore";
 import { listReports } from "../../../store/reportStore";
+import { requestHeaderPanel } from "../../../utils/headerPanels";
 
 interface Counts { screens: number; tables: number; flows: number; businessFlows: number; reports: number }
 
@@ -72,6 +73,7 @@ export function GettingStartedPanel() {
           );
         })}
       </ol>
+      <p className="gsp-walk"><button type="button" className="gsp-go" onClick={() => requestHeaderPanel("walkthrough")} data-testid="gsp-walkthrough"><i className="bi bi-signpost-split" /> 受注の例で、最初から最後まで通して作る</button></p>
       <p className="gsp-tips">
         <i className="bi bi-search" /> <kbd>Ctrl</kbd>+<kbd>K</kbd> で、画面・テーブル・処理フローなどへすぐ移れます (「新規 テーブル」のように入れると新しく作れます)。<kbd>?</kbd> でショートカットの一覧。
         <br /><i className="bi bi-robot" /> AI (MCP) につないでいれば、「注文管理の画面とテーブルを作って」のように頼めます。

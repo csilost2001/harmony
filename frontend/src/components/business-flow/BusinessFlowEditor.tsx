@@ -257,7 +257,7 @@ export function BusinessFlowEditor() {
         {/* 左: レーンと工程 */}
         <aside className="bfe-left" aria-label="レーンと工程">
           <section>
-            <h4>レーン</h4>
+            <h4 aria-level={2}>レーン</h4>
             <SortableList className="bfe-list" testId="bf-lane-list" ids={flow.lanes.map((l) => l.id)} onReorder={reorderLanes} disabled={!editable}>
               {flow.lanes.map((l, i) => (
                 <SortableRow key={l.id} id={l.id} disabled={!editable} label={l.name} className={selection?.kind === "lane" && selection.id === l.id ? "bfe-sel" : ""}>
@@ -275,7 +275,7 @@ export function BusinessFlowEditor() {
             <button type="button" className="bfe-btn bfe-btn-dashed" onClick={addLane} disabled={!editable} data-testid="bf-add-lane"><i className="bi bi-plus-lg" /> レーンを追加</button>
           </section>
           <section>
-            <h4>工程 <small>{flow.steps.length}</small></h4>
+            <h4 aria-level={2}>工程 <small>{flow.steps.length}</small></h4>
             <SortableList className="bfe-list bfe-steps" testId="bf-step-list" ids={flow.steps.map((s) => s.id)} onReorder={reorderSteps} disabled={!editable}>
               {flow.steps.map((s) => (
                 <SortableRow key={s.id} id={s.id} disabled={!editable} label={s.name} className={selection?.kind === "step" && selection.id === s.id ? "bfe-sel" : ""}>
@@ -320,7 +320,7 @@ export function BusinessFlowEditor() {
           </div>
           <div ref={paperRef} className="bfe-paper" style={{ ["--bf-zoom" as string]: zoom }} onClick={onDiagramClick} onKeyDown={onDiagramKey} data-testid="bf-diagram" dangerouslySetInnerHTML={{ __html: svg }} />
           <section className="bfe-issues" aria-label="要確認">
-            <h4>要確認 <small>{counts.error ? `エラー ${counts.error} ` : ""}{counts.warning ? `警告 ${counts.warning}` : ""}{!counts.error && !counts.warning ? "なし" : ""}</small></h4>
+            <h4 aria-level={2}>要確認 <small>{counts.error ? `エラー ${counts.error} ` : ""}{counts.warning ? `警告 ${counts.warning}` : ""}{!counts.error && !counts.warning ? "なし" : ""}</small></h4>
             {issues.filter((i) => i.severity !== "info").length > 0 && (
               <ul>
                 {issues.filter((i) => i.severity !== "info").map((i, k) => (
@@ -351,7 +351,7 @@ export function BusinessFlowEditor() {
             <LaneInspector lane={selectedLane} roles={roles} onPatch={(p) => patchLane(selectedLane.id, p)} onDelete={() => deleteLane(selectedLane.id)} />
           ) : (
             <section className="bfe-form">
-              <h4>業務フロー</h4>
+              <h4 aria-level={2}>業務フロー</h4>
               <label className="bfe-field"><span>説明 <small className="bfe-hint-inline">(**太字** と `コード` が使えます)</small></span><textarea rows={5} value={flow.description ?? ""} onChange={(e) => apply((f) => { if (e.target.value) f.description = e.target.value; else delete f.description; return f; })} data-testid="bf-description" /></label>
               <label className="bfe-field"><span>成熟度</span>
                 <select value={flow.maturity ?? ""} onChange={(e) => apply((f) => { if (e.target.value) f.maturity = e.target.value as BusinessFlow["maturity"]; else delete f.maturity; return f; })}>
@@ -380,7 +380,7 @@ function StepInspector(props: {
   const { step, flow } = props;
   return (
     <section className="bfe-form" data-testid="bf-step-inspector">
-      <h4>工程 <code>{step.id}</code></h4>
+      <h4 aria-level={2}>工程 <code>{step.id}</code></h4>
       <label className="bfe-field"><span>名前</span><input value={step.name} onChange={(e) => props.onPatch({ name: e.target.value })} data-testid="bf-step-name" /></label>
       <div className="bfe-row2">
         <label className="bfe-field"><span>種類</span>
@@ -433,7 +433,7 @@ function LaneInspector(props: { lane: BusinessLane; roles: Array<{ key: string; 
   const { lane } = props;
   return (
     <section className="bfe-form" data-testid="bf-lane-inspector">
-      <h4>レーン <code>{lane.id}</code></h4>
+      <h4 aria-level={2}>レーン <code>{lane.id}</code></h4>
       <label className="bfe-field"><span>名前</span><input value={lane.name} onChange={(e) => props.onPatch({ name: e.target.value })} data-testid="bf-lane-name" /></label>
       <label className="bfe-field"><span>種類</span>
         <select value={lane.kind ?? "person"} onChange={(e) => props.onPatch({ kind: e.target.value as LaneKind })}>

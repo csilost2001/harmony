@@ -281,7 +281,7 @@ export function ReportEditor() {
         <aside className="bfe-left" aria-label="基本設定と部">
           <fieldset className="bfe-fieldset" disabled={!editable}>
           <section className="bfe-form">
-            <h4>出力</h4>
+            <h4 aria-level={2}>出力</h4>
             <label className="bfe-field"><span>形式</span>
               <select value={report.output?.format ?? "pdf"} onChange={(e) => patchReport((r) => { r.output = { ...r.output, format: e.target.value as never }; })} data-testid="rp-format">
                 {(Object.keys(REPORT_FORMAT_LABELS) as Array<keyof typeof REPORT_FORMAT_LABELS>).map((k) => <option key={k} value={k}>{REPORT_FORMAT_LABELS[k]}</option>)}
@@ -303,7 +303,7 @@ export function ReportEditor() {
             )}
           </section>
           <section className="bfe-form">
-            <h4>出力契機</h4>
+            <h4 aria-level={2}>出力契機</h4>
             <label className="bfe-field"><span>種類</span>
               <select value={report.trigger?.kind ?? ""} onChange={(e) => patchReport((r) => { r.trigger = { ...r.trigger, kind: (e.target.value || undefined) as never }; })} data-testid="rp-trigger-kind">
                 <option value="">(未設定)</option><option value="screen">画面の操作</option><option value="batch">バッチ・定期</option><option value="api">外部からの要求</option>
@@ -322,7 +322,7 @@ export function ReportEditor() {
             <label className="bfe-field"><span>契機の説明</span><input value={report.trigger?.description ?? ""} onChange={(e) => patchReport((r) => { r.trigger = { ...r.trigger, description: e.target.value || undefined }; })} placeholder="例: 注文完了画面の「納品書を印刷」" /></label>
           </section>
           <section>
-            <h4>出力条件 <small>{report.params?.length ?? 0}</small></h4>
+            <h4 aria-level={2}>出力条件 <small>{report.params?.length ?? 0}</small></h4>
             {(report.params ?? []).map((p, i) => (
               <div className="rpe-param" key={i}>
                 <input value={p.label} onChange={(e) => patchParam(i, { label: e.target.value })} aria-label="条件の名前" data-testid={`rp-param-label-${i}`} />
@@ -335,7 +335,7 @@ export function ReportEditor() {
           </section>
           </fieldset>
           <section>
-            <h4>部 <small>{report.sections.length}</small></h4>
+            <h4 aria-level={2}>部 <small>{report.sections.length}</small></h4>
             <SortableList className="bfe-list" testId="rp-section-list" ids={report.sections.map((s) => s.id)} onReorder={reorderSections} disabled={!editable}>
               {report.sections.map((s, i) => (
                 <SortableRow key={s.id} id={s.id} disabled={!editable} label={REPORT_SECTION_LABELS[s.kind]} className={selection?.sectionId === s.id && !selection.fieldId ? "bfe-sel" : ""}>
@@ -366,7 +366,7 @@ export function ReportEditor() {
           </div>
           <p className="bfe-hint">用紙の図は、項目の並びと幅から描いた見本です (実際の出力ではありません)。</p>
           <section className="bfe-issues" aria-label="要確認">
-            <h4>要確認 <small>{counts.error ? `エラー ${counts.error} ` : ""}{counts.warning ? `警告 ${counts.warning}` : ""}{!counts.error && !counts.warning ? "なし" : ""}</small></h4>
+            <h4 aria-level={2}>要確認 <small>{counts.error ? `エラー ${counts.error} ` : ""}{counts.warning ? `警告 ${counts.warning}` : ""}{!counts.error && !counts.warning ? "なし" : ""}</small></h4>
             {issues.filter((i) => i.severity !== "info").length > 0 && (
               <ul>
                 {issues.filter((i) => i.severity !== "info").map((i, k) => (
@@ -400,7 +400,7 @@ export function ReportEditor() {
             />
           ) : (
             <section className="bfe-form">
-              <h4>帳票</h4>
+              <h4 aria-level={2}>帳票</h4>
               <label className="bfe-field"><span>説明 <small className="bfe-hint-inline">(**太字** と `コード` が使えます)</small></span><textarea rows={5} value={report.description ?? ""} onChange={(e) => patchReport((r) => { if (e.target.value) r.description = e.target.value; else delete r.description; })} data-testid="rp-description" /></label>
               <label className="bfe-field"><span>成熟度</span>
                 <select value={report.maturity ?? ""} onChange={(e) => patchReport((r) => { if (e.target.value) r.maturity = e.target.value as Report["maturity"]; else delete r.maturity; })}>
@@ -444,7 +444,7 @@ function SectionInspector(props: {
   const grouped = section.kind === "groupHeader" || section.kind === "groupFooter";
   return (
     <section className="bfe-form" data-testid="rp-section-inspector">
-      <h4>{REPORT_SECTION_LABELS[section.kind]} <code>{section.id}</code></h4>
+      <h4 aria-level={2}>{REPORT_SECTION_LABELS[section.kind]} <code>{section.id}</code></h4>
       <label className="bfe-field"><span>名前</span><input value={section.name ?? ""} onChange={(e) => props.onPatch({ name: e.target.value })} data-testid="rp-section-name" /></label>
       {grouped && (
         <div className="bfe-field"><span>グループ化する項目</span>
@@ -476,7 +476,7 @@ function FieldInspector(props: {
   const idx = section.fields.findIndex((f) => f.id === field.id);
   return (
     <section className="bfe-form" data-testid="rp-field-inspector">
-      <h4><button type="button" className="bfe-link" onClick={props.onBack}>{REPORT_SECTION_LABELS[section.kind]}</button> › 項目 <code>{field.id}</code></h4>
+      <h4 aria-level={2}><button type="button" className="bfe-link" onClick={props.onBack}>{REPORT_SECTION_LABELS[section.kind]}</button> › 項目 <code>{field.id}</code></h4>
       <label className="bfe-field"><span>種類</span>
         <select value={field.kind} onChange={(e) => props.onPatch({ kind: e.target.value as ReportFieldKind, ...(e.target.value === "aggregate" && !field.aggregate ? { aggregate: "sum" as ReportAggregate } : {}) })} data-testid="rp-field-kind">
           {FIELD_KINDS.map((k) => <option key={k} value={k}>{REPORT_FIELD_KIND_LABELS[k]}</option>)}

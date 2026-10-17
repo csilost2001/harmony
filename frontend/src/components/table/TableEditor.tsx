@@ -1,4 +1,5 @@
 import { ColumnImpactNotice } from "./ColumnImpactNotice";
+import { matchesBinding } from "../../utils/shortcutBindings";
 import "../../styles/columnImpact.css";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -786,7 +787,7 @@ function ColumnsTab({
   useEffect(() => {
     if (!onOpenMarkers) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && (e.key === "m" || e.key === "M") && !isInsideModal(e.target as HTMLElement | null)) {
+      if (matchesBinding(e, "addMarker") && !isInsideModal(e.target as HTMLElement | null)) {
         e.preventDefault();
         onOpenMarkers(focusedColumnPath());
       }
@@ -1283,7 +1284,7 @@ function ColumnsTab({
       {!gridMode && (<>
       <SortBar sort={sort} columnLabels={columnLabels} />
 
-      <DataList
+      <DataList ariaLabel="カラムの一覧"
         prefsKey="table-columns"
         items={sort.sorted}
         columns={columns}

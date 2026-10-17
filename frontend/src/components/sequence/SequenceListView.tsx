@@ -549,7 +549,7 @@ export function SequenceListView() {
 
         <ListViewBar listKey="sequence-list" query={query} onQuery={setQuery} sort={sort} facets={[editing.facet]} />
 
-        <DataList
+        <DataList ariaLabel="シーケンスの一覧"
           prefsKey="sequence-list"
           rowMark={(x) => rowMarks.get(String(x.id)) ?? null}
           recentSort

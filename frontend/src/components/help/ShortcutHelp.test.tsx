@@ -53,3 +53,51 @@ describe("relevantGroupTitles", () => {
     expect(relevantGroupTitles("/w/a/")).not.toContain("編集中");
   });
 });
+
+describe("ヘルプの検索 (続編 第 10 弾 #189)", () => {
+  it("語を入れると、項目のヘルプとショートカットから探した結果を出す。空に戻すと、グループの一覧に戻る", () => {
+    window.history.pushState({}, "", "/w/ws1/table/edit/orders");
+    render(<ShortcutHelp />);
+    fireEvent.click(screen.getByTestId("shortcut-help-open"));
+    expect(screen.getByTestId("help-here")).toBeTruthy(); // この画面 (テーブル) の項目のヘルプ
+    fireEvent.change(screen.getByTestId("help-search"), { target: { value: "物理名" } });
+    expect(screen.getAllByTestId("help-hit-topic")[0].textContent).toContain("物理名");
+    expect(screen.queryByTestId("help-here")).toBeNull();
+    fireEvent.change(screen.getByTestId("help-search"), { target: { value: "閉じたタブ" } });
+    expect(screen.getAllByTestId("help-hit-shortcut").length).toBeGreaterThan(0);
+    fireEvent.change(screen.getByTestId("help-search"), { target: { value: "zzzz該当なし" } });
+    expect(screen.getByTestId("help-hits").textContent).toContain("に合うヘルプ・ショートカットはありません");
+    fireEvent.change(screen.getByTestId("help-search"), { target: { value: "" } });
+    expect(screen.getAllByTestId("shortcut-group-open").length).toBeGreaterThan(0);
+    window.history.pushState({}, "", "/");
+  });
+});
+
+import { _resetBindings, effectiveCombo } from "../../utils/shortcutBindings";
+describe("キーの割り当ての変更 (続編 第 10 弾 #188)", () => {
+  it("「変える」→ 押したキーが割り当てになり、ヘルプの表示も変わる。使えないキーは理由を出す。既定に戻せる", () => {
+    localStorage.clear(); _resetBindings();
+    render(<ShortcutHelp />);
+    fireEvent.click(screen.getByTestId("shortcut-help-open"));
+    expect(screen.queryByTestId("shortcut-change-lastEdit")).toBeNull(); // 変える画面にしないと、ボタンは出ない
+    fireEvent.click(screen.getByTestId("shortcut-edit-toggle"));
+    // details が閉じていても、DOM にはある
+    fireEvent.click(screen.getByTestId("shortcut-change-lastEdit"));
+    expect(screen.getByTestId("shortcut-capture")).toBeTruthy();
+    fireEvent.keyDown(document, { key: "z", ctrlKey: true }); // 固定のキー
+    expect(screen.getByTestId("shortcut-bind-error").textContent).toContain("固定のキー");
+    fireEvent.keyDown(document, { key: "j", ctrlKey: true, altKey: true });
+    expect(effectiveCombo("lastEdit")).toBe("Ctrl+Alt+J");
+    expect(screen.queryByTestId("shortcut-capture")).toBeNull();
+    expect(screen.getByTestId("shortcut-row-lastEdit").textContent).toContain("J");
+    expect(screen.getByTestId("shortcut-row-lastEdit").textContent).toContain("変更済み");
+    fireEvent.click(screen.getByTestId("shortcut-reset-lastEdit"));
+    expect(effectiveCombo("lastEdit")).toBe("Ctrl+Alt+Backspace");
+    // 割り当ての待ちの Esc は、割り当てをやめるだけで、ヘルプは閉じない
+    fireEvent.click(screen.getByTestId("shortcut-change-copyLink"));
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByTestId("shortcut-capture")).toBeNull();
+    expect(screen.getByTestId("shortcut-help")).toBeTruthy();
+    localStorage.clear(); _resetBindings();
+  });
+});

@@ -602,7 +602,7 @@ export function PageLayoutListView() {
 
         <ListViewBar listKey="page-layout-list" query={query} onQuery={setQuery} sort={sort} facets={[editing.facet]} />
 
-        <DataList
+        <DataList ariaLabel="ページレイアウトの一覧"
           prefsKey="page-layout-list"
           rowMark={(x) => rowMarks.get(String(x.id)) ?? null}
           recentSort

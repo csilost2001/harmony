@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { matchesBinding } from "../../utils/shortcutBindings";
 import type { ListClipboard } from "../../hooks/useListClipboard";
 import { showToast } from "../../utils/toast";
 import "../../styles/columnImpact.css";
@@ -21,7 +22,7 @@ export function ClipboardHistoryMenu<T>({ clipboard, describe, noun, disabled }:
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
-      if (!(e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey && e.key.toLowerCase() === "v")) return;
+      if (!matchesBinding(e, "clipboardHistory")) return;
       // 表示されていない編集画面 (裏のタブ) では反応しない
       if (!root.current || root.current.offsetParent === null || disabled) return;
       e.preventDefault();

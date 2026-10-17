@@ -754,7 +754,7 @@ export function ViewDefinitionListView() {
 
         <ListViewBar listKey="view-definition-list" query={query} onQuery={setQuery} sort={sort} facets={[editing.facet]} />
 
-        <DataList
+        <DataList ariaLabel="ビュー定義の一覧"
           prefsKey="view-definition-list"
           rowMark={(x) => rowMarks.get(String(x.id)) ?? null}
           recentSort

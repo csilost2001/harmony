@@ -1,0 +1,20 @@
+/*
+ * 動きを減らす (続編 第 10 弾 #184)。OS の設定 (prefers-reduced-motion) か、アプリの「動きを減らす」(<html data-motion="reduced">) のとき、
+ * アニメーションと遷移を止める (即座に終わらせる。最後の状態にはなる)。読み込み中を示す回転は、止めずにゆっくりにする (止まると、固まったように見えるため)。
+ * 「減らさない」(data-motion="full") を選んだときは、OS の設定を打ち消す。
+ */
+:root[data-motion="reduced"] *, :root[data-motion="reduced"] *::before, :root[data-motion="reduced"] *::after {
+  animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; animation-delay: 0s !important;
+  transition-duration: 0.01ms !important; transition-delay: 0s !important; scroll-behavior: auto !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion="full"]) *, :root:not([data-motion="full"]) *::before, :root:not([data-motion="full"]) *::after {
+    animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; animation-delay: 0s !important;
+    transition-duration: 0.01ms !important; transition-delay: 0s !important; scroll-behavior: auto !important;
+  }
+}
+/* 読み込み中の回転は残す (ゆっくり) */
+:root[data-motion="reduced"] .spinner-border, :root[data-motion="reduced"] .spinner-border::before { animation-duration: 2s !important; animation-iteration-count: infinite !important; }
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion="full"]) .spinner-border { animation-duration: 2s !important; animation-iteration-count: infinite !important; }
+}

@@ -748,7 +748,7 @@ export function TableListView() {
 
         <ListViewBar listKey="table-list" query={query} onQuery={setQuery} sort={sort} facets={[editing.facet]} />
 
-        <DataList
+        <DataList ariaLabel="テーブルの一覧"
           prefsKey="table-list"
           rowMark={(x) => rowMarks.get(String(x.id)) ?? null}
           recentSort

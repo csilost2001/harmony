@@ -8,6 +8,7 @@
  * 1. 空欄追加 (従来)
  * 2. 業務部品デザイナで部品を置くときに作る / 未配置の項目を置く (docs/spec/screen-layout.md)
  */
+import { matchesBinding } from "../../utils/shortcutBindings";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
@@ -633,7 +634,7 @@ export function ScreenItemsView() {
   // Ctrl+Alt+M: マーカーを追加 (フォーカスのある項目について)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && (e.key === "m" || e.key === "M") && !isInsideModal(e.target as HTMLElement | null)) {
+      if (matchesBinding(e, "addMarker") && !isInsideModal(e.target as HTMLElement | null)) {
         e.preventDefault();
         openMarkers(focusedItemPath());
       }
