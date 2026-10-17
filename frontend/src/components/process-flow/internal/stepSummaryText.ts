@@ -1,6 +1,6 @@
 import type { Step } from "../../../types/v3";
 // #1186 Phase 2-D: constants は processFlowMetadata から
-import { DB_OPERATION_LABELS, WORKFLOW_PATTERN_LABELS } from "../../../utils/processFlowMetadata";
+import { dbOperationLabel, WORKFLOW_PATTERN_LABELS } from "../../../utils/processFlowMetadata";
 import { resolveJumpLabel, isExtensionStep } from "../../../utils/actionUtils";
 import { getBranchConditionText } from "../../../utils/branchCondition";
 
@@ -14,7 +14,7 @@ export function stepSummaryText(step: Step, allSteps: Step[]): string {
     case "validation":
       return step.conditions || step.description || "バリデーション";
     case "dbAccess":
-      return `${step.tableId || "?"} ${DB_OPERATION_LABELS[step.operation] ?? step.operation}${step.description ? ` - ${step.description}` : ""}`;
+      return `${step.tableId || "?"} ${step.operation}（${dbOperationLabel(step.operation)}）${step.description ? ` - ${step.description}` : ""}`;
     case "externalSystem":
       // silent bug: step.protocol は v3 schema に存在しない (#1233)
       return `${step.systemRef || "?"}${step.httpCall?.method ? ` (${step.httpCall.method})` : ""}${step.description ? ` - ${step.description}` : ""}`;
