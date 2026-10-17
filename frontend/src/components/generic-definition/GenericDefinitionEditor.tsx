@@ -78,6 +78,8 @@ function GenericDefinitionEditorBody() {
     if (commitTimer.current) { clearTimeout(commitTimer.current); commitTimer.current = null; }
     commitDef();
   }, [commitDef]);
+  // 画面が外れたあとに、履歴を積む待ち (0.7 秒) が動かないようにする
+  useEffect(() => () => { if (commitTimer.current) { clearTimeout(commitTimer.current); commitTimer.current = null; } }, []);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [saveError, setSaveError] = useState("");

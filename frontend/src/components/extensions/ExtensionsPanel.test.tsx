@@ -71,13 +71,15 @@ describe("ExtensionsPanel", () => {
     expect(await screen.findByDisplayValue("ApiError")).toBeInTheDocument();
 
     // Phase 6 (#903): 新 API では readonly から編集開始ボタンを押して editing モードに入る
-    const startButton = screen.queryByRole("button", { name: "編集開始" });
+    // 編集開始ボタンは、読み込みのあとに出る。負荷が高いと、まだ出ていないことがあるので、少し待つ (出ないときは、すでに編集中)
+    const startButton = await screen.findByRole("button", { name: "編集開始" }).catch(() => null);
     if (startButton) {
       fireEvent.click(startButton);
       await screen.findByRole("button", { name: "追加" });
     }
 
-    fireEvent.click(screen.getByRole("button", { name: "追加" }));
+    fireEvent.click(await screen.findByRole("button", { name: "追加" }));
+    await waitFor(() => expect(screen.getAllByPlaceholderText("例: ApiError").length).toBeGreaterThan(1));
     fireEvent.change(screen.getAllByPlaceholderText("例: ApiError")[1], { target: { value: "Created" } });
     // EditModeToolbar の「保存」と tab の「保存」があるため getAllByRole で後者を選ぶ
     const saveButtons = screen.getAllByRole("button", { name: "保存" });

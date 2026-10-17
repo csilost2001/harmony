@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useMemo } from "react";
+import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import { computeReferenceCompletion, insertReferenceCandidate } from "../utils/reference-completer/completer";
 import type { Candidate, CompletionContext, Resolver } from "../utils/reference-completer/types";
 import { bestRank } from "../utils/textMatch";
@@ -34,6 +34,9 @@ export function useReferenceCompletion<T extends El>({ value, onValueChange, onC
   const [activeIndex, setActiveIndex] = useState(0);
   // マウント直後はフォーカスされていないため抑制状態で開始 (#1438)
   const [suppressed, setSuppressed] = useState(true);
+  // 入力欄を離れて 150ms 後に候補を隠す待ち。画面 (部品) が無くなったあとに動かないよう、外れるときに止める
+  const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (blurTimer.current) clearTimeout(blurTimer.current); }, []);
 
   const candidates: Candidate[] = useMemo(() => {
     if (suppressed) return [];
@@ -154,7 +157,8 @@ export function useReferenceCompletion<T extends El>({ value, onValueChange, onC
       setCursorPos((e.target as T).selectionStart ?? 0);
     },
     onBlur: () => {
-      setTimeout(() => setSuppressed(true), 150);
+      if (blurTimer.current) clearTimeout(blurTimer.current);
+      blurTimer.current = setTimeout(() => { blurTimer.current = null; setSuppressed(true); }, 150);
       onCommit?.();
     },
     onFocus: () => setSuppressed(false),
