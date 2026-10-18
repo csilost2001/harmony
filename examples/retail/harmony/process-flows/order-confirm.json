@@ -196,6 +196,7 @@
       "steps": [
         {
           "id": "step-01",
+          "heading": "入力を確かめる",
           "kind": "validation",
           "description": "配送先郵便番号 + 住所の必須チェック。郵便番号は @conv.regex.postalCode パターン検証。",
           "conditions": "shippingPostalCode は必須かつハイフンなし 7 桁数字。shippingAddress は必須。",
@@ -268,18 +269,21 @@
             "order": "@inputs"
           },
           "outputBinding": {
-            "name": "validationResult"
+            "name": "validationResult",
+            "label": "ビジネスバリデーションの結果"
           }
         },
         {
           "id": "step-02",
+          "heading": "カートを調べて、金額を出す",
           "kind": "dbAccess",
           "description": "顧客のアクティブカートと cart_items を、各明細が紐付く店舗情報 (storeId / storeCode) と一緒に取得する。multi-store inventory 整合のため、後続の在庫減算 (step-06-01-a) と order_items への店舗スナップショット記録 (step-06-03-a) で参照する。",
           "tableId": "cart",
           "operation": "SELECT",
           "sql": "SELECT c.id AS \"cartId\", ci.id AS \"itemId\", ci.product_id AS \"productId\", ci.store_id AS \"storeId\", ci.unit_price_snapshot AS \"unitPriceSnapshot\", ci.quantity, p.product_code AS \"productCode\", p.name AS \"productName\", p.unit_price AS \"unitPrice\", s.store_code AS \"storeCode\", s.name AS \"storeName\" FROM carts c JOIN cart_items ci ON ci.cart_id = c.id JOIN products p ON p.id = ci.product_id JOIN stores s ON s.id = ci.store_id WHERE c.customer_id = @sessionCustomerId AND c.status = 'active'",
           "outputBinding": {
-            "name": "cartItems"
+            "name": "cartItems",
+            "label": "カートの明細"
           }
         },
         {
@@ -320,18 +324,21 @@
           "description": "cart_items から注文合計金額 (税抜) を計算する。各行の line_amount = unit_price_snapshot * quantity の合計。",
           "expression": "@cartItems.reduce((sum, item) => sum + (item.unitPriceSnapshot * item.quantity), 0)",
           "outputBinding": {
-            "name": "totalAmount"
+            "name": "totalAmount",
+            "label": "合計金額"
           }
         },
         {
           "id": "step-05",
+          "heading": "注文を確定する",
           "kind": "dbAccess",
           "description": "注文番号を DB シーケンス (seq_order_number) から採番する。@conv.numbering.orderNumber 規約 (ORD-YYYY-NNNNNN) に従い NEXTVAL で取得。TX 外採番のため void (スキップ番号) は許容 (ADR-001)。",
           "tableId": "order",
           "operation": "SELECT",
           "sql": "SELECT 'ORD-' || EXTRACT(YEAR FROM CURRENT_DATE)::text || '-' || LPAD(nextval('seq_order_number')::text, 6, '0') AS order_number",
           "outputBinding": {
-            "name": "newOrderNumberRows"
+            "name": "newOrderNumberRows",
+            "label": "採番の結果"
           }
         },
         {
@@ -340,7 +347,8 @@
           "description": "newOrderNumberRows[0].order_number を newOrderNumber に展開する (dbAccess は配列で返るため)。",
           "expression": "@newOrderNumberRows[0].order_number",
           "outputBinding": {
-            "name": "newOrderNumber"
+            "name": "newOrderNumber",
+            "label": "注文番号"
           }
         },
         {
@@ -352,6 +360,7 @@
           "timeoutMs": 10000,
           "outputBinding": {
             "name": "txResult",
+            "label": "確定の結果",
             "expose": [
               "committed",
               "error"
@@ -365,6 +374,7 @@
               "loopKind": "collection",
               "collectionSource": "@cartItems",
               "collectionItemName": "cartItem",
+              "collectionItemLabel": "カートの明細の行",
               "steps": [
                 {
                   "id": "step-06-01-a",
@@ -391,7 +401,8 @@
               "operation": "INSERT",
               "sql": "INSERT INTO orders (order_number, customer_id, status, total_amount, tax_amount, shipping_postal_code, shipping_address, note, payment_method, ordered_at) VALUES (@newOrderNumber, @sessionCustomerId, 'pending', @totalAmount, FLOOR(@totalAmount * @conv.tax.standard.rate), @inputs.shippingPostalCode, @inputs.shippingAddress, @inputs.note, @inputs.paymentMethod, CURRENT_TIMESTAMP) RETURNING id, order_number",
               "outputBinding": {
-                "name": "insertedOrder"
+                "name": "insertedOrder",
+                "label": "登録した注文"
               },
               "affectedRowsCheck": {
                 "operator": "=",
@@ -408,6 +419,7 @@
               "loopKind": "collection",
               "collectionSource": "@cartItems",
               "collectionItemName": "cartItem",
+              "collectionItemLabel": "カートの明細の行",
               "steps": [
                 {
                   "id": "step-06-03-a",
@@ -528,6 +540,7 @@
         },
         {
           "id": "step-08",
+          "heading": "確定のあとの確認と通知",
           "kind": "dbAccess",
           "runIf": "@var.action.txResult.committed == true",
           "description": "TX コミット後に orders を再取得する (runIf ガード済: TX commit 後にのみ実行)。TX 内の insertedOrder の変数をそのまま参照するとネスト変数問題が起きるため、TX 後に SELECT で再取得する (spec §8.3 準拠)。",
@@ -535,7 +548,8 @@
           "operation": "SELECT",
           "sql": "SELECT id, order_number AS \"orderNumber\", customer_id AS \"customerId\", status, total_amount AS \"totalAmount\", ordered_at AS \"orderedAt\" FROM orders WHERE order_number = @newOrderNumber",
           "outputBinding": {
-            "name": "persistedOrder"
+            "name": "persistedOrder",
+            "label": "確定した注文"
           }
         },
         {

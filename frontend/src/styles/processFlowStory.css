@@ -1,0 +1,202 @@
+/* 処理フローの「流れ」表示 (docs/spec/process-flow-story-view.md)。色は tokens.css のトークンだけを使う */
+
+.pfs-root {
+  --pfs-db: var(--hm-hue-blue);
+  --pfs-cond: var(--hm-hue-amber);
+  --pfs-loop: var(--hm-hue-purple);
+  --pfs-tx: var(--hm-hue-cyan);
+  --pfs-ext: var(--hm-hue-orange);
+  --pfs-wf: var(--hm-hue-lime);
+  --pfs-err: var(--hm-danger);
+  --pfs-ok: var(--hm-success);
+  height: 100%;
+  overflow: auto;
+  padding: 0 4px 24px;
+  font-size: calc(13.5px * var(--hm-font-scale));
+  color: var(--hm-fg);
+}
+.pfs-empty { padding: 24px; color: var(--hm-fg-muted); }
+.pfs-muted { color: var(--hm-fg-muted); }
+.pfs-note { color: var(--hm-fg-muted); font-size: calc(12.5px * var(--hm-font-scale)); margin: 6px 0 10px; }
+
+/* ── 上の帯 ── */
+.pfs-toolbar {
+  position: sticky; top: 0; z-index: 5;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+  padding: 8px 4px; margin-bottom: 8px;
+  background: var(--hm-surface); border-bottom: 1px solid var(--hm-border);
+}
+.pfs-tabs, .pfs-zoom { display: inline-flex; border: 1px solid var(--hm-border-strong); border-radius: 8px; overflow: hidden; }
+.pfs-tabs button, .pfs-zoom button {
+  border: 0; background: var(--hm-surface); color: var(--hm-fg-2); padding: 4px 12px; cursor: pointer; font: inherit;
+}
+.pfs-tabs button + button, .pfs-zoom button + button { border-left: 1px solid var(--hm-border); }
+.pfs-tabs button[aria-selected="true"], .pfs-zoom button[aria-pressed="true"] { background: var(--hm-accent-solid); color: var(--hm-on-solid); }
+.pfs-progress { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; color: var(--hm-fg-muted); font-size: calc(12.5px * var(--hm-font-scale)); }
+.pfs-progress i { display: block; width: 110px; height: 6px; border-radius: 3px; background: var(--hm-surface-4); overflow: hidden; }
+.pfs-progress b { display: block; height: 100%; background: var(--pfs-ok); }
+.pfs-link { border: 0; background: none; color: var(--hm-accent); cursor: pointer; padding: 0; font: inherit; text-decoration: underline; }
+
+.pfs-varbar {
+  position: sticky; top: 44px; z-index: 4;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px;
+  padding: 6px 10px; margin-bottom: 8px;
+  background: var(--hm-accent-soft); border: 1px solid var(--hm-accent); border-radius: 8px;
+}
+.pfs-varbar code { margin-left: 6px; color: var(--hm-fg-muted); }
+.pfs-varbar button { border: 1px solid var(--hm-border-strong); background: var(--hm-surface); color: var(--hm-fg); border-radius: 6px; padding: 1px 10px; cursor: pointer; font: inherit; }
+
+/* ── 見出し ── */
+.pfs-section { background: var(--hm-surface); border: 1px solid var(--hm-border); border-radius: 12px; margin-bottom: 14px; overflow: hidden; }
+.pfs-section > header {
+  display: flex; align-items: center; gap: 10px; padding: 8px 14px; cursor: pointer; user-select: none;
+  background: var(--hm-surface-3);
+}
+.pfs-section > header h3 { margin: 0; font-size: 1.05em; flex: 1; }
+.pfs-section > header small { color: var(--hm-fg-muted); }
+.pfs-section-no {
+  width: 24px; height: 24px; border-radius: 50%; text-align: center; line-height: 24px;
+  background: var(--hm-accent-solid); color: var(--hm-on-solid); font-weight: 700; font-size: calc(12.5px * var(--hm-font-scale));
+}
+.pfs-section-body { padding: 6px 10px 10px; }
+.pfs-flow > div:not(.pfs-section) { background: var(--hm-surface); border: 1px solid var(--hm-border); border-radius: 12px; padding: 6px 10px 10px; }
+
+/* ── 行 ── */
+.pfs-row, .pfs-box-head {
+  position: relative;
+  display: grid; grid-template-columns: 44px 100px minmax(0, 1fr) auto; gap: 8px; align-items: start;
+  padding: 7px 6px; border-radius: 8px; cursor: default;
+}
+.pfs-box-head { grid-template-columns: 44px 16px minmax(0, 1fr) auto; }
+.pfs-row:hover, .pfs-box-head:hover { background: var(--hm-hover); }
+.pfs-row.is-selected { outline: 2px solid var(--hm-accent); outline-offset: -2px; }
+.pfs-row.is-hl, .pfs-box.is-hl > .pfs-box-head { background: var(--hm-find-bg); }
+.pfs-row.is-flash, .pfs-box.is-flash > .pfs-box-head { animation: pfs-flash 1.6s ease; }
+@keyframes pfs-flash { 0%, 60% { background: var(--hm-find-current-bg); } 100% { background: transparent; } }
+@media (prefers-reduced-motion: reduce) { .pfs-row.is-flash, .pfs-box.is-flash > .pfs-box-head { animation: none; background: var(--hm-find-current-bg); } }
+.pfs-num { color: var(--hm-fg-faint); font-size: calc(12px * var(--hm-font-scale)); text-align: right; padding-top: 2px; font-variant-numeric: tabular-nums; }
+.pfs-kind {
+  font-size: calc(12px * var(--hm-font-scale)); font-weight: 700; border-radius: 6px; padding: 1px 6px; text-align: center; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; background: var(--hm-surface-3); color: var(--hm-fg-2);
+}
+.pfs-kind--db { background: color-mix(in srgb, var(--pfs-db) 16%, var(--hm-surface)); color: var(--pfs-db); }
+.pfs-kind--cond { background: color-mix(in srgb, var(--pfs-cond) 18%, var(--hm-surface)); color: var(--pfs-cond); }
+.pfs-kind--loop { background: color-mix(in srgb, var(--pfs-loop) 16%, var(--hm-surface)); color: var(--pfs-loop); }
+.pfs-kind--tx { background: color-mix(in srgb, var(--pfs-tx) 16%, var(--hm-surface)); color: var(--pfs-tx); }
+.pfs-kind--ext { background: color-mix(in srgb, var(--pfs-ext) 16%, var(--hm-surface)); color: var(--pfs-ext); }
+.pfs-kind--wf { background: color-mix(in srgb, var(--pfs-wf) 20%, var(--hm-surface)); color: var(--hm-fg-2); }
+.pfs-kind--err { background: color-mix(in srgb, var(--pfs-err) 14%, var(--hm-surface)); color: var(--pfs-err); }
+.pfs-kind--ok { background: color-mix(in srgb, var(--pfs-ok) 14%, var(--hm-surface)); color: var(--pfs-ok); }
+.pfs-main { min-width: 0; }
+.pfs-head { font-weight: 600; }
+.pfs-sub { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; margin-top: 3px; color: var(--hm-fg-muted); font-size: calc(12.5px * var(--hm-font-scale)); }
+.pfs-runif {
+  font-size: calc(12px * var(--hm-font-scale)); color: var(--pfs-cond); border-radius: 6px; padding: 0 6px;
+  background: color-mix(in srgb, var(--pfs-cond) 14%, var(--hm-surface));
+}
+.pfs-inside { display: none; margin-left: 6px; font-weight: 400; color: var(--hm-fg-muted); font-size: calc(12px * var(--hm-font-scale)); }
+.pfs-row--quiet { opacity: .8; }
+.pfs-anchor { position: absolute; width: 0; height: 0; }
+
+.pfs-row--guard {
+  border-left: 5px solid var(--pfs-err); border-radius: 8px; margin: 3px 0;
+  background: color-mix(in srgb, var(--pfs-err) 8%, var(--hm-surface));
+}
+.pfs-row--guard:hover { background: color-mix(in srgb, var(--pfs-err) 12%, var(--hm-surface)); }
+.pfs-status-text.is-error { color: var(--pfs-err); }
+
+/* ── 印 (チップ)・条件の言葉 ── */
+.pfs-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.pfs-box-head .pfs-chips { margin-top: 3px; }
+.pfs-chip {
+  display: inline-flex; align-items: center; border: 1px solid var(--hm-border); background: var(--hm-surface);
+  border-radius: 999px; padding: 0 9px; line-height: 20px; font-size: calc(12.5px * var(--hm-font-scale)); color: var(--hm-fg-2);
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: inherit;
+}
+.pfs-chip--table { background: color-mix(in srgb, var(--pfs-db) 14%, var(--hm-surface)); border-color: transparent; color: var(--pfs-db); font-weight: 600; }
+.pfs-chip--rule { background: var(--hm-surface-3); border-color: transparent; }
+.pfs-chip--error { background: color-mix(in srgb, var(--pfs-err) 12%, var(--hm-surface)); border-color: transparent; color: var(--pfs-err); font-weight: 600; }
+.pfs-chip--ok { background: color-mix(in srgb, var(--pfs-ok) 12%, var(--hm-surface)); border-color: transparent; color: var(--pfs-ok); font-weight: 600; }
+.pfs-chip--warn { background: color-mix(in srgb, var(--pfs-cond) 14%, var(--hm-surface)); border-color: transparent; color: var(--pfs-cond); }
+.pfs-chip--var, .pfs-var {
+  background: var(--hm-accent-soft); border: 1px solid transparent; color: var(--hm-accent); font-weight: 600; cursor: pointer; font-family: inherit;
+}
+.pfs-var { border-radius: 6px; padding: 0 6px; font-size: inherit; line-height: inherit; }
+.pfs-chip--var:hover, .pfs-var:hover, .pfs-chip--var.is-active, .pfs-var.is-active { border-color: var(--hm-accent); }
+.pfs-chip--var.is-active, .pfs-var.is-active { background: var(--hm-find-bg); color: var(--hm-fg); }
+.pfs-cond { font-weight: 500; }
+.pfs-inline-code, .pfs-code {
+  font: 12px/1.5 ui-monospace, Menlo, Consolas, monospace; background: var(--hm-surface-3); border-radius: 6px; color: var(--hm-fg-2);
+}
+.pfs-inline-code { padding: 0 4px; }
+.pfs-code { margin: 6px 0 2px; padding: 7px 10px; white-space: pre-wrap; word-break: break-all; }
+
+/* ── 入れ子 ── */
+.pfs-nest { margin: 2px 0 4px 44px; padding-left: 10px; border-left: 3px solid var(--hm-border); }
+.pfs-box { border: 2px solid var(--hm-border-strong); border-radius: 10px; margin: 4px 0; overflow: hidden; }
+.pfs-box--loop { border-color: var(--pfs-loop); background: color-mix(in srgb, var(--pfs-loop) 5%, transparent); }
+.pfs-box--tx { border-color: var(--pfs-tx); background: color-mix(in srgb, var(--pfs-tx) 6%, transparent); }
+.pfs-box-head { border-radius: 0; }
+.pfs-box--loop > .pfs-box-head { background: color-mix(in srgb, var(--pfs-loop) 14%, var(--hm-surface)); }
+.pfs-box--tx > .pfs-box-head { background: color-mix(in srgb, var(--pfs-tx) 14%, var(--hm-surface)); }
+.pfs-box--loop > .pfs-box-head .pfs-head { color: var(--pfs-loop); }
+.pfs-box--tx > .pfs-box-head .pfs-head { color: var(--pfs-tx); }
+.pfs-box-mark { padding-top: 2px; }
+.pfs-box .pfs-nest { margin: 0; padding: 4px 8px; border-left: 0; }
+.pfs-box-foot { padding: 3px 12px; font-size: calc(12px * var(--hm-font-scale)); color: var(--pfs-tx); border-top: 1px dashed var(--pfs-tx); }
+.pfs-arm { margin: 6px 0; border: 1px solid var(--hm-border); border-left: 5px solid var(--pfs-cond); border-radius: 8px; background: var(--hm-surface); }
+.pfs-arm-head { padding: 6px 10px; background: color-mix(in srgb, var(--pfs-cond) 12%, var(--hm-surface)); }
+.pfs-arm-lab { font-weight: 700; color: var(--pfs-cond); margin-right: 8px; }
+.pfs-arm--else, .pfs-arm--sub { border-left-color: var(--hm-border-strong); }
+.pfs-arm--else > .pfs-arm-head, .pfs-arm--sub > .pfs-arm-head { background: var(--hm-surface-3); }
+.pfs-arm--else .pfs-arm-lab, .pfs-arm--sub .pfs-arm-lab { color: var(--hm-fg-muted); }
+.pfs-arm--ng { border-left-color: var(--pfs-err); }
+.pfs-arm--ng > .pfs-arm-head { background: color-mix(in srgb, var(--pfs-err) 10%, var(--hm-surface)); }
+.pfs-arm--ng .pfs-arm-lab { color: var(--pfs-err); }
+.pfs-arm--approved, .pfs-arm--ok, .pfs-arm--commit { border-left-color: var(--pfs-ok); }
+.pfs-arm--approved > .pfs-arm-head, .pfs-arm--ok > .pfs-arm-head, .pfs-arm--commit > .pfs-arm-head { background: color-mix(in srgb, var(--pfs-ok) 10%, var(--hm-surface)); }
+.pfs-arm--approved .pfs-arm-lab, .pfs-arm--ok .pfs-arm-lab, .pfs-arm--commit .pfs-arm-lab { color: var(--pfs-ok); }
+.pfs-arm--rejected, .pfs-arm--timeout, .pfs-arm--rollback { border-left-color: var(--pfs-err); }
+.pfs-arm--rejected > .pfs-arm-head, .pfs-arm--timeout > .pfs-arm-head, .pfs-arm--rollback > .pfs-arm-head { background: color-mix(in srgb, var(--pfs-err) 10%, var(--hm-surface)); }
+.pfs-arm--rejected .pfs-arm-lab, .pfs-arm--timeout .pfs-arm-lab, .pfs-arm--rollback .pfs-arm-lab { color: var(--pfs-err); }
+.pfs-arm-body { padding: 2px 6px 6px; }
+
+/* ── 行の右の操作 ── */
+.pfs-acts { display: inline-flex; gap: 4px; align-items: center; opacity: 0; }
+.pfs-row:hover .pfs-acts, .pfs-box-head:hover .pfs-acts, .pfs-row.is-selected .pfs-acts, .pfs-acts:focus-within { opacity: 1; }
+.pfs-check, .pfs-open {
+  border: 1px solid var(--hm-border-strong); background: var(--hm-surface); color: var(--hm-fg-2); border-radius: 6px;
+  min-width: 26px; line-height: 22px; font-size: calc(12px * var(--hm-font-scale)); cursor: pointer; padding: 0 6px; font: inherit;
+}
+.pfs-check[aria-pressed="true"] { background: var(--pfs-ok); border-color: var(--pfs-ok); color: var(--hm-on-solid); }
+.pfs-acts:has(.pfs-check[aria-pressed="true"]), .pfs-acts:has(.pfs-stale) { opacity: 1; }
+.pfs-stale { font-size: calc(11.5px * var(--hm-font-scale)); color: var(--pfs-cond); border: 1px solid var(--pfs-cond); border-radius: 6px; padding: 0 5px; }
+
+/* ── 拡大縮小 ── */
+.pfs-z-overview .pfs-nest, .pfs-z-overview .pfs-sub, .pfs-z-overview .pfs-arm { display: none; }
+.pfs-z-overview .pfs-inside { display: inline; }
+.pfs-z-overview .pfs-box-foot { display: none; }
+.pfs-z-overview .pfs-row--guard .pfs-sub { display: none; }
+
+/* ── 出口・変数 ── */
+.pfs-exits, .pfs-vars { padding: 4px; }
+.pfs-exit, .pfs-vrow {
+  display: flex; width: 100%; gap: 12px; align-items: flex-start; text-align: left; font: inherit; color: inherit; cursor: pointer;
+  padding: 8px 10px; margin-bottom: 8px; border: 1px solid var(--hm-border); border-radius: 10px; background: var(--hm-surface);
+}
+.pfs-exit:hover, .pfs-vrow:hover { border-color: var(--hm-accent); }
+.pfs-status { flex: 0 0 54px; text-align: center; font-weight: 800; border-radius: 8px; padding: 4px 0; font-size: 1.1em; }
+.pfs-status.is-error { background: color-mix(in srgb, var(--pfs-err) 12%, var(--hm-surface)); color: var(--pfs-err); }
+.pfs-status.is-ok { background: color-mix(in srgb, var(--pfs-ok) 12%, var(--hm-surface)); color: var(--pfs-ok); }
+.pfs-exit-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.pfs-path { display: flex; flex-wrap: wrap; gap: 4px; }
+.pfs-path span { font-size: calc(12px * var(--hm-font-scale)); background: var(--hm-surface-3); border-radius: 6px; padding: 0 6px; }
+.pfs-vrow { align-items: center; }
+.pfs-vrow code { color: var(--hm-fg-muted); }
+.pfs-vcount { margin-left: auto; color: var(--hm-fg-muted); font-size: calc(12.5px * var(--hm-font-scale)); }
+
+@media (max-width: 900px) {
+  .pfs-row { grid-template-columns: 34px 84px minmax(0, 1fr); }
+  .pfs-row .pfs-acts { grid-column: 3; opacity: 1; }
+  .pfs-nest { margin-left: 18px; }
+}

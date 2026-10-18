@@ -452,6 +452,12 @@
           "items": { "$ref": "common.v3.schema.json#/$defs/Note" }
         },
         "maturity": { "$ref": "common.v3.schema.json#/$defs/Maturity" },
+        "heading": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "この工程から、新しい見出し (区切り) を始める。処理フローの「流れ」表示で、見出しの帯になり、畳める (例: 「与信と承認」)。最上位の工程だけで意味を持つ。実行には影響しない (docs/spec/process-flow-story-view.md、設計者承認 #1530)。"
+        },
         "sla": { "$ref": "#/$defs/Sla" },
         "runIf": { "$ref": "common.v3.schema.json#/$defs/TemplateString", "description": "実行条件式 (pre 評価)。false なら本 step を skip。lifecycle 上は `errorHandling` (post) と独立。" },
         "requiredPermissions": {
@@ -504,6 +510,12 @@
       "additionalProperties": false,
       "properties": {
         "name": { "$ref": "common.v3.schema.json#/$defs/Identifier", "description": "結果変数名 (camelCase)。" },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "description": "結果変数の呼び名 (例: 「取引先」「受注合計」)。処理フローの「流れ」表示で、条件や変数の一覧に、名前の代わりに出す。実行には影響しない (設計者承認 #1530)。"
+        },
         "operation": {
           "type": "string",
           "enum": ["assign", "accumulate", "push"],
@@ -1385,6 +1397,12 @@
             "conditionExpression": { "$ref": "common.v3.schema.json#/$defs/TemplateString" },
             "collectionSource": { "$ref": "common.v3.schema.json#/$defs/TemplateString" },
             "collectionItemName": { "$ref": "common.v3.schema.json#/$defs/Identifier" },
+            "collectionItemLabel": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40,
+              "description": "繰り返しの 1 行の呼び名 (例: 「明細の行」)。処理フローの「流れ」表示で、名前の代わりに出す。実行には影響しない (設計者承認 #1530)。"
+            },
             "collectionIndexName": {
               "$ref": "common.v3.schema.json#/$defs/Identifier",
               "description": "collection loop の現在 index を bind する変数名 (#1264 verdict 観点 3、#1263 Phase X2)。指定時は steps[] 配下で `@var.<collectionIndexName>` として参照可能 (0-based integer)。省略時は明示 index 参照不可 (item のみ)。loop iteration ごとに fresh、外側 scope に持ち越されない。"

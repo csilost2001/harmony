@@ -104,6 +104,8 @@ interface StepBaseProps {
 }
 ```
 
+`outputBinding.label` (任意、1〜40 文字) は、結果変数の**呼び名** (例: `{ name: "customer", label: "取引先" }`)。実行には影響しない。「流れ」表示で、条件や変数の一覧に、名前の代わりに出す ([process-flow-story-view.md](process-flow-story-view.md))。繰り返しの 1 行の呼び名は、`loop.collectionItemLabel`。
+
 operation の意味:
 - `assign` (既定): 上書き代入
 - `accumulate`: `+=` で数値累積 (例: 税額計算の積算)
