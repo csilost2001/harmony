@@ -403,6 +403,8 @@ export interface OutputBindingTransformation {
 export interface OutputBinding {
   /** 結果変数名 (Identifier / camelCase)。 */
   name: Identifier;
+  /** 結果変数の呼び名 (例: 「取引先」)。「流れ」表示で名前の代わりに出す。実行には影響しない (#1530)。 */
+  label?: string;
   /** 代入方式。assign=上書き / accumulate=数値加算 / push=配列追加。既定: assign。 */
   operation?: "assign" | "accumulate" | "push";
   /** accumulate / push 時の初期値。JSON 値 (例: 0, []) または式文字列。 */
@@ -467,6 +469,11 @@ export interface ErrorHandling {
 export interface StepBaseProps {
   id: LocalId;
   description?: Description;
+  /**
+   * この工程から、新しい見出し (区切り) を始める。「流れ」表示で見出しの帯になる (最上位の工程のみ)。
+   * 実行には影響しない。docs/spec/process-flow-story-view.md (#1530)
+   */
+  heading?: string;
   notes?: Note[];
   maturity?: Maturity;
   sla?: Sla;
@@ -755,6 +762,8 @@ export interface LoopStep extends StepBaseProps {
   conditionExpression?: TemplateString;
   collectionSource?: TemplateString;
   collectionItemName?: Identifier;
+  /** 繰り返しの 1 行の呼び名 (例: 「明細の行」)。「流れ」表示で名前の代わりに出す。実行には影響しない (#1530)。 */
+  collectionItemLabel?: string;
   /**
    * collection loop の現在 index を bind する変数名 (#1264 verdict 観点 3、#1263 Phase X2)。
    * 指定時は steps[] 配下で `@var.<collectionIndexName>` として参照可能 (0-based integer)。

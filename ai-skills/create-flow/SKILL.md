@@ -81,6 +81,7 @@ ProcessFlow JSON に含めるべき要素 (5/5 達成サンプル準拠):
 | `domainsCatalog` (= `context.catalogs.domains`) | ID 系・金額系等のドメイン型 (constraints 付き) |
 | `functionsCatalog` (= `context.catalogs.functions`) | 業務固有関数のシグネチャ (signature / returnType / examples) — `aiCall.tools[].functionRef` から tool として再利用可 |
 | `actions[]` | 1-3 アクション。各 trigger / inputs / outputs / responses / steps |
+| 見出し (`heading`) と呼び名 (`outputBinding.label` / `loop.collectionItemLabel`) | 人が全体から読めるようにする (処理フローの「流れ」表示、`docs/spec/process-flow-story-view.md`)。**最上位の工程のうち、まとまりの先頭の工程に `heading` (「入力を確かめる」「与信と承認」など 3〜8 の区切り)**、**結果変数ごとに `label` (「取引先」「受注合計」)**、繰り返しの 1 行に `collectionItemLabel`。実行には影響しない。工程が 8 つ以上ある処理では付けることを勧める (検査では強制しない) |
 | `testScenarios` | 3 件以上 (happy path / validation error / 業務エッジケース)、各 SELECT 対象テーブルについて行ありパターン + 行なしパターン (新規ユーザー / 初回利用) を網羅 (#608) |
 
 各セクション 0 件は許されない (eventsCatalog と decisions と testScenarios は特に必須)。

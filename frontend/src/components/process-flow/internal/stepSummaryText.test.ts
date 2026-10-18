@@ -127,4 +127,9 @@ describe("stepSummaryText", () => {
     const noDesc = { id: "s2", kind: "unknown-kind" } as unknown as Step;
     expect(stepSummaryText(noDesc, [])).toBe("その他");
   });
+
+  it("workflow: 範囲外のパターン名でも「undefined」と出さず、そのまま出す", () => {
+    const step = { id: "w", kind: "workflow", pattern: "approval", approvers: [{ role: "x" }], description: "承認を取る" } as unknown as Step;
+    expect(stepSummaryText(step, [])).toBe("approval / 承認者 1件 - 承認を取る");
+  });
 });

@@ -67,5 +67,7 @@ export function buildTodayTasks(src: { drafts: readonly DraftMeta[]; issues: rea
   const markers = [...src.markers].filter((m) => !m.marker.resolvedAt).sort((a, b) => String(a.marker.createdAt).localeCompare(String(b.marker.createdAt)));
   for (const m of markers) out.push({ key: `marker:${m.entityType}:${m.entityId}:${m.marker.id}`, kind: "marker", title: clip(m.marker.body, 40), detail: `${m.entityName || m.entityId} のマーカー`, route: markerEntityRoute(m.entityType, m.entityId) });
   for (const i of src.issues) if (i.severity === "warning") out.push(issueTask(i, "warning"));
-  return out.slice(0, limit);
+  // 同じ印 (key) の指摘が 2 つ来ても、1 つだけ出す (一覧の key が重なるのを防ぐ)
+  const seen = new Set<string>();
+  return out.filter((t) => (seen.has(t.key) ? false : (seen.add(t.key), true))).slice(0, limit);
 }

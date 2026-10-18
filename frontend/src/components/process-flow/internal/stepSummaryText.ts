@@ -42,7 +42,7 @@ export function stepSummaryText(step: Step, allSteps: Step[]): string {
       return `[${jumpLabel}] へ${step.description ? ` - ${step.description}` : ""}`;
     }
     case "workflow":
-      return `${WORKFLOW_PATTERN_LABELS[step.pattern]} / 承認者 ${step.approvers.length}件${step.description ? ` - ${step.description}` : ""}`;
+      return `${WORKFLOW_PATTERN_LABELS[step.pattern] ?? step.pattern ?? "承認"} / 承認者 ${step.approvers.length}件${step.description ? ` - ${step.description}` : ""}`;
     case "transactionScope": {
       const n = step.steps.length;
       const iso = step.isolationLevel ?? "READ_COMMITTED";

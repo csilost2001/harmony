@@ -42,4 +42,10 @@ describe("buildTodayTasks (続編 第 6 弾 #116)", () => {
     expect(t.map((x) => x.kind)).toEqual(["draft", "note", "error"]);
     expect(t[1]).toMatchObject({ title: "桁数を確認する", detail: "テーブル「orders」のメモ", route: "/table/edit/orders" });
   });
+
+  it("同じ印 (key) の指摘が 2 つ来ても、1 つだけ出す (一覧の key が重ならない)", () => {
+    const dup = { ...issue("warning", "W1", { kind: "table", id: "orders" }), key: "i-same" };
+    const t = buildTodayTasks({ drafts: [], issues: [dup, { ...dup }], markers: [] });
+    expect(t.filter((x) => x.key === "issue:i-same")).toHaveLength(1);
+  });
 });

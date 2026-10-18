@@ -1018,11 +1018,19 @@ function checkAction(
       //   パターン 1: 同テーブルへの先行 SELECT WHERE で UNIQUE カラムを参照している
       //   パターン 2: INSERT step 自身の affectedRowsCheck.errorCode が UNIQUE_VIOLATION 系
       //   パターン 3: action 全体の steps に tryCatch で UNIQUE_VIOLATION をキャッチする branch がある
-      const allUniqueConstraints: Array<{ cols: string[] }> = [
-        ...meta.uniqueConstraints.map((cols) => ({ cols })),
+      const allUniqueConstraints: Array<{ cols: string[] }> = [];
+      const seenUnique = new Set<string>();
+      for (const cols of [
+        ...meta.uniqueConstraints,
         // Column.unique: true は単体 UNIQUE として扱う
-        ...[...meta.uniqueColumns].map((col) => ({ cols: [col] })),
-      ];
+        ...[...meta.uniqueColumns].map((col) => [col]),
+      ]) {
+        // 同じ列の組が UNIQUE 制約と列の unique 指定の両方にあっても、1 つとして数える (指摘が二重に出るのを防ぐ)
+        const key = [...cols].sort().join(",");
+        if (seenUnique.has(key)) continue;
+        seenUnique.add(key);
+        allUniqueConstraints.push({ cols });
+      }
 
       for (const uq of allUniqueConstraints) {
         // INSERT 対象カラムとの交差

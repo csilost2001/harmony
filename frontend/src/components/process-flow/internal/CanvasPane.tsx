@@ -15,15 +15,18 @@ import type { EditLevel } from "../../../hooks/useEditLevel";
 import type { WorkspaceRefs } from "../../../utils/reference-completer/types";
 import { ProcessFlowDiagram } from "../diagram/ProcessFlowDiagram";
 import { ProcessFlowTable } from "../diagram/ProcessFlowTable";
+import { ProcessFlowStory } from "../story/ProcessFlowStory";
+import { useWorkspacePath } from "../../../hooks/useWorkspacePath";
 import type { FlowContext } from "../diagram/flowStructure";
 import { OutlineEditor } from "./OutlineEditor";
 import { ALL_STEP_TYPES } from "./stepCardConstants";
 import type { OutlineLine } from "../../../utils/processFlowOutline";
 
-type FlowView = "cards" | "outline" | "diagram" | "table";
+type FlowView = "cards" | "story" | "outline" | "diagram" | "table";
 const VIEW_KEY = "harmony.processFlow.view";
 const VIEWS: Array<{ key: FlowView; label: string; icon: string; title: string }> = [
   { key: "cards", label: "カード", icon: "bi-card-list", title: "ステップをカードで編集" },
+  { key: "story", label: "流れ", icon: "bi-signpost-split", title: "入れ子・条件・出口・変数を、言葉で読む (AI が作った処理を確かめる)" },
   { key: "outline", label: "アウトライン", icon: "bi-text-left", title: "1 行 1 工程のテキストで書く (試作)" },
   { key: "diagram", label: "図", icon: "bi-diagram-3", title: "分岐・繰り返し・トランザクションを図で見る" },
   { key: "table", label: "表", icon: "bi-table", title: "処理記述表 (No / 処理 / 対象 / 条件) で見る" },
@@ -32,7 +35,7 @@ const VIEWS: Array<{ key: FlowView; label: string; icon: string; title: string }
 function readView(): FlowView {
   try {
     const v = localStorage.getItem(VIEW_KEY);
-    if (v === "cards" || v === "outline" || v === "diagram" || v === "table") return v;
+    if (v === "cards" || v === "story" || v === "outline" || v === "diagram" || v === "table") return v;
   } catch { /* storage 不可 */ }
   return "cards";
 }
@@ -128,6 +131,7 @@ export function CanvasPane({
   onApplyOutline,
   workspace,
 }: CanvasPaneProps) {
+  const { wsId } = useWorkspacePath();
   const [view, setView] = useState<FlowView>(readView);
   const [focusId, setFocusId] = useState<string | null>(null);
   const [scrollTo, setScrollTo] = useState<string | null>(null);
@@ -192,6 +196,16 @@ export function CanvasPane({
       <div className="process-flow-content">
         {activeAction && view === "outline" ? (
           <OutlineEditor key={activeAction.id} steps={activeAction.steps} kinds={ALL_STEP_TYPES} readonly={isReadonly} onApply={onApplyOutline} refCandidates={refCandidates} />
+        ) : activeAction && view === "story" ? (
+          <ProcessFlowStory
+            key={activeAction.id}
+            action={activeAction}
+            reviewKey={`${wsId}:${group?.meta.id ?? "flow"}:${activeAction.id}`}
+            ctx={ctx}
+            selectedStepIds={highlighted}
+            onSelectStep={selectFromView}
+            onOpenStep={openInCards}
+          />
         ) : activeAction && view === "diagram" ? (
           <ProcessFlowDiagram action={activeAction} ctx={ctx} selectedStepIds={highlighted} onSelectStep={selectFromView} onOpenStep={openInCards} />
         ) : activeAction && view === "table" ? (

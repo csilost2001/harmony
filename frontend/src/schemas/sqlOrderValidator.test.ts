@@ -2318,3 +2318,26 @@ describe("walkStepsInOrder — 配下の工程 (subSteps) は親の本体のあ�
   });
 });
 
+
+describe("観点 3: 同じ UNIQUE を 2 回数えない (#1530)", () => {
+  it("UNIQUE 制約と、列の unique 指定の両方に同じ列があっても、指摘は 1 件", () => {
+    const table = makeTable(
+      "tbl-orders-dup",
+      "orders",
+      [
+        { physicalName: "id", notNull: true, autoIncrement: true, primaryKey: true },
+        { physicalName: "order_number", notNull: true, unique: true },
+      ],
+      undefined,
+      [{ columnPhysicalNames: ["order_number"] }],
+    );
+    const flow = makeFlow({
+      actions: [{
+        id: "act-001", name: "受注", trigger: "submit", inputs: [{ name: "no", type: "string", required: true }],
+        steps: [{ id: "step-01", kind: "dbAccess", description: "INSERT", tableId: "tbl-orders-dup", operation: "INSERT", sql: "INSERT INTO orders (order_number) VALUES (@inputs.no)" }],
+      }],
+    });
+    const target = checkSqlOrder(flow, [table]).filter((i) => i.code === "UNIQUE_CHECK_MISSING");
+    expect(target).toHaveLength(1);
+  });
+});
