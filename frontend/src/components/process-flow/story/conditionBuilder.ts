@@ -10,7 +10,7 @@ import type { ActionDefinition } from "../../../types/v3";
 import { parseVarRef, splitTopLevel } from "./expressionText";
 import { asLooseList, buildVarLabels, childGroups, variableFlow, walkSteps, type Loose } from "./storyModel";
 
-export type CondOp = "==" | "!=" | ">" | ">=" | "<" | "<=" | "null" | "notNull" | "true" | "false";
+export type CondOp = "==" | "!=" | ">" | ">=" | "<" | "<=" | "null" | "notNull" | "true" | "false" | "notTrue" | "notFalse";
 
 export const OP_CHOICES: Array<{ op: CondOp; label: string; needsValue: boolean }> = [
   { op: "==", label: "と等しい", needsValue: true },
@@ -23,6 +23,8 @@ export const OP_CHOICES: Array<{ op: CondOp; label: string; needsValue: boolean 
   { op: "notNull", label: "ある", needsValue: false },
   { op: "true", label: "「はい」", needsValue: false },
   { op: "false", label: "「いいえ」", needsValue: false },
+  { op: "notTrue", label: "「はい」ではない", needsValue: false },
+  { op: "notFalse", label: "「いいえ」ではない", needsValue: false },
 ];
 
 export interface Clause {
@@ -31,6 +33,8 @@ export interface Clause {
   op: CondOp;
   /** 式としての値 (`0` `'prepaid'` `@credit.creditUsed`)。値の要らない比較では空 */
   value: string;
+  /** もとの式が、厳密な比較 (`===` `!==`) だったか。触らない限り、そのまま書き戻す (意味を変えないため) */
+  strict?: boolean;
 }
 
 export interface CondModel {
@@ -39,23 +43,29 @@ export interface CondModel {
 }
 
 const CMP_RE = /^(@[\w.[\]]+)\s*(===|!==|==|!=|>=|<=|>|<)\s*(.+)$/;
-const SIMPLE_VALUE_RE = /^(@[\w.[\]]+|'[^']*'|"[^"]*"|-?\d+(\.\d+)?|null|true|false)$/;
+const SIMPLE_VALUE_RE = /^(@[\w.[\]]+|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|-?\d+(\.\d+)?|null|true|false)$/;
 
 function parseClause(raw: string): Clause | null {
-  let c = raw.trim();
+  const c = raw.trim();
   if (c.startsWith("(") && c.endsWith(")")) return null; // 括弧つきは、部品にしない
   const m = c.match(CMP_RE);
   if (!m) return null;
-  c = "";
   const [, subject, opRaw, rightRaw] = m;
   const right = rightRaw.trim();
   if (!parseVarRef(subject) || !SIMPLE_VALUE_RE.test(right)) return null;
+  const strict = opRaw === "===" || opRaw === "!==";
   const eq = opRaw === "==" || opRaw === "===";
   const ne = opRaw === "!=" || opRaw === "!==";
-  if (right === "null" && (eq || ne)) return { subject, op: eq ? "null" : "notNull", value: "" };
-  if ((right === "true" || right === "false") && (eq || ne)) return { subject, op: (right === "true") === eq ? "true" : "false", value: "" };
-  const op = opRaw === "===" ? "==" : opRaw === "!==" ? "!=" : (opRaw as CondOp);
-  return { subject, op, value: right };
+  const withStrict = (cl: Clause): Clause => (strict ? { ...cl, strict: true } : cl);
+  // `== null` と `!= null` は、undefined も含む (緩い比較)。厳密な `=== null` は、strict を保って書き戻す
+  if (right === "null" && (eq || ne)) return withStrict({ subject, op: eq ? "null" : "notNull", value: "" });
+  if ((right === "true" || right === "false") && (eq || ne)) {
+    const isTrue = right === "true";
+    if (eq) return withStrict({ subject, op: isTrue ? "true" : "false", value: "" });
+    return withStrict({ subject, op: isTrue ? "notTrue" : "notFalse", value: "" });
+  }
+  const op = strict ? (opRaw === "===" ? "==" : "!=") : (opRaw as CondOp);
+  return withStrict({ subject, op, value: right });
 }
 
 /** 式 → 部品。部品にできない式 (入れ子の括弧・関数・三項・「かつ」と「または」の混在など) は null */
@@ -77,11 +87,17 @@ export function parseCondition(expr: string): CondModel | null {
 }
 
 export function composeClause(c: Clause): string {
+  const e = c.strict ? "===" : "==";
+  const n = c.strict ? "!==" : "!=";
   switch (c.op) {
-    case "null": return `${c.subject} == null`;
-    case "notNull": return `${c.subject} != null`;
-    case "true": return `${c.subject} == true`;
-    case "false": return `${c.subject} == false`;
+    case "null": return `${c.subject} ${e} null`;
+    case "notNull": return `${c.subject} ${n} null`;
+    case "true": return `${c.subject} ${e} true`;
+    case "false": return `${c.subject} ${e} false`;
+    case "notTrue": return `${c.subject} ${n} true`;
+    case "notFalse": return `${c.subject} ${n} false`;
+    case "==": return `${c.subject} ${e} ${c.value}`;
+    case "!=": return `${c.subject} ${n} ${c.value}`;
     default: return `${c.subject} ${c.op} ${c.value}`;
   }
 }
@@ -100,8 +116,9 @@ export function valueToExpr(input: string): string {
 
 /** 式の値 → 入力欄に出す形 (文字列の引用符は外す) */
 export function exprToValue(expr: string): string {
-  const m = expr.trim().match(/^'([^']*)'$|^"([^"]*)"$/);
-  return m ? (m[1] ?? m[2] ?? "") : expr.trim();
+  const t = expr.trim();
+  const m = t.match(/^'((?:[^'\\]|\\.)*)'$|^"((?:[^"\\]|\\.)*)"$/);
+  return m ? (m[1] ?? m[2] ?? "").replace(/\\(.)/g, "$1") : t;
 }
 
 // ─── 変数の候補 ────────────────────────────────────────
@@ -139,40 +156,44 @@ export function selectColumns(sql: string): string[] {
   return [...new Set(out)];
 }
 
-function ancestorsOf(steps: readonly Loose[], targetId: string): Loose[] {
-  const path: Loose[] = [];
-  const found = (list: readonly Loose[]): boolean => {
-    for (const s of list) {
-      if (s.id === targetId) return true;
-      for (const g of childGroups(s)) {
-        path.push(s);
-        if (found(g.steps)) return true;
-        path.pop();
-      }
+interface Place { list: readonly Loose[]; index: number }
+
+/** その工程までの、入っている並びと位置 (いちばん外側から、その工程自身まで) */
+function chainTo(list: readonly Loose[], id: string): Place[] | null {
+  for (let i = 0; i < list.length; i++) {
+    const s = list[i];
+    if (s.id === id) return [{ list, index: i }];
+    for (const g of childGroups(s)) {
+      const sub = chainTo(g.steps, id);
+      if (sub) return [{ list, index: i }, ...sub];
     }
-    return false;
-  };
-  found(steps);
-  return path;
+  }
+  return null;
 }
 
 /**
- * ある工程 (beforeStepId) で使える変数の候補。その工程より前で作られるものと、入力。繰り返しの 1 行・番号は、その繰り返しの中でだけ。
- * beforeStepId が null なら、流れの最後での候補。
+ * ある工程 (beforeStepId) で使える変数の候補。その工程の「前」にあって、同じ並び、または外側の並びで作られるものだけ。
+ * 別の道 (兄弟の枠) の中や、まとまり (トランザクション) の中で作られる変数は、外からは使えないので出さない。
+ * 繰り返しの 1 行・番号は、その繰り返しの中でだけ。beforeStepId が null なら、流れの最後 (最上位) での候補。
  */
 export function varCandidates(action: Pick<ActionDefinition, "steps" | "inputs">, beforeStepId: string | null, ambient: ReadonlyArray<{ name: string; label?: string }> = []): VarCandidate[] {
   const steps = asLooseList(action.steps);
   const labels = buildVarLabels(action);
-  const order: string[] = [];
   const byId = new Map<string, Loose>();
-  walkSteps(steps, (s) => { order.push(s.id); byId.set(s.id, s); });
-  const limit = beforeStepId === null ? order.length : order.indexOf(beforeStepId);
-  const inside = new Set(beforeStepId ? ancestorsOf(steps, beforeStepId).map((s) => s.id) : []);
+  walkSteps(steps, (s) => { byId.set(s.id, s); });
+  const chainT = beforeStepId ? chainTo(steps, beforeStepId) ?? [] : [];
+  const inside = new Set(chainT.slice(0, -1).map((p) => p.list[p.index].id));
+  const visible = (defId: string): boolean => {
+    const chainD = chainTo(steps, defId);
+    const d = chainD?.at(-1);
+    if (!d) return false;
+    if (beforeStepId === null) return d.list === steps;
+    return chainT.some((p) => p.list === d.list && p.index > d.index);
+  };
   const out: VarCandidate[] = [];
   for (const v of variableFlow(action, labels)) {
-    const firstDef = Math.min(...v.defIds.map((id) => order.indexOf(id)));
-    if (limit >= 0 && firstDef >= limit && !(v.how === "loopItem" || v.how === "loopIndex")) continue;
-    if ((v.how === "loopItem" || v.how === "loopIndex") && !v.defIds.some((id) => inside.has(id))) continue;
+    const isLoopVar = v.how === "loopItem" || v.how === "loopIndex";
+    if (isLoopVar ? !v.defIds.some((id) => inside.has(id)) : !v.defIds.some(visible)) continue;
     const def = byId.get(v.defIds[0]);
     const props: VarCandidate["props"] = [];
     if (def?.kind === "dbAccess") for (const c of selectColumns(String(def.sql ?? ""))) props.push({ name: c, label: c });

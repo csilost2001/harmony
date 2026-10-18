@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Step } from "../../../types/v3";
 import {
-  addArm, ensureElse, ensureGroup, insertSteps, moveStepBy, moveStepTo, patchOutputBinding, patchStep, removeArm, removeStepById, renameVariable, resolveList, setArmCondition, setHeading, TOP,
+  addArm, canMoveInto, ensureElse, ensureGroup, insertSteps, moveStepBy, moveStepTo, patchOutputBinding, patchStep, removeArm, removeStepById, renameVariable, resolveList, setArmCondition, setHeading, TOP,
 } from "./storyEdit";
 
 const S = (o: Record<string, unknown>) => o as unknown as Step;
@@ -124,27 +124,64 @@ describe("分岐の腕", () => {
     const used = new Set(["a", "b", "br-01", "br-02"]);
     const id = addArm(f, "b", used)!;
     expect(id).toBe("br-03");
-    expect((f[1] as unknown as { branches: Array<{ code: string }> }).branches.map((x) => x.code)).toEqual(["A", "B"]);
+    // 「それ以外」が B を使っているので、足す道は C
+    expect((f[1] as unknown as { branches: Array<{ code: string }> }).branches.map((x) => x.code)).toEqual(["A", "C"]);
     expect(removeArm(f, "b", id)).toBe(true);
     const g = flow();
     delete (g[1] as unknown as { elseBranch?: unknown }).elseBranch;
     expect(ensureElse(g, "b", new Set(["br-01"]))).toBe(true);
-    expect((g[1] as unknown as { elseBranch: { code: string } }).elseBranch.code).toBe("B");
+    expect((g[1] as unknown as { elseBranch: { code: string } }).elseBranch.code).toBe("X");
   });
 });
 
 describe("renameVariable", () => {
-  it("変数を使う式の `@旧名` (var.action.旧名 を含む) を、新しい名前に直す。別の名前・規約は変えない", () => {
+  it("変数を作る工程 (同じ名前のすべて) と、使う式の `@旧名` を、新しい名前に直す。別の名前・規約・メールアドレスは変えない", () => {
     const steps = [
-      S({ id: "a", kind: "compute", expression: "@customer.n + @customerId + @conv.customer.x + @var.action.customer.m", outputBinding: { name: "customer" } }),
-      S({ id: "b", kind: "branch", branches: [{ id: "br-01", code: "A", condition: { kind: "expression", expression: "@customer == null" }, steps: [S({ id: "c", kind: "return", bodyExpression: "{ x: @customer }" })] }] }),
+      S({ id: "a", kind: "compute", expression: "@customer.n + @customerId + @conv.customer.x + @var.action.customer.m + @var.step.s-1.customer.k + @var.customer.z", outputBinding: { name: "customer" } }),
+      S({ id: "a2", kind: "compute", expression: "2", outputBinding: { name: "customer" } }),
+      S({ id: "b", kind: "branch", description: "連絡は a@customer.com へ。@ に送る", branches: [{ id: "br-01", code: "A", condition: { kind: "expression", expression: "@customer == null" }, steps: [S({ id: "c", kind: "return", bodyExpression: "{ x: @customer }" })] }] }),
+      S({ id: "l", kind: "loop", loopKind: "collection", collectionSource: "@customer", collectionItemName: "customer", steps: [] }),
     ];
     renameVariable(steps, "customer", "client");
-    expect(JSON.stringify(steps)).toContain("@client.n + @customerId + @conv.customer.x + @var.action.client.m");
-    expect(JSON.stringify(steps)).toContain("@client == null");
-    expect(JSON.stringify(steps)).toContain("{ x: @client }");
-    expect(JSON.stringify(steps)).not.toContain("@customer ");
-    // 変数を「作る」側の名前 (@ なし) は、ここでは変えない
-    expect((steps[0] as unknown as { outputBinding: { name: string } }).outputBinding.name).toBe("customer");
+    const j = JSON.stringify(steps);
+    expect(j).toContain("@client.n + @customerId + @conv.customer.x + @var.action.client.m + @var.step.s-1.client.k + @var.client.z");
+    expect(j).toContain("@client == null");
+    expect(j).toContain("{ x: @client }");
+    expect(j).toContain("a@customer.com へ。@ に送る"); // メールアドレス・単独の @ は変えない
+    expect((steps[0] as unknown as { outputBinding: { name: string } }).outputBinding.name).toBe("client");
+    expect((steps[1] as unknown as { outputBinding: { name: string } }).outputBinding.name).toBe("client");
+    expect((steps[3] as unknown as { collectionItemName: string }).collectionItemName).toBe("client");
+  });
+  it("空の名前・同じ名前では、何もしない", () => {
+    const steps = [S({ id: "a", kind: "compute", description: "連絡先 @ に送る", expression: "@x" })];
+    const before = JSON.stringify(steps);
+    renameVariable(steps, "", "newVar");
+    renameVariable(steps, "x", "x");
+    renameVariable(steps, "x", "");
+    expect(JSON.stringify(steps)).toBe(before);
+  });
+});
+
+describe("そのほかの安全 (レビュー対応)", () => {
+  it("「それ以外」の記号は X。道を足しても、重ならない", () => {
+    const f = [S({ id: "b", kind: "branch", branches: [{ id: "br-01", code: "A", condition: { kind: "expression", expression: "" }, steps: [] }] })];
+    const ids = new Set(["b", "br-01"]);
+    ensureElse(f, "b", ids);
+    expect((f[0] as unknown as { elseBranch: { code: string } }).elseBranch.code).toBe("X");
+    addArm(f, "b", ids);
+    addArm(f, "b", ids);
+    expect((f[0] as unknown as { branches: Array<{ code: string }> }).branches.map((x) => x.code)).toEqual(["A", "B", "C"]);
+  });
+  it("式でない条件 (tryCatch ほか) は、書き換えない (エラーコードなどが消えるため)", () => {
+    const f = [S({ id: "b", kind: "branch", branches: [{ id: "br-01", code: "A", condition: { kind: "tryCatch", errorCode: "E1", errorVar: "caught" }, steps: [] }] })];
+    expect(setArmCondition(f, "b", "br-01", "@x == 1")).toBe(false);
+    expect((f[0] as unknown as { branches: Array<{ condition: { kind: string } }> }).branches[0].condition.kind).toBe("tryCatch");
+  });
+  it("canMoveInto: 自分・自分の子孫の中へは動かせない", () => {
+    const f = flow();
+    expect(canMoveInto(f, "c", "c")).toBe(false);
+    expect(canMoveInto(f, "c", "c1")).toBe(false);
+    expect(canMoveInto(f, "c", null)).toBe(true);
+    expect(canMoveInto(f, "d", "c")).toBe(true);
   });
 });

@@ -276,4 +276,95 @@ describe("流れの表示: その場で直す (編集中)", () => {
     fireEvent.drop(gap, { dataTransfer: dt });
     expect(stepIds()).toEqual(["step-04", "step-01", "step-02"]);
   });
+
+  it("まとまりの「確定したあと」「取り消したあと」を足すと、空の枠が出て、中に工程を足せる", () => {
+    const a = base();
+    a.steps.push({ id: "step-09", kind: "transactionScope", description: "確定する", steps: [] } as never);
+    render(<Harness initial={a} />);
+    fireEvent.click(screen.getByRole("button", { name: "＋ 確定したあと" }));
+    expect(screen.getByText("確定したあと", { selector: ".pfs-arm-lab" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "＋ 確定したあと" })).toBeNull();
+    // 空の枠にも、足す入口がある
+    expect(screen.getAllByTestId("pfs-gap-add").length).toBeGreaterThan(3);
+  });
+
+  it("入力チェックの「不正なときの処理」を足すと、枠が出る", () => {
+    const a = base();
+    a.steps.unshift({ id: "step-00", kind: "validation", description: "入力", fieldErrorsVar: "fieldErrors", rules: [] } as never);
+    render(<Harness initial={a} />);
+    fireEvent.click(screen.getByRole("button", { name: "＋ 不正なときの処理" }));
+    expect(screen.getByText("ひとつでも不正なら", { selector: ".pfs-arm-lab" })).toBeInTheDocument();
+  });
+
+  it("式でない条件 (エラーを捕まえる道) は、直す窓口を出さず、カードへ案内する。中身は消えない", () => {
+    const a = base();
+    a.steps.push({
+      id: "step-09", kind: "branch", description: "失敗したら",
+      branches: [{ id: "br-09", code: "A", condition: { kind: "tryCatch", errorCode: "E1", errorVar: "caught" }, steps: [{ id: "step-10", kind: "compute", description: "控える", expression: "1" }] }],
+      elseBranch: { id: "br-10", code: "X", steps: [] },
+    } as never);
+    render(<Harness initial={a} />);
+    expect(screen.getByText(/この種類の条件は、カードで直します/)).toBeInTheDocument();
+    expect(screen.getByText(/エラー「E1」が起きたとき/)).toBeInTheDocument();
+    expect(screen.queryAllByTestId("pfs-arm-cond")).toHaveLength(0);
+    expect(JSON.stringify(dump().steps.at(-1))).toContain("errorVar");
+  });
+
+  it("窓の中のダブルクリックは、行の「カードで開く」にならない", () => {
+    const onOpen = vi.fn();
+    const Wrap = () => {
+      const [action, setAction] = useState(base());
+      return <ProcessFlowStory action={action} reviewKey="t:dbl" ctx={flowCtx} selectedStepIds={new Set()} onSelectStep={vi.fn()} onOpenStep={onOpen} editable onMutate={(fn) => setAction((cur) => { const n = structuredClone(cur); fn(n); return n; })} flowIds={() => new Set()} tables={TABLES} />;
+    };
+    render(<Wrap />);
+    fireEvent.click(screen.getByTitle(/注文 — クリックで直す/));
+    fireEvent.doubleClick(screen.getByPlaceholderText("テーブルを探す (名前・物理名)"));
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it("結果の変数の名前に、予約語 (inputs ほか) は使えない", () => {
+    render(<Harness />);
+    fireEvent.click(screen.getByTitle(/この工程で作る変数 customer — クリックで直す/));
+    const pop = screen.getByTestId("pfs-popover");
+    fireEvent.change(within(pop).getByLabelText("名前"), { target: { value: "inputs" } });
+    expect(within(pop).getByRole("button", { name: "決める" })).toBeDisabled();
+    expect(pop).toHaveTextContent("この名前は使えません");
+  });
+
+  it("「＋ 結果の変数」で新しい名前を決めても、ほかの文字は書き換わらない", () => {
+    const a = base();
+    a.steps.push({ id: "step-09", kind: "compute", description: "連絡先 @ に送る", expression: "1" } as never);
+    render(<Harness initial={a} />);
+    fireEvent.click(screen.getByRole("button", { name: "＋ 結果の変数" }));
+    const pop = screen.getByTestId("pfs-popover");
+    fireEvent.change(within(pop).getByLabelText("名前"), { target: { value: "newVar" } });
+    fireEvent.click(within(pop).getByRole("button", { name: "決める" }));
+    expect(dump().steps.at(-1)).toMatchObject({ description: "連絡先 @ に送る", outputBinding: { name: "newVar" } });
+  });
+
+  it("繰り返しの「一覧」が空のときは、選ぶ入口が出る。ひな型は、本物に見える仮の値を入れない", () => {
+    render(<Harness />);
+    fireEvent.click(screen.getAllByTestId("pfs-gap-add").at(-1)!);
+    fireEvent.click(screen.getByTestId("pfs-template-loop"));
+    const loop = dump().steps.at(-1) as unknown as { kind: string; collectionSource: string };
+    expect(loop.kind).toBe("loop");
+    expect(loop.collectionSource).toBe("");
+    fireEvent.click(screen.getByText("（繰り返す一覧を選ぶ）"));
+    fireEvent.change(screen.getByLabelText("一覧の式"), { target: { value: "@inputs.lines" } });
+    fireEvent.click(screen.getByRole("button", { name: "この一覧にする" }));
+    expect((dump().steps.at(-1) as unknown as { collectionSource: string }).collectionSource).toBe("@inputs.lines");
+  });
+
+  it("比べる値に、空白を含む文字を打てる", () => {
+    render(<Harness />);
+    fireEvent.click(screen.getByTestId("pfs-guard-cond"));
+    const pop = screen.getByTestId("pfs-popover");
+    fireEvent.change(within(pop).getByLabelText("比べ方"), { target: { value: "==" } });
+    const input = within(pop).getByLabelText("比べる値");
+    fireEvent.change(input, { target: { value: "pending " } });
+    expect((input as HTMLInputElement).value).toBe("pending ");
+    fireEvent.change(input, { target: { value: "pending review" } });
+    expect((input as HTMLInputElement).value).toBe("pending review");
+    expect(within(pop).getByTestId("pfs-cond-preview")).toHaveTextContent("@customer == 'pending review'");
+  });
 });

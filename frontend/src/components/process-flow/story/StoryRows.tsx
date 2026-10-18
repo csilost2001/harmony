@@ -8,10 +8,10 @@ import type { Step } from "../../../types/v3";
 import { showToast } from "../../../utils/toast";
 import { expressionSegments } from "./expressionText";
 import { InlineText } from "./InlineText";
-import { BindingEditor, ConditionEditor, InsertMenu, OperationPicker, ResponsePicker, TablePicker, type CondTarget } from "./StoryEditors";
+import { BindingEditor, CollectionPicker, ConditionEditor, InsertMenu, OperationPicker, ResponsePicker, TablePicker, type CondTarget } from "./StoryEditors";
 import { Chips, CondText } from "./StoryParts";
 import {
-  addArm, ensureElse, ensureGroup, moveStepBy, moveStepTo, patchStep, removeArm, removeStepById, setHeading, type ListAddr,
+  addArm, canMoveInto, ensureElse, ensureGroup, moveStepBy, moveStepTo, patchStep, removeArm, removeStepById, setHeading, type ListAddr,
 } from "./storyEdit";
 import {
   childGroups, conditionSegments, countSteps, isGuardBranch, stepChips, stepCode, stepDigest, stepHeadline,
@@ -33,7 +33,7 @@ export interface RowEnv {
   onSelect: (id: string) => void;
   onOpen: (id: string) => void;
   /** 工程を入れたあと (選択・光らせ・続けて開く欄) */
-  onInserted: (items: Step[], templateKey: string) => void;
+  onInserted: (items: Step[], templateKey: string, addr: ListAddr) => void;
 }
 
 const KIND_TONE: Record<string, string> = {
@@ -46,6 +46,12 @@ const KIND_TONE: Record<string, string> = {
   externalSystem: "ext",
   workflow: "wf",
 };
+
+/** 条件が「式」か (tryCatch・更新 0 件・外部呼び出しの結果は、ここでは直せない。直すと、エラーコードなどの中身が消える) */
+function isExprCond(cond: unknown): boolean {
+  const k = (cond as { kind?: string } | undefined)?.kind;
+  return k === undefined || k === "expression";
+}
 
 function rowKindLabel(step: Loose, status: number | undefined): { text: string; tone: string } {
   if (step.kind === "return") return { text: (status ?? 200) >= 400 ? "エラーで返す" : "返す", tone: (status ?? 200) >= 400 ? "err" : "ok" };
@@ -89,10 +95,12 @@ function Gap({ addr, index, always, env }: { addr: ListAddr; index: number; alwa
         if (!id) return;
         e.preventDefault();
         e.stopPropagation();
-        edit.mutate((a) => { if (!moveStepTo(a.steps, id, addr, index)) showToast("自分の中へは動かせません", "info"); });
+        // 動かせるかは、先に (更新の外で) 確かめる。通知を、更新の関数の中で出さないため
+        if (!canMoveInto(ui.ctx.action.steps as unknown as Step[], id, addr.ownerId)) { showToast("自分の中へは動かせません", "info"); return; }
+        edit.mutate((a) => { moveStepTo(a.steps, id, addr, index); });
       }}
     >
-      <button ref={setAnchor} type="button" className="pfs-gap-btn" aria-label="ここに工程を足す" onClick={(e) => { e.stopPropagation(); setOpen(true); }} data-testid="pfs-gap-add">
+      <button ref={setAnchor} type="button" className="pfs-gap-btn" aria-label={`${index + 1} 番目の位置に工程を足す`} onClick={(e) => { e.stopPropagation(); setOpen(true); }} data-testid="pfs-gap-add">
         ＋ {always ? "工程を足す" : "ここに追加"}
       </button>
       {open && env && (
@@ -197,7 +205,7 @@ function DragHandle({ id }: { id: string }) {
 // ─── 直す窓の状態 ───────────────────────────────────────
 
 type PopState =
-  | { kind: "table" | "operation" | "binding" | "response" | "ngResponse"; anchor: HTMLElement | null }
+  | { kind: "table" | "operation" | "binding" | "response" | "ngResponse" | "collection"; anchor: HTMLElement | null }
   | { kind: "cond"; anchor: HTMLElement | null; target: CondTarget; initial: string; beforeStepId: string };
 
 /** 工程の行で使う、直す窓の出し入れ。挿入の直後は、続けて開く窓を最初から開く (autoEdit) */
@@ -232,6 +240,7 @@ function StepPops({ step, pop, setPop }: { step: Loose; pop: PopState | null; se
     case "binding": return <BindingEditor anchor={pop.anchor} stepId={step.id} name={ob.name ?? ""} label={ob.label ?? ""} onClose={close} />;
     case "response": return <ResponsePicker anchor={pop.anchor} stepId={step.id} current={String(step.responseId ?? "")} field="responseId" onClose={close} />;
     case "ngResponse": return <ResponsePicker anchor={pop.anchor} stepId={step.id} current={String((step.inlineBranch as { ngResponseId?: string } | undefined)?.ngResponseId ?? "")} field="ngResponseId" onClose={close} />;
+    case "collection": return <CollectionPicker anchor={pop.anchor} stepId={step.id} current={String(step.collectionSource ?? "")} onClose={close} />;
     case "cond": return <ConditionEditor anchor={pop.anchor} target={pop.target} initial={pop.initial} beforeStepId={pop.beforeStepId} onClose={close} />;
     default: return null;
   }
@@ -255,7 +264,7 @@ function missingGroups(step: Loose): Array<{ key: string; label: string }> {
   }
   if (step.kind === "validation") {
     const ib = (step.inlineBranch ?? {}) as { ng?: unknown[]; ngResponseId?: string };
-    if (!(Array.isArray(ib.ng) && ib.ng.length) && !ib.ngResponseId) out.push({ key: "ng", label: "不正なときの処理" });
+    if (!Array.isArray(ib.ng) && !ib.ngResponseId) out.push({ key: "ng", label: "不正なときの処理" });
   }
   return out;
 }
@@ -312,7 +321,7 @@ function StepNode({ step, num, env, topLevel }: { step: Loose; num: string; env:
       </div>
     );
   }
-  const groups = childGroups(step);
+  const groups = childGroups(step, Boolean(ui.edit));
   const inside = groups.reduce((n, g) => n + countSteps(g.steps), 0);
   if (step.kind === "loop" || step.kind === "transactionScope") return <BoxNode step={step} num={num} env={env} groups={groups} inside={inside} topLevel={topLevel} />;
   return (
@@ -401,7 +410,9 @@ function GroupBlock({ owner, group, num, env }: { owner: Loose; group: ChildGrou
     <div className={`pfs-arm pfs-arm--${group.role}`} data-testid={`pfs-arm-${group.role}`} ref={setAnchorEl}>
       <div className="pfs-arm-head">
         <span className="pfs-arm-lab">{lead}</span>
-        {group.role === "arm" && (edit ? (
+        {group.role === "arm" && (edit && !isExprCond(group.condition) ? (
+          <><CondText segs={segs} /> なら <span className="pfs-muted" title="エラー・更新件数・外部呼び出しの結果の条件は、「カードで開く」から直します">(この種類の条件は、カードで直します)</span></>
+        ) : edit ? (
           <button type="button" className="pfs-cond-btn" title="クリックで、条件を直す" onClick={(e) => { e.stopPropagation(); openCond(e.currentTarget); }} data-testid="pfs-arm-cond">
             {initial.trim() ? <CondText segs={segs} /> : <span className="pfs-muted">（条件を決める）</span>} なら
           </button>
@@ -505,7 +516,7 @@ function GuardRow({ step, num, env, topLevel }: { step: Loose; num: string; env:
       <span className="pfs-kind pfs-kind--err">ガード</span>
       <div className="pfs-main">
         <div className="pfs-head">
-          {editable ? (
+          {editable && isExprCond(arm?.condition) ? (
             <button type="button" className="pfs-cond-btn" title="クリックで、条件を直す" onClick={(e) => { e.stopPropagation(); setPop({ kind: "cond", anchor: e.currentTarget }); }} data-testid="pfs-guard-cond">
               {initial.trim() ? <CondText segs={condSegs} /> : <span className="pfs-muted">（条件を決める）</span>}
             </button>
@@ -525,6 +536,7 @@ function GuardRow({ step, num, env, topLevel }: { step: Loose; num: string; env:
           <RunIfLine step={step} />
           {ret && <RunIfLine step={ret} />}
         </div>
+        {editable && <AddGroups step={step} />}
         {code && <pre className="pfs-code">{code}</pre>}
       </div>
       <RowActions step={step} env={env} topLevel={topLevel} />

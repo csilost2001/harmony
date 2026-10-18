@@ -54,7 +54,7 @@ export function resolveList(steps: Step[], addr: ListAddr, create = false): Step
       if (addr.key.startsWith("arm:")) {
         const id = addr.key.slice(4);
         const branches = Array.isArray(o.branches) ? (o.branches as Rec[]) : [];
-        const arm = branches.find((b, i) => String(b.id ?? i) === id);
+        const arm = branches.find((b, i) => String(b.id || i) === id);
         return arm ? arr(arm, "steps") : null;
       }
       return null;
@@ -94,6 +94,13 @@ export function removeStepById(steps: Step[], id: string): Step | null {
 /** id の工程の中 (入れ子の全部) に、別の工程 id が入っているか (自分の中へ動かせないため) */
 function contains(step: Step, id: string): boolean {
   return step.id === id || findStepDeep([step], id) !== null;
+}
+
+/** その工程を、その枠へ動かせるか (自分の中・自分の子孫の中へは動かせない) */
+export function canMoveInto(steps: Step[], id: string, ownerId: string | null): boolean {
+  const loc = locateStep(steps, id);
+  if (!loc) return false;
+  return ownerId === null || !contains(loc.list[loc.index], ownerId);
 }
 
 /** 工程を、住所の index 番目へ動かす (同じ並びの中なら、動かす前の位置を引いて数える)。自分の中へは動かせない */
@@ -186,8 +193,11 @@ export function setHeading(steps: Step[], id: string, text: string): boolean {
 export function setArmCondition(steps: Step[], ownerId: string, armId: string, expression: string): boolean {
   const owner = findStepDeep(steps, ownerId);
   const branches = owner && Array.isArray(rec(owner).branches) ? (rec(owner).branches as Rec[]) : [];
-  const arm = branches.find((b, i) => String(b.id ?? i) === armId);
+  const arm = branches.find((b, i) => String(b.id || i) === armId);
   if (!arm) return false;
+  // 式の条件だけを書き換える (tryCatch・更新 0 件・外部呼び出しの結果の条件は、中身 (エラーコードなど) が消えるので、ここでは直さない)
+  const cur = rec(arm.condition);
+  if (cur.kind !== undefined && cur.kind !== "expression") return false;
   arm.condition = { kind: "expression", expression };
   return true;
 }
@@ -199,6 +209,8 @@ export function addArm(steps: Step[], ownerId: string, ids: Set<string>): string
   const o = rec(owner);
   const branches = (Array.isArray(o.branches) ? o.branches : (o.branches = [])) as Rec[];
   const used = new Set(branches.map((b) => String(b.code)));
+  const elseCode = o.elseBranch ? rec(o.elseBranch).code : undefined;
+  if (elseCode) used.add(String(elseCode));
   let code = "A";
   for (let c = 65; c <= 90; c++) { if (!used.has(String.fromCharCode(c))) { code = String.fromCharCode(c); break; } }
   const id = nextLocalId(ids, "br", 2);
@@ -211,7 +223,7 @@ export function addArm(steps: Step[], ownerId: string, ids: Set<string>): string
 export function removeArm(steps: Step[], ownerId: string, armId: string): boolean {
   const owner = findStepDeep(steps, ownerId);
   const branches = owner && Array.isArray(rec(owner).branches) ? (rec(owner).branches as Rec[]) : [];
-  const i = branches.findIndex((b, k) => String(b.id ?? k) === armId);
+  const i = branches.findIndex((b, k) => String(b.id || k) === armId);
   if (i < 0) return false;
   branches.splice(i, 1);
   return true;
@@ -225,9 +237,10 @@ export function ensureElse(steps: Step[], ownerId: string, ids: Set<string>): bo
   if (o.elseBranch) return true;
   const id = nextLocalId(ids, "br", 2);
   ids.add(id);
+  // 「それ以外」の記号は、慣習で X (道の記号 A, B… と重ならない。X が使われていれば、W, V… の順)
   const used = new Set((Array.isArray(o.branches) ? (o.branches as Rec[]) : []).map((b) => String(b.code)));
   let code = "X";
-  for (let c = 66; c <= 90; c++) { if (!used.has(String.fromCharCode(c))) { code = String.fromCharCode(c); break; } }
+  for (let c = 88; c >= 65; c--) { if (!used.has(String.fromCharCode(c))) { code = String.fromCharCode(c); break; } }
   o.elseBranch = { id, code, steps: [] };
   return true;
 }
@@ -237,21 +250,36 @@ export function ensureGroup(steps: Step[], ownerId: string, key: string): boolea
   return resolveList(steps, { ownerId, key }, true) !== null;
 }
 
-/** 変数の名前を変えたとき、その変数を使っている式の `@旧名` (`@var.action.旧名` を含む) を、新しい名前に直す */
+/** 変数の名前に使えない語 (処理の外の名前空間・予約) */
+export const RESERVED_VAR_NAMES: readonly string[] = ["inputs", "var", "conv", "env", "secret", "const", "msg", "global", "session", "ctx", "this"];
+
+/**
+ * 変数の名前を変えたとき、その変数を作る工程 (同じ名前を作る工程すべて。結果変数・繰り返しの 1 行・番号) と、
+ * 使っている式の `@旧名` (`@var.旧名` / `@var.action|loop|flowParameter|global.旧名` / `@var.step|tx.<工程>.旧名` を含む) を、新しい名前に直す。
+ * `@` の直前が識別子の文字 (メールアドレスなど) のものと、`@conv.旧名` のように別の名前空間の下のものは、変えない。
+ */
 export function renameVariable(steps: readonly unknown[], from: string, to: string): void {
-  const re = new RegExp(`(@(?:var\\.(?:action|loop|flowParameter|global)\\.|var\\.)?)${from}(?![A-Za-z0-9_])`, "g");
-  const fix = (v: unknown): unknown => {
-    if (typeof v === "string") return v.replace(re, `$1${to}`);
-    if (Array.isArray(v)) return v.map(fix);
+  if (!from || !to || from === to) return;
+  const esc = from.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(`(?<![\\w.])@(var\\.(?:action|loop|flowParameter|global)\\.|var\\.(?:step|tx)\\.[\\w-]+\\.|var\\.)?${esc}(?![A-Za-z0-9_])`, "g");
+  const fixStr = (v: string) => v.replace(re, (_m, scope: string | undefined) => `@${scope ?? ""}${to}`);
+  const walk = (v: unknown, key?: string): unknown => {
+    if (typeof v === "string") {
+      // 作る側の名前 (@ の付かない文字列)
+      if ((key === "name" || key === "collectionItemName" || key === "collectionIndexName" || key === "fieldErrorsVar" || key === "errorVar") && v === from) return to;
+      return fixStr(v);
+    }
+    if (Array.isArray(v)) return v.map((x) => walk(x, key));
     if (v && typeof v === "object") {
       const o = v as Record<string, unknown>;
       for (const k of Object.keys(o)) {
-        // 変数を「作る」側の名前 (outputBinding.name・繰り返しの 1 行の名前) は、@ の付かない文字列なので、ここでは変わらない
-        o[k] = fix(o[k]);
+        // name は、結果変数 (outputBinding.name) のときだけ。ほかの name (入力の名前など) は変えない
+        if (k === "name" && key !== "outputBinding") continue;
+        o[k] = walk(o[k], k);
       }
       return o;
     }
     return v;
   };
-  fix(steps);
+  walk(steps);
 }

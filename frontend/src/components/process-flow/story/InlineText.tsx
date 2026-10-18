@@ -53,6 +53,7 @@ export function InlineText({ value, editable, placeholder, onCommit, className, 
       placeholder={placeholder}
       onChange={(e) => setDraft(e.target.value)}
       onClick={(e) => e.stopPropagation()}
+      onDoubleClick={(e) => e.stopPropagation()}
       onBlur={finish}
       onKeyDown={(e) => {
         e.stopPropagation();

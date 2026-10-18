@@ -16,7 +16,7 @@ import type { FlowContext } from "@harmony/shared";
 import type { ValidationError } from "../../../utils/actionValidation";
 import { InlineText } from "./InlineText";
 import { StepList, type RowEnv } from "./StoryRows";
-import { setHeading, TOP } from "./storyEdit";
+import { setHeading, TOP, type ListAddr } from "./storyEdit";
 import {
   asLooseList,
   buildVarLabels,
@@ -147,10 +147,11 @@ export function ProcessFlowStory({ action, reviewKey, ctx, selectedStepIds, onSe
   }, [problems]);
 
   /** 工程を入れたあと: 選んで、そこへ移り、続けて直す欄を開く (ひな型の種類による) */
-  const onInserted = useCallback((items: Step[], key: string) => {
+  const onInserted = useCallback((items: Step[], key: string, addr: ListAddr) => {
     const first = items[0] as unknown as { id: string; branches?: Array<{ id: string }> } | undefined;
     if (!first) return;
-    onSelectStep(first.id);
+    // 選ぶのは、最上位に足したときだけ (入れ子の中の工程は、カード表示の選びが、最上位の工程を前提にしているため)
+    if (addr.ownerId === null) onSelectStep(first.id);
     const guard = items.find((i) => i.kind === "branch") as unknown as { id: string; branches?: Array<{ id: string }> } | undefined;
     let next: AutoEdit | null = null;
     if (key === "guard" && guard?.branches?.[0]) next = { stepId: guard.id, what: "cond", armId: guard.branches[0].id };

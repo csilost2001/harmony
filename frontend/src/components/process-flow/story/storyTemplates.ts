@@ -19,6 +19,8 @@ export interface TemplateCtx {
   responses: ActionDefinition["responses"];
   /** すでにある変数の名前 */
   usedVars: ReadonlySet<string>;
+  /** 入力のうち、一覧 (配列) の名前。繰り返しの「何の一覧か」の初期値に使う */
+  arrayInputs?: readonly string[];
 }
 
 export interface StoryTemplate {
@@ -106,7 +108,8 @@ export const TEMPLATES: StoryTemplate[] = [
     keywords: ["くりかえし", "ループ", "明細", "loop", "foreach", "各行"],
     build: (ctx) => {
       const s = createDefaultStep("loop", ctx.ids);
-      Object.assign(rec(s), { loopKind: "collection", collectionSource: "@inputs.lines", collectionItemName: uniqueName("line", ctx.usedVars) });
+      // 一覧は、入力に配列があれば、その最初。無ければ空のまま (あとで選ぶ。本物に見える仮の値は入れない)
+      Object.assign(rec(s), { loopKind: "collection", collectionSource: ctx.arrayInputs?.[0] ? `@inputs.${ctx.arrayInputs[0]}` : "", collectionItemName: uniqueName("line", ctx.usedVars) });
       return [s];
     },
   },

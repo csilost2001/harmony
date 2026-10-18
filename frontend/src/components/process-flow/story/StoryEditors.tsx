@@ -12,7 +12,8 @@ import { clauseProblem, composeCondition, exprToValue, OP_CHOICES, parseConditio
 import { expressionSegments, parseVarRef } from "./expressionText";
 import { CondText } from "./StoryParts";
 import { StoryPopover } from "./StoryPopover";
-import { insertSteps, patchOutputBinding, patchStep, renameVariable, setArmCondition, type ListAddr } from "./storyEdit";
+import { findStepDeep } from "../../../utils/stepTree";
+import { insertSteps, patchOutputBinding, patchStep, renameVariable, RESERVED_VAR_NAMES, setArmCondition, type ListAddr } from "./storyEdit";
 import { variableFlow, type Loose } from "./storyModel";
 import { buildKind, searchTemplates, type TemplateCtx } from "./storyTemplates";
 import { useStoryUi } from "./storyUi";
@@ -79,15 +80,17 @@ export function BindingEditor({ anchor, stepId, name, label, onClose }: PopProps
   const ui = useStoryUi();
   const [n, setN] = useState(name);
   const [l, setL] = useState(label);
-  const taken = useMemo(() => new Set(variableFlow(ui.ctx.action).map((v) => v.name).filter((x) => x !== name)), [ui.ctx.action, name]);
-  const problem = !n ? "名前を入れてください" : !isValidIdentifier(n, "camel") ? "英小文字で始まる英数字 (camelCase。例: customerId) にしてください" : taken.has(n) ? "同じ名前の変数が、すでにあります" : "";
+  // 使えない名前: ほかの変数・処理の外の名前空間 (inputs など)・処理の外から来る値 (ambient)
+  const taken = useMemo(() => new Set([...variableFlow(ui.ctx.action).map((v) => v.name).filter((x) => x !== name), ...RESERVED_VAR_NAMES, ...(ui.edit?.ambient ?? []).map((a) => a.name)]), [ui.ctx.action, ui.edit?.ambient, name]);
+  const problem = !n ? "名前を入れてください" : !isValidIdentifier(n, "camel") ? "英小文字で始まる英数字 (camelCase。例: customerId) にしてください" : taken.has(n) ? "この名前は使えません (同じ名前の変数・処理の外の名前と重なります)" : "";
   const suggestion = problem && n ? suggestIdentifier(n, "camel") : null;
   const apply = () => {
     if (problem) return;
-    const renamed = n !== name;
+    const renamed = Boolean(name) && n !== name;
     ui.edit?.mutate((a) => {
-      patchOutputBinding(a.steps, stepId, { name: n, label: l.trim() });
+      // 名前を変えるときは、同じ名前を作る工程すべてと、使っている式を、まとめて直す
       if (renamed) renameVariable(a.steps as unknown as Loose[], name, n);
+      patchOutputBinding(a.steps, stepId, { name: n, label: l.trim() });
     });
     onClose();
   };
@@ -97,8 +100,8 @@ export function BindingEditor({ anchor, stepId, name, label, onClose }: PopProps
       <input className="pfs-field" value={l} maxLength={40} placeholder="例: 取引先" onChange={(e) => setL(e.target.value)} aria-label="呼び名" />
       <label className="pfs-label">名前 (英字。式の中で使う)</label>
       <input className="pfs-field" value={n} placeholder="例: customer" onChange={(e) => setN(e.target.value)} aria-label="名前" onKeyDown={(e) => { if (isPlainEnter(e)) apply(); }} />
-      {problem && <p className="pfs-warn">{problem}{suggestion && <> — <button type="button" className="pfs-link" onClick={() => setN(suggestion)}>「{suggestion}」にする</button></>}</p>}
-      {n !== name && name && !problem && <p className="pfs-note">名前を変えると、この変数を使っている式 (条件・SQL など) の `@{name}` も、`@{n}` に直します。</p>}
+      {problem && <p className="pfs-warn">{problem}{suggestion && !taken.has(suggestion) && <> — <button type="button" className="pfs-link" onClick={() => setN(suggestion)}>「{suggestion}」にする</button></>}</p>}
+      {n !== name && name && !problem && <p className="pfs-note">名前を変えると、この変数を作るすべての工程と、使っている式 (条件・SQL など) の `@{name}` も、`@{n}` に直します。</p>}
       <div className="pfs-pop-btns">
         <button type="button" className="pfs-btn" onClick={onClose}>やめる</button>
         <button type="button" className="pfs-btn is-primary" disabled={Boolean(problem)} onClick={apply}>決める</button>
@@ -116,7 +119,7 @@ export function ResponsePicker({ anchor, stepId, current, field, onClose }: PopP
     ui.edit?.mutate((a) => {
       if (field === "responseId") patchStep(a.steps, stepId, { responseId: id });
       else {
-        const target = findDeep(a.steps as unknown as Loose[], stepId);
+        const target = findStepDeep(a.steps, stepId) as unknown as Loose | null;
         if (target) {
           const ib = (target.inlineBranch ?? { ok: [], ng: [] }) as Record<string, unknown>;
           ib.ngResponseId = id;
@@ -141,18 +144,43 @@ export function ResponsePicker({ anchor, stepId, current, field, onClose }: PopP
   );
 }
 
-function findDeep(steps: Loose[], id: string): Loose | null {
-  for (const s of steps) {
-    if (s.id === id) return s;
-    for (const k of ["steps", "subSteps", "onCommit", "onRollback", "onApproved", "onRejected", "onTimeout"]) {
-      const l = s[k];
-      if (Array.isArray(l)) { const h = findDeep(l as Loose[], id); if (h) return h; }
+// ─── 繰り返す一覧の選び ────────────────────────────────
+
+export function CollectionPicker({ anchor, stepId, current, onClose }: PopProps & { stepId: string; current: string }) {
+  const ui = useStoryUi();
+  const [text, setText] = useState(current);
+  const cands = useMemo(() => varCandidates(ui.ctx.action, stepId, ui.edit?.ambient ?? []), [ui.ctx.action, stepId, ui.edit?.ambient]);
+  // 一覧の候補: 入力・ここまでに作られた変数 (DB の検索結果など)
+  const options = useMemo(() => {
+    const out: Array<{ ref: string; label: string }> = [];
+    for (const c of cands) {
+      if (c.ref === "@inputs") for (const p of c.props) out.push({ ref: `@inputs.${p.name}`, label: `入力: ${p.label}` });
+      else out.push({ ref: c.ref, label: c.label });
     }
-    if (Array.isArray(s.branches)) for (const b of s.branches as Array<{ steps?: Loose[] }>) { const h = findDeep(b.steps ?? [], id); if (h) return h; }
-    const e = s.elseBranch as { steps?: Loose[] } | undefined;
-    if (e?.steps) { const h = findDeep(e.steps, id); if (h) return h; }
-  }
-  return null;
+    return out;
+  }, [cands]);
+  const apply = (v: string) => {
+    ui.edit?.mutate((a) => { patchStep(a.steps, stepId, { loopKind: "collection", collectionSource: v.trim() }); });
+    onClose();
+  };
+  return (
+    <StoryPopover anchor={anchor} title="何の一覧を、1 行ずつ繰り返す？" onClose={onClose}>
+      <div className="pfs-pop-list" role="listbox" aria-label="一覧の候補">
+        {options.map((o) => (
+          <button key={o.ref} type="button" role="option" aria-selected={o.ref === current} className={`pfs-opt${o.ref === current ? " is-current" : ""}`} onClick={() => apply(o.ref)}>
+            <b>{o.label}</b>
+            <small>{o.ref}</small>
+          </button>
+        ))}
+      </div>
+      <label className="pfs-label">ほかの式を、直接書く</label>
+      <input className="pfs-field pfs-mono" value={text} placeholder="例: @inputs.lines" onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (isPlainEnter(e) && text.trim()) apply(text); }} aria-label="一覧の式" />
+      <div className="pfs-pop-btns">
+        <button type="button" className="pfs-btn" onClick={onClose}>やめる</button>
+        <button type="button" className="pfs-btn is-primary" disabled={!text.trim()} onClick={() => apply(text)}>この一覧にする</button>
+      </div>
+    </StoryPopover>
+  );
 }
 
 // ─── 条件の組み立て ────────────────────────────────────
@@ -182,6 +210,8 @@ export function ConditionEditor({ anchor, target, initial, beforeStepId, onClose
   const [raw, setRaw] = useState(parsed === null);
   const [model, setModel] = useState<CondModel>(() => parsed && parsed.clauses.length > 0 ? parsed : { join: "&&", clauses: [{ subject: cands[0]?.ref ?? "@", op: "==", value: "" }] });
   const [text, setText] = useState(initial);
+  // 比べる値の入力中の文字 (空白・引用符を、打っている途中で壊さないよう、確定した式とは別に持つ)
+  const [drafts, setDrafts] = useState<Record<number, string>>(() => Object.fromEntries((parsed?.clauses ?? []).map((c, i) => [i, exprToValue(c.value)])));
   const composed = raw ? text : composeCondition({ ...model, clauses: model.clauses.map((c) => ({ ...c, value: c.value })) });
   const setClause = (i: number, patch: Partial<Clause>) => setModel((m) => ({ ...m, clauses: m.clauses.map((c, k) => (k === i ? { ...c, ...patch } : c)) }));
   const problem = raw ? (target.kind === "arm" && !composed.trim() ? "条件を入れてください" : "") : model.clauses.map(clauseProblem).find(Boolean) ?? "";
@@ -222,9 +252,9 @@ export function ConditionEditor({ anchor, target, initial, beforeStepId, onClose
                     {OP_CHOICES.map((o) => <option key={o.op} value={o.op}>{o.label}</option>)}
                   </select>
                   {needsValue && (
-                    <input className="pfs-field" aria-label="比べる値" list="pfs-valrefs" placeholder="値 (例: 0 / prepaid / @credit.limit)" value={exprToValue(c.value)} onChange={(e) => setClause(i, { value: valueToExpr(e.target.value) })} />
+                    <input className="pfs-field" aria-label="比べる値" list="pfs-valrefs" placeholder="値 (例: 0 / prepaid / @credit.limit)" value={drafts[i] ?? exprToValue(c.value)} onChange={(e) => { setDrafts((d) => ({ ...d, [i]: e.target.value })); setClause(i, { value: valueToExpr(e.target.value) }); }} />
                   )}
-                  {model.clauses.length > 1 && <button type="button" className="pfs-btn" aria-label="この条件を外す" onClick={() => setModel((m) => ({ ...m, clauses: m.clauses.filter((_, k) => k !== i) }))}>×</button>}
+                  {model.clauses.length > 1 && <button type="button" className="pfs-btn" aria-label="この条件を外す" onClick={() => { setModel((m) => ({ ...m, clauses: m.clauses.filter((_, k) => k !== i) })); setDrafts((d) => { const n: Record<number, string> = {}; model.clauses.forEach((c2, k) => { if (k !== i) n[k > i ? k - 1 : k] = d[k] ?? exprToValue(c2.value); }); return n; }); }}>×</button>}
                 </div>
               </div>
             );
@@ -243,10 +273,11 @@ export function ConditionEditor({ anchor, target, initial, beforeStepId, onClose
       )}
       {raw && (
         <>
-          <p className="pfs-note">{parsed === null ? "この式は、選びでは組み立てられません (括弧・関数など)。式を直接直せます。" : "式を直接書きます。"}</p>
+          <p className="pfs-note">{parsed === null ? "この式は、選びでは組み立てられません (括弧・関数・かつ / または の混在など)。式を直接直せます。" : "式を直接書きます。"}</p>
           <textarea className="pfs-field pfs-mono" rows={3} value={text} onChange={(e) => setText(e.target.value)} aria-label="条件の式" />
         </>
       )}
+      {!raw && <p className="pfs-note">文字にしたい値 (007・true など) は、'007' のように引用符で囲みます。</p>}
       <div className="pfs-preview" aria-live="polite" data-testid="pfs-cond-preview">
         {composed.trim() ? <CondText segs={expressionSegments(composed)} /> : <span className="pfs-muted">（条件が空です）</span>}
         <code className="pfs-code-line">{composed}</code>
@@ -254,7 +285,7 @@ export function ConditionEditor({ anchor, target, initial, beforeStepId, onClose
       {problem && <p className="pfs-warn" data-testid="pfs-cond-problem">{problem}</p>}
       {!problem && missing.length > 0 && <p className="pfs-warn" data-testid="pfs-cond-missing">この位置より前では、まだ作られていない変数があります: {missing.map((m) => `@${m}`).join(", ")}。先に、その変数を作る工程を置いてください。</p>}
       <div className="pfs-pop-btns">
-        {parsed !== null || !raw ? <button type="button" className="pfs-btn is-left" onClick={() => { if (raw) { const m = parseCondition(text); if (m && m.clauses.length) { setModel(m); setRaw(false); } } else { setText(composed); setRaw(true); } }}>{raw ? "選びに戻す" : "式を直接書く"}</button> : null}
+        {parsed !== null || !raw ? <button type="button" className="pfs-btn is-left" disabled={raw && !parseCondition(text)?.clauses.length} title={raw && !parseCondition(text)?.clauses.length ? "この式は、選びにできません" : undefined} onClick={() => { if (raw) { const m = parseCondition(text); if (m && m.clauses.length) { setModel(m); setDrafts(Object.fromEntries(m.clauses.map((c, i) => [i, exprToValue(c.value)]))); setRaw(false); } } else { setText(composed); setRaw(true); } }}>{raw ? "選びに戻す" : "式を直接書く"}</button> : null}
         <button type="button" className="pfs-btn" onClick={onClose}>やめる</button>
         <button type="button" className="pfs-btn is-primary" disabled={Boolean(problem)} onClick={apply} data-testid="pfs-cond-apply">この条件にする</button>
       </div>
@@ -264,11 +295,17 @@ export function ConditionEditor({ anchor, target, initial, beforeStepId, onClose
 
 // ─── 「ここに何をする？」 ───────────────────────────────
 
+/** 枠の名前を、人 (と AI) に通じる言葉に */
+function frameWord(key: string): string {
+  if (key.startsWith("arm:")) return `道 (${key.slice(4)})`;
+  return ({ body: "中", else: "「それ以外」の道", ok: "すべて正しいとき", ng: "不正なとき", commit: "確定したあと", rollback: "取り消したあと", approved: "承認されたとき", rejected: "却下されたとき", timeout: "期限が切れたとき", sub: "あとに続く工程" } as Record<string, string>)[key] ?? key;
+}
+
 export interface InsertMenuProps extends PopProps {
   addr: ListAddr;
   index: number;
   /** 入れたあとに、続けて開く欄を決めるため */
-  onInserted: (items: Step[], templateKey: string) => void;
+  onInserted: (items: Step[], templateKey: string, addr: ListAddr) => void;
 }
 
 export function InsertMenu({ anchor, addr, index, onClose, onInserted }: InsertMenuProps) {
@@ -277,10 +314,15 @@ export function InsertMenu({ anchor, addr, index, onClose, onInserted }: InsertM
   const [more, setMore] = useState(false);
   const [ask, setAsk] = useState("");
   const results = searchTemplates(q);
-  const ctx = (): TemplateCtx => ({ ids: ui.edit?.flowIds() ?? new Set(), responses: ui.ctx.action.responses, usedVars: new Set(variableFlow(ui.ctx.action).map((v) => v.name)) });
+  const ctx = (): TemplateCtx => ({
+    ids: ui.edit?.flowIds() ?? new Set(),
+    responses: ui.ctx.action.responses,
+    usedVars: new Set(variableFlow(ui.ctx.action).map((v) => v.name)),
+    arrayInputs: (ui.ctx.action.inputs ?? []).filter((i) => typeof i.type === "object" && (i.type as { kind?: string }).kind === "array").map((i) => i.name),
+  });
   const place = (items: Step[], key: string) => {
     ui.edit?.mutate((a) => { insertSteps(a.steps, addr, index, items); });
-    onInserted(items, key);
+    onInserted(items, key, addr);
     onClose();
   };
   const pickTemplate = (key: string) => {
@@ -291,7 +333,7 @@ export function InsertMenu({ anchor, addr, index, onClose, onInserted }: InsertM
   const submitAsk = () => {
     const text = ask.trim();
     if (!text || !ui.edit?.askAi) return;
-    ui.edit.askAi(`処理フローの「${ui.ctx.action.name}」アクションに、次の内容の工程を追加してください: ${text}\n(追加する位置: ${addr.ownerId ? `工程 ${addr.ownerId} の「${addr.key}」の ${index + 1} 番目` : `最上位の ${index + 1} 番目`})`);
+    ui.edit.askAi(`処理フローの「${ui.ctx.action.name}」アクションに、次の内容の工程を追加してください: ${text}\n(追加する位置: ${addr.ownerId ? `工程 ${addr.ownerId} の${frameWord(addr.key)}の ${index + 1} 番目` : `最上位の ${index + 1} 番目`})`);
     onClose();
   };
   return (
