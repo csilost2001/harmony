@@ -13,7 +13,7 @@ import { expressionSegments, parseVarRef } from "./expressionText";
 import { CondText } from "./StoryParts";
 import { StoryPopover } from "./StoryPopover";
 import { findStepDeep } from "../../../utils/stepTree";
-import { insertSteps, patchOutputBinding, patchStep, renameVariable, RESERVED_VAR_NAMES, setArmCondition, type ListAddr } from "./storyEdit";
+import { frameWord, insertSteps, patchOutputBinding, patchStep, renameVariable, RESERVED_VAR_NAMES, setArmCondition, type ListAddr } from "./storyEdit";
 import { variableFlow, type Loose } from "./storyModel";
 import { buildKind, searchTemplates, type TemplateCtx } from "./storyTemplates";
 import { useStoryUi } from "./storyUi";
@@ -149,16 +149,18 @@ export function ResponsePicker({ anchor, stepId, current, field, onClose }: PopP
 export function CollectionPicker({ anchor, stepId, current, onClose }: PopProps & { stepId: string; current: string }) {
   const ui = useStoryUi();
   const [text, setText] = useState(current);
+  const arrayInputNames = useMemo(() => new Set<string>((ui.ctx.action.inputs ?? []).filter((i) => typeof i.type === "object" && (i.type as { kind?: string }).kind === "array").map((i) => i.name as string)), [ui.ctx.action.inputs]);
   const cands = useMemo(() => varCandidates(ui.ctx.action, stepId, ui.edit?.ambient ?? []), [ui.ctx.action, stepId, ui.edit?.ambient]);
   // 一覧の候補: 入力・ここまでに作られた変数 (DB の検索結果など)
   const options = useMemo(() => {
     const out: Array<{ ref: string; label: string }> = [];
     for (const c of cands) {
-      if (c.ref === "@inputs") for (const p of c.props) out.push({ ref: `@inputs.${p.name}`, label: `入力: ${p.label}` });
+      // 入力は、一覧 (配列) のものだけ
+      if (c.ref === "@inputs") for (const p of c.props) { if (arrayInputNames.has(p.name)) out.push({ ref: `@inputs.${p.name}`, label: `入力: ${p.label}` }); }
       else out.push({ ref: c.ref, label: c.label });
     }
     return out;
-  }, [cands]);
+  }, [cands, arrayInputNames]);
   const apply = (v: string) => {
     ui.edit?.mutate((a) => { patchStep(a.steps, stepId, { loopKind: "collection", collectionSource: v.trim() }); });
     onClose();
@@ -248,7 +250,7 @@ export function ConditionEditor({ anchor, target, initial, beforeStepId, onClose
                 </div>
                 <label className="pfs-label">どうなら</label>
                 <div className="pfs-row-fields">
-                  <select className="pfs-field" aria-label="比べ方" value={c.op} onChange={(e) => setClause(i, { op: e.target.value as CondOp })}>
+                  <select className="pfs-field" aria-label="比べ方" value={c.op} onChange={(e) => setClause(i, { op: e.target.value as CondOp, strict: undefined })}>
                     {OP_CHOICES.map((o) => <option key={o.op} value={o.op}>{o.label}</option>)}
                   </select>
                   {needsValue && (
@@ -294,12 +296,6 @@ export function ConditionEditor({ anchor, target, initial, beforeStepId, onClose
 }
 
 // ─── 「ここに何をする？」 ───────────────────────────────
-
-/** 枠の名前を、人 (と AI) に通じる言葉に */
-function frameWord(key: string): string {
-  if (key.startsWith("arm:")) return `道 (${key.slice(4)})`;
-  return ({ body: "中", else: "「それ以外」の道", ok: "すべて正しいとき", ng: "不正なとき", commit: "確定したあと", rollback: "取り消したあと", approved: "承認されたとき", rejected: "却下されたとき", timeout: "期限が切れたとき", sub: "あとに続く工程" } as Record<string, string>)[key] ?? key;
-}
 
 export interface InsertMenuProps extends PopProps {
   addr: ListAddr;

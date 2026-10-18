@@ -67,8 +67,8 @@ describe("varCandidates", () => {
   it("その工程より前で作られる変数と、入力だけ", () => {
     expect(varCandidates(action, "s1").map((c) => c.ref)).toEqual(["@inputs"]);
     expect(varCandidates(action, "s2").map((c) => c.ref)).toEqual(["@customer", "@inputs"]);
-    // 繰り返しの中で作られる変数 (total) は、繰り返しの外からは使えない
-    expect(varCandidates(action, "s4").map((c) => c.ref)).toEqual(["@customer", "@txResult", "@inputs"]);
+    // 繰り返しの中で作った変数 (total) は、繰り返しのあとの工程から使える。繰り返しの 1 行 (line) は使えない
+    expect(varCandidates(action, "s4").map((c) => c.ref)).toEqual(["@customer", "@total", "@txResult", "@inputs"]);
   });
   it("繰り返しの 1 行は、その繰り返しの中でだけ", () => {
     expect(varCandidates(action, "s2a").map((c) => c.ref)).toContain("@line");
@@ -94,6 +94,10 @@ describe("条件の足りないところ・作られていない変数", () => {
     expect(undefinedRefs("@customer == null && @later > 1 && @conv.limit.x > 0 && @inputs.a == 1", cands)).toEqual(["later"]);
     expect(undefinedRefs("@var.action.later2 == 1", cands)).toEqual(["later2"]);
     expect(undefinedRefs("@customer == null", cands)).toEqual([]);
+  });
+  it("入力の公開された短縮形 (@入力名) は、「作られていない」変数にしない", () => {
+    const cands = [{ ref: "@inputs", label: "入力", props: [{ name: "generateAudio", label: "音声を作る" }] }];
+    expect(undefinedRefs("@generateAudio == true", cands)).toEqual([]);
   });
   it("処理の外から来る値 (ambient) も、候補に入る", () => {
     const action = { id: "a", name: "x", trigger: "submit", steps: [{ id: "s1", kind: "compute", expression: "1" }] } as unknown as ActionDefinition;
@@ -150,10 +154,27 @@ describe("変数の候補の範囲 (レビュー対応)", () => {
   } as unknown as ActionDefinition;
   it("別の道・まとまりの中で作られる変数は、外からは使えない", () => {
     expect(varCandidates(action, "s1b").map((c) => c.ref)).toEqual(["@inputs"]); // 兄弟の道の変数は出ない
-    expect(varCandidates(action, "s3").map((c) => c.ref)).toEqual(["@txResult", "@inputs"]); // 道・まとまりの中の変数は出ない
-    expect(varCandidates(action, "s2b").map((c) => c.ref)).toEqual(["@inTx", "@inputs"]); // まとまりの中では、前の工程の変数が出る (自分の TX の結果は、まだ無い)
+    // 道の中で作った変数 (inArm) は、そのあとの外側の工程から使える (検査と同じ)。まとまりの中の変数 (inTx) は、外からは使えない
+    expect(varCandidates(action, "s3").map((c) => c.ref)).toEqual(["@inArm", "@txResult", "@inputs"]);
+    expect(varCandidates(action, "s2b").map((c) => c.ref)).toEqual(["@inArm", "@inTx", "@inputs"]); // まとまりの中では、前の工程の変数が出る (自分の TX の結果は、まだ無い)
+  });
+  it("まとまりの「確定したあと」「取り消したあと」の中からは、まとまりの中の変数が見える", () => {
+    const a = {
+      id: "a", name: "x", trigger: "submit",
+      steps: [{ id: "t", kind: "transactionScope", steps: [{ id: "t1", kind: "compute", expression: "1", outputBinding: { name: "inner" } }], onCommit: [{ id: "c1", kind: "compute", expression: "1" }], onRollback: [{ id: "r1", kind: "compute", expression: "1" }], outputBinding: { name: "txResult" } }],
+    } as unknown as ActionDefinition;
+    expect(varCandidates(a, "c1").map((c) => c.ref)).toContain("@inner");
+    expect(varCandidates(a, "r1").map((c) => c.ref)).toContain("@inner");
+  });
+  it("繰り返しの中で作った変数 (push) は、繰り返しのあとの工程から使える", () => {
+    const a = {
+      id: "a", name: "x", trigger: "submit",
+      steps: [{ id: "l", kind: "loop", loopKind: "collection", collectionSource: "@inputs.lines", collectionItemName: "line", steps: [{ id: "l1", kind: "compute", expression: "1", outputBinding: { name: "enriched", operation: "push" } }] }, { id: "z", kind: "compute", expression: "1" }],
+    } as unknown as ActionDefinition;
+    expect(varCandidates(a, "z").map((c) => c.ref)).toContain("@enriched");
+    expect(varCandidates(a, "z").map((c) => c.ref)).not.toContain("@line");
   });
   it("beforeStepId が null: 最上位で作られる変数だけ", () => {
-    expect(varCandidates(action, null).map((c) => c.ref)).toEqual(["@txResult", "@inputs"]);
+    expect(varCandidates(action, null).map((c) => c.ref)).toEqual(["@inArm", "@txResult", "@inputs"]);
   });
 });

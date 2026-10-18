@@ -152,6 +152,17 @@ describe("renameVariable", () => {
     expect((steps[1] as unknown as { outputBinding: { name: string } }).outputBinding.name).toBe("client");
     expect((steps[3] as unknown as { collectionItemName: string }).collectionItemName).toBe("client");
   });
+  it("まとまりが公開する内側の変数: expose と、@var.action.<TX>.旧名 / @TX.旧名 の形も直る", () => {
+    const steps = [
+      S({ id: "t", kind: "transactionScope", outputBinding: { name: "txResult", expose: ["committed", "newScore"] }, steps: [S({ id: "t1", kind: "compute", expression: "1", outputBinding: { name: "newScore" } })] }),
+      S({ id: "r", kind: "return", bodyExpression: "{ a: @var.action.txResult.newScore, b: @txResult.newScore, c: @var.tx.t.newScore, d: @other.newScore }" }),
+    ];
+    renameVariable(steps, "newScore", "score");
+    const j = JSON.stringify(steps);
+    expect(j).toContain('"expose":["committed","score"]');
+    expect(j).toContain("{ a: @var.action.txResult.score, b: @txResult.score, c: @var.tx.t.score, d: @other.newScore }");
+    expect(j).toContain('"outputBinding":{"name":"score"}');
+  });
   it("空の名前・同じ名前では、何もしない", () => {
     const steps = [S({ id: "a", kind: "compute", description: "連絡先 @ に送る", expression: "@x" })];
     const before = JSON.stringify(steps);

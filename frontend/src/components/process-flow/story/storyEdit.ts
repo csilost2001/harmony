@@ -262,11 +262,28 @@ export function renameVariable(steps: readonly unknown[], from: string, to: stri
   if (!from || !to || from === to) return;
   const esc = from.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const re = new RegExp(`(?<![\\w.])@(var\\.(?:action|loop|flowParameter|global)\\.|var\\.(?:step|tx)\\.[\\w-]+\\.|var\\.)?${esc}(?![A-Za-z0-9_])`, "g");
-  const fixStr = (v: string) => v.replace(re, (_m, scope: string | undefined) => `@${scope ?? ""}${to}`);
+  // まとまり (トランザクション) が公開している内側の変数 (`expose` に旧名がある) は、`@<TX の名前>.旧名` / `@var.action.<TX の名前>.旧名` の形でも使われる
+  const txNames: string[] = [];
+  const collect = (v: unknown): void => {
+    if (Array.isArray(v)) { v.forEach(collect); return; }
+    if (v && typeof v === "object") {
+      const o = v as Record<string, unknown>;
+      const ob = o.outputBinding as { name?: unknown; expose?: unknown } | undefined;
+      if (o.kind === "transactionScope" && ob && typeof ob.name === "string" && Array.isArray(ob.expose) && ob.expose.includes(from)) txNames.push(ob.name);
+      Object.values(o).forEach(collect);
+    }
+  };
+  collect(steps);
+  const txRes = txNames.map((t) => new RegExp(`(?<![\\w.])@(var\\.action\\.)?${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\.${esc}(?![A-Za-z0-9_])`, "g"));
+  const fixStr = (v: string) => {
+    let out = v.replace(re, (_m, scope: string | undefined) => `@${scope ?? ""}${to}`);
+    txNames.forEach((t, i) => { out = out.replace(txRes[i], (_m, a: string | undefined) => `@${a ?? ""}${t}.${to}`); });
+    return out;
+  };
   const walk = (v: unknown, key?: string): unknown => {
     if (typeof v === "string") {
       // 作る側の名前 (@ の付かない文字列)
-      if ((key === "name" || key === "collectionItemName" || key === "collectionIndexName" || key === "fieldErrorsVar" || key === "errorVar") && v === from) return to;
+      if ((key === "name" || key === "collectionItemName" || key === "collectionIndexName" || key === "fieldErrorsVar" || key === "errorVar" || key === "expose") && v === from) return to;
       return fixStr(v);
     }
     if (Array.isArray(v)) return v.map((x) => walk(x, key));
@@ -282,4 +299,11 @@ export function renameVariable(steps: readonly unknown[], from: string, to: stri
     return v;
   };
   walk(steps);
+}
+
+/** 枠の名前を、人 (と AI・読み上げ) に通じる言葉に */
+export function frameWord(key: string): string {
+  if (key === "top") return "最上位";
+  if (key.startsWith("arm:")) return `道 (${key.slice(4)})`;
+  return ({ body: "中", else: "「それ以外」の道", ok: "すべて正しいとき", ng: "不正なとき", commit: "確定したあと", rollback: "取り消したあと", approved: "承認されたとき", rejected: "却下されたとき", timeout: "期限が切れたとき", sub: "あとに続く工程" } as Record<string, string>)[key] ?? key;
 }

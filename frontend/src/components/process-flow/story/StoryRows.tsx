@@ -11,7 +11,7 @@ import { InlineText } from "./InlineText";
 import { BindingEditor, CollectionPicker, ConditionEditor, InsertMenu, OperationPicker, ResponsePicker, TablePicker, type CondTarget } from "./StoryEditors";
 import { Chips, CondText } from "./StoryParts";
 import {
-  addArm, canMoveInto, ensureElse, ensureGroup, moveStepBy, moveStepTo, patchStep, removeArm, removeStepById, setHeading, type ListAddr,
+  addArm, canMoveInto, ensureElse, ensureGroup, frameWord, moveStepBy, moveStepTo, patchStep, removeArm, removeStepById, setHeading, type ListAddr,
 } from "./storyEdit";
 import {
   childGroups, conditionSegments, countSteps, isGuardBranch, stepChips, stepCode, stepDigest, stepHeadline,
@@ -100,7 +100,7 @@ function Gap({ addr, index, always, env }: { addr: ListAddr; index: number; alwa
         edit.mutate((a) => { moveStepTo(a.steps, id, addr, index); });
       }}
     >
-      <button ref={setAnchor} type="button" className="pfs-gap-btn" aria-label={`${index + 1} 番目の位置に工程を足す`} onClick={(e) => { e.stopPropagation(); setOpen(true); }} data-testid="pfs-gap-add">
+      <button ref={setAnchor} type="button" className="pfs-gap-btn" aria-label={`${frameWord(addr.key)} の ${index + 1} 番目の位置に工程を足す`} onClick={(e) => { e.stopPropagation(); setOpen(true); }} data-testid="pfs-gap-add">
         ＋ {always ? "工程を足す" : "ここに追加"}
       </button>
       {open && env && (

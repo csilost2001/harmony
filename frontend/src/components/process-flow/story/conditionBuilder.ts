@@ -156,25 +156,31 @@ export function selectColumns(sql: string): string[] {
   return [...new Set(out)];
 }
 
-interface Place { list: readonly Loose[]; index: number }
+interface Place {
+  list: readonly Loose[];
+  index: number;
+  /** この並びに入った道 (持ち主の工程と、枠の役割)。最上位は null */
+  via: { owner: Loose; role: string } | null;
+}
 
 /** その工程までの、入っている並びと位置 (いちばん外側から、その工程自身まで) */
-function chainTo(list: readonly Loose[], id: string): Place[] | null {
+function chainTo(list: readonly Loose[], id: string, via: Place["via"] = null): Place[] | null {
   for (let i = 0; i < list.length; i++) {
     const s = list[i];
-    if (s.id === id) return [{ list, index: i }];
+    if (s.id === id) return [{ list, index: i, via }];
     for (const g of childGroups(s)) {
-      const sub = chainTo(g.steps, id);
-      if (sub) return [{ list, index: i }, ...sub];
+      const sub = chainTo(g.steps, id, { owner: s, role: g.role });
+      if (sub) return [{ list, index: i, via }, ...sub];
     }
   }
   return null;
 }
 
 /**
- * ある工程 (beforeStepId) で使える変数の候補。その工程の「前」にあって、同じ並び、または外側の並びで作られるものだけ。
- * 別の道 (兄弟の枠) の中や、まとまり (トランザクション) の中で作られる変数は、外からは使えないので出さない。
- * 繰り返しの 1 行・番号は、その繰り返しの中でだけ。beforeStepId が null なら、流れの最後 (最上位) での候補。
+ * ある工程 (beforeStepId) で使える変数の候補。検査 (identifierScope) と同じ取り決め:
+ * 同じ並び、または外側の並びで、その工程の前に作られる変数。分岐の道・繰り返しの中で作った変数は、そのあとの外側の工程からも使える。
+ * ただし、まとまり (トランザクション) の中の変数は、外からは使えない (まとまりの「確定したあと」「取り消したあと」の中からは見える)。
+ * 別の道 (兄弟の枠) の中の変数は、使えない。繰り返しの 1 行・番号は、その繰り返しの中でだけ。beforeStepId が null なら、流れの最後 (最上位) での候補。
  */
 export function varCandidates(action: Pick<ActionDefinition, "steps" | "inputs">, beforeStepId: string | null, ambient: ReadonlyArray<{ name: string; label?: string }> = []): VarCandidate[] {
   const steps = asLooseList(action.steps);
@@ -185,10 +191,19 @@ export function varCandidates(action: Pick<ActionDefinition, "steps" | "inputs">
   const inside = new Set(chainT.slice(0, -1).map((p) => p.list[p.index].id));
   const visible = (defId: string): boolean => {
     const chainD = chainTo(steps, defId);
-    const d = chainD?.at(-1);
-    if (!d) return false;
-    if (beforeStepId === null) return d.list === steps;
-    return chainT.some((p) => p.list === d.list && p.index > d.index);
+    if (!chainD || chainD.length === 0) return false;
+    // 変数が見える範囲 (並びと、その中の位置): 自分の並びから、外側へ。まとまりの本体を出るところで止まる
+    const scopes: Array<{ list: readonly Loose[]; index: number }> = [];
+    let txOwner: Loose | null = null;
+    for (let k = chainD.length - 1; k >= 0; k--) {
+      scopes.push({ list: chainD[k].list, index: chainD[k].index });
+      const via = chainD[k].via;
+      if (via && via.owner.kind === "transactionScope" && via.role === "body") { txOwner = via.owner; break; }
+    }
+    if (beforeStepId === null) return chainD[0].list === steps && scopes.some((s) => s.list === steps);
+    if (chainT.some((p) => scopes.some((s) => p.list === s.list && p.index > s.index))) return true;
+    // まとまりの「確定したあと」「取り消したあと」からは、まとまりの中の変数が見える
+    return txOwner !== null && chainT.some((p) => p.via?.owner === txOwner && (p.via.role === "commit" || p.via.role === "rollback"));
   };
   const out: VarCandidate[] = [];
   for (const v of variableFlow(action, labels)) {
@@ -221,7 +236,8 @@ export function clauseProblem(c: Clause): string {
 
 /** 条件の式の中で、「この位置より前では、作られていない変数」の名前 (候補に無く、処理の外の値でもないもの) */
 export function undefinedRefs(expr: string, cands: readonly VarCandidate[]): string[] {
-  const known = new Set(cands.map((c) => c.ref.slice(1)));
+  // 入力は、`@inputs.x` のほかに、公開された短縮形 `@x` でも使われる
+  const known = new Set([...cands.map((c) => c.ref.slice(1)), ...(cands.find((c) => c.ref === "@inputs")?.props.map((p) => p.name) ?? [])]);
   const external = new Set(["inputs", "conv", "env", "secret", "const", "msg", "var", "global", "session"]);
   const out = new Set<string>();
   for (const m of expr.matchAll(/@var\.(?:action|loop|flowParameter|global)\.([A-Za-z_]\w*)|@var\.(?:step|tx)\.[\w-]+\.([A-Za-z_]\w*)|@var\.([A-Za-z_]\w*)|@([A-Za-z_]\w*)/g)) {
