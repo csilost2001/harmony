@@ -141,8 +141,8 @@ export function ProcessFlowStory({ action, reviewKey, ctx, selectedStepIds, onSe
   const jumpTo = useCallback((stepId: string) => {
     setTab("flow");
     setCollapsed(new Set());
-    // 「概要」では入れ子が畳まれて、行が見えないので、詳細に切り替える
-    if (zoom === "overview") changeZoom("detail");
+    // 「概要」では入れ子が畳まれて、行が見えないので、詳細に切り替える (一時的に。選んだ細かさは、書き換えない)
+    if (zoom === "overview") setZoom("detail");
     setFlashId(stepId);
     if (flashTimer.current) clearTimeout(flashTimer.current);
     flashTimer.current = setTimeout(() => setFlashId(null), 1800);
@@ -150,7 +150,7 @@ export function ProcessFlowStory({ action, reviewKey, ctx, selectedStepIds, onSe
       const el = rootRef.current?.querySelector(`[data-step-id="${CSS.escape(stepId)}"]`);
       el?.scrollIntoView({ behavior: "smooth", block: "center" });
     });
-  }, [zoom, changeZoom]);
+  }, [zoom]);
 
   const stepVar = useCallback((dir: 1 | -1) => {
     if (hlOrdered.length === 0) return;

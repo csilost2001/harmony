@@ -188,10 +188,10 @@
 .pfs-stale { font-size: calc(11.5px * var(--hm-font-scale)); color: var(--pfs-cond-text); border: 1px solid var(--pfs-cond); border-radius: 6px; padding: 0 5px; }
 
 /* ── 拡大縮小 ── */
-.pfs-z-overview .pfs-nest, .pfs-z-overview .pfs-sub, .pfs-z-overview .pfs-arm { display: none; }
+.pfs-z-overview .pfs-nest, .pfs-z-overview .pfs-arm, .pfs-z-overview .pfs-chips { display: none; }
 .pfs-z-overview .pfs-inside { display: inline; }
 .pfs-z-overview .pfs-box-foot { display: none; }
-.pfs-z-overview .pfs-row--guard .pfs-sub { display: none; }
+.pfs-z-overview .pfs-row--guard .pfs-sub .pfs-muted { display: none; }
 
 /* ── 出口・変数 ── */
 .pfs-exits, .pfs-vars { padding: 4px; }

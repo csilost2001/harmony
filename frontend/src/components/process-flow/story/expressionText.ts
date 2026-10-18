@@ -55,6 +55,16 @@ export function splitTopLevel(expr: string, op: "||" | "&&"): string[] | null {
 
 /** 外側の括弧を 1 組だけ外す (中が 1 つのまとまりのときだけ) */
 function stripOuterParens(s: string): string {
+  // 二重の括弧 ((A || B)) も、外れなくなるまで外す
+  let cur = s.trim();
+  for (;;) {
+    const next = stripOnce(cur);
+    if (next === cur) return cur;
+    cur = next;
+  }
+}
+
+function stripOnce(s: string): string {
   const t = s.trim();
   if (!t.startsWith("(") || !t.endsWith(")")) return t;
   let depth = 0;
@@ -69,7 +79,7 @@ function stripOuterParens(s: string): string {
   return t.slice(1, -1).trim();
 }
 
-const VAR_RE = /^@([A-Za-z_][A-Za-z0-9_]*)((?:\.[A-Za-z_][A-Za-z0-9_-]*|\[\d+\])*)$/;
+const VAR_RE = /^@([A-Za-z_][A-Za-z0-9_]*)((?:\.[A-Za-z_][A-Za-z0-9_]*|\[\d+\])*)$/;
 
 /**
  * 変数の参照の形のうち、「どの範囲の」を表す前置き。`@var.action.x` `@var.loop.x` `@var.flowParameter.x` `@var.global.x`
@@ -85,9 +95,11 @@ function stripVarScope(name: string, path: string[]): { name: string; path: stri
 
 /** `@a.b[0].c` → { name: "a", path: ["b", "[0]", "c"] }。変数でなければ null */
 export function parseVarRef(token: string): { name: string; path: string[]; raw: string } | null {
-  const m = token.trim().match(VAR_RE);
+  // `@var.step.<工程 ID>.x` の工程 ID だけは、ハイフンを含み得る (ほかの名前に、ハイフンは含めない: `@x.n-1` は減算)
+  const normalized = token.trim().replace(/^(@var\.(?:step|tx)\.)([\w-]+)/, (_m, a: string, b: string) => a + b.replace(/-/g, "_"));
+  const m = normalized.match(VAR_RE);
   if (!m) return null;
-  const path = (m[2].match(/\.[A-Za-z_][A-Za-z0-9_-]*|\[\d+\]/g) ?? []).map((p) => (p.startsWith(".") ? p.slice(1) : p));
+  const path = (m[2].match(/\.[A-Za-z_][A-Za-z0-9_]*|\[\d+\]/g) ?? []).map((p) => (p.startsWith(".") ? p.slice(1) : p));
   return { ...stripVarScope(m[1], path), raw: token.trim() };
 }
 
@@ -137,6 +149,8 @@ export function expressionSegments(expr: string | undefined): Seg[] {
 
 function segsOf(expr: string): Seg[] {
   const stripped = stripOuterParens(expr);
+  // 括弧の中の三項演算子 (`(@x ? A : B)`) も、途中で切れて別々の断片に読まれないよう、式のまま出す
+  if (hasTopLevelChar(stripped, "?")) return [{ k: "code", v: stripped }];
   const or = splitTopLevel(stripped, "||");
   if (or) return joinSegs(or.map((p) => segsOf(p)), " または ");
   const and = splitTopLevel(stripped, "&&");

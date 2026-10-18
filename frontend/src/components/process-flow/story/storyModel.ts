@@ -300,12 +300,19 @@ export interface VarInfo {
 
 const CHILD_KEYS = new Set(["steps", "subSteps", "elseBranch", "onApproved", "onRejected", "onTimeout", "onCommit", "onRollback", "inlineBranch", "branches"]);
 
+/** キーの並び順に依らない文字列 (保存で並びが変わっても、指紋が変わらないように) */
+function stableStringify(v: unknown): string {
+  return JSON.stringify(v, (_k, val: unknown) => (val && typeof val === "object" && !Array.isArray(val)
+    ? Object.fromEntries(Object.entries(val as Record<string, unknown>).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)))
+    : val));
+}
+
 /** その工程そのものに書かれた文字列 (入れ子の中は含めない)。変数の参照を探すのに使う */
 export function ownText(step: Loose): string {
   const own: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(step)) if (!CHILD_KEYS.has(k)) own[k] = v;
-  let s = JSON.stringify(own);
-  if (Array.isArray(step.branches)) s += JSON.stringify((step.branches as unknown as Array<Record<string, unknown>>).map((b) => b.condition));
+  let s = stableStringify(own);
+  if (Array.isArray(step.branches)) s += stableStringify((step.branches as unknown as Array<Record<string, unknown>>).map((b) => b.condition));
   const ib = rec(step.inlineBranch);
   if (Object.keys(ib).length) s += JSON.stringify({ a: ib.ngBodyExpression, b: ib.ngResponseId, c: ib.ngJumpTo, d: ib.ngEventPublish });
   return s;

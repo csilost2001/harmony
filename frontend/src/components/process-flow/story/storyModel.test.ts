@@ -211,6 +211,12 @@ describe("レビューの指摘への対応 (#1530)", () => {
     expect(chip({ operator: ">=", expected: 0, onViolation: "log" })).toBe("更新件数が 0 件以上。外れたら記録だけ");
   });
 
+  it("指紋は、キーの並び順が変わっても変わらない", () => {
+    const a = asLoose({ id: "s", kind: "compute", description: "d", expression: "1", outputBinding: { name: "x", label: "y" } } as never);
+    const b = asLoose({ outputBinding: { label: "y", name: "x" }, expression: "1", description: "d", kind: "compute", id: "s" } as never);
+    expect(stepDigest(a)).toBe(stepDigest(b));
+  });
+
   it("ガードの指紋は、中の「返す」の変更でも変わる", () => {
     const g = JSON.parse(JSON.stringify(mini().steps[1])) as Record<string, unknown>;
     const d1 = stepDigest(asLoose(g as never));

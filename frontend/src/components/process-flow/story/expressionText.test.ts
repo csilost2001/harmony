@@ -54,6 +54,19 @@ describe("expressionSegments (条件を言葉に)", () => {
     expect(text("@a == 1 && (@b == 2 || @c == 3)")).toBe("a が 1 と等しい かつ （b が 2 と等しい または c が 3 と等しい）");
     expect(text("@a == 1 && @b == 2 || @c == 3")).toBe("a が 1 と等しい かつ b が 2 と等しい または c が 3 と等しい");
   });
+  it("二重の括弧でも、「または」の括弧を残す", () => {
+    expect(text("((@a == 1 || @b == 2)) && @c == 3")).toBe("（a が 1 と等しい または b が 2 と等しい） かつ c が 3 と等しい");
+    expect(text("@c == 3 && ((@a == 1 || @b == 2))")).toBe("c が 3 と等しい かつ （a が 1 と等しい または b が 2 と等しい）");
+  });
+  it("括弧の中の三項演算子は、途中で切らず、式のまま出す", () => {
+    const segs = expressionSegments("@y == 1 || (@x ? @a == 1 && @b == 2 : @c == 3)");
+    expect(segs.filter((s) => s.k === "code").map((s) => (s as { v: string }).v)).toEqual(["@x ? @a == 1 && @b == 2 : @c == 3"]);
+    expect(segsToText(segs, label)).toBe("y が 1 と等しい または @x ? @a == 1 && @b == 2 : @c == 3");
+  });
+  it("変数の名前に、ハイフンは含めない (@x.n-1 は減算)。工程 ID だけは含められる", () => {
+    expect(parseVarRef("@x.n-1")).toBeNull();
+    expect(parseVarRef("@var.step.step-06.cartItems.length")).toMatchObject({ name: "cartItems", path: ["length"] });
+  });
   it("変数だけの式は、真偽値とは限らないので、言葉にしない", () => {
     expect(expressionSegments("@customer")).toEqual([{ k: "code", v: "@customer" }]);
     expect(expressionSegments("!@items.length")).toEqual([{ k: "code", v: "!@items.length" }]);

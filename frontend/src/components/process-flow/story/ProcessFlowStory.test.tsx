@@ -173,6 +173,8 @@ describe("ProcessFlowStory (流れの表示)", () => {
     fireEvent.click(screen.getByTestId("pfs-tab-exits"));
     fireEvent.click(screen.getAllByTestId("pfs-exit")[0]);
     expect(screen.getByTestId("process-flow-story").className).toContain("pfs-z-detail");
+    // 一時的な切り替え: 選んだ細かさ (概要) は、書き換えない
+    expect(localStorage.getItem("harmony.processFlow.storyZoom")).toBe("overview");
   });
 
   it("変数の「次」を続けて押すと、場所が順に進む (戻らない)", async () => {
