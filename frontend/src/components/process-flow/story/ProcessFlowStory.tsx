@@ -11,31 +11,25 @@
  * 仕様: docs/spec/process-flow-story-view.md
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ActionDefinition } from "../../../types/v3";
-import { kindLabel, returnStatus, type FlowContext } from "@harmony/shared";
+import type { ActionDefinition, Step } from "../../../types/v3";
+import type { FlowContext } from "@harmony/shared";
+import type { ValidationError } from "../../../utils/actionValidation";
+import { InlineText } from "./InlineText";
+import { StepList, type RowEnv } from "./StoryRows";
+import { setHeading, TOP } from "./storyEdit";
 import {
   asLooseList,
   buildVarLabels,
-  childGroups,
   collectExits,
-  conditionSegments,
   countSteps,
-  isGuardBranch,
   reviewTargets,
   sectionsOf,
-  stepChips,
-  stepCode,
   stepDigest,
-  stepHeadline,
   variableFlow,
   walkSteps,
-  type ChildGroup,
-  type Loose,
   type StoryCtx,
 } from "./storyModel";
-import { expressionSegments } from "./expressionText";
-import { Chips, CondText } from "./StoryParts";
-import { StoryUiProvider, useStoryUi } from "./storyUi";
+import { StoryUiProvider, type AutoEdit, type StoryEditApi } from "./storyUi";
 import { useReviewedSteps } from "./useReviewedSteps";
 import "../../../styles/processFlowStory.css";
 
@@ -59,55 +53,41 @@ function readZoom(): Zoom {
 
 export interface ProcessFlowStoryProps {
   action: ActionDefinition;
-  /** 確認済みの記録の置き場所を分けるための名前 (処理フローの uuid など) */
+  /** 確認済みの記録の置き場所を分けるための名前 (ワークスペース・処理フロー・アクション) */
   reviewKey: string;
   ctx: FlowContext;
   selectedStepIds: ReadonlySet<string>;
   onSelectStep: (stepId: string) => void;
   /** カードで開く (編集) */
   onOpenStep: (stepId: string) => void;
+  /** 編集中か (閲覧中は、読むだけ) */
+  editable?: boolean;
+  /** 編集中の下書きのアクションを直す (編集中だけ) */
+  onMutate?: (fn: (action: ActionDefinition) => void) => void;
+  /** 流れ全体で使われている ID (新しい工程の ID が重ならないように) */
+  flowIds?: () => Set<string>;
+  tables?: StoryEditApi["tables"];
+  ambient?: StoryEditApi["ambient"];
+  /** AI への頼み (あれば) */
+  onAskAi?: (prompt: string) => void;
+  /** 検査の指摘 (行に印を出す) */
+  problems?: readonly ValidationError[];
 }
 
-interface RowEnv {
-  zoom: Zoom;
-  selected: ReadonlySet<string>;
-  hl: ReadonlySet<string>;
-  flashId: string | null;
-  reviewed: ReturnType<typeof useReviewedSteps>;
-  digests: ReadonlyMap<string, string>;
-  onSelect: (id: string) => void;
-  onOpen: (id: string) => void;
-}
-
-const KIND_TONE: Record<string, string> = {
-  dbAccess: "db",
-  branch: "cond",
-  loop: "loop",
-  loopContinue: "loop",
-  loopBreak: "loop",
-  transactionScope: "tx",
-  externalSystem: "ext",
-  workflow: "wf",
-};
-
-function rowKindLabel(step: Loose, status: number | undefined): { text: string; tone: string } {
-  if (step.kind === "return") return { text: (status ?? 200) >= 400 ? "エラーで返す" : "返す", tone: (status ?? 200) >= 400 ? "err" : "ok" };
-  if (step.kind === "branch") return { text: isGuardBranch(step) ? "ガード" : "判定", tone: isGuardBranch(step) ? "err" : "cond" };
-  return { text: kindLabel(step), tone: KIND_TONE[step.kind] ?? "plain" };
-}
-
-export function ProcessFlowStory({ action, reviewKey, ctx, selectedStepIds, onSelectStep, onOpenStep }: ProcessFlowStoryProps) {
+export function ProcessFlowStory({ action, reviewKey, ctx, selectedStepIds, onSelectStep, onOpenStep, editable = false, onMutate, flowIds, tables, ambient, onAskAi, problems }: ProcessFlowStoryProps) {
   const [zoom, setZoom] = useState<Zoom>(readZoom);
   const [tab, setTab] = useState<Tab>("flow");
   /** 畳んだ区切り (区切りの最初の工程の ID。見出しを足しても、ずれない) */
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
   const [activeVar, setActiveVarState] = useState<string | null>(null);
   const [flashId, setFlashId] = useState<string | null>(null);
+  const [autoEdit, setAutoEdit] = useState<AutoEdit | null>(null);
+  const autoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** 変数の「前 / 次」で、いま何番目の場所にいるか (-1 は、まだ移っていない) */
   const varCursor = useRef(-1);
-  useEffect(() => () => { if (flashTimer.current) clearTimeout(flashTimer.current); }, []);
+  useEffect(() => () => { if (flashTimer.current) clearTimeout(flashTimer.current); if (autoTimer.current) clearTimeout(autoTimer.current); }, []);
 
   const changeZoom = useCallback((z: Zoom) => {
     setZoom(z);
@@ -160,11 +140,52 @@ export function ProcessFlowStory({ action, reviewKey, ctx, selectedStepIds, onSe
     jumpTo(hlOrdered[next]);
   }, [hlOrdered, jumpTo]);
 
-  const env: RowEnv = { zoom, selected: selectedStepIds, hl, flashId, reviewed, digests, onSelect: onSelectStep, onOpen: onOpenStep };
-  const ui = useMemo(() => ({ ctx: storyCtx, showNames: zoom === "impl", activeVar, setActiveVar }), [storyCtx, zoom, activeVar, setActiveVar]);
+  const problemMap = useMemo(() => {
+    const m = new Map<string, ValidationError[]>();
+    for (const p of problems ?? []) m.set(p.stepId, [...(m.get(p.stepId) ?? []), p]);
+    return m;
+  }, [problems]);
+
+  /** 工程を入れたあと: 選んで、そこへ移り、続けて直す欄を開く (ひな型の種類による) */
+  const onInserted = useCallback((items: Step[], key: string) => {
+    const first = items[0] as unknown as { id: string; branches?: Array<{ id: string }> } | undefined;
+    if (!first) return;
+    onSelectStep(first.id);
+    const guard = items.find((i) => i.kind === "branch") as unknown as { id: string; branches?: Array<{ id: string }> } | undefined;
+    let next: AutoEdit | null = null;
+    if (key === "guard" && guard?.branches?.[0]) next = { stepId: guard.id, what: "cond", armId: guard.branches[0].id };
+    else if (key === "lookup" || key === "db" || key === "kind:dbAccess") next = { stepId: first.id, what: "table" };
+    else if (key === "return") next = { stepId: first.id, what: "response" };
+    else next = { stepId: first.id, what: "desc" };
+    setAutoEdit(next);
+    if (autoTimer.current) clearTimeout(autoTimer.current);
+    autoTimer.current = setTimeout(() => setAutoEdit(null), 800);
+    setFlashId(first.id);
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+    flashTimer.current = setTimeout(() => setFlashId(null), 1800);
+    requestAnimationFrame(() => {
+      const el = rootRef.current?.querySelector(`[data-step-id="${CSS.escape(first.id)}"]`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }, [onSelectStep]);
+
+  const edit = useMemo<StoryEditApi | null>(() => (editable && onMutate ? { mutate: onMutate, flowIds: flowIds ?? (() => new Set<string>()), tables: tables ?? [], ambient, askAi: onAskAi } : null), [editable, onMutate, flowIds, tables, ambient, onAskAi]);
+  const env: RowEnv = { zoom, selected: selectedStepIds, hl, flashId, reviewed, digests, problems: problemMap, onSelect: onSelectStep, onOpen: onOpenStep, onInserted };
+  const ui = useMemo(() => ({ ctx: storyCtx, showNames: zoom === "impl", activeVar, setActiveVar, edit, autoEdit }), [storyCtx, zoom, activeVar, setActiveVar, edit, autoEdit]);
 
   if (steps.length === 0) {
-    return <div className="pfs-empty" data-testid="process-flow-story">工程がありません。「カード」の表示で、左のブロックから追加してください。</div>;
+    return (
+      <StoryUiProvider value={ui}>
+        <div className="pfs-empty" data-testid="process-flow-story">
+          {edit ? (
+            <>
+              <p>工程がありません。最初の工程を足します。</p>
+              <StepList steps={[]} addr={TOP} numPrefix="" startIndex={0} env={env} />
+            </>
+          ) : "工程がありません。編集を始めると、ここから工程を足せます。"}
+        </div>
+      </StoryUiProvider>
+    );
   }
 
   const hasHeadings = sections.some((sec) => sec.heading);
@@ -234,23 +255,32 @@ export function ProcessFlowStory({ action, reviewKey, ctx, selectedStepIds, onSe
               {sections.map((sec, si) => {
                 const sid = sec.steps[0].id;
                 const isCollapsed = collapsed.has(sid);
-                const body = <StepList steps={sec.steps} numPrefix="" startIndex={sec.startIndex} env={env} />;
+                const body = <StepList steps={sec.steps} addr={TOP} numPrefix="" startIndex={sec.startIndex} env={env} />;
+                const toggle = () => setCollapsed((cur) => { const n = new Set(cur); if (n.has(sid)) n.delete(sid); else n.add(sid); return n; });
                 if (!hasHeadings) return <div key={sid}>{body}</div>;
                 return (
                   <section key={sid} className={`pfs-section${isCollapsed ? " is-collapsed" : ""}`} data-testid="pfs-section">
                     <header>
-                      <h3>
+                      <h3 className="pfs-section-h3">
                         <button
                           type="button"
                           className="pfs-section-toggle"
                           aria-expanded={!isCollapsed}
-                          onClick={() => setCollapsed((cur) => { const n = new Set(cur); if (n.has(sid)) n.delete(sid); else n.add(sid); return n; })}
+                          aria-label={`${sec.heading ?? "はじめに"} を${isCollapsed ? "開く" : "畳む"}`}
+                          onClick={toggle}
                         >
                           <span className="pfs-section-no">{sec.heading ? sections.slice(0, si + 1).filter((x) => x.heading).length : "•"}</span>
-                          <span className="pfs-section-title">{sec.heading ?? "はじめに"}</span>
-                          <small>{countSteps(sec.steps)} 工程{sectionExits[si] > 0 ? ` ・ 出口 ${sectionExits[si]}` : ""}</small>
                           <span className="pfs-caret" aria-hidden="true">{isCollapsed ? "▸" : "▾"}</span>
                         </button>
+                        {edit && sec.heading ? (
+                          <InlineText className="pfs-section-title" value={sec.heading} editable maxLength={80} placeholder="例: 与信と承認" ariaLabel="見出しを書き換える" onCommit={(v) => edit.mutate((a) => { setHeading(a.steps, sid, v); })} />
+                        ) : (
+                          <button type="button" className="pfs-section-title pfs-section-title--btn" onClick={toggle}>{sec.heading ?? "はじめに"}</button>
+                        )}
+                        <small>{countSteps(sec.steps)} 工程{sectionExits[si] > 0 ? ` ・ 出口 ${sectionExits[si]}` : ""}</small>
+                        {edit && sec.heading && (
+                          <button type="button" className="pfs-mini" title="この見出しを外す (前の区切りに合わさります)" aria-label="見出しを外す" onClick={() => edit.mutate((a) => { setHeading(a.steps, sid, ""); })}>見出しを外す</button>
+                        )}
                       </h3>
                     </header>
                     {!isCollapsed && <div className="pfs-section-body">{body}</div>}
@@ -296,191 +326,3 @@ export function ProcessFlowStory({ action, reviewKey, ctx, selectedStepIds, onSe
   );
 }
 
-// ─── 工程の並び ─────────────────────────────────────────
-
-function StepList({ steps, numPrefix, startIndex, env }: { steps: readonly Loose[]; numPrefix: string; startIndex: number; env: RowEnv }) {
-  return (
-    <>
-      {steps.map((s, i) => (
-        <StepNode key={s.id} step={s} num={`${numPrefix}${startIndex + i + 1}`} env={env} />
-      ))}
-    </>
-  );
-}
-
-function StepNode({ step, num, env }: { step: Loose; num: string; env: RowEnv }) {
-  const ui = useStoryUi().ctx;
-  if (step.kind === "branch" && isGuardBranch(step)) return <GuardRow step={step} num={num} env={env} />;
-  if (step.kind === "loopContinue" || step.kind === "loopBreak") {
-    return (
-      <div className="pfs-row pfs-row--quiet" data-step-id={step.id}>
-        <span className="pfs-num" />
-        <span className="pfs-kind pfs-kind--loop">{kindLabel(step)}</span>
-        <div className="pfs-main">
-          <div className="pfs-head">{step.kind === "loopContinue" ? "この行はここまで。次の行へ進む" : "繰り返しをここで終える"}</div>
-          <RunIfLine step={step} />
-        </div>
-        <span />
-      </div>
-    );
-  }
-  const groups = childGroups(step);
-  const inside = groups.reduce((n, g) => n + countSteps(g.steps), 0);
-  if (step.kind === "loop" || step.kind === "transactionScope") {
-    const isTx = step.kind === "transactionScope";
-    const body = groups.find((g) => g.role === "body");
-    const rest = groups.filter((g) => g !== body);
-    return (
-      <div className={`pfs-box pfs-box--${isTx ? "tx" : "loop"}${env.hl.has(step.id) ? " is-hl" : ""}${env.flashId === step.id ? " is-flash" : ""}`} data-step-id={step.id}>
-        <div className="pfs-box-head" onClick={() => env.onSelect(step.id)}>
-          <span className="pfs-num">{num}</span>
-          <span className="pfs-box-mark" aria-hidden="true">{isTx ? "▼" : "↻"}</span>
-          <div className="pfs-main">
-            <div className="pfs-head">
-              {isTx ? "ここから 1 まとまり — " : ""}{stepHeadline(step)}
-              {isTx && <span className="pfs-muted"> どれか 1 つでも失敗したら、全部取り消す</span>}
-              <span className="pfs-inside">（中の工程 {inside} 件）</span>
-            </div>
-            <div className="pfs-sub"><RunIfLine step={step} /></div>
-            <Chips chips={stepChips(step, ui)} />
-          </div>
-          <RowActions step={step} env={env} />
-        </div>
-        <div className="pfs-nest">
-          {body && <StepList steps={body.steps} numPrefix={`${num}.`} startIndex={0} env={env} />}
-        </div>
-        {isTx && <div className="pfs-box-foot">▲ ここまで。すべて成功したら確定</div>}
-        {rest.map((g) => <GroupBlock key={g.key} group={g} num={num} env={env} />)}
-      </div>
-    );
-  }
-  return (
-    <>
-      <StepRow step={step} num={num} env={env} inside={inside} />
-      {groups.length > 0 && (
-        <div className="pfs-nest">
-          {groups.map((g) => <GroupBlock key={g.key} group={g} num={num} env={env} />)}
-        </div>
-      )}
-    </>
-  );
-}
-
-function GroupBlock({ group, num, env }: { group: ChildGroup; num: string; env: RowEnv }) {
-  const segs = group.role === "arm" ? conditionSegments(group.condition) : [];
-  const lead = group.role === "arm" ? "もし" : group.role === "else" ? "それ以外" : group.label;
-  return (
-    <div className={`pfs-arm pfs-arm--${group.role}`} data-testid={`pfs-arm-${group.role}`}>
-      <div className="pfs-arm-head">
-        <span className="pfs-arm-lab">{lead}</span>
-        {group.role === "arm" && <><CondText segs={segs} /> なら</>}
-        {group.label && (group.role === "arm" || group.role === "else") && <small className="pfs-muted"> ({group.label})</small>}
-        {group.steps.length === 0 && <span className="pfs-muted"> → 次の工程へ</span>}
-      </div>
-      {group.steps.length > 0 && (
-        <div className="pfs-arm-body">
-          <StepList steps={group.steps} numPrefix={group.code ? `${num}-${group.code}-` : `${num}.`} startIndex={0} env={env} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── 行 ────────────────────────────────────────────────
-
-/** 実行条件 (runIf) の言葉。どの行にも付き得る */
-function RunIfLine({ step }: { step: Loose }) {
-  const runIf = typeof step.runIf === "string" ? step.runIf : "";
-  if (!runIf) return null;
-  return <span className="pfs-runif" title={runIf}>↳ <CondText segs={expressionSegments(runIf)} /> のときだけ</span>;
-}
-
-function RowActions({ step, env }: { step: Loose; env: RowEnv }) {
-  const digest = env.digests.get(step.id) ?? stepDigest(step);
-  const done = env.reviewed.isReviewed(step.id, digest);
-  const stale = env.reviewed.isStale(step.id, digest);
-  return (
-    <span className="pfs-acts">
-      {stale && <span className="pfs-stale" title="確認したあとに、この工程が変わりました">変更あり</span>}
-      <button
-        type="button"
-        className="pfs-check"
-        aria-pressed={done}
-        title={done ? "確認済み (クリックで外す)" : "確認済みにする"}
-        aria-label={done ? "確認済みを外す" : "確認済みにする"}
-        onClick={(e) => { e.stopPropagation(); env.reviewed.toggle(step.id, digest); }}
-        data-testid="pfs-check"
-      >
-        ✓
-      </button>
-      <button type="button" className="pfs-open" title="カードで開いて、編集する" aria-label="カードで開く" onClick={(e) => { e.stopPropagation(); env.onOpen(step.id); }}>
-        <i className="bi bi-box-arrow-up-right" aria-hidden="true" />
-      </button>
-    </span>
-  );
-}
-
-function rowClass(step: Loose, env: RowEnv, extra = ""): string {
-  return `pfs-row${extra ? ` ${extra}` : ""}${env.selected.has(step.id) ? " is-selected" : ""}${env.hl.has(step.id) ? " is-hl" : ""}${env.flashId === step.id ? " is-flash" : ""}`;
-}
-
-function StepRow({ step, num, env, inside }: { step: Loose; num: string; env: RowEnv; inside: number }) {
-  const ui = useStoryUi().ctx;
-  const status = step.kind === "return" ? returnStatus(step, ui.action) : undefined;
-  const k = rowKindLabel(step, status);
-  const code = env.zoom === "impl" ? stepCode(step) : undefined;
-  return (
-    <div className={rowClass(step, env)} data-step-id={step.id} data-testid="pfs-row" tabIndex={0} onKeyDown={(e) => rowKey(e, step.id, env)} onClick={() => env.onSelect(step.id)} onDoubleClick={() => env.onOpen(step.id)}>
-      <span className="pfs-num">{num}</span>
-      <span className={`pfs-kind pfs-kind--${k.tone}`}>{k.text}</span>
-      <div className="pfs-main">
-        <div className="pfs-head">
-          {stepHeadline(step)}
-          {inside > 0 && <span className="pfs-inside">（中の工程 {inside} 件）</span>}
-        </div>
-        <div className="pfs-sub">
-          <RunIfLine step={step} />
-          <Chips chips={stepChips(step, ui)} />
-        </div>
-        {code && <pre className="pfs-code">{code}</pre>}
-      </div>
-      <RowActions step={step} env={env} />
-    </div>
-  );
-}
-
-/** 行にフォーカスがあるとき: Enter で選ぶ、Shift+Enter でカードで開く */
-function rowKey(e: React.KeyboardEvent, id: string, env: RowEnv): void {
-  if (e.target !== e.currentTarget || e.key !== "Enter") return;
-  e.preventDefault();
-  if (e.shiftKey) env.onOpen(id);
-  else env.onSelect(id);
-}
-
-function GuardRow({ step, num, env }: { step: Loose; num: string; env: RowEnv }) {
-  const ui = useStoryUi().ctx;
-  const arm = childGroups(step).find((g) => g.role === "arm");
-  const ret = arm?.steps[0];
-  const status = ret ? returnStatus(ret, ui.action) : undefined;
-  const resp = ret ? ui.action.responses?.find((r) => r.id === ret.responseId) : undefined;
-  const code = env.zoom === "impl" && ret ? stepCode(ret) : undefined;
-  return (
-    <div className={rowClass(step, env, "pfs-row--guard")} data-step-id={step.id} data-testid="pfs-guard" tabIndex={0} onKeyDown={(e) => rowKey(e, step.id, env)} onClick={() => env.onSelect(step.id)} onDoubleClick={() => env.onOpen(step.id)}>
-      {ret && <span data-step-id={ret.id} className="pfs-anchor" />}
-      <span className="pfs-num">{num}</span>
-      <span className="pfs-kind pfs-kind--err">ガード</span>
-      <div className="pfs-main">
-        <div className="pfs-head">
-          <CondText segs={conditionSegments(arm?.condition)} /> → <b className={`pfs-status-text ${(status ?? 0) >= 400 ? "is-error" : ""}`}>{status ?? ""}</b> {resp?.description ?? (ret ? stepHeadline(ret) : "")}
-        </div>
-        <div className="pfs-sub">
-          <span className="pfs-muted">{stepHeadline(step)}</span>
-          <RunIfLine step={step} />
-          {ret && <RunIfLine step={ret} />}
-        </div>
-        {code && <pre className="pfs-code">{code}</pre>}
-      </div>
-      <RowActions step={step} env={env} />
-    </div>
-  );
-}

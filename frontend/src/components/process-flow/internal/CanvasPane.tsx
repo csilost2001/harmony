@@ -9,6 +9,7 @@ import { SortableStepCard } from "../SortableStepCard";
 import { EmptyFlowDropZone, StepInsertZone } from "./PaletteButtons";
 import { getStepLabel } from "../../../utils/actionUtils";
 import { generateUUID } from "../../../utils/uuid";
+import { collectAllProcessFlowLocalIds } from "../../../utils/localIdGenerator";
 import type { ValidationError } from "../../../utils/actionValidation";
 import type { UseAiContextChipsResult } from "../../../hooks/useAiContextChips";
 import type { EditLevel } from "../../../hooks/useEditLevel";
@@ -93,6 +94,8 @@ export interface CanvasPaneProps {
   onApplyOutline: (lines: OutlineLine[]) => void;
   /** #1258 workspace 参照情報 (componentRef / modelRef 補完用) */
   workspace?: WorkspaceRefs;
+  /** 「流れ」表示から、AI に頼む (編集中だけ) */
+  onAiRequest?: (prompt: string) => void;
 }
 
 export function CanvasPane({
@@ -130,6 +133,7 @@ export function CanvasPane({
   lastSelectedIdRef,
   onApplyOutline,
   workspace,
+  onAiRequest,
 }: CanvasPaneProps) {
   const { wsId } = useWorkspacePath();
   const [view, setView] = useState<FlowView>(readView);
@@ -150,6 +154,16 @@ export function CanvasPane({
     screenTransition: screens.map((s) => ({ id: s.id, label: s.name })),
     externalSystem: Object.keys(group?.context?.catalogs?.externalSystems ?? {}).map((k) => ({ id: k, label: k })),
   }), [tables, commonGroups, screens, group]);
+  /** 「流れ」表示の編集: 編集中の下書きの、いま見ているアクションを直す (取り消し・やり直しの単位は、1 回の操作) */
+  const activeActionId = activeAction?.id;
+  const mutateActiveAction = useCallback((fn: (a: ActionDefinition) => void) => {
+    updateGroupWithDraft((g) => {
+      const act = g.actions.find((x) => x.id === activeActionId);
+      if (act) fn(act);
+    });
+  }, [updateGroupWithDraft, activeActionId]);
+  const flowIds = useCallback(() => collectAllProcessFlowLocalIds(group), [group]);
+  const ambient = useMemo(() => (group?.context?.ambientVariables ?? []).map((v) => ({ name: v.name, label: v.label })), [group]);
   const highlighted = useMemo(() => new Set([...selectedIds, ...(focusId ? [focusId] : [])]), [selectedIds, focusId]);
   const selectFromView = useCallback((stepId: string) => {
     if (!activeAction) return;
@@ -205,6 +219,13 @@ export function CanvasPane({
             selectedStepIds={highlighted}
             onSelectStep={selectFromView}
             onOpenStep={openInCards}
+            editable={!isReadonly}
+            onMutate={mutateActiveAction}
+            flowIds={flowIds}
+            tables={tables}
+            ambient={ambient}
+            onAskAi={onAiRequest}
+            problems={validationErrors}
           />
         ) : activeAction && view === "diagram" ? (
           <ProcessFlowDiagram action={activeAction} ctx={ctx} selectedStepIds={highlighted} onSelectStep={selectFromView} onOpenStep={openInCards} />

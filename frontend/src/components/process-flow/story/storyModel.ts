@@ -355,9 +355,13 @@ export function variableFlow(action: Pick<ActionDefinition, "steps" | "inputs">,
 // ─── 行の印 (チップ)・コード ────────────────────────────
 
 export type ChipTone = "table" | "rule" | "var" | "ok" | "error" | "warn";
+/** 編集中に、クリックで直せる印の種類 */
+export type ChipEdit = "table" | "operation" | "binding" | "response" | "ngResponse";
+
 export interface Chip {
   text: string;
   tone?: ChipTone;
+  edit?: ChipEdit;
   /** 変数の印: クリックで、作る場所と使う場所を光らせる */
   varName?: string;
   title?: string;
@@ -365,7 +369,7 @@ export interface Chip {
 
 export interface StoryCtx {
   flow: FlowContext;
-  action: Pick<ActionDefinition, "responses" | "inputs" | "steps">;
+  action: Pick<ActionDefinition, "name" | "responses" | "inputs" | "steps">;
   labels: VarLabels;
 }
 
@@ -426,7 +430,7 @@ const WORKFLOW_PATTERN_WORDS: Record<string, string> = {
 function outputChip(step: Loose): Chip[] {
   const ob = rec(step.outputBinding);
   const name = str(ob.name);
-  return name ? [{ text: `→ ${str(ob.label) || name}`, tone: "var", varName: name, title: `この工程で作る変数 ${name}` }] : [];
+  return name ? [{ text: `→ ${str(ob.label) || name}`, tone: "var", varName: name, edit: "binding", title: `この工程で作る変数 ${name}` }] : [];
 }
 
 /** 行の下に並べる、短い印 */
@@ -435,8 +439,8 @@ export function stepChips(step: Loose, ctx: StoryCtx): Chip[] {
   switch (step.kind) {
     case "dbAccess": {
       const t = str(step.tableId);
-      chips.push({ text: ctx.flow.tableName(t) ?? t, tone: "table" });
-      chips.push({ text: dbOperationLabel(str(step.operation)), tone: "rule" });
+      chips.push({ text: ctx.flow.tableName(t) ?? (t || "（テーブルを選ぶ）"), tone: t ? "table" : "warn", edit: "table" });
+      chips.push({ text: dbOperationLabel(str(step.operation)), tone: "rule", edit: "operation" });
       const w = sqlWhere(str(step.sql));
       if (w) chips.push({ text: `条件: ${w.length > 48 ? `${w.slice(0, 48)}…` : w}`, tone: "rule", title: w });
       if (!str(step.sql) && str(step.naturalQuery)) chips.push({ text: `SQL はまだ: ${str(step.naturalQuery)}`, tone: "warn" });
@@ -455,7 +459,7 @@ export function stepChips(step: Loose, ctx: StoryCtx): Chip[] {
       if (ngTo) {
         const m = ngTo.match(/^(\d{3})/);
         const status = ctx.action.responses?.find((x) => x.id === ngTo)?.status ?? (m ? Number(m[1]) : undefined);
-        chips.push({ text: `不正なら → ${status ? `${status} を返す` : `応答 ${ngTo} を返す`}`, tone: "error" });
+        chips.push({ text: `不正なら → ${status ? `${status} を返す` : `応答 ${ngTo} を返す`}`, tone: "error", edit: "ngResponse" });
       }
       if (str(ib.ngJumpTo)) chips.push({ text: `不正なら → 「${str(ib.ngJumpTo)}」へ移る`, tone: "error" });
       const ev = rec(ib.ngEventPublish);
@@ -505,7 +509,7 @@ export function stepChips(step: Loose, ctx: StoryCtx): Chip[] {
     case "return": {
       const status = returnStatus(step, ctx.action);
       const resp = ctx.action.responses?.find((r) => r.id === step.responseId);
-      if (status) chips.push({ text: `${status}${resp?.description ? ` ${resp.description}` : ""}`, tone: status >= 400 ? "error" : "ok" });
+      if (status) chips.push({ text: `${status}${resp?.description ? ` ${resp.description}` : ""}`, tone: status >= 400 ? "error" : "ok", edit: "response" });
       break;
     }
     case "log":

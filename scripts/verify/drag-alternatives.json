@@ -6,6 +6,7 @@
   "frontend/src/components/dashboard/DashboardView.tsx": "ダッシュボードのパネルの移動・大きさ → パネルの見出しにフォーカスして Alt+矢印 (移動) / Alt+Shift+矢印 (大きさ)",
   "frontend/src/components/flow/FlowEditor.tsx": "画面フロー図: 画面の位置 → 画面を選んで矢印キー (React Flow の標準)。遷移の追加 (線を引く) → 「遷移を追加」ボタン (遷移元・遷移先を選ぶ) 複数の画面をそろえる → 画面を複数選んで、図の右上の「整列・等間隔」のボタン。全体の並べ直し → 図の右上の「自動配置」ボタン",
   "frontend/src/components/process-flow/ProcessFlowEditor.tsx": "工程の挿入・並べ替え → パレットのボタンのクリック / Enter、工程の見出しで Alt+↑↓ / Insert / Tab・Shift+Tab (useStepKeyboard)",
+  "frontend/src/components/process-flow/story/StoryRows.tsx": "「流れ」表示の工程の並べ替え → 行にフォーカスして Alt+↑↓、行の ↑ ↓ ボタン。工程の追加 → 行の間の「＋」(クリック / Enter) から、ひな型・種類を選ぶ。枠をまたぐ移動 → マウスなしでは、いまは、枠の中での並べ替え (↑↓) と、消して別の枠に「＋」で置き直す (ISSUE #1530 の限界。仕様の「限界」に記載)",
   "frontend/src/components/process-flow/SortableStepCard.tsx": "工程の並べ替え → 工程の見出しにフォーカスして Alt+↑↓、Tab / Shift+Tab で入れ子の出入り (useStepKeyboard)",
   "frontend/src/components/process-flow/internal/PaletteButtons.tsx": "パレットから工程を挿入 → ボタンのクリック / Enter (ドラッグしなくても末尾へ挿入。工程の見出しで Insert なら位置を選べる)",
   "frontend/src/components/report/ReportEditor.tsx": "帳票の用紙の見本の項目の並べ替え → 項目を選んで、右の欄の「左へ / 右へ」、部の「上へ / 下へ」ボタン",

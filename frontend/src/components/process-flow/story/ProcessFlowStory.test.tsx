@@ -119,7 +119,7 @@ describe("ProcessFlowStory (流れの表示)", () => {
 
   it("見出しの帯で畳める", () => {
     setup();
-    const header = screen.getByRole("button", { name: /確定する/ });
+    const header = screen.getByRole("button", { name: "確定する を畳む" });
     fireEvent.click(header);
     expect(screen.queryByText("金額を足す")).toBeNull();
     fireEvent.click(header);
