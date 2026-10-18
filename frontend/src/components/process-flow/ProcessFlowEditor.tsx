@@ -1233,6 +1233,7 @@ export function ProcessFlowEditor() {
               handleAddSubStep={handleAddSubStep}
               handleIndentStep={handleIndentStep}
               onApplyOutline={handleApplyOutline}
+              onAiRequest={(prompt) => { void handleAiSubmit(prompt); }}
               handleOutdentSubStep={handleOutdentSubStep}
               handleStepClick={handleStepClick}
               onNavigateCommon={(refId) => navigate(wsPath(`/process-flow/edit/${refId}`))}

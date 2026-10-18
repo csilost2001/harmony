@@ -39,8 +39,8 @@ export interface ChildGroup {
   steps: Loose[];
 }
 
-/** その工程の中に入る、工程の並び。順序は、読む順 */
-export function childGroups(step: Loose): ChildGroup[] {
+/** その工程の中に入る、工程の並び。順序は、読む順。editing のときは、空の枠 (確定したあと・取り消したあと・不正なときの処理) も出す (中に足せるように) */
+export function childGroups(step: Loose, editing = false): ChildGroup[] {
   const out: ChildGroup[] = [];
   const add = (g: ChildGroup) => out.push(g);
   switch (step.kind) {
@@ -58,13 +58,13 @@ export function childGroups(step: Loose): ChildGroup[] {
       break;
     case "transactionScope":
       add({ key: "body", role: "body", label: "", steps: asLooseList(step.steps as Step[]) });
-      if (Array.isArray(step.onCommit) && step.onCommit.length) add({ key: "commit", role: "commit", label: "確定したあと", steps: asLooseList(step.onCommit as Step[]) });
-      if (Array.isArray(step.onRollback) && step.onRollback.length) add({ key: "rollback", role: "rollback", label: "取り消したあと", steps: asLooseList(step.onRollback as Step[]) });
+      if (Array.isArray(step.onCommit) && (editing || step.onCommit.length)) add({ key: "commit", role: "commit", label: "確定したあと", steps: asLooseList(step.onCommit as Step[]) });
+      if (Array.isArray(step.onRollback) && (editing || step.onRollback.length)) add({ key: "rollback", role: "rollback", label: "取り消したあと", steps: asLooseList(step.onRollback as Step[]) });
       break;
     case "validation": {
       const ib = rec(step.inlineBranch);
       if (Array.isArray(ib.ok) && ib.ok.length) add({ key: "ok", role: "ok", label: "すべて正しければ", steps: asLooseList(ib.ok as Step[]) });
-      if (Array.isArray(ib.ng) && ib.ng.length) add({ key: "ng", role: "ng", label: "ひとつでも不正なら", steps: asLooseList(ib.ng as Step[]) });
+      if (Array.isArray(ib.ng) && (editing || ib.ng.length)) add({ key: "ng", role: "ng", label: "ひとつでも不正なら", steps: asLooseList(ib.ng as Step[]) });
       break;
     }
     case "workflow":
@@ -355,9 +355,13 @@ export function variableFlow(action: Pick<ActionDefinition, "steps" | "inputs">,
 // ─── 行の印 (チップ)・コード ────────────────────────────
 
 export type ChipTone = "table" | "rule" | "var" | "ok" | "error" | "warn";
+/** 編集中に、クリックで直せる印の種類 */
+export type ChipEdit = "table" | "operation" | "binding" | "response" | "ngResponse" | "collection";
+
 export interface Chip {
   text: string;
   tone?: ChipTone;
+  edit?: ChipEdit;
   /** 変数の印: クリックで、作る場所と使う場所を光らせる */
   varName?: string;
   title?: string;
@@ -365,7 +369,7 @@ export interface Chip {
 
 export interface StoryCtx {
   flow: FlowContext;
-  action: Pick<ActionDefinition, "responses" | "inputs" | "steps">;
+  action: Pick<ActionDefinition, "name" | "responses" | "inputs" | "steps">;
   labels: VarLabels;
 }
 
@@ -426,7 +430,7 @@ const WORKFLOW_PATTERN_WORDS: Record<string, string> = {
 function outputChip(step: Loose): Chip[] {
   const ob = rec(step.outputBinding);
   const name = str(ob.name);
-  return name ? [{ text: `→ ${str(ob.label) || name}`, tone: "var", varName: name, title: `この工程で作る変数 ${name}` }] : [];
+  return name ? [{ text: `→ ${str(ob.label) || name}`, tone: "var", varName: name, edit: "binding", title: `この工程で作る変数 ${name}` }] : [];
 }
 
 /** 行の下に並べる、短い印 */
@@ -435,8 +439,8 @@ export function stepChips(step: Loose, ctx: StoryCtx): Chip[] {
   switch (step.kind) {
     case "dbAccess": {
       const t = str(step.tableId);
-      chips.push({ text: ctx.flow.tableName(t) ?? t, tone: "table" });
-      chips.push({ text: dbOperationLabel(str(step.operation)), tone: "rule" });
+      chips.push({ text: ctx.flow.tableName(t) ?? (t || "（テーブルを選ぶ）"), tone: t ? "table" : "warn", edit: "table" });
+      chips.push({ text: dbOperationLabel(str(step.operation)), tone: "rule", edit: "operation" });
       const w = sqlWhere(str(step.sql));
       if (w) chips.push({ text: `条件: ${w.length > 48 ? `${w.slice(0, 48)}…` : w}`, tone: "rule", title: w });
       if (!str(step.sql) && str(step.naturalQuery)) chips.push({ text: `SQL はまだ: ${str(step.naturalQuery)}`, tone: "warn" });
@@ -455,7 +459,7 @@ export function stepChips(step: Loose, ctx: StoryCtx): Chip[] {
       if (ngTo) {
         const m = ngTo.match(/^(\d{3})/);
         const status = ctx.action.responses?.find((x) => x.id === ngTo)?.status ?? (m ? Number(m[1]) : undefined);
-        chips.push({ text: `不正なら → ${status ? `${status} を返す` : `応答 ${ngTo} を返す`}`, tone: "error" });
+        chips.push({ text: `不正なら → ${status ? `${status} を返す` : `応答 ${ngTo} を返す`}`, tone: "error", edit: "ngResponse" });
       }
       if (str(ib.ngJumpTo)) chips.push({ text: `不正なら → 「${str(ib.ngJumpTo)}」へ移る`, tone: "error" });
       const ev = rec(ib.ngEventPublish);
@@ -488,9 +492,9 @@ export function stepChips(step: Loose, ctx: StoryCtx): Chip[] {
       break;
     case "loop": {
       const src = str(step.collectionSource);
-      if (step.loopKind === "collection" && src) {
-        const v = parseVarRef(src);
-        chips.push({ text: `${v ? ctx.labels.full(v.name, v.path) : src} の 1 行ごと`, tone: "rule" });
+      if (step.loopKind === "collection") {
+        const v = src ? parseVarRef(src) : null;
+        chips.push(src ? { text: `${v ? ctx.labels.full(v.name, v.path) : src} の 1 行ごと`, tone: "rule", edit: "collection" } : { text: "（繰り返す一覧を選ぶ）", tone: "warn", edit: "collection" });
       } else if (step.loopKind === "count") chips.push({ text: `${str(step.countExpression)} 回`, tone: "rule" });
       else if (step.loopKind === "condition") chips.push({ text: `${step.conditionMode === "exit" ? "次の条件になるまで" : "次の条件の間"}: ${str(step.conditionExpression)}`, tone: "rule" });
       break;
@@ -505,7 +509,7 @@ export function stepChips(step: Loose, ctx: StoryCtx): Chip[] {
     case "return": {
       const status = returnStatus(step, ctx.action);
       const resp = ctx.action.responses?.find((r) => r.id === step.responseId);
-      if (status) chips.push({ text: `${status}${resp?.description ? ` ${resp.description}` : ""}`, tone: status >= 400 ? "error" : "ok" });
+      if (status) chips.push({ text: `${status}${resp?.description ? ` ${resp.description}` : ""}`, tone: status >= 400 ? "error" : "ok", edit: "response" });
       break;
     }
     case "log":

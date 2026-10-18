@@ -37,8 +37,16 @@ export function CondText({ segs }: { segs: readonly Seg[] }) {
   );
 }
 
-export function ChipView({ chip }: { chip: Chip }) {
+export function ChipView({ chip, onEdit }: { chip: Chip; onEdit?: (chip: Chip, el: HTMLElement) => void }) {
   const ui = useStoryUi();
+  // 編集中は、直せる印をクリックすると、その場で直す窓が開く
+  if (ui.edit && onEdit && chip.edit) {
+    return (
+      <button type="button" className={`pfs-chip pfs-chip--${chip.tone ?? "plain"} pfs-chip--editable`} title={`${chip.title ?? chip.text} — クリックで直す`} onClick={(e) => { e.stopPropagation(); onEdit(chip, e.currentTarget); }}>
+        {chip.text}
+      </button>
+    );
+  }
   if (chip.varName) {
     const active = ui.activeVar === chip.varName;
     return (
@@ -55,7 +63,7 @@ export function ChipView({ chip }: { chip: Chip }) {
   return <span className={`pfs-chip pfs-chip--${chip.tone ?? "plain"}`} title={chip.title}>{chip.text}</span>;
 }
 
-export function Chips({ chips }: { chips: readonly Chip[] }): ReactNode {
-  if (chips.length === 0) return null;
-  return <div className="pfs-chips">{chips.map((c, i) => <ChipView key={`${i}:${c.text}`} chip={c} />)}</div>;
+export function Chips({ chips, onEdit, extra }: { chips: readonly Chip[]; onEdit?: (chip: Chip, el: HTMLElement) => void; extra?: ReactNode }): ReactNode {
+  if (chips.length === 0 && !extra) return null;
+  return <div className="pfs-chips">{chips.map((c, i) => <ChipView key={`${i}:${c.text}`} chip={c} onEdit={onEdit} />)}{extra}</div>;
 }
