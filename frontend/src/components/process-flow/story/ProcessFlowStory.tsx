@@ -74,6 +74,7 @@ interface RowEnv {
   hl: ReadonlySet<string>;
   flashId: string | null;
   reviewed: ReturnType<typeof useReviewedSteps>;
+  digests: ReadonlyMap<string, string>;
   onSelect: (id: string) => void;
   onOpen: (id: string) => void;
 }
@@ -98,17 +99,21 @@ function rowKindLabel(step: Loose, status: number | undefined): { text: string; 
 export function ProcessFlowStory({ action, reviewKey, ctx, selectedStepIds, onSelectStep, onOpenStep }: ProcessFlowStoryProps) {
   const [zoom, setZoom] = useState<Zoom>(readZoom);
   const [tab, setTab] = useState<Tab>("flow");
-  const [collapsed, setCollapsed] = useState<ReadonlySet<number>>(new Set());
-  const [activeVar, setActiveVar] = useState<string | null>(null);
+  /** 畳んだ区切り (区切りの最初の工程の ID。見出しを足しても、ずれない) */
+  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
+  const [activeVar, setActiveVarState] = useState<string | null>(null);
   const [flashId, setFlashId] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** 変数の「前 / 次」で、いま何番目の場所にいるか (-1 は、まだ移っていない) */
+  const varCursor = useRef(-1);
   useEffect(() => () => { if (flashTimer.current) clearTimeout(flashTimer.current); }, []);
 
   const changeZoom = useCallback((z: Zoom) => {
     setZoom(z);
     try { localStorage.setItem(ZOOM_KEY, z); } catch { /* storage 不可 */ }
   }, []);
+  const setActiveVar = useCallback((name: string | null) => { varCursor.current = -1; setActiveVarState(name); }, []);
 
   const steps = useMemo(() => asLooseList(action.steps), [action.steps]);
   const labels = useMemo(() => buildVarLabels(action), [action]);
@@ -120,6 +125,7 @@ export function ProcessFlowStory({ action, reviewKey, ctx, selectedStepIds, onSe
   const digests = useMemo(() => new Map(targets.map((s) => [s.id, stepDigest(s)])), [targets]);
   const reviewed = useReviewedSteps(reviewKey);
   const reviewedCount = reviewed.countReviewed(digests);
+  const sectionExits = useMemo(() => sections.map((sec) => collectExits({ ...action, steps: sec.steps as unknown as ActionDefinition["steps"] }, labels).length), [sections, action, labels]);
 
   /** 文書の順 (上から) の工程 ID */
   const order = useMemo(() => {
@@ -135,6 +141,8 @@ export function ProcessFlowStory({ action, reviewKey, ctx, selectedStepIds, onSe
   const jumpTo = useCallback((stepId: string) => {
     setTab("flow");
     setCollapsed(new Set());
+    // 「概要」では入れ子が畳まれて、行が見えないので、詳細に切り替える
+    if (zoom === "overview") changeZoom("detail");
     setFlashId(stepId);
     if (flashTimer.current) clearTimeout(flashTimer.current);
     flashTimer.current = setTimeout(() => setFlashId(null), 1800);
@@ -142,32 +150,59 @@ export function ProcessFlowStory({ action, reviewKey, ctx, selectedStepIds, onSe
       const el = rootRef.current?.querySelector(`[data-step-id="${CSS.escape(stepId)}"]`);
       el?.scrollIntoView({ behavior: "smooth", block: "center" });
     });
-  }, []);
+  }, [zoom, changeZoom]);
 
   const stepVar = useCallback((dir: 1 | -1) => {
     if (hlOrdered.length === 0) return;
-    const cur = flashId ? hlOrdered.indexOf(flashId) : -1;
+    const cur = varCursor.current;
     const next = cur < 0 ? (dir === 1 ? 0 : hlOrdered.length - 1) : (cur + dir + hlOrdered.length) % hlOrdered.length;
+    varCursor.current = next;
     jumpTo(hlOrdered[next]);
-  }, [hlOrdered, flashId, jumpTo]);
+  }, [hlOrdered, jumpTo]);
 
-  const env: RowEnv = { zoom, selected: selectedStepIds, hl, flashId, reviewed, onSelect: onSelectStep, onOpen: onOpenStep };
-  const ui = useMemo(() => ({ ctx: storyCtx, showNames: zoom === "impl", activeVar, setActiveVar }), [storyCtx, zoom, activeVar]);
+  const env: RowEnv = { zoom, selected: selectedStepIds, hl, flashId, reviewed, digests, onSelect: onSelectStep, onOpen: onOpenStep };
+  const ui = useMemo(() => ({ ctx: storyCtx, showNames: zoom === "impl", activeVar, setActiveVar }), [storyCtx, zoom, activeVar, setActiveVar]);
 
   if (steps.length === 0) {
     return <div className="pfs-empty" data-testid="process-flow-story">工程がありません。「カード」の表示で、左のブロックから追加してください。</div>;
   }
 
-  const hasHeadings = sections.some((s) => s.heading);
+  const hasHeadings = sections.some((sec) => sec.heading);
+  const TABS: Array<{ key: Tab; label: string; title: string; testid: string }> = [
+    { key: "flow", label: "流れ", title: "入れ子と条件を、上から読む", testid: "pfs-tab-flow" },
+    { key: "exits", label: `出口 (${exits.length})`, title: "この処理が終わるすべての出口と、そこへ行く条件", testid: "pfs-tab-exits" },
+    { key: "vars", label: `変数 (${vars.length})`, title: "途中で作られ、あとで使われる変数", testid: "pfs-tab-vars" },
+  ];
+  const onTabKey = (e: React.KeyboardEvent, i: number) => {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    e.preventDefault();
+    const next = TABS[(i + (e.key === "ArrowRight" ? 1 : TABS.length - 1)) % TABS.length];
+    setTab(next.key);
+    requestAnimationFrame(() => rootRef.current?.querySelector<HTMLElement>(`[data-testid="${next.testid}"]`)?.focus());
+  };
 
   return (
     <StoryUiProvider value={ui}>
       <div className={`pfs-root pfs-z-${zoom}`} ref={rootRef} data-testid="process-flow-story">
         <div className="pfs-toolbar">
           <div className="pfs-tabs" role="tablist" aria-label="流れの見方">
-            <button type="button" role="tab" aria-selected={tab === "flow"} onClick={() => setTab("flow")} data-testid="pfs-tab-flow">流れ</button>
-            <button type="button" role="tab" aria-selected={tab === "exits"} onClick={() => setTab("exits")} data-testid="pfs-tab-exits" title="この処理が終わるすべての出口と、そこへ行く条件">出口 ({exits.length})</button>
-            <button type="button" role="tab" aria-selected={tab === "vars"} onClick={() => setTab("vars")} data-testid="pfs-tab-vars" title="途中で作られ、あとで使われる変数">変数 ({vars.length})</button>
+            {TABS.map((t, i) => (
+              <button
+                key={t.key}
+                type="button"
+                role="tab"
+                id={`pfs-tab-${t.key}`}
+                aria-selected={tab === t.key}
+                aria-controls="pfs-panel"
+                tabIndex={tab === t.key ? 0 : -1}
+                title={t.title}
+                onClick={() => setTab(t.key)}
+                onKeyDown={(e) => onTabKey(e, i)}
+                data-testid={t.testid}
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
           {tab === "flow" && (
             <div className="pfs-zoom" role="group" aria-label="表示の細かさ">
@@ -178,7 +213,7 @@ export function ProcessFlowStory({ action, reviewKey, ctx, selectedStepIds, onSe
           )}
           <div className="pfs-progress" title="人が 1 行ずつ確かめた数。確かめたあとに工程が変わると、印は外れます">
             <span data-testid="pfs-progress-text">確認済み {reviewedCount} / {targets.length}</span>
-            <i><b style={{ width: `${targets.length ? (100 * reviewedCount) / targets.length : 0}%` }} /></i>
+            <i role="progressbar" aria-label="確認済みの進み具合" aria-valuemin={0} aria-valuemax={targets.length} aria-valuenow={reviewedCount}><b style={{ width: `${targets.length ? (100 * reviewedCount) / targets.length : 0}%` }} /></i>
             {reviewedCount > 0 && <button type="button" className="pfs-link" onClick={reviewed.clear}>すべて外す</button>}
           </div>
         </div>
@@ -193,74 +228,72 @@ export function ProcessFlowStory({ action, reviewKey, ctx, selectedStepIds, onSe
           </div>
         )}
 
-        {tab === "flow" && (
-          <div className="pfs-flow">
-            {sections.map((sec, si) => {
-              const isCollapsed = collapsed.has(si);
-              const body = (
-                <StepList steps={sec.steps} numPrefix="" startIndex={sec.startIndex} env={env} />
-              );
-              if (!hasHeadings) return <div key={si}>{body}</div>;
-              return (
-                <section key={si} className={`pfs-section${isCollapsed ? " is-collapsed" : ""}`} data-testid="pfs-section">
-                  <header
-                    onClick={() => setCollapsed((cur) => { const n = new Set(cur); if (n.has(si)) n.delete(si); else n.add(si); return n; })}
-                    role="button"
-                    tabIndex={0}
-                    aria-expanded={!isCollapsed}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.currentTarget.click(); } }}
-                  >
-                    <span className="pfs-section-no">{sec.heading ? sections.slice(0, si + 1).filter((x) => x.heading).length : "•"}</span>
-                    <h3>{sec.heading ?? "はじめに"}</h3>
-                    <small>{countSteps(sec.steps)} 工程{sectionExitCount(sec.steps, action) > 0 ? ` ・ 出口 ${sectionExitCount(sec.steps, action)}` : ""}</small>
-                    <span className="pfs-caret" aria-hidden="true">{isCollapsed ? "▸" : "▾"}</span>
-                  </header>
-                  {!isCollapsed && <div className="pfs-section-body">{body}</div>}
-                </section>
-              );
-            })}
-          </div>
-        )}
+        <div id="pfs-panel" role="tabpanel" aria-labelledby={`pfs-tab-${tab}`}>
+          {tab === "flow" && (
+            <div className="pfs-flow">
+              {sections.map((sec, si) => {
+                const sid = sec.steps[0].id;
+                const isCollapsed = collapsed.has(sid);
+                const body = <StepList steps={sec.steps} numPrefix="" startIndex={sec.startIndex} env={env} />;
+                if (!hasHeadings) return <div key={sid}>{body}</div>;
+                return (
+                  <section key={sid} className={`pfs-section${isCollapsed ? " is-collapsed" : ""}`} data-testid="pfs-section">
+                    <header>
+                      <h3>
+                        <button
+                          type="button"
+                          className="pfs-section-toggle"
+                          aria-expanded={!isCollapsed}
+                          onClick={() => setCollapsed((cur) => { const n = new Set(cur); if (n.has(sid)) n.delete(sid); else n.add(sid); return n; })}
+                        >
+                          <span className="pfs-section-no">{sec.heading ? sections.slice(0, si + 1).filter((x) => x.heading).length : "•"}</span>
+                          <span className="pfs-section-title">{sec.heading ?? "はじめに"}</span>
+                          <small>{countSteps(sec.steps)} 工程{sectionExits[si] > 0 ? ` ・ 出口 ${sectionExits[si]}` : ""}</small>
+                          <span className="pfs-caret" aria-hidden="true">{isCollapsed ? "▸" : "▾"}</span>
+                        </button>
+                      </h3>
+                    </header>
+                    {!isCollapsed && <div className="pfs-section-body">{body}</div>}
+                  </section>
+                );
+              })}
+            </div>
+          )}
 
-        {tab === "exits" && (
-          <div className="pfs-exits" data-testid="pfs-exits">
-            <p className="pfs-note">この処理が終わるすべての出口と、そこへ行く条件です。抜けや、ありえない道が無いかを確かめます。クリックで、その行へ。</p>
-            {[...exits].sort((a, b) => (a.status ?? 0) - (b.status ?? 0)).map((e) => (
-              <button key={e.stepId} type="button" className="pfs-exit" onClick={() => jumpTo(e.stepId)} data-testid="pfs-exit">
-                <span className={`pfs-status ${e.error ? "is-error" : "is-ok"}`}>{e.status ?? "—"}</span>
-                <span className="pfs-exit-body">
-                  <b>{e.label || "（説明なし）"}</b>
-                  <span className="pfs-path">{e.path.length ? e.path.map((p, i) => <span key={i}>{p}</span>) : <span>ここまで来たら</span>}</span>
-                </span>
-              </button>
-            ))}
-            {exits.length === 0 && <p className="pfs-note">「返す」工程がありません。</p>}
-          </div>
-        )}
+          {tab === "exits" && (
+            <div className="pfs-exits" data-testid="pfs-exits">
+              <p className="pfs-note">この処理が終わるすべての出口と、そこへ行く条件です。抜けや、ありえない道が無いかを確かめます。クリックで、その行へ。</p>
+              {[...exits].sort((a, b) => (a.status ?? 0) - (b.status ?? 0)).map((e, i) => (
+                <button key={`${e.stepId}:${i}`} type="button" className="pfs-exit" onClick={() => jumpTo(e.stepId)} data-testid="pfs-exit">
+                  <span className={`pfs-status ${e.error ? "is-error" : "is-ok"}`}>{e.status ?? "—"}</span>
+                  <span className="pfs-exit-body">
+                    <b>{e.label || "（説明なし）"}</b>
+                    <span className="pfs-path">{e.path.length ? e.path.map((p, j) => <span key={j}>{p}</span>) : <span>ここまで来たら</span>}</span>
+                  </span>
+                </button>
+              ))}
+              {exits.length === 0 && <p className="pfs-note">「返す」工程がありません。</p>}
+            </div>
+          )}
 
-        {tab === "vars" && (
-          <div className="pfs-vars" data-testid="pfs-vars">
-            <p className="pfs-note">途中で作られ、あとで使われる変数です。選ぶと、流れの上で、作る場所と使う場所が光ります。</p>
-            {vars.map((v) => (
-              <button key={v.name} type="button" className="pfs-vrow" onClick={() => { setActiveVar(v.name); setTab("flow"); requestAnimationFrame(() => { const first = v.defIds[0]; if (first) jumpTo(first); }); }} data-testid="pfs-var-row">
-                <span className="pfs-chip pfs-chip--var">{v.label}</span>
-                <code>{v.name}</code>
-                <span className="pfs-muted">{{ binding: "結果", loopItem: "繰り返しの 1 行", loopIndex: "繰り返しの番号", fieldErrors: "入力エラー", errorVar: "捕まえたエラー" }[v.how]}</span>
-                <span className="pfs-vcount">作る {v.defIds.length} ・ 使う {v.useIds.length}</span>
-              </button>
-            ))}
-            {vars.length === 0 && <p className="pfs-note">変数はありません。</p>}
-          </div>
-        )}
+          {tab === "vars" && (
+            <div className="pfs-vars" data-testid="pfs-vars">
+              <p className="pfs-note">途中で作られ、あとで使われる変数です。選ぶと、流れの上で、作る場所と使う場所が光ります。</p>
+              {vars.map((v) => (
+                <button key={v.name} type="button" className="pfs-vrow" onClick={() => { setActiveVar(v.name); jumpTo(v.defIds[0]); }} data-testid="pfs-var-row">
+                  <span className="pfs-chip pfs-chip--var">{v.label}</span>
+                  <code>{v.name}</code>
+                  <span className="pfs-muted">{{ binding: "結果", loopItem: "繰り返しの 1 行", loopIndex: "繰り返しの番号", fieldErrors: "入力エラー", errorVar: "捕まえたエラー" }[v.how]}</span>
+                  <span className="pfs-vcount">作る {v.defIds.length} ・ 使う {v.useIds.length}</span>
+                </button>
+              ))}
+              {vars.length === 0 && <p className="pfs-note">変数はありません。</p>}
+            </div>
+          )}
+        </div>
       </div>
     </StoryUiProvider>
   );
-}
-
-function sectionExitCount(steps: readonly Loose[], action: Pick<ActionDefinition, "responses">): number {
-  let n = 0;
-  walkSteps(steps, (s) => { if (s.kind === "return" && returnStatus(s, action) !== undefined) n++; });
-  return n;
 }
 
 // ─── 工程の並び ─────────────────────────────────────────
@@ -283,7 +316,10 @@ function StepNode({ step, num, env }: { step: Loose; num: string; env: RowEnv })
       <div className="pfs-row pfs-row--quiet" data-step-id={step.id}>
         <span className="pfs-num" />
         <span className="pfs-kind pfs-kind--loop">{kindLabel(step)}</span>
-        <div className="pfs-main"><div className="pfs-head">{step.kind === "loopContinue" ? "この行はここまで。次の行へ進む" : "繰り返しをここで終える"}</div></div>
+        <div className="pfs-main">
+          <div className="pfs-head">{step.kind === "loopContinue" ? "この行はここまで。次の行へ進む" : "繰り返しをここで終える"}</div>
+          <RunIfLine step={step} />
+        </div>
         <span />
       </div>
     );
@@ -305,6 +341,7 @@ function StepNode({ step, num, env }: { step: Loose; num: string; env: RowEnv })
               {isTx && <span className="pfs-muted"> どれか 1 つでも失敗したら、全部取り消す</span>}
               <span className="pfs-inside">（中の工程 {inside} 件）</span>
             </div>
+            <div className="pfs-sub"><RunIfLine step={step} /></div>
             <Chips chips={stepChips(step, ui)} />
           </div>
           <RowActions step={step} env={env} />
@@ -351,8 +388,15 @@ function GroupBlock({ group, num, env }: { group: ChildGroup; num: string; env: 
 
 // ─── 行 ────────────────────────────────────────────────
 
+/** 実行条件 (runIf) の言葉。どの行にも付き得る */
+function RunIfLine({ step }: { step: Loose }) {
+  const runIf = typeof step.runIf === "string" ? step.runIf : "";
+  if (!runIf) return null;
+  return <span className="pfs-runif" title={runIf}>↳ <CondText segs={expressionSegments(runIf)} /> のときだけ</span>;
+}
+
 function RowActions({ step, env }: { step: Loose; env: RowEnv }) {
-  const digest = stepDigest(step);
+  const digest = env.digests.get(step.id) ?? stepDigest(step);
   const done = env.reviewed.isReviewed(step.id, digest);
   const stale = env.reviewed.isStale(step.id, digest);
   return (
@@ -385,9 +429,8 @@ function StepRow({ step, num, env, inside }: { step: Loose; num: string; env: Ro
   const status = step.kind === "return" ? returnStatus(step, ui.action) : undefined;
   const k = rowKindLabel(step, status);
   const code = env.zoom === "impl" ? stepCode(step) : undefined;
-  const runIf = typeof step.runIf === "string" && step.runIf ? step.runIf : "";
   return (
-    <div className={rowClass(step, env)} data-step-id={step.id} data-testid="pfs-row" onClick={() => env.onSelect(step.id)} onDoubleClick={() => env.onOpen(step.id)}>
+    <div className={rowClass(step, env)} data-step-id={step.id} data-testid="pfs-row" tabIndex={0} onKeyDown={(e) => rowKey(e, step.id, env)} onClick={() => env.onSelect(step.id)} onDoubleClick={() => env.onOpen(step.id)}>
       <span className="pfs-num">{num}</span>
       <span className={`pfs-kind pfs-kind--${k.tone}`}>{k.text}</span>
       <div className="pfs-main">
@@ -396,7 +439,7 @@ function StepRow({ step, num, env, inside }: { step: Loose; num: string; env: Ro
           {inside > 0 && <span className="pfs-inside">（中の工程 {inside} 件）</span>}
         </div>
         <div className="pfs-sub">
-          {runIf && <span className="pfs-runif" title={runIf}>↳ <CondTextInline expr={runIf} /> のときだけ</span>}
+          <RunIfLine step={step} />
           <Chips chips={stepChips(step, ui)} />
         </div>
         {code && <pre className="pfs-code">{code}</pre>}
@@ -406,8 +449,12 @@ function StepRow({ step, num, env, inside }: { step: Loose; num: string; env: Ro
   );
 }
 
-function CondTextInline({ expr }: { expr: string }) {
-  return <CondText segs={expressionSegments(expr)} />;
+/** 行にフォーカスがあるとき: Enter で選ぶ、Shift+Enter でカードで開く */
+function rowKey(e: React.KeyboardEvent, id: string, env: RowEnv): void {
+  if (e.target !== e.currentTarget || e.key !== "Enter") return;
+  e.preventDefault();
+  if (e.shiftKey) env.onOpen(id);
+  else env.onSelect(id);
 }
 
 function GuardRow({ step, num, env }: { step: Loose; num: string; env: RowEnv }) {
@@ -418,7 +465,7 @@ function GuardRow({ step, num, env }: { step: Loose; num: string; env: RowEnv })
   const resp = ret ? ui.action.responses?.find((r) => r.id === ret.responseId) : undefined;
   const code = env.zoom === "impl" && ret ? stepCode(ret) : undefined;
   return (
-    <div className={rowClass(step, env, "pfs-row--guard")} data-step-id={step.id} data-testid="pfs-guard" onClick={() => env.onSelect(step.id)} onDoubleClick={() => env.onOpen(step.id)}>
+    <div className={rowClass(step, env, "pfs-row--guard")} data-step-id={step.id} data-testid="pfs-guard" tabIndex={0} onKeyDown={(e) => rowKey(e, step.id, env)} onClick={() => env.onSelect(step.id)} onDoubleClick={() => env.onOpen(step.id)}>
       {ret && <span data-step-id={ret.id} className="pfs-anchor" />}
       <span className="pfs-num">{num}</span>
       <span className="pfs-kind pfs-kind--err">ガード</span>
@@ -426,7 +473,11 @@ function GuardRow({ step, num, env }: { step: Loose; num: string; env: RowEnv })
         <div className="pfs-head">
           <CondText segs={conditionSegments(arm?.condition)} /> → <b className={`pfs-status-text ${(status ?? 0) >= 400 ? "is-error" : ""}`}>{status ?? ""}</b> {resp?.description ?? (ret ? stepHeadline(ret) : "")}
         </div>
-        <div className="pfs-sub"><span className="pfs-muted">{stepHeadline(step)}</span></div>
+        <div className="pfs-sub">
+          <span className="pfs-muted">{stepHeadline(step)}</span>
+          <RunIfLine step={step} />
+          {ret && <RunIfLine step={ret} />}
+        </div>
         {code && <pre className="pfs-code">{code}</pre>}
       </div>
       <RowActions step={step} env={env} />

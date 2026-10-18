@@ -46,14 +46,12 @@ export function useReviewedSteps(storageKey: string): ReviewedSteps {
   const map = state.key === storageKey ? state.map : read(storageKey);
 
   const toggle = useCallback((stepId: string, digest: string) => {
-    setState((cur) => {
-      const base = cur.key === storageKey ? cur.map : read(storageKey);
-      const next = { ...base };
-      if (next[stepId] === digest) delete next[stepId];
-      else next[stepId] = digest;
-      write(storageKey, next);
-      return { key: storageKey, map: next };
-    });
+    // 別のタブが書いた分を失わないよう、書く直前に、保存済みの内容から作り直す
+    const next = { ...read(storageKey) };
+    if (next[stepId] === digest) delete next[stepId];
+    else next[stepId] = digest;
+    write(storageKey, next);
+    setState({ key: storageKey, map: next });
   }, [storageKey]);
 
   const clear = useCallback(() => {

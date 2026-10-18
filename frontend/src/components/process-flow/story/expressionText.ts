@@ -69,18 +69,26 @@ function stripOuterParens(s: string): string {
   return t.slice(1, -1).trim();
 }
 
-const VAR_RE = /^@([A-Za-z_][A-Za-z0-9_]*)((?:\.[A-Za-z_][A-Za-z0-9_]*|\[\d+\])*)$/;
+const VAR_RE = /^@([A-Za-z_][A-Za-z0-9_]*)((?:\.[A-Za-z_][A-Za-z0-9_-]*|\[\d+\])*)$/;
+
+/**
+ * 変数の参照の形のうち、「どの範囲の」を表す前置き。`@var.action.x` `@var.loop.x` `@var.flowParameter.x` `@var.global.x`
+ * `@var.step.<工程>.x` `@var.tx.<工程>.x` は、x の変数として扱う。`@var.x` (暗黙) も x。
+ */
+function stripVarScope(name: string, path: string[]): { name: string; path: string[] } {
+  if (name !== "var" || path.length === 0) return { name, path };
+  const [scope, ...rest] = path;
+  if ((scope === "action" || scope === "loop" || scope === "flowParameter" || scope === "global") && rest.length >= 1) return { name: rest[0], path: rest.slice(1) };
+  if ((scope === "step" || scope === "tx") && rest.length >= 2) return { name: rest[1], path: rest.slice(2) };
+  return { name: scope, path: rest };
+}
 
 /** `@a.b[0].c` → { name: "a", path: ["b", "[0]", "c"] }。変数でなければ null */
 export function parseVarRef(token: string): { name: string; path: string[]; raw: string } | null {
   const m = token.trim().match(VAR_RE);
   if (!m) return null;
-  const path = (m[2].match(/\.[A-Za-z_][A-Za-z0-9_]*|\[\d+\]/g) ?? []).map((p) => (p.startsWith(".") ? p.slice(1) : p));
-  // `@var.action.txResult.committed` は、txResult の committed として扱う
-  if (m[1] === "var" && path[0] === "action" && path.length >= 2) {
-    return { name: path[1], path: path.slice(2), raw: token.trim() };
-  }
-  return { name: m[1], path, raw: token.trim() };
+  const path = (m[2].match(/\.[A-Za-z_][A-Za-z0-9_-]*|\[\d+\]/g) ?? []).map((p) => (p.startsWith(".") ? p.slice(1) : p));
+  return { ...stripVarScope(m[1], path), raw: token.trim() };
 }
 
 function operandSegs(token: string): Seg[] {
@@ -100,9 +108,7 @@ function clauseSegs(clause: string): Seg[] {
   const m = c.match(CMP_RE);
   if (!m) {
     // `!@x` → x が ない / `@x` だけ → x が「はい」
-    const neg = c.match(/^!\s*(@.+)$/);
-    if (neg && parseVarRef(neg[1])) return [...operandSegs(neg[1]), { k: "text", v: " が「いいえ」" }];
-    if (parseVarRef(c)) return [...operandSegs(c), { k: "text", v: " が「はい」" }];
+    // 変数だけの式 (`@x` `!@x`) は、真偽値とは限らない (件数・値の有無・0 かどうか) ので、言葉にせず、そのまま式で出す
     return [{ k: "code", v: c }];
   }
   const [, left, op, right] = m;
@@ -124,12 +130,40 @@ function clauseSegs(clause: string): Seg[] {
 export function expressionSegments(expr: string | undefined): Seg[] {
   const e = (expr ?? "").trim();
   if (!e) return [];
-  const stripped = stripOuterParens(e);
+  // 三項演算子・`??` が外側にある式は、読み方が変わるので、言葉にしない
+  if (hasTopLevelChar(e, "?")) return [{ k: "code", v: e }];
+  return segsOf(e);
+}
+
+function segsOf(expr: string): Seg[] {
+  const stripped = stripOuterParens(expr);
   const or = splitTopLevel(stripped, "||");
-  if (or) return joinSegs(or.map((p) => expressionSegments(p)), " または ");
+  if (or) return joinSegs(or.map((p) => segsOf(p)), " または ");
   const and = splitTopLevel(stripped, "&&");
-  if (and) return joinSegs(and.map((p) => expressionSegments(p)), " かつ ");
+  if (and) {
+    // 「かつ」の項に「または」が入るときは、括弧で、まとまりを残す (A かつ (B または C))
+    return joinSegs(and.map((p) => {
+      const inner = stripOuterParens(p);
+      const sub = segsOf(inner);
+      return splitTopLevel(inner, "||") ? [{ k: "text", v: "（" } as Seg, ...sub, { k: "text", v: "）" } as Seg] : sub;
+    }), " かつ ");
+  }
   return clauseSegs(stripped);
+}
+
+/** 引用符・括弧の外側にある、指定の文字があるか */
+function hasTopLevelChar(expr: string, ch: string): boolean {
+  let depth = 0;
+  let quote: string | null = null;
+  for (let i = 0; i < expr.length; i++) {
+    const c = expr[i];
+    if (quote) { if (c === "\\") i++; else if (c === quote) quote = null; continue; }
+    if (c === "'" || c === '"' || c === "`") { quote = c; continue; }
+    if (c === "(" || c === "[" || c === "{") depth++;
+    else if (c === ")" || c === "]" || c === "}") depth--;
+    else if (depth === 0 && c === ch) return true;
+  }
+  return false;
 }
 
 function joinSegs(groups: Seg[][], sep: string): Seg[] {

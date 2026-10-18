@@ -7,6 +7,8 @@ import { useStoryUi } from "./storyUi";
 function VarSeg({ name, path, raw, labels, showNames }: { name: string; path: string[]; raw: string; labels: VarLabels; showNames: boolean }) {
   const ui = useStoryUi();
   const text = showNames ? raw : labels.full(name, path);
+  // この処理の中で作られる変数だけを、ボタンにする。入力・規約・セッションの値などは、ふつうの文字
+  if (!labels.isDefined(name)) return <span className="pfs-ref" title={raw}>{text}</span>;
   const active = ui.activeVar === name;
   return (
     <button

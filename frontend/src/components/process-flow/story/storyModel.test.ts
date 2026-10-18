@@ -186,3 +186,91 @@ describe("行の印・コード・指紋", () => {
     expect(stepDigest(b)).not.toBe(d1);
   });
 });
+
+describe("レビューの指摘への対応 (#1530)", () => {
+  it("入力チェックの「不正のとき返す応答」も、出口に数える", () => {
+    const action = {
+      id: "a", name: "x", trigger: "submit",
+      responses: [{ id: "201-ok", status: 201, description: "登録した" }, { id: "400-validation", status: 400, description: "入力エラー" }],
+      steps: [
+        { id: "v1", kind: "validation", description: "入力", fieldErrorsVar: "fe", rules: [], inlineBranch: { ok: [], ng: [], ngResponseId: "400-validation" } },
+        { id: "r1", kind: "return", description: "終わり", responseId: "201-ok" },
+      ],
+    } as unknown as ActionDefinition;
+    const exits = collectExits(action);
+    expect(exits.map((e) => [e.stepId, e.status])).toEqual([["v1", 400], ["r1", 201]]);
+    expect(exits[0].path).toEqual(["入力が不正"]);
+    const chips = stepChips(asLoose(action.steps[0]), { flow: flowCtx, action, labels: buildVarLabels(action) });
+    expect(chips.map((c) => c.text)).toContain("不正なら → 400 を返す");
+  });
+
+  it("更新件数のチェックは、演算子と、外れたときの動きまで言葉にする", () => {
+    const action = mini();
+    const chip = (arc: Record<string, unknown>) => stepChips(asLoose({ id: "d", kind: "dbAccess", tableId: "order", operation: "UPDATE", affectedRowsCheck: arc } as never), { flow: flowCtx, action, labels: buildVarLabels(action) }).map((c) => c.text).find((t) => t.startsWith("更新件数"));
+    expect(chip({ operator: "=", expected: 1, onViolation: "throw", errorCode: "E" })).toBe("更新件数が 1 件ちょうど。外れたら失敗 (E)");
+    expect(chip({ operator: ">=", expected: 0, onViolation: "log" })).toBe("更新件数が 0 件以上。外れたら記録だけ");
+  });
+
+  it("ガードの指紋は、中の「返す」の変更でも変わる", () => {
+    const g = JSON.parse(JSON.stringify(mini().steps[1])) as Record<string, unknown>;
+    const d1 = stepDigest(asLoose(g as never));
+    ((g.branches as Array<{ steps: Array<{ responseId: string }> }>)[0].steps[0]).responseId = "200-ok";
+    expect(stepDigest(asLoose(g as never))).not.toBe(d1);
+  });
+
+  it("変数の参照は、var.loop / var.step.<工程> / 暗黙 の形でも「使う」に数える", () => {
+    const action = {
+      id: "a", name: "x", trigger: "submit",
+      steps: [
+        { id: "s1", kind: "dbAccess", tableId: "order", operation: "SELECT", sql: "SELECT 1", outputBinding: { name: "cartItems" } },
+        { id: "s2", kind: "loop", loopKind: "collection", collectionSource: "@var.action.cartItems", collectionItemName: "cartItem", steps: [
+          { id: "s2a", kind: "compute", expression: "${@var.cartItem.productId}", outputBinding: { name: "n" } },
+        ] },
+        { id: "s3", kind: "compute", expression: "@var.step.s1.cartItems.length", outputBinding: { name: "m" } },
+      ],
+    } as unknown as ActionDefinition;
+    const vars = variableFlow(action);
+    expect(vars.find((v) => v.name === "cartItems")!.useIds).toEqual(expect.arrayContaining(["s2", "s3"]));
+    expect(vars.find((v) => v.name === "cartItem")!.useIds).toEqual(["s2a"]);
+    expect(vars.find((v) => v.name === "n")!.useIds).toEqual([]);
+  });
+
+  it("配列でない不正なデータでも、落ちない", () => {
+    const steps = asLooseList({ not: "array" } as never);
+    expect(steps).toEqual([]);
+    const bad = asLoose({ id: "x", kind: "branch", branches: "oops", elseBranch: { steps: 5 } } as never);
+    expect(() => childGroups(bad)).not.toThrow();
+    expect(() => isGuardBranch(bad)).not.toThrow();
+  });
+
+  it("番号の記号: 腕は A/B、承認・確定のあとなどは役割ごと。繰り返しとまとまりの本体は無し", () => {
+    const wf = asLoose({ id: "w", kind: "workflow", onApproved: [], onRejected: [], onTimeout: [] } as never);
+    expect(childGroups(wf).map((g) => g.code)).toEqual(["承", "却", "期"]);
+    const tx = asLoose({ id: "t", kind: "transactionScope", steps: [], onCommit: [{ id: "c", kind: "compute" }], onRollback: [{ id: "r", kind: "compute" }] } as never);
+    expect(childGroups(tx).map((g) => g.code)).toEqual([undefined, "確", "戻"]);
+  });
+
+  it("呼び名: length は「長さ(件数)」。確定したか は トランザクションの結果だけ。規約・入力は、変数ではない", () => {
+    const action = {
+      id: "a", name: "x", trigger: "submit", inputs: [{ name: "pw", label: "パスワード", type: "string" }],
+      steps: [{ id: "t", kind: "transactionScope", steps: [], outputBinding: { name: "txResult", label: "確定の結果" } }, { id: "c", kind: "compute", expression: "1", outputBinding: { name: "other" } }],
+    } as unknown as ActionDefinition;
+    const labels = buildVarLabels(action);
+    expect(labels.full("inputs", ["pw", "length"])).toBe("パスワード の 長さ(件数)");
+    expect(labels.full("txResult", ["committed"])).toBe("確定の結果 の 確定したか");
+    expect(labels.full("other", ["committed"])).toBe("other の committed");
+    expect(labels.isDefined("txResult")).toBe(true);
+    expect(labels.isDefined("conv")).toBe(false);
+    expect(labels.isDefined("inputs")).toBe(false);
+  });
+
+  it("入力チェックの印は、範囲・参照・重さまで出す", () => {
+    const action = mini();
+    const chips = stepChips(asLoose({ id: "v", kind: "validation", fieldErrorsVar: "fe", rules: [
+      { field: "n", type: "range", min: 1, max: 9 },
+      { field: "s", type: "maxLength", lengthRef: "@conv.limit.name" },
+      { field: "t", type: "required", severity: "msg" },
+    ] } as never), { flow: flowCtx, action, labels: buildVarLabels(action) }).map((c) => c.text);
+    expect(chips).toEqual(["n 範囲 1〜9", "s 最大 (@conv.limit.name)", "t 必須（知らせるだけ）"]);
+  });
+});

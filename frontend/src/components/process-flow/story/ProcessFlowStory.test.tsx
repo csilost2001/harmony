@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ActionDefinition } from "../../../types/v3";
 import { ProcessFlowStory } from "./ProcessFlowStory";
 
@@ -119,7 +119,7 @@ describe("ProcessFlowStory (流れの表示)", () => {
 
   it("見出しの帯で畳める", () => {
     setup();
-    const header = screen.getByText("確定する").closest("header")!;
+    const header = screen.getByRole("button", { name: /確定する/ });
     fireEvent.click(header);
     expect(screen.queryByText("金額を足す")).toBeNull();
     fireEvent.click(header);
@@ -131,5 +131,63 @@ describe("ProcessFlowStory (流れの表示)", () => {
     a.steps = [];
     render(<ProcessFlowStory action={a} reviewKey="t:empty" ctx={flowCtx} selectedStepIds={new Set()} onSelectStep={vi.fn()} onOpenStep={vi.fn()} />);
     expect(screen.getByText(/工程がありません/)).toBeInTheDocument();
+  });
+
+  it("実行条件 (runIf) は、ガード・繰り返しの枠・次の行へ にも出る", () => {
+    const a = action();
+    (a.steps[1] as unknown as { runIf: string }).runIf = "@customer != null";
+    (a.steps[2] as unknown as { runIf: string }).runIf = "@inputs.lines.length > 0";
+    render(<ProcessFlowStory action={a} reviewKey="t:runif" ctx={flowCtx} selectedStepIds={new Set()} onSelectStep={vi.fn()} onOpenStep={vi.fn()} />);
+    expect(within(screen.getByTestId("pfs-guard")).getByText(/のときだけ/)).toBeInTheDocument();
+    expect(screen.getAllByText(/のときだけ/).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("この処理の中で作られない値 (入力・規約) は、変数のボタンにしない", () => {
+    const a = action();
+    (a.steps[1] as unknown as { branches: Array<{ condition: unknown }> }).branches[0].condition = { kind: "expression", expression: "@inputs.n > @conv.limit.max" };
+    render(<ProcessFlowStory action={a} reviewKey="t:plain" ctx={flowCtx} selectedStepIds={new Set()} onSelectStep={vi.fn()} onOpenStep={vi.fn()} />);
+    const guard = screen.getByTestId("pfs-guard");
+    expect(within(guard).queryAllByRole("button")).toHaveLength(2); // 確認済み・カードで開く だけ
+    expect(guard).toHaveTextContent("conv.limit.max");
+  });
+
+  it("行にフォーカスして Enter で選び、Shift+Enter でカードで開く", () => {
+    const { onSelectStep, onOpenStep } = setup();
+    const row = screen.getAllByTestId("pfs-row")[0];
+    fireEvent.keyDown(row, { key: "Enter" });
+    expect(onSelectStep).toHaveBeenCalledWith("s1");
+    fireEvent.keyDown(row, { key: "Enter", shiftKey: true });
+    expect(onOpenStep).toHaveBeenCalledWith("s1");
+  });
+
+  it("タブは、左右の矢印キーで移れる", () => {
+    setup();
+    fireEvent.keyDown(screen.getByTestId("pfs-tab-flow"), { key: "ArrowRight" });
+    expect(screen.getByTestId("pfs-tab-exits")).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tabpanel")).toBeInTheDocument();
+  });
+
+  it("概要で、出口をクリックすると、詳細に切り替わって、その行へ移る", () => {
+    setup();
+    fireEvent.click(screen.getByTestId("pfs-zoom-overview"));
+    fireEvent.click(screen.getByTestId("pfs-tab-exits"));
+    fireEvent.click(screen.getAllByTestId("pfs-exit")[0]);
+    expect(screen.getByTestId("process-flow-story").className).toContain("pfs-z-detail");
+  });
+
+  it("変数の「次」を続けて押すと、場所が順に進む (戻らない)", async () => {
+    const hits: string[] = [];
+    Element.prototype.scrollIntoView = vi.fn(function (this: Element) { hits.push(this.getAttribute("data-step-id") ?? ""); });
+    setup();
+    fireEvent.click(screen.getByTestId("pfs-tab-vars"));
+    fireEvent.click(screen.getAllByTestId("pfs-var-row").find((r) => r.textContent?.includes("line"))!);
+    await waitFor(() => expect(hits.length).toBeGreaterThanOrEqual(1));
+    const before = hits.length;
+    fireEvent.click(screen.getByLabelText("次の場所へ"));
+    await waitFor(() => expect(hits.length).toBe(before + 1));
+    const first = hits[before];
+    fireEvent.click(screen.getByLabelText("次の場所へ"));
+    await waitFor(() => expect(hits.length).toBe(before + 2));
+    expect(hits[before + 1]).not.toBe(first);
   });
 });

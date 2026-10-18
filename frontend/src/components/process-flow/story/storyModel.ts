@@ -17,7 +17,7 @@ import { expressionSegments, parseVarRef, segsToText, type Seg } from "./express
 /** 型の細かい違い (拡張 step など) を気にせず読むための、ゆるい形 */
 export type Loose = FlowStep & Record<string, unknown>;
 export const asLoose = (s: Step | FlowStep): Loose => s as unknown as Loose;
-export const asLooseList = (l: readonly (Step | FlowStep)[] | undefined): Loose[] => (l ?? []) as unknown as Loose[];
+export const asLooseList = (l: readonly (Step | FlowStep)[] | undefined): Loose[] => (Array.isArray(l) ? l : []) as unknown as Loose[];
 
 const str = (v: unknown): string => (typeof v === "string" ? v : "");
 const rec = (v: unknown): Record<string, unknown> => (v && typeof v === "object" ? (v as Record<string, unknown>) : {});
@@ -34,7 +34,7 @@ export interface ChildGroup {
   label: string;
   /** 分岐の腕の条件 */
   condition?: unknown;
-  /** 腕の記号 (A, B…)。番号に含める (「3-A-1」) */
+  /** 番号に含める記号。腕は A, B…、それ以外は役割ごとの 1 文字 (「3-A-1」「6-確-1」)。本体は無し (「7.1」) */
   code?: string;
   steps: Loose[];
 }
@@ -75,7 +75,9 @@ export function childGroups(step: Loose): ChildGroup[] {
     default:
       break;
   }
-  if (Array.isArray(step.subSteps) && step.subSteps.length) add({ key: "sub", role: "sub", label: "この工程の中で", steps: asLooseList(step.subSteps as Step[]) });
+  if (Array.isArray(step.subSteps) && step.subSteps.length) add({ key: "sub", role: "sub", label: "このあとに続けて", steps: asLooseList(step.subSteps as Step[]) });
+  const ROLE_CODES: Partial<Record<GroupRole, string>> = { ng: "NG", ok: "OK", approved: "承", rejected: "却", timeout: "期", commit: "確", rollback: "戻", sub: "続" };
+  for (const g of out) if (!g.code) g.code = ROLE_CODES[g.role];
   return out;
 }
 
@@ -127,39 +129,57 @@ export interface VarLabels {
   base: (name: string) => string;
   /** `@name.path` の全体の呼び名 */
   full: (name: string, path: string[]) => string;
+  /** この処理の中で作られる変数か (結果変数・繰り返しの 1 行・入力エラー・捕まえたエラー)。規約・セッションの値などは false */
+  isDefined: (name: string) => boolean;
 }
 
 const PROP_LABELS: Record<string, string> = {
-  length: "件数",
-  committed: "確定したか",
-  error: "エラー",
+  length: "長さ(件数)",
   code: "コード",
   message: "メッセージ",
   id: "ID",
+};
+/** トランザクションの結果 (`txResult`) だけが持つ項目 */
+const TX_PROP_LABELS: Record<string, string> = {
+  committed: "確定したか",
+  error: "エラー",
   diagnostics: "実行の記録",
 };
 
 export function buildVarLabels(action: Pick<ActionDefinition, "inputs" | "steps">): VarLabels {
   const labels = new Map<string, string>();
+  const txNames = new Set<string>();
+  const defined = new Set<string>();
   const inputLabels = new Map<string, string>();
   for (const i of action.inputs ?? []) if (i.label) inputLabels.set(i.name, i.label);
   walkSteps(asLooseList(action.steps), (s) => {
     const ob = rec(s.outputBinding);
-    if (str(ob.name) && str(ob.label)) labels.set(str(ob.name), str(ob.label));
+    if (str(ob.name)) {
+      defined.add(str(ob.name));
+      if (str(ob.label)) labels.set(str(ob.name), str(ob.label));
+      if (s.kind === "transactionScope") txNames.add(str(ob.name));
+    }
     if (s.kind === "loop") {
+      for (const n of [str(s.collectionItemName), str(s.collectionIndexName)]) if (n) defined.add(n);
       if (str(s.collectionItemName) && str(s.collectionItemLabel)) labels.set(str(s.collectionItemName), str(s.collectionItemLabel));
     }
+    if (s.kind === "validation" && str(s.fieldErrorsVar)) defined.add(str(s.fieldErrorsVar));
+    if (s.kind === "branch") for (const g of childGroups(s)) { const c = rec(g.condition); if (c.kind === "tryCatch" && str(c.errorVar)) defined.add(str(c.errorVar)); }
   });
   const base = (name: string) => (name === "inputs" ? "入力" : labels.get(name) ?? name);
+  const prop = (name: string, p: string) => (txNames.has(name) ? TX_PROP_LABELS[p] : undefined) ?? PROP_LABELS[p] ?? p;
   return {
     base,
+    isDefined: (name) => defined.has(name),
     full: (name, path) => {
+      // この処理の中で作られない値 (規約・セッション・環境など) は、書かれた名前のまま
+      if (name !== "inputs" && !defined.has(name)) return [name, ...path].join(".");
       if (path.length === 0) return base(name);
       if (name === "inputs" && !path[0].startsWith("[")) {
-        const rest = path.slice(1).map((p) => PROP_LABELS[p] ?? p);
+        const rest = path.slice(1).map((p) => prop(name, p));
         return [inputLabels.get(path[0]) ?? path[0], ...rest].join(" の ");
       }
-      return [base(name), ...path.map((p) => PROP_LABELS[p] ?? p)].join(" の ").replace(/ の \[/g, "[");
+      return [base(name), ...path.map((p) => prop(name, p))].join(" の ").replace(/ の \[/g, "[");
     },
   };
 }
@@ -175,7 +195,7 @@ export function conditionSegments(cond: unknown): Seg[] {
     case "affectedRowsZero": return [{ k: "text", v: "更新・削除の件数が 0 件だったとき" }];
     case "externalOutcome": {
       const o = { success: "成功した", failure: "失敗した", timeout: "時間切れになった" }[str(c.outcome)] ?? str(c.outcome);
-      return [{ k: "text", v: `外部への呼び出しが ${o} とき` }];
+      return [{ k: "text", v: `外部への呼び出しが${o}とき` }];
     }
     default: return [];
   }
@@ -231,6 +251,16 @@ export function collectExits(action: Pick<ActionDefinition, "steps" | "responses
         out.push({ stepId: s.id, status, error: (status ?? 200) >= 400, label: resp?.description || str(s.description), path: p });
         continue;
       }
+      if (s.kind === "validation") {
+        const ib = rec(s.inlineBranch);
+        const ng = Array.isArray(ib.ng) ? (ib.ng as Array<{ kind?: string }>) : [];
+        if (str(ib.ngResponseId) && !ng.some((x) => x.kind === "return")) {
+          const resp = action.responses?.find((r) => r.id === ib.ngResponseId);
+          const m = str(ib.ngResponseId).match(/^(\d{3})/);
+          const status = resp?.status ?? (m ? Number(m[1]) : undefined);
+          out.push({ stepId: s.id, status, error: (status ?? 400) >= 400, label: resp?.description || str(s.description), path: [...p, "入力が不正"] });
+        }
+      }
       const groups = childGroups(s);
       const armLabels = groups.filter((g) => g.role === "arm").map((g) => g.label || conditionText(g.condition, labels)).filter(Boolean);
       for (const g of groups) {
@@ -244,7 +274,8 @@ export function collectExits(action: Pick<ActionDefinition, "steps" | "responses
           case "timeout": step = "期限が切れた"; break;
           case "commit": step = "確定したあと"; break;
           case "rollback": step = "取り消したあと"; break;
-          case "body": step = s.kind === "loop" ? "明細の途中で" : "まとまりの中で"; break;
+          case "body": step = s.kind === "loop" ? `${str(s.collectionItemLabel) || "繰り返しの 1 回"}ごとの途中で` : "まとまりの中で"; break;
+          case "sub": step = "あとに続く工程で"; break;
           default: step = g.label;
         }
         walk(g.steps, step ? [...p, step] : p);
@@ -276,11 +307,12 @@ export function ownText(step: Loose): string {
   let s = JSON.stringify(own);
   if (Array.isArray(step.branches)) s += JSON.stringify((step.branches as unknown as Array<Record<string, unknown>>).map((b) => b.condition));
   const ib = rec(step.inlineBranch);
-  if (Object.keys(ib).length) s += JSON.stringify({ a: ib.ngBodyExpression, b: ib.ngResponseId });
+  if (Object.keys(ib).length) s += JSON.stringify({ a: ib.ngBodyExpression, b: ib.ngResponseId, c: ib.ngJumpTo, d: ib.ngEventPublish });
   return s;
 }
 
-const REF_RE = /@(?:var\.action\.)?([A-Za-z_][A-Za-z0-9_]*)/g;
+/** 変数の参照 (`@x` / `@var.x` / `@var.action|loop|flowParameter|global.x` / `@var.step|tx.<工程>.x`)。名前は 1〜5 のどれかに入る */
+const REF_RE = /@var\.(?:action|loop|flowParameter|global)\.([A-Za-z_]\w*)|@var\.(?:step|tx)\.[\w-]+\.([A-Za-z_]\w*)|@var\.([A-Za-z_]\w*)|@([A-Za-z_]\w*)/g;
 
 export function variableFlow(action: Pick<ActionDefinition, "steps" | "inputs">, labels: VarLabels = buildVarLabels(action)): VarInfo[] {
   const defs = new Map<string, VarInfo>();
@@ -302,7 +334,7 @@ export function variableFlow(action: Pick<ActionDefinition, "steps" | "inputs">,
     const text = ownText(s);
     const seen = new Set<string>();
     for (const m of text.matchAll(REF_RE)) {
-      const name = m[1];
+      const name = m[1] ?? m[2] ?? m[3] ?? m[4];
       const info = defs.get(name);
       if (!info || seen.has(name)) continue;
       seen.add(name);
@@ -328,6 +360,31 @@ export interface StoryCtx {
   flow: FlowContext;
   action: Pick<ActionDefinition, "responses" | "inputs" | "steps">;
   labels: VarLabels;
+}
+
+/** 更新・削除の件数のチェックを、言葉に (演算子と、外れたときの動きまで) */
+function affectedRowsText(c: Record<string, unknown>): string {
+  if (c.expected === undefined) return "";
+  const n = String(c.expected);
+  const cond = ({ "=": `${n} 件ちょうど`, ">": `${n} 件より多い`, ">=": `${n} 件以上`, "<": `${n} 件未満`, "<=": `${n} 件以下` } as Record<string, string>)[str(c.operator) || "="] ?? `${str(c.operator)} ${n} 件`;
+  const miss = ({ throw: "失敗", abort: "中止", log: "記録だけ", continue: "そのまま続ける" } as Record<string, string>)[str(c.onViolation) || "throw"] ?? str(c.onViolation);
+  return `更新件数が ${cond}。外れたら${miss}${str(c.errorCode) ? ` (${str(c.errorCode)})` : ""}`;
+}
+
+/** 入力チェックの規則 1 つの言葉 (重さ・範囲・参照まで) */
+function ruleText(r: Record<string, unknown>): string {
+  const type = str(r.type);
+  const num = (v: unknown, ref: unknown) => (v !== undefined ? String(v) : str(ref) ? `(${str(ref)})` : "");
+  let detail = "";
+  if (type === "maxLength" || type === "minLength") detail = ` ${num(r.length, r.lengthRef)}`;
+  else if (type === "range") {
+    const lo = num(r.min, r.minRef);
+    const hi = num(r.max, r.maxRef);
+    detail = ` ${lo}〜${hi}`;
+  } else if (type === "regex") detail = ` ${str(r.patternRef) || str(r.pattern)}`;
+  else if (type === "enum" && Array.isArray(r.values)) detail = ` ${(r.values as unknown[]).map(String).join(" / ")}`;
+  const sev = ({ msg: "（知らせるだけ）", noaccept: "（受け付けない）", default: "（既定値を入れる）" } as Record<string, string>)[str(r.severity)] ?? "";
+  return `${FIELD_RULE_WORDS[type] ?? type}${detail.trimEnd() ? detail : ""}${sev}`;
 }
 
 const FIELD_RULE_WORDS: Record<string, string> = {
@@ -376,18 +433,26 @@ export function stepChips(step: Loose, ctx: StoryCtx): Chip[] {
       const w = sqlWhere(str(step.sql));
       if (w) chips.push({ text: `条件: ${w.length > 48 ? `${w.slice(0, 48)}…` : w}`, tone: "rule", title: w });
       if (!str(step.sql) && str(step.naturalQuery)) chips.push({ text: `SQL はまだ: ${str(step.naturalQuery)}`, tone: "warn" });
-      const arc = rec(step.affectedRowsCheck);
-      if (arc.expected !== undefined) chips.push({ text: `${String(arc.expected)} 件でなければ失敗${str(arc.errorCode) ? ` (${str(arc.errorCode)})` : ""}`, tone: "rule" });
+      const arc = affectedRowsText(rec(step.affectedRowsCheck));
+      if (arc) chips.push({ text: arc, tone: "rule" });
       chips.push(...outputChip(step));
       break;
     }
     case "validation": {
       for (const r of (step.rules as Array<Record<string, unknown>> | undefined) ?? []) {
         const field = ctx.labels.full("inputs", [str(r.field)]);
-        const word = FIELD_RULE_WORDS[str(r.type)] ?? str(r.type);
-        const extra = r.type === "maxLength" || r.type === "minLength" ? ` ${String(r.length ?? "")}` : "";
-        chips.push({ text: `${field} ${word}${extra}`, tone: "rule", title: str(r.message) });
+        chips.push({ text: `${field} ${ruleText(r)}`, tone: "rule", title: str(r.message) });
       }
+      const ib = rec(step.inlineBranch);
+      const ngTo = str(ib.ngResponseId);
+      if (ngTo) {
+        const m = ngTo.match(/^(\d{3})/);
+        const status = ctx.action.responses?.find((x) => x.id === ngTo)?.status ?? (m ? Number(m[1]) : undefined);
+        chips.push({ text: `不正なら → ${status ? `${status} を返す` : `応答 ${ngTo} を返す`}`, tone: "error" });
+      }
+      if (str(ib.ngJumpTo)) chips.push({ text: `不正なら → 「${str(ib.ngJumpTo)}」へ移る`, tone: "error" });
+      const ev = rec(ib.ngEventPublish);
+      if (str(ev.topic)) chips.push({ text: `不正なら 通知 ${str(ev.topic)}`, tone: "rule" });
       break;
     }
     case "compute":
@@ -424,7 +489,8 @@ export function stepChips(step: Loose, ctx: StoryCtx): Chip[] {
       break;
     }
     case "transactionScope": {
-      chips.push({ text: str(step.isolationLevel) || "READ_COMMITTED", tone: "rule" });
+      if (str(step.isolationLevel)) chips.push({ text: str(step.isolationLevel), tone: "rule" });
+      if (str(step.propagation) && step.propagation !== "REQUIRED") chips.push({ text: `参加のしかた ${str(step.propagation)}`, tone: "rule" });
       if (typeof step.timeoutMs === "number") chips.push({ text: `${step.timeoutMs / 1000} 秒`, tone: "rule" });
       chips.push(...outputChip(step));
       break;
@@ -478,9 +544,15 @@ export function stepHeadline(step: Loose): string {
   return str(step.description).trim() || kindLabel(step);
 }
 
-/** 工程の内容の指紋。「確認済み」のあとに変わったかを見分ける (入れ子の中は含めない) */
+/** 工程の内容の指紋。「確認済み」のあとに変わったかを見分ける (入れ子の中は含めない。ただし、ガードは、中の「返す」と腕の名前も含める) */
 export function stepDigest(step: Loose): string {
-  const s = ownText(step);
+  let s = ownText(step);
+  if (step.kind === "branch") {
+    s += JSON.stringify((asLooseList(step.branches as Step[])).map((b) => [b.code, b.label]));
+    const e = rec(step.elseBranch);
+    s += JSON.stringify([e.code, e.label, e.description]);
+    if (isGuardBranch(step)) s += childGroups(step)[0].steps.map((r) => ownText(r)).join("|");
+  }
   let h = 5381;
   for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
   return (h >>> 0).toString(36);

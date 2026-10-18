@@ -16,6 +16,7 @@ import type { WorkspaceRefs } from "../../../utils/reference-completer/types";
 import { ProcessFlowDiagram } from "../diagram/ProcessFlowDiagram";
 import { ProcessFlowTable } from "../diagram/ProcessFlowTable";
 import { ProcessFlowStory } from "../story/ProcessFlowStory";
+import { useWorkspacePath } from "../../../hooks/useWorkspacePath";
 import type { FlowContext } from "../diagram/flowStructure";
 import { OutlineEditor } from "./OutlineEditor";
 import { ALL_STEP_TYPES } from "./stepCardConstants";
@@ -130,6 +131,7 @@ export function CanvasPane({
   onApplyOutline,
   workspace,
 }: CanvasPaneProps) {
+  const { wsId } = useWorkspacePath();
   const [view, setView] = useState<FlowView>(readView);
   const [focusId, setFocusId] = useState<string | null>(null);
   const [scrollTo, setScrollTo] = useState<string | null>(null);
@@ -196,8 +198,9 @@ export function CanvasPane({
           <OutlineEditor key={activeAction.id} steps={activeAction.steps} kinds={ALL_STEP_TYPES} readonly={isReadonly} onApply={onApplyOutline} refCandidates={refCandidates} />
         ) : activeAction && view === "story" ? (
           <ProcessFlowStory
+            key={activeAction.id}
             action={activeAction}
-            reviewKey={`${group?.meta.id ?? "flow"}:${activeAction.id}`}
+            reviewKey={`${wsId}:${group?.meta.id ?? "flow"}:${activeAction.id}`}
             ctx={ctx}
             selectedStepIds={highlighted}
             onSelectStep={selectFromView}
