@@ -96,6 +96,8 @@ export interface CanvasPaneProps {
   workspace?: WorkspaceRefs;
   /** 「流れ」表示から、AI に頼む (編集中だけ) */
   onAiRequest?: (prompt: string) => void;
+  /** 直前の操作を取り消す (流れ表示の「元に戻す」) */
+  onUndo?: () => void;
 }
 
 export function CanvasPane({
@@ -134,6 +136,7 @@ export function CanvasPane({
   onApplyOutline,
   workspace,
   onAiRequest,
+  onUndo,
 }: CanvasPaneProps) {
   const { wsId } = useWorkspacePath();
   const [view, setView] = useState<FlowView>(readView);
@@ -225,6 +228,7 @@ export function CanvasPane({
             tables={tables}
             ambient={ambient}
             onAskAi={onAiRequest}
+            onUndo={onUndo}
             problems={validationErrors}
           />
         ) : activeAction && view === "diagram" ? (

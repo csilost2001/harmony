@@ -7,6 +7,10 @@ import type { StoryCtx } from "./storyModel";
 export interface StoryEditApi {
   /** 編集中の下書きのアクションを直す (ひとまとまりの取り消し単位) */
   mutate: (fn: (action: ActionDefinition) => void) => void;
+  /** 直す操作の回数 (「元に戻す」が、あとの操作を巻き込まないかの確かめに使う) */
+  mutations: () => number;
+  /** 直前の操作を取り消す (編集セッションの取り消し) */
+  undo?: () => void;
   /** 流れ全体で使われている ID (新しい工程の ID が重ならないように) */
   flowIds: () => Set<string>;
   tables: ReadonlyArray<{ id: string; name: string; physicalName: string }>;

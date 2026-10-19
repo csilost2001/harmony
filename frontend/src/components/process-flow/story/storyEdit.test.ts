@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Step } from "../../../types/v3";
 import {
-  addArm, canMoveInto, ensureElse, ensureGroup, insertSteps, moveStepBy, moveStepTo, patchOutputBinding, patchStep, removeArm, removeStepById, renameVariable, resolveList, setArmCondition, setHeading, TOP,
+  addArm, canMoveInto, ensureElse, ensureGroup, insertSteps, moveDestinations, moveStepBy, moveStepTo, patchOutputBinding, patchStep, removeArm, removeStepById, renameVariable, resolveList, setArmCondition, setHeading, TOP,
 } from "./storyEdit";
 
 const S = (o: Record<string, unknown>) => o as unknown as Step;
@@ -194,5 +194,22 @@ describe("そのほかの安全 (レビュー対応)", () => {
     expect(canMoveInto(f, "c", "c1")).toBe(false);
     expect(canMoveInto(f, "c", null)).toBe(true);
     expect(canMoveInto(f, "d", "c")).toBe(true);
+  });
+});
+
+describe("moveDestinations (枠をまたぐ移動の行き先)", () => {
+  it("最上位と、すべての枠が出る。動かす工程の中は出ない", () => {
+    const steps = flow();
+    const d = moveDestinations(steps, "c");
+    expect(d[0].addr).toEqual(TOP);
+    expect(d.some((x) => x.addr.ownerId === "b" && x.addr.key === "arm:br-01")).toBe(true);
+    expect(d.some((x) => x.addr.ownerId === "b" && x.addr.key === "else")).toBe(true);
+    expect(d.some((x) => x.addr.ownerId === "c")).toBe(false);
+  });
+  it("行き先の末尾に動かせる (別の枠へ)", () => {
+    const steps = flow();
+    const dest = moveDestinations(steps, "a").find((x) => x.addr.ownerId === "c" && x.addr.key === "body")!;
+    expect(moveStepTo(steps, "a", dest.addr, dest.size)).toBe(true);
+    expect(((steps.find((x) => x.id === "c") as unknown) as { steps: Array<{ id: string }> }).steps.map((x) => x.id)).toEqual(["c1", "c2", "a"]);
   });
 });

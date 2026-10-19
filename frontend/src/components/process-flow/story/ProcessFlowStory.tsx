@@ -70,11 +70,13 @@ export interface ProcessFlowStoryProps {
   ambient?: StoryEditApi["ambient"];
   /** AI への頼み (あれば) */
   onAskAi?: (prompt: string) => void;
+  /** 直前の操作を取り消す (消したあとの「元に戻す」に使う) */
+  onUndo?: () => void;
   /** 検査の指摘 (行に印を出す) */
   problems?: readonly ValidationError[];
 }
 
-export function ProcessFlowStory({ action, reviewKey, ctx, selectedStepIds, onSelectStep, onOpenStep, editable = false, onMutate, flowIds, tables, ambient, onAskAi, problems }: ProcessFlowStoryProps) {
+export function ProcessFlowStory({ action, reviewKey, ctx, selectedStepIds, onSelectStep, onOpenStep, editable = false, onMutate, flowIds, tables, ambient, onAskAi, onUndo, problems }: ProcessFlowStoryProps) {
   const [zoom, setZoom] = useState<Zoom>(readZoom);
   const [tab, setTab] = useState<Tab>("flow");
   /** 畳んだ区切り (区切りの最初の工程の ID。見出しを足しても、ずれない) */
@@ -171,7 +173,10 @@ export function ProcessFlowStory({ action, reviewKey, ctx, selectedStepIds, onSe
     });
   }, [onSelectStep]);
 
-  const edit = useMemo<StoryEditApi | null>(() => (editable && onMutate ? { mutate: onMutate, flowIds: flowIds ?? (() => new Set<string>()), tables: tables ?? [], ambient, askAi: onAskAi } : null), [editable, onMutate, flowIds, tables, ambient, onAskAi]);
+  // 直す操作の回数。「元に戻す」は、その消す操作のあとに、別の操作をしていないときだけ効かせる
+  const mutCount = useRef(0);
+  const countedMutate = useCallback((fn: (a: ActionDefinition) => void) => { mutCount.current++; onMutate?.(fn); }, [onMutate]);
+  const edit = useMemo<StoryEditApi | null>(() => (editable && onMutate ? { mutate: countedMutate, mutations: () => mutCount.current, undo: onUndo, flowIds: flowIds ?? (() => new Set<string>()), tables: tables ?? [], ambient, askAi: onAskAi } : null), [editable, onMutate, countedMutate, onUndo, flowIds, tables, ambient, onAskAi]);
   const env: RowEnv = { zoom, selected: selectedStepIds, hl, flashId, reviewed, digests, problems: problemMap, onSelect: onSelectStep, onOpen: onOpenStep, onInserted };
   const ui = useMemo(() => ({ ctx: storyCtx, showNames: zoom === "impl", activeVar, setActiveVar, edit, autoEdit }), [storyCtx, zoom, activeVar, setActiveVar, edit, autoEdit]);
 

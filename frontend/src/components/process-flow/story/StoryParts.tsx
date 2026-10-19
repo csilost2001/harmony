@@ -4,11 +4,12 @@ import type { Seg } from "./expressionText";
 import type { Chip, VarLabels } from "./storyModel";
 import { useStoryUi } from "./storyUi";
 
-function VarSeg({ name, path, raw, labels, showNames }: { name: string; path: string[]; raw: string; labels: VarLabels; showNames: boolean }) {
+function VarSeg({ name, path, raw, labels, showNames, plain }: { name: string; path: string[]; raw: string; labels: VarLabels; showNames: boolean; plain?: boolean }) {
   const ui = useStoryUi();
   const text = showNames ? raw : labels.full(name, path);
   // この処理の中で作られる変数だけを、ボタンにする。入力・規約・セッションの値などは、ふつうの文字
-  if (!labels.isDefined(name)) return <span className="pfs-ref" title={raw}>{text}</span>;
+  // ボタンの中に入れるときは (plain)、入れ子のボタンにならないよう、文字にする
+  if (plain || !labels.isDefined(name)) return <span className="pfs-ref" title={raw}>{text}</span>;
   const active = ui.activeVar === name;
   return (
     <button
@@ -23,7 +24,7 @@ function VarSeg({ name, path, raw, labels, showNames }: { name: string; path: st
 }
 
 /** 条件の部品 → 表示 */
-export function CondText({ segs }: { segs: readonly Seg[] }) {
+export function CondText({ segs, plain }: { segs: readonly Seg[]; plain?: boolean }) {
   const ui = useStoryUi();
   if (segs.length === 0) return <span className="pfs-muted">（条件が空です）</span>;
   return (
@@ -31,7 +32,7 @@ export function CondText({ segs }: { segs: readonly Seg[] }) {
       {segs.map((s, i) => {
         if (s.k === "text") return <span key={i}>{s.v}</span>;
         if (s.k === "code") return <code key={i} className="pfs-inline-code">{s.v}</code>;
-        return <VarSeg key={i} name={s.name} path={s.path} raw={s.raw} labels={ui.ctx.labels} showNames={ui.showNames} />;
+        return <VarSeg key={i} name={s.name} path={s.path} raw={s.raw} labels={ui.ctx.labels} showNames={ui.showNames} plain={plain} />;
       })}
     </span>
   );

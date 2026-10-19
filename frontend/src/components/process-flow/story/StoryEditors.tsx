@@ -13,7 +13,7 @@ import { expressionSegments, parseVarRef } from "./expressionText";
 import { CondText } from "./StoryParts";
 import { StoryPopover } from "./StoryPopover";
 import { findStepDeep } from "../../../utils/stepTree";
-import { frameWord, insertSteps, patchOutputBinding, patchStep, renameVariable, RESERVED_VAR_NAMES, setArmCondition, type ListAddr } from "./storyEdit";
+import { frameWord, insertSteps, moveDestinations, moveStepTo, patchOutputBinding, patchStep, renameVariable, RESERVED_VAR_NAMES, setArmCondition, type ListAddr } from "./storyEdit";
 import { variableFlow, type Loose } from "./storyModel";
 import { buildKind, searchTemplates, type TemplateCtx } from "./storyTemplates";
 import { useStoryUi } from "./storyUi";
@@ -392,6 +392,34 @@ export function InsertMenu({ anchor, addr, index, onClose, onInserted }: InsertM
           </div>
         </div>
       )}
+    </StoryPopover>
+  );
+}
+
+// ─── 別の場所へ移す ────────────────────────────────────
+
+/** 工程を、ほかの枠 (道・繰り返しの中など) へ移す。ドラッグの代わりに、キーボードでも使える */
+export function MovePicker({ anchor, stepId, onClose }: PopProps & { stepId: string }) {
+  const ui = useStoryUi();
+  const dests = useMemo(() => moveDestinations(ui.ctx.action.steps as unknown as Step[], stepId), [ui.ctx.action.steps, stepId]);
+  const [q, setQ] = useState("");
+  const shown = dests.filter((d) => d.label.includes(q.trim()));
+  const go = (d: (typeof dests)[number]) => {
+    ui.edit?.mutate((a) => { moveStepTo(a.steps, stepId, d.addr, d.size); });
+    onClose();
+  };
+  return (
+    <StoryPopover anchor={anchor} title="どこへ移す？ (その枠の最後に入ります)" onClose={onClose} width={420}>
+      <input className="pfs-field" type="search" placeholder="行き先を探す" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (isPlainEnter(e) && shown[0]) go(shown[0]); }} aria-label="行き先を探す" />
+      <div className="pfs-pop-list" role="listbox" aria-label="行き先">
+        {shown.map((d, i) => (
+          <button key={i} type="button" role="option" aria-selected="false" className="pfs-opt" style={{ paddingLeft: `${8 + d.depth * 10}px` }} onClick={() => go(d)} data-testid="pfs-move-dest">
+            <b>{d.label}</b>
+            <small>{d.size} 件</small>
+          </button>
+        ))}
+        {shown.length === 0 && <p className="pfs-note">行き先がありません。</p>}
+      </div>
     </StoryPopover>
   );
 }

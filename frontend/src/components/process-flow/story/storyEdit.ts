@@ -9,6 +9,7 @@
 import type { Step } from "../../../types/v3";
 import { findStepDeep, locateStep } from "../../../utils/stepTree";
 import { nextLocalId } from "../../../utils/localIdGenerator";
+import { asLooseList, childGroups, stepHeadline } from "./storyModel";
 
 type Rec = Record<string, unknown>;
 const rec = (s: unknown): Rec => s as Rec;
@@ -306,4 +307,33 @@ export function frameWord(key: string): string {
   if (key === "top") return "最上位";
   if (key.startsWith("arm:")) return `道 (${key.slice(4)})`;
   return ({ body: "中", else: "「それ以外」の道", ok: "すべて正しいとき", ng: "不正なとき", commit: "確定したあと", rollback: "取り消したあと", approved: "承認されたとき", rejected: "却下されたとき", timeout: "期限が切れたとき", sub: "あとに続く工程" } as Record<string, string>)[key] ?? key;
+}
+
+export interface MoveDestination {
+  addr: ListAddr;
+  /** 場所の名前 (「3 判定 › 道 A」のように、持ち主の工程と枠) */
+  label: string;
+  /** 入れ子の深さ (一覧のインデント) */
+  depth: number;
+  /** その並びの、いまの工程の数 (末尾の位置) */
+  size: number;
+}
+
+/** 工程を動かせる行き先の一覧 (キーボードでも、枠をまたいで動かせるように)。自分の中・自分の子孫の中は、含めない */
+export function moveDestinations(steps: Step[], movingId: string): MoveDestination[] {
+  const out: MoveDestination[] = [{ addr: TOP, label: "流れの最上位 (いちばん外側)", depth: 0, size: steps.length }];
+  const walk = (list: readonly ReturnType<typeof asLooseList>[number][], depth: number, trail: string) => {
+    for (let i = 0; i < list.length; i++) {
+      const owner = list[i];
+      if (owner.id === movingId) continue;
+      const name = `${trail}${i + 1} ${stepHeadline(owner)}`;
+      for (const g of childGroups(owner, true)) {
+        const frame = g.role === "arm" ? `道 ${g.code ?? ""}` : g.role === "else" ? "それ以外" : g.role === "body" ? "中" : g.label || frameWord(g.key);
+        out.push({ addr: { ownerId: owner.id, key: g.key }, label: `${name} › ${frame}`, depth: depth + 1, size: g.steps.length });
+        walk(g.steps, depth + 1, `${trail}${i + 1}.`);
+      }
+    }
+  };
+  walk(asLooseList(steps), 0, "");
+  return out.filter((d) => canMoveInto(steps, movingId, d.addr.ownerId));
 }

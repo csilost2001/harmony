@@ -10,7 +10,7 @@ import { DecisionTable } from "./DecisionTable";
 import { expressionSegments } from "./expressionText";
 import { parseDnf } from "./storyDecision";
 import { InlineText } from "./InlineText";
-import { BindingEditor, CollectionPicker, ConditionEditor, InsertMenu, OperationPicker, ResponsePicker, TablePicker, type CondTarget } from "./StoryEditors";
+import { BindingEditor, CollectionPicker, ConditionEditor, InsertMenu, MovePicker, OperationPicker, ResponsePicker, TablePicker, type CondTarget } from "./StoryEditors";
 import { Chips, CondText } from "./StoryParts";
 import {
   addArm, canMoveInto, ensureElse, ensureGroup, frameWord, moveStepBy, moveStepTo, patchStep, removeArm, removeStepById, setHeading, type ListAddr,
@@ -20,7 +20,7 @@ import {
   type Chip, type ChildGroup, type Loose,
 } from "./storyModel";
 import type { ReviewedSteps } from "./useReviewedSteps";
-import { useStoryUi, type AutoEdit } from "./storyUi";
+import { useStoryUi, type AutoEdit, type StoryEditApi } from "./storyUi";
 import type { ValidationError } from "../../../utils/actionValidation";
 
 export interface RowEnv {
@@ -117,7 +117,7 @@ function Gap({ addr, index, always, env }: { addr: ListAddr; index: number; alwa
 function RunIfLine({ step, onEdit }: { step: Loose; onEdit?: (el: HTMLElement) => void }) {
   const runIf = typeof step.runIf === "string" ? step.runIf : "";
   if (!runIf) return null;
-  const body = <>↳ <CondText segs={expressionSegments(runIf)} /> のときだけ</>;
+  const body = <>↳ <CondText segs={expressionSegments(runIf)} plain={Boolean(onEdit)} /> のときだけ</>;
   if (!onEdit) return <span className="pfs-runif" title={runIf}>{body}</span>;
   return <button type="button" className="pfs-runif pfs-runif--btn" title={`${runIf} — クリックで直す`} onClick={(e) => { e.stopPropagation(); onEdit(e.currentTarget); }}>{body}</button>;
 }
@@ -128,6 +128,7 @@ function RowActions({ step, env, topLevel }: { step: Loose; env: RowEnv; topLeve
   const digest = env.digests.get(step.id) ?? stepDigest(step);
   const done = env.reviewed.isReviewed(step.id, digest);
   const stale = env.reviewed.isStale(step.id, digest);
+  const [moveAnchor, setMoveAnchor] = useState<HTMLElement | null>(null);
   return (
     <span className="pfs-acts">
       {stale && <span className="pfs-stale" title="確認したあとに、この工程が変わりました">変更あり</span>}
@@ -135,10 +136,11 @@ function RowActions({ step, env, topLevel }: { step: Loose; env: RowEnv; topLeve
         <>
           <button type="button" className="pfs-mini" title="1 つ上へ (Alt+↑)" aria-label="1 つ上へ" onClick={(e) => { e.stopPropagation(); edit.mutate((a) => { moveStepBy(a.steps, step.id, -1); }); }} data-testid="pfs-up">↑</button>
           <button type="button" className="pfs-mini" title="1 つ下へ (Alt+↓)" aria-label="1 つ下へ" onClick={(e) => { e.stopPropagation(); edit.mutate((a) => { moveStepBy(a.steps, step.id, 1); }); }} data-testid="pfs-down">↓</button>
+          <button type="button" className="pfs-mini" title="別の場所 (道・繰り返しの中など) へ移す" aria-label="別の場所へ移す" onClick={(e) => { e.stopPropagation(); setMoveAnchor(e.currentTarget); }} data-testid="pfs-move">移す</button>
           {topLevel && !step.heading && (
             <button type="button" className="pfs-mini" title="ここから新しい見出しを始める" aria-label="ここから見出しを始める" onClick={(e) => { e.stopPropagation(); edit.mutate((a) => { setHeading(a.steps, step.id, "新しい区切り"); }); }} data-testid="pfs-add-heading">見出し</button>
           )}
-          <button type="button" className="pfs-mini is-danger" title="この工程を消す (Ctrl+Z で戻せます)" aria-label="この工程を消す" onClick={(e) => { e.stopPropagation(); removeWithToast(edit.mutate, step.id); }} data-testid="pfs-delete">×</button>
+          <button type="button" className="pfs-mini is-danger" title="この工程を消す (Ctrl+Z で戻せます)" aria-label="この工程を消す" onClick={(e) => { e.stopPropagation(); removeWithToast(edit, step.id); }} data-testid="pfs-delete">×</button>
         </>
       )}
       <button
@@ -152,6 +154,7 @@ function RowActions({ step, env, topLevel }: { step: Loose; env: RowEnv; topLeve
       >
         ✓
       </button>
+      {moveAnchor && <MovePicker anchor={moveAnchor} stepId={step.id} onClose={() => setMoveAnchor(null)} />}
       <button type="button" className="pfs-open" title="カードで開いて、細かく編集する" aria-label="カードで開く" onClick={(e) => { e.stopPropagation(); env.onOpen(step.id); }}>
         <i className="bi bi-box-arrow-up-right" aria-hidden="true" />
       </button>
@@ -159,9 +162,15 @@ function RowActions({ step, env, topLevel }: { step: Loose; env: RowEnv; topLeve
   );
 }
 
-function removeWithToast(mutate: (fn: (a: import("../../../types/v3").ActionDefinition) => void) => void, id: string): void {
-  mutate((a) => { removeStepById(a.steps, id); });
-  showToast("工程を消しました (Ctrl+Z で戻せます)", "info");
+function removeWithToast(edit: StoryEditApi, id: string): void {
+  const before = edit.mutations();
+  edit.mutate((a) => { removeStepById(a.steps, id); });
+  // 「元に戻す」は、消した直後の状態のときだけ効かせる (そのあとに別の操作をしていたら、それを戻してしまうため)
+  const undo = edit.undo ? () => {
+    if (edit.mutations() !== before + 1) { showToast("そのあとに別の操作をしたので、ここからは戻せません (Ctrl+Z で順に戻せます)", "info"); return; }
+    edit.undo?.();
+  } : undefined;
+  showToast("工程を消しました (Ctrl+Z で戻せます)", "info", undo ? { undo } : {});
 }
 
 /** 行にフォーカスがあるとき: Enter で選ぶ、Shift+Enter でカードで開く。編集中は、Alt+↑↓ で動かし、Delete で消す */
@@ -174,7 +183,7 @@ function rowKey(e: ReactKeyboardEvent, id: string, env: RowEnv, edit: ReturnType
   }
   if (edit && e.key === "Delete") {
     e.preventDefault();
-    removeWithToast(edit.mutate, id);
+    removeWithToast(edit, id);
     return;
   }
   if (e.key !== "Enter") return;
@@ -319,7 +328,7 @@ function StepNode({ step, num, env, topLevel }: { step: Loose; num: string; env:
           <div className="pfs-head">{step.kind === "loopContinue" ? "この行はここまで。次の行へ進む" : "繰り返しをここで終える"}</div>
           <RunIfLine step={step} />
         </div>
-        {ui.edit ? <span className="pfs-acts"><button type="button" className="pfs-mini is-danger" aria-label="この工程を消す" onClick={() => removeWithToast(ui.edit!.mutate, step.id)}>×</button></span> : <span />}
+        {ui.edit ? <span className="pfs-acts"><button type="button" className="pfs-mini is-danger" aria-label="この工程を消す" onClick={() => removeWithToast(ui.edit!, step.id)}>×</button></span> : <span />}
       </div>
     );
   }
@@ -417,7 +426,7 @@ function GroupBlock({ owner, group, num, env }: { owner: Loose; group: ChildGrou
           <><CondText segs={segs} /> なら <span className="pfs-muted" title="エラー・更新件数・外部呼び出しの結果の条件は、「カードで開く」から直します">(この種類の条件は、カードで直します)</span></>
         ) : edit ? (
           <button type="button" className="pfs-cond-btn" title="クリックで、条件を直す" onClick={(e) => { e.stopPropagation(); openCond(e.currentTarget); }} data-testid="pfs-arm-cond">
-            {initial.trim() ? <CondText segs={segs} /> : <span className="pfs-muted">（条件を決める）</span>} なら
+            {initial.trim() ? <CondText segs={segs} plain /> : <span className="pfs-muted">（条件を決める）</span>} なら
           </button>
         ) : <><CondText segs={segs} /> なら</>)}
         {group.label && (group.role === "arm" || group.role === "else") && <small className="pfs-muted"> ({group.label})</small>}
@@ -523,7 +532,7 @@ function GuardRow({ step, num, env, topLevel }: { step: Loose; num: string; env:
         <div className="pfs-head">
           {editable && isExprCond(arm?.condition) ? (
             <button type="button" className="pfs-cond-btn" title="クリックで、条件を直す" onClick={(e) => { e.stopPropagation(); setPop({ kind: "cond", anchor: e.currentTarget }); }} data-testid="pfs-guard-cond">
-              {initial.trim() ? <CondText segs={condSegs} /> : <span className="pfs-muted">（条件を決める）</span>}
+              {initial.trim() ? <CondText segs={condSegs} plain /> : <span className="pfs-muted">（条件を決める）</span>}
             </button>
           ) : <CondText segs={condSegs} />}
           {" → "}
