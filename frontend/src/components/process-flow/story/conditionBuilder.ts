@@ -45,7 +45,7 @@ export interface CondModel {
 const CMP_RE = /^(@[\w.[\]]+)\s*(===|!==|==|!=|>=|<=|>|<)\s*(.+)$/;
 const SIMPLE_VALUE_RE = /^(@[\w.[\]]+|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|-?\d+(\.\d+)?|null|true|false)$/;
 
-function parseClause(raw: string): Clause | null {
+export function parseClause(raw: string): Clause | null {
   const c = raw.trim();
   if (c.startsWith("(") && c.endsWith(")")) return null; // 括弧つきは、部品にしない
   const m = c.match(CMP_RE);

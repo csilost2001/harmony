@@ -54,7 +54,7 @@ export function splitTopLevel(expr: string, op: "||" | "&&"): string[] | null {
 }
 
 /** 外側の括弧を 1 組だけ外す (中が 1 つのまとまりのときだけ) */
-function stripOuterParens(s: string): string {
+export function stripOuterParens(s: string): string {
   // 二重の括弧 ((A || B)) も、外れなくなるまで外す
   let cur = s.trim();
   for (;;) {
@@ -166,7 +166,7 @@ function segsOf(expr: string): Seg[] {
 }
 
 /** 引用符・括弧の外側にある、指定の文字があるか */
-function hasTopLevelChar(expr: string, ch: string): boolean {
+export function hasTopLevelChar(expr: string, ch: string): boolean {
   let depth = 0;
   let quote: string | null = null;
   for (let i = 0; i < expr.length; i++) {

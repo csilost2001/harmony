@@ -2,11 +2,13 @@
  * 「流れ」表示の、工程の並び・行・枠。読む表示に、編集中だけ、その場で直す窓口 (書き換え・足す・動かす・消す) が付く。
  * 仕様: docs/spec/process-flow-story-view.md
  */
-import { useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { useMemo, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { kindLabel, returnStatus } from "@harmony/shared";
 import type { Step } from "../../../types/v3";
 import { showToast } from "../../../utils/toast";
+import { DecisionTable } from "./DecisionTable";
 import { expressionSegments } from "./expressionText";
+import { parseDnf } from "./storyDecision";
 import { InlineText } from "./InlineText";
 import { BindingEditor, CollectionPicker, ConditionEditor, InsertMenu, OperationPicker, ResponsePicker, TablePicker, type CondTarget } from "./StoryEditors";
 import { Chips, CondText } from "./StoryParts";
@@ -329,6 +331,7 @@ function StepNode({ step, num, env, topLevel }: { step: Loose; num: string; env:
       <StepRow step={step} num={num} env={env} inside={inside} topLevel={topLevel} />
       {(groups.length > 0 || ui.edit) && (
         <div className="pfs-nest">
+          {step.kind === "branch" && <DecisionTable step={step} guard={false} defaultOpen={ui.autoEdit?.stepId === step.id && ui.autoEdit.what === "decision"} onSelect={env.onSelect} />}
           {groups.map((g) => <GroupBlock key={g.key} owner={step} group={g} num={num} env={env} />)}
           <AddGroups step={step} />
         </div>
@@ -509,6 +512,8 @@ function GuardRow({ step, num, env, topLevel }: { step: Loose; num: string; env:
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [autoOpen, setAutoOpen] = useState(Boolean(auto));
   const condSegs = conditionSegments(arm?.condition);
+  // 条件が複合 (「かつ」「または」で、2 つ以上の条件) のガードは、判定表でも見られる
+  const composite = useMemo(() => { const alts = parseDnf(initial); return Boolean(alts && (alts.length > 1 || alts.some((a) => a.length > 1))); }, [initial]);
   return (
     <div className={rowClass(step, env, "pfs-row--guard")} ref={setAnchorEl} data-step-id={step.id} data-testid="pfs-guard" tabIndex={0} onKeyDown={(e) => rowKey(e, step.id, env, ui.edit)} onClick={() => env.onSelect(step.id)} onDoubleClick={() => env.onOpen(step.id)}>
       {ret && <span data-step-id={ret.id} className="pfs-anchor" />}
@@ -537,6 +542,7 @@ function GuardRow({ step, num, env, topLevel }: { step: Loose; num: string; env:
           {ret && <RunIfLine step={ret} />}
         </div>
         {editable && <AddGroups step={step} />}
+        {composite && <DecisionTable step={step} guard defaultOpen={false} onSelect={env.onSelect} />}
         {code && <pre className="pfs-code">{code}</pre>}
       </div>
       <RowActions step={step} env={env} topLevel={topLevel} />

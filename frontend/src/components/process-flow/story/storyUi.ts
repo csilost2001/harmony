@@ -19,7 +19,7 @@ export interface StoryEditApi {
 /** 挿入した直後に、自動で開く欄 */
 export interface AutoEdit {
   stepId: string;
-  what: "desc" | "table" | "cond" | "response";
+  what: "desc" | "table" | "cond" | "response" | "decision";
   /** 条件の場合の、腕の id */
   armId?: string;
 }

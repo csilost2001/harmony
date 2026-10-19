@@ -157,6 +157,7 @@ export function ProcessFlowStory({ action, reviewKey, ctx, selectedStepIds, onSe
     if (key === "guard" && guard?.branches?.[0]) next = { stepId: guard.id, what: "cond", armId: guard.branches[0].id };
     else if (key === "lookup" || key === "db" || key === "kind:dbAccess") next = { stepId: first.id, what: "table" };
     else if (key === "return") next = { stepId: first.id, what: "response" };
+    else if (key === "decision") next = { stepId: first.id, what: "decision" };
     else next = { stepId: first.id, what: "desc" };
     setAutoEdit(next);
     if (autoTimer.current) clearTimeout(autoTimer.current);

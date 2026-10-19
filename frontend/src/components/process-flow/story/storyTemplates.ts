@@ -83,6 +83,24 @@ export const TEMPLATES: StoryTemplate[] = [
     build: (ctx) => [makeGuard(ctx, "", "")],
   },
   {
+    key: "decision",
+    label: "条件の組み合わせで分ける (判定表)",
+    description: "複数の条件の組み合わせで、道を分ける。表で、○ × を付けて決める",
+    keywords: ["はんていひょう", "判定表", "分岐", "組み合わせ", "複合", "条件", "decision", "branch", "もし"],
+    build: (ctx) => {
+      const b = createDefaultStep("branch", ctx.ids);
+      const o = rec(b);
+      const arms = o.branches as Rec[];
+      // 既定で、条件が空の道 A・B が入る。条件は、判定表で決める
+      for (const a of arms) { a.condition = { kind: "expression", expression: "" }; a.steps = []; }
+      const elseId = nextLocalId(ctx.ids, "br", 2);
+      ctx.ids.add(elseId);
+      o.elseBranch = { id: elseId, code: "X", steps: [] };
+      o.description = "";
+      return [b];
+    },
+  },
+  {
     key: "lookup",
     label: "1 件取得して、無ければ返す",
     description: "取得と、「見つからなければ 404」を、2 行まとめて置く",

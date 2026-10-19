@@ -298,3 +298,38 @@
   .pfs-gap-btn { opacity: 1; position: static; transform: none; }
   .pfs-acts { opacity: 1; }
 }
+
+/* ── 判定表 ── */
+.pfs-dt-wrap { margin: 4px 0 6px; }
+.pfs-dt-toggle { cursor: pointer; }
+.pfs-dt-warnbadge { color: var(--pfs-err-text); font-weight: 600; }
+.pfs-dt { margin-top: 6px; border: 1px solid var(--hm-border); border-radius: 8px; background: var(--hm-surface); padding: 8px 10px; cursor: default; }
+.pfs-dt-scroll { overflow-x: auto; }
+.pfs-dt-table { border-collapse: collapse; min-width: 100%; font-size: calc(13px * var(--hm-font-scale)); }
+.pfs-dt-cap { caption-side: top; text-align: left; color: var(--hm-fg-muted); font-size: calc(12px * var(--hm-font-scale)); padding-bottom: 6px; }
+.pfs-dt-table th, .pfs-dt-table td { border: 1px solid var(--hm-border); padding: 4px 8px; vertical-align: middle; }
+.pfs-dt-corner { background: var(--hm-surface-3); text-align: left; font-weight: 600; color: var(--hm-fg-2); min-width: 14em; }
+.pfs-dt-colhead { background: var(--hm-surface-3); text-align: center; font-weight: 600; min-width: 5.5em; max-width: 16em; }
+.pfs-dt-colhead small { display: block; font-weight: 400; }
+.pfs-dt-colhead.is-else { background: color-mix(in srgb, var(--pfs-cond) 12%, var(--hm-surface)); }
+.pfs-dt-colhead.is-pending { background: color-mix(in srgb, var(--hm-accent) 10%, var(--hm-surface)); }
+.pfs-dt-raw { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: calc(11.5px * var(--hm-font-scale)); word-break: break-all; }
+.pfs-dt-rowhead { text-align: left; font-weight: 400; background: var(--hm-surface); }
+.pfs-dt-rowacts { display: inline-flex; gap: 4px; margin-left: 8px; }
+.pfs-dt-cell { text-align: center; width: 5.5em; font-size: calc(15px * var(--hm-font-scale)); }
+.pfs-dt-cell.is-yes { background: color-mix(in srgb, var(--pfs-ok) 14%, var(--hm-surface)); color: var(--pfs-ok-text); font-weight: 700; }
+.pfs-dt-cell.is-no { background: color-mix(in srgb, var(--pfs-err) 12%, var(--hm-surface)); color: var(--pfs-err-text); font-weight: 700; }
+.pfs-dt-cell.is-any { color: var(--hm-fg-muted); }
+.pfs-dt-cell.is-na { color: var(--hm-fg-muted); background: var(--hm-surface-3); }
+.pfs-dt-btn { width: 100%; min-height: 28px; border: 0; background: transparent; color: inherit; font: inherit; font-weight: inherit; cursor: pointer; border-radius: 6px; }
+.pfs-dt-btn:hover { background: var(--hm-hover); }
+.pfs-dt-btn:focus-visible { outline: 2px solid var(--hm-focus-ring); outline-offset: -2px; }
+.pfs-dt-result .pfs-dt-rowhead { background: var(--hm-surface-3); font-weight: 600; }
+.pfs-dt-out { font-size: calc(12.5px * var(--hm-font-scale)); }
+.pfs-dt-out.is-err { color: var(--pfs-err-text); }
+.pfs-dt-out.is-ok { color: var(--pfs-ok-text); }
+.pfs-dt-empty { color: var(--hm-fg-muted); text-align: center; }
+.pfs-dt-acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.pfs-dt-issues { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 3px; font-size: calc(12.5px * var(--hm-font-scale)); }
+.pfs-dt-issues .is-warn { color: var(--pfs-err-text); }
+.pfs-dt-issues .is-info { color: var(--hm-fg-muted); }

@@ -8,7 +8,7 @@ import { STEP_KIND_LABELS } from "@harmony/shared";
 import type { Step, StepKind } from "../../../types/v3";
 import { isValidIdentifier, suggestIdentifier } from "../../../utils/identifierHints";
 import { ALL_STEP_TYPES } from "../internal/stepCardConstants";
-import { clauseProblem, composeCondition, exprToValue, OP_CHOICES, parseCondition, undefinedRefs, valueToExpr, varCandidates, type Clause, type CondModel, type CondOp } from "./conditionBuilder";
+import { clauseProblem, composeCondition, exprToValue, OP_CHOICES, parseCondition, undefinedRefs, valueToExpr, varCandidates, type Clause, type CondModel, type CondOp, type VarCandidate } from "./conditionBuilder";
 import { expressionSegments, parseVarRef } from "./expressionText";
 import { CondText } from "./StoryParts";
 import { StoryPopover } from "./StoryPopover";
@@ -205,6 +205,45 @@ function joinSubject(root: string, prop: string): string {
   return prop.startsWith("[") ? `${root}${prop}` : `${root}.${prop}`;
 }
 
+/** 条件 1 つ分の入力欄 (どの値を / どうなら / 何と比べる)。条件の組み立てと、判定表の行の編集で共有する */
+export function ClauseFields({ index, clause: c, cands, heading, draft, onDraft, onChange, onRemove }: {
+  index: number;
+  clause: Clause;
+  cands: VarCandidate[];
+  heading: string;
+  draft: string;
+  onDraft: (v: string) => void;
+  onChange: (patch: Partial<Clause>) => void;
+  onRemove?: () => void;
+}) {
+  const sp = splitSubject(c.subject);
+  const cand = cands.find((x) => x.ref === sp.root);
+  const needsValue = OP_CHOICES.find((o) => o.op === c.op)?.needsValue ?? true;
+  return (
+    <div className="pfs-clause" data-testid="pfs-clause">
+      <label className="pfs-label">{heading}</label>
+      <div className="pfs-row-fields">
+        <select className="pfs-field" aria-label="値の元" value={sp.root} onChange={(e) => onChange({ subject: joinSubject(e.target.value, "") })}>
+          {!cand && <option value={sp.root}>{sp.root} (見つかりません)</option>}
+          {cands.map((x) => <option key={x.ref} value={x.ref}>{x.label}{x.label !== x.ref.slice(1) ? ` (${x.ref})` : ""}</option>)}
+        </select>
+        <input className="pfs-field" aria-label="項目" list={`pfs-props-${index}`} placeholder={cand?.props.length ? "項目 (選ぶか、書く)" : "項目 (なければ空)"} value={sp.prop} onChange={(e) => onChange({ subject: joinSubject(sp.root, e.target.value.trim()) })} />
+        <datalist id={`pfs-props-${index}`}>{cand?.props.map((p) => <option key={p.name} value={p.name}>{p.label}</option>)}</datalist>
+      </div>
+      <label className="pfs-label">どうなら</label>
+      <div className="pfs-row-fields">
+        <select className="pfs-field" aria-label="比べ方" value={c.op} onChange={(e) => onChange({ op: e.target.value as CondOp, strict: undefined })}>
+          {OP_CHOICES.map((o) => <option key={o.op} value={o.op}>{o.label}</option>)}
+        </select>
+        {needsValue && (
+          <input className="pfs-field" aria-label="比べる値" list="pfs-valrefs" placeholder="値 (例: 0 / prepaid / @credit.limit)" value={draft} onChange={(e) => { onDraft(e.target.value); onChange({ value: valueToExpr(e.target.value) }); }} />
+        )}
+        {onRemove && <button type="button" className="pfs-btn" aria-label="この条件を外す" onClick={onRemove}>×</button>}
+      </div>
+    </div>
+  );
+}
+
 export function ConditionEditor({ anchor, target, initial, beforeStepId, onClose }: PopProps & { target: CondTarget; initial: string; beforeStepId: string; }) {
   const ui = useStoryUi();
   const cands = useMemo(() => varCandidates(ui.ctx.action, beforeStepId, ui.edit?.ambient ?? []), [ui.ctx.action, beforeStepId, ui.edit?.ambient]);
@@ -233,34 +272,19 @@ export function ConditionEditor({ anchor, target, initial, beforeStepId, onClose
       {!raw && (
         <>
           {parsed === null && null}
-          {model.clauses.map((c, i) => {
-            const sp = splitSubject(c.subject);
-            const cand = cands.find((x) => x.ref === sp.root);
-            const needsValue = OP_CHOICES.find((o) => o.op === c.op)?.needsValue ?? true;
-            return (
-              <div key={i} className="pfs-clause" data-testid="pfs-clause">
-                <label className="pfs-label">{i === 0 ? "どの値を" : model.join === "&&" ? "かつ、どの値を" : "または、どの値を"}</label>
-                <div className="pfs-row-fields">
-                  <select className="pfs-field" aria-label="値の元" value={sp.root} onChange={(e) => setClause(i, { subject: joinSubject(e.target.value, "") })}>
-                    {!cand && <option value={sp.root}>{sp.root} (見つかりません)</option>}
-                    {cands.map((x) => <option key={x.ref} value={x.ref}>{x.label}{x.label !== x.ref.slice(1) ? ` (${x.ref})` : ""}</option>)}
-                  </select>
-                  <input className="pfs-field" aria-label="項目" list={`pfs-props-${i}`} placeholder={cand?.props.length ? "項目 (選ぶか、書く)" : "項目 (なければ空)"} value={sp.prop} onChange={(e) => setClause(i, { subject: joinSubject(sp.root, e.target.value.trim()) })} />
-                  <datalist id={`pfs-props-${i}`}>{cand?.props.map((p) => <option key={p.name} value={p.name}>{p.label}</option>)}</datalist>
-                </div>
-                <label className="pfs-label">どうなら</label>
-                <div className="pfs-row-fields">
-                  <select className="pfs-field" aria-label="比べ方" value={c.op} onChange={(e) => setClause(i, { op: e.target.value as CondOp, strict: undefined })}>
-                    {OP_CHOICES.map((o) => <option key={o.op} value={o.op}>{o.label}</option>)}
-                  </select>
-                  {needsValue && (
-                    <input className="pfs-field" aria-label="比べる値" list="pfs-valrefs" placeholder="値 (例: 0 / prepaid / @credit.limit)" value={drafts[i] ?? exprToValue(c.value)} onChange={(e) => { setDrafts((d) => ({ ...d, [i]: e.target.value })); setClause(i, { value: valueToExpr(e.target.value) }); }} />
-                  )}
-                  {model.clauses.length > 1 && <button type="button" className="pfs-btn" aria-label="この条件を外す" onClick={() => { setModel((m) => ({ ...m, clauses: m.clauses.filter((_, k) => k !== i) })); setDrafts((d) => { const n: Record<number, string> = {}; model.clauses.forEach((c2, k) => { if (k !== i) n[k > i ? k - 1 : k] = d[k] ?? exprToValue(c2.value); }); return n; }); }}>×</button>}
-                </div>
-              </div>
-            );
-          })}
+          {model.clauses.map((c, i) => (
+            <ClauseFields
+              key={i}
+              index={i}
+              clause={c}
+              cands={cands}
+              heading={i === 0 ? "どの値を" : model.join === "&&" ? "かつ、どの値を" : "または、どの値を"}
+              draft={drafts[i] ?? exprToValue(c.value)}
+              onDraft={(v) => setDrafts((d) => ({ ...d, [i]: v }))}
+              onChange={(patch) => setClause(i, patch)}
+              onRemove={model.clauses.length > 1 ? () => { setModel((m) => ({ ...m, clauses: m.clauses.filter((_, k) => k !== i) })); setDrafts((d) => { const n: Record<number, string> = {}; model.clauses.forEach((c2, k) => { if (k !== i) n[k > i ? k - 1 : k] = d[k] ?? exprToValue(c2.value); }); return n; }); } : undefined}
+            />
+          ))}
           <datalist id="pfs-valrefs">{cands.map((x) => <option key={x.ref} value={x.ref}>{x.label}</option>)}</datalist>
           <div className="pfs-pop-btns is-left">
             <button type="button" className="pfs-btn" onClick={() => setModel((m) => ({ ...m, clauses: [...m.clauses, { subject: cands[0]?.ref ?? "@", op: "==", value: "" }] }))}>＋ 条件を足す</button>
