@@ -164,7 +164,7 @@ export function patchStep(steps: Step[], id: string, patch: Record<string, unkno
 }
 
 /** 結果変数の呼び名・名前を直す (outputBinding が無ければ作る。名前が空なら作らない) */
-export function patchOutputBinding(steps: Step[], id: string, patch: { name?: string; label?: string | undefined }): boolean {
+export function patchOutputBinding(steps: Step[], id: string, patch: { name?: string; label?: string | undefined; operation?: "assign" | "accumulate" | "push"; initialValue?: unknown }): boolean {
   const step = findStepDeep(steps, id);
   if (!step) return false;
   const s = rec(step);
@@ -174,6 +174,14 @@ export function patchOutputBinding(steps: Step[], id: string, patch: { name?: st
   if ("label" in patch) {
     if (patch.label) next.label = patch.label;
     else delete next.label;
+  }
+  // 作り方: 上書き (assign) は、既定なので書かない。足し込む・一覧に足すときは、最初の値も持つ
+  if (patch.operation !== undefined) {
+    if (patch.operation === "assign") { delete next.operation; delete next.initialValue; }
+    else {
+      next.operation = patch.operation;
+      if ("initialValue" in patch) { if (patch.initialValue === undefined || patch.initialValue === "") delete next.initialValue; else next.initialValue = patch.initialValue; }
+    }
   }
   if (!next.name) return false;
   s.outputBinding = next;
@@ -336,4 +344,12 @@ export function moveDestinations(steps: Step[], movingId: string): MoveDestinati
   };
   walk(asLooseList(steps), 0, "");
   return out.filter((d) => canMoveInto(steps, movingId, d.addr.ownerId));
+}
+
+/** 最初の値の入力 → 保存する値。JSON として読めれば JSON の値 (0・[]・true)、そうでなければ式の文字列 */
+export function initialValueOf(op: "assign" | "accumulate" | "push", text: string): unknown {
+  if (op === "assign") return undefined;
+  const t = text.trim();
+  if (!t) return op === "push" ? [] : 0;
+  try { return JSON.parse(t) as unknown; } catch { return t; }
 }

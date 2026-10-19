@@ -356,7 +356,7 @@ export function variableFlow(action: Pick<ActionDefinition, "steps" | "inputs">,
 
 export type ChipTone = "table" | "rule" | "var" | "ok" | "error" | "warn";
 /** 編集中に、クリックで直せる印の種類 */
-export type ChipEdit = "table" | "operation" | "binding" | "response" | "ngResponse" | "collection";
+export type ChipEdit = "table" | "operation" | "binding" | "response" | "ngResponse" | "collection" | "rules" | "sql" | "approvers" | "external";
 
 export interface Chip {
   text: string;
@@ -442,8 +442,8 @@ export function stepChips(step: Loose, ctx: StoryCtx): Chip[] {
       chips.push({ text: ctx.flow.tableName(t) ?? (t || "（テーブルを選ぶ）"), tone: t ? "table" : "warn", edit: "table" });
       chips.push({ text: dbOperationLabel(str(step.operation)), tone: "rule", edit: "operation" });
       const w = sqlWhere(str(step.sql));
-      if (w) chips.push({ text: `条件: ${w.length > 48 ? `${w.slice(0, 48)}…` : w}`, tone: "rule", title: w });
-      if (!str(step.sql) && str(step.naturalQuery)) chips.push({ text: `SQL はまだ: ${str(step.naturalQuery)}`, tone: "warn" });
+      if (w) chips.push({ text: `条件: ${w.length > 48 ? `${w.slice(0, 48)}…` : w}`, tone: "rule", title: w, edit: "sql" });
+      if (!str(step.sql) && str(step.naturalQuery)) chips.push({ text: `SQL はまだ: ${str(step.naturalQuery)}`, tone: "warn", edit: "sql" });
       const arc = affectedRowsText(rec(step.affectedRowsCheck));
       if (arc) chips.push({ text: arc, tone: "rule" });
       chips.push(...outputChip(step));
@@ -452,7 +452,7 @@ export function stepChips(step: Loose, ctx: StoryCtx): Chip[] {
     case "validation": {
       for (const r of (step.rules as Array<Record<string, unknown>> | undefined) ?? []) {
         const field = ctx.labels.full("inputs", [str(r.field)]);
-        chips.push({ text: `${field} ${ruleText(r)}`, tone: "rule", title: str(r.message) });
+        chips.push({ text: `${field} ${ruleText(r)}`, tone: "rule", title: str(r.message), edit: "rules" });
       }
       const ib = rec(step.inlineBranch);
       const ngTo = str(ib.ngResponseId);
@@ -470,18 +470,18 @@ export function stepChips(step: Loose, ctx: StoryCtx): Chip[] {
       chips.push(...outputChip(step));
       break;
     case "externalSystem": {
-      chips.push({ text: str(step.systemRef), tone: "table" });
+      chips.push({ text: str(step.systemRef) || "（接続先を決める）", tone: str(step.systemRef) ? "table" : "warn", edit: "external" });
       const h = rec(step.httpCall);
-      if (str(h.method) || str(h.path)) chips.push({ text: `${str(h.method)} ${str(h.path)}`.trim(), tone: "rule" });
-      if (typeof step.timeoutMs === "number") chips.push({ text: `${step.timeoutMs / 1000} 秒で待つ`, tone: "rule" });
-      if (step.fireAndForget) chips.push({ text: "返事は待たない", tone: "rule" });
+      if (str(h.method) || str(h.path)) chips.push({ text: `${str(h.method)} ${str(h.path)}`.trim(), tone: "rule", edit: "external" });
+      if (typeof step.timeoutMs === "number") chips.push({ text: `${step.timeoutMs / 1000} 秒で待つ`, tone: "rule", edit: "external" });
+      if (step.fireAndForget) chips.push({ text: "返事は待たない", tone: "rule", edit: "external" });
       chips.push(...outputChip(step));
       break;
     }
     case "workflow": {
       chips.push({ text: WORKFLOW_PATTERN_WORDS[str(step.pattern)] ?? (str(step.pattern) || "承認"), tone: "rule" });
-      for (const a of (step.approvers as Array<Record<string, unknown>> | undefined) ?? []) chips.push({ text: `承認者: ${str(a.label) || str(a.role)}`, tone: "rule" });
-      if (str(step.deadlineExpression)) chips.push({ text: `期限: ${str(step.deadlineExpression)}`, tone: "rule" });
+      for (const a of (step.approvers as Array<Record<string, unknown>> | undefined) ?? []) chips.push({ text: `承認者: ${str(a.label) || str(a.role)}`, tone: "rule", edit: "approvers" });
+      if (str(step.deadlineExpression)) chips.push({ text: `期限: ${str(step.deadlineExpression)}`, tone: "rule", edit: "approvers" });
       break;
     }
     case "eventPublish":

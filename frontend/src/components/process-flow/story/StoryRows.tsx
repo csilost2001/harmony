@@ -11,6 +11,7 @@ import { expressionSegments } from "./expressionText";
 import { parseDnf } from "./storyDecision";
 import { InlineText } from "./InlineText";
 import { BindingEditor, CollectionPicker, ConditionEditor, InsertMenu, MovePicker, OperationPicker, ResponsePicker, TablePicker, type CondTarget } from "./StoryEditors";
+import { ApproversEditor, ExternalEditor, RulesEditor, SqlEditor } from "./StoryFieldEditors";
 import { Chips, CondText } from "./StoryParts";
 import {
   addArm, canMoveInto, ensureElse, ensureGroup, frameWord, moveStepBy, moveStepTo, patchStep, removeArm, removeStepById, setHeading, type ListAddr,
@@ -216,7 +217,7 @@ function DragHandle({ id }: { id: string }) {
 // ─── 直す窓の状態 ───────────────────────────────────────
 
 type PopState =
-  | { kind: "table" | "operation" | "binding" | "response" | "ngResponse" | "collection"; anchor: HTMLElement | null }
+  | { kind: "table" | "operation" | "binding" | "response" | "ngResponse" | "collection" | "rules" | "sql" | "approvers" | "external"; anchor: HTMLElement | null }
   | { kind: "cond"; anchor: HTMLElement | null; target: CondTarget; initial: string; beforeStepId: string };
 
 /** 工程の行で使う、直す窓の出し入れ。挿入の直後は、続けて開く窓を最初から開く (autoEdit) */
@@ -252,6 +253,10 @@ function StepPops({ step, pop, setPop }: { step: Loose; pop: PopState | null; se
     case "response": return <ResponsePicker anchor={pop.anchor} stepId={step.id} current={String(step.responseId ?? "")} field="responseId" onClose={close} />;
     case "ngResponse": return <ResponsePicker anchor={pop.anchor} stepId={step.id} current={String((step.inlineBranch as { ngResponseId?: string } | undefined)?.ngResponseId ?? "")} field="ngResponseId" onClose={close} />;
     case "collection": return <CollectionPicker anchor={pop.anchor} stepId={step.id} current={String(step.collectionSource ?? "")} onClose={close} />;
+    case "rules": return <RulesEditor anchor={pop.anchor} stepId={step.id} onClose={close} />;
+    case "sql": return <SqlEditor anchor={pop.anchor} stepId={step.id} onClose={close} />;
+    case "approvers": return <ApproversEditor anchor={pop.anchor} stepId={step.id} onClose={close} />;
+    case "external": return <ExternalEditor anchor={pop.anchor} stepId={step.id} onClose={close} />;
     case "cond": return <ConditionEditor anchor={pop.anchor} target={pop.target} initial={pop.initial} beforeStepId={pop.beforeStepId} onClose={close} />;
     default: return null;
   }
@@ -394,6 +399,15 @@ function EditExtras({ step, setPop, bindRef }: { step: Loose; setPop: (p: PopSta
   const hasRunIf = typeof step.runIf === "string" && step.runIf !== "";
   return (
     <>
+      {step.kind === "dbAccess" && (
+        <button type="button" className="pfs-chip pfs-chip--dashed pfs-chip-btn" onClick={(e) => { e.stopPropagation(); setPop({ kind: "sql", anchor: e.currentTarget }); }} data-testid="pfs-edit-sql">{typeof step.sql === "string" && step.sql.trim() ? "SQL を直す" : "＋ SQL を書く"}</button>
+      )}
+      {step.kind === "validation" && (
+        <button type="button" className="pfs-chip pfs-chip--dashed pfs-chip-btn" onClick={(e) => { e.stopPropagation(); setPop({ kind: "rules", anchor: e.currentTarget }); }} data-testid="pfs-edit-rules">＋ ルールを足す・直す</button>
+      )}
+      {step.kind === "workflow" && (
+        <button type="button" className="pfs-chip pfs-chip--dashed pfs-chip-btn" onClick={(e) => { e.stopPropagation(); setPop({ kind: "approvers", anchor: e.currentTarget }); }} data-testid="pfs-edit-approvers">＋ 承認者・期限</button>
+      )}
       {CAN_BIND.has(step.kind) && !hasBinding && (
         <button ref={bindRef} type="button" className="pfs-chip pfs-chip--dashed pfs-chip-btn" onClick={(e) => { e.stopPropagation(); setPop({ kind: "binding", anchor: e.currentTarget }); }}>＋ 結果の変数</button>
       )}

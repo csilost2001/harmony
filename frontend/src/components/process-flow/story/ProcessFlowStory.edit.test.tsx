@@ -247,6 +247,9 @@ describe("流れの表示: その場で直す (編集中)", () => {
     expect(ask).toHaveBeenCalledTimes(1);
     expect(ask.mock.calls[0][0]).toContain("在庫が足りなければ 422 を返す");
     expect(ask.mock.calls[0][0]).toContain("試験");
+    // 位置は、前後の工程の ID と説明で示される (step-01 と step-02 の間)
+    expect(ask.mock.calls[0][0]).toContain("直前の工程: step-01 (取引先を取得する)");
+    expect(ask.mock.calls[0][0]).toContain("直後の工程: step-02");
   });
 
   it("工程が 0 件でも、最初の工程を足せる", () => {
@@ -400,5 +403,15 @@ describe("流れの表示: その場で直す (編集中)", () => {
     const g = dump().steps.find((s) => s.id === "step-02") as unknown as { branches: Array<{ steps: Array<{ id: string }> }> };
     expect(g.branches[0].steps.map((x) => x.id)).toEqual(["step-03", "step-04"]);
     expect(dump().steps.some((s) => s.id === "step-04")).toBe(false);
+  });
+
+  it("結果の変数の「作り方」: 一覧に足すにすると、最初の値 [] も入る", () => {
+    render(<Harness />);
+    fireEvent.click(screen.getByRole("button", { name: /→ 取引先/ }));
+    const pop = screen.getByTestId("pfs-popover");
+    fireEvent.change(within(pop).getByLabelText("作り方"), { target: { value: "push" } });
+    expect(within(pop).getByLabelText("最初の値")).toHaveValue("[]");
+    fireEvent.click(within(pop).getByRole("button", { name: "決める" }));
+    expect((dump().steps[0] as unknown as { outputBinding: unknown }).outputBinding).toEqual({ name: "customer", label: "取引先", operation: "push", initialValue: [] });
   });
 });

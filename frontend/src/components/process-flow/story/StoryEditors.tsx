@@ -13,7 +13,7 @@ import { expressionSegments, parseVarRef } from "./expressionText";
 import { CondText } from "./StoryParts";
 import { StoryPopover } from "./StoryPopover";
 import { findStepDeep } from "../../../utils/stepTree";
-import { frameWord, insertSteps, moveDestinations, moveStepTo, patchOutputBinding, patchStep, renameVariable, RESERVED_VAR_NAMES, setArmCondition, type ListAddr } from "./storyEdit";
+import { frameWord, initialValueOf, insertSteps, moveDestinations, moveStepTo, patchOutputBinding, resolveList, patchStep, renameVariable, RESERVED_VAR_NAMES, setArmCondition, type ListAddr } from "./storyEdit";
 import { variableFlow, type Loose } from "./storyModel";
 import { buildKind, searchTemplates, type TemplateCtx } from "./storyTemplates";
 import { useStoryUi } from "./storyUi";
@@ -80,6 +80,10 @@ export function BindingEditor({ anchor, stepId, name, label, onClose }: PopProps
   const ui = useStoryUi();
   const [n, setN] = useState(name);
   const [l, setL] = useState(label);
+  // 作り方 (上書き / 足し込む / 一覧に足す)。繰り返しの中で、合計や一覧を作るときに使う
+  const curBinding = (findStepDeep(ui.ctx.action.steps as unknown as Step[], stepId) as unknown as { outputBinding?: { operation?: string; initialValue?: unknown } } | null)?.outputBinding;
+  const [op, setOp] = useState<"assign" | "accumulate" | "push">((curBinding?.operation as "accumulate" | "push" | undefined) ?? "assign");
+  const [init, setInit] = useState(curBinding?.initialValue === undefined ? "" : typeof curBinding.initialValue === "string" ? curBinding.initialValue : JSON.stringify(curBinding.initialValue));
   // 使えない名前: ほかの変数・処理の外の名前空間 (inputs など)・処理の外から来る値 (ambient)
   const taken = useMemo(() => new Set([...variableFlow(ui.ctx.action).map((v) => v.name).filter((x) => x !== name), ...RESERVED_VAR_NAMES, ...(ui.edit?.ambient ?? []).map((a) => a.name)]), [ui.ctx.action, ui.edit?.ambient, name]);
   const problem = !n ? "名前を入れてください" : !isValidIdentifier(n, "camel") ? "英小文字で始まる英数字 (camelCase。例: customerId) にしてください" : taken.has(n) ? "この名前は使えません (同じ名前の変数・処理の外の名前と重なります)" : "";
@@ -90,7 +94,7 @@ export function BindingEditor({ anchor, stepId, name, label, onClose }: PopProps
     ui.edit?.mutate((a) => {
       // 名前を変えるときは、同じ名前を作る工程すべてと、使っている式を、まとめて直す
       if (renamed) renameVariable(a.steps as unknown as Loose[], name, n);
-      patchOutputBinding(a.steps, stepId, { name: n, label: l.trim() });
+      patchOutputBinding(a.steps, stepId, { name: n, label: l.trim(), operation: op, initialValue: initialValueOf(op, init) });
     });
     onClose();
   };
@@ -100,6 +104,18 @@ export function BindingEditor({ anchor, stepId, name, label, onClose }: PopProps
       <input className="pfs-field" value={l} maxLength={40} placeholder="例: 取引先" onChange={(e) => setL(e.target.value)} aria-label="呼び名" />
       <label className="pfs-label">名前 (英字。式の中で使う)</label>
       <input className="pfs-field" value={n} placeholder="例: customer" onChange={(e) => setN(e.target.value)} aria-label="名前" onKeyDown={(e) => { if (isPlainEnter(e)) apply(); }} />
+      <label className="pfs-label">作り方</label>
+      <select className="pfs-field" aria-label="作り方" value={op} onChange={(e) => { const v = e.target.value as "assign" | "accumulate" | "push"; setOp(v); if (v === "assign") setInit(""); else if (!init.trim()) setInit(v === "push" ? "[]" : "0"); }}>
+        <option value="assign">上書きする (そのたびの結果が入る)</option>
+        <option value="accumulate">足し込む (数の合計。繰り返しの中で使う)</option>
+        <option value="push">一覧に 1 件ずつ足す (繰り返しの中で使う)</option>
+      </select>
+      {op !== "assign" && (
+        <>
+          <label className="pfs-label">最初の値 ({op === "push" ? "空の一覧は [ ]" : "合計の出発点は 0"})</label>
+          <input className="pfs-field pfs-mono" aria-label="最初の値" value={init} onChange={(e) => setInit(e.target.value)} />
+        </>
+      )}
       {problem && <p className="pfs-warn">{problem}{suggestion && !taken.has(suggestion) && <> — <button type="button" className="pfs-link" onClick={() => setN(suggestion)}>「{suggestion}」にする</button></>}</p>}
       {n !== name && name && !problem && <p className="pfs-note">名前を変えると、この変数を作るすべての工程と、使っている式 (条件・SQL など) の `@{name}` も、`@{n}` に直します。</p>}
       <div className="pfs-pop-btns">
@@ -353,7 +369,10 @@ export function InsertMenu({ anchor, addr, index, onClose, onInserted }: InsertM
   const submitAsk = () => {
     const text = ask.trim();
     if (!text || !ui.edit?.askAi) return;
-    ui.edit.askAi(`処理フローの「${ui.ctx.action.name}」アクションに、次の内容の工程を追加してください: ${text}\n(追加する位置: ${addr.ownerId ? `工程 ${addr.ownerId} の${frameWord(addr.key)}の ${index + 1} 番目` : `最上位の ${index + 1} 番目`})`);
+    // 位置は、前後の工程の ID と説明で示す (番号だけだと、AI が取り違えやすい)
+    const list = resolveList(ui.ctx.action.steps as unknown as Step[], addr) ?? [];
+    const near = (s: Step | undefined) => (s ? `${s.id} (${String((s as { description?: string }).description ?? "").trim() || STEP_KIND_LABELS[s.kind] || s.kind})` : "なし");
+    ui.edit.askAi(`処理フローの「${ui.ctx.action.name}」アクションに、次の内容の工程を追加してください: ${text}\n追加する位置: ${addr.ownerId ? `工程 ${addr.ownerId} の${frameWord(addr.key)}` : "最上位"}の ${index + 1} 番目\n直前の工程: ${near(list[index - 1])} / 直後の工程: ${near(list[index])}\nこの位置に入れ、ほかの工程は変えないでください。`);
     onClose();
   };
   return (

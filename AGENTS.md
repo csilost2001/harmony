@@ -23,7 +23,7 @@ Claude Code 固有の補足は `CLAUDE.md`、Codex 固有の設定は `.codex/co
 | 履歴・比較・共有・書き出し (ヘッダーの「設計のあゆみ」: 変更の記録と最終編集者・版を比べる・コミット文 / レビュー依頼文・完了の確認・個人メモ・この設計だけの書き出し・ファイルの場所のコピー・試作 / レビューの宛先 @名前・進み具合 / 印刷用スタイル・スナップショット HTML の検索・書き出しの設定 / 取り込みの差・通知の受け取り方・期間のまとめ) | [ui-history-sharing.md](docs/spec/ui-history-sharing.md) |
 | アクセシビリティ・設定・学習・性能 (スキップリンク・フォーカスリング (outline: none を増やさない検査)・高コントラスト / 強制カラー・動きを減らす設定・表の読み上げ・ショートカットの割り当て・ヘルプの検索・設定の書き出し / 読み込み・通しの案内・長い一覧の窓表示・進み具合) | [ui-a11y-settings-perf.md](docs/spec/ui-a11y-settings-perf.md) |
 | 初めての人が迷いやすいところの改善 (一覧のダブルクリックの案内・閲覧中の案内・「編集を終える」・追加ボタンの名前を「〜を追加」に・未配置のタブ・新しい処理フローはラフから・デザインと項目定義を行き来しても確認が出ない: 衝突の判定と「前回の編集の続き」の条件) | [ui-first-run-ux.md](docs/spec/ui-first-run-ux.md) |
-| 処理フローの「流れ」表示 (AI が作った複雑な処理を人が読むための画面: 入れ子・ガード・言葉の条件・概要 / 詳細 / 実装・見出し・出口の一覧・変数の流れ・確認済み ✓。schema の任意項目 `heading` / `label` / `collectionItemLabel`) | [process-flow-story-view.md](docs/spec/process-flow-story-view.md) |
+| 処理フローの「流れ」表示 (AI が作った複雑な処理を人が読み、顧客指定の細かい仕様を人が書くための画面: 入れ子・ガード・言葉の条件・概要 / 詳細 / 実装・見出し・出口の一覧・変数の流れ・確認済み ✓・その場で直す・判定表 (複合条件を表で見る・直す、抜けと隠れの指摘)。schema の任意項目 `heading` / `label` / `collectionItemLabel`) | [process-flow-story-view.md](docs/spec/process-flow-story-view.md) |
 | 入力補助 (参照の補完・SQL の表名とカラム名・定義へ移動 F12・検索できる選択・カラムの物理名と型の提案・外部キーの候補・テーブルから画面項目・ID の候補・工程のおすすめ・日本語入力の Enter) | [ui-input-assist.md](docs/spec/ui-input-assist.md) |
 | 完了判定 (回帰テストの trace 照合) | [docs/conventions/completion-gate.md](docs/conventions/completion-gate.md) |
 | 進行中の再設計計画と設計者判断 | [docs/plans/redesign-2026-10.md](docs/plans/redesign-2026-10.md) |
