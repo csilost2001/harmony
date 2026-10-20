@@ -7,11 +7,15 @@ import type { StoryCtx } from "./storyModel";
 export interface StoryEditApi {
   /** 編集中の下書きのアクションを直す (ひとまとまりの取り消し単位) */
   mutate: (fn: (action: ActionDefinition) => void) => void;
+  /** 直前の操作を取り消す (編集セッションの取り消し) */
+  undo?: () => void;
   /** 流れ全体で使われている ID (新しい工程の ID が重ならないように) */
   flowIds: () => Set<string>;
   tables: ReadonlyArray<{ id: string; name: string; physicalName: string }>;
   /** 処理の外から来る値 (セッションなど)。条件の候補に出す */
   ambient?: ReadonlyArray<{ name: string; label?: string }>;
+  /** 処理フローに登録された外部システムの名前 (接続先の候補) */
+  externalSystems?: readonly string[];
   /** 「日本語で頼む」: AI に、下書きの変更を頼む (あれば) */
   askAi?: (prompt: string) => void;
 }
@@ -19,7 +23,7 @@ export interface StoryEditApi {
 /** 挿入した直後に、自動で開く欄 */
 export interface AutoEdit {
   stepId: string;
-  what: "desc" | "table" | "cond" | "response";
+  what: "desc" | "table" | "cond" | "response" | "decision";
   /** 条件の場合の、腕の id */
   armId?: string;
 }

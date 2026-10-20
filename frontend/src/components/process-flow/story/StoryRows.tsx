@@ -2,13 +2,17 @@
  * 「流れ」表示の、工程の並び・行・枠。読む表示に、編集中だけ、その場で直す窓口 (書き換え・足す・動かす・消す) が付く。
  * 仕様: docs/spec/process-flow-story-view.md
  */
-import { useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { useMemo, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { kindLabel, returnStatus } from "@harmony/shared";
 import type { Step } from "../../../types/v3";
 import { showToast } from "../../../utils/toast";
+import { captureNextAction, latestAction } from "./actionTracker";
+import { DecisionTable } from "./DecisionTable";
 import { expressionSegments } from "./expressionText";
+import { parseDnf } from "./storyDecision";
 import { InlineText } from "./InlineText";
-import { BindingEditor, CollectionPicker, ConditionEditor, InsertMenu, OperationPicker, ResponsePicker, TablePicker, type CondTarget } from "./StoryEditors";
+import { BindingEditor, CollectionPicker, ConditionEditor, InsertMenu, MovePicker, OperationPicker, ResponsePicker, TablePicker, type CondTarget } from "./StoryEditors";
+import { ApproversEditor, ExternalEditor, RulesEditor, SqlEditor } from "./StoryFieldEditors";
 import { Chips, CondText } from "./StoryParts";
 import {
   addArm, canMoveInto, ensureElse, ensureGroup, frameWord, moveStepBy, moveStepTo, patchStep, removeArm, removeStepById, setHeading, type ListAddr,
@@ -18,7 +22,7 @@ import {
   type Chip, type ChildGroup, type Loose,
 } from "./storyModel";
 import type { ReviewedSteps } from "./useReviewedSteps";
-import { useStoryUi, type AutoEdit } from "./storyUi";
+import { useStoryUi, type AutoEdit, type StoryEditApi } from "./storyUi";
 import type { ValidationError } from "../../../utils/actionValidation";
 
 export interface RowEnv {
@@ -115,7 +119,7 @@ function Gap({ addr, index, always, env }: { addr: ListAddr; index: number; alwa
 function RunIfLine({ step, onEdit }: { step: Loose; onEdit?: (el: HTMLElement) => void }) {
   const runIf = typeof step.runIf === "string" ? step.runIf : "";
   if (!runIf) return null;
-  const body = <>↳ <CondText segs={expressionSegments(runIf)} /> のときだけ</>;
+  const body = <>↳ <CondText segs={expressionSegments(runIf)} plain={Boolean(onEdit)} /> のときだけ</>;
   if (!onEdit) return <span className="pfs-runif" title={runIf}>{body}</span>;
   return <button type="button" className="pfs-runif pfs-runif--btn" title={`${runIf} — クリックで直す`} onClick={(e) => { e.stopPropagation(); onEdit(e.currentTarget); }}>{body}</button>;
 }
@@ -126,6 +130,7 @@ function RowActions({ step, env, topLevel }: { step: Loose; env: RowEnv; topLeve
   const digest = env.digests.get(step.id) ?? stepDigest(step);
   const done = env.reviewed.isReviewed(step.id, digest);
   const stale = env.reviewed.isStale(step.id, digest);
+  const [moveAnchor, setMoveAnchor] = useState<HTMLElement | null>(null);
   return (
     <span className="pfs-acts">
       {stale && <span className="pfs-stale" title="確認したあとに、この工程が変わりました">変更あり</span>}
@@ -133,10 +138,11 @@ function RowActions({ step, env, topLevel }: { step: Loose; env: RowEnv; topLeve
         <>
           <button type="button" className="pfs-mini" title="1 つ上へ (Alt+↑)" aria-label="1 つ上へ" onClick={(e) => { e.stopPropagation(); edit.mutate((a) => { moveStepBy(a.steps, step.id, -1); }); }} data-testid="pfs-up">↑</button>
           <button type="button" className="pfs-mini" title="1 つ下へ (Alt+↓)" aria-label="1 つ下へ" onClick={(e) => { e.stopPropagation(); edit.mutate((a) => { moveStepBy(a.steps, step.id, 1); }); }} data-testid="pfs-down">↓</button>
+          <button type="button" className="pfs-mini" title="別の場所 (道・繰り返しの中など) へ移す" aria-label="別の場所へ移す" onClick={(e) => { e.stopPropagation(); setMoveAnchor(e.currentTarget); }} data-testid="pfs-move">移す</button>
           {topLevel && !step.heading && (
             <button type="button" className="pfs-mini" title="ここから新しい見出しを始める" aria-label="ここから見出しを始める" onClick={(e) => { e.stopPropagation(); edit.mutate((a) => { setHeading(a.steps, step.id, "新しい区切り"); }); }} data-testid="pfs-add-heading">見出し</button>
           )}
-          <button type="button" className="pfs-mini is-danger" title="この工程を消す (Ctrl+Z で戻せます)" aria-label="この工程を消す" onClick={(e) => { e.stopPropagation(); removeWithToast(edit.mutate, step.id); }} data-testid="pfs-delete">×</button>
+          <button type="button" className="pfs-mini is-danger" title="この工程を消す (Ctrl+Z で戻せます)" aria-label="この工程を消す" onClick={(e) => { e.stopPropagation(); removeWithToast(edit, step.id); }} data-testid="pfs-delete">×</button>
         </>
       )}
       <button
@@ -150,6 +156,7 @@ function RowActions({ step, env, topLevel }: { step: Loose; env: RowEnv; topLeve
       >
         ✓
       </button>
+      {moveAnchor && <MovePicker anchor={moveAnchor} stepId={step.id} onClose={() => setMoveAnchor(null)} />}
       <button type="button" className="pfs-open" title="カードで開いて、細かく編集する" aria-label="カードで開く" onClick={(e) => { e.stopPropagation(); env.onOpen(step.id); }}>
         <i className="bi bi-box-arrow-up-right" aria-hidden="true" />
       </button>
@@ -157,9 +164,17 @@ function RowActions({ step, env, topLevel }: { step: Loose; env: RowEnv; topLeve
   );
 }
 
-function removeWithToast(mutate: (fn: (a: import("../../../types/v3").ActionDefinition) => void) => void, id: string): void {
-  mutate((a) => { removeStepById(a.steps, id); });
-  showToast("工程を消しました (Ctrl+Z で戻せます)", "info");
+function removeWithToast(edit: StoryEditApi, id: string): void {
+  // 消した直後の版を覚え、「元に戻す」は、いまの版がそれと同じときだけ効かせる
+  // (そのあとに、Ctrl+Z・ほかの表示での編集・AI の反映があれば、それを戻してしまうため)
+  let after: unknown = null;
+  captureNextAction((a) => { after = a; });
+  edit.mutate((a) => { removeStepById(a.steps, id); });
+  const undo = edit.undo ? () => {
+    if (after === null || latestAction() !== after) { showToast("そのあとに別の操作をしたので、ここからは戻せません (Ctrl+Z で順に戻せます)", "info"); return; }
+    edit.undo?.();
+  } : undefined;
+  showToast("工程を消しました (Ctrl+Z で戻せます)", "info", undo ? { undo } : {});
 }
 
 /** 行にフォーカスがあるとき: Enter で選ぶ、Shift+Enter でカードで開く。編集中は、Alt+↑↓ で動かし、Delete で消す */
@@ -172,7 +187,7 @@ function rowKey(e: ReactKeyboardEvent, id: string, env: RowEnv, edit: ReturnType
   }
   if (edit && e.key === "Delete") {
     e.preventDefault();
-    removeWithToast(edit.mutate, id);
+    removeWithToast(edit, id);
     return;
   }
   if (e.key !== "Enter") return;
@@ -205,7 +220,7 @@ function DragHandle({ id }: { id: string }) {
 // ─── 直す窓の状態 ───────────────────────────────────────
 
 type PopState =
-  | { kind: "table" | "operation" | "binding" | "response" | "ngResponse" | "collection"; anchor: HTMLElement | null }
+  | { kind: "table" | "operation" | "binding" | "response" | "ngResponse" | "collection" | "rules" | "sql" | "approvers" | "external"; anchor: HTMLElement | null }
   | { kind: "cond"; anchor: HTMLElement | null; target: CondTarget; initial: string; beforeStepId: string };
 
 /** 工程の行で使う、直す窓の出し入れ。挿入の直後は、続けて開く窓を最初から開く (autoEdit) */
@@ -241,6 +256,10 @@ function StepPops({ step, pop, setPop }: { step: Loose; pop: PopState | null; se
     case "response": return <ResponsePicker anchor={pop.anchor} stepId={step.id} current={String(step.responseId ?? "")} field="responseId" onClose={close} />;
     case "ngResponse": return <ResponsePicker anchor={pop.anchor} stepId={step.id} current={String((step.inlineBranch as { ngResponseId?: string } | undefined)?.ngResponseId ?? "")} field="ngResponseId" onClose={close} />;
     case "collection": return <CollectionPicker anchor={pop.anchor} stepId={step.id} current={String(step.collectionSource ?? "")} onClose={close} />;
+    case "rules": return <RulesEditor anchor={pop.anchor} stepId={step.id} onClose={close} />;
+    case "sql": return <SqlEditor anchor={pop.anchor} stepId={step.id} onClose={close} />;
+    case "approvers": return <ApproversEditor anchor={pop.anchor} stepId={step.id} onClose={close} />;
+    case "external": return <ExternalEditor anchor={pop.anchor} stepId={step.id} onClose={close} />;
     case "cond": return <ConditionEditor anchor={pop.anchor} target={pop.target} initial={pop.initial} beforeStepId={pop.beforeStepId} onClose={close} />;
     default: return null;
   }
@@ -317,7 +336,7 @@ function StepNode({ step, num, env, topLevel }: { step: Loose; num: string; env:
           <div className="pfs-head">{step.kind === "loopContinue" ? "この行はここまで。次の行へ進む" : "繰り返しをここで終える"}</div>
           <RunIfLine step={step} />
         </div>
-        {ui.edit ? <span className="pfs-acts"><button type="button" className="pfs-mini is-danger" aria-label="この工程を消す" onClick={() => removeWithToast(ui.edit!.mutate, step.id)}>×</button></span> : <span />}
+        {ui.edit ? <span className="pfs-acts"><button type="button" className="pfs-mini is-danger" aria-label="この工程を消す" onClick={() => removeWithToast(ui.edit!, step.id)}>×</button></span> : <span />}
       </div>
     );
   }
@@ -329,6 +348,7 @@ function StepNode({ step, num, env, topLevel }: { step: Loose; num: string; env:
       <StepRow step={step} num={num} env={env} inside={inside} topLevel={topLevel} />
       {(groups.length > 0 || ui.edit) && (
         <div className="pfs-nest">
+          {step.kind === "branch" && <DecisionTable step={step} guard={false} defaultOpen={ui.autoEdit?.stepId === step.id && ui.autoEdit.what === "decision"} onSelect={env.onSelect} />}
           {groups.map((g) => <GroupBlock key={g.key} owner={step} group={g} num={num} env={env} />)}
           <AddGroups step={step} />
         </div>
@@ -382,6 +402,15 @@ function EditExtras({ step, setPop, bindRef }: { step: Loose; setPop: (p: PopSta
   const hasRunIf = typeof step.runIf === "string" && step.runIf !== "";
   return (
     <>
+      {step.kind === "dbAccess" && (
+        <button type="button" className="pfs-chip pfs-chip--dashed pfs-chip-btn" onClick={(e) => { e.stopPropagation(); setPop({ kind: "sql", anchor: e.currentTarget }); }} data-testid="pfs-edit-sql">{typeof step.sql === "string" && step.sql.trim() ? "SQL を直す" : "＋ SQL を書く"}</button>
+      )}
+      {step.kind === "validation" && (
+        <button type="button" className="pfs-chip pfs-chip--dashed pfs-chip-btn" onClick={(e) => { e.stopPropagation(); setPop({ kind: "rules", anchor: e.currentTarget }); }} data-testid="pfs-edit-rules">＋ ルールを足す・直す</button>
+      )}
+      {step.kind === "workflow" && (
+        <button type="button" className="pfs-chip pfs-chip--dashed pfs-chip-btn" onClick={(e) => { e.stopPropagation(); setPop({ kind: "approvers", anchor: e.currentTarget }); }} data-testid="pfs-edit-approvers">＋ 承認者・期限</button>
+      )}
       {CAN_BIND.has(step.kind) && !hasBinding && (
         <button ref={bindRef} type="button" className="pfs-chip pfs-chip--dashed pfs-chip-btn" onClick={(e) => { e.stopPropagation(); setPop({ kind: "binding", anchor: e.currentTarget }); }}>＋ 結果の変数</button>
       )}
@@ -414,7 +443,7 @@ function GroupBlock({ owner, group, num, env }: { owner: Loose; group: ChildGrou
           <><CondText segs={segs} /> なら <span className="pfs-muted" title="エラー・更新件数・外部呼び出しの結果の条件は、「カードで開く」から直します">(この種類の条件は、カードで直します)</span></>
         ) : edit ? (
           <button type="button" className="pfs-cond-btn" title="クリックで、条件を直す" onClick={(e) => { e.stopPropagation(); openCond(e.currentTarget); }} data-testid="pfs-arm-cond">
-            {initial.trim() ? <CondText segs={segs} /> : <span className="pfs-muted">（条件を決める）</span>} なら
+            {initial.trim() ? <CondText segs={segs} plain /> : <span className="pfs-muted">（条件を決める）</span>} なら
           </button>
         ) : <><CondText segs={segs} /> なら</>)}
         {group.label && (group.role === "arm" || group.role === "else") && <small className="pfs-muted"> ({group.label})</small>}
@@ -509,6 +538,8 @@ function GuardRow({ step, num, env, topLevel }: { step: Loose; num: string; env:
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [autoOpen, setAutoOpen] = useState(Boolean(auto));
   const condSegs = conditionSegments(arm?.condition);
+  // 条件が複合 (「かつ」「または」で、2 つ以上の条件) のガードは、判定表でも見られる
+  const composite = useMemo(() => { const alts = parseDnf(initial); return Boolean(alts && (alts.length > 1 || alts.some((a) => a.length > 1))); }, [initial]);
   return (
     <div className={rowClass(step, env, "pfs-row--guard")} ref={setAnchorEl} data-step-id={step.id} data-testid="pfs-guard" tabIndex={0} onKeyDown={(e) => rowKey(e, step.id, env, ui.edit)} onClick={() => env.onSelect(step.id)} onDoubleClick={() => env.onOpen(step.id)}>
       {ret && <span data-step-id={ret.id} className="pfs-anchor" />}
@@ -518,7 +549,7 @@ function GuardRow({ step, num, env, topLevel }: { step: Loose; num: string; env:
         <div className="pfs-head">
           {editable && isExprCond(arm?.condition) ? (
             <button type="button" className="pfs-cond-btn" title="クリックで、条件を直す" onClick={(e) => { e.stopPropagation(); setPop({ kind: "cond", anchor: e.currentTarget }); }} data-testid="pfs-guard-cond">
-              {initial.trim() ? <CondText segs={condSegs} /> : <span className="pfs-muted">（条件を決める）</span>}
+              {initial.trim() ? <CondText segs={condSegs} plain /> : <span className="pfs-muted">（条件を決める）</span>}
             </button>
           ) : <CondText segs={condSegs} />}
           {" → "}
@@ -537,6 +568,7 @@ function GuardRow({ step, num, env, topLevel }: { step: Loose; num: string; env:
           {ret && <RunIfLine step={ret} />}
         </div>
         {editable && <AddGroups step={step} />}
+        {composite && <DecisionTable step={step} guard defaultOpen={false} onSelect={env.onSelect} />}
         {code && <pre className="pfs-code">{code}</pre>}
       </div>
       <RowActions step={step} env={env} topLevel={topLevel} />

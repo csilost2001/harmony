@@ -29,6 +29,7 @@ import {
   walkSteps,
   type StoryCtx,
 } from "./storyModel";
+import { noteAction } from "./actionTracker";
 import { StoryUiProvider, type AutoEdit, type StoryEditApi } from "./storyUi";
 import { useReviewedSteps } from "./useReviewedSteps";
 import "../../../styles/processFlowStory.css";
@@ -68,13 +69,17 @@ export interface ProcessFlowStoryProps {
   flowIds?: () => Set<string>;
   tables?: StoryEditApi["tables"];
   ambient?: StoryEditApi["ambient"];
+  /** 登録された外部システムの名前 (接続先の候補) */
+  externalSystems?: readonly string[];
   /** AI への頼み (あれば) */
   onAskAi?: (prompt: string) => void;
+  /** 直前の操作を取り消す (消したあとの「元に戻す」に使う) */
+  onUndo?: () => void;
   /** 検査の指摘 (行に印を出す) */
   problems?: readonly ValidationError[];
 }
 
-export function ProcessFlowStory({ action, reviewKey, ctx, selectedStepIds, onSelectStep, onOpenStep, editable = false, onMutate, flowIds, tables, ambient, onAskAi, problems }: ProcessFlowStoryProps) {
+export function ProcessFlowStory({ action, reviewKey, ctx, selectedStepIds, onSelectStep, onOpenStep, editable = false, onMutate, flowIds, tables, ambient, externalSystems, onAskAi, onUndo, problems }: ProcessFlowStoryProps) {
   const [zoom, setZoom] = useState<Zoom>(readZoom);
   const [tab, setTab] = useState<Tab>("flow");
   /** 畳んだ区切り (区切りの最初の工程の ID。見出しを足しても、ずれない) */
@@ -87,6 +92,9 @@ export function ProcessFlowStory({ action, reviewKey, ctx, selectedStepIds, onSe
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** 変数の「前 / 次」で、いま何番目の場所にいるか (-1 は、まだ移っていない) */
   const varCursor = useRef(-1);
+  // 見ているアクションの版を記録する (消したあとの「元に戻す」の確かめ)。画面を離れたら、記録を外す
+  useEffect(() => { noteAction(action); }, [action]);
+  useEffect(() => () => { noteAction(null); }, []);
   useEffect(() => () => { if (flashTimer.current) clearTimeout(flashTimer.current); if (autoTimer.current) clearTimeout(autoTimer.current); }, []);
 
   const changeZoom = useCallback((z: Zoom) => {
@@ -157,6 +165,7 @@ export function ProcessFlowStory({ action, reviewKey, ctx, selectedStepIds, onSe
     if (key === "guard" && guard?.branches?.[0]) next = { stepId: guard.id, what: "cond", armId: guard.branches[0].id };
     else if (key === "lookup" || key === "db" || key === "kind:dbAccess") next = { stepId: first.id, what: "table" };
     else if (key === "return") next = { stepId: first.id, what: "response" };
+    else if (key === "decision") next = { stepId: first.id, what: "decision" };
     else next = { stepId: first.id, what: "desc" };
     setAutoEdit(next);
     if (autoTimer.current) clearTimeout(autoTimer.current);
@@ -170,7 +179,9 @@ export function ProcessFlowStory({ action, reviewKey, ctx, selectedStepIds, onSe
     });
   }, [onSelectStep]);
 
-  const edit = useMemo<StoryEditApi | null>(() => (editable && onMutate ? { mutate: onMutate, flowIds: flowIds ?? (() => new Set<string>()), tables: tables ?? [], ambient, askAi: onAskAi } : null), [editable, onMutate, flowIds, tables, ambient, onAskAi]);
+  // 直す操作の回数。「元に戻す」は、その消す操作のあとに、別の操作をしていないときだけ効かせる
+  const countedMutate = useCallback((fn: (a: ActionDefinition) => void) => { onMutate?.(fn); }, [onMutate]);
+  const edit = useMemo<StoryEditApi | null>(() => (editable && onMutate ? { mutate: countedMutate, undo: onUndo, flowIds: flowIds ?? (() => new Set<string>()), tables: tables ?? [], ambient, externalSystems, askAi: onAskAi } : null), [editable, onMutate, countedMutate, onUndo, flowIds, tables, ambient, externalSystems, onAskAi]);
   const env: RowEnv = { zoom, selected: selectedStepIds, hl, flashId, reviewed, digests, problems: problemMap, onSelect: onSelectStep, onOpen: onOpenStep, onInserted };
   const ui = useMemo(() => ({ ctx: storyCtx, showNames: zoom === "impl", activeVar, setActiveVar, edit, autoEdit }), [storyCtx, zoom, activeVar, setActiveVar, edit, autoEdit]);
 

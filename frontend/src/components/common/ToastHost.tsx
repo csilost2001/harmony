@@ -19,7 +19,7 @@ export function ToastHost() {
     const timers = new Set<ReturnType<typeof setTimeout>>();
     const present = (t: ToastMessage) => {
       setItems((cur) => [...cur.slice(-2), t]);
-      const timer = setTimeout(() => { timers.delete(timer); setItems((cur) => cur.filter((x) => x.id !== t.id)); }, t.retry ? SHOWN_WITH_RETRY_MS : SHOWN_MS);
+      const timer = setTimeout(() => { timers.delete(timer); setItems((cur) => cur.filter((x) => x.id !== t.id)); }, t.retry || t.undo ? SHOWN_WITH_RETRY_MS : SHOWN_MS);
       timers.add(timer);
     };
     let batched = 0;
@@ -46,6 +46,10 @@ export function ToastHost() {
       {items.map((t) => (
         <div key={t.id} className={`toast toast--${t.kind}`} data-testid="toast">
           <i className={`bi ${t.kind === "success" ? "bi-check-circle-fill" : t.kind === "error" ? "bi-exclamation-octagon-fill" : "bi-info-circle-fill"}`} /> {t.text}
+          {t.undo && (
+            <button type="button" className="toast-retry" data-testid="toast-undo"
+              onClick={() => { const run = t.undo; setItems((cur) => cur.filter((x) => x.id !== t.id)); run?.(); }}>元に戻す</button>
+          )}
           {t.retry && (
             <button type="button" className="toast-retry" data-testid="toast-retry"
               onClick={() => { setItems((cur) => cur.filter((x) => x.id !== t.id)); runToastRetry(t.id); }}>再試行</button>

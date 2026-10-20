@@ -1,7 +1,7 @@
 // Phase-3 (#1145): ProcessFlowEditor.tsx 中央キャンバス (ステップリスト) を抽出。
 // SortableContext + 各 SortableStepCard + StepInsertZone の組合せ。
 
-import { useCallback, useEffect, useMemo, useState, type RefObject } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type RefObject } from "react";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import type { ActionDefinition, Marker, ProcessFlow, Step, StepType } from "../../../types/v3";
 import type { ConventionsCatalog } from "../../../schemas/conventionsValidator";
@@ -16,7 +16,9 @@ import type { EditLevel } from "../../../hooks/useEditLevel";
 import type { WorkspaceRefs } from "../../../utils/reference-completer/types";
 import { ProcessFlowDiagram } from "../diagram/ProcessFlowDiagram";
 import { ProcessFlowTable } from "../diagram/ProcessFlowTable";
-import { ProcessFlowStory } from "../story/ProcessFlowStory";
+import { ViewLoading } from "../../common/ResourceLoading";
+// 「流れ」表示は大きいので、開いたときに読み込む (入口の JS を増やさない)
+const ProcessFlowStory = lazy(() => import("../story/ProcessFlowStory").then((m) => ({ default: m.ProcessFlowStory })));
 import { useWorkspacePath } from "../../../hooks/useWorkspacePath";
 import type { FlowContext } from "../diagram/flowStructure";
 import { OutlineEditor } from "./OutlineEditor";
@@ -96,6 +98,8 @@ export interface CanvasPaneProps {
   workspace?: WorkspaceRefs;
   /** 「流れ」表示から、AI に頼む (編集中だけ) */
   onAiRequest?: (prompt: string) => void;
+  /** 直前の操作を取り消す (流れ表示の「元に戻す」) */
+  onUndo?: () => void;
 }
 
 export function CanvasPane({
@@ -134,6 +138,7 @@ export function CanvasPane({
   onApplyOutline,
   workspace,
   onAiRequest,
+  onUndo,
 }: CanvasPaneProps) {
   const { wsId } = useWorkspacePath();
   const [view, setView] = useState<FlowView>(readView);
@@ -211,6 +216,7 @@ export function CanvasPane({
         {activeAction && view === "outline" ? (
           <OutlineEditor key={activeAction.id} steps={activeAction.steps} kinds={ALL_STEP_TYPES} readonly={isReadonly} onApply={onApplyOutline} refCandidates={refCandidates} />
         ) : activeAction && view === "story" ? (
+          <Suspense fallback={<ViewLoading />}>
           <ProcessFlowStory
             key={activeAction.id}
             action={activeAction}
@@ -224,9 +230,12 @@ export function CanvasPane({
             flowIds={flowIds}
             tables={tables}
             ambient={ambient}
+            externalSystems={Object.keys(group?.context?.catalogs?.externalSystems ?? {})}
             onAskAi={onAiRequest}
+            onUndo={onUndo}
             problems={validationErrors}
           />
+          </Suspense>
         ) : activeAction && view === "diagram" ? (
           <ProcessFlowDiagram action={activeAction} ctx={ctx} selectedStepIds={highlighted} onSelectStep={selectFromView} onOpenStep={openInCards} />
         ) : activeAction && view === "table" ? (

@@ -11,8 +11,10 @@ export interface ToastMessage {
   at: number;
   /** 失敗した操作をやり直す。履歴の「再試行」と、通知の「再試行」から呼ぶ (1 回だけ) */
   retry?: () => void;
+  /** 直前の操作を元に戻す (通知が出ている間だけ。履歴には残さない: あとから押すと、別の操作を戻してしまうため) */
+  undo?: () => void;
 }
-export interface ToastOptions { retry?: () => void }
+export interface ToastOptions { retry?: () => void; undo?: () => void }
 
 type Listener = (t: ToastMessage) => void;
 const listeners = new Set<Listener>();
@@ -27,9 +29,11 @@ const notifyHistory = () => { historyListeners.forEach((l) => l()); };
 export function showToast(text: string, kind: ToastKind = "success", opts: ToastOptions = {}): void {
   const t: ToastMessage = { id: ++seq, text, kind, at: Date.now(), ...(opts.retry ? { retry: opts.retry } : {}) };
   history = [t, ...history].slice(0, TOAST_HISTORY_MAX);
+  // 元に戻すは、出ている通知だけに付ける (履歴の通知からは、あとで押せない)
+  const live: ToastMessage = opts.undo ? { ...t, undo: opts.undo } : t;
   if (kind === "error") unseen++;
   notifyHistory();
-  listeners.forEach((l) => l(t));
+  listeners.forEach((l) => l(live));
 }
 
 export function subscribeToasts(l: Listener): () => void {

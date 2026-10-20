@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Step } from "../../../types/v3";
 import {
-  addArm, canMoveInto, ensureElse, ensureGroup, insertSteps, moveStepBy, moveStepTo, patchOutputBinding, patchStep, removeArm, removeStepById, renameVariable, resolveList, setArmCondition, setHeading, TOP,
+  addArm, canMoveInto, ensureElse, ensureGroup, initialValueOf, insertSteps, moveDestinations, moveStepBy, moveStepTo, patchOutputBinding, patchStep, removeArm, removeStepById, renameVariable, resolveList, setArmCondition, setHeading, TOP,
 } from "./storyEdit";
 
 const S = (o: Record<string, unknown>) => o as unknown as Step;
@@ -194,5 +194,42 @@ describe("そのほかの安全 (レビュー対応)", () => {
     expect(canMoveInto(f, "c", "c1")).toBe(false);
     expect(canMoveInto(f, "c", null)).toBe(true);
     expect(canMoveInto(f, "d", "c")).toBe(true);
+  });
+});
+
+describe("moveDestinations (枠をまたぐ移動の行き先)", () => {
+  it("最上位と、すべての枠が出る。動かす工程の中は出ない", () => {
+    const steps = flow();
+    const d = moveDestinations(steps, "c");
+    expect(d[0].addr).toEqual(TOP);
+    expect(d.some((x) => x.addr.ownerId === "b" && x.addr.key === "arm:br-01")).toBe(true);
+    expect(d.some((x) => x.addr.ownerId === "b" && x.addr.key === "else")).toBe(true);
+    expect(d.some((x) => x.addr.ownerId === "c")).toBe(false);
+  });
+  it("行き先の末尾に動かせる (別の枠へ)", () => {
+    const steps = flow();
+    const dest = moveDestinations(steps, "a").find((x) => x.addr.ownerId === "c" && x.addr.key === "body")!;
+    expect(moveStepTo(steps, "a", dest.addr, dest.size)).toBe(true);
+    expect(((steps.find((x) => x.id === "c") as unknown) as { steps: Array<{ id: string }> }).steps.map((x) => x.id)).toEqual(["c1", "c2", "a"]);
+  });
+});
+
+describe("結果変数の作り方 (上書き・足し込む・一覧に足す)", () => {
+  it("足し込む・一覧に足すは、最初の値も持つ。上書きに戻すと、両方消える", () => {
+    const steps = [S({ id: "x", kind: "compute", outputBinding: { name: "total" } })];
+    patchOutputBinding(steps, "x", { operation: "accumulate", initialValue: 0 });
+    expect((steps[0] as unknown as { outputBinding: unknown }).outputBinding).toEqual({ name: "total", operation: "accumulate", initialValue: 0 });
+    patchOutputBinding(steps, "x", { operation: "push", initialValue: [] });
+    expect((steps[0] as unknown as { outputBinding: unknown }).outputBinding).toEqual({ name: "total", operation: "push", initialValue: [] });
+    patchOutputBinding(steps, "x", { operation: "assign" });
+    expect((steps[0] as unknown as { outputBinding: unknown }).outputBinding).toEqual({ name: "total" });
+  });
+  it("最初の値の入力: JSON として読めれば JSON、そうでなければ式", () => {
+    expect(initialValueOf("accumulate", "")).toBe(0);
+    expect(initialValueOf("push", "")).toEqual([]);
+    expect(initialValueOf("accumulate", "5")).toBe(5);
+    expect(initialValueOf("push", "[1]")).toEqual([1]);
+    expect(initialValueOf("accumulate", "@inputs.base")).toBe("@inputs.base");
+    expect(initialValueOf("assign", "9")).toBeUndefined();
   });
 });
