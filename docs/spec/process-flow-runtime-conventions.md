@@ -443,6 +443,15 @@ Step-level の `requiredPermissions` は Action-level と AND 条件で評価す
 
 `MessageTemplate.locales` は任意である。未指定の場合、既存 catalog と同じく `template` を default locale の文言として扱うため、既存の `msg` 定義は変更なしで有効である。
 
+## 11.5 分岐 (`BranchStep`) の評価順
+
+`branches[]` は **配列の上から順に条件を調べ、最初に成り立った道だけを実行する** (`if / else if` の連鎖と同じ)。`elseBranch` は、どの道の条件も成り立たなかったときだけ実行する。`elseBranch` が無く、どの道も成り立たなければ、何もせず次の工程へ進む。
+
+- 複数の道が同時に成り立つ場合、**上の道だけ**が実行される (下の道は実行されない)。同時に成り立つ道を別々に実行したいときは、分岐を分けて並べる
+- 道の順序は意味を持つ。入れ替えると、動作が変わりうる
+- `tryCatch` / `affectedRowsZero` / `externalOutcome` の道も、同じ並びの中で、この順に調べる
+- 判断の経緯: 評価順は、schema・仕様書のどこにも明記されていなかった。人が「流れ」表示の判定表で、隠れる道・重なり・抜けを確かめられるよう、一般的な `if / else if` の意味で確定した (2026-10-20、設計者の一任のもとで AI が決定。変更する場合は、判定表の指摘 (`story/storyDecision.ts`) も合わせて直す)
+
 ## 12. 適用チェックリスト (実装者向け)
 
 処理フロー JSON から Node.js/Express 実装を起こすとき、以下を本仕様に沿って決定する:
@@ -456,6 +465,7 @@ Step-level の `requiredPermissions` は Action-level と AND 条件で評価す
 - [ ] sideEffects 内の dbAccess は autocommit (§6)
 - [ ] `responses[].when` は documentation (§7)
 - [ ] `httpRoute.auth` のスキーム具体化は ambient 変数 + product-scope (§8)
+- [ ] `branches[]` は上から順に調べ、最初に成り立った道だけを実行 (§11.5)
 - [ ] ambient 前提 (TZ / 通貨 / 税率) は `data/conventions/catalog.json` の `default: true` エントリから取得 (§9.2)
 - [ ] フロー固有の ambient 例外は `context.ambientOverrides` を確認し、未記載なら catalog defaults をそのまま適用 (§9.3)
 
