@@ -3,6 +3,7 @@ import { useState } from "react";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import type { ActionDefinition } from "../../../types/v3";
 import { collectAllProcessFlowLocalIds } from "../../../utils/localIdGenerator";
+import { subscribeToasts, type ToastMessage } from "../../../utils/toast";
 import { ProcessFlowStory } from "./ProcessFlowStory";
 
 const flowCtx = { tableName: () => undefined, screenName: () => undefined };
@@ -139,5 +140,27 @@ describe("判定表", () => {
     const added = dump().steps.at(-1) as unknown as { branches: Array<{ condition: { expression: string } }> };
     expect(added.branches[0].condition.expression).toBe("@inputs.amount > 100");
     expect(added.branches[1].condition.expression).toBe("@inputs.amount <= 100");
+  });
+
+  it("「または」の列が、すべて「－」になる操作は断り、「列を外す」で列ごと外せる", () => {
+    const toasts: ToastMessage[] = [];
+    const off = subscribeToasts((t) => toasts.push(t));
+    render(<Harness />);
+    fireEvent.click(screen.getAllByTestId("pfs-dt-toggle")[0]);
+    const dt = screen.getByTestId("pfs-dt");
+    // 道 B の 2 列目は「上得意 == true」だけ。その行のマスを 2 回押して「－」にしようとする (○ → × → －)
+    const vipRow = within(dt).getAllByRole("row").find((r) => within(r).queryByText(/上得意/))!;
+    const cells = within(vipRow).getAllByTestId("pfs-dt-cell");
+    const before = armExpr("step-01", "br-02");
+    fireEvent.click(cells[2]); // B の 2 列目: ○ → ×
+    fireEvent.click(within(within(screen.getByTestId("pfs-dt")).getAllByRole("row").find((r) => within(r).queryByText(/上得意/))!).getAllByTestId("pfs-dt-cell")[2]); // × → － (断られる)
+    expect(toasts.at(-1)?.text).toContain("すべて「－」");
+    expect(armExpr("step-01", "br-02")).toBe(before.replace("@inputs.vip == true", "@inputs.vip != true"));
+    // × にしても、行の向きは変わらない (マスは × のまま)
+    expect(within(within(screen.getByTestId("pfs-dt")).getAllByRole("row").find((r) => within(r).queryByText(/上得意/))!).getAllByTestId("pfs-dt-cell")[2]).toHaveTextContent("×");
+    // 列ごと外す
+    fireEvent.click(within(screen.getByTestId("pfs-dt")).getAllByTestId("pfs-dt-del-alt")[1]);
+    expect(armExpr("step-01", "br-02")).toBe("@inputs.type == 'corp' && @inputs.amount <= 1000000");
+    off();
   });
 });

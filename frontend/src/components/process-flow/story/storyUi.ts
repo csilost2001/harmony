@@ -7,8 +7,6 @@ import type { StoryCtx } from "./storyModel";
 export interface StoryEditApi {
   /** 編集中の下書きのアクションを直す (ひとまとまりの取り消し単位) */
   mutate: (fn: (action: ActionDefinition) => void) => void;
-  /** 直す操作の回数 (「元に戻す」が、あとの操作を巻き込まないかの確かめに使う) */
-  mutations: () => number;
   /** 直前の操作を取り消す (編集セッションの取り消し) */
   undo?: () => void;
   /** 流れ全体で使われている ID (新しい工程の ID が重ならないように) */
@@ -16,6 +14,8 @@ export interface StoryEditApi {
   tables: ReadonlyArray<{ id: string; name: string; physicalName: string }>;
   /** 処理の外から来る値 (セッションなど)。条件の候補に出す */
   ambient?: ReadonlyArray<{ name: string; label?: string }>;
+  /** 処理フローに登録された外部システムの名前 (接続先の候補) */
+  externalSystems?: readonly string[];
   /** 「日本語で頼む」: AI に、下書きの変更を頼む (あれば) */
   askAi?: (prompt: string) => void;
 }

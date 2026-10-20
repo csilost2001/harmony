@@ -7,19 +7,20 @@
 import { useMemo, useState } from "react";
 import { returnStatus } from "@harmony/shared";
 import { isPlainEnter } from "../../../utils/imeKeys";
-import { clauseProblem, exprToValue, parseCondition, undefinedRefs, varCandidates, type Clause } from "./conditionBuilder";
+import { clauseProblem, exprToValue, parseCondition, undefinedRefs, varCandidates, type Clause, type CondOp } from "./conditionBuilder";
 import { expressionSegments } from "./expressionText";
 import { ClauseFields } from "./StoryEditors";
 import { CondText } from "./StoryParts";
 import { StoryPopover } from "./StoryPopover";
 import { addArm } from "./storyEdit";
 import {
-  armsEmptiedByRemoving, atomOf, buildDecisionModel, columnName, removeDtRow, replaceDtRow, rowFromAtom, setDtCell,
+  armsEmptiedByRemoving, atomOf, buildDecisionModel, columnName, removeDtAlt, removeDtRow, replaceDtRow, rowFromAtom, setDtCell,
   type DecisionModel, type DtCell, type DtColumn, type DtRow, type DtRowSpec,
 } from "./storyDecision";
 import { stepHeadline, type Loose } from "./storyModel";
 import { composeClause } from "./conditionBuilder";
 import { useStoryUi } from "./storyUi";
+import { showToast } from "../../../utils/toast";
 
 const GLYPH: Record<DtCell, string> = { yes: "○", no: "×", any: "－" };
 const NEXT: Record<DtCell, DtCell> = { any: "yes", yes: "no", no: "any" };
@@ -105,8 +106,10 @@ export function DecisionTable({ step, guard, defaultOpen, onSelect }: { step: Lo
   const [pendingAlt, setPendingAlt] = useState<string | null>(null);
   const [rowPop, setRowPop] = useState<{ anchor: HTMLElement | null; row: DtRowSpec | null } | null>(null);
   const [live, setLive] = useState("");
+  // 画面で見せている行の向き (マスを触っても、行が反転して見えないように)
+  const [preferred, setPreferred] = useState<ReadonlyMap<string, CondOp>>(() => new Map());
   const label = ui.ctx.labels.full;
-  const model = useMemo(() => buildDecisionModel(step, { implicitElse: guard, label }), [step, guard, label]);
+  const model = useMemo(() => buildDecisionModel(step, { implicitElse: guard, label, preferred }), [step, guard, label, preferred]);
   if (!model) return null;
   const rows: DtRow[] = [...model.rows];
   for (const p of pendingRows) if (!rows.some((r) => r.key === p.key)) rows.push({ ...p, segs: p.clause ? expressionSegments(composeClause(p.clause)) : expressionSegments(p.raw), negSegs: [] });
@@ -114,11 +117,17 @@ export function DecisionTable({ step, guard, defaultOpen, onSelect }: { step: Lo
   const editable = Boolean(edit);
   const warns = model.issues.filter((i) => i.level === "warn");
   const armCols = (armId: string) => model.columns.filter((c) => c.armId === armId);
+  // 行の置き換え・削除は、表にできない道には届かない。黙って一部だけ変えないよう、知らせる
+  const notifyUnparsed = () => {
+    const n = model.columns.filter((c) => c.unparsed).length;
+    if (n > 0) showToast(`表にできない条件の道が ${n} 件あります。その道の条件は、そのままです (道の枠で直します)`, "info");
+  };
   const colSpec = (r: DtRow): DtRowSpec => ({ key: r.key, clause: r.clause, raw: r.raw, negatable: r.negatable });
 
   const setCell = (c: DtColumn, r: DtRow, cell: DtCell) => {
     if (!edit || !c.armId) return;
     const spec = colSpec(r);
+    if (spec.clause) setPreferred((m) => new Map(m).set(spec.key, spec.clause!.op));
     edit.mutate((a) => { setDtCell(a.steps, step.id, c.armId!, c.altIndex, spec, cell); });
     setPendingRows((p) => p.filter((x) => x.key !== r.key));
     if (pendingAlt === c.armId) setPendingAlt(null);
@@ -127,6 +136,11 @@ export function DecisionTable({ step, guard, defaultOpen, onSelect }: { step: Lo
   const cycle = (c: DtColumn, r: DtRow, cur: DtCell) => {
     let next = NEXT[cur];
     if (next === "no" && !r.negatable) next = "any";
+    // 「または」の 1 列が、すべて「－」になる操作は断る (式に書けず、道が黙って狭くなるため)
+    if (next === "any" && c.altCount > 1 && c.cells.every((x, i) => x === "any" || i === model.rows.findIndex((m) => m.key === r.key))) {
+      showToast(`${columnName(c)} の条件が、すべて「－」になるので、できません。この列ごと外すときは、列の「列を外す」を使ってください`, "info");
+      return;
+    }
     setCell(c, r, next);
   };
 
@@ -149,6 +163,9 @@ export function DecisionTable({ step, guard, defaultOpen, onSelect }: { step: Lo
                       {c.altCount > 1 && c.altIndex > 0 && <small> または</small>}
                       {c.label && <small className="pfs-muted"> {c.label}</small>}
                       {c.unparsed && <small className="pfs-dt-raw" title="表にできない条件は、道の枠で直します">{c.unparsed}</small>}
+                      {editable && c.armId && c.altCount > 1 && !c.unparsed && (
+                        <button type="button" className="pfs-mini is-danger" title="この「または」の列を外す" aria-label={`${columnName(c)} を外す`} onClick={() => edit?.mutate((a) => { removeDtAlt(a.steps, step.id, c.armId!, c.altIndex); })} data-testid="pfs-dt-del-alt">列を外す</button>
+                      )}
                       {editable && c.armId && c.altIndex === c.altCount - 1 && !c.unparsed && (
                         <button type="button" className="pfs-mini" title="この道に、「または」の列を足す" aria-label={`道 ${c.code} に または の列を足す`} onClick={() => setPendingAlt(pendingAlt === c.armId ? null : c.armId)}>＋または</button>
                       )}
@@ -164,7 +181,7 @@ export function DecisionTable({ step, guard, defaultOpen, onSelect }: { step: Lo
                       onEdit={(el) => setRowPop({ anchor: el, row: colSpec(r) })}
                       onRemove={() => {
                         if (pendingKeys.has(r.key) && !model.rows.some((m) => m.key === r.key)) setPendingRows((p) => p.filter((x) => x.key !== r.key));
-                        else edit?.mutate((a) => { removeDtRow(a.steps, step.id, colSpec(r)); });
+                        else { edit?.mutate((a) => { removeDtRow(a.steps, step.id, colSpec(r)); }); notifyUnparsed(); }
                       }} />
                     {model.columns.map((c, ci) => {
                       const cell = c.cells[ri] ?? "any";
@@ -223,6 +240,7 @@ export function DecisionTable({ step, guard, defaultOpen, onSelect }: { step: Lo
                 if (!old) { setPendingRows((p) => (p.some((x) => x.key === spec.key) || model.rows.some((m) => m.key === spec.key) ? p : [...p, spec])); return; }
                 if (pendingKeys.has(old.key) && !model.rows.some((m) => m.key === old.key)) { setPendingRows((p) => p.map((x) => (x.key === old.key ? spec : x))); return; }
                 edit.mutate((a) => { replaceDtRow(a.steps, step.id, old, spec); });
+                notifyUnparsed();
               }}
             />
           )}

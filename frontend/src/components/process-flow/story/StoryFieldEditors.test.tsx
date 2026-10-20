@@ -113,4 +113,29 @@ describe("流れ: 細かい欄をその場で直す", () => {
     expect(s.httpCall).toMatchObject({ method: "POST", path: "/v2/charges", body: "@var.x" });
     expect(s.timeoutMs).toBe(10000);
   });
+
+  it("外部システム: 形の合わない接続先は決められない。HTTP の呼び方を外すと httpCall が消える", () => {
+    render(<Harness />);
+    fireEvent.click(screen.getByText("payment"));
+    const pop = screen.getByTestId("pfs-popover");
+    fireEvent.change(within(pop).getByLabelText("接続先"), { target: { value: "Payment-Gateway" } });
+    expect(within(pop).getByTestId("pfs-external-apply")).toBeDisabled();
+    fireEvent.change(within(pop).getByLabelText("接続先"), { target: { value: "paymentGateway" } });
+    fireEvent.click(within(pop).getByLabelText(/HTTP の呼び方/));
+    fireEvent.click(within(pop).getByTestId("pfs-external-apply"));
+    const s = step("step-04") as { systemRef: string; httpCall?: unknown };
+    expect(s.systemRef).toBe("paymentGateway");
+    expect(s.httpCall).toBeUndefined();
+  });
+
+  it("入力チェック: 長さは整数だけ。触っていないルールに severity を書き足さない", () => {
+    render(<Harness />);
+    fireEvent.click(screen.getByTestId("pfs-edit-rules"));
+    const pop = screen.getByTestId("pfs-popover");
+    const rules = within(pop).getAllByTestId("pfs-rule");
+    fireEvent.change(within(rules[1]).getByLabelText("長さ"), { target: { value: "20.5" } });
+    expect(within(pop).getByTestId("pfs-rules-apply")).toBeDisabled();
+    fireEvent.change(within(rules[1]).getByLabelText("長さ"), { target: { value: "20" } });
+    fireEvent.click(within(pop).getByTestId("pfs-rules-apply"));
+  });
 });

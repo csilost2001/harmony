@@ -230,6 +230,7 @@ export function CanvasPane({
             flowIds={flowIds}
             tables={tables}
             ambient={ambient}
+            externalSystems={Object.keys(group?.context?.catalogs?.externalSystems ?? {})}
             onAskAi={onAiRequest}
             onUndo={onUndo}
             problems={validationErrors}

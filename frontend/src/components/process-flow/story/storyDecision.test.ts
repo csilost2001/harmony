@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Step } from "../../../types/v3";
-import { armsEmptiedByRemoving, atomKey, buildDecisionModel, composeDnf, parseDnf, removeDtRow, replaceDtRow, setDtCell } from "./storyDecision";
+import { armsEmptiedByRemoving, atomKey, buildDecisionModel, composeDnf, feasible, parseDnf, removeDtAlt, removeDtRow, replaceDtRow, setDtCell } from "./storyDecision";
 import { parseClause } from "./conditionBuilder";
 import type { Loose } from "./storyModel";
 
@@ -167,5 +167,68 @@ describe("表から直す", () => {
     const s: Step[] = [branch([{ id: "a", code: "A", expr: "@x ? 1 : 2" }]) as unknown as Step];
     expect(setDtCell(s, "b1", "a", 0, { key: "k", clause: parseClause("@x == 1"), raw: "", negatable: true }, "yes")).toBe(false);
     expect(cond(s, "a")).toBe("@x ? 1 : 2");
+  });
+});
+
+describe("レビュー指摘の対応 (第 3 弾)", () => {
+  const cond = (s: Step[], id: string) => ((s[0] as unknown as { branches: Array<{ id: string; condition: { expression: string } }> }).branches.find((b) => b.id === id)!).condition.expression;
+  const mk = (arms: Array<{ id: string; expr: string }>, withElse = true): Step[] => [branch(arms.map((a, i) => ({ ...a, code: "ABC"[i] })), withElse) as unknown as Step];
+
+  it("数の範囲が重ならない組み合わせは、起こらないものとして、抜けにも重なりにも出さない", () => {
+    const m = buildDecisionModel(branch([
+      { id: "a", code: "A", expr: "@n > 100 && @p" },
+      { id: "b", code: "B", expr: "@n > 50 && !@p" },
+    ], false))!;
+    const gap = m.issues.find((i) => i.text.includes("どの道にも入りません"));
+    expect(gap?.text ?? "").not.toMatch(/100 より大きい.*50 以下/);
+    const m2 = buildDecisionModel(branch([{ id: "a", code: "A", expr: "@n > 5" }, { id: "b", code: "B", expr: "@n < 3" }]))!;
+    expect(m2.issues.find((i) => i.text.includes("同時に成り立つ"))).toBeUndefined();
+  });
+  it("「すべて入る」には、空・未設定は調べていないと添える。起こらない道 (x == 1 かつ x == 2) は指摘する", () => {
+    const m = buildDecisionModel(branch([{ id: "a", code: "A", expr: "@n > 5" }, { id: "b", code: "B", expr: "@n <= 5" }], false))!;
+    expect(m.issues.some((i) => i.text.includes("空・未設定"))).toBe(true);
+    const m2 = buildDecisionModel(branch([{ id: "a", code: "A", expr: "@x == 1 && @x == 2" }]))!;
+    expect(m2.issues.some((i) => i.level === "warn" && i.text.includes("食い違"))).toBe(true);
+  });
+  it("feasible: ない と値の比べ・はい と いいえ", () => {
+    const rows = [
+      { key: "1", clause: parseClause("@x == null"), raw: "", negatable: true },
+      { key: "2", clause: parseClause("@x == 1"), raw: "", negatable: true },
+    ];
+    expect(feasible(rows, ["yes", "yes"])).toBe(false);
+    expect(feasible(rows, ["yes", "no"])).toBe(true);
+  });
+  it("「または」の 1 列が空になる操作は断る (道が黙って狭くならない)。列ごと外すのは別の操作", () => {
+    const s = mk([{ id: "a", expr: "@x == 1 || @y == 2" }]);
+    const m = buildDecisionModel(s[0] as unknown as Loose)!;
+    expect(setDtCell(s, "b1", "a", 0, m.rows[0], "any")).toBe(false);
+    expect(cond(s, "a")).toBe("@x == 1 || @y == 2");
+    expect(armsEmptiedByRemoving(m, 0)).toEqual(["A"]);
+    expect(removeDtRow(s, "b1", m.rows[0])).toBe(0);
+    expect(removeDtAlt(s, "b1", "a", 0)).toBe(true);
+    expect(cond(s, "a")).toBe("@y == 2");
+    expect(removeDtAlt(s, "b1", "a", 0)).toBe(false);
+  });
+  it("表にできない道は、置き換えの数に入らない (呼び出し側が知らせられる)", () => {
+    const s = mk([{ id: "a", expr: "@x == 1" }, { id: "b", expr: "@x == 1 ? 1 : 0" }, { id: "c", expr: "@x == 1 && @y == 2" }]);
+    const m = buildDecisionModel(s[0] as unknown as Loose)!;
+    expect(replaceDtRow(s, "b1", m.rows[0], { key: "z", clause: parseClause("@z == 9"), raw: "", negatable: true })).toBe(2);
+    expect(cond(s, "b")).toBe("@x == 1 ? 1 : 0");
+  });
+  it("=== と == は別の行で、マスを触っても、もう一方の比べ方に変わらない", () => {
+    const s = mk([{ id: "a", expr: "@x === 1" }, { id: "b", expr: "@x == 1 && @y == 2" }]);
+    const m = buildDecisionModel(s[0] as unknown as Loose)!;
+    expect(m.rows.filter((r) => r.clause?.subject === "@x")).toHaveLength(2);
+    const bRow = m.rows.find((r) => r.clause && !r.clause.strict && r.clause.subject === "@x")!;
+    setDtCell(s, "b1", "b", 0, bRow, "no");
+    expect(cond(s, "b")).toBe("@x != 1 && @y == 2");
+  });
+  it("「～ がある」の条件は、その項目の中身を使う条件より前に入る", () => {
+    const s = mk([{ id: "a", expr: "@x.y > 0" }, { id: "b", expr: "@z == 1" }]);
+    const m = buildDecisionModel(s[0] as unknown as Loose)!;
+    setDtCell(s, "b1", "b", 0, { key: "g", clause: parseClause("@x != null"), raw: "", negatable: true }, "yes");
+    setDtCell(s, "b1", "a", 0, { key: "g", clause: parseClause("@x != null"), raw: "", negatable: true }, "yes");
+    expect(cond(s, "a")).toBe("@x != null && @x.y > 0");
+    expect(m.rows).toHaveLength(2);
   });
 });

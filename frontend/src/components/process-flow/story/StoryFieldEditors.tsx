@@ -4,6 +4,7 @@
  */
 import { useMemo, useRef, useState } from "react";
 import { isPlainEnter } from "../../../utils/imeKeys";
+import { isValidIdentifier } from "../../../utils/identifierHints";
 import { selectColumns } from "./conditionBuilder";
 import { StoryPopover } from "./StoryPopover";
 import { patchStep } from "./storyEdit";
@@ -66,9 +67,9 @@ const isNum = (t: string) => t.trim() !== "" && Number.isFinite(Number(t));
 
 function ruleProblem(d: RuleDraft): string {
   if (!d.field.trim()) return "どの入力かを選んでください";
-  if ((d.type === "maxLength" || d.type === "minLength") && !(isNum(d.a) && Number(d.a) >= 0) && !d.a.trim().startsWith("@")) return "長さ (0 以上の数) を入れてください";
+  if ((d.type === "maxLength" || d.type === "minLength") && !(isNum(d.a) && Number.isInteger(Number(d.a)) && Number(d.a) >= 0) && !d.a.trim().startsWith("@conv.")) return "長さ (0 以上の整数) を入れてください";
   if (d.type === "range") {
-    const ok = (t: string) => t.trim() === "" || isNum(t) || t.trim().startsWith("@");
+    const ok = (t: string) => t.trim() === "" || isNum(t) || t.trim().startsWith("@conv.");
     if (!ok(d.a) || !ok(d.b)) return "最小・最大は、数で入れてください";
     if (d.a.trim() === "" && d.b.trim() === "") return "最小か最大のどちらかを入れてください";
   }
@@ -78,13 +79,15 @@ function ruleProblem(d: RuleDraft): string {
 }
 
 function fromDraft(d: RuleDraft): Rec {
-  const r: Rec = { ...d.base, field: d.field.trim(), type: d.type, severity: d.severity };
+  const r: Rec = { ...d.base, field: d.field.trim(), type: d.type };
+  // 触っていないルールに、「error」を書き足さない (省略は error と同じ意味)
+  if (d.severity !== "error" || d.base.severity !== undefined) r.severity = d.severity;
   const setRef = (key: string, refKey: string, text: string, asNumber: boolean) => {
     const t = text.trim();
     delete r[key];
     delete r[refKey];
     if (!t) return;
-    if (t.startsWith("@")) r[refKey] = t;
+    if (t.startsWith("@conv.")) r[refKey] = t;
     else r[key] = asNumber ? Number(t) : t;
   };
   if (d.type !== "custom") {
@@ -271,13 +274,14 @@ export function ExternalEditor({ anchor, stepId, onClose }: PopProps & { stepId:
   const [path, setPath] = useState(str(http?.path));
   const [timeoutSec, setTimeoutSec] = useState(typeof step?.timeoutMs === "number" ? String(step.timeoutMs / 1000) : "");
   const [forget, setForget] = useState(Boolean(step?.fireAndForget));
-  const problem = !systemRef.trim() ? "接続先の名前を入れてください (例: paymentGateway)" : useHttp && !path.trim() ? "パス (例: /v1/charges) を入れてください" : timeoutSec.trim() && !(Number(timeoutSec) >= 0) ? "待つ秒数は、数で入れてください" : "";
+  const known = ui.edit?.externalSystems ?? [];
+  const problem = !systemRef.trim() ? "接続先の名前を入れてください (例: paymentGateway)" : !isValidIdentifier(systemRef.trim(), "camel") ? "接続先の名前は、英小文字で始まる英数字 (camelCase。例: paymentGateway) にしてください" : useHttp && !path.trim() ? "パス (例: /v1/charges) を入れてください" : timeoutSec.trim() && !(Number(timeoutSec) >= 0) ? "待つ秒数は、数で入れてください" : "";
   const apply = () => {
     if (problem) return;
     ui.edit?.mutate((a) => {
       patchStep(a.steps, stepId, {
         systemRef: systemRef.trim(),
-        httpCall: useHttp ? { ...(http ?? {}), method, path: path.trim() } : http ?? undefined,
+        httpCall: useHttp ? { ...(http ?? {}), method, path: path.trim() } : undefined,
         timeoutMs: timeoutSec.trim() ? Math.round(Number(timeoutSec) * 1000) : undefined,
         fireAndForget: forget ? true : undefined,
       });
@@ -287,8 +291,10 @@ export function ExternalEditor({ anchor, stepId, onClose }: PopProps & { stepId:
   return (
     <StoryPopover anchor={anchor} title="外部システムの呼び方" onClose={onClose} width={440}>
       <label className="pfs-label">接続先 (外部システムの名前)</label>
-      <input className="pfs-field" aria-label="接続先" placeholder="例: paymentGateway" value={systemRef} onChange={(e) => setSystemRef(e.target.value)} />
-      <label className="pfs-label"><input type="checkbox" checked={useHttp} onChange={(e) => setUseHttp(e.target.checked)} /> HTTP の呼び方を、ここで決める</label>
+      <input className="pfs-field" aria-label="接続先" list="pfs-ext-systems" placeholder="例: paymentGateway (選ぶか、書く)" value={systemRef} onChange={(e) => setSystemRef(e.target.value)} />
+      <datalist id="pfs-ext-systems">{known.map((k) => <option key={k} value={k} />)}</datalist>
+      {systemRef.trim() && known.length > 0 && !known.includes(systemRef.trim()) && <p className="pfs-note">この名前は、この処理フローの「外部システム」に登録されていません (登録は、カードの「外部システム」で)。</p>}
+      <label className="pfs-label"><input type="checkbox" checked={useHttp} onChange={(e) => setUseHttp(e.target.checked)} /> HTTP の呼び方を、ここで決める{http && !useHttp ? " (外すと、パス・リクエストの中身も消えます)" : ""}</label>
       {useHttp && (
         <div className="pfs-row-fields">
           <select className="pfs-field is-inline" aria-label="メソッド" value={method} onChange={(e) => setMethod(e.target.value)}>{HTTP_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}</select>

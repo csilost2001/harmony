@@ -6,6 +6,7 @@ import { useMemo, useState, type KeyboardEvent as ReactKeyboardEvent } from "rea
 import { kindLabel, returnStatus } from "@harmony/shared";
 import type { Step } from "../../../types/v3";
 import { showToast } from "../../../utils/toast";
+import { captureNextAction, latestAction } from "./actionTracker";
 import { DecisionTable } from "./DecisionTable";
 import { expressionSegments } from "./expressionText";
 import { parseDnf } from "./storyDecision";
@@ -164,11 +165,13 @@ function RowActions({ step, env, topLevel }: { step: Loose; env: RowEnv; topLeve
 }
 
 function removeWithToast(edit: StoryEditApi, id: string): void {
-  const before = edit.mutations();
+  // 消した直後の版を覚え、「元に戻す」は、いまの版がそれと同じときだけ効かせる
+  // (そのあとに、Ctrl+Z・ほかの表示での編集・AI の反映があれば、それを戻してしまうため)
+  let after: unknown = null;
+  captureNextAction((a) => { after = a; });
   edit.mutate((a) => { removeStepById(a.steps, id); });
-  // 「元に戻す」は、消した直後の状態のときだけ効かせる (そのあとに別の操作をしていたら、それを戻してしまうため)
   const undo = edit.undo ? () => {
-    if (edit.mutations() !== before + 1) { showToast("そのあとに別の操作をしたので、ここからは戻せません (Ctrl+Z で順に戻せます)", "info"); return; }
+    if (after === null || latestAction() !== after) { showToast("そのあとに別の操作をしたので、ここからは戻せません (Ctrl+Z で順に戻せます)", "info"); return; }
     edit.undo?.();
   } : undefined;
   showToast("工程を消しました (Ctrl+Z で戻せます)", "info", undo ? { undo } : {});
