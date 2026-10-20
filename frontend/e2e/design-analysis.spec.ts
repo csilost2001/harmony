@@ -118,6 +118,20 @@ test.describe("設計の分析", () => {
     await expect(page.locator(".tabbar, [role=tablist]").getByText("設計の分析")).toHaveCount(1);
   });
 
+  test("整理の「SQL」: 処理フローの SQL が一覧になり、CSV で保存できる (retail)", async ({ page }) => {
+    await ws.gotoActive(page, "/analysis");
+    await page.getByTestId("an-tab-cleanup").click();
+    await page.getByRole("button", { name: "SQL", exact: true }).click();
+    const list = page.getByTestId("an-sql-list");
+    await expect(list).toBeVisible({ timeout: 20000 });
+    await expect(list).toContainText("SELECT");
+    await expect(list.locator("tbody tr").first()).toBeVisible();
+    // CSV で保存 (ダウンロードが始まる)
+    const [dl] = await Promise.all([page.waitForEvent("download", { timeout: 10000 }), list.getByRole("button", { name: /CSV で保存/ }).click()]);
+    expect(dl.suggestedFilename()).toBe("sql.csv");
+    await expect(page.getByTestId("an-sql-dups")).toBeVisible();
+  });
+
   test("どのタブの操作部品も、読み上げに使える名前を持つ (ボタン・入力欄・表の見出し)", async ({ page }) => {
     test.setTimeout(90000);
     await ws.gotoActive(page, "/analysis");

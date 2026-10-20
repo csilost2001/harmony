@@ -107,7 +107,7 @@ function SqlList({ input }: { input: DesignDocInput }) {
       <Section title={`SQL の一覧 (${entries.length} 件)`} hint="処理フローの DB アクセス工程に書かれた SQL を、1 か所にまとめたものです。レビュー・DBA への共有に使えます。"
         testId="an-sql-list" actions={<button type="button" className="an-btn" disabled={entries.length === 0} onClick={() => saveTextFile("sql.csv", withBom(sqlCatalogToCsv(entries)), "text/csv")}><i className="bi bi-download" /> CSV で保存</button>}>
         <AnTable headers={["処理フロー", "アクション", "説明", "テーブル", "操作", "SQL"]} empty="SQL の書かれた DB アクセス工程がありません。" rows={entries.map((e) => [
-          <EntityLink key="f" kind="processFlow" id={e.flow.id}>{e.flow.name}</EntityLink>, e.action.name, e.description || e.stepId, e.table?.name ?? "", e.operation, <code key="s" className="an-sql">{e.sql}</code>,
+          <EntityLink key="f" kind="processFlow" id={e.flow.id}>{e.flow.name}</EntityLink>, e.action.name, e.description || e.stepId, e.table?.name ?? "", <span key="o" className="an-nowrap">{e.operation}</span>, <code key="s" className="an-sql">{e.sql}</code>,
         ])} />
       </Section>
     </>
