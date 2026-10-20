@@ -55,4 +55,10 @@ describe("selectShape (検索の結果が 1 件か一覧か)", () => {
     expect(selectShape("SELECT id FROM unknown_t WHERE id = @x", env)).toBe("one");
     expect(selectShape("SELECT id FROM unknown_t WHERE product_code = @x", env)).toBe("list");
   });
+  it("昔の書き方の結合 (別名つきのカンマ)・LIMIT 1, 5・文字列の中の -- や /*", () => {
+    expect(selectShape("SELECT * FROM carts c, cart_items ci WHERE c.id = @x AND ci.cart_id = c.id")).toBe("list");
+    expect(selectShape("SELECT * FROM t LIMIT 1, 5")).toBe("list");
+    expect(selectShape("SELECT * FROM posts WHERE note <> 'a -- b' AND id = @s")).toBe("one");
+    expect(selectShape("SELECT * FROM posts WHERE url LIKE 'http://x/*%' AND id = @s /* c */")).toBe("one");
+  });
 });

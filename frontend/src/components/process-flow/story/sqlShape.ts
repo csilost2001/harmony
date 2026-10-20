@@ -20,7 +20,8 @@ export function buildShapeEnv(tables: ReadonlyArray<ShapeTable> | undefined): Sh
 
 /** コメントと文字列を落とし、識別子の引用符を外す */
 function clean(sql: string): string {
-  const s = sql.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/--[^\n]*/g, " ").replace(/'(?:[^']|'')*'/g, "''");
+  // 文字列とコメントは、1 回の走査で落とす (文字列の中の `--` `/*` を、コメントと取り違えないため)
+  const s = sql.replace(/'(?:[^']|'')*'|\/\*[\s\S]*?\*\/|--[^\n]*/g, (m) => (m.startsWith("'") ? "''" : " "));
   return s.replace(/["`[\]]/g, "");
 }
 
@@ -33,10 +34,8 @@ function withoutSubqueries(sql: string): string {
 
 /** コメント・文字列・括弧の中 (部分クエリ・窓関数・関数の引数) を落として、いちばん外側の文だけにする */
 function outerSql(sql: string): string {
-  let s = sql.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/--[^\n]*/g, " ").replace(/'(?:[^']|'')*'/g, "''");
-  // 識別子の引用符 ("id" `id` [id]) を外す
-  s = s.replace(/["`[\]]/g, "");
-  // 括弧の中は、内側から順に「⟦⟧」に置き換える (関数の名前は残る: COUNT⟦⟧)
+  let s = clean(sql);
+// 括弧の中は、内側から順に「⟦⟧」に置き換える (関数の名前は残る: COUNT⟦⟧)
   for (let i = 0; i < 30 && /\([^()]*\)/.test(s); i++) s = s.replace(/\([^()]*\)/g, "⟦⟧");
   return s.replace(/\s+/g, " ").trim();
 }
@@ -86,12 +85,14 @@ function joinsKeepRows(s: string, env: ShapeEnv | undefined): boolean {
  */
 export function selectShape(sql: string, env?: ShapeEnv): "one" | "list" {
   const s = outerSql(sql);
-  if (/\bLIMIT 1\b(?!\d)/i.test(s) || /\bSELECT (?:DISTINCT )?TOP 1\b(?!\d)/i.test(s) || /\bFETCH (?:FIRST|NEXT) 1 ROWS?\b/i.test(s)) return "one";
+  if (/\bLIMIT 1\b(?!\d| ?,)/i.test(s) || /\bSELECT (?:DISTINCT )?TOP 1\b(?!\d)/i.test(s) || /\bFETCH (?:FIRST|NEXT) 1 ROWS?\b/i.test(s)) return "one";
   // 集計だけの検索 (GROUP BY なし・窓関数なし)。集計は、COALESCE(SUM(…), 0) のような入れ子の中でも見る。部分クエリの中は見ない
   const agg = withoutSubqueries(sql);
   const head = agg.match(/\bSELECT\b(.*?)\bFROM\b/i)?.[1] ?? "";
   if (!/\bGROUP BY\b/i.test(agg) && !/\bOVER\b/i.test(head) && /\b(?:COUNT|SUM|AVG|MIN|MAX)\s*⟪/i.test(head)) return "one";
-  if (/\bUNION\b/i.test(s) || /\bFROM [^ ]+ *,/i.test(s)) return "list";
+  // 和集合・昔の書き方の結合 (FROM a x, b y) は、行が増えうる
+  const fromPart = s.match(/\bFROM\b(.*?)(?=\bWHERE\b|\bGROUP BY\b|\bORDER BY\b|\bHAVING\b|\bLIMIT\b|$)/i)?.[1] ?? "";
+  if (/\bUNION\b/i.test(s) || fromPart.includes(",")) return "list";
   if (/\bJOIN\b/i.test(s) && !joinsKeepRows(s, env)) return "list";
   const base = baseTable(s);
   // 検索の絞り込みは、FROM のテーブル (別名つきならその別名) の列だけを数える
