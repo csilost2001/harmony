@@ -49,7 +49,7 @@ function RowEditor({ anchor, initial, beforeStepId, onSubmit, onClose }: {
   onClose: () => void;
 }) {
   const ui = useStoryUi();
-  const cands = useMemo(() => varCandidates(ui.ctx.action, beforeStepId, ui.edit?.ambient ?? []), [ui.ctx.action, beforeStepId, ui.edit?.ambient]);
+  const cands = useMemo(() => varCandidates(ui.ctx.action, beforeStepId, ui.edit?.ambient ?? [], ui.ctx.shapeEnv), [ui.ctx.action, beforeStepId, ui.edit?.ambient, ui.ctx.shapeEnv]);
   const [clause, setClause] = useState<Clause>(() => initial?.clause ?? { subject: cands[0]?.ref ?? "@", op: "==", value: "" });
   const [raw, setRaw] = useState(initial !== null && !initial.clause);
   const [text, setText] = useState(initial ? (initial.clause ? composeClause(initial.clause) : initial.raw) : "");

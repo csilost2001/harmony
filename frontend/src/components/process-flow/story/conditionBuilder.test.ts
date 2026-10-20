@@ -76,7 +76,7 @@ describe("varCandidates", () => {
   });
   it("項目の候補: DB の検索結果の列・入力の名前・TX の結果", () => {
     const c = varCandidates(action, "s4");
-    expect(c.find((x) => x.ref === "@customer")!.props.map((p) => p.name)).toEqual(["id", "isActive"]);
+    expect(c.find((x) => x.ref === "@customer")!.props.map((p) => p.name)).toEqual(expect.arrayContaining(["id", "isActive", "length"])); // 1 件に絞る条件がない検索は、一覧になりうるので「件数」(length) も候補に出る
     expect(c.find((x) => x.ref === "@inputs")!.props).toEqual([{ name: "customerId", label: "取引先ID" }]);
     expect(c.find((x) => x.ref === "@txResult")!.props.map((p) => p.name)).toEqual(["committed", "error.code", "newOrder"]);
   });

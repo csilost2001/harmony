@@ -30,6 +30,7 @@ import {
   type StoryCtx,
 } from "./storyModel";
 import { noteAction } from "./actionTracker";
+import { buildShapeEnv } from "./sqlShape";
 import { StoryUiProvider, type AutoEdit, type StoryEditApi } from "./storyUi";
 import { useReviewedSteps } from "./useReviewedSteps";
 import "../../../styles/processFlowStory.css";
@@ -105,7 +106,8 @@ export function ProcessFlowStory({ action, reviewKey, ctx, selectedStepIds, onSe
 
   const steps = useMemo(() => asLooseList(action.steps), [action.steps]);
   const labels = useMemo(() => buildVarLabels(action), [action]);
-  const storyCtx = useMemo<StoryCtx>(() => ({ flow: ctx, action, labels }), [ctx, action, labels]);
+  const shapeEnv = useMemo(() => buildShapeEnv(tables), [tables]);
+  const storyCtx = useMemo<StoryCtx>(() => ({ flow: ctx, action, labels, shapeEnv }), [ctx, action, labels, shapeEnv]);
   const sections = useMemo(() => sectionsOf(steps), [steps]);
   const exits = useMemo(() => collectExits(action, labels), [action, labels]);
   const vars = useMemo(() => variableFlow(action, labels), [action, labels]);

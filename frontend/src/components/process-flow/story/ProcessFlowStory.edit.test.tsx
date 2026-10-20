@@ -7,7 +7,7 @@ import { subscribeToasts, type ToastMessage } from "../../../utils/toast";
 import { ProcessFlowStory } from "./ProcessFlowStory";
 
 const flowCtx = { tableName: (id: string) => ({ order: "注文" }[id]), screenName: () => undefined };
-const TABLES = [{ id: "order", name: "注文", physicalName: "orders" }, { id: "customer", name: "顧客", physicalName: "customers" }];
+const TABLES: Array<{ id: string; name: string; physicalName: string; uniqueKeys?: string[][] }> = [{ id: "order", name: "注文", physicalName: "orders" }, { id: "customer", name: "顧客", physicalName: "customers" }];
 
 function base(): ActionDefinition {
   return ({
@@ -23,7 +23,7 @@ function base(): ActionDefinition {
 }
 
 /** 編集中の下書きを持つ、試験用の入れ物 (本番の ProcessFlowEditor の updateGroupWithDraft の代わり) */
-function Harness({ initial = base(), editable = true, onAsk, onUndo }: { initial?: ActionDefinition; editable?: boolean; onAsk?: (p: string) => void; onUndo?: () => void }) {
+function Harness({ initial = base(), editable = true, onAsk, onUndo, tables = TABLES }: { initial?: ActionDefinition; editable?: boolean; onAsk?: (p: string) => void; onUndo?: () => void; tables?: typeof TABLES }) {
   const [action, setAction] = useState(initial);
   return (
     <>
@@ -37,7 +37,7 @@ function Harness({ initial = base(), editable = true, onAsk, onUndo }: { initial
         editable={editable}
         onMutate={(fn) => setAction((cur) => { const next = structuredClone(cur); fn(next); return next; })}
         flowIds={() => collectAllProcessFlowLocalIds({ actions: [action] })}
-        tables={TABLES}
+        tables={tables}
         onAskAi={onAsk}
         onUndo={onUndo}
       />
@@ -413,5 +413,27 @@ describe("流れの表示: その場で直す (編集中)", () => {
     expect(within(pop).getByLabelText("最初の値")).toHaveValue("[]");
     fireEvent.click(within(pop).getByRole("button", { name: "決める" }));
     expect((dump().steps[0] as unknown as { outputBinding: unknown }).outputBinding).toEqual({ name: "customer", label: "取引先", operation: "push", initialValue: [] });
+  });
+
+  it("一覧になりうる検索の結果を「ない」で調べていたら、件数で調べる案内が出る (押すと直る)", () => {
+    render(<Harness />);
+    // 「一覧」の印が、検索の行に出る
+    expect(screen.getByText("結果は一覧")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("pfs-guard-cond"));
+    const pop = screen.getByTestId("pfs-popover");
+    expect(within(pop).getByTestId("pfs-list-hint")).toHaveTextContent("一覧");
+    fireEvent.click(within(pop).getByRole("button", { name: /件数が 0/ }));
+    expect(within(pop).getByTestId("pfs-cond-preview")).toHaveTextContent("@customer.length == 0");
+    fireEvent.click(within(pop).getByTestId("pfs-cond-apply"));
+    expect((dump().steps[1] as unknown as { branches: Array<{ condition: { expression: string } }> }).branches[0].condition.expression).toBe("@customer.length == 0");
+  });
+
+  it("1 件を探す検索 (一意の列の一致) の結果は、「ない」で調べていても、案内も印も出ない", () => {
+    const a = base();
+    (a.steps[0] as unknown as { sql: string }).sql = "SELECT id, is_active AS \"isActive\" FROM customers WHERE customer_code = @inputs.code";
+    render(<Harness initial={a} tables={[{ id: "customer", name: "顧客", physicalName: "customers", uniqueKeys: [["id"], ["customer_code"]] }]} />);
+    expect(screen.queryByText("結果は一覧")).toBeNull();
+    fireEvent.click(screen.getByTestId("pfs-guard-cond"));
+    expect(screen.queryByTestId("pfs-list-hint")).toBeNull();
   });
 });

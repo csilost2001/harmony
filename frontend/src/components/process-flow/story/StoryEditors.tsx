@@ -166,7 +166,7 @@ export function CollectionPicker({ anchor, stepId, current, onClose }: PopProps 
   const ui = useStoryUi();
   const [text, setText] = useState(current);
   const arrayInputNames = useMemo(() => new Set<string>((ui.ctx.action.inputs ?? []).filter((i) => typeof i.type === "object" && (i.type as { kind?: string }).kind === "array").map((i) => i.name as string)), [ui.ctx.action.inputs]);
-  const cands = useMemo(() => varCandidates(ui.ctx.action, stepId, ui.edit?.ambient ?? []), [ui.ctx.action, stepId, ui.edit?.ambient]);
+  const cands = useMemo(() => varCandidates(ui.ctx.action, stepId, ui.edit?.ambient ?? [], ui.ctx.shapeEnv), [ui.ctx.action, stepId, ui.edit?.ambient, ui.ctx.shapeEnv]);
   // 一覧の候補: 入力・ここまでに作られた変数 (DB の検索結果など)
   const options = useMemo(() => {
     const out: Array<{ ref: string; label: string }> = [];
@@ -221,6 +221,19 @@ function joinSubject(root: string, prop: string): string {
   return prop.startsWith("[") ? `${root}${prop}` : `${root}.${prop}`;
 }
 
+function listUseHint(sp: SubjectParts, c: Clause, onChange: (patch: Partial<Clause>) => void, onDraft: (v: string) => void): { text: string; fix?: { label: string; run: () => void } } | null {
+  if (!sp.prop && (c.op === "null" || c.op === "notNull")) {
+    return {
+      text: "一覧を返す検索なら、0 件のときも「ない」にはならず、0 件かどうかは「件数」で調べます。1 件 (なければ null) を返す設計なら、このままで正しいので、直さないでください。",
+      fix: { label: c.op === "null" ? "「件数が 0」にする" : "「件数が 0 より大きい」にする", run: () => { onChange({ subject: joinSubject(sp.root, "length"), op: c.op === "null" ? "==" : ">", value: "0", strict: undefined }); onDraft("0"); } },
+    };
+  }
+  if (sp.prop && sp.prop !== "length" && !sp.prop.startsWith("[")) {
+    return { text: `一覧を返す検索なら、1 件目の値は「${sp.root.slice(1)}[0].${sp.prop}」です。1 件を返す設計なら、このままで正しいので、直さないでください。`, fix: { label: "1 件目の値にする", run: () => onChange({ subject: joinSubject(sp.root, `[0].${sp.prop}`) }) } };
+  }
+  return null;
+}
+
 /** 条件 1 つ分の入力欄 (どの値を / どうなら / 何と比べる)。条件の組み立てと、判定表の行の編集で共有する */
 export function ClauseFields({ index, clause: c, cands, heading, draft, onDraft, onChange, onRemove }: {
   index: number;
@@ -235,6 +248,8 @@ export function ClauseFields({ index, clause: c, cands, heading, draft, onDraft,
   const sp = splitSubject(c.subject);
   const cand = cands.find((x) => x.ref === sp.root);
   const needsValue = OP_CHOICES.find((o) => o.op === c.op)?.needsValue ?? true;
+  // 一覧になりうる検索の結果を、1 件のように使っていないか (一覧は、0 件でも「ない」にならず、項目を直接持たない)
+  const listHint = cand?.shape === "list" ? listUseHint(sp, c, onChange, onDraft) : null;
   return (
     <div className="pfs-clause" data-testid="pfs-clause">
       <label className="pfs-label">{heading}</label>
@@ -256,13 +271,19 @@ export function ClauseFields({ index, clause: c, cands, heading, draft, onDraft,
         )}
         {onRemove && <button type="button" className="pfs-btn" aria-label="この条件を外す" onClick={onRemove}>×</button>}
       </div>
+      {listHint && (
+        <p className="pfs-note pfs-list-hint" data-testid="pfs-list-hint">
+          「{cand?.label}」は、検索結果が<b>一覧</b>になりうる検索です (1 件に絞る条件がありません。SQL からの推定です)。{listHint.text}
+          {listHint.fix && <> <button type="button" className="pfs-link" onClick={listHint.fix.run}>{listHint.fix.label}</button></>}
+        </p>
+      )}
     </div>
   );
 }
 
 export function ConditionEditor({ anchor, target, initial, beforeStepId, onClose }: PopProps & { target: CondTarget; initial: string; beforeStepId: string; }) {
   const ui = useStoryUi();
-  const cands = useMemo(() => varCandidates(ui.ctx.action, beforeStepId, ui.edit?.ambient ?? []), [ui.ctx.action, beforeStepId, ui.edit?.ambient]);
+  const cands = useMemo(() => varCandidates(ui.ctx.action, beforeStepId, ui.edit?.ambient ?? [], ui.ctx.shapeEnv), [ui.ctx.action, beforeStepId, ui.edit?.ambient, ui.ctx.shapeEnv]);
   const parsed = useMemo(() => parseCondition(initial), [initial]);
   const [raw, setRaw] = useState(parsed === null);
   const [model, setModel] = useState<CondModel>(() => parsed && parsed.clauses.length > 0 ? parsed : { join: "&&", clauses: [{ subject: cands[0]?.ref ?? "@", op: "==", value: "" }] });

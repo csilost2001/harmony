@@ -8,6 +8,7 @@
  */
 import type { ActionDefinition } from "../../../types/v3";
 import { parseVarRef, splitTopLevel } from "./expressionText";
+import { selectShape, type ShapeEnv } from "./sqlShape";
 import { asLooseList, buildVarLabels, childGroups, variableFlow, walkSteps, type Loose } from "./storyModel";
 
 export type CondOp = "==" | "!=" | ">" | ">=" | "<" | "<=" | "null" | "notNull" | "true" | "false" | "notTrue" | "notFalse";
@@ -129,6 +130,8 @@ export interface VarCandidate {
   label: string;
   /** その変数の持つ項目の候補 (DB の検索結果の列・入力の名前・TX の結果 など) */
   props: Array<{ name: string; label: string }>;
+  /** DB の検索結果のとき、結果が 1 件か一覧か (SQL からの推定)。それ以外は未設定 */
+  shape?: "one" | "list";
 }
 
 /** SELECT の列名 (別名があれば別名) の並び。読めなければ空 */
@@ -182,7 +185,7 @@ function chainTo(list: readonly Loose[], id: string, via: Place["via"] = null): 
  * ただし、まとまり (トランザクション) の中の変数は、外からは使えない (まとまりの「確定したあと」「取り消したあと」の中からは見える)。
  * 別の道 (兄弟の枠) の中の変数は、使えない。繰り返しの 1 行・番号は、その繰り返しの中でだけ。beforeStepId が null なら、流れの最後 (最上位) での候補。
  */
-export function varCandidates(action: Pick<ActionDefinition, "steps" | "inputs">, beforeStepId: string | null, ambient: ReadonlyArray<{ name: string; label?: string }> = []): VarCandidate[] {
+export function varCandidates(action: Pick<ActionDefinition, "steps" | "inputs">, beforeStepId: string | null, ambient: ReadonlyArray<{ name: string; label?: string }> = [], shapeEnv?: ShapeEnv): VarCandidate[] {
   const steps = asLooseList(action.steps);
   const labels = buildVarLabels(action);
   const byId = new Map<string, Loose>();
@@ -211,12 +214,19 @@ export function varCandidates(action: Pick<ActionDefinition, "steps" | "inputs">
     if (isLoopVar ? !v.defIds.some((id) => inside.has(id)) : !v.defIds.some(visible)) continue;
     const def = byId.get(v.defIds[0]);
     const props: VarCandidate["props"] = [];
-    if (def?.kind === "dbAccess") for (const c of selectColumns(String(def.sql ?? ""))) props.push({ name: c, label: c });
+    let shape: VarCandidate["shape"];
+    if (def?.kind === "dbAccess") {
+      for (const c of selectColumns(String(def.sql ?? ""))) props.push({ name: c, label: c });
+      if (def.operation === "SELECT" && String(def.sql ?? "").trim()) {
+        shape = selectShape(String(def.sql), shapeEnv);
+        if (shape === "list") props.unshift({ name: "length", label: "件数" });
+      }
+    }
     if (def?.kind === "transactionScope") {
       props.push({ name: "committed", label: "確定したか" }, { name: "error.code", label: "エラーのコード" });
       for (const e of ((def.outputBinding as { expose?: string[] } | undefined)?.expose ?? [])) if (!["committed", "error", "diagnostics"].includes(e)) props.push({ name: e, label: e });
     }
-    out.push({ ref: `@${v.name}`, label: v.label, props });
+    out.push({ ref: `@${v.name}`, label: v.label, props, ...(shape ? { shape } : {}) });
   }
   const inputs = (action.inputs ?? []).map((i) => ({ name: i.name, label: i.label ?? i.name }));
   out.push({ ref: "@inputs", label: "入力", props: inputs });
