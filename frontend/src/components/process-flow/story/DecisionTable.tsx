@@ -239,6 +239,8 @@ export function DecisionTable({ step, guard, defaultOpen, onSelect }: { step: Lo
                 const old = rowPop.row;
                 if (!old) { setPendingRows((p) => (p.some((x) => x.key === spec.key) || model.rows.some((m) => m.key === spec.key) ? p : [...p, spec])); return; }
                 if (pendingKeys.has(old.key) && !model.rows.some((m) => m.key === old.key)) { setPendingRows((p) => p.map((x) => (x.key === old.key ? spec : x))); return; }
+                // 置き換えた条件の向きを、そのまま見せる (前の行の向きが残って、反転して見えないように)
+                setPreferred((m) => { const n = new Map(m); n.delete(old.key); if (spec.clause) n.set(spec.key, spec.clause.op); return n; });
                 edit.mutate((a) => { replaceDtRow(a.steps, step.id, old, spec); });
                 notifyUnparsed();
               }}

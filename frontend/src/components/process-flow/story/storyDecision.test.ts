@@ -231,4 +231,12 @@ describe("レビュー指摘の対応 (第 3 弾)", () => {
     expect(cond(s, "a")).toBe("@x != null && @x.y > 0");
     expect(m.rows).toHaveLength(2);
   });
+  it("feasible: 変数との比べ・書き方の違う同じ値 (1 / '1' / 1.0 / 引用符) は、食い違いにしない", () => {
+    const mkRows = (...ex: string[]) => ex.map((e, i) => ({ key: String(i), clause: parseClause(e), raw: "", negatable: true }));
+    expect(feasible(mkRows("@a == @b", "@a == 1"), ["yes", "yes"])).toBe(true);
+    expect(feasible(mkRows("@q == 1", "@q == '1'"), ["yes", "yes"])).toBe(true);
+    expect(feasible(mkRows("@q == 1", "@q == 1.0"), ["yes", "yes"])).toBe(true);
+    expect(feasible(mkRows("@s == 'A'", "@s == \"A\""), ["yes", "yes"])).toBe(true);
+    expect(feasible(mkRows("@q == 1", "@q == 2"), ["yes", "yes"])).toBe(false);
+  });
 });

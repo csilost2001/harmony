@@ -163,4 +163,20 @@ describe("判定表", () => {
     expect(armExpr("step-01", "br-02")).toBe("@inputs.type == 'corp' && @inputs.amount <= 1000000");
     off();
   });
+
+  it("行の条件を置き換えたあとも、置き換えた向きのまま出る (反転して見えない)", () => {
+    render(<Harness />);
+    fireEvent.click(screen.getAllByTestId("pfs-dt-toggle")[0]);
+    const rowOf = () => within(screen.getByTestId("pfs-dt")).getAllByRole("row").find((r) => within(r).queryByText(/上得意/))!;
+    // マスを 1 回触って、向きを覚えさせてから、条件を「いいえ以外」へ置き換える
+    fireEvent.click(within(rowOf()).getAllByTestId("pfs-dt-cell")[2]);
+    fireEvent.click(within(rowOf()).getByLabelText("この条件を直す"));
+    const pop = screen.getByTestId("pfs-popover");
+    fireEvent.change(within(pop).getByLabelText("比べ方"), { target: { value: "notTrue" } });
+    fireEvent.click(within(pop).getByTestId("pfs-dt-row-apply"));
+    // 行は、置き換えた条件 (`!= true` = 「いいえ」) の向きで出る。もとの向き (「はい」) に戻って見えない
+    const rows = within(screen.getByTestId("pfs-dt")).getAllByRole("row");
+    expect(rows.find((r) => within(r).queryByText(/上得意 が「いいえ」/) || within(r).queryByText(/「いいえ」/))).toBeTruthy();
+    expect(rows.find((r) => within(r).queryByText(/上得意 が「はい」/))).toBeUndefined();
+  });
 });

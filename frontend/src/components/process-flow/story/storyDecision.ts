@@ -207,6 +207,13 @@ const exprOf = (cond: unknown): string | null => {
 
 const NUM_RE = /^-?\d+(\.\d+)?$/;
 
+/** 比べる値の書き方をそろえる: 引用符を外す・数は、書き方によらず同じ文字にする */
+function normalizeLiteral(v: string): string {
+  const m = v.match(/^'((?:[^'\\]|\\.)*)'$|^"((?:[^"\\]|\\.)*)"$/);
+  const t = m ? (m[1] ?? m[2] ?? "") : v;
+  return NUM_RE.test(t.trim()) ? String(Number(t.trim())) : t;
+}
+
 /**
  * 条件の組み合わせ (行ごとの ○ × －) が、実際に起こりうるか。同じ項目についての、次の食い違いを見つける:
  * 別々の値と等しい・数の範囲が重ならない (`x > 100` かつ `x <= 50`)・「ない」と値の比べ・「はい」と「いいえ」。
@@ -225,7 +232,10 @@ export function feasible(rows: readonly DtRowSpec[], states: readonly DtCell[]):
     const eq = new Set<string>();
     const ne = new Set<string>();
     let isNull = false, isTrue = false, isFalse = false;
-    for (const { op, value } of list) {
+    for (const { op, value: raw } of list) {
+      // 比べる値が変数 (@…) のものは、中身が分からないので、食い違いの判定に使わない。引用符は外し、数は数として比べる (1 と '1' と 1.0 は同じ)
+      if (raw.startsWith("@")) continue;
+      const value = normalizeLiteral(raw);
       const n = NUM_RE.test(value) ? Number(value) : null;
       if (op === "==") eq.add(value);
       else if (op === "!=") ne.add(value);
