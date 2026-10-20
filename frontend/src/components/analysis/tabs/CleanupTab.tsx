@@ -3,11 +3,12 @@
  * ここに出るのは候補で、消す・直すかどうかは設計者が決める (一覧は、読むだけで何も書き換えない)。
  */
 import { useMemo, useState } from "react";
-import { analyzeMessages, buildDesignGraph, findTermInconsistencies, findUnused, NODE_KIND_LABELS, type DesignDocInput, type NodeKind } from "@harmony/shared";
+import { analyzeMessages, buildDesignGraph, deriveSqlCatalog, findDuplicateSql, findTermInconsistencies, findUnused, NODE_KIND_LABELS, sqlCatalogToCsv, type DesignDocInput, type NodeKind } from "@harmony/shared";
 import { AnTable, EntityLink, Empty, Section } from "../ui";
+import { saveTextFile, withBom } from "../fileIo";
 
-type Sub = "unused" | "terms" | "messages";
-const SUBS: Array<{ id: Sub; label: string }> = [{ id: "unused", label: "未使用の定義" }, { id: "terms", label: "用語の揺れ" }, { id: "messages", label: "メッセージ・文言" }];
+type Sub = "unused" | "terms" | "messages" | "sql";
+const SUBS: Array<{ id: Sub; label: string }> = [{ id: "unused", label: "未使用の定義" }, { id: "terms", label: "用語の揺れ" }, { id: "messages", label: "メッセージ・文言" }, { id: "sql", label: "SQL" }];
 
 export function CleanupTab({ input }: { input: DesignDocInput }) {
   const [sub, setSub] = useState<Sub>("unused");
@@ -17,7 +18,7 @@ export function CleanupTab({ input }: { input: DesignDocInput }) {
       <nav className="an-subtabs" aria-label="整理の種類">
         {SUBS.map((s) => <button key={s.id} type="button" className={sub === s.id ? "on" : ""} aria-pressed={sub === s.id} onClick={() => setSub(s.id)}>{s.label}</button>)}
       </nav>
-      {sub === "unused" ? <Unused input={input} graph={graph} /> : sub === "terms" ? <Terms input={input} /> : <Messages input={input} graph={graph} />}
+      {sub === "unused" ? <Unused input={input} graph={graph} /> : sub === "terms" ? <Terms input={input} /> : sub === "sql" ? <SqlList input={input} /> : <Messages input={input} graph={graph} />}
     </div>
   );
 }
@@ -85,6 +86,28 @@ function Messages({ input, graph }: { input: DesignDocInput; graph: ReturnType<t
           s.reason === "same" ? "同じ文面" : `似ている (${Math.round(s.score * 100)}%)`,
           s.keys.map((k) => <code key={k}>@conv.msg.{k}</code>),
           <ul key="t" className="an-list">{s.keys.map((k) => <li key={k}>{a.messages.find((m) => m.key === k)?.template}</li>)}</ul>,
+        ])} />
+      </Section>
+    </>
+  );
+}
+
+function SqlList({ input }: { input: DesignDocInput }) {
+  const entries = useMemo(() => deriveSqlCatalog(input), [input]);
+  const dups = useMemo(() => findDuplicateSql(entries), [entries]);
+  return (
+    <>
+      <Section title={`同じ SQL (${dups.length} 組)`} hint="差し込む変数・空白・大文字小文字の違いを除いて、同じになる SQL です。共通処理・ビュー定義にまとめられないかの目安で、意図どおりなら、そのままで構いません。" testId="an-sql-dups">
+        <AnTable headers={["回数", "SQL", "出てくる場所"]} empty="同じ SQL はありません。" rows={dups.map((d) => [
+          `${d.entries.length} 回${d.crossFlow ? " (複数の処理フロー)" : ""}`,
+          <code key="s" className="an-sql">{d.sql}</code>,
+          <ul key="w" className="an-list">{d.entries.map((e) => <li key={`${e.flow.id}:${e.action.id}:${e.stepId}`}><EntityLink kind="processFlow" id={e.flow.id}>{e.flow.name}</EntityLink> / {e.action.name} ({e.stepId})</li>)}</ul>,
+        ])} />
+      </Section>
+      <Section title={`SQL の一覧 (${entries.length} 件)`} hint="処理フローの DB アクセス工程に書かれた SQL を、1 か所にまとめたものです。レビュー・DBA への共有に使えます。"
+        testId="an-sql-list" actions={<button type="button" className="an-btn" disabled={entries.length === 0} onClick={() => saveTextFile("sql.csv", withBom(sqlCatalogToCsv(entries)), "text/csv")}><i className="bi bi-download" /> CSV で保存</button>}>
+        <AnTable headers={["処理フロー", "アクション", "説明", "テーブル", "操作", "SQL"]} empty="SQL の書かれた DB アクセス工程がありません。" rows={entries.map((e) => [
+          <EntityLink key="f" kind="processFlow" id={e.flow.id}>{e.flow.name}</EntityLink>, e.action.name, e.description || e.stepId, e.table?.name ?? "", <span key="o" className="an-nowrap">{e.operation}</span>, <code key="s" className="an-sql">{e.sql}</code>,
         ])} />
       </Section>
     </>

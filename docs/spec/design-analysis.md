@@ -11,15 +11,24 @@
 | 要確認 | 要確認事項の一覧、理由つきの抑制 (期限つき可)、抑制中・期限切れ・該当がなくなった抑制の見直し | `suppress.ts` | `suppressions` |
 | 影響分析 | 変える設計 (テーブルは列でも) を選ぶと、連鎖して影響する設計を段ごとに示す | `graph.ts` / `impact.ts` | `impact` |
 | 対応表 | 業務フロー→画面→処理→テーブル (CRUD)→テスト観点の表と欠け / 画面項目↔カラム / 役割×画面×操作 | `traceability.ts` / `columnMap.ts` / `accessOps.ts` | `traceability` / `column-map` / `operations` |
-| 整理 | 未使用の定義 / 用語の揺れ / メッセージの使用箇所・重複 | `unused.ts` / `terms.ts` / `messages.ts` | `unused` / `terms` / `messages` |
+| 整理 | 未使用の定義 / 用語の揺れ / メッセージの使用箇所・重複 / **SQL の一覧と重複** | `unused.ts` / `terms.ts` / `messages.ts` / `sqlCatalog.ts` | `unused` / `terms` / `messages` / `sql` |
 | 運用 | SLA の宣言の一覧と漏れ / ジョブの一覧と依存 / 外部システムの呼び出しと相手の OpenAPI の突き合わせ | `operations.ts` / `externalContract.ts` | `sla` / `jobs` / `external` |
 | 進捗 | 種類ごとの成熟度の集計・確定までの残り・日ごとの推移 | `progress.ts` (+ backend `progressStore.ts`) | `progress` |
 | ルール | 命名規約の設定状況・独自の検査ルールの編集 | `naming.ts` / `customRules.ts` | (check_design に含まれる) |
 | 書き出し | テスト雛形 / テストデータ / OpenAPI | `testScaffold.ts` / `testData.ts` / `openapi.ts` | `get_test_viewpoints` (`scaffold`) / `generate_test_data` / `export_openapi` |
 
-表は CSV で保存できる (対応表・SLA)。CSV の文字列セルは、Excel で式として解釈されないよう、`= + - @` で始まるものの先頭に `'` を付ける。
+表は CSV で保存できる (対応表・SLA・SQL の一覧)。CSV の文字列セルは、Excel で式として解釈されないよう、`= + - @` で始まるものの先頭に `'` を付ける。
 
 ダッシュボードには「設計の完成度」パネル (種類別の成熟度) が加わり、「設計の要確認」パネルは抑制中の件数を出す。
+
+## SQL の一覧と重複
+
+SQL は、処理フローの DB アクセス工程に直接書く (MyBatis のように別管理にはしない: サンプルでは、SQL 100 件のうち、複数の処理フローをまたいで同じものは 5 件だけで、工程の中にあるほうが、流れとして読める)。代わりに、次の 2 つを足した。
+
+- **SQL の一覧** (設計の分析 > 整理 > SQL): すべての処理フローの、SQL つきの DB アクセス工程を 1 つの表にする (処理フロー・アクション・説明・テーブル・操作・SQL)。**CSV で保存**できる (DBA・レビューへの共有用。「同じ SQL の件数」の列つき)。MCP は `designer__analyze_design` の `kind: "sql"` (`format: "csv"` も可)
+- **同じ SQL の検出**: 差し込む変数 (`@x` `:x` `$1`)・文字列の中身・空白・大文字小文字の違いを除いて同じになる SQL が 2 か所以上あるときは、**要確認 (情報)** として知らせる (「共通処理・ビュー定義にまとめられないか」の目安)。情報なので、`npm run check:design` は失敗にせず、`--info` で表示。40 文字未満の短い SQL は数えない。PostgreSQL のキャスト (`::型`) は、引数と取り違えない。要確認の内容には、場所や件数を入れない (増減・改名で、理由つきの抑制が外れないため。場所は SQL の一覧で見る)。意図どおりなら、そのままで構わない (抑制もできる)
+
+読み取りのみで、設計は書き換えない。
 
 ## 参照のつながり (影響分析・未使用・対応表の共通)
 

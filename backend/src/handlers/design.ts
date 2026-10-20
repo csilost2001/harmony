@@ -7,7 +7,7 @@
  * 仕様: docs/spec/design-document.md / docs/spec/test-viewpoints.md
  */
 import {
-  analyzeImpact, analyzeMessages, applySuppressions, buildDesignDocument, buildDesignGraph, buildOpenApi, localDate, checkExternalContracts, columnMapToCsv, deriveColumnMap, deriveJobs,
+  analyzeImpact, analyzeMessages, deriveSqlCatalog, findDuplicateSql, sqlCatalogToCsv, applySuppressions, buildDesignDocument, buildDesignGraph, buildOpenApi, localDate, checkExternalContracts, columnMapToCsv, deriveColumnMap, deriveJobs,
   deriveOperationMatrix, deriveSla, deriveTestViewpointSheet, deriveTraceability, findTermInconsistencies, findUnused, generateTestData, operationMatrixToCsv, overallTrend,
   scaffoldTests, slaToCsv, summarizeProgress, testDataTableToCsv, testDataToInsertSql, testViewpointSheetToCsv, traceabilityToCsv, usesPermissionModel,
   type NodeKind, type SqlQuote, type TestFramework,
@@ -290,6 +290,7 @@ async function analyzeDesign(a: Record<string, unknown>, root: string) {
     case "terms": return json({ issues: findTermInconsistencies(input) });
     case "column-map": { const r = deriveColumnMap(input); return csv ? text(columnMapToCsv(r)) : json(r); }
     case "messages": return json(analyzeMessages(input));
+    case "sql": { const entries = deriveSqlCatalog(input); return csv ? text(sqlCatalogToCsv(entries)) : json({ entries, duplicates: findDuplicateSql(entries).map((d) => ({ sql: d.sql, count: d.entries.length, crossFlow: d.crossFlow, at: d.entries.map((e) => ({ flow: e.flow.id, action: e.action.id, stepId: e.stepId })) })) }); }
     case "operations": {
       const m = deriveOperationMatrix(input);
       return csv ? text(operationMatrixToCsv(m, (id) => input.roles?.[id]?.name ?? id)) : json({ ...m, permissionModel: usesPermissionModel(input) });

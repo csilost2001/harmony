@@ -219,6 +219,22 @@ describe("整理", () => {
   });
 });
 
+describe("整理: SQL", () => {
+  it("SQL の一覧と、同じ SQL の重複を出す", async () => {
+    input = tiny();
+    const q = "SELECT id, name, email FROM customers WHERE id = @inputs.customerId AND status = 'active'";
+    (input.flows[0].actions[0].steps as unknown[]).push(
+      { id: "q1", kind: "dbAccess", description: "取得", operation: "SELECT", sql: q },
+      { id: "q2", kind: "dbAccess", description: "再取得", operation: "SELECT", sql: q.toLowerCase().replace("@inputs.customerid", "@var.x") },
+    );
+    await open("cleanup");
+    fireEvent.click(screen.getByRole("button", { name: "SQL" }));
+    expect(screen.getByTestId("an-sql-dups").textContent).toContain("2 回");
+    expect(screen.getByTestId("an-sql-list").textContent).toContain("customers");
+    expect(screen.getByRole("button", { name: /CSV で保存/ })).toBeEnabled();
+  });
+});
+
 describe("運用", () => {
   it("SLA の宣言漏れ・ジョブ・外部システムの突き合わせ", async () => {
     input = tiny();

@@ -475,16 +475,16 @@ export const tools = [
     name: "designer__analyze_design",
     description:
       "設計の分析を返します (読み取りのみ)。kind: impact (影響分析: 変えると連鎖して影響する設計。entityType と id が要る。テーブルは column で列に絞れる) / traceability (業務フロー→画面→処理→テーブル→テスト観点の対応表と欠け) / " +
-      "unused (未使用のテーブル・メッセージ・画面・処理ほか) / terms (用語の揺れ) / column-map (画面項目とカラムの対応) / messages (メッセージの使用箇所・重複) / operations (役割×画面×操作の権限) / " +
+      "unused (未使用のテーブル・メッセージ・画面・処理ほか) / terms (用語の揺れ) / column-map (画面項目とカラムの対応) / messages (メッセージの使用箇所・重複) / sql (処理フローの SQL の一覧と、同じ SQL の重複) / operations (役割×画面×操作の権限) / " +
       "sla (性能の目標の宣言) / jobs (バッチ・定期処理と依存) / external (外部システムの呼び出しと相手の OpenAPI の突き合わせ) / progress (成熟度の集計と推移) / suppressions (抑制中・期限切れの要確認)。仕様: docs/spec/design-analysis.md",
     inputSchema: {
       type: "object" as const,
       properties: {
-        kind: { type: "string", enum: ["impact", "traceability", "unused", "terms", "column-map", "messages", "operations", "sla", "jobs", "external", "progress", "suppressions"] },
+        kind: { type: "string", enum: ["impact", "traceability", "unused", "terms", "column-map", "messages", "sql", "operations", "sla", "jobs", "external", "progress", "suppressions"] },
         entityType: { type: "string", enum: ["screen", "processFlow", "table", "businessFlow", "report", "component", "message", "regex", "limit", "genericDefinition"], description: "impact の対象の種類" },
         id: { type: "string", description: "impact の対象の ID" },
         column: { type: "string", description: "impact (table) で絞る列 (Column.id か物理名)" },
-        format: { type: "string", enum: ["json", "csv"], description: "traceability / column-map / operations / sla は csv にできる (既定は json)" },
+        format: { type: "string", enum: ["json", "csv"], description: "traceability / column-map / sql / operations / sla は csv にできる (既定は json)" },
       },
       required: ["kind"],
     },
