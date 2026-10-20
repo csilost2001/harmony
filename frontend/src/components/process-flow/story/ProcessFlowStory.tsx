@@ -29,6 +29,7 @@ import {
   walkSteps,
   type StoryCtx,
 } from "./storyModel";
+import { bumpMutations, currentMutations } from "./mutationCounter";
 import { StoryUiProvider, type AutoEdit, type StoryEditApi } from "./storyUi";
 import { useReviewedSteps } from "./useReviewedSteps";
 import "../../../styles/processFlowStory.css";
@@ -174,9 +175,8 @@ export function ProcessFlowStory({ action, reviewKey, ctx, selectedStepIds, onSe
   }, [onSelectStep]);
 
   // 直す操作の回数。「元に戻す」は、その消す操作のあとに、別の操作をしていないときだけ効かせる
-  const mutCount = useRef(0);
-  const countedMutate = useCallback((fn: (a: ActionDefinition) => void) => { mutCount.current++; onMutate?.(fn); }, [onMutate]);
-  const edit = useMemo<StoryEditApi | null>(() => (editable && onMutate ? { mutate: countedMutate, mutations: () => mutCount.current, undo: onUndo, flowIds: flowIds ?? (() => new Set<string>()), tables: tables ?? [], ambient, askAi: onAskAi } : null), [editable, onMutate, countedMutate, onUndo, flowIds, tables, ambient, onAskAi]);
+  const countedMutate = useCallback((fn: (a: ActionDefinition) => void) => { bumpMutations(); onMutate?.(fn); }, [onMutate]);
+  const edit = useMemo<StoryEditApi | null>(() => (editable && onMutate ? { mutate: countedMutate, mutations: currentMutations, undo: onUndo, flowIds: flowIds ?? (() => new Set<string>()), tables: tables ?? [], ambient, askAi: onAskAi } : null), [editable, onMutate, countedMutate, onUndo, flowIds, tables, ambient, onAskAi]);
   const env: RowEnv = { zoom, selected: selectedStepIds, hl, flashId, reviewed, digests, problems: problemMap, onSelect: onSelectStep, onOpen: onOpenStep, onInserted };
   const ui = useMemo(() => ({ ctx: storyCtx, showNames: zoom === "impl", activeVar, setActiveVar, edit, autoEdit }), [storyCtx, zoom, activeVar, setActiveVar, edit, autoEdit]);
 

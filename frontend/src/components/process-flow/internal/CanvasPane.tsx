@@ -1,7 +1,7 @@
 // Phase-3 (#1145): ProcessFlowEditor.tsx 中央キャンバス (ステップリスト) を抽出。
 // SortableContext + 各 SortableStepCard + StepInsertZone の組合せ。
 
-import { useCallback, useEffect, useMemo, useState, type RefObject } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type RefObject } from "react";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import type { ActionDefinition, Marker, ProcessFlow, Step, StepType } from "../../../types/v3";
 import type { ConventionsCatalog } from "../../../schemas/conventionsValidator";
@@ -16,7 +16,9 @@ import type { EditLevel } from "../../../hooks/useEditLevel";
 import type { WorkspaceRefs } from "../../../utils/reference-completer/types";
 import { ProcessFlowDiagram } from "../diagram/ProcessFlowDiagram";
 import { ProcessFlowTable } from "../diagram/ProcessFlowTable";
-import { ProcessFlowStory } from "../story/ProcessFlowStory";
+import { ViewLoading } from "../../common/ResourceLoading";
+// 「流れ」表示は大きいので、開いたときに読み込む (入口の JS を増やさない)
+const ProcessFlowStory = lazy(() => import("../story/ProcessFlowStory").then((m) => ({ default: m.ProcessFlowStory })));
 import { useWorkspacePath } from "../../../hooks/useWorkspacePath";
 import type { FlowContext } from "../diagram/flowStructure";
 import { OutlineEditor } from "./OutlineEditor";
@@ -214,6 +216,7 @@ export function CanvasPane({
         {activeAction && view === "outline" ? (
           <OutlineEditor key={activeAction.id} steps={activeAction.steps} kinds={ALL_STEP_TYPES} readonly={isReadonly} onApply={onApplyOutline} refCandidates={refCandidates} />
         ) : activeAction && view === "story" ? (
+          <Suspense fallback={<ViewLoading />}>
           <ProcessFlowStory
             key={activeAction.id}
             action={activeAction}
@@ -231,6 +234,7 @@ export function CanvasPane({
             onUndo={onUndo}
             problems={validationErrors}
           />
+          </Suspense>
         ) : activeAction && view === "diagram" ? (
           <ProcessFlowDiagram action={activeAction} ctx={ctx} selectedStepIds={highlighted} onSelectStep={selectFromView} onOpenStep={openInCards} />
         ) : activeAction && view === "table" ? (

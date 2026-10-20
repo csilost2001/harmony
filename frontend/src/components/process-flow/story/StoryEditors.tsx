@@ -429,7 +429,7 @@ export function MovePicker({ anchor, stepId, onClose }: PopProps & { stepId: str
   };
   return (
     <StoryPopover anchor={anchor} title="どこへ移す？ (その枠の最後に入ります)" onClose={onClose} width={420}>
-      <input className="pfs-field" type="search" placeholder="行き先を探す" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (isPlainEnter(e) && shown[0]) go(shown[0]); }} aria-label="行き先を探す" />
+      <input className="pfs-field" type="search" placeholder="例: 繰り返し (行き先を探す)" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (isPlainEnter(e) && shown[0]) go(shown[0]); }} aria-label="行き先を探す" />
       <div className="pfs-pop-list" role="listbox" aria-label="行き先">
         {shown.map((d, i) => (
           <button key={i} type="button" role="option" aria-selected="false" className="pfs-opt" style={{ paddingLeft: `${8 + d.depth * 10}px` }} onClick={() => go(d)} data-testid="pfs-move-dest">
