@@ -22,6 +22,7 @@ import type { CheckSettings } from "./analysis/settings.js";
 import type { ExternalSpecSummary } from "./analysis/externalContract.js";
 import { localDate, opLetters, type CrudLetter } from "./analysis/common.js";
 import { applySuppressions, issueKey, type SuppressionStatus } from "./analysis/suppress.js";
+import { deriveSqlCatalog, findDuplicateSql } from "./analysis/sqlCatalog.js";
 import { namingIssues } from "./analysis/naming.js";
 import { deriveOperationMatrix } from "./analysis/accessOps.js";
 import { customRuleIssues } from "./analysis/customRules.js";
@@ -502,6 +503,12 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
       ${table(["画面", "画面項目", "列"], boundItems)}
     `, `5-${i + 1}`);
   });
+
+  // 同じ SQL が何度も出るときは、共通処理にまとめられないかの目安として知らせる (情報)
+  for (const d of findDuplicateSql(deriveSqlCatalog(input))) {
+    const where = d.entries.slice(0, 3).map((e) => `${e.flow.name} / ${e.action.name} (${e.stepId})`).join("、") + (d.entries.length > 3 ? ` ほか ${d.entries.length - 3} 件` : "");
+    issues.push({ severity: "info", section: `処理フロー ${d.entries[0].flow.name}`, message: `同じ SQL が ${d.entries.length} か所にあります${d.crossFlow ? " (複数の処理フローにまたがります)" : ""}: ${where}。共通処理・ビュー定義にまとめられないか検討してください`, ref: { kind: "processFlow", id: d.entries[0].flow.id } });
+  }
 
   // 6. CRUD 図
   for (const fnd of crud.findings) issues.push({ severity: "info", section: `CRUD ${tableName.get(fnd.tableId) ?? fnd.tableId}`, message: fnd.message, ref: { kind: "table", id: fnd.tableId } });

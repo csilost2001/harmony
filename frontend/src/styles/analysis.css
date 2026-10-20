@@ -84,3 +84,4 @@
 .an-gnode-component { border-color: var(--hm-hue-amber); }
 .an-gnode-message, .an-gnode-regex, .an-gnode-limit, .an-gnode-genericDefinition { border-color: var(--hm-fg-faint); border-style: dashed; }
 .an-gchip.an-gnode-screen, .an-gchip.an-gnode-processFlow, .an-gchip.an-gnode-table, .an-gchip.an-gnode-businessFlow, .an-gchip.an-gnode-report, .an-gchip.an-gnode-component, .an-gchip.an-gnode-message, .an-gchip.an-gnode-regex, .an-gchip.an-gnode-limit, .an-gchip.an-gnode-genericDefinition { padding: 2px 10px; display: inline-flex; font-size: 0.8rem; background: var(--hm-surface); }
+.an-sql { display: block; white-space: pre-wrap; word-break: break-word; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: calc(12px * var(--hm-font-scale)); max-width: 60ch; }

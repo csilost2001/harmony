@@ -17,3 +17,4 @@ export * from "./openapi.js";
 export * from "./testData.js";
 export * from "./testScaffold.js";
 export * from "./progress.js";
+export * from "./sqlCatalog.js";

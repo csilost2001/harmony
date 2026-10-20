@@ -252,11 +252,12 @@ describe("MCP: designer__analyze_design ほか", () => {
     await expect(call("designer__analyze_design", { kind: "zzz" })).rejects.toThrow("kind");
   });
   it("各種の分析が読み取りで動く (csv も)", async () => {
-    for (const kind of ["traceability", "unused", "terms", "column-map", "messages", "operations", "sla", "jobs", "external", "progress", "suppressions"]) {
+    for (const kind of ["traceability", "unused", "terms", "column-map", "messages", "sql", "operations", "sla", "jobs", "external", "progress", "suppressions"]) {
       expect(await J("designer__analyze_design", { kind }), kind).toBeTruthy();
     }
     expect((await call("designer__analyze_design", { kind: "column-map", format: "csv" })).split("\r\n")[0]).toContain("画面項目");
     expect((await call("designer__analyze_design", { kind: "traceability", format: "csv" })).split("\r\n")[0]).toContain("業務フロー");
+    expect((await call("designer__analyze_design", { kind: "sql", format: "csv" })).split("\r\n")[0]).toContain("SQL");
     const unused = await J("designer__analyze_design", { kind: "unused" });
     expect(unused.items.some((i: { kind: string; id: string }) => i.kind === "table" && i.id === "order")).toBe(true); // 外部キーの参照元だけ
   });
