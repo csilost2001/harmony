@@ -33,11 +33,14 @@ export interface DuplicateSql {
 /** これより短い SQL は、重複とは数えない (SELECT 1 のような、短い定型は、まとめる価値が薄い) */
 export const DUPLICATE_SQL_MIN_LENGTH = 40;
 
-/** 比較用の形: `@x.y` `:x` `$1` を ? に、文字列の中身を ? に、空白をそろえ、小文字にする */
+/**
+ * 比較用の形: 文字列の中身を ? に、コメントを空白に (1 回の走査で。コメントの中の `'` を文字列の始まりと取り違えない)、
+ * `@x.y` `:x` `$1` を ? に (PostgreSQL のキャスト `::int` は残す)、空白をそろえ、小文字にする
+ */
 export function normalizeSql(sql: string): string {
   return sql
-    .replace(/'(?:[^']|'')*'/g, "?")
-    .replace(/@[A-Za-z_][\w.[\]]*|:[A-Za-z_]\w*|\$\d+/g, "?")
+    .replace(/'(?:[^']|'')*'|\/\*[\s\S]*?\*\/|--[^\n]*/g, (m) => (m.startsWith("'") ? "?" : " "))
+    .replace(/@[A-Za-z_][\w.[\]]*|(?<!:):[A-Za-z_]\w*|\$\d+/g, "?")
     .replace(/\s+/g, " ")
     .trim()
     .toLowerCase();

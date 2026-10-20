@@ -39,4 +39,8 @@ describe("SQL の一覧と重複", () => {
     expect(csv.split("\r\n")[0]).toContain("同じ SQL の件数");
     expect(csv).toContain(",3,");
   });
+  it("PostgreSQL のキャスト (::型) は、引数と取り違えない。コメントの中の ' は、文字列にしない", () => {
+    expect(normalizeSql("SELECT a::int, b FROM t WHERE c = 1")).not.toBe(normalizeSql("SELECT a::text, b FROM t WHERE c = 1"));
+    expect(normalizeSql("-- it's\nSELECT a FROM t WHERE x = 'v' AND y = @z")).toBe(normalizeSql("SELECT a FROM t WHERE x = 'w' AND y = :q"));
+  });
 });

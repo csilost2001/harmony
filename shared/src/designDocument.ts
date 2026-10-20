@@ -505,9 +505,9 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
   });
 
   // 同じ SQL が何度も出るときは、共通処理にまとめられないかの目安として知らせる (情報)
+  // 指摘の鍵 (抑制の対象) は、重大度・部・内容から決まるので、場所や件数を内容に入れない (増減・改名で、抑制が外れないように)。場所は、設計の分析の「SQL」で見られる
   for (const d of findDuplicateSql(deriveSqlCatalog(input))) {
-    const where = d.entries.slice(0, 3).map((e) => `${e.flow.name} / ${e.action.name} (${e.stepId})`).join("、") + (d.entries.length > 3 ? ` ほか ${d.entries.length - 3} 件` : "");
-    issues.push({ severity: "info", section: `処理フロー ${d.entries[0].flow.name}`, message: `同じ SQL が ${d.entries.length} か所にあります${d.crossFlow ? " (複数の処理フローにまたがります)" : ""}: ${where}。共通処理・ビュー定義にまとめられないか検討してください`, ref: { kind: "processFlow", id: d.entries[0].flow.id } });
+    issues.push({ severity: "info", section: "SQL の重複", message: `同じ SQL が複数か所にあります${d.crossFlow ? " (複数の処理フローにまたがります)" : ""}: ${d.normalized.slice(0, 60)}${d.normalized.length > 60 ? "…" : ""} — 共通処理・ビュー定義にまとめられないか検討してください (場所は、設計の分析の「整理」>「SQL」)`, ref: { kind: "processFlow", id: d.entries[0].flow.id } });
   }
 
   // 6. CRUD 図
