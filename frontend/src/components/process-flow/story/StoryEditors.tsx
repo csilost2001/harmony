@@ -221,6 +221,19 @@ function joinSubject(root: string, prop: string): string {
   return prop.startsWith("[") ? `${root}${prop}` : `${root}.${prop}`;
 }
 
+function listUseHint(sp: SubjectParts, c: Clause, onChange: (patch: Partial<Clause>) => void): { text: string; fix?: { label: string; run: () => void } } | null {
+  if (!sp.prop && (c.op === "null" || c.op === "notNull")) {
+    return {
+      text: "0 件のときも、一覧そのものは「ない」になりません。0 件かどうかは、「件数」で調べます。",
+      fix: { label: c.op === "null" ? "「件数が 0」にする" : "「件数が 0 より大きい」にする", run: () => onChange({ subject: joinSubject(sp.root, "length"), op: c.op === "null" ? "==" : ">", value: "0", strict: undefined }) },
+    };
+  }
+  if (sp.prop && sp.prop !== "length" && !sp.prop.startsWith("[")) {
+    return { text: `1 件目の値は、「${sp.root.slice(1)}[0].${sp.prop}」です。`, fix: { label: "1 件目の値にする", run: () => onChange({ subject: joinSubject(sp.root, `[0].${sp.prop}`) }) } };
+  }
+  return null;
+}
+
 /** 条件 1 つ分の入力欄 (どの値を / どうなら / 何と比べる)。条件の組み立てと、判定表の行の編集で共有する */
 export function ClauseFields({ index, clause: c, cands, heading, draft, onDraft, onChange, onRemove }: {
   index: number;
@@ -235,6 +248,8 @@ export function ClauseFields({ index, clause: c, cands, heading, draft, onDraft,
   const sp = splitSubject(c.subject);
   const cand = cands.find((x) => x.ref === sp.root);
   const needsValue = OP_CHOICES.find((o) => o.op === c.op)?.needsValue ?? true;
+  // 一覧になりうる検索の結果を、1 件のように使っていないか (一覧は、0 件でも「ない」にならず、項目を直接持たない)
+  const listHint = cand?.shape === "list" ? listUseHint(sp, c, onChange) : null;
   return (
     <div className="pfs-clause" data-testid="pfs-clause">
       <label className="pfs-label">{heading}</label>
@@ -256,6 +271,12 @@ export function ClauseFields({ index, clause: c, cands, heading, draft, onDraft,
         )}
         {onRemove && <button type="button" className="pfs-btn" aria-label="この条件を外す" onClick={onRemove}>×</button>}
       </div>
+      {listHint && (
+        <p className="pfs-note pfs-list-hint" data-testid="pfs-list-hint">
+          「{cand?.label}」は、検索結果の<b>一覧</b>になりうる検索です (1 件に絞る条件 (LIMIT 1・主キーの一致) がありません)。{listHint.text}
+          {listHint.fix && <> <button type="button" className="pfs-link" onClick={listHint.fix.run}>{listHint.fix.label}</button></>}
+        </p>
+      )}
     </div>
   );
 }

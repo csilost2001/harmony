@@ -414,4 +414,17 @@ describe("流れの表示: その場で直す (編集中)", () => {
     fireEvent.click(within(pop).getByRole("button", { name: "決める" }));
     expect((dump().steps[0] as unknown as { outputBinding: unknown }).outputBinding).toEqual({ name: "customer", label: "取引先", operation: "push", initialValue: [] });
   });
+
+  it("一覧になりうる検索の結果を「ない」で調べていたら、件数で調べる案内が出る (押すと直る)", () => {
+    render(<Harness />);
+    // 「一覧」の印が、検索の行に出る
+    expect(screen.getByText("結果は一覧")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("pfs-guard-cond"));
+    const pop = screen.getByTestId("pfs-popover");
+    expect(within(pop).getByTestId("pfs-list-hint")).toHaveTextContent("一覧");
+    fireEvent.click(within(pop).getByRole("button", { name: /件数が 0/ }));
+    expect(within(pop).getByTestId("pfs-cond-preview")).toHaveTextContent("@customer.length == 0");
+    fireEvent.click(within(pop).getByTestId("pfs-cond-apply"));
+    expect((dump().steps[1] as unknown as { branches: Array<{ condition: { expression: string } }> }).branches[0].condition.expression).toBe("@customer.length == 0");
+  });
 });
