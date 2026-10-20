@@ -57,7 +57,7 @@ function topLevelStepId(steps: readonly Step[], id: string): string | null {
 export interface CanvasPaneProps {
   group: ProcessFlow | null;
   activeAction: ActionDefinition | null;
-  tables: { id: string; physicalName: string; name: string }[];
+  tables: { id: string; physicalName: string; name: string; uniqueKeys?: string[][] }[];
   screens: { id: string; name: string }[];
   commonGroups: { id: string; name: string }[];
   conventions: ConventionsCatalog | null;

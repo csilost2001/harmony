@@ -8,7 +8,7 @@
  */
 import type { ActionDefinition } from "../../../types/v3";
 import { parseVarRef, splitTopLevel } from "./expressionText";
-import { selectShape } from "./sqlShape";
+import { selectShape, type ShapeEnv } from "./sqlShape";
 import { asLooseList, buildVarLabels, childGroups, variableFlow, walkSteps, type Loose } from "./storyModel";
 
 export type CondOp = "==" | "!=" | ">" | ">=" | "<" | "<=" | "null" | "notNull" | "true" | "false" | "notTrue" | "notFalse";
@@ -185,7 +185,7 @@ function chainTo(list: readonly Loose[], id: string, via: Place["via"] = null): 
  * ただし、まとまり (トランザクション) の中の変数は、外からは使えない (まとまりの「確定したあと」「取り消したあと」の中からは見える)。
  * 別の道 (兄弟の枠) の中の変数は、使えない。繰り返しの 1 行・番号は、その繰り返しの中でだけ。beforeStepId が null なら、流れの最後 (最上位) での候補。
  */
-export function varCandidates(action: Pick<ActionDefinition, "steps" | "inputs">, beforeStepId: string | null, ambient: ReadonlyArray<{ name: string; label?: string }> = []): VarCandidate[] {
+export function varCandidates(action: Pick<ActionDefinition, "steps" | "inputs">, beforeStepId: string | null, ambient: ReadonlyArray<{ name: string; label?: string }> = [], shapeEnv?: ShapeEnv): VarCandidate[] {
   const steps = asLooseList(action.steps);
   const labels = buildVarLabels(action);
   const byId = new Map<string, Loose>();
@@ -218,7 +218,7 @@ export function varCandidates(action: Pick<ActionDefinition, "steps" | "inputs">
     if (def?.kind === "dbAccess") {
       for (const c of selectColumns(String(def.sql ?? ""))) props.push({ name: c, label: c });
       if (def.operation === "SELECT" && String(def.sql ?? "").trim()) {
-        shape = selectShape(String(def.sql));
+        shape = selectShape(String(def.sql), shapeEnv);
         if (shape === "list") props.unshift({ name: "length", label: "件数" });
       }
     }

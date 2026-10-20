@@ -20,8 +20,22 @@ import { listGenericDefinitions } from "../../../store/genericDefinitionStore";
 import { mcpBridge } from "../../../mcp/mcpBridge";
 import { reportFailure } from "../../../utils/failureToast";
 
+/** テーブルの、1 行を決める列の組 (物理名)。主キー・単独の一意列・一意制約・一意インデックス */
+function uniqueKeysOf(t: { columns?: Array<{ id?: string; physicalName?: string; primaryKey?: boolean; unique?: boolean }>; constraints?: Array<{ kind?: string; columnIds?: string[] }>; indexes?: Array<{ unique?: boolean; columnIds?: string[] }> }): string[][] {
+  const cols = t.columns ?? [];
+  const name = (id: string) => cols.find((c) => c.id === id)?.physicalName;
+  const keys: string[][] = [];
+  const pk = cols.filter((c) => c.primaryKey && c.physicalName).map((c) => c.physicalName as string);
+  if (pk.length > 0) keys.push(pk);
+  for (const c of cols) if (c.unique && c.physicalName) keys.push([c.physicalName]);
+  const fromIds = (ids: string[] | undefined) => { const k = (ids ?? []).map(name).filter((x): x is string => Boolean(x)); if (k.length > 0 && k.length === (ids ?? []).length) keys.push(k); };
+  for (const c of t.constraints ?? []) if (c.kind === "unique") fromIds(c.columnIds);
+  for (const i of t.indexes ?? []) if (i.unique) fromIds(i.columnIds);
+  return keys;
+}
+
 export interface ProcessFlowCatalogs {
-  tables: { id: string; physicalName: string; name: string }[];
+  tables: { id: string; physicalName: string; name: string; /** 1 行を決める列の組 (主キー・一意。物理名) */ uniqueKeys?: string[][] }[];
   screens: { id: string; name: string }[];
   commonGroups: { id: string; name: string }[];
   tableDefs: ValidatorTableDef[];
@@ -34,7 +48,7 @@ export interface ProcessFlowCatalogs {
 }
 
 export function useProcessFlowCatalogs(): ProcessFlowCatalogs {
-  const [tables, setTables] = useState<{ id: string; physicalName: string; name: string }[]>([]);
+  const [tables, setTables] = useState<ProcessFlowCatalogs["tables"]>([]);
   const [screens, setScreens] = useState<{ id: string; name: string }[]>([]);
   const [commonGroups, setCommonGroups] = useState<{ id: string; name: string }[]>([]);
   const [tableDefs, setTableDefs] = useState<ValidatorTableDef[]>([]);
@@ -59,12 +73,16 @@ export function useProcessFlowCatalogs(): ProcessFlowCatalogs {
           metas.map((tm) => ({ id: tm.id, physicalName: tm.physicalName ?? "", name: tm.name })),
         );
         // 全テーブルを 1 回の問い合わせでまとめて読む (1 件ずつ尋ねない)
-        const defs = (await loadAllTables()).map((full) => ({
+        const all = await loadAllTables();
+        const defs = all.map((full) => ({
           id: full.id,
           name: full.physicalName,
           columns: (full.columns ?? []).map((c) => ({ name: c.physicalName })),
         } as ValidatorTableDef));
         setTableDefs(defs);
+        // 検索の結果が 1 件か一覧かの推定に使う: 1 行を決める列 (主キー・単独の一意列・一意制約・一意インデックス)
+        const keys = new Map(all.map((full) => [String(full.id), uniqueKeysOf(full as unknown as Parameters<typeof uniqueKeysOf>[0])] as const));
+        setTables((prev) => prev.map((t) => ({ ...t, uniqueKeys: keys.get(String(t.id)) })));
       })
       .catch((err) => reportFailure(err, "処理フローの参照先の読み込み"));
     loadConventions()

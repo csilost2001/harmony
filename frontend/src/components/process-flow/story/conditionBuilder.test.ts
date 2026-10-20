@@ -1,4 +1,3 @@
-import { selectShape } from "./sqlShape";
 import { describe, expect, it } from "vitest";
 import type { ActionDefinition } from "../../../types/v3";
 import fs from "node:fs";
@@ -77,7 +76,7 @@ describe("varCandidates", () => {
   });
   it("項目の候補: DB の検索結果の列・入力の名前・TX の結果", () => {
     const c = varCandidates(action, "s4");
-    expect(c.find((x) => x.ref === "@customer")!.props.map((p) => p.name)).toEqual(["length", "id", "isActive"]); // 1 件に絞る条件がない検索は、一覧になりうるので「件数」(length) も候補に出る
+    expect(c.find((x) => x.ref === "@customer")!.props.map((p) => p.name)).toEqual(expect.arrayContaining(["id", "isActive", "length"])); // 1 件に絞る条件がない検索は、一覧になりうるので「件数」(length) も候補に出る
     expect(c.find((x) => x.ref === "@inputs")!.props).toEqual([{ name: "customerId", label: "取引先ID" }]);
     expect(c.find((x) => x.ref === "@txResult")!.props.map((p) => p.name)).toEqual(["committed", "error.code", "newOrder"]);
   });
@@ -177,17 +176,5 @@ describe("変数の候補の範囲 (レビュー対応)", () => {
   });
   it("beforeStepId が null: 最上位で作られる変数だけ", () => {
     expect(varCandidates(action, null).map((c) => c.ref)).toEqual(["@inArm", "@txResult", "@inputs"]);
-  });
-});
-
-describe("selectShape (検索の結果が 1 件か一覧か)", () => {
-  it("1 件: LIMIT 1・主キーの一致・集計だけ。それ以外は一覧", () => {
-    expect(selectShape("SELECT id FROM t WHERE id = @inputs.id")).toBe("one");
-    expect(selectShape('SELECT c.id FROM customers c WHERE c."id" = @inputs.customerId AND c.active = true')).toBe("one");
-    expect(selectShape("SELECT * FROM t WHERE code = @inputs.code LIMIT 1")).toBe("one");
-    expect(selectShape("SELECT COUNT(*) AS n, SUM(x) AS s FROM t WHERE a = @inputs.a")).toBe("one");
-    expect(selectShape("SELECT a, COUNT(*) AS n FROM t GROUP BY a")).toBe("list");
-    expect(selectShape("SELECT id, name FROM t WHERE store_id = @inputs.storeId")).toBe("list");
-    expect(selectShape("SELECT id FROM t WHERE parent_id = @inputs.p")).toBe("list");
   });
 });

@@ -13,7 +13,7 @@
 import { dbOperationLabel, kindLabel, returnStatus, type FlowContext, type FlowStep } from "@harmony/shared";
 import type { ActionDefinition, Step } from "../../../types/v3";
 import { expressionSegments, parseVarRef, segsToText, type Seg } from "./expressionText";
-import { selectShape } from "./sqlShape";
+import { selectShape, type ShapeEnv } from "./sqlShape";
 
 /** 型の細かい違い (拡張 step など) を気にせず読むための、ゆるい形 */
 export type Loose = FlowStep & Record<string, unknown>;
@@ -372,6 +372,8 @@ export interface StoryCtx {
   flow: FlowContext;
   action: Pick<ActionDefinition, "name" | "responses" | "inputs" | "steps">;
   labels: VarLabels;
+  /** テーブルの 1 行を決める列 (検索の結果が 1 件か一覧かの推定に使う)。分からなければ無し */
+  shapeEnv?: ShapeEnv;
 }
 
 /** 更新・削除の件数のチェックを、言葉に (演算子と、外れたときの動きまで) */
@@ -448,8 +450,8 @@ export function stepChips(step: Loose, ctx: StoryCtx): Chip[] {
       const arc = affectedRowsText(rec(step.affectedRowsCheck));
       if (arc) chips.push({ text: arc, tone: "rule" });
       // 検索の結果が、一覧になりうるとき (1 件に絞る条件がないとき) は、印を出す: 0 件でも「ない」にならず、項目は `[0].列` で読む
-      if (step.operation === "SELECT" && str(step.sql).trim() && str(rec(step.outputBinding).name) && selectShape(str(step.sql)) === "list") {
-        chips.push({ text: "結果は一覧", tone: "rule", title: "1 件に絞る条件 (LIMIT 1・主キーの一致) がないので、結果は一覧になりえます。0 件でも「ない」にはならず、1 件目は 〜[0].列 で読みます (SQL からの推定)" });
+      if (step.operation === "SELECT" && str(step.sql).trim() && str(rec(step.outputBinding).name) && selectShape(str(step.sql), ctx.shapeEnv) === "list") {
+        chips.push({ text: "結果は一覧", tone: "rule", title: "1 件に絞る条件 (LIMIT 1・集計だけ・主キーや一意の列の一致) がないので、結果は一覧になりえます。一覧なら、0 件でも「ない」にはならず、1 件目は 〜[0].列 で読みます (SQL からの推定。1 件を返す設計なら、気にしなくて構いません)" });
       }
       chips.push(...outputChip(step));
       break;

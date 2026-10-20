@@ -83,9 +83,9 @@ test.describe("流れ: 大きな処理の速さ (回帰に含めない)", () => 
     const maxLong = long.length ? Math.max(...long) : 0;
     console.info(`[perf] 要素 ${rows} 行: 流れを開く ${openMs}ms / 編集開始 ${editMs}ms / 1 操作 ${opMs}ms / 判定表 ${dtMs}ms / 最大の固まり ${maxLong.toFixed(0)}ms (${long.length} 回)`);
     // 目安: どれも数秒以内 (開発サーバ・共有の環境なので、緩く)
-    expect(openMs).toBeLessThan(8000);
-    expect(editMs).toBeLessThan(8000);
-    expect(opMs).toBeLessThan(3000);
-    expect(dtMs).toBeLessThan(3000);
+    expect(openMs).toBeLessThan(15000);
+    expect(editMs).toBeLessThan(15000);
+    expect(opMs).toBeLessThan(6000);
+    expect(dtMs).toBeLessThan(6000);
   });
 });

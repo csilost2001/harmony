@@ -11,7 +11,7 @@ export interface StoryEditApi {
   undo?: () => void;
   /** 流れ全体で使われている ID (新しい工程の ID が重ならないように) */
   flowIds: () => Set<string>;
-  tables: ReadonlyArray<{ id: string; name: string; physicalName: string }>;
+  tables: ReadonlyArray<{ id: string; name: string; physicalName: string; /** 1 行を決める列の組 (主キー・一意) */ uniqueKeys?: ReadonlyArray<readonly string[]> }>;
   /** 処理の外から来る値 (セッションなど)。条件の候補に出す */
   ambient?: ReadonlyArray<{ name: string; label?: string }>;
   /** 処理フローに登録された外部システムの名前 (接続先の候補) */
