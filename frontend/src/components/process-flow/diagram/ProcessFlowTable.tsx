@@ -4,6 +4,7 @@
  */
 import { useMemo } from "react";
 import type { ActionDefinition } from "../../../types/v3";
+import { buildVarLabels, conditionText } from "@harmony/shared";
 import { buildOutline, type FlowContext } from "./flowStructure";
 
 export interface ProcessFlowTableProps {
@@ -16,6 +17,7 @@ export interface ProcessFlowTableProps {
 
 export function ProcessFlowTable({ action, ctx, selectedStepIds, onSelectStep, onOpenStep }: ProcessFlowTableProps) {
   const rows = useMemo(() => buildOutline(action.steps ?? [], action, ctx), [action, ctx]);
+  const labels = useMemo(() => buildVarLabels(action), [action]);
   return (
     <div className="pft-scroll" data-testid="process-flow-table">
       <table className="pft-table">
@@ -47,7 +49,7 @@ export function ProcessFlowTable({ action, ctx, selectedStepIds, onSelectStep, o
                 <td className="pft-kind">{r.kind}</td>
                 <td><span style={{ paddingLeft: r.depth * 16 }} className="pft-text">{r.type === "branch-arm" ? `▸ ${r.text}` : r.text}</span></td>
                 <td className="pft-target">{r.target}</td>
-                <td className="pft-note">{r.note}</td>
+                <td className="pft-note">{r.type === "branch-arm" && r.condition !== undefined ? <ConditionNote cond={r.condition} words={conditionText(r.condition, labels)} raw={r.note} /> : r.note}</td>
               </tr>
             );
           })}
@@ -57,5 +59,17 @@ export function ProcessFlowTable({ action, ctx, selectedStepIds, onSelectStep, o
         </tbody>
       </table>
     </div>
+  );
+}
+
+/** 分岐の条件: 人が読む言葉と、(式のときは) もとの式 */
+function ConditionNote({ cond, words, raw }: { cond: unknown; words: string; raw: string }) {
+  if (!words) return <>{raw}</>;
+  const isExpr = (cond as { kind?: string } | undefined)?.kind === "expression";
+  return (
+    <>
+      <span>{words}</span>
+      {isExpr && words !== raw && <code className="pft-raw">{raw}</code>}
+    </>
   );
 }

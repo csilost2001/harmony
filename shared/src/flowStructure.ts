@@ -180,6 +180,8 @@ export interface OutlineRow {
   inTx: boolean;
   /** 異常終了 (4xx / 5xx を返す return) */
   isError: boolean;
+  /** 分岐の枝見出しのとき、その条件 (言葉への変換に使う) */
+  condition?: unknown;
 }
 
 export function buildOutline(steps: readonly FlowStep[], action: Pick<FlowActionLike, "responses"> | null, ctx: FlowContext = NO_CTX): OutlineRow[] {
@@ -199,7 +201,7 @@ export function buildOutline(steps: readonly FlowStep[], action: Pick<FlowAction
         for (const b of arms) {
           rows.push({
             no: `${no}-${b.code}`, depth: depth + 1, type: "branch-arm", kind: "条件", inTx, isError: false,
-            text: b.label ?? b.code, target: "", note: branchConditionText(b.condition) ?? "",
+            text: b.label ?? b.code, target: "", note: branchConditionText(b.condition) ?? "", condition: b.condition,
           });
           walk(b.steps ?? [], `${no}-${b.code}`, depth + 2, inTx);
         }

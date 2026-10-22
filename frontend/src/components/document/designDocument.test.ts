@@ -55,6 +55,19 @@ describe("buildDesignDocument", () => {
     expect(doc.html).toContain("@conv.msg.stockShortage");
   });
 
+  it("処理記述表の分岐の条件は、人が読む言葉になり、もとの式も添える", () => {
+    const flow = { meta: { id: "w", name: "語", flowType: "screen" }, actions: [{ id: "a", name: "A", trigger: "click", inputs: [{ name: "n", label: "件数" }], steps: [
+      { id: "s1", kind: "dbAccess", description: "取得", operation: "SELECT", tableId: "customer-master", sql: "SELECT id FROM t", outputBinding: { name: "customer", label: "取引先" } },
+      { id: "s2", kind: "branch", description: "分ける", branches: [{ id: "b1", code: "A", condition: { kind: "expression", expression: "@customer == null || @inputs.n > 3 && @customer.isActive == false" }, steps: [] }, { id: "b2", code: "B", condition: { kind: "tryCatch", errorCode: "E1" }, steps: [] }] },
+    ] }] };
+    const html = renderStandaloneDesignDoc({ ...input, flows: [flow as never] });
+    expect(html).toContain("取引先 が ない または 件数 が 3 より大きい かつ");
+    expect(html).toContain('<code class="hd-cond-raw">@customer == null || @inputs.n &gt; 3');
+    // 式でない条件 (tryCatch) は、もとの文字のまま (式を添えない)
+    expect(html).toContain("エラー「E1」が起きたとき");
+    expect(html).not.toContain("hd-cond-raw\">catch");
+  });
+
   it("利用者の入力は HTML エスケープされる", () => {
     const d = buildDesignDocument({ ...input, project: { name: "<script>alert(1)</script>" }, screens: [], flows: [], tables: [] });
     expect(d.html).not.toContain("<script>alert");

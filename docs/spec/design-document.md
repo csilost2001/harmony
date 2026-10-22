@@ -34,7 +34,7 @@
 | 1 画面一覧 | 画面 ID / 画面名 / 種別 / URL / 成熟度 | screens |
 | 2 画面遷移 | 遷移元 → 遷移先 / 契機 | harmony.json screenTransitions |
 | 3 画面設計 (画面ごと) | 基本情報、概要、画面レイアウト (業務部品の木の静的描画)、項目定義表、イベント、関連処理 | screen.layout / items |
-| 4 処理一覧 / 処理設計 (フローごと) | 基本情報、アクションごとの入出力・フロー図 (SVG)・処理記述表 | process-flows |
+| 4 処理一覧 / 処理設計 (フローごと) | 基本情報、アクションごとの入出力・フロー図 (SVG)・処理記述表 (分岐の条件は、**人が読む言葉** + もとの式。[process-flow-story-view.md](process-flow-story-view.md)) | process-flows |
 | 5 テーブル一覧 / テーブル定義 | 列定義、インデックス、利用箇所 (CRUD) | tables |
 | 6 CRUD 図 | 処理フロー × テーブルのマトリクスと所見 | process-flows の dbAccess |
 | 7 バッチ・定期処理一覧 | flowType が batch / scheduled の処理と起動 | process-flows |
