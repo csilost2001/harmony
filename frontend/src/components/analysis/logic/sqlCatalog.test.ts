@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { DesignDocInput } from "../designDocument.js";
-import { deriveSqlCatalog, findDuplicateSql, normalizeSql, sqlCatalogToCsv } from "./sqlCatalog.js";
+import { deriveSqlCatalog, findDuplicateSql, normalizeSql, sqlCatalogToCsv, type DesignDocInput } from "@harmony/shared";
 
 const Q = "SELECT id, name, email FROM customers WHERE id = @inputs.customerId AND status = 'active'";
 const mk = (steps: unknown[]): DesignDocInput => ({

@@ -184,6 +184,8 @@ export interface OutlineRow {
   isError: boolean;
   /** 分岐の枝見出しのとき、その条件 (言葉への変換に使う) */
   condition?: unknown;
+  /** 工程の実行条件 (runIf) の式 (言葉への変換に使う) */
+  runIf?: string;
 }
 
 export function buildOutline(steps: readonly FlowStep[], action: Pick<FlowActionLike, "responses"> | null, ctx: FlowContext = NO_CTX): OutlineRow[] {
@@ -195,6 +197,7 @@ export function buildOutline(steps: readonly FlowStep[], action: Pick<FlowAction
       rows.push({
         no, depth, type: "step", step, kind: kindLabel(step), text: stepText(step), target: stepTarget(step, ctx),
         note: stepNote(step, action), inTx, isError: st !== undefined && st >= 400,
+        ...(typeof (step as AnyStep).runIf === "string" && (step as AnyStep).runIf ? { runIf: String((step as AnyStep).runIf) } : {}),
       });
       const s = step as AnyStep;
       if (step.kind === "branch") {

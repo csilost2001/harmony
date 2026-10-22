@@ -58,16 +58,53 @@ describe("buildDesignDocument", () => {
   it("処理記述表の分岐の条件は、人が読む言葉になり、もとの式も添える", () => {
     const flow = { meta: { id: "w", name: "語", flowType: "screen" }, actions: [{ id: "a", name: "A", trigger: "click", inputs: [{ name: "n", label: "件数" }], steps: [
       { id: "s1", kind: "dbAccess", description: "取得", operation: "SELECT", tableId: "customer-master", sql: "SELECT id FROM t", outputBinding: { name: "customer", label: "取引先" } },
+      { id: "s1b", kind: "log", description: "記録", level: "info", runIf: "@customer != null" },
       { id: "s2", kind: "branch", description: "分ける", branches: [{ id: "b1", code: "A", condition: { kind: "expression", expression: "@customer == null || @inputs.n > 3 && @customer.isActive == false" }, steps: [{ id: "r1", kind: "return", description: "終了" }] }, { id: "b2", code: "B", condition: { kind: "tryCatch", errorCode: "E1" }, steps: [] }] },
     ] }] };
     const html = renderStandaloneDesignDoc({ ...input, flows: [flow as never] });
     expect(html).toContain("取引先 が ない または 件数 が 3 より大きい かつ");
     expect(html).toContain('<code class="hd-cond-raw">@customer == null || @inputs.n &gt; 3');
+    // 工程の実行条件 (runIf) も、言葉 + もとの式
+    expect(html).toContain("実行条件: 取引先 が ある");
+    expect(html).toContain('<code class="hd-cond-raw">@customer != null</code>');
     // 式でない条件 (tryCatch) は、もとの文字のまま (式を添えない)
     expect(html).toContain("エラー「E1」が起きたとき");
     expect(html).not.toContain("hd-cond-raw\">catch");
     // テスト観点の到達条件も、言葉で出る (conditions は、もとの文字のまま)
     expect(html).toMatch(/A \(取引先 が ない または/);
+  });
+
+  it("複合条件の分岐は、判定表 (条件の行 × 道の列) と見落としの指摘が出る。条件が 1 つだけの分岐は出ない", () => {
+    const flow = { meta: { id: "d", name: "判", flowType: "screen" }, actions: [{ id: "a", name: "A", trigger: "click", inputs: [{ name: "type", label: "種別" }, { name: "amount", label: "金額" }], steps: [
+      { id: "s1", kind: "branch", description: "区分", branches: [
+        { id: "b1", code: "A", condition: { kind: "expression", expression: "@inputs.type == 'corp' && @inputs.amount > 100" }, steps: [{ id: "x1", kind: "log", description: "上長承認", level: "info" }] },
+        { id: "b2", code: "B", condition: { kind: "expression", expression: "@inputs.type == 'corp' && @inputs.amount <= 100" }, steps: [{ id: "x2", kind: "log", description: "自動承認", level: "info" }] },
+      ] },
+      { id: "s2", kind: "branch", description: "単純", branches: [{ id: "b3", code: "A", condition: { kind: "expression", expression: "@inputs.type == 'x'" }, steps: [] }], elseBranch: { id: "e", code: "B", steps: [] } },
+    ] }] };
+    const html = renderStandaloneDesignDoc({ ...input, flows: [flow as never] });
+    expect(html.match(/<h4 class="hd-sub">判定表/g)).toHaveLength(1);
+    expect(html).toContain("種別 が 「corp」 と等しい");
+    expect(html).toContain("金額 が 100 より大きい");
+    expect(html).toContain('<span class="hd-dt-yes">○</span>');
+    expect(html).toContain('<span class="hd-dt-no">×</span>');
+    expect(html).toContain("上長承認");
+    // 「それ以外」が無いので、どの道にも入らない組み合わせを指摘する
+    expect(html).toContain("どの道にも入りません");
+  });
+
+  it("判定表: 道の記号も HTML エスケープされる。ガード (それ以外なし) は、抜けの警告を出さない。「A または B」だけの分岐は出ない", () => {
+    const flow = { meta: { id: "g", name: "ガ", flowType: "screen" }, actions: [{ id: "a", name: "A", trigger: "click", inputs: [], steps: [
+      { id: "g1", kind: "branch", description: "ガード", branches: [{ id: "b1", code: "A", condition: { kind: "expression", expression: "@cust == null || @q == null" }, steps: [{ id: "r1", kind: "return", description: "404" }] }] },
+      { id: "g2", kind: "branch", description: "または", branches: [{ id: "b2", code: "A", condition: { kind: "expression", expression: "@a == 1 || @b == 2" }, steps: [] }, { id: "b3", code: "B", condition: { kind: "expression", expression: "@c == 3" }, steps: [] }], elseBranch: { id: "e", code: "X", steps: [] } },
+      { id: "g3", kind: "branch", description: "悪意", branches: [{ id: "b4", code: "A", condition: { kind: "expression", expression: "@a == 1 && @b == 2" }, steps: [] }, { id: "b5", code: "B<img src=x onerror=1>", condition: { kind: "tryCatch", errorCode: "E" }, steps: [] }], elseBranch: { id: "e2", code: "X", steps: [] } },
+    ] }] };
+    const html = renderStandaloneDesignDoc({ ...input, flows: [flow as never] });
+    expect(html).not.toContain("<img src=x onerror=1>");
+    expect(html).toContain("B&lt;img src=x onerror=1&gt;");
+    // ガードの判定表は、「どの道にも入りません」と言わない。「A または B」だけの分岐 (g2) は、表を出さない
+    expect(html).not.toContain("どの道にも入りません");
+    expect(html.match(/<h4 class="hd-sub">判定表/g)).toHaveLength(2);
   });
 
   it("利用者の入力は HTML エスケープされる", () => {
