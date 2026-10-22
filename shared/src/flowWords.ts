@@ -290,3 +290,14 @@ export function conditionSegments(cond: unknown): Seg[] {
 export function conditionText(cond: unknown, labels: VarLabels): string {
   return segsToText(conditionSegments(cond), labels.full);
 }
+
+/**
+ * 処理記述表の「条件・備考」の文字 (`実行条件: 式 / HTTP 200` など) の、実行条件の式を、言葉にする。
+ * 言葉にできないとき・同じ文字のときは、そのまま (raw は null)。raw は、言葉の下に添える、もとの式
+ */
+export function noteWithWords(note: string, runIf: string | undefined, labels: VarLabels): { text: string; raw: string | null } {
+  if (!runIf) return { text: note, raw: null };
+  const words = conditionText({ kind: "expression", expression: runIf }, labels);
+  if (!words || words === runIf) return { text: note, raw: null };
+  return { text: note.replace(`実行条件: ${runIf}`, `実行条件: ${words}`), raw: runIf };
+}

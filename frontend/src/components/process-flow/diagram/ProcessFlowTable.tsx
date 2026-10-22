@@ -4,7 +4,7 @@
  */
 import { useMemo } from "react";
 import type { ActionDefinition } from "../../../types/v3";
-import { buildVarLabels, conditionText } from "@harmony/shared";
+import { buildVarLabels, conditionText, noteWithWords } from "@harmony/shared";
 import { buildOutline, type FlowContext } from "./flowStructure";
 
 export interface ProcessFlowTableProps {
@@ -49,7 +49,7 @@ export function ProcessFlowTable({ action, ctx, selectedStepIds, onSelectStep, o
                 <td className="pft-kind">{r.kind}</td>
                 <td><span style={{ paddingLeft: r.depth * 16 }} className="pft-text">{r.type === "branch-arm" ? `▸ ${r.text}` : r.text}</span></td>
                 <td className="pft-target">{r.target}</td>
-                <td className="pft-note">{r.type === "branch-arm" && r.condition !== undefined ? <ConditionNote cond={r.condition} words={conditionText(r.condition, labels)} raw={r.note} /> : r.note}</td>
+                <td className="pft-note">{r.type === "branch-arm" && r.condition !== undefined ? <ConditionNote cond={r.condition} words={conditionText(r.condition, labels)} raw={r.note} /> : <StepNote note={r.note} runIf={r.runIf} labels={labels} />}</td>
               </tr>
             );
           })}
@@ -72,4 +72,10 @@ function ConditionNote({ cond, words, raw }: { cond: unknown; words: string; raw
       {isExpr && words !== raw && <code className="pft-raw">{raw}</code>}
     </>
   );
+}
+
+/** 工程の「条件・備考」: 実行条件の式は、言葉 + もとの式 */
+function StepNote({ note, runIf, labels }: { note: string; runIf?: string; labels: Parameters<typeof noteWithWords>[2] }) {
+  const n = noteWithWords(note, runIf, labels);
+  return <>{n.text}{n.raw && <code className="pft-raw">{n.raw}</code>}</>;
 }

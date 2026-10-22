@@ -7,11 +7,12 @@
  * 仕様: docs/spec/process-flow-story-view.md
  */
 import type { ActionDefinition } from "../../../types/v3";
-import { parseVarRef, splitTopLevel } from "./expressionText";
+import { composeClause, parseClause, SIMPLE_VALUE_RE, splitTopLevel, type Clause, type CondOp } from "@harmony/shared";
+
+export { composeClause, parseClause, type Clause, type CondOp } from "@harmony/shared";
 import { selectShape, type ShapeEnv } from "./sqlShape";
 import { asLooseList, buildVarLabels, childGroups, variableFlow, walkSteps, type Loose } from "./storyModel";
 
-export type CondOp = "==" | "!=" | ">" | ">=" | "<" | "<=" | "null" | "notNull" | "true" | "false" | "notTrue" | "notFalse";
 
 export const OP_CHOICES: Array<{ op: CondOp; label: string; needsValue: boolean }> = [
   { op: "==", label: "と等しい", needsValue: true },
@@ -28,45 +29,9 @@ export const OP_CHOICES: Array<{ op: CondOp; label: string; needsValue: boolean 
   { op: "notFalse", label: "「いいえ」ではない", needsValue: false },
 ];
 
-export interface Clause {
-  /** `@customer.isActive` のように、先頭に @ を付けた参照 */
-  subject: string;
-  op: CondOp;
-  /** 式としての値 (`0` `'prepaid'` `@credit.creditUsed`)。値の要らない比較では空 */
-  value: string;
-  /** もとの式が、厳密な比較 (`===` `!==`) だったか。触らない限り、そのまま書き戻す (意味を変えないため) */
-  strict?: boolean;
-}
-
 export interface CondModel {
   join: "&&" | "||";
   clauses: Clause[];
-}
-
-const CMP_RE = /^(@[\w.[\]]+)\s*(===|!==|==|!=|>=|<=|>|<)\s*(.+)$/;
-const SIMPLE_VALUE_RE = /^(@[\w.[\]]+|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|-?\d+(\.\d+)?|null|true|false)$/;
-
-export function parseClause(raw: string): Clause | null {
-  const c = raw.trim();
-  if (c.startsWith("(") && c.endsWith(")")) return null; // 括弧つきは、部品にしない
-  const m = c.match(CMP_RE);
-  if (!m) return null;
-  const [, subject, opRaw, rightRaw] = m;
-  const right = rightRaw.trim();
-  if (!parseVarRef(subject) || !SIMPLE_VALUE_RE.test(right)) return null;
-  const strict = opRaw === "===" || opRaw === "!==";
-  const eq = opRaw === "==" || opRaw === "===";
-  const ne = opRaw === "!=" || opRaw === "!==";
-  const withStrict = (cl: Clause): Clause => (strict ? { ...cl, strict: true } : cl);
-  // `== null` と `!= null` は、undefined も含む (緩い比較)。厳密な `=== null` は、strict を保って書き戻す
-  if (right === "null" && (eq || ne)) return withStrict({ subject, op: eq ? "null" : "notNull", value: "" });
-  if ((right === "true" || right === "false") && (eq || ne)) {
-    const isTrue = right === "true";
-    if (eq) return withStrict({ subject, op: isTrue ? "true" : "false", value: "" });
-    return withStrict({ subject, op: isTrue ? "notTrue" : "notFalse", value: "" });
-  }
-  const op = strict ? (opRaw === "===" ? "==" : "!=") : (opRaw as CondOp);
-  return withStrict({ subject, op, value: right });
 }
 
 /** 式 → 部品。部品にできない式 (入れ子の括弧・関数・三項・「かつ」と「または」の混在など) は null */
@@ -85,22 +50,6 @@ export function parseCondition(expr: string): CondModel | null {
     clauses.push(c);
   }
   return { join: or ? "||" : "&&", clauses };
-}
-
-export function composeClause(c: Clause): string {
-  const e = c.strict ? "===" : "==";
-  const n = c.strict ? "!==" : "!=";
-  switch (c.op) {
-    case "null": return `${c.subject} ${e} null`;
-    case "notNull": return `${c.subject} ${n} null`;
-    case "true": return `${c.subject} ${e} true`;
-    case "false": return `${c.subject} ${e} false`;
-    case "notTrue": return `${c.subject} ${n} true`;
-    case "notFalse": return `${c.subject} ${n} false`;
-    case "==": return `${c.subject} ${e} ${c.value}`;
-    case "!=": return `${c.subject} ${n} ${c.value}`;
-    default: return `${c.subject} ${c.op} ${c.value}`;
-  }
 }
 
 export function composeCondition(m: CondModel): string {

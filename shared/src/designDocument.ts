@@ -8,7 +8,8 @@
  *
  * 仕様: docs/spec/design-document.md
  */
-import { buildVarLabels, conditionText } from "./flowWords.js";
+import { buildVarLabels, conditionText, noteWithWords, segsToText, walkAllSteps } from "./flowWords.js";
+import { buildDecisionModel } from "./flowDecision.js";
 import { buildOutline, layoutFlow, deriveTestViewpoints, stepText, type FlowStep, type FlowActionLike, type DiagramLayout, type FlowContext } from "./flowStructure.js";
 import { walkLayout, collectItemRefs, type LayoutNode, type ScreenLayout } from "./screenLayout.js";
 import { businessFlowToSvg, validateBusinessFlow, BUSINESS_STEP_KIND_LABELS, BUSINESS_LANE_KIND_LABELS, type BusinessFlow } from "./businessFlow.js";
@@ -161,6 +162,42 @@ function conditionCell(cond: unknown, labels: ReturnType<typeof buildVarLabels>,
   if (!words) return esc(raw);
   const isExpr = (cond as { kind?: string } | undefined)?.kind === "expression";
   return `${esc(words)}${isExpr && words !== raw ? `<br><code class="hd-cond-raw">${esc(raw)}</code>` : ""}`;
+}
+
+/**
+ * 複合条件 (2 つ以上の条件を組み合わせた分岐) の判定表。条件の行 × 道の列で、○ 成り立つ / × 成り立たない / － 関係しない。
+ * 条件が 1 つだけの分岐は、処理記述表で足りるので出さない。表の下に、見落としの指摘 (隠れる道・どの道にも入らない組み合わせ ほか)
+ */
+function decisionTablesHtml(a: { steps?: readonly FlowStep[] }, labels: ReturnType<typeof buildVarLabels>, rows: ReadonlyArray<{ no: string; step?: FlowStep }>): string {
+  const noOf = new Map(rows.filter((r) => r.step).map((r) => [r.step!.id, r.no]));
+  const parts: string[] = [];
+  for (const st of walkAllSteps(a.steps)) {
+    if (st.kind !== "branch") continue;
+    const m = buildDecisionModel(st, { label: labels.full });
+    if (!m || m.rows.length < 2) continue;
+    const cap = (c: (typeof m.columns)[number]) => (c.isElse ? "それ以外" : c.altCount > 1 ? `${c.code} の ${c.altIndex + 1}` : c.code);
+    const glyph = { yes: "○", no: "×", any: "－" } as const;
+    const head = ["条件 ＼ 道", ...m.columns.map((c) => esc(`${cap(c)}${c.label ? ` ${c.label}` : ""}`))];
+    const body: string[][] = m.rows.map((r, i) => [
+      esc(segsToText(r.segs, labels.full)),
+      ...m.columns.map((c) => (c.unparsed ? `<span class="hd-dt-na">·</span>` : `<span class="hd-dt-${c.cells[i] ?? "any"}">${glyph[c.cells[i] ?? "any"]}</span>`)),
+    ]);
+    body.push(["そのとき", ...m.columns.map((c) => esc(c.implicit ? "次の工程へ進む" : c.steps[0] ? stepText(c.steps[0]) : "（何もしない）"))]);
+    const unparsed = m.columns.filter((c) => c.unparsed).map((c) => `道 ${c.code}: ${esc(c.unparsed ?? "")}`);
+    const issues = m.issues.map((i) => `<li class="hd-dt-${i.level}">${i.level === "warn" ? "⚠" : "ⓘ"} ${esc(i.text)}</li>`);
+    parts.push(`<h4 class="hd-sub">判定表<small>${esc(noOf.get(st.id) ?? "")} ${esc(stepText(st))}</small></h4>
+        <div class="hd-scroll">${table(head, body, "hd-dt")}</div>
+        <p class="hd-note">上の道から順に調べ、最初に成り立った道に進みます。○ 成り立つ / × 成り立たない / － 関係しない</p>
+        ${unparsed.length ? `<p class="hd-note">表にできない条件: ${unparsed.join(" / ")}</p>` : ""}
+        ${issues.length ? `<ul class="hd-dt-issues">${issues.join("")}</ul>` : ""}`);
+  }
+  return parts.join("");
+}
+
+/** 工程の「条件・備考」の欄: 実行条件の式は、言葉 + もとの式 */
+function noteCell(note: string, runIf: string | undefined, labels: ReturnType<typeof buildVarLabels>): string {
+  const n = noteWithWords(note, runIf, labels);
+  return `${esc(n.text)}${n.raw ? `<br><code class="hd-cond-raw">${esc(n.raw)}</code>` : ""}`;
 }
 
 export function esc(s: unknown): string {
@@ -460,7 +497,7 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
       const labels = buildVarLabels(a);
       const outline = table(["No", "区分", "処理内容", "対象", "条件・備考"], rows.map((r) => [
         `<code>${esc(r.no)}</code>`, esc(r.kind),
-        `<span style="padding-left:${r.depth * 14}px">${r.type === "branch-arm" ? "▸ " : ""}${esc(r.text)}</span>`, esc(r.target), r.type === "branch-arm" && r.condition !== undefined ? conditionCell(r.condition, labels, r.note) : esc(r.note),
+        `<span style="padding-left:${r.depth * 14}px">${r.type === "branch-arm" ? "▸ " : ""}${esc(r.text)}</span>`, esc(r.target), r.type === "branch-arm" && r.condition !== undefined ? conditionCell(r.condition, labels, r.note) : noteCell(r.note, r.runIf, labels),
       ]), "hd-outline");
       const io = [
         ...(a.inputs ?? []).map((p) => ["入力", `<code>${esc(p.name)}</code>`, esc(typeText(p.type)), p.required ? "○" : "", esc(p.description ?? "")]),
@@ -472,6 +509,7 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
         ${io.length ? table(["区分", "名前", "型", "必須", "説明"], io) : ""}
         <div class="hd-diagram-wrap">${diagramToSvg(layoutFlow(a, ctx), `${f.meta.name ?? f.meta.id} ${a.name ?? ""} の処理フロー図`)}</div>
         ${outline}
+        ${decisionTablesHtml(a, labels, rows)}
         <h4 class="hd-sub">テスト観点<small>分岐と終了から自動導出</small></h4>
         ${table(["No", "区分", "条件", "期待結果", "終了ステップ"], deriveTestViewpoints(a).map((v) => [
           String(v.no), `<span class="hd-sev ${v.category === "正常系" ? "hd-sev-ok" : "hd-sev-error"}">${v.category}</span>`,
@@ -906,6 +944,7 @@ export const DESIGN_DOC_CSS = `
 .fd-head{fill:#9aa3b2}.fd-head-err{fill:var(--d-err)}
 .fd-edge-label{font-size:10.5px;fill:#4d576a;paint-order:stroke;stroke:#fafbfc;stroke-width:3px}
 .hd-outline td:first-child{white-space:nowrap}
+.hd-dt td:not(:first-child),.hd-dt th:not(:first-child){text-align:center}.hd-dt .hd-dt-yes{color:var(--d-ok);font-weight:700}.hd-dt .hd-dt-no{color:var(--d-err);font-weight:700}.hd-dt .hd-dt-any,.hd-dt .hd-dt-na{color:var(--d-muted)}.hd-dt-issues{margin:6px 0 0;padding-left:1.2em;font-size:12.5px}.hd-dt-issues .hd-dt-warn{color:var(--d-err)}.hd-dt-issues .hd-dt-info{color:var(--d-muted)}
 .hd-doc .hd-cond-raw{color:var(--d-muted);font-size:.85em;background:none;padding:0}
 .hd-items td:nth-child(3) code,.hd-columns td:nth-child(3) code{white-space:nowrap;overflow-wrap:normal}
 .hd-items td:nth-child(2){min-width:7em}.hd-items td:nth-child(4),.hd-items td:nth-child(5),.hd-items td:nth-child(6),.hd-items td:nth-child(7){white-space:nowrap}
