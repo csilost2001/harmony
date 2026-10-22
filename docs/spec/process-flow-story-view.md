@@ -12,7 +12,7 @@ AI が詳細化した複雑な処理を、**人が全体から詳細まで把握
 2. 「どう終わるか」と「変数がどこで作られ、使われるか」を調べる
 3. 人が確かめ終えたことを残す
 
-> **設計書・「表」表示にも、同じ言葉を出す**: 条件を言葉に直す処理 (`expressionText` / `buildVarLabels` / `conditionText`) は、`@harmony/shared` の `flowWords.ts` に置き、設計書 (HTML・Word・Excel・Markdown の元の HTML) の処理記述表と、編集画面の「表」表示の「条件・備考」でも使う。言葉の下に、もとの式を小さく添える (式でない条件 (tryCatch など) は言葉だけ)。言葉にできない式は、もとの式のまま。顧客に渡す設計書でも、`@customer == null` が「取引先 が ない」と読める。
+> **設計書・「表」表示にも、同じ言葉を出す**: 条件を言葉に直す処理 (`expressionText` / `buildVarLabels` / `conditionText`) は、`@harmony/shared` の `flowWords.ts` に置き、設計書 (HTML・Word・Excel・Markdown の元の HTML) の処理記述表・テスト観点の到達条件と、編集画面の「表」表示の「条件・備考」でも使う (テスト観点は、`conditions` はもとの文字のまま、言葉は別の欄 `conditionWords` に持つ。テスト生成などの入力は変わらない)。言葉の下に、もとの式を小さく添える (式でない条件 (tryCatch など) は言葉だけ)。言葉にできない式は、もとの式のまま。顧客に渡す設計書でも、`@customer == null` が「取引先 が ない」と読める。
 
 ## 表示のしかた
 

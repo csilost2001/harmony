@@ -475,7 +475,7 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
         <h4 class="hd-sub">テスト観点<small>分岐と終了から自動導出</small></h4>
         ${table(["No", "区分", "条件", "期待結果", "終了ステップ"], deriveTestViewpoints(a).map((v) => [
           String(v.no), `<span class="hd-sev ${v.category === "正常系" ? "hd-sev-ok" : "hd-sev-error"}">${v.category}</span>`,
-          v.conditions.map((c) => esc(c)).join("<br>"), esc(v.expected), `<code>${esc(v.stepNo)}</code>`,
+          (v.conditionWords ?? v.conditions).map((c) => esc(c)).join("<br>"), esc(v.expected), `<code>${esc(v.stepNo)}</code>`,
         ]), "hd-tests")}
       </div>`;
     }).join("");
