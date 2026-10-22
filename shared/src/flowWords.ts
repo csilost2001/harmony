@@ -299,5 +299,5 @@ export function noteWithWords(note: string, runIf: string | undefined, labels: V
   if (!runIf) return { text: note, raw: null };
   const words = conditionText({ kind: "expression", expression: runIf }, labels);
   if (!words || words === runIf) return { text: note, raw: null };
-  return { text: note.replace(`実行条件: ${runIf}`, `実行条件: ${words}`), raw: runIf };
+  return { text: note.replace(`実行条件: ${runIf}`, () => `実行条件: ${words}`), raw: runIf };
 }

@@ -12,7 +12,7 @@ import type { Loose } from "./storyModel";
 
 // 表の計算は shared にある。既存の読み込み先を保つため、ここから再公開する
 export {
-  atomFromRow, atomKey, atomOf, armsEmptiedByRemoving, buildDecisionModel, columnName, composeDnf, COMPLEMENT, feasible, parseDnf, rowFromAtom,
+  atomFromRow, atomKey, atomOf, armsEmptiedByRemoving, buildDecisionModel, decisionColumnName as columnName, composeDnf, COMPLEMENT, feasible, parseDnf, rowFromAtom,
   type DecisionModel, type DtAlt, type DtAtom, type DtCell, type DtColumn, type DtIssue, type DtRow, type DtRowSpec,
 } from "@harmony/shared";
 

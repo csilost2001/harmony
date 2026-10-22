@@ -407,7 +407,7 @@ export function buildDecisionModel(step: FlowStep, opts: { implicitElse?: boolea
 }
 
 /** 道の名前 (「道 B」「B（取引先がない）」) */
-export function columnName(c: DtColumn): string {
+export function decisionColumnName(c: DtColumn): string {
   if (c.isElse) return c.implicit ? "それ以外" : `それ以外 (${c.code})`;
   const base = c.code ? `道 ${c.code}` : "道";
   return c.altCount > 1 ? `${base} の ${c.altIndex + 1} つ目` : base;
@@ -418,8 +418,8 @@ function analyze(model: DecisionModel, specs: readonly DtRowSpec[], hasElse: boo
   const issues: DtIssue[] = [];
   const cols = model.columns;
   for (const c of cols) {
-    if (c.empty && !c.isElse) issues.push({ level: "warn", text: `${columnName(c)} の条件が空です (この道には、どんなときも入りません)` });
-    if (c.contradictory) issues.push({ level: "warn", text: `${columnName(c)} は、条件が食い違っていて (同じ条件が「成り立つ」と「成り立たない」の両方・別々の値と等しい・数の範囲が重ならない など)、どんなときも入りません` });
+    if (c.empty && !c.isElse) issues.push({ level: "warn", text: `${decisionColumnName(c)} の条件が空です (この道には、どんなときも入りません)` });
+    if (c.contradictory) issues.push({ level: "warn", text: `${decisionColumnName(c)} は、条件が食い違っていて (同じ条件が「成り立つ」と「成り立たない」の両方・別々の値と等しい・数の範囲が重ならない など)、どんなときも入りません` });
   }
   const real = cols.filter((c) => !c.isElse && !c.unparsed && !c.empty && !c.contradictory);
   // 先に調べる道のせいで、選ばれない列 / 同時に成り立ちうる列
@@ -429,14 +429,14 @@ function analyze(model: DecisionModel, specs: readonly DtRowSpec[], hasElse: boo
       const ci = real[i];
       if (ci.armId === cj.armId) continue;
       if (implies(cj.cells, ci.cells)) {
-        issues.push({ level: "warn", text: `${columnName(cj)} は、${columnName(ci)} が成り立つときに必ず先に選ばれるので、${ci.cells.every((x) => x === "any") ? "" : "その条件を含む場合は、"}実行されません (上の道が優先)` });
+        issues.push({ level: "warn", text: `${decisionColumnName(cj)} は、${decisionColumnName(ci)} が成り立つときに必ず先に選ばれるので、${ci.cells.every((x) => x === "any") ? "" : "その条件を含む場合は、"}実行されません (上の道が優先)` });
         return;
       }
     }
     for (let i = 0; i < j; i++) {
       const ci = real[i];
       if (ci.armId === cj.armId || exclusive(specs, ci.cells, cj.cells)) continue;
-      overlaps.push(`${columnName(ci)} と ${columnName(cj)}`);
+      overlaps.push(`${decisionColumnName(ci)} と ${decisionColumnName(cj)}`);
       break;
     }
   });
@@ -475,4 +475,16 @@ export function armsEmptiedByRemoving(model: DecisionModel, rowIndex: number): s
     if (c.cells.every((x, i) => i === rowIndex || x === "any")) out.add(c.code);
   }
   return [...out];
+}
+
+/** 「〜なら、ここで返す」だけの判定か (道が 1 本で、その中が「返す」1 つ。「それ以外」は無いか、空)。「それ以外」は、次の工程へ進む */
+export function isGuardLike(step: FlowStep): boolean {
+  if (step.kind !== "branch") return false;
+  const x = step as Record<string, unknown>;
+  const arms = Array.isArray(x.branches) ? (x.branches as Array<{ steps?: FlowStep[] }>) : [];
+  const els = x.elseBranch as { steps?: unknown[] } | undefined;
+  if (arms.length !== 1) return false;
+  if (els && Array.isArray(els.steps) && els.steps.length > 0) return false;
+  const inner = Array.isArray(arms[0].steps) ? arms[0].steps : [];
+  return inner.length === 1 && inner[0].kind === "return";
 }

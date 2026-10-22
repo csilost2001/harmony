@@ -9,8 +9,8 @@
  * 仕様: docs/spec/design-document.md
  */
 import { buildVarLabels, conditionText, noteWithWords, segsToText, walkAllSteps } from "./flowWords.js";
-import { buildDecisionModel } from "./flowDecision.js";
-import { buildOutline, layoutFlow, deriveTestViewpoints, stepText, type FlowStep, type FlowActionLike, type DiagramLayout, type FlowContext } from "./flowStructure.js";
+import { buildDecisionModel, decisionColumnName, isGuardLike } from "./flowDecision.js";
+import { buildOutline, layoutFlow, deriveTestViewpoints, stepText, truncate, type FlowStep, type FlowActionLike, type DiagramLayout, type FlowContext } from "./flowStructure.js";
 import { walkLayout, collectItemRefs, type LayoutNode, type ScreenLayout } from "./screenLayout.js";
 import { businessFlowToSvg, validateBusinessFlow, BUSINESS_STEP_KIND_LABELS, BUSINESS_LANE_KIND_LABELS, type BusinessFlow } from "./businessFlow.js";
 import {
@@ -173,9 +173,10 @@ function decisionTablesHtml(a: { steps?: readonly FlowStep[] }, labels: ReturnTy
   const parts: string[] = [];
   for (const st of walkAllSteps(a.steps)) {
     if (st.kind !== "branch") continue;
-    const m = buildDecisionModel(st, { label: labels.full });
-    if (!m || m.rows.length < 2) continue;
-    const cap = (c: (typeof m.columns)[number]) => (c.isElse ? "それ以外" : c.altCount > 1 ? `${c.code} の ${c.altIndex + 1}` : c.code);
+    const m = buildDecisionModel(st, { label: labels.full, implicitElse: isGuardLike(st) });
+    // 複合条件だけ: 3 つ以上の条件、または、1 つの道が 2 つ以上の条件を「かつ」でつなぐもの (「A または B」だけの分岐は、処理記述表で足りる)
+    if (!m || m.rows.length < 2 || (m.rows.length < 3 && !m.columns.some((c) => !c.unparsed && c.cells.filter((x) => x !== "any").length >= 2))) continue;
+    const cap = (c: (typeof m.columns)[number]) => decisionColumnName(c).replace(/^道 /, "");
     const glyph = { yes: "○", no: "×", any: "－" } as const;
     const head = ["条件 ＼ 道", ...m.columns.map((c) => esc(`${cap(c)}${c.label ? ` ${c.label}` : ""}`))];
     const body: string[][] = m.rows.map((r, i) => [
@@ -183,9 +184,9 @@ function decisionTablesHtml(a: { steps?: readonly FlowStep[] }, labels: ReturnTy
       ...m.columns.map((c) => (c.unparsed ? `<span class="hd-dt-na">·</span>` : `<span class="hd-dt-${c.cells[i] ?? "any"}">${glyph[c.cells[i] ?? "any"]}</span>`)),
     ]);
     body.push(["そのとき", ...m.columns.map((c) => esc(c.implicit ? "次の工程へ進む" : c.steps[0] ? stepText(c.steps[0]) : "（何もしない）"))]);
-    const unparsed = m.columns.filter((c) => c.unparsed).map((c) => `道 ${c.code}: ${esc(c.unparsed ?? "")}`);
+    const unparsed = m.columns.filter((c) => c.unparsed).map((c) => `道 ${esc(c.code)}: ${esc(c.unparsed ?? "")}`);
     const issues = m.issues.map((i) => `<li class="hd-dt-${i.level}">${i.level === "warn" ? "⚠" : "ⓘ"} ${esc(i.text)}</li>`);
-    parts.push(`<h4 class="hd-sub">判定表<small>${esc(noOf.get(st.id) ?? "")} ${esc(stepText(st))}</small></h4>
+    parts.push(`<h4 class="hd-sub">判定表<small>${esc(noOf.get(st.id) ?? "")} ${esc(truncate(stepText(st), 40))}</small></h4>
         <div class="hd-scroll">${table(head, body, "hd-dt")}</div>
         <p class="hd-note">上の道から順に調べ、最初に成り立った道に進みます。○ 成り立つ / × 成り立たない / － 関係しない</p>
         ${unparsed.length ? `<p class="hd-note">表にできない条件: ${unparsed.join(" / ")}</p>` : ""}

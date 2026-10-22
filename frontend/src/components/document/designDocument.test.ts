@@ -93,6 +93,20 @@ describe("buildDesignDocument", () => {
     expect(html).toContain("どの道にも入りません");
   });
 
+  it("判定表: 道の記号も HTML エスケープされる。ガード (それ以外なし) は、抜けの警告を出さない。「A または B」だけの分岐は出ない", () => {
+    const flow = { meta: { id: "g", name: "ガ", flowType: "screen" }, actions: [{ id: "a", name: "A", trigger: "click", inputs: [], steps: [
+      { id: "g1", kind: "branch", description: "ガード", branches: [{ id: "b1", code: "A", condition: { kind: "expression", expression: "@cust == null || @q == null" }, steps: [{ id: "r1", kind: "return", description: "404" }] }] },
+      { id: "g2", kind: "branch", description: "または", branches: [{ id: "b2", code: "A", condition: { kind: "expression", expression: "@a == 1 || @b == 2" }, steps: [] }, { id: "b3", code: "B", condition: { kind: "expression", expression: "@c == 3" }, steps: [] }], elseBranch: { id: "e", code: "X", steps: [] } },
+      { id: "g3", kind: "branch", description: "悪意", branches: [{ id: "b4", code: "A", condition: { kind: "expression", expression: "@a == 1 && @b == 2" }, steps: [] }, { id: "b5", code: "B<img src=x onerror=1>", condition: { kind: "tryCatch", errorCode: "E" }, steps: [] }], elseBranch: { id: "e2", code: "X", steps: [] } },
+    ] }] };
+    const html = renderStandaloneDesignDoc({ ...input, flows: [flow as never] });
+    expect(html).not.toContain("<img src=x onerror=1>");
+    expect(html).toContain("B&lt;img src=x onerror=1&gt;");
+    // ガードの判定表は、「どの道にも入りません」と言わない。「A または B」だけの分岐 (g2) は、表を出さない
+    expect(html).not.toContain("どの道にも入りません");
+    expect(html.match(/<h4 class="hd-sub">判定表/g)).toHaveLength(2);
+  });
+
   it("利用者の入力は HTML エスケープされる", () => {
     const d = buildDesignDocument({ ...input, project: { name: "<script>alert(1)</script>" }, screens: [], flows: [], tables: [] });
     expect(d.html).not.toContain("<script>alert");
