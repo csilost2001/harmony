@@ -8,6 +8,7 @@
  *
  * 仕様: docs/spec/design-document.md
  */
+import { buildVarLabels, conditionText } from "./flowWords.js";
 import { buildOutline, layoutFlow, deriveTestViewpoints, stepText, type FlowStep, type FlowActionLike, type DiagramLayout, type FlowContext } from "./flowStructure.js";
 import { walkLayout, collectItemRefs, type LayoutNode, type ScreenLayout } from "./screenLayout.js";
 import { businessFlowToSvg, validateBusinessFlow, BUSINESS_STEP_KIND_LABELS, BUSINESS_LANE_KIND_LABELS, type BusinessFlow } from "./businessFlow.js";
@@ -153,6 +154,14 @@ export interface DocIssue {
 }
 
 // ── 小道具 ───────────────────────────────────────────────────────────────
+
+/** 分岐の条件の欄: 人が読む言葉 + (式のときは) もとの式。言葉にできないときは、もとの文字だけ */
+function conditionCell(cond: unknown, labels: ReturnType<typeof buildVarLabels>, raw: string): string {
+  const words = conditionText(cond, labels);
+  if (!words) return esc(raw);
+  const isExpr = (cond as { kind?: string } | undefined)?.kind === "expression";
+  return `${esc(words)}${isExpr && words !== raw ? `<br><code class="hd-cond-raw">${esc(raw)}</code>` : ""}`;
+}
 
 export function esc(s: unknown): string {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -448,9 +457,10 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
   input.flows.forEach((f, i) => {
     const actionsHtml = f.actions.map((a) => {
       const rows = buildOutline(a.steps ?? [], a, ctx);
+      const labels = buildVarLabels(a);
       const outline = table(["No", "区分", "処理内容", "対象", "条件・備考"], rows.map((r) => [
         `<code>${esc(r.no)}</code>`, esc(r.kind),
-        `<span style="padding-left:${r.depth * 14}px">${r.type === "branch-arm" ? "▸ " : ""}${esc(r.text)}</span>`, esc(r.target), esc(r.note),
+        `<span style="padding-left:${r.depth * 14}px">${r.type === "branch-arm" ? "▸ " : ""}${esc(r.text)}</span>`, esc(r.target), r.type === "branch-arm" && r.condition !== undefined ? conditionCell(r.condition, labels, r.note) : esc(r.note),
       ]), "hd-outline");
       const io = [
         ...(a.inputs ?? []).map((p) => ["入力", `<code>${esc(p.name)}</code>`, esc(typeText(p.type)), p.required ? "○" : "", esc(p.description ?? "")]),
@@ -465,7 +475,7 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
         <h4 class="hd-sub">テスト観点<small>分岐と終了から自動導出</small></h4>
         ${table(["No", "区分", "条件", "期待結果", "終了ステップ"], deriveTestViewpoints(a).map((v) => [
           String(v.no), `<span class="hd-sev ${v.category === "正常系" ? "hd-sev-ok" : "hd-sev-error"}">${v.category}</span>`,
-          v.conditions.map((c) => esc(c)).join("<br>"), esc(v.expected), `<code>${esc(v.stepNo)}</code>`,
+          (v.conditionWords ?? v.conditions).map((c) => esc(c)).join("<br>"), esc(v.expected), `<code>${esc(v.stepNo)}</code>`,
         ]), "hd-tests")}
       </div>`;
     }).join("");
@@ -896,6 +906,7 @@ export const DESIGN_DOC_CSS = `
 .fd-head{fill:#9aa3b2}.fd-head-err{fill:var(--d-err)}
 .fd-edge-label{font-size:10.5px;fill:#4d576a;paint-order:stroke;stroke:#fafbfc;stroke-width:3px}
 .hd-outline td:first-child{white-space:nowrap}
+.hd-doc .hd-cond-raw{color:var(--d-muted);font-size:.85em;background:none;padding:0}
 .hd-items td:nth-child(3) code,.hd-columns td:nth-child(3) code{white-space:nowrap;overflow-wrap:normal}
 .hd-items td:nth-child(2){min-width:7em}.hd-items td:nth-child(4),.hd-items td:nth-child(5),.hd-items td:nth-child(6),.hd-items td:nth-child(7){white-space:nowrap}
 .hd-tests td:nth-child(2),.hd-tests td:nth-child(5){white-space:nowrap}

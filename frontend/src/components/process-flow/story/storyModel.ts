@@ -12,7 +12,7 @@
  */
 import { dbOperationLabel, kindLabel, returnStatus, type FlowContext, type FlowStep } from "@harmony/shared";
 import type { ActionDefinition, Step } from "../../../types/v3";
-import { expressionSegments, parseVarRef, segsToText, type Seg } from "./expressionText";
+import { buildVarLabels, conditionText, expressionSegments, parseVarRef, segsToText, type VarLabels } from "@harmony/shared";
 import { selectShape, type ShapeEnv } from "./sqlShape";
 
 /** 型の細かい違い (拡張 step など) を気にせず読むための、ゆるい形 */
@@ -123,88 +123,9 @@ export function reviewTargets(steps: readonly Loose[]): Loose[] {
   return out;
 }
 
-// ─── 変数の名前と呼び名 ────────────────────────────────
+// ─── 変数の名前・条件の言葉 (本体は @harmony/shared。設計書と共有) ───
 
-export interface VarLabels {
-  /** 先頭の名前 → 呼び名 */
-  base: (name: string) => string;
-  /** `@name.path` の全体の呼び名 */
-  full: (name: string, path: string[]) => string;
-  /** この処理の中で作られる変数か (結果変数・繰り返しの 1 行・入力エラー・捕まえたエラー)。規約・セッションの値などは false */
-  isDefined: (name: string) => boolean;
-}
-
-const PROP_LABELS: Record<string, string> = {
-  length: "長さ(件数)",
-  code: "コード",
-  message: "メッセージ",
-  id: "ID",
-};
-/** トランザクションの結果 (`txResult`) だけが持つ項目 */
-const TX_PROP_LABELS: Record<string, string> = {
-  committed: "確定したか",
-  error: "エラー",
-  diagnostics: "実行の記録",
-};
-
-export function buildVarLabels(action: Pick<ActionDefinition, "inputs" | "steps">): VarLabels {
-  const labels = new Map<string, string>();
-  const txNames = new Set<string>();
-  const defined = new Set<string>();
-  const inputLabels = new Map<string, string>();
-  for (const i of action.inputs ?? []) if (i.label) inputLabels.set(i.name, i.label);
-  walkSteps(asLooseList(action.steps), (s) => {
-    const ob = rec(s.outputBinding);
-    if (str(ob.name)) {
-      defined.add(str(ob.name));
-      if (str(ob.label)) labels.set(str(ob.name), str(ob.label));
-      if (s.kind === "transactionScope") txNames.add(str(ob.name));
-    }
-    if (s.kind === "loop") {
-      for (const n of [str(s.collectionItemName), str(s.collectionIndexName)]) if (n) defined.add(n);
-      if (str(s.collectionItemName) && str(s.collectionItemLabel)) labels.set(str(s.collectionItemName), str(s.collectionItemLabel));
-    }
-    if (s.kind === "validation" && str(s.fieldErrorsVar)) defined.add(str(s.fieldErrorsVar));
-    if (s.kind === "branch") for (const g of childGroups(s)) { const c = rec(g.condition); if (c.kind === "tryCatch" && str(c.errorVar)) defined.add(str(c.errorVar)); }
-  });
-  const base = (name: string) => (name === "inputs" ? "入力" : labels.get(name) ?? name);
-  const prop = (name: string, p: string) => (txNames.has(name) ? TX_PROP_LABELS[p] : undefined) ?? PROP_LABELS[p] ?? p;
-  return {
-    base,
-    isDefined: (name) => defined.has(name),
-    full: (name, path) => {
-      // この処理の中で作られない値 (規約・セッション・環境など) は、書かれた名前のまま
-      if (name !== "inputs" && !defined.has(name)) return [name, ...path].join(".");
-      if (path.length === 0) return base(name);
-      if (name === "inputs" && !path[0].startsWith("[")) {
-        const rest = path.slice(1).map((p) => prop(name, p));
-        return [inputLabels.get(path[0]) ?? path[0], ...rest].join(" の ");
-      }
-      return [base(name), ...path.map((p) => prop(name, p))].join(" の ").replace(/ の \[/g, "[");
-    },
-  };
-}
-
-// ─── 条件 ──────────────────────────────────────────────
-
-/** 分岐の腕の条件を、表示の部品にする (式以外の条件も含む) */
-export function conditionSegments(cond: unknown): Seg[] {
-  const c = rec(cond);
-  switch (c.kind) {
-    case "expression": return expressionSegments(str(c.expression));
-    case "tryCatch": return [{ k: "text", v: `エラー「${str(c.errorCode)}」が起きたとき` }];
-    case "affectedRowsZero": return [{ k: "text", v: "更新・削除の件数が 0 件だったとき" }];
-    case "externalOutcome": {
-      const o = { success: "成功した", failure: "失敗した", timeout: "時間切れになった" }[str(c.outcome)] ?? str(c.outcome);
-      return [{ k: "text", v: `外部への呼び出しが${o}とき` }];
-    }
-    default: return [];
-  }
-}
-
-export function conditionText(cond: unknown, labels: VarLabels): string {
-  return segsToText(conditionSegments(cond), labels.full);
-}
+export { buildVarLabels, conditionSegments, conditionText, type VarLabels } from "@harmony/shared";
 
 // ─── 見出しによる区切り ─────────────────────────────────
 

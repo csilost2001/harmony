@@ -6,6 +6,8 @@
  * - layoutFlow: 構造化フローチャート (順次・分岐・繰り返し・トランザクション) の自動配置
  */
 
+import { buildVarLabels, conditionText } from "./flowWords.js";
+
 /** ステップの最小形 (schemas/v3/process-flow.v3.schema.json の Step) */
 export interface FlowStep {
   id: string;
@@ -180,6 +182,8 @@ export interface OutlineRow {
   inTx: boolean;
   /** 異常終了 (4xx / 5xx を返す return) */
   isError: boolean;
+  /** 分岐の枝見出しのとき、その条件 (言葉への変換に使う) */
+  condition?: unknown;
 }
 
 export function buildOutline(steps: readonly FlowStep[], action: Pick<FlowActionLike, "responses"> | null, ctx: FlowContext = NO_CTX): OutlineRow[] {
@@ -199,7 +203,7 @@ export function buildOutline(steps: readonly FlowStep[], action: Pick<FlowAction
         for (const b of arms) {
           rows.push({
             no: `${no}-${b.code}`, depth: depth + 1, type: "branch-arm", kind: "条件", inTx, isError: false,
-            text: b.label ?? b.code, target: "", note: branchConditionText(b.condition) ?? "",
+            text: b.label ?? b.code, target: "", note: branchConditionText(b.condition) ?? "", condition: b.condition,
           });
           walk(b.steps ?? [], `${no}-${b.code}`, depth + 2, inTx);
         }
@@ -497,6 +501,8 @@ export interface TestViewpoint {
   category: "正常系" | "異常系";
   /** 到達条件 (分岐の枝の条件・実行条件・TX 失敗など) */
   conditions: string[];
+  /** 到達条件を、人が読む言葉にしたもの (conditions と同じ並び。言葉にできないものは、もとの文字のまま)。設計書で使う。テスト生成などは、conditions を使う */
+  conditionWords?: string[];
   /** 期待結果 (HTTP ステータスと説明) */
   expected: string;
   status?: number;
@@ -511,18 +517,28 @@ export interface TestViewpoint {
  */
 export function deriveTestViewpoints(action: FlowActionLike): TestViewpoint[] {
   const out: Omit<TestViewpoint, "no">[] = [];
+  // 到達条件の文字 → 人が読む言葉 (conditions は、もとの文字のまま。言葉は、別の欄に持つ)
+  const labels = buildVarLabels(action);
+  const wordsOf = new Map<string, string>();
+  const runIfCond = (r: unknown): string => {
+    const raw = `実行条件: ${String(r)}`;
+    const words = conditionText({ kind: "expression", expression: String(r) }, labels);
+    if (words) wordsOf.set(raw, `実行条件: ${words}`);
+    return raw;
+  };
   const walk = (steps: readonly FlowStep[], prefix: string, conds: string[], inRollback: boolean): boolean => {
     let terminated = false;
     const visit = (step: FlowStep, i: number) => {
       if (terminated) return;
       const no = prefix ? `${prefix}-${i + 1}` : String(i + 1);
       const s = step as Record<string, unknown>;
-      const here = s.runIf ? [...conds, `実行条件: ${String(s.runIf)}`] : conds;
+      const here = s.runIf ? [...conds, runIfCond(s.runIf)] : conds;
       if (step.kind === "return") {
         const st = returnStatus(step, action);
         out.push({
           category: st !== undefined && st >= 400 ? "異常系" : inRollback ? "異常系" : "正常系",
           conditions: here.length ? here : ["すべての入力が正しい"],
+          conditionWords: (here.length ? here : ["すべての入力が正しい"]).map((c) => wordsOf.get(c) ?? c),
           expected: st ? `HTTP ${st} ${stripStatus(stepText(step), st)}`.trim() : stepText(step),
           status: st,
           stepNo: no,
@@ -536,7 +552,10 @@ export function deriveTestViewpoints(action: FlowActionLike): TestViewpoint[] {
         for (const b of arms) {
           const label = b.label ?? b.code;
           const c = branchConditionText(b.condition);
-          allEnd.push(walk(b.steps ?? [], `${no}-${b.code}`, [...here, c ? `${label} (${c})` : label], inRollback));
+          const armText = c ? `${label} (${c})` : label;
+          const words = conditionText(b.condition, labels);
+          if (words) wordsOf.set(armText, `${label} (${words})`);
+          allEnd.push(walk(b.steps ?? [], `${no}-${b.code}`, [...here, armText], inRollback));
         }
         const els = s.elseBranch as { code: string; label?: string; steps: FlowStep[] } | undefined;
         if (els) allEnd.push(walk(els.steps ?? [], `${no}-${els.code}`, [...here, els.label ?? "上記以外"], inRollback));
@@ -566,7 +585,7 @@ export function deriveTestViewpoints(action: FlowActionLike): TestViewpoint[] {
       if (!terminated && subs.length > 0) {
         const no = prefix ? `${prefix}-${i + 1}` : String(i + 1);
         const r = (step as Record<string, unknown>).runIf;
-        if (walk(subs, `${no}-S`, r ? [...conds, `実行条件: ${String(r)}`] : conds, inRollback)) terminated = true;
+        if (walk(subs, `${no}-S`, r ? [...conds, runIfCond(r)] : conds, inRollback)) terminated = true;
       }
     });
     return terminated;
