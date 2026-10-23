@@ -19,10 +19,14 @@ const count = (key: (e: (typeof value.entries)[number]) => string | undefined) =
   return [...m].sort((a, b) => b[1] - a[1]);
 };
 const byTool = count((e) => e.tool?.replace(/^designer__/, "")), byDoc = count((e) => e.doc);
-if (args.includes("--json")) { console.log(JSON.stringify({ total: value.entries.length, byTool, byDoc, entries: value.entries, problems }, null, 2)); process.exit(0); }
+if (args.includes("--json")) {
+  // 大きいときに、パイプの途中で切れないよう、process.exit は呼ばず、書き終わるのを待って終える
+  process.stdout.write(`${JSON.stringify({ total: value.entries.length, byTool, byDoc, entries: value.entries, problems }, null, 2)}\n`, () => { process.exitCode = 0; });
+} else {
 console.log(`AI が詰まった点 ${value.entries.length} 件`);
 for (const p of problems) console.log(`  ・記録の問題: ${p}`);
 if (byTool.length) { console.log("\ntool ごと:"); for (const [k, n] of byTool) console.log(`  ${String(n).padStart(3)}× ${k}`); }
 if (byDoc.length) { console.log("\n資料ごと:"); for (const [k, n] of byDoc) console.log(`  ${String(n).padStart(3)}× ${k}`); }
 console.log("\n新しい順:");
 for (const e of [...value.entries].reverse().slice(0, 30)) console.log(`  ${e.at.slice(0, 16).replace("T", " ")} ${e.tool ? `[${e.tool}] ` : ""}${e.topic}${e.expected ? `\n      → 期待: ${e.expected}` : ""}`);
+}

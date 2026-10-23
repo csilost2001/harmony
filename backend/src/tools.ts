@@ -436,7 +436,7 @@ export const tools = [
   },
   {
     name: "designer__report_confusion",
-    description: "資料・スキーマ・tool の説明で詰まった点を残す (次の改善に使う)。作業を止めずに、短く書く。例: topic「edit_steps の add の detail の書き方が分からない」tool「edit_steps」。ワークスペースの .harmony-ops/ai-feedback.json に残り、git には載らない。利用者は npm run ai:feedback で集計する。",
+    description: "資料・スキーマ・tool の説明で詰まった点を残す (次の改善に使う)。作業を止めずに、短く書く。例: topic「edit_steps の add の detail の書き方が分からない」tool「edit_steps」。ワークスペースの .harmony-ops/ai-feedback.json に残り、git には載らない。利用者は npm run ai:feedback で集計する。秘密 (トークン・パスワード・顧客の個人情報) は書かない。",
     inputSchema: {
       type: "object" as const,
       properties: {

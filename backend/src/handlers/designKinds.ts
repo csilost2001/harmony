@@ -221,7 +221,9 @@ export const handleDesignKindsTool: ToolHandler = async (name, args, root, sessi
         if (v === undefined || v === null || v === "") { if (required) throw bad(`${label} は必須です`); return undefined; }
         if (typeof v !== "string") throw bad(`${label} は文字列で指定してください`);
         if (v.length > max) throw bad(`${label} は ${max} 文字までです (${v.length} 文字)`);
-        return v.trim() || undefined;
+        const t = v.trim();
+        if (!t && required) throw bad(`${label} は必須です (空白だけは使えません)`);
+        return t || undefined;
       };
       const topic = text(a.topic, LIMITS.topic, "topic", true)!;
       const entry: ConfusionEntry = {
@@ -231,7 +233,9 @@ export const handleDesignKindsTool: ToolHandler = async (name, args, root, sessi
         ...(text(a.doc, LIMITS.doc, "doc") ? { doc: text(a.doc, LIMITS.doc, "doc") } : {}),
         ...(text(a.expected, LIMITS.expected, "expected") ? { expected: text(a.expected, LIMITS.expected, "expected") } : {}),
       };
-      const res = await confusionStore.update(root, (f) => ({ entries: [...f.entries, entry] }), { discardUnreadable: true });
+      let res;
+      try { res = await confusionStore.update(root, (f) => ({ entries: [...f.entries, entry] }), { discardUnreadable: true }); }
+      catch (e) { throw bad(`詰まった点を記録できませんでした (${(e as Error).message})。記録のファイル (.harmony-ops/ai-feedback.json) の問題で、作業には影響しません。利用者に知らせて、作業を続けてください`); }
       return json({ recorded: true, id: entry.id, total: res.value.entries.length, note: "記録しました (ワークスペースの .harmony-ops/ai-feedback.json。git には載りません)。利用者は npm run ai:feedback で集計して、資料・tool の説明の改善に使います" });
     }
 

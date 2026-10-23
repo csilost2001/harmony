@@ -18,7 +18,7 @@ export interface ToolAnnotations {
 const bare = (name: string) => name.replace(/^designer__/, "");
 
 /** 新しい設計・工程・マーカーを足すだけの書き込み (既存のものを消さない・書き換えない) */
-const ADDITIVE = /^(add_(marker|review_findings|screen|table|process_flow|page_layout|action|step|step_note|edge)|record_generation|solution_pack|resolve_marker|editSession__(create|attach_as_view|set_role))$/;
+const ADDITIVE = /^(add_(marker|review_findings|screen|table|process_flow|page_layout|action|step|step_note|edge)|record_generation|report_confusion|solution_pack|resolve_marker|editSession__(create|attach_as_view|set_role))$/;
 /** 同じ引数で 2 回呼んでも、結果が変わらない書き込み */
 const IDEMPOTENT = /^(save_[a-z_]+|update_[a-z_]+|set_[a-z_]+|delete_[a-z_]+|remove_[a-z_]+|restore_version|repair_registry|persist_uuids|resolve_marker|move_step|import_[a-z_]+|workspace_remove|editSession__(save|update|discard|detach|set_role))$/;
 /**

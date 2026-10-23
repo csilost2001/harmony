@@ -20,10 +20,11 @@ export function summarize(lines, { sinceMs = 0 } = {}) {
   const by = new Map();
   let total = 0;
   for (const line of lines) {
+    if (!line.includes('"category":"mcp"')) continue; // ログ全体を JSON として読まない (大きいので)
     let e;
     try { e = JSON.parse(line); } catch { continue; }
     if (!e || e.category !== "mcp" || e.msg !== "tool" || !e.ctx || typeof e.ctx.tool !== "string") continue;
-    if (sinceMs && Date.parse(e.ts) < sinceMs) continue;
+    if (sinceMs && !(Date.parse(e.ts) >= sinceMs)) continue; // ts が不正な行も除く
     total++;
     const t = by.get(e.ctx.tool) ?? { tool: e.ctx.tool, calls: 0, failures: 0, ms: [], errors: new Map() };
     t.calls++;

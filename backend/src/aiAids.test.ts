@@ -84,6 +84,30 @@ describe("机上の実行 (walk_flow)", () => {
     await fs.rm(path.join(WS, "harmony/process-flows/two-actions.json"));
   });
 
+  it("番号を最優先に解釈する: 道の code が 2, 1 の順でも、choices:[2] は 2 番目の道。ラベルの先頭が複数に当たるときは曖昧と断る", async () => {
+    const mk = (id: string, codes: string[]) => fs.writeFile(path.join(WS, `harmony/process-flows/${id}.json`), JSON.stringify({ meta: { id, name: id }, actions: [{ id: "a1", steps: [
+      { id: "b", kind: "branch", description: "分岐", branches: codes.map((code, i) => ({ id: `br${i}`, code, condition: { kind: "expression", expression: "@x == 1" }, steps: [{ id: `s${code}`, kind: "compute", description: `道 ${code}`, expression: "1" }] })) },
+    ] }] }));
+    await mk("codes-21", ["2", "1"]);
+    const r = await J("designer__walk_flow", { processFlowId: "codes-21", choices: [2] });
+    expect(r.log.some((l: { stepId?: string }) => l.stepId === "s1")).toBe(true); // 2 番目 = code「1」
+    expect(r.log.some((l: { stepId?: string }) => l.stepId === "s2")).toBe(false);
+    await mk("codes-dup", ["A", "A"]);
+    await expect(call("designer__walk_flow", { processFlowId: "codes-dup", choices: ["A"] })).rejects.toThrow(/複数の道に当たります/);
+    expect((await J("designer__walk_flow", { processFlowId: "codes-dup", choices: ["b1"] })).status).toBe("ended");
+    await fs.rm(path.join(WS, "harmony/process-flows/codes-21.json")); await fs.rm(path.join(WS, "harmony/process-flows/codes-dup.json"));
+  });
+
+  it("壊れた工程 (null など) があっても落ちない。log が長いときは先頭と末尾だけにする", async () => {
+    await fs.writeFile(path.join(WS, "harmony/process-flows/broken-walk.json"), JSON.stringify({ meta: { id: "broken-walk", name: "壊れた" }, actions: [{ id: "a1", steps: [null, "x", { id: "ok", kind: "compute", description: "x", expression: "1" }, { id: "l", kind: "loop", description: "繰り返し", loopKind: "count", countExpression: "3", steps: [{ id: "c", kind: "compute", description: "x", expression: "1" }] }] }] }));
+    const r = await J("designer__walk_flow", { processFlowId: "broken-walk", choices: ["enter", ...Array(400).fill("again"), "exit"] });
+    expect(r.status).toBe("ended");
+    expect(r.log.some((l: { kind: string }) => l.kind === "omitted")).toBe(true);
+    expect(r.log.length).toBeLessThanOrEqual(301);
+    expect(r.steps).toBeGreaterThan(400);
+    await fs.rm(path.join(WS, "harmony/process-flows/broken-walk.json"));
+  });
+
   it("繰り返し: 入る / 繰り返さない / もう 1 回 / 終える", async () => {
     await fs.writeFile(path.join(WS, "harmony/process-flows/loopy.json"), JSON.stringify({ meta: { id: "loopy", name: "繰り返し" }, actions: [{ id: "a1", steps: [
       { id: "l", kind: "loop", description: "明細", loopKind: "collection", collectionSource: "@items", collectionItemName: "item", steps: [{ id: "c", kind: "compute", description: "x", expression: "1" }] },
@@ -129,6 +153,17 @@ describe("読み取り専用の入口 (/mcp-readonly)", () => {
       expect(listed).not.toContain("designer__save_design");
       expect(listed).not.toContain("designer__edit_steps");
       expect(listed).not.toContain("designer__report_confusion");
+      // 設計は変えないが、共有の状態 (最近開いた一覧・ほかの画面への通知) を変える切り替えも、この入口では使わせない
+      expect(listed).not.toContain("designer__workspace_open");
+      expect(listed).not.toContain("designer__workspace_close");
+      expect(listed).toContain("designer__workspace_list");
+      await expect(call("designer__workspace_close", {}, o.client)).rejects.toThrow(/HARMONY_MCP_DENY|使わせない/);
+      // tool の詳細は、この入口で使える tool だけ (書く tool の説明は出さない)
+      const guide = JSON.parse(await call("designer__get_tool_guide", {}, o.client));
+      expect(guide.tools).toContain("get_flow_story");
+      expect(guide.tools).not.toContain("save_design");
+      expect(guide.count).toBe(listed.length);
+      await expect(call("designer__get_tool_guide", { name: "save_design" }, o.client)).rejects.toThrow(/ありません/);
       await expect(call("designer__save_design", { kind: "sequence", id: "ro-x", design: {} }, o.client)).rejects.toThrow(/読み取り専用/);
       await expect(call("designer__edit_steps", { processFlowId: "cart-add", edits: [{ op: "remove", stepId: "step-01" }], apply: true }, o.client)).rejects.toThrow(/読み取り専用/);
       await expect(call("designer__workspace_open", { path: path.join(os.tmpdir(), "never-created-ro"), init: true }, o.client)).rejects.toThrow();
@@ -160,7 +195,15 @@ describe("呼び出しのログと集計 (mcp:report)", () => {
     expect(ng.length).toBeGreaterThanOrEqual(2);
     expect(ng[0].ctx.ok).toBe(false);
     expect(ng[0].ctx.error).not.toMatch(/^MCP error/);
-    expect(text).not.toContain("Bad_ID"); // 引数の値は残さない … ただし、失敗の文に id が入ることはある
+    // 引数の値そのものは残さない。失敗の文の先頭 120 文字 (id やパスが入り得る) は残る。tool の名前は 80 文字まで
+    await expect(c.callTool({ name: "x".repeat(5000), arguments: {} })).rejects.toThrow();
+    const after = (await fs.readFile(path.join(logs, (await fs.readdir(logs)).filter((n) => /^harmony-mcp-.*\.log$/.test(n)).sort().pop()!), "utf8")).split("\n").filter((l) => l.includes('"category":"mcp"')).pop()!;
+    expect(after.length).toBeLessThan(700);
+    // 断られた呼び出し (読み取り専用・プロファイルなど) も、集計に残る
+    const ro = await open({ forceReadonly: true });
+    try { await expect(call("designer__save_design", { kind: "sequence", id: "x", design: {} }, ro.client)).rejects.toThrow(); } finally { await ro.close(); }
+    const refused = (await fs.readFile(path.join(logs, (await fs.readdir(logs)).filter((n) => /^harmony-mcp-.*\.log$/.test(n)).sort().pop()!), "utf8")).split("\n").filter((l) => l.includes("designer__save_design")).pop()!;
+    expect(JSON.parse(refused).ctx).toMatchObject({ tool: "designer__save_design", ok: false });
   });
 
   it("集計: 回数・失敗率・p50/p95・多い失敗 (数字と引用を正規化)・失敗の多い tool", async () => {
@@ -204,6 +247,16 @@ describe("詰まった点の記録 (report_confusion)", () => {
     expect(cli.stdout).toContain("edit_steps");
     expect(JSON.parse(spawnSync("npx", ["tsx", path.join(REPO, "scripts/dev/ai-feedback.mts"), WS, "--json"], { cwd: REPO, encoding: "utf8", timeout: 120_000 }).stdout).total).toBe(2);
   }, 120_000);
+
+  it("空白だけの topic は断る(『必須』と案内)。記録のファイルが壊れていても、作業には影響しないと案内する", async () => {
+    await expect(call("designer__report_confusion", { topic: "   " })).rejects.toThrow(/空白だけは使えません/);
+    const f = path.join(WS, ".harmony-ops/ai-feedback.json");
+    const prev = await fs.readFile(f, "utf8").catch(() => null);
+    await fs.mkdir(path.dirname(f), { recursive: true });
+    await fs.writeFile(f, "{ broken");
+    await expect(call("designer__report_confusion", { topic: "x" })).rejects.toThrow(/作業には影響しません/);
+    if (prev !== null) await fs.writeFile(f, prev); else await fs.rm(f);
+  });
 
   it("topic は必須・文字数の上限・文字列だけ。読み取りの接続・プロファイル read には出ない", async () => {
     await expect(call("designer__report_confusion", {})).rejects.toThrow(/topic は必須/);

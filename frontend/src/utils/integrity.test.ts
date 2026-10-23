@@ -3,7 +3,7 @@
  * shared には試験の実行がないので、ここに置く。
  */
 import { describe, expect, it } from "vitest";
-import { checkIntegrity, dropBrokenFlowParts, forEachStep, type DesignDocInput } from "@harmony/shared";
+import { checkIntegrity, dropBrokenFlowParts, forEachStep, issueHint, type DesignDocInput } from "@harmony/shared";
 
 const base = (): DesignDocInput => ({
   project: { name: "t" },
@@ -145,5 +145,43 @@ describe("dropBrokenFlowParts: 壊れた工程を取り除く (設計全体の�
     expect(dropBrokenFlowParts({ actions: "x" })).toBe(1);
     expect(dropBrokenFlowParts({ meta: {} })).toBe(0); // actions がなければ、空にするだけ (壊れてはいない)
     expect(dropBrokenFlowParts(null)).toBe(0);
+  });
+});
+
+describe("issueHint: 主な指摘に、直し方が付く (実際の文言で)", () => {
+  const CASES: Array<[string, RegExp, string?]> = [
+    ["アクション act-001 の工程 step-02: テーブル「no-such-table」がありません (tableId)", /list_tables.*tableId/],
+    ["呼び出す画面「x」がありません (meta.screenId)", /list_screens.*update_process_flow/],
+    ["アクション a の工程 s: 遷移先の画面「x」がありません (targetScreenId)", /targetScreenId/],
+    ["項目「i」の結びつき先のテーブル「x」がありません (binding.ref.tableId)", /editSession__create/],
+    ["項目「i」の結びつき先のカラム「x」が、テーブル「t」にありません (binding.ref.columnId)", /editSession__update/],
+    ["外部キーの参照先のテーブル「x」がありません (referencedTableId)", /update_table.*definition/],
+    ["外部キーの参照先のカラム「x」が、テーブル「t」にありません (referencedColumnIds)", /referencedColumnIds/],
+    ["規約の上限値「@conv.limit.nope」が、規約に定義されていません", /get_conventions.*save_conventions/],
+    ["アクション a で、工程の id「step-01」が 2 回使われています (id は一意にしてください)", /list_steps.*update_step/],
+    ["アクション a の工程 s: 道「A」の条件が空です (常に成り立たない扱いになります)", /analyze_branches/],
+    ["アクション a の工程 s: レスポンス「r」が、このアクションの responses にありません (responseId)", /responses/],
+    ["アクション a の工程 s: NG のときのレスポンス「r」が、このアクションの responses にありません (inlineBranch.ngResponseId)", /responses/],
+    ["項目「i」のイベントが呼ぶ処理フロー「f」がありません (handlerFlowId)", /list_process_flows/],
+    ["項目「i」のイベントが呼ぶアクション「a」が、処理フロー「f」にありません (handlerActionId)", /handlerActionId/],
+    ["スキーマ: 「/actions/0/steps/0」に、必須の項目「fieldErrorsVar」がありません", /fieldErrorsVar.*validate_design/],
+    ["スキーマ: 全体に、必須の項目「meta」がありません", /「meta」/],
+    ["スキーマ: 「/actions/0/steps/0/kind」の値が、決められた値と違います", /schema/i],
+    ["スキーマ: 「/actions/0/trigger」の値が、決められた選択肢にありません", /schema/i],
+    ["スキーマ: 「/actions/0/name」の型が違います", /schema/i],
+    ["スキーマ: 「/actions/0」に、定義にない項目「x」があります", /schema/i],
+    ["一覧 (harmony.json) にありますが、ファイル (tables/x.json) が見つかりません。一覧から外すには…", /repair_registry/],
+    ["画面レイアウト (業務部品) が未作成です", /set_screen_layout/],
+  ];
+  for (const [msg, re] of CASES) it(`${msg.slice(0, 50)}…`, () => { expect(issueHint({ message: msg })).toMatch(re); });
+
+  it("JSON の破損は、設計のファイル (section に tables/ など) のときだけ『保存前の版に戻す』を案内する", () => {
+    expect(issueHint({ section: "テーブル tables/cart.json", message: "JSON として読めません (1 行目 3 桁目付近)。このままでは…" })).toMatch(/restore_version/);
+    expect(issueHint({ section: "読み込み", message: "design-check.json が JSON として読めません" })).toBeNull();
+  });
+
+  it("関係のない指摘には付けない", () => {
+    expect(issueHint({ message: "同じ SQL が複数か所にあります" })).toBeNull();
+    expect(issueHint({ message: "どの画面でも使われていません" })).toBeNull();
   });
 });

@@ -50,7 +50,7 @@ import { handleLayoutTool } from "./handlers/layout.js";
 import { handleBusinessFlowTool } from "./handlers/businessFlow.js";
 import { handleDesignTool } from "./handlers/design.js";
 import { handleDesignKindsTool } from "./handlers/designKinds.js";
-import { handleDesignInsightTool } from "./handlers/designInsight.js";
+import { handleDesignInsightTool, toolGuide } from "./handlers/designInsight.js";
 import { handleFlowBatchTool } from "./handlers/flowBatch.js";
 import { handleReportTool } from "./handlers/report.js";
 import { handleWorkspaceTool } from "./handlers/workspace.js";
@@ -68,7 +68,11 @@ export interface McpServerOptions {
 
 export function createMcpServer(sessionId: string, profiles: readonly string[] = [], detail: DetailMode = "full", options: McpServerOptions = {}): Server {
   // 読み取り専用の入口は、環境変数が full でも、読み取り専用として振る舞う (プロファイルや環境変数で緩められない)
-  const mcpEnv: NodeJS.ProcessEnv = options.forceReadonly ? { ...process.env, HARMONY_MCP_MODE: "readonly" } : process.env;
+  // 加えて、ワークスペースの切り替え (workspace_open / workspace_close) も使わせない: 設計は変えないが、最近開いた一覧・ほかの画面への通知という共有の状態を変えるため。
+  // 作業するワークスペースは、接続の側 (固定モード DESIGNER_DATA_DIR か、画面で開いているもの) で決まる
+  const mcpEnv: NodeJS.ProcessEnv = options.forceReadonly
+    ? { ...process.env, HARMONY_MCP_MODE: "readonly", HARMONY_MCP_DENY: [process.env.HARMONY_MCP_DENY, "workspace_open", "workspace_close"].filter(Boolean).join(",") }
+    : process.env;
   const server = new Server(
     { name: "harmony-mcp", version: "0.1.0" },
     { capabilities: { tools: {}, resources: {}, prompts: {} }, instructions: SERVER_INSTRUCTIONS }
@@ -102,18 +106,24 @@ export function createMcpServer(sessionId: string, profiles: readonly string[] =
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
     const startedAt = Date.now();
-    // 読み取り専用・拒否リストの設定 (HARMONY_MCP_MODE / HARMONY_MCP_DENY) で使えない tool は、ここで拒否する
     const argRecord = (args ?? {}) as Record<string, unknown>;
-    assertToolAllowed(name, mcpEnv, argRecord);
-    const refusal = profileRefusal(name, argRecord, profiles);
-    if (refusal) throw new McpError(ErrorCode.InvalidRequest, refusal);
-    if (!isInProfile(name, profiles)) {
-      throw new McpError(ErrorCode.InvalidRequest, `${name} は、この接続のプロファイル (${profiles.join(", ")}) では使えません。全部使うには、接続の URL の ?profile= を外してください`);
-    }
     // MCP tool 内で resolveRoot を呼ぶために sessionId を使う (#700 R-2)
     const mcpRoot = (): string => workspaceContextManager.requireActivePath(sessionId);
 
     try {
+      // 読み取り専用・拒否リストの設定 (HARMONY_MCP_MODE / HARMONY_MCP_DENY) で使えない tool は、ここで拒否する (断った呼び出しも、集計に残る)
+      assertToolAllowed(name, mcpEnv, argRecord);
+      const refusal = profileRefusal(name, argRecord, profiles);
+      if (refusal) throw new McpError(ErrorCode.InvalidRequest, refusal);
+      if (!isInProfile(name, profiles)) {
+        throw new McpError(ErrorCode.InvalidRequest, `${name} は、この接続のプロファイル (${profiles.join(", ")}) では使えません。全部使うには、接続の URL の ?profile= を外してください`);
+      }
+      // tool の詳細は、この接続で使える tool (拒否・読み取り専用の入口で使えないものを除く) だけを出す。ワークスペースがなくても使える
+      if (name === "designer__get_tool_guide") {
+        const res = toolGuide(argRecord, mcpEnv);
+        logInfo("mcp", "tool", { tool: name, ok: true, ms: Date.now() - startedAt });
+        return res;
+      }
       // 各 handler は該当しなければ null を返し、次の handler に委譲される。
       // 並び順は元 index.ts の switch 文と一致 (機能領域順、editSession は最後)。
       // #700 R-2: root と sessionId を pass-through する。
@@ -147,7 +157,7 @@ export function createMcpServer(sessionId: string, profiles: readonly string[] =
         const result = await handler(name, argRecord, root, sessionId);
         if (result !== null && result !== undefined) {
           // AI の書き込みの tool は、監査ログに残す (失敗した呼び出しは、残さない。isError の結果も除く)
-          if (!isReadOnlyTool(name) && !(result as { isError?: boolean }).isError && !/^(editSession__(list|fetch)|designer__(list|get|find|check|export|generate|analyze)_)/.test(name)) {
+          if (!isReadOnlyTool(name) && !(result as { isError?: boolean }).isError && !/^(editSession__(list|fetch)|designer__(list|get|find|check|export|generate|analyze)_|designer__report_confusion$)/.test(name)) {
             const resultText = (result as { content?: Array<{ text?: unknown }> }).content?.map((x) => (typeof x.text === "string" ? x.text : "")).join("\n") ?? "";
             const toolDef = tools.find((t) => t.name === name);
             const hasApply = !!(toolDef?.inputSchema as { properties?: Record<string, unknown> } | undefined)?.properties && "apply" in ((toolDef!.inputSchema as { properties: Record<string, unknown> }).properties);
@@ -160,13 +170,13 @@ export function createMcpServer(sessionId: string, profiles: readonly string[] =
           }
           // どの tool がよく失敗するか・遅いかを後で集計できるよう、呼び出しを 1 行残す (引数・結果は残さない。npm run mcp:report)
           const failed = !!(result as { isError?: boolean }).isError;
-          logInfo("mcp", "tool", { tool: name, ok: !failed, ms: Date.now() - startedAt, ...(failed ? { error: errorSummary((result as { content?: Array<{ text?: unknown }> }).content?.[0]?.text) } : {}) });
+          logInfo("mcp", "tool", { tool: name.slice(0, 80), ok: !failed, ms: Date.now() - startedAt, ...(failed ? { error: errorSummary((result as { content?: Array<{ text?: unknown }> }).content?.[0]?.text) } : {}) });
           return result;
         }
       }
       throw new McpError(ErrorCode.MethodNotFound, `未知のツール: ${name}`);
     } catch (err) {
-      logInfo("mcp", "tool", { tool: name, ok: false, ms: Date.now() - startedAt, error: errorSummary(err instanceof Error ? err.message : err) });
+      logInfo("mcp", "tool", { tool: name.slice(0, 80), ok: false, ms: Date.now() - startedAt, error: errorSummary(err instanceof Error ? err.message : err) });
       if (err instanceof WorkspaceUnsetError) {
         throw new McpError(ErrorCode.InvalidParams, `${err.message} (designer__workspace_list で探し、designer__workspace_open で開いてください)`);
       }

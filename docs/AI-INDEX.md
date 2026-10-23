@@ -82,6 +82,6 @@ tool は 100 個を超え、説明が毎回文脈に載る。作業に合わせ�
 | `…/mcp?profile=maint` | 保守 (一括保存・版の復旧・登録簿の修復・スキーマ移行・パック) |
 | `…/mcp?profile=review` | 読む + レビューの指摘・マーカー |
 | `…/mcp?profile=read` | 読み取りだけ |
-| `http://localhost:5179/mcp-readonly` | **書き込みが絶対にできない**入口 (環境変数・プロファイルで緩められない。顧客のレビュー用の AI など) |
+| `http://localhost:5179/mcp-readonly` | 読み取りだけの入口 — 書く tool もワークスペースの切り替えも持たない (環境変数・プロファイルで緩められない)。ただし権限の分離ではない: 同じ接続トークンで `/mcp` にも入れる |
 
 カンマで複数 (`?profile=flow,table`)。説明を短くするなら `?detail=brief` (約 4 割減。詳細は `designer__get_tool_guide` で引く。`?profile=flow&detail=brief` のように重ねられる)。すべての tool は、どれかのプロファイルに入る。どのプロファイルにも、ワークスペース・`get_project_context`・`check_design`・`analyze_design`・`find_references`・マーカー・タブの tool は入る。権限の制限 (`HARMONY_MCP_MODE` / `HARMONY_MCP_DENY`) は別に掛かる。詳しくは [server-security.md](spec/server-security.md)。

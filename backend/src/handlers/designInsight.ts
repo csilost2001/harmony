@@ -18,7 +18,7 @@ import path from "node:path";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import {
   branchConditionText, buildDecisionModel, buildDesignDocument, buildOutline, buildVarLabels, conditionText, decisionColumnName, isGuardLike, noteWithWords, stepChildLists, validateBusinessFlow, validateReport,
-  flowWalkthrough, type FlowActionLike, type FlowContext, type FlowStep, type OutlineRow,
+  dropBrokenFlowParts, flowWalkthrough, type FlowActionLike, type FlowContext, type FlowStep, type OutlineRow,
 } from "@harmony/shared";
 import { loadDesignInputFromRoot } from "../designInput.js";
 import { searchDesign } from "../designSearch.js";
@@ -172,6 +172,18 @@ export async function changedFilesSince(root: string, sinceMs: number): Promise<
   return changes;
 }
 
+/** tool 1 つの詳細 (name を省くと、この接続で使える tool の名前の一覧)。env の読み取り専用・拒否リストで使えない tool は、一覧にも詳細にも出さない */
+export function toolGuide(a: Record<string, unknown>, env: NodeJS.ProcessEnv) {
+  const usable = filterTools(allTools, env);
+  if (typeof a.name !== "string") {
+    return json({ count: usable.length, tools: usable.map((t) => t.name.replace(/^designer__/, "")), note: "tool 1 つの詳細 (説明・引数・注釈) は name を指定して読む" });
+  }
+  const wanted = a.name.startsWith("designer__") || a.name.startsWith("editSession__") ? a.name : `designer__${a.name}`;
+  const t = usable.find((x) => x.name === wanted);
+  if (!t) throw bad(`tool「${a.name}」がありません (name を省略すると一覧)`);
+  return json({ name: t.name, description: t.description, inputSchema: t.inputSchema, annotations: toolAnnotations(t.name), profiles: Object.keys(PROFILES).filter((p) => isInProfile(t.name, [p])) });
+}
+
 export const handleDesignInsightTool: ToolHandler = async (name, args, root) => {
   const a = args ?? {};
   switch (name) {
@@ -285,20 +297,11 @@ export const handleDesignInsightTool: ToolHandler = async (name, args, root) => 
       return json(await checkTestCoverage(root, { screenIds: ids(a.screenIds), flowIds: ids(a.flowIds) }));
     }
 
-    case "designer__get_tool_guide": {
-      if (typeof a.name !== "string") {
-        // 名前を省略すると、この環境で使える tool の名前の一覧 (拒否した tool・読み取り専用で使えない tool は出さない)
-        const usable = filterTools(allTools);
-        return json({ count: usable.length, tools: usable.map((t) => t.name.replace(/^designer__/, "")), note: "tool 1 つの詳細 (説明・引数・注釈) は name を指定して読む" });
-      }
-      const wanted = a.name.startsWith("designer__") || a.name.startsWith("editSession__") ? a.name : `designer__${a.name}`;
-      const t = filterTools(allTools).find((x) => x.name === wanted);
-      if (!t) throw bad(`tool「${a.name}」がありません (name を省略すると一覧)`);
-      return json({ name: t.name, description: t.description, inputSchema: t.inputSchema, annotations: toolAnnotations(t.name), profiles: Object.keys(PROFILES).filter((p) => isInProfile(t.name, [p])) });
-    }
+    case "designer__get_tool_guide": return toolGuide(a, process.env);
 
     case "designer__walk_flow": {
-      const doc = await loadFlow(a, root);
+      const doc = structuredClone(await loadFlow(a, root));
+      dropBrokenFlowParts(doc); // 壊れた工程 (null など) で止まらないように
       const acts = actionsOf(doc, a.actionId);
       if (acts.length > 1 && typeof a.actionId !== "string") throw bad(`アクションが複数あります。actionId を指定してください (${acts.map((x) => x.id).join(", ")})`);
       if (acts.length === 0) throw bad("このアクションに、辿る工程がありません");
@@ -319,18 +322,25 @@ export const handleDesignInsightTool: ToolHandler = async (name, args, root) => 
           break;
         }
         // 選び方: 番号 (1 始まり)・選択肢の id (b0 / else / enter / skip / again / exit)・ラベルの先頭 (A など)
+        // 番号 (1 始まり) を最優先、次に選択肢の id、最後にラベルの先頭 (1 つに決まるときだけ)。道の code が数字や b1 のときも、番号が先
         const t = given.trim();
-        const pick = p.choices.find((c, i) => String(i + 1) === t || c.id === t || c.label.startsWith(`${t}:`));
+        const byNum = /^\d+$/.test(t) ? p.choices[Number(t) - 1] : undefined;
+        const byLabel = p.choices.filter((c) => c.label.startsWith(`${t}:`));
+        if (!byNum && !p.choices.some((c) => c.id === t) && byLabel.length > 1) throw bad(`「${given}」は、複数の道に当たります (${byLabel.map((c) => c.id).join(", ")})。番号か id で選んでください`);
+        const pick = byNum ?? p.choices.find((c) => c.id === t) ?? (byLabel.length === 1 ? byLabel[0] : undefined);
         if (!pick) throw bad(`選べない値です: 「${given}」。ここ (工程 ${p.step.id}) で選べるのは: ${p.choices.map((c, i) => `${i + 1}=${c.id}「${c.label}」`).join(" / ")}`);
         st = flowWalkthrough.choose(st, pick.id);
       }
       const finished = st.ended;
+      // 応答が大きくなりすぎないよう、log は先頭と末尾だけにする (間は件数で知らせる)
+      const LOG_KEEP = 150;
+      const log = st.log.length > LOG_KEEP * 2 ? [...st.log.slice(0, LOG_KEEP), { kind: "omitted", text: `(間の ${st.log.length - LOG_KEEP * 2} 件を省きました)` }, ...st.log.slice(-LOG_KEEP)] : st.log;
       return json({
         processFlowId: doc.meta?.id, actionId: acts[0].id, status: awaiting ? "awaiting" : finished ? "ended" : "stopped",
-        ...(finished ? { endReason: st.endReason } : {}), steps: st.log.filter((l) => l.kind === "step").length, defined: st.defined, log: st.log, ...(awaiting ? { awaiting } : {}),
+        ...(finished ? { endReason: st.endReason } : {}), steps: st.log.filter((l) => l.kind === "step").length, defined: st.defined, log, ...(awaiting ? { awaiting } : {}),
         ...(queue.length ? { unusedChoices: queue.length } : {}),
         notes: [
-          ...(!awaiting && !finished ? ["工程が多すぎる (繰り返しが終わらない) ため、途中で止めました。choices で『繰り返しを終える (exit)』を選んでください"] : []),
+          ...(!awaiting && !finished ? ["工程が多すぎる (繰り返しが終わらない・5000 工程を超えた) ため、途中で止めました。choices で『繰り返しを終える (exit)』を選んでください"] : []),
           "条件は評価しません。人 (AI) が選ぶ道を choices に並べて渡すと、通る工程と、そこまでに定義された変数を返します。分岐の道・繰り返し・トランザクションの中・配下の工程を辿ります (検証の OK/NG 側・承認後・失敗系の副作用の中は辿りません)"],
       });
     }
