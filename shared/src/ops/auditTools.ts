@@ -15,8 +15,8 @@ const RULES: ReadonlyArray<[RegExp, AuditDesignKind]> = [
   [/^(add|update|remove|save)_page_layout$/, "pageLayout"],
 ];
 
-/** 設計の種類が、tool 名でなく、記録の備考 (引数の resourceType / entityType) で決まる tool。編集セッションの保存・保存前の版の書き戻し・改名・スキーマ移行 */
-const BY_DETAIL = /^(editSession__save|restore_version|rename_entity|migrate_schema)$/;
+/** 設計の種類が、tool 名でなく、記録の備考 (引数の resourceType / entityType) で決まる tool。編集セッションの保存・保存前の版の書き戻し・改名・スキーマ移行・シーケンスなどの保存 / 削除 (引数の kind) */
+const BY_DETAIL = /^(editSession__save|restore_version|rename_entity|migrate_schema|save_design|delete_design)$/;
 
 /** 備考の値 (編集セッションの resourceType・設計の entityType) → 設計の種類 */
 const DETAIL_KIND: Record<string, AuditDesignKind> = {
@@ -48,6 +48,8 @@ export const AI_TOOLS_NOT_ATTRIBUTED: Readonly<Record<string, string>> = {
   add_step_extension: "拡張 (設計ではなく、拡張の定義)", add_field_type_extension: "拡張 (設計ではなく、拡張の定義)", add_trigger_extension: "拡張 (設計ではなく、拡張の定義)", add_db_operation_extension: "拡張 (設計ではなく、拡張の定義)", remove_extension: "拡張 (設計ではなく、拡張の定義)",
   solution_pack: "解決策パックの書き出し (設計は変えない)", solution_unpack: "解決策パックの取り込み (複数の設計にまたがる)",
   workspace_remove: "ワークスペースの登録 (設計ではない)",
+  save_conventions: "規約 (設計 1 件ではなく、プロジェクト全体の取り決め)", save_tech_stack: "技術スタック (設計 1 件ではなく、プロジェクトの設定)",
+  import_ddl: "取り込み (複数のテーブルをまとめて作る。予行は記録しない)", import_openapi: "取り込み (複数の処理フローをまとめて作る。予行は記録しない)",
   editSession__create: "編集セッションの操作 (保存するまで、設計の原本は変わらない)", editSession__attach_as_view: "編集セッションの操作", editSession__detach: "編集セッションの操作",
   editSession__set_role: "編集セッションの操作", editSession__transfer_edit: "編集セッションの操作", editSession__update: "編集セッションの下書きの更新 (保存 editSession__save で、はじめて原本が変わる)", editSession__discard: "編集セッションの破棄 (原本は変わらない)",
 };

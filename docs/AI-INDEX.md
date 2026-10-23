@@ -24,9 +24,13 @@ MCP につながっていれば、この文書は Resource `harmony://docs/ai-in
 
 | やりたいこと | 読む資料 | 使う tool / 手順 |
 |---|---|---|
-| 設計の全体をつかむ | — | `get_project_context` |
+| 設計の全体をつかむ | — | `get_project_context`、設計書の章ごと: `get_design_document`、探す: `search_design` |
+| 人が直した分を知る | — | `get_changes_since` |
+| 保存する前に確かめる | [mcp-design-access.md](spec/mcp-design-access.md) | `validate_design` (保存しない) |
+| シーケンス・ビュー・汎用定義・規約・技術スタックを読み書きする | [mcp-design-access.md](spec/mcp-design-access.md) / [generic-definition-layer.md](spec/generic-definition-layer.md) | `list_designs` / `get_design` / `save_design` / `delete_design`、`get_conventions` / `save_conventions`、`get_tech_stack` / `save_tech_stack` |
+| DDL・OpenAPI から取り込む | [mcp-design-access.md](spec/mcp-design-access.md) | `import_ddl` / `import_openapi` (既定は予行、`apply: true` で保存) |
 | 処理フローを新しく作る | [process-flow-variables.md](spec/process-flow-variables.md) / [process-flow-expression-language.md](spec/process-flow-expression-language.md) / [process-flow-runtime-conventions.md](spec/process-flow-runtime-conventions.md) / [conversion-guideline-for-ai.md](spec/conversion-guideline-for-ai.md) | 手順 `create-flow` → `add_process_flow` / `add_action` / `add_step` |
-| 処理フローを直す | [process-flow-story-view.md](spec/process-flow-story-view.md) (人が見る「流れ」の言葉) | `get_process_flow` → `update_step` / `move_step` / `nest_step` / `remove_step` / `add_step_note` |
+| 処理フローを直す | [process-flow-story-view.md](spec/process-flow-story-view.md) (人が見る「流れ」の言葉) | まず `get_flow_story` (全体を文章で) → `list_steps` → `get_step` (1 工程) → `update_step` / `move_step` / `nest_step` / `remove_step` / `add_step_note`。分岐の抜けは `analyze_branches` |
 | 処理フローをレビューする | [process-flow-runtime-conventions.md](spec/process-flow-runtime-conventions.md) | 手順 `review-flow`、`add_review_findings` |
 | 画面を作る・直す | [screen-layout.md](spec/screen-layout.md) / [layout-components.md](spec/layout-components.md) / [screen-items.md](spec/screen-items.md) | `list_screens` / `get_screen_layout` / `set_screen_layout` / `add_screen` / `update_screen` |
 | 画面項目の名前を整える | [screen-items.md](spec/screen-items.md) | 手順 `rename-screen-ids`、`rename_screen_item`、`check_screen_item_refs` |
@@ -62,7 +66,7 @@ tool は 100 個を超え、説明が毎回文脈に載る。作業に合わせ�
 | `…/mcp?profile=flow` | 処理フローを作る・直す |
 | `…/mcp?profile=table` | テーブルを作る・直す |
 | `…/mcp?profile=screen` | 画面・画面項目・ページレイアウト |
-| `…/mcp?profile=doc` | 業務フロー・帳票・拡張 |
+| `…/mcp?profile=doc` | 業務フロー・帳票・シーケンス・ビュー・汎用定義・規約・技術スタック・拡張 |
 | `…/mcp?profile=maint` | 保守 (一括保存・版の復旧・登録簿の修復・スキーマ移行・パック) |
 | `…/mcp?profile=review` | 読む + レビューの指摘・マーカー |
 | `…/mcp?profile=read` | 読み取りだけ |

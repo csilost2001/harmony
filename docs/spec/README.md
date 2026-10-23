@@ -61,6 +61,7 @@ category: ui           # ui / process-flow / schema / design / ops / sample / gu
 | [file-backup.md](file-backup.md) | 保存前の版 (上書きされる前の内容を世代で残す・画面と MCP からの確認・読み込み) | 第 1 弾 |
 | [external-change-detection.md](external-change-detection.md) | 外部で書き換えられた設計ファイルの検知 (ファイル監視・画面への反映・自分の書き込みの除外) | 第 1 弾 |
 | [workspace-health.md](workspace-health.md) | ワークスペースの健全性 (壊れた JSON・食い違いの検査、一覧・uuid の保守、複数ファイル操作の復旧、旧形式の画面の扱い) | 第 1 弾 |
+| [mcp-design-access.md](mcp-design-access.md) | AI (MCP) が設計を読む・書く・探す・検証する tool (シーケンス・ビュー・汎用定義・規約・技術スタック・DDL / OpenAPI の取り込み・検索・工程単位の取得・流れの文章・分岐の分析・検証だけ・変更の差分・比較・設計書の章) | AI 入口 第 2 弾 |
 | [server-security.md](server-security.md) | サーバの守り (Origin・パス・ログのマスク、接続トークン、要求の上限、MCP の権限) | 第 1 弾 |
 | [schema-migration.md](schema-migration.md) | スキーマの版の移行の枠組み (予行・世代・冪等) | 第 1 弾 |
 | [quick-open.md](quick-open.md) | クイックオープン (Ctrl+K。画面・テーブル・処理フロー等を ID・名前で探して開く) | 再設計 2026-10 |

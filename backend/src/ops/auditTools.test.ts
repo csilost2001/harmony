@@ -22,3 +22,15 @@ describe("AI の書き込みの tool の、監査ログでの扱い (続編 第 
     expect(aiToolDesignKind("designer__get_table")).toBeNull();
   });
 });
+
+describe("設計への新しいアクセスの tool (AI の入口 第 2 弾)", () => {
+  it("save_design / delete_design は、引数 kind の設計の種類として数える。汎用定義は、種類が無いので数えない", async () => {
+    const { describeAiTool } = await import("./auditMap.js");
+    const d = describeAiTool("designer__save_design", { kind: "sequence", id: "seq-1" }, "");
+    expect(d).toEqual({ target: "seq-1", detail: "sequence" });
+    expect(aiToolDesignKind("designer__save_design", d.detail)).toBe("sequence");
+    expect(aiToolDesignKind("designer__delete_design", "viewDefinition")).toBe("viewDefinition");
+    expect(aiToolDesignKind("designer__save_design", "genericDefinition")).toBeNull();
+    expect(describeAiTool("designer__save_design", { kind: "genericDefinition", definitionKind: "message", name: "m1" }, "").target).toBe("m1");
+  });
+});

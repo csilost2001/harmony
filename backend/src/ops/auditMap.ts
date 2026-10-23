@@ -56,7 +56,9 @@ export function describeAiTool(name: string, args: Record<string, unknown>, resu
   let target = AI_ID_KEYS.map((k) => args[k]).find((v): v is string => typeof v === "string");
   if (tool === "rename_entity" && typeof args.newId === "string") target = args.newId;
   if (/^add_(table|screen|process_flow|page_layout)$/.test(tool)) target = createdIdFromResultText(resultText) ?? target;
-  const detail = typeof args.resourceType === "string" ? args.resourceType : typeof args.entityType === "string" ? args.entityType : undefined;
+  // save_design / delete_design は、設計の種類が引数の kind (sequence / view / viewDefinition / genericDefinition)
+  const detail = typeof args.resourceType === "string" ? args.resourceType : typeof args.entityType === "string" ? args.entityType
+    : /^(save|delete)_design$/.test(tool) && typeof args.kind === "string" ? args.kind : undefined;
   return { ...(target ? { target } : {}), ...(detail ? { detail } : {}) };
 }
 
