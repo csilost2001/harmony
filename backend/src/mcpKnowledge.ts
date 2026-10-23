@@ -67,6 +67,52 @@ export function splitSections(md: string): Array<{ n: number; title: string; tex
   return out.map((x) => ({ n: x.n, title: x.title, text: x.lines.join("\n").trim() })).filter((x) => x.n > 0 || x.text);
 }
 
+/** スキーマの定義 1 つと、それが (直接・間接に) 参照する定義。大きなスキーマ (処理フローは 92KB) を、必要な部分だけ読むため。外部の参照は `<ファイル>#<定義>` のキーで */
+export function schemaDefClosure(schemaDir: string, kind: string, defName: string): { definition: unknown; dependencies: Record<string, unknown> } | null {
+  const load = (k: string): { $defs?: Record<string, unknown> } | null => {
+    const t = read(path.join(schemaDir, `${k}${SCHEMA_SUFFIX}`));
+    if (t === null) return null;
+    try { return JSON.parse(t) as { $defs?: Record<string, unknown> }; } catch { return null; }
+  };
+  const main = load(kind);
+  if (!main?.$defs || !Object.hasOwn(main.$defs, defName)) return null;
+  const allowedKinds = new Set(names(schemaDir, SCHEMA_SUFFIX));
+  const deps: Record<string, unknown> = {};
+  const seen = new Set<string>([`${kind}#${defName}`]);
+  const queue: Array<{ kind: string; def: string; node: unknown }> = [{ kind, def: defName, node: main.$defs[defName] }];
+  const MAX_DEPS = 200;
+  while (queue.length && Object.keys(deps).length < MAX_DEPS) {
+    const cur = queue.shift()!;
+    const refs: string[] = [];
+    (function walk(n: unknown): void {
+      if (Array.isArray(n)) { for (const x of n) walk(x); return; }
+      if (!n || typeof n !== "object") return;
+      for (const [k, v] of Object.entries(n as Record<string, unknown>)) { if (k === "$ref" && typeof v === "string") refs.push(v); else walk(v); }
+    })(cur.node);
+    for (const ref of refs) {
+      const m = /^(?:([A-Za-z0-9._-]+?)(?:\.v3\.schema\.json))?#\/\$defs\/([A-Za-z0-9_]+)$/.exec(ref);
+      if (!m) continue;
+      const k = m[1] ?? cur.kind;
+      if (!allowedKinds.has(k)) continue;
+      const key = `${k}#${m[2]}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const sch = k === kind ? main : load(k);
+      const node = sch?.$defs && Object.hasOwn(sch.$defs, m[2]) ? sch.$defs[m[2]] : undefined;
+      if (node === undefined) continue;
+      // 種類の多い oneOf (工程 26 種類など) の中身までは辿らない (入れ子で、スキーマ全体になってしまう)。名前だけ示し、個別に読ませる
+      const oneOf = (node as { oneOf?: unknown[] }).oneOf;
+      if (Array.isArray(oneOf) && oneOf.length > 8) {
+        deps[k === kind ? m[2] : key] = { $comment: `${oneOf.length} 種類の oneOf。中身は辿りません。個別の定義は harmony://schema/${k}/<定義名>`, oneOf };
+        continue;
+      }
+      deps[k === kind ? m[2] : key] = node;
+      queue.push({ kind: k, def: m[2], node });
+    }
+  }
+  return { definition: main.$defs[defName], dependencies: deps };
+}
+
 interface SpecEntry { file: string; title: string; description: string; status: string; category: string }
 function specIndex(rootDir: string): SpecEntry[] {
   const text = read(path.join(rootDir, "docs/spec/index.json"));
@@ -103,6 +149,7 @@ export function listResourceTemplates(): Array<{ uriTemplate: string; name: stri
     { uriTemplate: "harmony://spec/{name}/sections", name: "仕様書の章の一覧", description: "仕様書の章 (## の見出し) の番号・題・大きさ。大きな仕様書は、この一覧で選んで 1 章ずつ読む", mimeType: "application/json" },
     { uriTemplate: "harmony://spec/{name}/{n}", name: "仕様書の 1 章", description: "n は章の番号 (0 = 前書き、1 以降 = ## の見出し順)", mimeType: "text/markdown" },
     { uriTemplate: "harmony://schema/{kind}", name: "JSON Schema", description: "schemas/v3/<kind>.v3.schema.json。kind は harmony://schema/index にある", mimeType: "application/json" },
+    { uriTemplate: "harmony://schema/{kind}/{def}", name: "JSON Schema の定義 1 つ", description: "$defs の定義 1 つと、それが参照する定義だけ (処理フローのスキーマは 92KB あるので、工程の種類 1 つだけ読むときなど)。def は docs/spec/schema-index.json の defs の名前", mimeType: "application/json" },
   ];
 }
 
@@ -114,7 +161,7 @@ export async function readResource(uri: string, root: string | null, rootDir: st
   const m = uri.match(/^harmony:\/\/([a-z-]+)\/([A-Za-z0-9._-]+)(?:\/([A-Za-z0-9._-]+))?$/);
   if (!m) throw new McpError(ErrorCode.InvalidParams, `未知の資料です: ${uri} (harmony://docs/… spec/… schema/… decisions/… project/context)`);
   const [, area, name, sub] = m;
-  if (sub !== undefined && area !== "spec") throw new McpError(ErrorCode.InvalidParams, `見つかりません: ${uri}`);
+  if (sub !== undefined && area !== "spec" && area !== "schema") throw new McpError(ErrorCode.InvalidParams, `見つかりません: ${uri}`);
 
   if (area === "project" && name === "context") {
     if (!root) throw new McpError(ErrorCode.InvalidParams, "ワークスペースが選ばれていません (designer__workspace_open で開いてください)");
@@ -151,9 +198,16 @@ export async function readResource(uri: string, root: string | null, rootDir: st
   } else if (area === "schema") {
     const kinds = names(path.join(rootDir, "schemas/v3"), SCHEMA_SUFFIX);
     if (name === "index") {
+      if (sub !== undefined) throw new McpError(ErrorCode.InvalidParams, `見つかりません: ${uri}`);
       return ok("application/json", JSON.stringify({ schemas: kinds.map((k) => ({ kind: k, uri: `harmony://schema/${k}`, file: `schemas/v3/${k}${SCHEMA_SUFFIX}` })) }, null, 2));
     }
     if (kinds.includes(name)) {
+      // harmony://schema/<種類>/<定義名>: その定義と、参照している定義だけ (大きなスキーマの部分読み)
+      if (sub !== undefined) {
+        const r = schemaDefClosure(path.join(rootDir, "schemas/v3"), name, sub);
+        if (r) return ok("application/json", JSON.stringify({ kind: name, def: sub, definition: r.definition, dependencies: r.dependencies, note: "dependencies は、この定義が (直接・間接に) 参照する定義。同じファイルの定義は名前、ほかのファイルは <種類>#<定義名>。全体は harmony://schema/" + name }, null, 2));
+        throw new McpError(ErrorCode.InvalidParams, `定義「${sub}」が ${name} のスキーマにありません (一覧は docs/spec/schema-index.json)`);
+      }
       const t = read(path.join(rootDir, "schemas/v3", `${name}${SCHEMA_SUFFIX}`));
       if (t !== null) return ok("application/json", t);
     }

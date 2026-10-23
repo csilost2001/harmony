@@ -54,7 +54,7 @@ MCP につながっていれば、この文書は Resource `harmony://docs/ai-in
 ## 資料の探し方
 
 - **用語**: `docs/glossary.json` (`harmony://docs/glossary`) — 日本語の用語 ↔ スキーマの定義 ↔ MCP tool ↔ 仕様書
-- **スキーマ**: `harmony://schema/<種類>`。`$defs` ごとの要約・必須の項目は `docs/spec/schema-index.json` (`harmony://spec/schema-index`)。工程の種類の一覧は [process-flow-step-kinds.md](spec/process-flow-step-kinds.md)
+- **スキーマ**: `harmony://schema/<種類>` (全体)・`harmony://schema/<種類>/<定義名>` (定義 1 つと依存だけ。例: `harmony://schema/process-flow/BranchStep`)。`$defs` ごとの要約・必須の項目は `docs/spec/schema-index.json` (`harmony://spec/schema-index`)。工程の種類の一覧は [process-flow-step-kinds.md](spec/process-flow-step-kinds.md)
 - **作業の手順**: [ai-recipes.md](spec/ai-recipes.md) (作業別の呼び順と、よくある失敗の逆引き)。処理フローの self-check ルールの一覧は [process-flow-pitfalls.md](spec/process-flow-pitfalls.md)
 - **AI の出来を測る**: [evals/README.md](evals/README.md) — 依頼 → 期待の事例と、LLM なしの採点 (`npm run eval:design`)
 - **例**: [examples/PATTERNS.md](../examples/PATTERNS.md) — 工程の種類・書き方ごとに、近いサンプルの場所
