@@ -29,14 +29,19 @@ export function findDocsRoot(env: NodeJS.ProcessEnv = process.env): string | nul
   if (env.HARMONY_DOCS_DIR?.trim()) candidates.push(path.resolve(env.HARMONY_DOCS_DIR.trim()));
   const here = path.dirname(fileURLToPath(import.meta.url)); // backend/src または backend/dist
   candidates.push(path.resolve(here, "../.."), path.resolve(process.cwd(), ".."), process.cwd());
-  return candidates.find((d) => fs.existsSync(path.join(d, "schemas/v3")) && fs.existsSync(path.join(d, "docs/spec"))) ?? null;
+  const found = candidates.find((d) => fs.existsSync(path.join(d, "schemas/v3")) && fs.existsSync(path.join(d, "docs/spec"))) ?? null;
+  if (env.HARMONY_DOCS_DIR?.trim() && found !== path.resolve(env.HARMONY_DOCS_DIR.trim())) console.error(`[MCP] HARMONY_DOCS_DIR=${env.HARMONY_DOCS_DIR} に schemas/v3 と docs/spec がありません。${found ?? "資料なし"} を使います`);
+  return found;
 }
 
 const SCHEMA_SUFFIX = ".v3.schema.json";
 const names = (dir: string, suffix: string): string[] => {
   try { return fs.readdirSync(dir).filter((n) => n.endsWith(suffix)).map((n) => n.slice(0, -suffix.length)).sort(); } catch { return []; }
 };
-const read = (p: string): string | null => { try { return fs.readFileSync(p, "utf8"); } catch { return null; } };
+/** 通常のファイルだけ読む (シンボリックリンクで、資料の外のファイルを読ませない) */
+const read = (p: string): string | null => {
+  try { return fs.lstatSync(p).isFile() ? fs.readFileSync(p, "utf8") : null; } catch { return null; }
+};
 
 interface SpecEntry { file: string; title: string; description: string; status: string; category: string }
 function specIndex(rootDir: string): SpecEntry[] {

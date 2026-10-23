@@ -3,6 +3,8 @@
  * サーバは createMcpServer を、メモリ上の transport でつなぐ (HTTP の起動はしない)。
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -10,9 +12,9 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createMcpServer } from "./mcpServer.js";
 import { tools } from "./tools.js";
 import { isReadOnlyTool } from "./security/mcpAccess.js";
-import { PROFILE_NAMES, PROFILES, isInProfile, parseProfiles, profilesFromRequest } from "./security/mcpProfiles.js";
+import { PROFILE_NAMES, PROFILES, isInProfile, parseProfiles, profileRefusal, profilesFromRequest } from "./security/mcpProfiles.js";
 import { PROMPT_SKILLS, findDocsRoot, getPrompt, listPrompts, listResources, readResource } from "./mcpKnowledge.js";
-import { NEXT_STEPS } from "./projectContext.js";
+import { NEXT_STEPS, buildProjectContext } from "./projectContext.js";
 import { connect as wsConnect, disconnect as wsDisconnect, setActivePath } from "./workspaceState.js";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
@@ -57,6 +59,28 @@ describe("プロファイル (tool の絞り込み)", () => {
     expect(profilesFromRequest("/mcp?profile=table", { HARMONY_MCP_PROFILE: "flow" }).names).toEqual(["table"]);
     expect(profilesFromRequest("/mcp", { HARMONY_MCP_PROFILE: "flow" }).names).toEqual(["flow"]);
     expect(profilesFromRequest("/mcp", {}).names).toEqual([]);
+    expect(profilesFromRequest("/mcp?profile=", { HARMONY_MCP_PROFILE: "flow" }).names).toEqual(["flow"]); // 空は未指定
+  });
+
+  it("すべての tool が、どれかのプロファイルに入る (絞った接続で、案内の手順が行き止まりにならない)", () => {
+    const orphans = tools.map((t) => t.name).filter((n) => !Object.keys(PROFILES).some((p) => isInProfile(n, [p])));
+    expect(orphans).toEqual([]);
+  });
+
+  it("read / review だけの接続は、ワークスペースの新規作成 (init: true) を断る。ほかの接続・ほかの呼び出しは断らない", () => {
+    expect(profileRefusal("designer__workspace_open", { path: "/x", init: true }, ["read"])).toMatch(/新規作成/);
+    expect(profileRefusal("designer__workspace_open", { path: "/x", init: true }, ["review", "read"])).toMatch(/新規作成/);
+    expect(profileRefusal("designer__workspace_open", { path: "/x" }, ["read"])).toBeNull();
+    expect(profileRefusal("designer__workspace_open", { path: "/x", init: true }, ["flow"])).toBeNull();
+    expect(profileRefusal("designer__workspace_open", { path: "/x", init: true }, ["read", "flow"])).toBeNull();
+    expect(profileRefusal("designer__workspace_open", { path: "/x", init: true }, [])).toBeNull();
+  });
+
+  it("read の接続で workspace_open の init: true を呼ぶと、プロトコル上も断られる", async () => {
+    const { client, close } = await open(["read"]);
+    try {
+      await expect(client.callTool({ name: "designer__workspace_open", arguments: { path: path.join(os.tmpdir(), "never-created"), init: true } })).rejects.toThrow(/新規作成/);
+    } finally { await close(); }
   });
 
   it("どのプロファイルも、実在する tool だけを見せ、全部より少なく、土台の tool を含む", () => {
@@ -136,6 +160,18 @@ describe("Resources (資料)", () => {
     }
   });
 
+  it("project/context は tool と同じ権限で守る: HARMONY_MCP_DENY に tool を入れると、resource でも読めない", async () => {
+    const { client, close } = await open();
+    const prev = process.env.HARMONY_MCP_DENY;
+    process.env.HARMONY_MCP_DENY = "get_project_context";
+    try {
+      await expect(client.readResource({ uri: "harmony://project/context" })).rejects.toThrow(/HARMONY_MCP_DENY/);
+    } finally {
+      if (prev === undefined) delete process.env.HARMONY_MCP_DENY; else process.env.HARMONY_MCP_DENY = prev;
+      await close();
+    }
+  });
+
   it("project/context: ワークスペースが選ばれていなければ、案内つきで断る", async () => {
     await expect(readResource("harmony://project/context", null)).rejects.toThrow(/workspace_open/);
   });
@@ -203,5 +239,32 @@ describe("designer__get_project_context (設計全体の要約)", () => {
     const uris = new Set(listResources().map((r) => r.uri));
     expect(uris.has("harmony://docs/ai-index")).toBe(true);
     expect(uris.has("harmony://spec/index")).toBe(true);
+  });
+});
+
+describe("get_project_context: 壊れた設計があっても落ちない (draft-state)", () => {
+  it("meta のない処理フロー・配列でない actions・工程が数でない処理フロー・本文のないマーカーがあっても、要約を返す", async () => {
+    const root = path.join(os.tmpdir(), `ctx-broken-${process.pid}-${Date.now()}`);
+    await fs.mkdir(path.join(root, "harmony", "process-flows"), { recursive: true });
+    await fs.writeFile(path.join(root, "harmony.json"), JSON.stringify({ schemaVersion: "v3", dataDir: "harmony", meta: { id: "00000000-0000-4000-8000-0000000000aa", name: "壊れた設計", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" }, entities: { processFlows: ["f1", "f2", "f3", "f4"].map((id) => ({ id, name: id })) } }));
+    const put = (n: string, v: unknown) => fs.writeFile(path.join(root, "harmony", "process-flows", `${n}.json`), typeof v === "string" ? v : JSON.stringify(v));
+    await put("a", { id: "f1", name: "meta なし" });
+    await put("b", { meta: { id: "f2", name: "actions が配列でない" }, actions: { x: 1 } });
+    await put("c", { meta: { id: "f3", name: "steps が数" }, actions: [{ id: "a1", steps: 5 }] });
+    await put("d", { meta: { id: "f4", name: "正常" }, actions: [{ id: "a1", steps: [{ id: "s1", kind: "validation" }] }] });
+    await put("e", "{ これは JSON ではない");
+    try {
+      const ctx = await buildProjectContext(root) as { designs: { flows: { total: number; items: Array<{ id: string; steps: number }> } }; unreadable?: string[] };
+      const ids = ctx.designs.flows.items.map((f) => f.id);
+      expect(ids).toEqual(expect.arrayContaining(["f2", "f3", "f4"])); // actions が配列でない・steps が数でも、数えられないだけで落ちない
+      expect(ctx.designs.flows.items.find((f) => f.id === "f2")?.steps).toBe(0);
+      expect(ctx.designs.flows.items.find((f) => f.id === "f4")?.steps).toBe(1);
+      expect(ctx.unreadable?.length ?? 0).toBeGreaterThan(0); // 読めなかったものは、黙って消さず知らせる
+    } finally { await fs.rm(root, { recursive: true, force: true }); }
+  });
+
+  it("limit が数でないときは既定 (NaN にならない)", async () => {
+    const ctx = await buildProjectContext(path.join(REPO, "examples/retail"), { limit: Number.NaN }) as { designs: { flows: { shown: number; total: number } } };
+    expect(ctx.designs.flows.shown).toBe(Math.min(ctx.designs.flows.total, 60));
   });
 });

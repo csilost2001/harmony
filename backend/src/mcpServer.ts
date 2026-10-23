@@ -16,7 +16,7 @@ import {
 import { wsBridge } from "./wsBridge.js";
 import { ensureRecovered } from "./operationJournal.js";
 import { assertToolAllowed, filterTools, isReadOnlyTool } from "./security/mcpAccess.js";
-import { filterToolsByProfile, isInProfile } from "./security/mcpProfiles.js";
+import { filterToolsByProfile, isInProfile, profileRefusal } from "./security/mcpProfiles.js";
 import { SERVER_INSTRUCTIONS, getPrompt, listPrompts, listResources, listResourceTemplates, readResource } from "./mcpKnowledge.js";
 import { recordAudit } from "./ops/audit.js";
 import { describeAiTool, isAiDryRun, isAiNoWrite } from "./ops/auditMap.js";
@@ -68,6 +68,11 @@ export function createMcpServer(sessionId: string, profiles: readonly string[] =
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
     let root: string | null = null;
     try { root = workspaceContextManager.requireActivePath(sessionId); } catch { /* ワークスペース未選択。project/context だけが使う */ }
+    // 設計全体の要約は tool (designer__get_project_context) と同じ内容なので、tool と同じ権限・プロファイルで守る
+    if (request.params.uri === "harmony://project/context") {
+      assertToolAllowed("designer__get_project_context", process.env);
+      if (!isInProfile("designer__get_project_context", profiles)) throw new McpError(ErrorCode.InvalidRequest, "この接続のプロファイルでは、設計全体の要約は読めません");
+    }
     return readResource(request.params.uri, root);
   });
   server.setRequestHandler(ListPromptsRequestSchema, async () => ({ prompts: listPrompts() }));
@@ -80,6 +85,8 @@ export function createMcpServer(sessionId: string, profiles: readonly string[] =
     // 読み取り専用・拒否リストの設定 (HARMONY_MCP_MODE / HARMONY_MCP_DENY) で使えない tool は、ここで拒否する
     const argRecord = (args ?? {}) as Record<string, unknown>;
     assertToolAllowed(name, process.env, argRecord);
+    const refusal = profileRefusal(name, argRecord, profiles);
+    if (refusal) throw new McpError(ErrorCode.InvalidRequest, refusal);
     if (!isInProfile(name, profiles)) {
       throw new McpError(ErrorCode.InvalidRequest, `${name} は、この接続のプロファイル (${profiles.join(", ")}) では使えません。全部使うには、接続の URL の ?profile= を外してください`);
     }
@@ -134,7 +141,7 @@ export function createMcpServer(sessionId: string, profiles: readonly string[] =
       throw new McpError(ErrorCode.MethodNotFound, `未知のツール: ${name}`);
     } catch (err) {
       if (err instanceof WorkspaceUnsetError) {
-        throw new McpError(ErrorCode.InvalidParams, err.message);
+        throw new McpError(ErrorCode.InvalidParams, `${err.message} (designer__workspace_list で探し、designer__workspace_open で開いてください)`);
       }
       if (err instanceof McpError) throw err;
       const message = err instanceof Error ? err.message : String(err);

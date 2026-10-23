@@ -10,8 +10,8 @@ MCP につながっていれば、この文書は Resource `harmony://docs/ai-in
 
 ## 最初にやること
 
-1. `designer__get_project_context` を 1 回呼ぶ。設計の件数・名前・規約・**未解決のマーカー (人から AI への指示・質問)** が分かる
-2. ワークスペースが開かれていなければ `designer__workspace_list` → `designer__workspace_open`
+1. ワークスペースが開かれているか確かめる (`designer__workspace_status`)。開かれていなければ `designer__workspace_list` → `designer__workspace_open`
+2. `designer__get_project_context` を 1 回呼ぶ。設計の件数・名前・規約・**未解決のマーカー (人から AI への指示・質問)** が分かる
 3. 設計を作る・直したら、完了を報告する前に `designer__check_design` を呼び、error / warning を 0 件にする。要確認を黙らせるのは人 (画面か `design-check.json`)。AI は黙らせない
 
 ## 守ること
@@ -62,7 +62,9 @@ tool は 100 個を超え、説明が毎回文脈に載る。作業に合わせ�
 | `…/mcp?profile=flow` | 処理フローを作る・直す |
 | `…/mcp?profile=table` | テーブルを作る・直す |
 | `…/mcp?profile=screen` | 画面・画面項目・ページレイアウト |
+| `…/mcp?profile=doc` | 業務フロー・帳票・拡張 |
+| `…/mcp?profile=maint` | 保守 (一括保存・版の復旧・登録簿の修復・スキーマ移行・パック) |
 | `…/mcp?profile=review` | 読む + レビューの指摘・マーカー |
 | `…/mcp?profile=read` | 読み取りだけ |
 
-カンマで複数 (`?profile=flow,table`)。どのプロファイルにも、ワークスペース・`get_project_context`・`check_design`・`analyze_design`・`find_references`・マーカー・タブの tool は入る。権限の制限 (`HARMONY_MCP_MODE` / `HARMONY_MCP_DENY`) は別に掛かる。詳しくは [server-security.md](spec/server-security.md)。
+カンマで複数 (`?profile=flow,table`)。すべての tool は、どれかのプロファイルに入る。どのプロファイルにも、ワークスペース・`get_project_context`・`check_design`・`analyze_design`・`find_references`・マーカー・タブの tool は入る。権限の制限 (`HARMONY_MCP_MODE` / `HARMONY_MCP_DENY`) は別に掛かる。詳しくは [server-security.md](spec/server-security.md)。

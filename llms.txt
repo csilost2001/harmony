@@ -13,7 +13,7 @@ AI は、まずこの 3 つだけを読む。
 - 接続して最初に designer__get_project_context を呼ぶ。設計の全体と、未解決のマーカー (人からの指示・質問) が分かる
 - 資料は MCP の Resources: harmony://docs/ai-index / harmony://spec/<名前> / harmony://schema/<種類>
 - 手順は MCP の Prompts: create-flow / review-flow / generate-code / generate-tests / import-md / rename-screen-ids / test-strategy
-- tool を絞る: http://localhost:5179/mcp?profile=flow (flow / table / screen / review / read)
+- tool を絞る: http://localhost:5179/mcp?profile=flow (flow / table / screen / doc / maint / review / read)
 
 ## 正本
 

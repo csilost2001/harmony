@@ -26,7 +26,8 @@ export const NEXT_STEPS = [
 ] as const;
 
 export async function buildProjectContext(root: string, opts: ProjectContextOptions = {}): Promise<Record<string, unknown>> {
-  const limit = Math.max(1, Math.min(500, Math.floor(opts.limit ?? 60)));
+  const wanted = typeof opts.limit === "number" && Number.isFinite(opts.limit) ? opts.limit : 60;
+  const limit = Math.max(1, Math.min(500, Math.floor(wanted)));
   const { input, skipped, counts } = await loadDesignInputFromRoot(root);
   const raw = (await readProjectWithUnregistered(root)).project;
   const project = isRecord(raw) ? raw : {};
@@ -34,11 +35,19 @@ export async function buildProjectContext(root: string, opts: ProjectContextOpti
 
   const cut = <T,>(items: T[]) => ({ total: items.length, shown: Math.min(items.length, limit), items: items.slice(0, limit) });
 
-  const flows = input.flows.map((f: DocFlow) => {
+  // 設計は途中でも保存でき、壊れたものがある (draft-state)。1 件が壊れていても、全体の要約は返す
+  const unreadable: string[] = [];
+  const flows: Array<Record<string, unknown>> = [];
+  for (const f of input.flows as DocFlow[]) {
+    const meta = isRecord(f?.meta) ? f.meta : null;
+    if (!meta || typeof meta.id !== "string") { unreadable.push("処理フロー (meta.id がない)"); continue; }
+    const actions = Array.isArray(f.actions) ? f.actions : [];
     let steps = 0;
-    for (const a of f.actions ?? []) for (const _ of walkAllSteps(a.steps as never)) steps++;
-    return { id: f.meta.id, name: f.meta.name, flowType: f.meta.flowType, screenId: f.meta.screenId, maturity: f.meta.maturity, actions: f.actions?.length ?? 0, steps };
-  });
+    for (const a of actions) {
+      try { for (const _ of walkAllSteps(isRecord(a) && Array.isArray(a.steps) ? (a.steps as never) : undefined)) steps++; } catch { /* 壊れた工程は数えない */ }
+    }
+    flows.push({ id: meta.id, name: meta.name, flowType: meta.flowType, screenId: meta.screenId, maturity: meta.maturity, actions: actions.length, steps });
+  }
 
   // 未解決のマーカー (人から AI への指示・質問)
   const byKind: Record<string, number> = {};
@@ -46,7 +55,8 @@ export async function buildProjectContext(root: string, opts: ProjectContextOpti
   for (const t of await listMarkerDocs(root)) {
     for (const m of listMarkers(t.doc, { unresolvedOnly: true })) {
       byKind[m.kind] = (byKind[m.kind] ?? 0) + 1;
-      if (open.length < 10) open.push({ entityType: t.entityType, entityId: t.entityId, entityName: t.entityName, kind: m.kind, body: m.body.length > 120 ? `${m.body.slice(0, 118)}…` : m.body });
+      const body = typeof m.body === "string" ? m.body : "";
+      if (open.length < 10) open.push({ entityType: t.entityType, entityId: t.entityId, entityName: t.entityName, kind: m.kind, body: body.length > 120 ? `${body.slice(0, 118)}…` : body });
     }
   }
   const openTotal = Object.values(byKind).reduce((a, b) => a + b, 0);
@@ -66,16 +76,16 @@ export async function buildProjectContext(root: string, opts: ProjectContextOpti
     techStack: project.techStack ?? null,
     counts,
     designs: {
-      screens: cut(input.screens.map((s) => ({ id: s.id, name: s.name, purpose: s.purpose, path: s.path, maturity: s.maturity, items: s.items?.length ?? 0 }))),
+      screens: cut(input.screens.filter((s) => isRecord(s)).map((s) => ({ id: s.id, name: s.name, purpose: s.purpose, path: s.path, maturity: s.maturity, items: Array.isArray(s.items) ? s.items.length : 0 }))),
       flows: cut(flows),
-      tables: cut(input.tables.map((t) => ({ id: t.id, name: t.name, physicalName: t.physicalName, category: t.category, columns: t.columns?.length ?? 0 }))),
-      businessFlows: cut((input.businessFlows ?? []).map((b) => ({ id: (b as { id?: string }).id, name: (b as { name?: string }).name }))),
-      reports: cut((input.reports ?? []).map((r) => ({ id: (r as { id?: string }).id, name: (r as { name?: string }).name }))),
+      tables: cut(input.tables.filter((t) => isRecord(t)).map((t) => ({ id: t.id, name: t.name, physicalName: t.physicalName, category: t.category, columns: Array.isArray(t.columns) ? t.columns.length : 0 }))),
+      businessFlows: cut((input.businessFlows ?? []).filter((b) => isRecord(b)).map((b) => ({ id: (b as { id?: string }).id, name: (b as { name?: string }).name }))),
+      reports: cut((input.reports ?? []).filter((r) => isRecord(r)).map((r) => ({ id: (r as { id?: string }).id, name: (r as { name?: string }).name }))),
     },
     conventions: conv,
     transitions: input.transitions?.length ?? 0,
     markers: { unresolved: openTotal, byKind, first: open },
-    ...(skipped.length ? { unreadable: skipped } : {}),
+    ...(skipped.length || unreadable.length ? { unreadable: [...skipped, ...unreadable] } : {}),
     next: NEXT_STEPS,
   };
 }

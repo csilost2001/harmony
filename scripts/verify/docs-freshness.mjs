@@ -220,7 +220,11 @@ export function aiIndexToolIssues(base) {
   if (!fs.existsSync(doc) || !fs.existsSync(toolsTs)) return [];
   const known = new Set([...fs.readFileSync(toolsTs, "utf8").matchAll(/name:\s*"(?:designer|editSession)__([a-z_]+)"/g)].map((m) => m[1]));
   const out = [];
-  for (const m of fs.readFileSync(doc, "utf8").matchAll(/`([a-z]+(?:_[a-z]+)+)`/g)) if (!known.has(m[1])) out.push({ file: "docs/AI-INDEX.md", message: `MCP の tool にない名前です: ${m[1]}` });
+  // `designer__x` / `editSession__x` は接頭辞つきで、`x_y` は接頭辞なしで書く (1 語の `check` などは tool の名前とみなさない)
+  for (const m of fs.readFileSync(doc, "utf8").matchAll(/`(?:(?:designer|editSession)__([a-z]+(?:_[a-z]+)*)|([a-z]+(?:_[a-z]+)+))`/g)) {
+    const name = m[1] ?? m[2];
+    if (!known.has(name)) out.push({ file: "docs/AI-INDEX.md", message: `MCP の tool にない名前です: ${name}` });
+  }
   return [...new Map(out.map((o) => [o.message, o])).values()];
 }
 

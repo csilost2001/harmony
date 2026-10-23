@@ -696,9 +696,9 @@ group("docs-freshness (資料の鮮度検査)", () => {
     assert("索引を作り直せば、食い違いなし", specFrontmatterIssues(tmp).length === 0, JSON.stringify(specFrontmatterIssues(tmp)));
     mkdirSync(join(tmp, "backend/src"), { recursive: true });
     writeFileSync(join(tmp, "backend/src/tools.ts"), 'export const tools = [{ name: "designer__check_design" }];');
-    writeFileSync(join(tmp, "docs/AI-INDEX.md"), "`check_design` と `ghost_tool` と `apply: true` と `HARMONY_MCP_MODE`");
+    writeFileSync(join(tmp, "docs/AI-INDEX.md"), "`check_design` と `designer__check_design` と `designer__ghost_tool` と `other_ghost` と `apply: true` と `HARMONY_MCP_MODE`");
     const ai = aiIndexToolIssues(tmp);
-    assert("AI 向けの入口にある tool の名前が MCP になければ検出する (ほかの `…` は見ない)", ai.length === 1 && ai[0].message.includes("ghost_tool"), JSON.stringify(ai));
+    assert("AI 向けの入口にある tool の名前が MCP になければ検出する (ほかの `…` は見ない)", ai.length === 2 && ai.some((a) => a.message.includes(": ghost_tool")) && ai.some((a) => a.message.includes("other_ghost")), JSON.stringify(ai));
     const all = runChecks(tmp);
     assert("runChecks: 全体を通して、error と知らせを返す", all.errors.length > 0 && all.infos.length > 0 && all.docCount >= 4);
   } finally { rmSync(tmp, { recursive: true, force: true }); }
