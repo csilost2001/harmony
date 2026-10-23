@@ -229,6 +229,19 @@ export function buildOutline(steps: readonly FlowStep[], action: Pick<FlowAction
           walk(onRollback, `${no}-R`, depth + 2, false);
         }
       }
+      // 検証の OK / NG・承認 / 却下 / 期限切れ・失敗系の結果ごとの副作用 (これらも、流れの一部)
+      const extraArm = (code: string, label: string, list: unknown, isErr = false) => {
+        if (!Array.isArray(list) || list.length === 0) return;
+        rows.push({ no: `${no}-${code}`, depth: depth + 1, type: "branch-arm", kind: label, inTx, isError: isErr, text: label, target: "", note: "" });
+        walk(list as FlowStep[], `${no}-${code}`, depth + 2, inTx);
+      };
+      const ib = s.inlineBranch as { ok?: unknown; ng?: unknown } | undefined;
+      if (ib) { extraArm("OK", "検証が OK のとき", ib.ok); extraArm("NG", "検証が NG のとき", ib.ng, true); }
+      if (step.kind === "workflow") {
+        extraArm("AP", "承認されたとき", s.onApproved); extraArm("RJ", "却下されたとき", s.onRejected, true); extraArm("TO", "期限が切れたとき", s.onTimeout);
+      }
+      const oc = (s.errorHandling as { outcomes?: Record<string, { sideEffects?: unknown }> } | undefined)?.outcomes;
+      if (oc && typeof oc === "object") for (const [key, spec] of Object.entries(oc)) extraArm(`E-${key}`, `結果「${key}」のとき`, spec?.sideEffects);
       // 配下の工程 (subSteps)。親の本体 (分岐の枝・繰り返し・TX の中身) とは別に、番号は `<親>-S-n`
       const subs = (s.subSteps as FlowStep[] | undefined) ?? [];
       if (subs.length > 0) walk(subs, `${no}-S`, depth + 1, inTx);

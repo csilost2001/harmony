@@ -213,7 +213,7 @@ describe("取り込み (DDL / OpenAPI)", () => {
 
   it("DDL: 空・大きすぎる入力は断る", async () => {
     await expect(call("designer__import_ddl", { sql: "  " })).rejects.toThrow();
-    await expect(call("designer__import_ddl", { sql: "x".repeat(2 * 1024 * 1024 + 1) })).rejects.toThrow(/大きすぎ/);
+    await expect(call("designer__import_ddl", { sql: "x".repeat(512 * 1024 + 1) })).rejects.toThrow(/大きすぎ/);
   });
 
   it("OpenAPI: 予行 → 保存。工程は空の雛形で、保存した処理フローを list_steps で読める", async () => {
@@ -248,5 +248,111 @@ describe("設計書の章ごとの取得", () => {
   it("ない章・HTML に使えない文字の id は断る", async () => {
     await expect(call("designer__get_design_document", { chapter: "nope" })).rejects.toThrow(/目次/);
     await expect(call("designer__get_design_document", { chapter: '"><script>' })).rejects.toThrow();
+  });
+});
+
+describe("レビューの指摘 (第 2 弾)", () => {
+  it("list_designs は読むだけ: フォルダの無い最小のワークスペースでも、フォルダを作らない", async () => {
+    const MIN = path.join(os.tmpdir(), `design-access-min-${process.pid}-${Date.now()}`);
+    await fs.mkdir(MIN, { recursive: true });
+    await fs.writeFile(path.join(MIN, "harmony.json"), JSON.stringify({ schemaVersion: "v3", dataDir: "harmony", meta: { id: "00000000-0000-4000-8000-0000000000bb", name: "最小", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" }, entities: {} }));
+    const SID = `${SESSION}-min`;
+    wsConnect(SID); setActivePath(SID, MIN);
+    const server = createMcpServer(SID); const c = new Client({ name: "t", version: "0" });
+    const [x, y] = InMemoryTransport.createLinkedPair(); await Promise.all([server.connect(x), c.connect(y)]);
+    try {
+      for (const kind of ["sequence", "view", "viewDefinition", "genericDefinition"]) {
+        const r = await c.callTool({ name: "designer__list_designs", arguments: { kind } });
+        expect(JSON.parse((r.content as Array<{ text: string }>)[0].text).count, kind).toBe(0);
+      }
+      await c.callTool({ name: "designer__validate_design", arguments: { kind: "report", design: { name: "r", sections: [] } } });
+      expect(await fs.readdir(MIN)).toEqual(["harmony.json"]); // 何も作られていない
+    } finally { await c.close(); await server.close(); wsDisconnect(SID); await fs.rm(MIN, { recursive: true, force: true }); }
+  });
+
+  it("読み取り専用モード: 新しい読む tool は通り、書く tool は断られる", async () => {
+    const prev = process.env.HARMONY_MCP_MODE;
+    process.env.HARMONY_MCP_MODE = "readonly";
+    try {
+      await expect(call("designer__list_designs", { kind: "sequence" })).resolves.toBeTruthy();
+      await expect(call("designer__get_flow_story", { processFlowId: "cart-add" })).resolves.toBeTruthy();
+      for (const [n, args] of [["designer__save_design", { kind: "sequence", id: "ro-x", design: {} }], ["designer__delete_design", { kind: "sequence", id: "ro-x" }], ["designer__save_conventions", { conventions: {} }], ["designer__save_tech_stack", { techStack: {} }], ["designer__import_ddl", { sql: "CREATE TABLE t (id int);", apply: true }]] as const) {
+        await expect(call(n, args as unknown as Record<string, unknown>), n).rejects.toThrow(/読み取り専用/);
+      }
+    } finally { if (prev === undefined) delete process.env.HARMONY_MCP_MODE; else process.env.HARMONY_MCP_MODE = prev; }
+  });
+
+  it("汎用定義の保存: kind を definitionKind にそろえ、食い違う name / kind は断る", async () => {
+    await J("designer__save_design", { kind: "genericDefinition", definitionKind: "message", name: "ai-kind-forced", design: { description: "d" } });
+    expect((await J("designer__get_design", { kind: "genericDefinition", definitionKind: "message", name: "ai-kind-forced" })).kind).toBe("message");
+    await expect(call("designer__save_design", { kind: "genericDefinition", definitionKind: "message", name: "a-one", design: { name: "a-two" } })).rejects.toThrow(/違います/);
+    await expect(call("designer__save_design", { kind: "genericDefinition", definitionKind: "message", name: "a-one", design: { kind: "constants" } })).rejects.toThrow(/definitionKind/);
+    await J("designer__delete_design", { kind: "genericDefinition", definitionKind: "message", name: "ai-kind-forced" });
+  });
+
+  it("ないものの削除は deleted: false", async () => {
+    expect((await J("designer__delete_design", { kind: "sequence", id: "never-existed" })).deleted).toBe(false);
+    expect((await J("designer__delete_design", { kind: "genericDefinition", definitionKind: "message", name: "never-existed" })).deleted).toBe(false);
+  });
+
+  it("OpenAPI: 使えない id が 1 件でもあれば、何も保存しない (途中で止まって一部だけ書かれない)", async () => {
+    const longId = `${"a".repeat(62)}_b`; // kebab 化で末尾が - の 63 文字になり、id の形に合わない
+    const spec = { openapi: "3.0.0", info: { title: "x" }, paths: { "/ok-one": { get: { operationId: "okOne", responses: { "200": { description: "ok" } } } }, "/bad": { get: { operationId: longId, responses: { "200": { description: "ok" } } } } } };
+    const preview = await J("designer__import_openapi", { spec });
+    expect(preview.invalidIds?.length ?? 0).toBeGreaterThan(0);
+    await expect(call("designer__import_openapi", { spec, apply: true })).rejects.toThrow(/何も保存していません/);
+    expect(await call("designer__list_process_flows")).not.toContain("ok-one");
+    // ids で良いものだけ選べば保存できる
+    const good = (preview.flows as Array<{ id: string; invalidId?: boolean }>).find((f) => !f.invalidId)!;
+    expect((await J("designer__import_openapi", { spec, apply: true, ids: [good.id] })).written).toEqual([good.id]);
+  });
+
+  it("上書きは元の作成日時を引き継ぐ", async () => {
+    const DDL2 = "CREATE TABLE ai_keep (id SERIAL PRIMARY KEY);";
+    const id = (await J("designer__import_ddl", { sql: DDL2, apply: true })).written[0] as string;
+    const first = (await J("designer__get_table", { tableId: id })).createdAt as string;
+    await new Promise((r) => setTimeout(r, 20));
+    await J("designer__import_ddl", { sql: DDL2, apply: true, overwrite: true });
+    const second = await J("designer__get_table", { tableId: id });
+    expect(second.createdAt).toBe(first);
+    expect(second.updatedAt >= first).toBe(true);
+  });
+
+  it("予行の応答は件数を切る (大量の DDL でも応答が膨らまない)", async () => {
+    const sql = Array.from({ length: 300 }, (_, i) => `CREATE TABLE ai_bulk_${i} (id int);`).join("\n");
+    const r = await J("designer__import_ddl", { sql });
+    expect(r.total).toBe(300);
+    expect(r.tables).toHaveLength(100);
+    expect(r.moreTables).toBe(200);
+    expect(r.note).toContain("500");
+  });
+
+  it("入れ子の置き場所をすべて辿る: 検証の OK/NG・承認の後・失敗系の副作用の中の工程と分岐", async () => {
+    const flow = {
+      meta: { id: "nest-all", name: "入れ子", flowType: "common", maturity: "draft", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" },
+      actions: [{ id: "act-1", name: "a", trigger: "submit", maturity: "draft", steps: [
+        { id: "v1", kind: "validation", description: "検証", rules: [], inlineBranch: { ok: [{ id: "in-ok", kind: "compute", description: "OK の中" }], ng: [{ id: "in-ng", kind: "compute", description: "NG の中" }] } },
+        { id: "w1", kind: "workflow", description: "承認", pattern: "single", approvers: [], onApproved: [{ id: "ap-1", kind: "compute", description: "承認後" }] },
+        { id: "x1", kind: "externalSystem", description: "外部", errorHandling: { outcomes: { failure: { sideEffects: [{ id: "se-br", kind: "branch", description: "副作用の分岐", branches: [{ id: "b1", code: "A", condition: { kind: "expression", expression: "@x == 1" }, steps: [{ id: "se-in", kind: "compute", description: "分岐の中" }] }] }] } } } },
+      ] }],
+    };
+    await fs.writeFile(path.join(WS, "harmony/process-flows/nest-all.json"), JSON.stringify(flow));
+    const list = await J("designer__list_steps", { processFlowId: "nest-all" });
+    const ids = (list.actions[0].steps as Array<{ id?: string }>).map((s) => s.id);
+    for (const id of ["in-ok", "in-ng", "ap-1", "se-br", "se-in"]) expect(ids, id).toContain(id);
+    for (const id of ["in-ok", "ap-1", "se-in"]) expect((await J("designer__get_step", { processFlowId: "nest-all", stepId: id })).step.id).toBe(id);
+    expect((await J("designer__get_step", { processFlowId: "nest-all", stepId: "se-in" })).path.map((p: { role: string }) => p.role)).toEqual(["outcome:failure", "branch:A"]);
+    const br = await J("designer__analyze_branches", { processFlowId: "nest-all" });
+    expect(br.branches.map((b: { stepId: string }) => b.stepId)).toContain("se-br"); // 副作用の中の分岐も分析する
+    const story = await call("designer__get_flow_story", { processFlowId: "nest-all" });
+    expect(story).toContain("検証が OK のとき");
+    expect(story).toContain("承認されたとき");
+    expect(story).toContain("結果「failure」のとき");
+  });
+
+  it("入力の検査: since は文字列、chapter は id の文字だけ、format は text / html", async () => {
+    await expect(call("designer__get_changes_since", { since: 123 })).rejects.toThrow(/文字列/);
+    await expect(call("designer__get_design_document", { chapter: "screen.cart" })).rejects.toThrow(/目次の id/);
+    await expect(call("designer__get_design_document", { chapter: "screens", format: "pdf" })).rejects.toThrow(/format/);
   });
 });

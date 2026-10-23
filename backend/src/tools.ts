@@ -315,7 +315,7 @@ export const tools = [
     description: "DDL (CREATE TABLE。pg_dump -s / mysqldump --no-data の出力でもよい) から、テーブル定義を作る。既定は予行 (何が作られるか・読み飛ばしたもの・注意を返す)。apply: true で保存。同じ id のテーブルは overwrite: true のときだけ置き換える。",
     inputSchema: {
       type: "object" as const,
-      properties: { sql: { type: "string" }, apply: { type: "boolean", description: "true で保存 (既定は予行)" }, overwrite: { type: "boolean", description: "同じ id のテーブルを置き換える" } },
+      properties: { sql: { type: "string", description: "512 KiB まで" }, apply: { type: "boolean", description: "true で保存 (既定は予行)" }, overwrite: { type: "boolean", description: "同じ id のテーブルを丸ごと置き換える" }, ids: { type: "array", items: { type: "string" }, description: "取り込むテーブルの id (省略時は全部。500 件を超えるときに絞る)" } },
       required: ["sql"],
     },
   },
@@ -324,7 +324,7 @@ export const tools = [
     description: "OpenAPI (3.x / swagger 2) の文書から、処理フローの雛形 (操作ごとに 1 本。HTTP の経路・入力・出力・応答だけ。工程は空) を作る。既定は予行。apply: true で保存。同じ id は overwrite: true のときだけ置き換える。",
     inputSchema: {
       type: "object" as const,
-      properties: { spec: { type: "object", description: "OpenAPI 文書 (JSON)" }, apply: { type: "boolean" }, overwrite: { type: "boolean" } },
+      properties: { spec: { type: "object", description: "OpenAPI 文書 (JSON)" }, apply: { type: "boolean" }, overwrite: { type: "boolean", description: "同じ id の処理フローを丸ごと置き換える" }, ids: { type: "array", items: { type: "string" }, description: "取り込む処理フローの id (省略時は全部)" } },
       required: ["spec"],
     },
   },

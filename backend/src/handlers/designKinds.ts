@@ -11,13 +11,14 @@
  */
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import {
-  deleteGenericDefinition, deleteSequence, deleteView, deleteViewDefinition, listAllGenericDefinitions, listAllSequences, listAllViewDefinitions, listAllViews,
+  deleteGenericDefinition, deleteSequence, deleteView, deleteViewDefinition, listEntitiesReadOnly, listGenericDefinitionsReadOnly, readEntityReadOnly,
   readConventions, readGenericDefinition, readProject, readSequence, readView, readViewDefinition,
   writeConventions, writeGenericDefinition, writeProject, writeSequence, writeView, writeViewDefinition,
 } from "../projectStorage.js";
 import { importOpenApi, parseDdl } from "@harmony/shared";
 import { GENERIC_DEFINITION_KINDS } from "../designSearch.js";
 import { listExistingEntityIds, writeProcessFlow, writeTable } from "../projectStorage.js";
+import { isValidEntityId } from "../security/idValidator.js";
 import { assertEntityIdMcp, type ToolHandler } from "../mcpHelpers.js";
 import { assertSafeName } from "../security/idValidator.js";
 import { wsBridge } from "../wsBridge.js";
@@ -28,8 +29,21 @@ const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v =
 const bad = (m: string) => new McpError(ErrorCode.InvalidParams, m);
 
 /** 取り込みの入力と、1 回に書く件数の上限 (大きな入力・大量の書き込みで止まらないように) */
-const MAX_IMPORT_SQL_CHARS = 2 * 1024 * 1024;
-const MAX_IMPORT_WRITES = 200;
+const MAX_IMPORT_SQL_CHARS = 512 * 1024; // DDL の解析は列数の 2 乗に近い。512 KiB なら 1 秒未満
+const MAX_IMPORT_WRITES = 500; // OpenAPI の取り込み上限 (500 operation) に合わせる
+const PREVIEW_LIMIT = 100; // 予行の応答に載せる件数 (残りは「ほか N 件」)
+
+const clip = <T,>(items: T[]): { items: T[]; more: number } => ({ items: items.slice(0, PREVIEW_LIMIT), more: Math.max(0, items.length - PREVIEW_LIMIT) });
+
+/** 保存の前に、すべての id を検査する (途中で止まって一部だけ書かれないように) */
+function invalidIds(ids: string[]): string[] { return ids.filter((id) => !isValidEntityId(id)); }
+
+/** 上書きするとき、元の作成日時を引き継ぐ */
+async function createdAtOf(kind: "table" | "processFlow", id: string, root: string): Promise<string | undefined> {
+  const e = await readEntityReadOnly(kind, id, root).catch(() => null);
+  const meta = isRecord(e) ? (kind === "processFlow" && isRecord(e.meta) ? e.meta : e) : null;
+  return meta && typeof meta.createdAt === "string" ? meta.createdAt : undefined;
+}
 
 export const DESIGN_KINDS = ["sequence", "view", "viewDefinition", "genericDefinition"] as const;
 type DesignKind = (typeof DESIGN_KINDS)[number];
@@ -63,10 +77,11 @@ export const handleDesignKindsTool: ToolHandler = async (name, args, root, sessi
       if (kind === "genericDefinition") {
         const kinds = typeof a.definitionKind === "string" ? [definitionKindOf(a)] : [...GENERIC_DEFINITION_KINDS];
         const out: Array<Record<string, unknown>> = [];
-        for (const dk of kinds) for (const e of await listAllGenericDefinitions(root, dk)) if (isRecord(e)) out.push(summary(kind, e, dk));
+        for (const dk of kinds) for (const e of await listGenericDefinitionsReadOnly(root, dk)) if (isRecord(e)) out.push(summary(kind, e, dk));
         return json({ kind, count: out.length, items: out });
       }
-      const list = kind === "sequence" ? await listAllSequences(root) : kind === "view" ? await listAllViews(root) : await listAllViewDefinitions(root);
+      // 一覧は読むだけ (フォルダを作らない読み出しを使う。読み取り専用の環境でも呼べるように)
+      const list = await listEntitiesReadOnly(kind, root);
       const items = list.filter(isRecord).map((e) => summary(kind, e));
       return json({ kind, count: items.length, items });
     }
@@ -94,7 +109,9 @@ export const handleDesignKindsTool: ToolHandler = async (name, args, root, sessi
         const dk = definitionKindOf(a);
         const nm = typeof a.name === "string" ? a.name : typeof a.design.name === "string" ? a.design.name : undefined;
         try { assertSafeName(nm, "name"); } catch (e) { throw bad((e as Error).message); }
-        await writeGenericDefinition(nm!, dk, { ...a.design, name: nm }, root);
+        if (typeof a.name === "string" && typeof a.design.name === "string" && a.name !== a.design.name) throw bad(`name「${a.name}」と design.name「${a.design.name}」が違います。どちらかにそろえてください`);
+        if (typeof a.design.kind === "string" && a.design.kind !== dk) throw bad(`design.kind「${a.design.kind}」が definitionKind「${dk}」と違います`);
+        await writeGenericDefinition(nm!, dk, { ...a.design, kind: dk, name: nm }, root);
         wsBridge.broadcast({ wsId: wsId(), event: "genericDefinitionChanged", data: { kind: dk, name: nm } });
         return json({ saved: true, kind, definitionKind: dk, name: nm });
       }
@@ -111,11 +128,13 @@ export const handleDesignKindsTool: ToolHandler = async (name, args, root, sessi
       if (kind === "genericDefinition") {
         const dk = definitionKindOf(a);
         try { assertSafeName(a.name, "name"); } catch (e) { throw bad((e as Error).message); }
+        if (!(await readGenericDefinition(a.name as string, dk, root))) return json({ deleted: false, kind, definitionKind: dk, name: a.name, note: "ありませんでした" });
         await deleteGenericDefinition(a.name as string, dk, root);
         wsBridge.broadcast({ wsId: wsId(), event: "genericDefinitionChanged", data: { kind: dk, name: a.name, deleted: true } });
         return json({ deleted: true, kind, definitionKind: dk, name: a.name });
       }
       assertEntityIdMcp(a.id, "id");
+      if (!(await readEntityReadOnly(kind, a.id, root))) return json({ deleted: false, kind, id: a.id, note: "ありませんでした" });
       if (kind === "sequence") { await deleteSequence(a.id, root); wsBridge.broadcast({ wsId: wsId(), event: "sequenceChanged", data: { sequenceId: a.id, deleted: true } }); }
       else if (kind === "view") { await deleteView(a.id, root); wsBridge.broadcast({ wsId: wsId(), event: "viewChanged", data: { viewId: a.id, deleted: true } }); }
       else { await deleteViewDefinition(a.id, root); wsBridge.broadcast({ wsId: wsId(), event: "viewDefinitionChanged", data: { viewDefinitionId: a.id, deleted: true } }); }
@@ -124,7 +143,7 @@ export const handleDesignKindsTool: ToolHandler = async (name, args, root, sessi
 
     case "designer__get_conventions": {
       const c = await readConventions(root);
-      return json(c ?? { note: "規約 (conventions.json) はまだありません。designer__save_conventions で作れます" });
+      return c ? json(c) : { content: [{ type: "text" as const, text: "規約 (conventions.json) はまだありません (未設定)。designer__save_conventions で作れます" }] };
     }
 
     case "designer__save_conventions": {
@@ -136,19 +155,25 @@ export const handleDesignKindsTool: ToolHandler = async (name, args, root, sessi
 
     case "designer__import_ddl": {
       if (typeof a.sql !== "string" || !a.sql.trim()) throw bad("sql は必須です (CREATE TABLE を含む DDL。pg_dump -s / mysqldump --no-data の出力でもよい)");
-      if (a.sql.length > MAX_IMPORT_SQL_CHARS) throw bad(`sql が大きすぎます (${MAX_IMPORT_SQL_CHARS} 文字まで)`);
+      if (a.sql.length > MAX_IMPORT_SQL_CHARS) throw bad(`sql が大きすぎます (${MAX_IMPORT_SQL_CHARS} 文字まで。テーブルごとに分けて渡してください)`);
       const result = parseDdl(a.sql);
+      const only = Array.isArray(a.ids) ? new Set(a.ids.filter((x): x is string => typeof x === "string")) : null;
+      const picked = only ? result.tables.filter((t) => only.has(t.id)) : result.tables;
       const existing = new Set(await listExistingEntityIds("table", root));
-      const items = result.tables.map((t) => ({ id: t.id, physicalName: t.physicalName, name: t.name, columns: t.columns.length, exists: existing.has(t.id) }));
-      const base = { tables: items, warnings: result.warnings, skipped: result.skipped };
-      if (a.apply !== true) return json({ applied: false, ...base, note: "予行です。保存するには apply: true (同じ id がすでにあるものは overwrite: true のときだけ置き換える)" });
-      if (result.tables.length > MAX_IMPORT_WRITES) throw bad(`一度に保存できるのは ${MAX_IMPORT_WRITES} 件までです (${result.tables.length} 件)`);
+      const bads = invalidIds(picked.map((t) => t.id));
+      const items = clip(picked.map((t) => ({ id: t.id, physicalName: t.physicalName, name: t.name, columns: t.columns.length, exists: existing.has(t.id), ...(bads.includes(t.id) ? { invalidId: true } : {}) })));
+      const base = { total: picked.length, tables: items.items, ...(items.more ? { moreTables: items.more } : {}), warnings: clip(result.warnings).items, skipped: clip(result.skipped).items, ...(bads.length ? { invalidIds: bads } : {}) };
+      if (a.apply !== true) {
+        return json({ applied: false, ...base, note: `予行です。保存するには apply: true (同じ id がすでにあるものは overwrite: true のときだけ置き換える。置き換えは中身を丸ごと入れ替える)。一度に保存できるのは ${MAX_IMPORT_WRITES} 件まで${picked.length > MAX_IMPORT_WRITES ? ` — ${picked.length} 件あるので ids で絞ってください` : ""}` });
+      }
+      if (picked.length > MAX_IMPORT_WRITES) throw bad(`一度に保存できるのは ${MAX_IMPORT_WRITES} 件までです (${picked.length} 件)。ids で絞ってください`);
+      if (bads.length) throw bad(`id が使えない形のテーブルがあります (何も保存していません): ${bads.slice(0, 5).join(", ")}。DDL のテーブル名を変えるか、ids でほかを選んでください`);
       const now = new Date().toISOString();
       const written: string[] = [], kept: string[] = [];
-      for (const t of result.tables) {
+      for (const t of picked) {
         if (existing.has(t.id) && a.overwrite !== true) { kept.push(t.id); continue; }
-        assertEntityIdMcp(t.id, "table id");
-        await writeTable(t.id, { ...t, createdAt: now, updatedAt: now }, root);
+        const createdAt = existing.has(t.id) ? (await createdAtOf("table", t.id, root)) ?? now : now;
+        await writeTable(t.id, { ...t, createdAt, updatedAt: now }, root);
         written.push(t.id);
       }
       if (written.length) wsBridge.broadcast({ wsId: wsId(), event: "projectChanged", data: { reload: true } });
@@ -158,17 +183,23 @@ export const handleDesignKindsTool: ToolHandler = async (name, args, root, sessi
     case "designer__import_openapi": {
       if (!isRecord(a.spec)) throw bad("spec は OpenAPI 文書 (JSON のオブジェクト) で指定してください");
       const result = importOpenApi(a.spec);
+      const only = Array.isArray(a.ids) ? new Set(a.ids.filter((x): x is string => typeof x === "string")) : null;
+      const picked = only ? result.flows.filter((f) => only.has(f.id)) : result.flows;
       const existing = new Set(await listExistingEntityIds("processFlow", root));
-      const items = result.flows.map((f) => ({ id: f.id, name: f.name, method: f.method, path: f.path, exists: existing.has(f.id) }));
-      const base = { title: result.title, flows: items, warnings: result.warnings };
-      if (a.apply !== true) return json({ applied: false, ...base, note: "予行です。保存するには apply: true。作られるのは、入出力・応答 (HTTP の約束) だけの雛形で、工程 (steps) は空です" });
-      if (result.flows.length > MAX_IMPORT_WRITES) throw bad(`一度に保存できるのは ${MAX_IMPORT_WRITES} 件までです (${result.flows.length} 件)`);
+      const bads = invalidIds(picked.map((f) => f.id));
+      const items = clip(picked.map((f) => ({ id: f.id, name: f.name, method: f.method, path: f.path, exists: existing.has(f.id), ...(bads.includes(f.id) ? { invalidId: true } : {}) })));
+      const base = { title: result.title, total: picked.length, flows: items.items, ...(items.more ? { moreFlows: items.more } : {}), warnings: clip(result.warnings).items, ...(bads.length ? { invalidIds: bads } : {}) };
+      if (a.apply !== true) {
+        return json({ applied: false, ...base, note: `予行です。保存するには apply: true。作られるのは、入出力・応答 (HTTP の約束) だけの雛形で、工程 (steps) は空です。同じ id は overwrite: true のときだけ丸ごと置き換える。一度に保存できるのは ${MAX_IMPORT_WRITES} 件まで` });
+      }
+      if (picked.length > MAX_IMPORT_WRITES) throw bad(`一度に保存できるのは ${MAX_IMPORT_WRITES} 件までです (${picked.length} 件)。ids で絞ってください`);
+      if (bads.length) throw bad(`id が使えない形の操作があります (何も保存していません): ${bads.slice(0, 5).join(", ")}。operationId を短くするか、ids でほかを選んでください`);
       const now = new Date().toISOString();
       const written: string[] = [], kept: string[] = [];
-      for (const f of result.flows) {
+      for (const f of picked) {
         if (existing.has(f.id) && a.overwrite !== true) { kept.push(f.id); continue; }
-        assertEntityIdMcp(f.id, "processFlow id");
-        await writeProcessFlow(f.id, { ...f.flow, meta: { ...f.flow.meta, createdAt: now, updatedAt: now } }, root);
+        const createdAt = existing.has(f.id) ? (await createdAtOf("processFlow", f.id, root)) ?? now : now;
+        await writeProcessFlow(f.id, { ...f.flow, meta: { ...f.flow.meta, createdAt, updatedAt: now } }, root);
         written.push(f.id);
       }
       if (written.length) wsBridge.broadcast({ wsId: wsId(), event: "projectChanged", data: { reload: true } });
@@ -177,7 +208,7 @@ export const handleDesignKindsTool: ToolHandler = async (name, args, root, sessi
 
     case "designer__get_tech_stack": {
       const project = await readProject(root);
-      return json(isRecord(project) && project.techStack ? project.techStack : { note: "技術スタック (harmony.json の techStack) は未設定です" });
+      return isRecord(project) && project.techStack ? json(project.techStack) : { content: [{ type: "text" as const, text: "技術スタック (harmony.json の techStack) は未設定です。designer__save_tech_stack で設定できます" }] };
     }
 
     case "designer__save_tech_stack": {

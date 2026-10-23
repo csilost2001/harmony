@@ -39,6 +39,7 @@ export function createdIdFromResultText(text: string): string | undefined {
   return /ID[:：]\s*([A-Za-z0-9][A-Za-z0-9._-]{0,99})/.exec(text)?.[1];
 }
 
+const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
 const AI_ID_KEYS = ["id", "tableId", "processFlowId", "screenId", "flowId", "reportId", "pageLayoutId", "resourceId", "name", "path"];
 
 /**
@@ -57,6 +58,15 @@ export function describeAiTool(name: string, args: Record<string, unknown>, resu
   if (tool === "rename_entity" && typeof args.newId === "string") target = args.newId;
   if (/^add_(table|screen|process_flow|page_layout)$/.test(tool)) target = createdIdFromResultText(resultText) ?? target;
   // save_design / delete_design は、設計の種類が引数の kind (sequence / view / viewDefinition / genericDefinition)
+  // 取り込みは引数に id が無い。保存した設計の id (結果の written) を対象にする
+  if (/^import_(ddl|openapi)$/.test(tool)) {
+    try {
+      const written = (JSON.parse(resultText) as { written?: unknown }).written;
+      if (Array.isArray(written) && written.length) target = written.slice(0, 5).join(", ") + (written.length > 5 ? ` ほか ${written.length - 5} 件` : "");
+    } catch { /* 結果が読めなければ、対象なし */ }
+  }
+  // 汎用定義を名前を省かずに保存したときは、design.name が対象
+  if (tool === "save_design" && !target && isRecord(args.design) && typeof args.design.name === "string") target = args.design.name;
   const detail = typeof args.resourceType === "string" ? args.resourceType : typeof args.entityType === "string" ? args.entityType
     : /^(save|delete)_design$/.test(tool) && typeof args.kind === "string" ? args.kind : undefined;
   return { ...(target ? { target } : {}), ...(detail ? { detail } : {}) };
@@ -72,7 +82,12 @@ export function isAiDryRun(args: Record<string, unknown>, toolHasApply: boolean)
  * 結果が isError でなくても、原本は変わっていないので、変更として残さない。
  */
 export function isAiNoWrite(name: string, args: Record<string, unknown>, resultText: string): boolean {
-  if (name.replace(/^designer__/, "") !== "editSession__save") return false;
+  const tool = name.replace(/^designer__/, "");
+  // 取り込みで、何も書いていない (すべて既存で overwrite なし) ものは、変更として残さない
+  if (/^import_(ddl|openapi)$/.test(tool)) {
+    try { const w = (JSON.parse(resultText) as { written?: unknown }).written; return !Array.isArray(w) || w.length === 0; } catch { return true; }
+  }
+  if (tool !== "editSession__save") return false;
   if (args.stage === "checkOnly") return true;
   try {
     const r = JSON.parse(resultText) as { ok?: unknown } | null;

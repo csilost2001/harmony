@@ -17,7 +17,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import {
-  branchConditionText, buildDecisionModel, buildDesignDocument, buildOutline, buildVarLabels, conditionText, decisionColumnName, isGuardLike, noteWithWords, validateBusinessFlow, validateReport,
+  branchConditionText, buildDecisionModel, buildDesignDocument, buildOutline, buildVarLabels, conditionText, decisionColumnName, isGuardLike, noteWithWords, stepChildLists, validateBusinessFlow, validateReport,
   type FlowActionLike, type FlowContext, type FlowStep, type OutlineRow,
 } from "@harmony/shared";
 import { loadDesignInputFromRoot } from "../designInput.js";
@@ -28,7 +28,6 @@ import { resolveDataRoot } from "../storageCore.js";
 import { findById, findByPath } from "../recentStore.js";
 import { assertEntityIdMcp, type ToolHandler } from "../mcpHelpers.js";
 import { wsBridge } from "../wsBridge.js";
-import { reportRefs } from "./report.js";
 
 const json = (v: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(v, null, 2) }] });
 const text = (s: string) => ({ content: [{ type: "text" as const, text: s }] });
@@ -61,20 +60,15 @@ async function flowContext(root: string): Promise<FlowContext> {
   return { tableName: (id) => tables.get(id), screenName: (id) => screens.get(id) };
 }
 
-/** 工程を id で探す。見つかったら、そこまでの親 (工程と、入っている枠の役割) も返す */
+/** 工程を id で探す。見つかったら、そこまでの親 (工程と、入っている枠の役割) も返す。入れ子の置き場所は shared の stepChildLists にすべてある */
 function findStep(steps: readonly FlowStep[] | undefined, id: string, trail: Array<{ id?: string; kind?: string; role: string }> = []): { step: FlowStep; trail: typeof trail } | null {
   for (const s of steps ?? []) {
     if (!isRecord(s)) continue;
     if (s.id === id) return { step: s, trail };
-    const here = (role: string) => [...trail, { id: s.id as string | undefined, kind: s.kind as string | undefined, role }];
-    for (const k of ["steps", "subSteps", "onCommit", "onRollback", "onApproved", "onRejected", "onTimeout"]) {
-      if (Array.isArray(s[k])) { const r = findStep(s[k] as FlowStep[], id, here(k)); if (r) return r; }
+    for (const g of stepChildLists(s)) {
+      const r = findStep(g.steps, id, [...trail, { id: s.id as string | undefined, kind: s.kind as string | undefined, role: g.role }]);
+      if (r) return r;
     }
-    if (Array.isArray(s.branches)) for (const b of s.branches as Array<{ id?: string; code?: string; steps?: FlowStep[] }>) { const r = findStep(b?.steps, id, here(`branch:${b?.code ?? b?.id ?? "?"}`)); if (r) return r; }
-    const eb = s.elseBranch as { steps?: FlowStep[] } | undefined;
-    if (eb) { const r = findStep(eb.steps, id, here("else")); if (r) return r; }
-    const ib = s.inlineBranch as { ok?: FlowStep[]; ng?: FlowStep[] } | undefined;
-    if (ib) { const r = findStep(ib.ok, id, here("inline:ok")) ?? findStep(ib.ng, id, here("inline:ng")); if (r) return r; }
   }
   return null;
 }
@@ -212,10 +206,7 @@ export const handleDesignInsightTool: ToolHandler = async (name, args, root) => 
                 });
               }
             }
-            for (const k of ["steps", "subSteps", "onCommit", "onRollback"]) if (Array.isArray(s[k])) visit(s[k] as FlowStep[]);
-            if (Array.isArray(s.branches)) for (const b of s.branches as Array<{ steps?: FlowStep[] }>) visit(b?.steps);
-            const eb = s.elseBranch as { steps?: FlowStep[] } | undefined;
-            if (eb) visit(eb.steps);
+            for (const g of stepChildLists(s)) visit(g.steps);
           }
         };
         visit(act.steps);
@@ -234,7 +225,13 @@ export const handleDesignInsightTool: ToolHandler = async (name, args, root) => 
         return json({ kind, valid: errors.length === 0, issues: errors.map((e) => ({ severity: "warning", message: `スキーマ: ${describeAjvError(e)}`, path: e.instancePath })), note: "保存していません。保存は add_* / update_* / save_*。保存後の点検は check_design" });
       }
       if (kind === "report") {
-        const issues = validateReport(a.design as never, await reportRefs(root));
+        // 参照先の確認は読むだけ (フォルダを作らない読み込みで集める)
+        const { input } = await loadDesignInputFromRoot(root);
+        const refs = {
+          screens: new Set(input.screens.map((x) => x.id)), flows: new Set(input.flows.map((x) => x.meta.id)),
+          tables: new Map(input.tables.map((t) => [t.id, new Set((t.columns ?? []).map((c) => c.physicalName))] as const)),
+        };
+        const issues = validateReport(a.design as never, refs);
         return json({ kind, valid: !issues.some((i) => i.severity === "error"), issues, note: "保存していません" });
       }
       if (kind === "businessFlow") {
@@ -245,6 +242,7 @@ export const handleDesignInsightTool: ToolHandler = async (name, args, root) => 
     }
 
     case "designer__get_changes_since": {
+      if (a.since !== undefined && typeof a.since !== "string") throw bad("since は ISO の日時の文字列で指定してください");
       const sinceMs = typeof a.since === "string" ? Date.parse(a.since) : Date.now() - 24 * 3600 * 1000;
       if (!Number.isFinite(sinceMs)) throw bad("since は ISO の日時で指定してください (例: 2026-10-24T09:00:00+09:00)。省略すると直近 24 時間");
       const dataRoot = await resolveDataRoot(root);
@@ -266,6 +264,8 @@ export const handleDesignInsightTool: ToolHandler = async (name, args, root) => 
       if (typeof a.chapter !== "string") {
         return json({ toc: doc.toc, issues: { error: doc.issues.filter((i) => i.severity === "error").length, warning: doc.issues.filter((i) => i.severity === "warning").length }, note: "章の本文は chapter に toc の id を指定して読む (format: text は文章、html は設計書の HTML のまま)" });
       }
+      if (!/^[A-Za-z0-9_-]+$/.test(a.chapter)) throw bad("chapter は目次の id (英数字・_・-) で指定してください");
+      if (a.format !== undefined && a.format !== "text" && a.format !== "html") throw bad("format は text / html のどちらかです");
       const html = sliceChapter(doc.html, a.chapter);
       if (!html) throw bad(`章「${a.chapter}」が見つかりません。目次は chapter を省略して読めます`);
       const MAX = 60000;
