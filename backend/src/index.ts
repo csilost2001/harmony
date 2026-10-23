@@ -1,5 +1,6 @@
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { randomUUID } from "node:crypto";
+import type { IncomingMessage, ServerResponse } from "node:http";
 import path from "node:path";
 import { wsBridge } from "./wsBridge.js";
 import { installSelfWriteTracking } from "./externalChanges.js";
@@ -127,7 +128,8 @@ wsBridge.registerBrowserHandler("client.log.flush", async (params) => {
 // fresh な Server + transport を作成する。tools の登録は軽量 (JSON schema + 関数参照)
 // なので per-request コストは無視できる。
 async function main() {
-  wsBridge.registerHttpHandler("/mcp", async (req, res) => {
+  // /mcp (通常) と /mcp-readonly (書き込みが絶対にできない入口。環境変数が full でも、プロファイルでも緩められない)
+  const mcpHandler = (forceReadonly: boolean) => async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
     // #700 R-2: per-request sessionId を発行し workspaceContextManager に connect する。
     // MCP は stateless (sessionIdGenerator: undefined) のため、各 HTTP request を 1 session として扱う。
     // 初回 initialize から以降の tool/call まで同一 clientId を使うには session 管理が必要だが、
@@ -154,7 +156,7 @@ async function main() {
       res.end(`未知の detail です: ${det.unknown} (full / brief)`);
       return;
     }
-    const server = createMcpServer(sessionId, prof.names, det.mode);
+    const server = createMcpServer(sessionId, prof.names, det.mode, { forceReadonly });
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined, // stateless
     });
@@ -172,7 +174,9 @@ async function main() {
       try { await server.close(); } catch { /* ignore */ }
       wsDisconnect(sessionId);  // session 終了時に context を削除
     }
-  });
+  };
+  wsBridge.registerHttpHandler("/mcp", mcpHandler(false));
+  wsBridge.registerHttpHandler("/mcp-readonly", mcpHandler(true));
 
   // AI 命名 endpoints (#337)
   wsBridge.registerHttpHandler("/ai/rename-screen-ids/auth-check", handleAuthCheck);

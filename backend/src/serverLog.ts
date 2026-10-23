@@ -71,6 +71,23 @@ function maskSecrets(json: string): string {
   return out;
 }
 
+/** 秘密の名前らしいキー (その値は、中身を見ずに隠す) */
+const SECRET_KEY = /^(password|passwd|secret|apiKey|api_key|token|authorization|x-api-key)$/i;
+
+/** 値ごとにマスクする (JSON の文字列全体にかける規則が、文字列を閉じる引用符まで食って、行を壊すときの代わり) */
+function maskLeaves(v: unknown, key = ""): unknown {
+  if (typeof v === "string") return SECRET_KEY.test(key) ? "***" : maskSecrets(v);
+  if (Array.isArray(v)) return v.map((x) => maskLeaves(x));
+  if (v && typeof v === "object") return Object.fromEntries(Object.entries(v as Record<string, unknown>).map(([k, x]) => [k, maskLeaves(x, k)]));
+  return v;
+}
+
+/** 1 行の JSON にして、秘密をマスクする。マスクで JSON として読めなくなったら (規則が引用符を食った)、値ごとにマスクし直す */
+function maskedLine(entry: unknown): string {
+  const line = maskSecrets(JSON.stringify(entry));
+  try { JSON.parse(line); return line; } catch { return JSON.stringify(maskLeaves(entry)); }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** logger 初期化。projectRoot は data/ の親ディレクトリ。 */
@@ -139,7 +156,7 @@ export function log(
     if (_logDir) {
       try {
         // S-007: シークレットをマスクしてからファイルに書き込む
-        fs.appendFileSync(path.join(_logDir, _todayFileName()), maskSecrets(JSON.stringify(entry)) + "\n", "utf-8");
+        fs.appendFileSync(path.join(_logDir, _todayFileName()), maskedLine(entry) + "\n", "utf-8");
       } catch (e) {
         try { console.error("[serverLog] write failed:", e); } catch { /* swallow */ }
       }

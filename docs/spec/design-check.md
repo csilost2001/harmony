@@ -31,6 +31,8 @@ category: design
 
 細かい契約 (式の中の変数・SQL の列・画面項目の型 ほか) は `cd frontend && npm run validate:samples -- ../examples/<project-id>` と画面の欄の直下の指摘が見る。
 
+**直し方 (`hint`)**: `designer__check_design` の指摘には、直し方の案内が付く (`shared/src/analysis/issueHints.ts`。指摘の文言の型から決める機械的な案内で、付かない指摘もある)。`frontend/src/utils/integrity.test.ts` が、規則ごとに実際の文言を通して、付くことを見張る。
+
 **回帰試験**: `backend/src/designMutation.test.ts` が、正しい設計 (retail) をわざと壊し (テーブルの削除・参照先の誤り・工程 id の重複・規約の参照切れ・必須項目の欠落・JSON の破損 ほか 15 種)、検査が見つけることと、雑音で原因が埋もれないことを確かめる。検査に穴を見つけたら、壊し方をここに足す。
 
 ## 抑制

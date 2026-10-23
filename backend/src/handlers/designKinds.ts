@@ -15,7 +15,9 @@ import {
   readConventions, readGenericDefinition, readProject, readSequence, readView, readViewDefinition,
   writeConventions, writeGenericDefinition, writeProject, writeSequence, writeView, writeViewDefinition,
 } from "../projectStorage.js";
+import { randomUUID } from "node:crypto";
 import { importOpenApi, parseDdl } from "@harmony/shared";
+import { LIMITS, confusionStore, type ConfusionEntry } from "../ops/feedback.js";
 import { GENERIC_DEFINITION_KINDS } from "../designSearch.js";
 import { listExistingEntityIds, writeProcessFlow, writeTable } from "../projectStorage.js";
 import { isValidEntityId } from "../security/idValidator.js";
@@ -212,6 +214,29 @@ export const handleDesignKindsTool: ToolHandler = async (name, args, root, sessi
       }
       if (written.length) wsBridge.broadcast({ wsId: wsId(), event: "projectChanged", data: { reload: true } });
       return json({ applied: true, written, keptExisting: kept, ...base, note: "保存しました。工程は /create-flow か add_step で足してください" });
+    }
+
+    case "designer__report_confusion": {
+      const text = (v: unknown, max: number, label: string, required = false): string | undefined => {
+        if (v === undefined || v === null || v === "") { if (required) throw bad(`${label} は必須です`); return undefined; }
+        if (typeof v !== "string") throw bad(`${label} は文字列で指定してください`);
+        if (v.length > max) throw bad(`${label} は ${max} 文字までです (${v.length} 文字)`);
+        const t = v.trim();
+        if (!t && required) throw bad(`${label} は必須です (空白だけは使えません)`);
+        return t || undefined;
+      };
+      const topic = text(a.topic, LIMITS.topic, "topic", true)!;
+      const entry: ConfusionEntry = {
+        id: `cf-${randomUUID().slice(0, 8)}`, at: new Date().toISOString(), topic,
+        ...(text(a.detail, LIMITS.detail, "detail") ? { detail: text(a.detail, LIMITS.detail, "detail") } : {}),
+        ...(text(a.tool, LIMITS.tool, "tool") ? { tool: text(a.tool, LIMITS.tool, "tool") } : {}),
+        ...(text(a.doc, LIMITS.doc, "doc") ? { doc: text(a.doc, LIMITS.doc, "doc") } : {}),
+        ...(text(a.expected, LIMITS.expected, "expected") ? { expected: text(a.expected, LIMITS.expected, "expected") } : {}),
+      };
+      let res;
+      try { res = await confusionStore.update(root, (f) => ({ entries: [...f.entries, entry] }), { discardUnreadable: true }); }
+      catch (e) { throw bad(`詰まった点を記録できませんでした (${(e as Error).message})。記録のファイル (.harmony-ops/ai-feedback.json) の問題で、作業には影響しません。利用者に知らせて、作業を続けてください`); }
+      return json({ recorded: true, id: entry.id, total: res.value.entries.length, note: "記録しました (ワークスペースの .harmony-ops/ai-feedback.json。git には載りません)。利用者は npm run ai:feedback で集計して、資料・tool の説明の改善に使います" });
     }
 
     case "designer__get_tech_stack": {

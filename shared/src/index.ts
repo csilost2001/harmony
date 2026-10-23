@@ -100,3 +100,5 @@ export {
 } from "./markers.js";
 export * from "./flowWords.js";
 export * from "./flowDecision.js";
+export * as flowWalkthrough from "./flowWalkthrough.js";
+export type { WalkState, WalkPrompt, WalkLogEntry } from "./flowWalkthrough.js";

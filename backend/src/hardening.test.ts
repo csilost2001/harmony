@@ -768,8 +768,8 @@ describe("MCP の権限 (mcpAccess)", () => {
       "designer__list_page_layouts", "designer__list_process_flows", "designer__list_reports", "designer__list_response_type_extensions", "designer__list_review_comments",
       "designer__list_screens", "designer__list_steps", "designer__list_tables", "designer__list_tabs", "designer__list_versions",
       "designer__navigate_screen", "designer__open_tab", "designer__search_design", "designer__switch_tab", "designer__validate_design",
-      "designer__workspace_close", "designer__workspace_inspect", "designer__workspace_list", "designer__workspace_open", "designer__workspace_status",
-      "editSession__fetch_payload", "editSession__list",
+      "designer__walk_flow", "designer__workspace_close", "designer__workspace_inspect", "designer__workspace_list", "designer__workspace_open",
+      "designer__workspace_status", "editSession__fetch_payload", "editSession__list",
     ]);
   });
   it("readonly でも、ワークスペースを開くのは通るが、新規作成 (init: true) は拒否", () => {

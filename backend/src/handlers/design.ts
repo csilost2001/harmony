@@ -7,7 +7,7 @@
  * 仕様: docs/spec/design-document.md / docs/spec/test-viewpoints.md
  */
 import {
-  analyzeImpact, analyzeMessages, deriveSqlCatalog, findDuplicateSql, sqlCatalogToCsv, applySuppressions, buildDesignDocument, buildDesignGraph, buildOpenApi, localDate, checkExternalContracts, columnMapToCsv, deriveColumnMap, deriveJobs,
+  issueHint, analyzeImpact, analyzeMessages, deriveSqlCatalog, findDuplicateSql, sqlCatalogToCsv, applySuppressions, buildDesignDocument, buildDesignGraph, buildOpenApi, localDate, checkExternalContracts, columnMapToCsv, deriveColumnMap, deriveJobs,
   deriveOperationMatrix, deriveSla, deriveTestViewpointSheet, deriveTraceability, findTermInconsistencies, findUnused, generateTestData, operationMatrixToCsv, overallTrend,
   scaffoldTests, slaToCsv, summarizeProgress, testDataTableToCsv, testDataToInsertSql, testViewpointSheetToCsv, traceabilityToCsv, usesPermissionModel,
   type NodeKind, type SqlQuote, type TestFramework,
@@ -57,7 +57,8 @@ export const handleDesignTool: ToolHandler = async (name, args, root, sessionId)
         ok: sum.error === 0 && sum.warning === 0,
         // 理由つきで抑制している要確認の数 (抑制は設計の分析の画面か design-check.json で行う。AI が黙らせるための tool は無い)
         suppressed: suppression?.suppressed.length ?? 0,
-        issues: all.filter((i) => includeInfo || i.severity !== "info"),
+        // hint: 直し方の案内 (機械的。付かない指摘もある)。直したら、もう一度 check_design で確かめる
+        issues: all.filter((i) => includeInfo || i.severity !== "info").map((i) => { const hint = issueHint(i); return hint ? { ...i, hint } : i; }),
       });
     }
 

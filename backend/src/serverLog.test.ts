@@ -36,6 +36,20 @@ describe("serverLog", () => {
     expect(out).toContain('"msg":"logger initialized"');
   });
 
+  it("秘密の規則が文字列を閉じる引用符まで食っても、行は JSON のままで、秘密は隠れ、そのほかの欄は読める (失敗の記録が集計から消えない)", () => {
+    log("info", "mcp", "tool", { tool: "designer__x", ok: false, error: "認証に失敗しました token: abc123secret" });
+    log("info", "mcp", "tool", { tool: "designer__y", ok: false, error: "接続できません password=hunter2" });
+    log("info", "mcp", "tool", { tool: "designer__z", ok: true, ms: 3, password: "p@ss", nested: { apiKey: "k-123" } });
+    const lines = readLatestLogFile().trim().split("\n");
+    const parsed = lines.slice(-3).map((l) => JSON.parse(l)); // 全部 JSON として読める
+    expect(parsed[0].ctx.tool).toBe("designer__x");
+    expect(parsed[0].ctx.error).not.toContain("abc123secret");
+    expect(parsed[1].ctx.error).not.toContain("hunter2");
+    expect(parsed[2].ctx.password).toBe("***");
+    expect(parsed[2].ctx.nested.apiKey).toBe("***");
+    expect(parsed[2].ctx.ms).toBe(3);
+  });
+
   it("log() が JSON Lines 形式で書き込む", () => {
     log("info", "test", "hello", { foo: "bar" });
     const out = readLatestLogFile();
