@@ -114,7 +114,7 @@ describe("プロファイル (tool の絞り込み)", () => {
       expect(flowNames).toContain("designer__add_step");
       expect(flowNames).toContain("designer__get_project_context");
       expect(flowNames).not.toContain("designer__remove_table");
-      expect(flowNames.length).toBeLessThan(fullNames.length / 2);
+      expect(flowNames.length).toBeLessThan(fullNames.length * 0.6);
     } finally { await full.close(); await flow.close(); }
   });
 

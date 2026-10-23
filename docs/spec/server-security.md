@@ -51,18 +51,18 @@ backend (port 5179、MCP + WebSocket + HTTP) の、接続・要求・AI の権�
 
 ## AI に見せる tool の絞り込み (プロファイル)
 
-tool は 100 個を超え (119 個、説明だけで約 49KB)、説明が毎回 AI の文脈に載る。作業の種類に合う tool だけを見せると、AI は選び間違えにくく、読む量も減る。**権限の仕組みではない** (権限は上の `HARMONY_MCP_MODE` / `HARMONY_MCP_DENY`。両方が掛かる)。
+tool は 100 個を超え (138 個、説明だけで約 56KB)、説明が毎回 AI の文脈に載る。作業の種類に合う tool だけを見せると、AI は選び間違えにくく、読む量も減る。**権限の仕組みではない** (権限は上の `HARMONY_MCP_MODE` / `HARMONY_MCP_DENY`。両方が掛かる)。
 
 | 指定 | 見える tool | 数 (約 KB) |
 |---|---|---|
-| 未指定 / `full` | すべて | 119 (49) |
-| `flow` | 処理フローを作る・直す (+ 画面・テーブルを読む) | 57 (27) |
-| `table` | テーブルを作る・直す (DDL・ER・テストデータ) | 47 (22) |
-| `screen` | 画面・画面項目・ページレイアウト (+ 処理フロー・テーブルを読む) | 63 (27) |
-| `doc` | 業務フロー・帳票・拡張を作る・直す | 64 (27) |
-| `maint` | 保守 (一括保存・版の復旧・登録簿の修復・スキーマ移行・パック・ワークスペースの削除) | 32 (15) |
-| `review` | 読み取り + レビューの指摘・コメント・マーカー | 55 (20) |
-| `read` | 読み取りだけ (書き込みの tool とマーカーの書き込みは出ない。`workspace_open` の `init: true` も断る) | 51 (17) |
+| 未指定 / `full` | すべて | 138 (56) |
+| `flow` | 処理フローを作る・直す (+ 画面・テーブルを読む) | 71 (32) |
+| `table` | テーブルを作る・直す (DDL・ER・テストデータ) | 57 (25) |
+| `screen` | 画面・画面項目・ページレイアウト (+ 処理フロー・テーブルを読む) | 72 (30) |
+| `doc` | 業務フロー・帳票・シーケンス・ビュー・汎用定義・規約・技術スタック・拡張を作る・直す | 77 (32) |
+| `maint` | 保守 (一括保存・版の復旧・登録簿の修復・スキーマ移行・パック・ワークスペースの削除) | 41 (18) |
+| `review` | 読み取り + レビューの指摘・コメント・マーカー | 68 (24) |
+| `read` | 読み取りだけ (書き込みの tool とマーカーの書き込みは出ない。`workspace_open` の `init: true` も断る) | 64 (21) |
 
 - 指定の方法: 接続の URL `http://localhost:5179/mcp?profile=flow`(カンマで複数: `?profile=flow,table` は和集合)、または環境変数 `HARMONY_MCP_PROFILE`。URL が優先
 - `flow` `table` `screen` `doc` には、設計を直す共通の操作 (生成の記録 `record_generation`・改名・参照の付け替え・版を戻す) も入る。**すべての tool は、どれかのプロファイルに入る** (試験が見張る)
@@ -78,7 +78,7 @@ tool とは別に、AI が自分で探して読めるようにする。**読み�
 
 - **接続時の案内** (`initialize` の `instructions`): 最初に `designer__get_project_context` を呼ぶこと、資料の入口、直したら `check_design` を 0 件にすること、schema は設計者の判断であること
 - **`designer__get_project_context`** (読み取りの tool): 設計全体の要約。プロジェクト名・技術スタック・件数・種類ごとの設計の id と名前 (既定 60 件まで。`limit` で 500 まで)・規約の数・未解決のマーカー (人から AI への指示・質問、先頭 10 件)・次に使う tool と資料。工程やカラムの中身は載せない
-- **Resources**: `harmony://project/context` (上と同じ。tool と同じ権限・プロファイルで守る — `HARMONY_MCP_DENY=get_project_context` なら読めない)・`harmony://docs/ai-index` ([AI-INDEX.md](../AI-INDEX.md))・`harmony://spec/index` (仕様書の索引 `docs/spec/index.json`)・`harmony://spec/<名前>` (仕様書)・`harmony://schema/index` と `harmony://schema/<種類>` (JSON Schema)。`resources/list` に全部が出る (約 116 件、仕様書は状態と要約つき)
+- **Resources**: `harmony://project/context` (上と同じ。tool と同じ権限・プロファイルで守る — `HARMONY_MCP_DENY=get_project_context` なら読めない)・`harmony://docs/ai-index` ([AI-INDEX.md](../AI-INDEX.md))・`harmony://spec/index` (仕様書の索引 `docs/spec/index.json`)・`harmony://spec/<名前>` (仕様書)・`harmony://schema/index` と `harmony://schema/<種類>` (JSON Schema)。`resources/list` に全部が出る (約 117 件、仕様書は状態と要約つき)
 - **Prompts**: 設計の作成・点検用のスキルだけ — `create-flow` `review-flow` `generate-code` `generate-tests` `import-md` `rename-screen-ids` `test-strategy`。リポジトリの開発用 (`issues` `review-pr` `publish-*` など) は出さない。引数は `arguments` に 1 本の文字列 (スキルの `$ARGUMENTS` に入る)
 - **安全**: 読めるのは、ディレクトリの中身から作った許可リストにある名前だけ。URI の中の名前を、パスに直接使わない (`..` やパスの区切りは、断る)。資料が同梱されていない配置 (`HARMONY_DOCS_DIR` も見つからない) では、資料の一覧は `project/context` だけになる
 - **資料の置き場**: リポジトリの根 (`docs/AI-INDEX.md`・`docs/spec`・`schemas/v3`・`ai-skills`)。配布 image では、Dockerfile がこれらを `/app` に同梱する。別の場所に置くなら `HARMONY_DOCS_DIR`

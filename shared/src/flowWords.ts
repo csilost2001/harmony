@@ -8,17 +8,31 @@ type Loose = FlowStep & Record<string, unknown>;
 const str = (v: unknown): string => (typeof v === "string" ? v : "");
 const rec = (v: unknown): Record<string, unknown> => (v && typeof v === "object" ? (v as Record<string, unknown>) : {});
 
+/**
+ * 工程の中にある、子の工程の列 (入れ子の置き場所をすべて)。役割 (role) は、親からの経路を示す印。
+ * steps / subSteps / コミット後・ロールバック時 / 承認・却下・期限切れ / 分岐の道・上記以外 / 検証の OK・NG / 失敗系の結果ごとの副作用 (errorHandling.outcomes.*.sideEffects)。
+ */
+export function stepChildLists(step: unknown): Array<{ role: string; steps: FlowStep[] }> {
+  const out: Array<{ role: string; steps: FlowStep[] }> = [];
+  if (!step || typeof step !== "object") return out;
+  const x = step as Record<string, unknown>;
+  const add = (role: string, v: unknown) => { if (Array.isArray(v) && v.length) out.push({ role, steps: v as FlowStep[] }); };
+  for (const k of ["steps", "subSteps", "onCommit", "onRollback", "onApproved", "onRejected", "onTimeout"]) add(k, x[k]);
+  if (Array.isArray(x.branches)) for (const b of x.branches as Array<{ id?: string; code?: string; steps?: unknown }>) add(`branch:${b?.code ?? b?.id ?? "?"}`, b?.steps);
+  const eb = x.elseBranch as { steps?: unknown } | undefined;
+  if (eb) add("else", eb.steps);
+  const ib = x.inlineBranch as { ok?: unknown; ng?: unknown } | undefined;
+  if (ib) { add("inline:ok", ib.ok); add("inline:ng", ib.ng); }
+  const oc = (x.errorHandling as { outcomes?: unknown } | undefined)?.outcomes;
+  if (oc && typeof oc === "object" && !Array.isArray(oc)) for (const [key, spec] of Object.entries(oc as Record<string, { sideEffects?: unknown }>)) add(`outcome:${key}`, spec?.sideEffects);
+  return out;
+}
+
 /** 入れ子の中も含め、すべての工程を順に歩く */
 export function* walkAllSteps(steps: readonly FlowStep[] | undefined): Generator<FlowStep> {
   for (const s of steps ?? []) {
     yield s;
-    const x = s as Record<string, unknown>;
-    for (const k of ["steps", "subSteps", "onCommit", "onRollback", "onApproved", "onRejected", "onTimeout"]) if (Array.isArray(x[k])) yield* walkAllSteps(x[k] as FlowStep[]);
-    if (Array.isArray(x.branches)) for (const b of x.branches as Array<{ steps?: FlowStep[] }>) yield* walkAllSteps(b?.steps);
-    const eb = x.elseBranch as { steps?: FlowStep[] } | undefined;
-    if (eb) yield* walkAllSteps(eb.steps);
-    const ib = x.inlineBranch as { ok?: FlowStep[]; ng?: FlowStep[] } | undefined;
-    if (ib) { yield* walkAllSteps(ib.ok); yield* walkAllSteps(ib.ng); }
+    for (const g of stepChildLists(s)) yield* walkAllSteps(g.steps);
   }
 }
 

@@ -13,10 +13,22 @@ describe("処理記述表 (buildOutline)", () => {
 
   it("階層番号を振る (TX 内は 8-1、分岐の枝は 4-A / 4-A-1)", () => {
     const nos = rows.map((r) => r.no);
-    expect(nos.slice(0, 3)).toEqual(["1", "2", "3"]);
+    // 最上位の工程の番号 (検証の NG 側の工程は、1-NG-1 のように入れ子で別に出るため、深さ 0 の行で見る)
+    expect(rows.filter((r) => r.depth === 0).map((r) => r.no).slice(0, 3)).toEqual(["1", "2", "3"]);
     expect(nos).toContain("4-A");
     expect(nos).toContain("4-A-1");
     expect(rows.find((r) => r.step?.kind === "transactionScope")).toBeTruthy();
+  });
+
+  it("検証の OK / NG 側・承認の後・失敗系の結果ごとの副作用の中の工程も、入れ子で出す (以前は載らなかった)", () => {
+    const steps = [
+      { id: "v", kind: "validation", description: "検証", inlineBranch: { ok: [{ id: "a", kind: "compute", description: "OK 側" }], ng: [{ id: "b", kind: "compute", description: "NG 側" }] } },
+      { id: "w", kind: "workflow", description: "承認", onApproved: [{ id: "c", kind: "compute", description: "承認後" }] },
+      { id: "x", kind: "externalSystem", description: "外部", errorHandling: { outcomes: { failure: { sideEffects: [{ id: "d", kind: "compute", description: "失敗時" }] } } } },
+    ] as never;
+    const r = buildOutline(steps, null, ctx);
+    expect(r.map((x) => x.no)).toEqual(["1", "1-OK", "1-OK-1", "1-NG", "1-NG-1", "2", "2-AP", "2-AP-1", "3", "3-E-failure", "3-E-failure-1"]);
+    expect(r.find((x) => x.no === "1-NG")).toMatchObject({ type: "branch-arm", text: "検証が NG のとき", isError: true });
   });
 
   it("TX 内の行に印を付け、4xx を返す行を異常終了とする", () => {

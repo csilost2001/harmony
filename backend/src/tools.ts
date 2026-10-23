@@ -246,6 +246,172 @@ export const tools = [
   // ── 業務フロー (スイムレーン) ──
 
   {
+    name: "designer__list_designs",
+    description: "シーケンス図 (sequence)・DB ビュー (view)・ビュー定義 (viewDefinition)・汎用定義 (genericDefinition。メッセージ・ドメイン型など 17 種) の一覧。kind で種類を選ぶ。genericDefinition は definitionKind で絞れる (省略すると全種)。",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        kind: { type: "string", enum: ["sequence", "view", "viewDefinition", "genericDefinition"], description: "設計の種類" },
+        definitionKind: { type: "string", description: "genericDefinition のときの種類 (message / domain-type / constants / options など)" },
+      },
+      required: ["kind"],
+    },
+  },
+  {
+    name: "designer__get_design",
+    description: "シーケンス図・DB ビュー・ビュー定義・汎用定義の 1 件の原本を読む。sequence / view / viewDefinition は id、genericDefinition は definitionKind + name。",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        kind: { type: "string", enum: ["sequence", "view", "viewDefinition", "genericDefinition"] },
+        id: { type: "string", description: "sequence / view / viewDefinition の id" },
+        definitionKind: { type: "string", description: "genericDefinition の種類" },
+        name: { type: "string", description: "genericDefinition の名前" },
+      },
+      required: ["kind"],
+    },
+  },
+  {
+    name: "designer__save_design",
+    description: "シーケンス図・DB ビュー・ビュー定義・汎用定義を保存する (なければ作り、あれば置き換える)。途中でも保存できる。保存後は designer__check_design で確かめる。形は schemas/v3 (harmony://schema/sequence など) と docs/spec/generic-definition-layer.md。",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        kind: { type: "string", enum: ["sequence", "view", "viewDefinition", "genericDefinition"] },
+        id: { type: "string", description: "sequence / view / viewDefinition の id" },
+        definitionKind: { type: "string", description: "genericDefinition の種類" },
+        name: { type: "string", description: "genericDefinition の名前 (省略時は design.name)" },
+        design: { type: "object", description: "設計の本体 (JSON)" },
+      },
+      required: ["kind", "design"],
+    },
+  },
+  {
+    name: "designer__delete_design",
+    description: "シーケンス図・DB ビュー・ビュー定義・汎用定義を削除する。削除の前に designer__find_references で参照元を確かめる。",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        kind: { type: "string", enum: ["sequence", "view", "viewDefinition", "genericDefinition"] },
+        id: { type: "string" },
+        definitionKind: { type: "string" },
+        name: { type: "string" },
+      },
+      required: ["kind"],
+    },
+  },
+  {
+    name: "designer__get_conventions",
+    description: "規約 (conventions.json: ロール・権限・上限値・正規表現・DB 規約・メッセージなど) を読む。",
+    inputSchema: { type: "object" as const, properties: {}, required: [] },
+  },
+  {
+    name: "designer__save_conventions",
+    description: "規約 (conventions.json) を全体として置き換える。先に designer__get_conventions で読み、直した全体を渡す。形は harmony://schema/conventions。",
+    inputSchema: { type: "object" as const, properties: { conventions: { type: "object", description: "規約の全体 (JSON)" } }, required: ["conventions"] },
+  },
+  {
+    name: "designer__import_ddl",
+    description: "DDL (CREATE TABLE。pg_dump -s / mysqldump --no-data の出力でもよい) から、テーブル定義を作る。既定は予行 (何が作られるか・読み飛ばしたもの・注意を返す)。apply: true で保存。同じ id のテーブルは overwrite: true のときだけ置き換える。",
+    inputSchema: {
+      type: "object" as const,
+      properties: { sql: { type: "string", description: "512 KiB まで" }, apply: { type: "boolean", description: "true で保存 (既定は予行)" }, overwrite: { type: "boolean", description: "同じ id のテーブルを丸ごと置き換える" }, ids: { type: "array", items: { type: "string" }, description: "取り込むテーブルの id (省略時は全部。500 件を超えるときに絞る)" } },
+      required: ["sql"],
+    },
+  },
+  {
+    name: "designer__import_openapi",
+    description: "OpenAPI (3.x / swagger 2) の文書から、処理フローの雛形 (操作ごとに 1 本。HTTP の経路・入力・出力・応答だけ。工程は空) を作る。既定は予行。apply: true で保存。同じ id は overwrite: true のときだけ置き換える。",
+    inputSchema: {
+      type: "object" as const,
+      properties: { spec: { type: "object", description: "OpenAPI 文書 (JSON)" }, apply: { type: "boolean" }, overwrite: { type: "boolean", description: "同じ id の処理フローを丸ごと置き換える" }, ids: { type: "array", items: { type: "string" }, description: "取り込む処理フローの id (省略時は全部)" } },
+      required: ["spec"],
+    },
+  },
+  {
+    name: "designer__get_tech_stack",
+    description: "技術スタック (harmony.json の techStack: 画面デザイナ・backend・データベースなど。コード生成の指針) を読む。",
+    inputSchema: { type: "object" as const, properties: {}, required: [] },
+  },
+  {
+    name: "designer__save_tech_stack",
+    description: "技術スタック (harmony.json の techStack) を全体として置き換える。先に designer__get_tech_stack で読み、直した全体を渡す。",
+    inputSchema: { type: "object" as const, properties: { techStack: { type: "object", description: "技術スタックの全体 (JSON)" } }, required: ["techStack"] },
+  },
+  {
+    name: "designer__search_design",
+    description: "設計全体の本文検索 (説明・項目・SQL・条件・メッセージなど。画面の検索と同じ)。名前・id で探すのは list_* 。query は 2 文字以上、空白で AND。",
+    inputSchema: {
+      type: "object" as const,
+      properties: { query: { type: "string" }, limit: { type: "number", description: "件数の上限 (既定 30、最大 100)" } },
+      required: ["query"],
+    },
+  },
+  {
+    name: "designer__list_steps",
+    description: "処理フローの工程の一覧 (番号・id・種類・要点・対象・備考)。丸ごと読まずに構造をつかむ。actionId で 1 アクションに絞る。中身は designer__get_step。",
+    inputSchema: {
+      type: "object" as const,
+      properties: { processFlowId: { type: "string" }, actionId: { type: "string" } },
+      required: ["processFlowId"],
+    },
+  },
+  {
+    name: "designer__get_step",
+    description: "処理フローの 1 工程の原本 (入れ子の中も)。親の経路 (どの分岐の道・繰り返しの中か) と、実行条件 (runIf) の言葉つき。stepId は designer__list_steps で。",
+    inputSchema: {
+      type: "object" as const,
+      properties: { processFlowId: { type: "string" }, stepId: { type: "string" }, actionId: { type: "string" } },
+      required: ["processFlowId", "stepId"],
+    },
+  },
+  {
+    name: "designer__get_flow_story",
+    description: "処理フローを「流れ」の文章 (Markdown) で返す。条件は言葉 (『顧客がいない のとき』)、工程は番号つきの入れ子。画面の「流れ」表示・設計書と同じ読み方。人に説明する・全体を短くつかむときに使う。",
+    inputSchema: {
+      type: "object" as const,
+      properties: { processFlowId: { type: "string" }, actionId: { type: "string" } },
+      required: ["processFlowId"],
+    },
+  },
+  {
+    name: "designer__analyze_branches",
+    description: "処理フローの分岐の判定表 (条件 × 道の ○ × －) と指摘 (隠れる道・同時に成り立つ道・どの道にも入らない組み合わせ)。分岐は上から順に、最初に成り立った道だけを実行する。stepId で 1 つの分岐に絞る。",
+    inputSchema: {
+      type: "object" as const,
+      properties: { processFlowId: { type: "string" }, actionId: { type: "string" }, stepId: { type: "string", description: "分岐の工程の id" } },
+      required: ["processFlowId"],
+    },
+  },
+  {
+    name: "designer__validate_design",
+    description: "保存せずに、JSON がスキーマ・検証に合うかを確かめる (processFlow / screen / table はスキーマ、report / businessFlow は検証)。作ってから保存する前の確認に使う。",
+    inputSchema: {
+      type: "object" as const,
+      properties: { kind: { type: "string", enum: ["processFlow", "screen", "table", "report", "businessFlow"] }, design: { type: "object", description: "確かめたい設計 (JSON)" } },
+      required: ["kind", "design"],
+    },
+  },
+  {
+    name: "designer__get_changes_since",
+    description: "ある時刻より後に変わった設計ファイルの一覧 (種類・id・更新時刻)。人が画面で直した分を知るときに使う。since は ISO の日時 (省略すると直近 24 時間)。",
+    inputSchema: { type: "object" as const, properties: { since: { type: "string", description: "例: 2026-10-24T09:00:00+09:00" } }, required: [] },
+  },
+  {
+    name: "designer__get_design_document",
+    description: "設計書 (画面の「設計書」と同じ内容) の目次と、章ごとの本文。chapter を省略すると目次と要確認の件数、chapter に目次の id を渡すと、その章を読みやすい文章 (format: text) か HTML で返す。設計全体をまとめて読むより、必要な章だけ読む。",
+    inputSchema: {
+      type: "object" as const,
+      properties: { chapter: { type: "string", description: "目次の id (例: screens / screen-cart)" }, format: { type: "string", enum: ["text", "html"], description: "既定は text" } },
+      required: [],
+    },
+  },
+  {
+    name: "designer__compare_workspaces",
+    description: "いまのワークスペースと、登録済みの別のワークスペース (id またはパス。designer__workspace_list) を、種類ごとに id で比べる (片方だけにあるもの・両方にあるものの数)。",
+    inputSchema: { type: "object" as const, properties: { other: { type: "string", description: "比べる相手のワークスペースの id またはパス" } }, required: ["other"] },
+  },
+  {
     name: "designer__get_project_context",
     description:
       "いま開いているワークスペースの設計全体の要約を返します。接続して最初に 1 回呼ぶと、種類ごとの一覧 tool を何度も呼ばずに全体をつかめます: プロジェクト名・技術スタック・各設計 (画面 / 処理フロー / テーブル / 業務フロー / 帳票) の id と名前と件数・規約の数・未解決のマーカー (人から AI への指示・質問)・次に使う tool と資料。" +

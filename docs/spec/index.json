@@ -233,6 +233,13 @@
       "category": "ui"
     },
     {
+      "file": "docs/spec/mcp-design-access.md",
+      "title": "AI (MCP) の設計へのアクセス",
+      "description": "AI (MCP) が設計を読む・書く・探す・検証する tool の仕様 (シーケンス・ビュー・汎用定義・規約・技術スタック・取り込み・検索・工程単位の取得・流れの文章・分岐の分析・検証だけ・変更の差分・比較・設計書の章)",
+      "status": "current",
+      "category": "ops"
+    },
+    {
       "file": "docs/spec/multi-editor-puck.md",
       "title": "マルチエディタ対応 (Puck 併設) — 仕様書",
       "description": "GrapesJS ベースの既存デザイナに加え、React 向けコンポーネントエディタ「Puck (by Measured)」を併設し、画面ごとに editorKind / cssFramework を選択可能にする framework 中規模拡張の仕様書。",

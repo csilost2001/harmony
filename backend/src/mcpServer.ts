@@ -42,6 +42,8 @@ import { handleScreenItemTool } from "./handlers/screenItem.js";
 import { handleLayoutTool } from "./handlers/layout.js";
 import { handleBusinessFlowTool } from "./handlers/businessFlow.js";
 import { handleDesignTool } from "./handlers/design.js";
+import { handleDesignKindsTool } from "./handlers/designKinds.js";
+import { handleDesignInsightTool } from "./handlers/designInsight.js";
 import { handleReportTool } from "./handlers/report.js";
 import { handleWorkspaceTool } from "./handlers/workspace.js";
 import { handleEditSessionTool } from "./handlers/editSession.js";
@@ -114,6 +116,8 @@ export function createMcpServer(sessionId: string, profiles: readonly string[] =
         handleLayoutTool,
         handleBusinessFlowTool,
         handleDesignTool,
+        handleDesignKindsTool,
+        handleDesignInsightTool,
         handleReportTool,
         handleWorkspaceTool,
         handleEditSessionTool,
