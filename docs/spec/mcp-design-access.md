@@ -68,6 +68,18 @@ category: ops
 | `designer__get_generation_brief` | コードを生成する前に集める情報を 1 つの文書にまとめる (処理フロー / 画面)。詳細は [code-generation.md](code-generation.md) §9.5 |
 | `designer__check_test_coverage` | 生成したテストが、テスト観点表のどれだけを覆うか |
 
+## 机上の実行と、指摘の直し方
+
+| tool | 内容 |
+|---|---|
+| `designer__walk_flow` | 処理フローを開始から順に**机上で辿る** (条件は評価しない)。分岐・繰り返しで選ぶ道を `choices` に並べて渡すと、通る工程・選んだ道・そこまでに定義された変数を返す。`choices` が足りなければ、そこで止まり (`status: awaiting`)、選べる道を返す。選び方は番号 (1 始まり)・選択肢の id (`b0` `else` `enter` `skip` `again` `exit`)・ラベルの先頭 (`A`)。画面の「机上演習」と同じ計算 (`shared/src/flowWalkthrough.ts`)。辿るのは分岐の道・繰り返し・トランザクションの中・配下の工程 (検証の OK / NG 側・承認後・失敗系の副作用の中は辿らない)。5000 工程で止める |
+
+`designer__check_design` の指摘には、機械的な**直し方** (`hint`) が付く (`shared/src/analysis/issueHints.ts`。参照の切れ・工程 id の重複・空の条件・レスポンスの不足・スキーマの必須の項目・JSON の破損・一覧の食い違い ほか)。付かない指摘もある。直したら、もう一度 `check_design`。
+
+## 詰まった点の記録
+
+`designer__report_confusion` — 資料・スキーマ・tool の説明で詰まった点を残す (`topic` 必須。`detail` `tool` `doc` `expected`)。ワークスペースの `.harmony-ops/ai-feedback.json` に残り、**git には載らない** (500 件まで、古いものから捨てる。文字数の上限あり)。書く tool なので、読み取り専用の接続・プロファイル `read` には出ない。利用者は `npm run ai:feedback -- <ワークスペース>` で、tool ごと・資料ごとに集計して、改善の優先順位に使う。作業を止めずに、短く書く。
+
 ## 検証だけ・変更の差分・比較 (読み取り専用)
 
 | tool | 内容 |
@@ -90,4 +102,4 @@ category: ops
 
 ## 読み取り専用の tool
 
-`HARMONY_MCP_MODE=readonly` と、プロファイル `read` / `review` で使える。次は何も書かない (試験 `designAccess.test.ts` が、書く tool を断ることを確かめる): `list_designs` `get_design` `get_conventions` `get_tech_stack` `search_design` `list_steps` `get_step` `get_flow_story` `analyze_branches` `get_design_document` `validate_design` `get_changes_since` `compare_workspaces` `get_tool_guide` `get_generation_brief` `check_test_coverage`。書く tool は `save_design` `delete_design` `save_conventions` `save_tech_stack` `import_ddl` `import_openapi` `edit_steps`。
+`HARMONY_MCP_MODE=readonly` と、プロファイル `read` / `review` で使える。次は何も書かない (試験 `designAccess.test.ts` が、書く tool を断ることを確かめる): `list_designs` `get_design` `get_conventions` `get_tech_stack` `search_design` `list_steps` `get_step` `get_flow_story` `analyze_branches` `get_design_document` `validate_design` `get_changes_since` `compare_workspaces` `get_tool_guide` `get_generation_brief` `check_test_coverage` `walk_flow`。書く tool は `save_design` `delete_design` `save_conventions` `save_tech_stack` `import_ddl` `import_openapi` `edit_steps`。

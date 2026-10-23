@@ -49,20 +49,29 @@ backend (port 5179、MCP + WebSocket + HTTP) の、接続・要求・AI の権�
 | `HARMONY_MCP_PROFILE` | AI に見せる tool の絞り込み (下の節。権限ではない) |
 | `HARMONY_DOCS_DIR` | Resources / Prompts が資料 (`docs/spec`・`schemas/v3`・`ai-skills`) を探す場所。既定はリポジトリの根。見つからなければ警告を出して既定へ戻る |
 
+## 書き込みが絶対にできない入口 (`/mcp-readonly`)
+
+`http://localhost:5179/mcp-readonly` は、`/mcp` と同じ tool を、**読み取りだけ**で出す入口。顧客のレビュー用の AI など、書き込みが起きてはならない接続に使う。
+
+- 環境変数 `HARMONY_MCP_MODE` が `full` でも、プロファイル (`?profile=flow` など) を重ねても、読み取り専用のまま (緩められない)。書く tool は一覧に出ず、呼んでも断られる。`workspace_open` の `init: true` (新規作成) も断る
+- 読む tool・Resources・Prompts は使える。接続トークン (`HARMONY_AUTH_TOKEN`)・Origin の検査は `/mcp` と同じ
+- `?detail=brief` / `?profile=read` は重ねられる
+- 試験: `backend/src/aiAids.test.ts`
+
 ## AI に見せる tool の絞り込み (プロファイル)
 
-tool は 100 個を超え (142 個、`tools/list` の応答で約 91KB)、説明が毎回 AI の文脈に載る。作業の種類に合う tool だけを見せると、AI は選び間違えにくく、読む量も減る。**権限の仕組みではない** (権限は上の `HARMONY_MCP_MODE` / `HARMONY_MCP_DENY`。両方が掛かる)。
+tool は 100 個を超え (144 個、`tools/list` の応答で約 93KB)、説明が毎回 AI の文脈に載る。作業の種類に合う tool だけを見せると、AI は選び間違えにくく、読む量も減る。**権限の仕組みではない** (権限は上の `HARMONY_MCP_MODE` / `HARMONY_MCP_DENY`。両方が掛かる)。
 
 | 指定 | 見える tool | 数 (KB) | `detail=brief` の KB |
 |---|---|---|---|
-| 未指定 / `full` | すべて | 142 (91) | 57 |
-| `flow` | 処理フローを作る・直す (+ 画面・テーブルを読む) | 75 (53) | 32 |
-| `table` | テーブルを作る・直す (DDL・ER・テストデータ) | 60 (41) | 25 |
-| `screen` | 画面・画面項目・ページレイアウト (+ 処理フロー・テーブルを読む) | 75 (49) | 30 |
-| `doc` | 業務フロー・帳票・シーケンス・ビュー・汎用定義・規約・技術スタック・拡張を作る・直す | 80 (51) | 32 |
-| `maint` | 保守 (一括保存・版の復旧・登録簿の修復・スキーマ移行・パック・ワークスペースの削除) | 44 (31) | 18 |
-| `review` | 読み取り + レビューの指摘・コメント・マーカー | 71 (41) | 26 |
-| `read` | 読み取りだけ (書き込みの tool とマーカーの書き込みは出ない。`workspace_open` の `init: true` も断る) | 67 (37) | 23 |
+| 未指定 / `full` | すべて | 144 (93) | 58 |
+| `flow` | 処理フローを作る・直す (+ 画面・テーブルを読む) | 77 (55) | 32 |
+| `table` | テーブルを作る・直す (DDL・ER・テストデータ) | 62 (43) | 26 |
+| `screen` | 画面・画面項目・ページレイアウト (+ 処理フロー・テーブルを読む) | 77 (51) | 31 |
+| `doc` | 業務フロー・帳票・シーケンス・ビュー・汎用定義・規約・技術スタック・拡張を作る・直す | 82 (53) | 33 |
+| `maint` | 保守 (一括保存・版の復旧・登録簿の修復・スキーマ移行・パック・ワークスペースの削除) | 46 (33) | 19 |
+| `review` | 読み取り + レビューの指摘・コメント・マーカー | 73 (43) | 27 |
+| `read` | 読み取りだけ (書き込みの tool とマーカーの書き込みは出ない。`workspace_open` の `init: true` も断る) | 68 (38) | 24 |
 
 - 指定の方法: 接続の URL `http://localhost:5179/mcp?profile=flow`(カンマで複数: `?profile=flow,table` は和集合)、または環境変数 `HARMONY_MCP_PROFILE`。URL が優先
 - `flow` `table` `screen` `doc` には、設計を直す共通の操作 (生成の記録 `record_generation`・改名・参照の付け替え・版を戻す) も入る。**すべての tool は、どれかのプロファイルに入る** (試験が見張る)
@@ -74,8 +83,9 @@ tool は 100 個を超え (142 個、`tools/list` の応答で約 91KB)、説明
 
 ## tool の説明を短くする (`detail=brief`) と、注釈
 
-- **`?detail=brief`** (または環境変数 `HARMONY_MCP_DETAIL=brief`。URL が優先): `tools/list` の説明を最初の 1 文にし、引数の説明 (`description`) を省く。型・必須・列挙・注釈は残る。ただし、保存の既定が予行の tool の `apply` と、使い方が説明にしかない `edits` の説明は残し、説明に「既定は予行」を足す。説明の最初の 1 文は、括弧の中の「。」では切らない。**全 tool で約 4 割減 (91KB → 57KB)**。詳しく知りたい tool は **`designer__get_tool_guide`** (`name` を指定。完全な説明・引数・注釈・入っているプロファイル。省略すると名前の一覧) で引く。`?profile=` と重ねられる (`?profile=flow&detail=brief`)。知らない値は 400
+- **`?detail=brief`** (または環境変数 `HARMONY_MCP_DETAIL=brief`。URL が優先): `tools/list` の説明を最初の 1 文にし、引数の説明 (`description`) を省く。型・必須・列挙・注釈は残る。ただし、保存の既定が予行の tool の `apply` と、使い方が説明にしかない `edits` の説明は残し、説明に「既定は予行」を足す。説明の最初の 1 文は、括弧の中の「。」では切らない。**全 tool で約 4 割減 (93KB → 58KB)**。詳しく知りたい tool は **`designer__get_tool_guide`** (`name` を指定。完全な説明・引数・注釈・入っているプロファイル。省略すると名前の一覧) で引く。`?profile=` と重ねられる (`?profile=flow&detail=brief`)。知らない値は 400
 - **注釈** (`annotations`): 全 tool に付く。`readOnlyHint` (読み取り専用の許可リストと同じ。ただし、画面の表示・作業の状態を変える `open_tab` `close_tab` `switch_tab` `navigate_screen` `workspace_open` `workspace_close` は false — `init: true` の新規作成や `force: true` の破棄が、「読むだけは確認なしで許可」の環境で通らないように)・`destructiveHint` (足すだけの `add_*` などは false、上書き・削除は true)・`idempotentHint` (同じ引数で繰り返しても結果が変わらない `save_*` `update_*` `delete_*` など)・`openWorldHint: false`。AI の実行環境が、読むだけの tool を確認なしで許可するなどに使う。注釈が増える分 `tools/list` は約 11KB 大きくなる
+- **呼び出しの記録**: tool を呼ぶたびに、サーバのログ (`logs/harmony-mcp-YYYY-MM-DD.log`。保持は既定 7 日) に 1 行 `{ category: "mcp", tool, ok, ms, error? }` を残す。**引数と結果は残さない** (失敗の文の先頭 120 文字だけ)。集計は `npm run mcp:report [-- --days 7]` — tool ごとの回数・失敗率・p50 / p95 と、多い失敗。5 回以上呼ばれて 3 割以上失敗する tool は、説明・資料が分かりにくい可能性として挙げる
 - **エラーの直し方**: 失敗の文に `直し方: …` を添える (id の形・一覧で確かめる tool・ワークスペースの探し方・保存前の `validate_design`)。すでに案内のある文、設計の id と関係のない「見つかりません」(git・履歴・通知先など) には足さない
 - `designer__get_tool_guide` は、`HARMONY_MCP_DENY` で拒否した tool・読み取り専用で使えない tool を、一覧にも詳細にも出さない
 

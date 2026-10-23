@@ -38,7 +38,9 @@ MCP につながっていれば、この文書は Resource `harmony://docs/ai-in
 | テーブルを作る・直す | `schemas/v3/table.v3.schema.json` | `list_tables` / `get_table` / `add_table` / `update_table`、`generate_ddl` / `generate_er_mermaid` |
 | 帳票・業務フロー・ページレイアウト | [report.md](spec/report.md) / [business-flow.md](spec/business-flow.md) / [page-layout.md](spec/page-layout.md) | `get_report` / `save_report`、`get_business_flow` / `save_business_flow`、`get_page_layout` / `save_page_layout` |
 | 名前を変える・参照を付け替える | [references.md](spec/references.md) | `find_references` → `rename_entity` (既定は予行、`apply: true` で実行) / `replace_references`、取り消しは `undo_rename` / `undo_replace_references` |
-| 設計を点検する | [design-document.md](spec/design-document.md) / [design-check.md](spec/design-check.md) | `check_design`、影響・未使用・用語などは `analyze_design` ([design-analysis.md](spec/design-analysis.md)) |
+| 作った処理が意図どおりに進むか確かめる | [mcp-design-access.md](spec/mcp-design-access.md) | `walk_flow` (選ぶ道を `choices` に並べる。通る工程と変数が返る)、`get_flow_story` (文章で読む) |
+| 詰まった・分かりにくかった | — | `report_confusion` (作業を止めずに短く。次の改善に使われる) |
+| 設計を点検する | [design-document.md](spec/design-document.md) / [design-check.md](spec/design-check.md) | `check_design` (指摘に直し方 `hint` が付く)、影響・未使用・用語などは `analyze_design` ([design-analysis.md](spec/design-analysis.md)) |
 | 人からの指示・質問に答える | [ui-markers.md](spec/ui-markers.md) | `find_all_markers` → 対応したら `resolve_marker`、新しい質問は `add_marker` |
 | コードを生成する | [code-generation.md](spec/code-generation.md) | まず `get_generation_brief` (必要な情報が 1 文書に) → 手順 `generate-code` → 生成したら `record_generation`(テストのパスに test / spec)。再生成の前は `check_generation_drift` / `get_regeneration_diff`。テストの覆い方は `check_test_coverage`。CI は `npm run check:generation` |
 | テストを作る | [test-viewpoints.md](spec/test-viewpoints.md) / [process-flow-testing.md](spec/process-flow-testing.md) | `get_test_viewpoints` (ID つきの観点表。`since` で変更に絞る)、手順 `generate-tests` / `test-strategy`。テスト名に観点の ID を書く → `check_test_coverage` |
@@ -80,5 +82,6 @@ tool は 100 個を超え、説明が毎回文脈に載る。作業に合わせ�
 | `…/mcp?profile=maint` | 保守 (一括保存・版の復旧・登録簿の修復・スキーマ移行・パック) |
 | `…/mcp?profile=review` | 読む + レビューの指摘・マーカー |
 | `…/mcp?profile=read` | 読み取りだけ |
+| `http://localhost:5179/mcp-readonly` | **書き込みが絶対にできない**入口 (環境変数・プロファイルで緩められない。顧客のレビュー用の AI など) |
 
 カンマで複数 (`?profile=flow,table`)。説明を短くするなら `?detail=brief` (約 4 割減。詳細は `designer__get_tool_guide` で引く。`?profile=flow&detail=brief` のように重ねられる)。すべての tool は、どれかのプロファイルに入る。どのプロファイルにも、ワークスペース・`get_project_context`・`check_design`・`analyze_design`・`find_references`・マーカー・タブの tool は入る。権限の制限 (`HARMONY_MCP_MODE` / `HARMONY_MCP_DENY`) は別に掛かる。詳しくは [server-security.md](spec/server-security.md)。

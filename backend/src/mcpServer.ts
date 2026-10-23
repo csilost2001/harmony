@@ -14,6 +14,7 @@ import {
   McpError,
 } from "@modelcontextprotocol/sdk/types.js";
 import { wsBridge } from "./wsBridge.js";
+import { logInfo } from "./serverLog.js";
 import { ensureRecovered } from "./operationJournal.js";
 import { assertToolAllowed, filterTools, isReadOnlyTool } from "./security/mcpAccess.js";
 import { filterToolsByProfile, isInProfile, profileRefusal } from "./security/mcpProfiles.js";
@@ -27,6 +28,11 @@ import {
   WorkspaceUnsetError,
   workspaceContextManager,
 } from "./workspaceState.js";
+
+/** ログに残す失敗の要約 (先頭 120 文字。接頭辞・id や数字の違いで別の失敗にならないよう、集計側で正規化する) */
+function errorSummary(v: unknown): string {
+  return String(v ?? "").replace(/^MCP error -?\d+: /, "").replace(/^エラー: /, "").replace(/\s+/g, " ").slice(0, 120);
+}
 
 // 機能領域別 MCP tool handler (#1144 Phase-1: index.ts 1830 → ~200 LOC に分離)。
 // 各 handler は ToolHandler signature (name/args/root/sessionId) を実装し、該当 tool は処理し、
@@ -55,7 +61,14 @@ import { handleEditSessionTool } from "./handlers/editSession.js";
 // 作成することで、複数クライアントが同時接続しても互いの initialize 状態と干渉しない
 // (Server.connect(transport) は 1:1 関係、1 Server を複数 transport に share はできないため)
 // sessionId を受け取り、workspaceContextManager に connect して per-session active を解決する。
-export function createMcpServer(sessionId: string, profiles: readonly string[] = [], detail: DetailMode = "full"): Server {
+export interface McpServerOptions {
+  /** 環境変数に関わらず、読み取り専用にする (`/mcp-readonly` の入口。顧客のレビュー用など、書き込みが絶対にできない接続) */
+  forceReadonly?: boolean;
+}
+
+export function createMcpServer(sessionId: string, profiles: readonly string[] = [], detail: DetailMode = "full", options: McpServerOptions = {}): Server {
+  // 読み取り専用の入口は、環境変数が full でも、読み取り専用として振る舞う (プロファイルや環境変数で緩められない)
+  const mcpEnv: NodeJS.ProcessEnv = options.forceReadonly ? { ...process.env, HARMONY_MCP_MODE: "readonly" } : process.env;
   const server = new Server(
     { name: "harmony-mcp", version: "0.1.0" },
     { capabilities: { tools: {}, resources: {}, prompts: {} }, instructions: SERVER_INSTRUCTIONS }
@@ -64,7 +77,7 @@ export function createMcpServer(sessionId: string, profiles: readonly string[] =
   // ツール一覧 (権限で使えないもの・選んだプロファイルに入らないものは出さない)
   server.setRequestHandler(ListToolsRequestSchema, async () => {
     // 注釈 (読み取り専用・破壊的・冪等) を付ける。brief のときは説明を短くする (詳細は designer__get_tool_guide)
-    const visible = filterToolsByProfile(filterTools(tools), profiles).map((t) => ({ ...t, annotations: toolAnnotations(t.name) }));
+    const visible = filterToolsByProfile(filterTools(tools, mcpEnv), profiles).map((t) => ({ ...t, annotations: toolAnnotations(t.name) }));
     return { tools: detail === "brief" ? visible.map(briefTool) : visible };
   });
 
@@ -76,7 +89,7 @@ export function createMcpServer(sessionId: string, profiles: readonly string[] =
     try { root = workspaceContextManager.requireActivePath(sessionId); } catch { /* ワークスペース未選択。project/context だけが使う */ }
     // 設計全体の要約は tool (designer__get_project_context) と同じ内容なので、tool と同じ権限・プロファイルで守る
     if (request.params.uri === "harmony://project/context") {
-      assertToolAllowed("designer__get_project_context", process.env);
+      assertToolAllowed("designer__get_project_context", mcpEnv);
       if (!isInProfile("designer__get_project_context", profiles)) throw new McpError(ErrorCode.InvalidRequest, "この接続のプロファイルでは、設計全体の要約は読めません");
     }
     return readResource(request.params.uri, root);
@@ -88,9 +101,10 @@ export function createMcpServer(sessionId: string, profiles: readonly string[] =
   // index.ts はディスパッチャと共通エラーハンドリングのみを担う)。
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
+    const startedAt = Date.now();
     // 読み取り専用・拒否リストの設定 (HARMONY_MCP_MODE / HARMONY_MCP_DENY) で使えない tool は、ここで拒否する
     const argRecord = (args ?? {}) as Record<string, unknown>;
-    assertToolAllowed(name, process.env, argRecord);
+    assertToolAllowed(name, mcpEnv, argRecord);
     const refusal = profileRefusal(name, argRecord, profiles);
     if (refusal) throw new McpError(ErrorCode.InvalidRequest, refusal);
     if (!isInProfile(name, profiles)) {
@@ -144,11 +158,15 @@ export function createMcpServer(sessionId: string, profiles: readonly string[] =
               wsBridge.broadcast({ wsId: root, event: "opsChanged", data: { scope: "ai" } });
             }
           }
+          // どの tool がよく失敗するか・遅いかを後で集計できるよう、呼び出しを 1 行残す (引数・結果は残さない。npm run mcp:report)
+          const failed = !!(result as { isError?: boolean }).isError;
+          logInfo("mcp", "tool", { tool: name, ok: !failed, ms: Date.now() - startedAt, ...(failed ? { error: errorSummary((result as { content?: Array<{ text?: unknown }> }).content?.[0]?.text) } : {}) });
           return result;
         }
       }
       throw new McpError(ErrorCode.MethodNotFound, `未知のツール: ${name}`);
     } catch (err) {
+      logInfo("mcp", "tool", { tool: name, ok: false, ms: Date.now() - startedAt, error: errorSummary(err instanceof Error ? err.message : err) });
       if (err instanceof WorkspaceUnsetError) {
         throw new McpError(ErrorCode.InvalidParams, `${err.message} (designer__workspace_list で探し、designer__workspace_open で開いてください)`);
       }

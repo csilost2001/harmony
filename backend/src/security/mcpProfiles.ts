@@ -21,20 +21,20 @@ export interface McpProfile {
   patterns: RegExp[];
   /** 読み取りの tool をすべて足す */
   allReadOnly?: boolean;
-  /** マーカーの書き込み (付ける・解決・削除) を含めない。読むだけのプロファイル用 */
+  /** マーカーの書き込み・詰まった点の記録を含めない。読むだけのプロファイル用 */
   noMarkerWrites?: boolean;
 }
 
 /** どのプロファイルにも入る土台: ワークスペース・設計の俯瞰と点検・参照元・マーカーを読む・版・タブ (読み取りだけ) */
 const BASE: RegExp[] = [
   /^workspace_(list|status|open|inspect|close)$/, /^get_project_context$/, /^check_design$/, /^analyze_design$/, /^find_references$/,
-  /^(find_all_markers|list_markers)$/, /^list_versions$/, /^(search_design|validate_design|get_changes_since|compare_workspaces|get_design_document|get_tool_guide|get_generation_brief|check_test_coverage|list_designs|get_design|get_conventions|get_tech_stack)$/, /^(list_tabs|open_tab|switch_tab|close_tab|navigate_screen)$/,
+  /^(find_all_markers|list_markers)$/, /^list_versions$/, /^(search_design|validate_design|get_changes_since|compare_workspaces|get_design_document|get_tool_guide|get_generation_brief|check_test_coverage|walk_flow|list_designs|get_design|get_conventions|get_tech_stack)$/, /^(list_tabs|open_tab|switch_tab|close_tab|navigate_screen)$/,
 ];
 /** 設計を作る・直すプロファイル (flow / table / screen / doc) に共通の操作: 生成の記録・改名・参照の付け替え・版を戻す */
 const AUTHORING: RegExp[] = [/^record_generation$/, /^(rename_entity|undo_rename|replace_references|undo_replace_references|restore_version)$/];
 
-/** 書き込みのプロファイルに足すマーカーの操作 (人の指示・質問に答える) */
-const MARKER_WRITES: RegExp[] = [/^(add_marker|resolve_marker|remove_marker)$/];
+/** 書き込みのプロファイルに足す、人との受け渡しの操作: マーカー (人の指示・質問に答える)・詰まった点の記録 */
+const MARKER_WRITES: RegExp[] = [/^(add_marker|resolve_marker|remove_marker|report_confusion)$/];
 
 export const PROFILES: Readonly<Record<string, McpProfile>> = {
   read: { label: "設計を読む・点検する (書き込みなし)", patterns: [], allReadOnly: true, noMarkerWrites: true },

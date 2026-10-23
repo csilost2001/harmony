@@ -44,7 +44,7 @@ OpenAPI があるなら、`import_openapi` (予行 → `apply: true`) で HTTP �
 2. `list_steps` — 番号と id。大きいときは `limit` / `offset`
 3. `get_step` — 直す工程の原本と、親の経路
 4. `edit_steps` — 複数の直しは 1 回で (全部成功か何も保存しない)。画面で開かれていると断られる — そのときは `update_step` など(画面に適用され、保存で確定する)
-5. 条件を直したら `analyze_branches`、最後に `check_design`
+5. 条件を直したら `analyze_branches`。通る道を確かめるなら `walk_flow` (`choices` に選ぶ道を並べる)。最後に `check_design` (指摘の `hint` に直し方)
 
 ## 3. テーブルを作る
 
@@ -77,6 +77,10 @@ Prompt `review-flow`。指摘は `add_review_findings` (位置つきのコメン
 3. テストは `get_test_viewpoints` と Prompt `generate-tests`。テストの名前に観点の ID を書く → `check_test_coverage` で覆い方を確かめる
 4. 設計が変わったら、再生成の前に `check_generation_drift` / `get_regeneration_diff`。変更の影響を受ける観点だけは `get_test_viewpoints` の `since`
 5. CI・コミット前: `npm run check:generation -- <ワークスペース> --coverage --min 80`
+
+## 9. 詰まったとき
+
+資料・スキーマ・tool の説明で詰まったら、作業を止めずに `report_confusion` で短く残す (`topic` と、関係する `tool` / `doc`)。利用者が集計して、説明や資料の改善に使う。
 
 ## 逆引き: よくある失敗
 

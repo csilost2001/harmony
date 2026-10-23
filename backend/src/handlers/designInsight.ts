@@ -18,7 +18,7 @@ import path from "node:path";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import {
   branchConditionText, buildDecisionModel, buildDesignDocument, buildOutline, buildVarLabels, conditionText, decisionColumnName, isGuardLike, noteWithWords, stepChildLists, validateBusinessFlow, validateReport,
-  type FlowActionLike, type FlowContext, type FlowStep, type OutlineRow,
+  flowWalkthrough, type FlowActionLike, type FlowContext, type FlowStep, type OutlineRow,
 } from "@harmony/shared";
 import { loadDesignInputFromRoot } from "../designInput.js";
 import { searchDesign } from "../designSearch.js";
@@ -295,6 +295,44 @@ export const handleDesignInsightTool: ToolHandler = async (name, args, root) => 
       const t = filterTools(allTools).find((x) => x.name === wanted);
       if (!t) throw bad(`tool「${a.name}」がありません (name を省略すると一覧)`);
       return json({ name: t.name, description: t.description, inputSchema: t.inputSchema, annotations: toolAnnotations(t.name), profiles: Object.keys(PROFILES).filter((p) => isInProfile(t.name, [p])) });
+    }
+
+    case "designer__walk_flow": {
+      const doc = await loadFlow(a, root);
+      const acts = actionsOf(doc, a.actionId);
+      if (acts.length > 1 && typeof a.actionId !== "string") throw bad(`アクションが複数あります。actionId を指定してください (${acts.map((x) => x.id).join(", ")})`);
+      if (acts.length === 0) throw bad("このアクションに、辿る工程がありません");
+      const raw = a.choices === undefined ? [] : Array.isArray(a.choices) ? a.choices.map((c) => (typeof c === "number" ? String(c) : String(c ?? ""))) : null;
+      if (raw === null) throw bad("choices は、選ぶ道の並び (文字列か番号の配列) で指定してください");
+      if (raw.length > 500) throw bad("choices は 500 件までです");
+      const queue = [...raw];
+      let st = flowWalkthrough.startWalk((acts[0].steps ?? []) as never);
+      let awaiting: Record<string, unknown> | undefined;
+      let guard = 0;
+      while (guard++ < 5000) {
+        const p = flowWalkthrough.promptOf(st);
+        if (p.kind === "end") break;
+        if (p.kind === "step") { st = flowWalkthrough.next(st); continue; }
+        const given = queue.shift();
+        if (given === undefined) {
+          awaiting = { kind: p.kind, stepId: p.step.id, text: p.text, choices: p.choices.map((c, i) => ({ n: i + 1, id: c.id, label: c.label })), ...(p.kind !== "branch" ? { iteration: p.iteration } : {}) };
+          break;
+        }
+        // 選び方: 番号 (1 始まり)・選択肢の id (b0 / else / enter / skip / again / exit)・ラベルの先頭 (A など)
+        const t = given.trim();
+        const pick = p.choices.find((c, i) => String(i + 1) === t || c.id === t || c.label.startsWith(`${t}:`));
+        if (!pick) throw bad(`選べない値です: 「${given}」。ここ (工程 ${p.step.id}) で選べるのは: ${p.choices.map((c, i) => `${i + 1}=${c.id}「${c.label}」`).join(" / ")}`);
+        st = flowWalkthrough.choose(st, pick.id);
+      }
+      const finished = st.ended;
+      return json({
+        processFlowId: doc.meta?.id, actionId: acts[0].id, status: awaiting ? "awaiting" : finished ? "ended" : "stopped",
+        ...(finished ? { endReason: st.endReason } : {}), steps: st.log.filter((l) => l.kind === "step").length, defined: st.defined, log: st.log, ...(awaiting ? { awaiting } : {}),
+        ...(queue.length ? { unusedChoices: queue.length } : {}),
+        notes: [
+          ...(!awaiting && !finished ? ["工程が多すぎる (繰り返しが終わらない) ため、途中で止めました。choices で『繰り返しを終える (exit)』を選んでください"] : []),
+          "条件は評価しません。人 (AI) が選ぶ道を choices に並べて渡すと、通る工程と、そこまでに定義された変数を返します。分岐の道・繰り返し・トランザクションの中・配下の工程を辿ります (検証の OK/NG 側・承認後・失敗系の副作用の中は辿りません)"],
+      });
     }
 
     case "designer__get_design_document": {

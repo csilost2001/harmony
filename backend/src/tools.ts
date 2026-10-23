@@ -422,6 +422,34 @@ export const tools = [
     inputSchema: { type: "object" as const, properties: { name: { type: "string", description: "tool の名前 (designer__ は省略できる)" } }, required: [] },
   },
   {
+    name: "designer__walk_flow",
+    description: "処理フローを、開始から順に机上で辿る (条件は評価しない)。分岐・繰り返しで、人 (AI) が選ぶ道を choices に並べて渡すと、通る工程と、そこまでに定義された変数を返す。choices が足りなければ、そこで止まり、選べる道 (awaiting.choices) を返す。選び方は、番号 (1 始まり)・選択肢の id (b0 / else / enter / skip / again / exit)・ラベルの先頭 (A)。処理が意図どおりに進むかを、書いた直後に確かめる。",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        processFlowId: { type: "string" },
+        actionId: { type: "string", description: "アクションが複数あるときは必須" },
+        choices: { type: "array", items: { type: ["string", "number"] }, description: "分岐・繰り返しで選ぶ道を、通る順に (500 件まで)" },
+      },
+      required: ["processFlowId"],
+    },
+  },
+  {
+    name: "designer__report_confusion",
+    description: "資料・スキーマ・tool の説明で詰まった点を残す (次の改善に使う)。作業を止めずに、短く書く。例: topic「edit_steps の add の detail の書き方が分からない」tool「edit_steps」。ワークスペースの .harmony-ops/ai-feedback.json に残り、git には載らない。利用者は npm run ai:feedback で集計する。",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        topic: { type: "string", description: "何で詰まったか (200 文字まで)" },
+        detail: { type: "string", description: "どう詰まったか・試したこと (2000 文字まで)" },
+        tool: { type: "string", description: "関係する tool の名前" },
+        doc: { type: "string", description: "関係する資料 (harmony://… か、ファイルのパス)" },
+        expected: { type: "string", description: "本当はどうなっていてほしかったか" },
+      },
+      required: ["topic"],
+    },
+  },
+  {
     name: "designer__get_design_document",
     description: "設計書 (画面の「設計書」と同じ内容) の目次と、章ごとの本文。chapter を省略すると目次と要確認の件数、chapter に目次の id を渡すと、その章を読みやすい文章 (format: text) か HTML で返す。設計全体をまとめて読むより、必要な章だけ読む。",
     inputSchema: {

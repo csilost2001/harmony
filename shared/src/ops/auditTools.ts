@@ -47,6 +47,7 @@ export const AI_TOOLS_NOT_ATTRIBUTED: Readonly<Record<string, string>> = {
   add_response_type_extension: "拡張 (設計ではなく、拡張の定義)", update_response_type_extension: "拡張 (設計ではなく、拡張の定義)", delete_response_type_extension: "拡張 (設計ではなく、拡張の定義)",
   add_step_extension: "拡張 (設計ではなく、拡張の定義)", add_field_type_extension: "拡張 (設計ではなく、拡張の定義)", add_trigger_extension: "拡張 (設計ではなく、拡張の定義)", add_db_operation_extension: "拡張 (設計ではなく、拡張の定義)", remove_extension: "拡張 (設計ではなく、拡張の定義)",
   solution_pack: "解決策パックの書き出し (設計は変えない)", solution_unpack: "解決策パックの取り込み (複数の設計にまたがる)",
+  report_confusion: "AI が詰まった点の記録 (設計ではなく、改善のためのメモ。git に載らない)",
   workspace_remove: "ワークスペースの登録 (設計ではない)",
   save_conventions: "規約 (設計 1 件ではなく、プロジェクト全体の取り決め)", save_tech_stack: "技術スタック (設計 1 件ではなく、プロジェクトの設定)",
   import_ddl: "取り込み (複数のテーブルをまとめて作る。予行は記録しない)", import_openapi: "取り込み (複数の処理フローをまとめて作る。予行は記録しない)",
