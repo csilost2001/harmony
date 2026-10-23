@@ -51,18 +51,18 @@ backend (port 5179、MCP + WebSocket + HTTP) の、接続・要求・AI の権�
 
 ## AI に見せる tool の絞り込み (プロファイル)
 
-tool は 100 個を超え (138 個、説明だけで約 56KB)、説明が毎回 AI の文脈に載る。作業の種類に合う tool だけを見せると、AI は選び間違えにくく、読む量も減る。**権限の仕組みではない** (権限は上の `HARMONY_MCP_MODE` / `HARMONY_MCP_DENY`。両方が掛かる)。
+tool は 100 個を超え (140 個、`tools/list` の応答で約 89KB)、説明が毎回 AI の文脈に載る。作業の種類に合う tool だけを見せると、AI は選び間違えにくく、読む量も減る。**権限の仕組みではない** (権限は上の `HARMONY_MCP_MODE` / `HARMONY_MCP_DENY`。両方が掛かる)。
 
-| 指定 | 見える tool | 数 (約 KB) |
-|---|---|---|
-| 未指定 / `full` | すべて | 138 (56) |
-| `flow` | 処理フローを作る・直す (+ 画面・テーブルを読む) | 71 (32) |
-| `table` | テーブルを作る・直す (DDL・ER・テストデータ) | 57 (25) |
-| `screen` | 画面・画面項目・ページレイアウト (+ 処理フロー・テーブルを読む) | 72 (30) |
-| `doc` | 業務フロー・帳票・シーケンス・ビュー・汎用定義・規約・技術スタック・拡張を作る・直す | 77 (32) |
-| `maint` | 保守 (一括保存・版の復旧・登録簿の修復・スキーマ移行・パック・ワークスペースの削除) | 41 (18) |
-| `review` | 読み取り + レビューの指摘・コメント・マーカー | 68 (24) |
-| `read` | 読み取りだけ (書き込みの tool とマーカーの書き込みは出ない。`workspace_open` の `init: true` も断る) | 64 (21) |
+| 指定 | 見える tool | 数 (KB) | `detail=brief` の KB |
+|---|---|---|---|
+| 未指定 / `full` | すべて | 140 (89) | 55 |
+| `flow` | 処理フローを作る・直す (+ 画面・テーブルを読む) | 73 (51) | 29 |
+| `table` | テーブルを作る・直す (DDL・ER・テストデータ) | 58 (40) | 23 |
+| `screen` | 画面・画面項目・ページレイアウト (+ 処理フロー・テーブルを読む) | 73 (48) | 28 |
+| `doc` | 業務フロー・帳票・シーケンス・ビュー・汎用定義・規約・技術スタック・拡張を作る・直す | 78 (49) | 30 |
+| `maint` | 保守 (一括保存・版の復旧・登録簿の修復・スキーマ移行・パック・ワークスペースの削除) | 42 (29) | 17 |
+| `review` | 読み取り + レビューの指摘・コメント・マーカー | 69 (39) | 24 |
+| `read` | 読み取りだけ (書き込みの tool とマーカーの書き込みは出ない。`workspace_open` の `init: true` も断る) | 65 (35) | 22 |
 
 - 指定の方法: 接続の URL `http://localhost:5179/mcp?profile=flow`(カンマで複数: `?profile=flow,table` は和集合)、または環境変数 `HARMONY_MCP_PROFILE`。URL が優先
 - `flow` `table` `screen` `doc` には、設計を直す共通の操作 (生成の記録 `record_generation`・改名・参照の付け替え・版を戻す) も入る。**すべての tool は、どれかのプロファイルに入る** (試験が見張る)
@@ -70,7 +70,13 @@ tool は 100 個を超え (138 個、説明だけで約 56KB)、説明が毎回 
 - 空の `?profile=` は未指定として扱う (環境変数 `HARMONY_MCP_PROFILE` を使う)。環境変数に知らない名前を入れると、全接続が 400 になる
 - どのプロファイルにも入る土台: ワークスペースの操作・`get_project_context`・`check_design`・`analyze_design`・`find_references`・マーカーを読む・版の一覧・タブの操作 (`read` 以外は、マーカーの書き込みも)
 - 絞った接続は、一覧に出ない tool を呼んでも断る (名前を知っていても使えない。AI と利用者が、見えているものを同じにするため)。知らないプロファイル名は、接続を 400 で断る
-- 数は 2026-10-23 の実測 (`tools/list` の応答の大きさ)。tool が増えれば変わる。規則 (`security/mcpProfiles.ts`) の各行がいまの tool に当たっていること、`read` に書き込みの tool がないことは、試験 (`mcpServer.test.ts`) が見張る
+- KB は 2026-10-24 の実測 (`tools/list` の応答の、UTF-8 のバイト数。日本語は 1 文字 3 バイトなので、文脈に載る量の目安になる。注釈を含む)。tool が増えれば変わる。規則 (`security/mcpProfiles.ts`) の各行がいまの tool に当たっていること、`read` に書き込みの tool がないことは、試験 (`mcpServer.test.ts`) が見張る
+
+## tool の説明を短くする (`detail=brief`) と、注釈
+
+- **`?detail=brief`** (または環境変数 `HARMONY_MCP_DETAIL=brief`。URL が優先): `tools/list` の説明を最初の 1 文にし、引数の説明 (`description`) を省く。型・必須・列挙・注釈は残る。**全 tool で約 45% 減**。詳しく知りたい tool は **`designer__get_tool_guide`** (`name` を指定。完全な説明・引数・注釈・入っているプロファイル。省略すると名前の一覧) で引く。`?profile=` と重ねられる (`?profile=flow&detail=brief`)。知らない値は 400
+- **注釈** (`annotations`): 全 tool に付く。`readOnlyHint` (読み取り専用の許可リストと同じ)・`destructiveHint` (足すだけの `add_*` などは false、上書き・削除は true)・`idempotentHint` (同じ引数で繰り返しても結果が変わらない `save_*` `update_*` `delete_*` など)・`openWorldHint: false`。AI の実行環境が、読むだけの tool を確認なしで許可するなどに使う。注釈が増える分 `tools/list` は約 11KB 大きくなる
+- **エラーの直し方**: 失敗の文に `直し方: …` を添える (id の形・一覧で確かめる tool・保存前の `validate_design`・読み取り専用の説明)。すでに案内のある文には足さない
 
 ## AI が読む資料と手順 (Resources と Prompts)
 

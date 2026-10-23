@@ -253,6 +253,8 @@ export const tools = [
       properties: {
         kind: { type: "string", enum: ["sequence", "view", "viewDefinition", "genericDefinition"], description: "設計の種類" },
         definitionKind: { type: "string", description: "genericDefinition のときの種類 (message / domain-type / constants / options など)" },
+        limit: { type: "number", description: "件数の上限 (既定 200、最大 1000)" },
+        offset: { type: "number", description: "読み飛ばす件数 (既定 0)" },
       },
       required: ["kind"],
     },
@@ -352,7 +354,7 @@ export const tools = [
     description: "処理フローの工程の一覧 (番号・id・種類・要点・対象・備考)。丸ごと読まずに構造をつかむ。actionId で 1 アクションに絞る。中身は designer__get_step。",
     inputSchema: {
       type: "object" as const,
-      properties: { processFlowId: { type: "string" }, actionId: { type: "string" } },
+      properties: { processFlowId: { type: "string" }, actionId: { type: "string" }, limit: { type: "number", description: "アクションごとの行数の上限 (既定 300、最大 1000)" }, offset: { type: "number" } },
       required: ["processFlowId"],
     },
   },
@@ -396,6 +398,28 @@ export const tools = [
     name: "designer__get_changes_since",
     description: "ある時刻より後に変わった設計ファイルの一覧 (種類・id・更新時刻)。人が画面で直した分を知るときに使う。since は ISO の日時 (省略すると直近 24 時間)。",
     inputSchema: { type: "object" as const, properties: { since: { type: "string", description: "例: 2026-10-24T09:00:00+09:00" } }, required: [] },
+  },
+  {
+    name: "designer__edit_steps",
+    description: "処理フローの工程を、複数まとめて編集する (追加・更新・削除・移動・入れ子の移動)。edits を先頭から順に適用し、全部成功するか、何も保存しないかのどちらか。既定は予行 (apply: true で保存)。保存済みのファイルだけが対象 (画面で開いている処理フローは断る。その場合は add_step / update_step など)。1 回 100 件まで。",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        processFlowId: { type: "string" },
+        edits: {
+          type: "array",
+          description: "編集の並び。op = add { actionId, kind, description?, detail?, id?, position?, parentStepId? } / update { stepId, patch } / remove { stepId } / move { stepId, newIndex } / nest { stepId, direction: indent|outdent }。add の id を指定すると、後ろの編集がその工程を指せる",
+          items: { type: "object", properties: { op: { type: "string", enum: ["add", "update", "remove", "move", "nest"] } }, required: ["op"] },
+        },
+        apply: { type: "boolean", description: "true で保存 (既定は予行)" },
+      },
+      required: ["processFlowId", "edits"],
+    },
+  },
+  {
+    name: "designer__get_tool_guide",
+    description: "tool 1 つの詳細 (完全な説明・引数・注釈・入っているプロファイル) を返す。name を省略すると tool の名前の一覧。接続の URL に ?detail=brief を付けると、tools/list の説明が短くなるので、詳しく知りたい tool だけここで引く。",
+    inputSchema: { type: "object" as const, properties: { name: { type: "string", description: "tool の名前 (designer__ は省略できる)" } }, required: [] },
   },
   {
     name: "designer__get_design_document",

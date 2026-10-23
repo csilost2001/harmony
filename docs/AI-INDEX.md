@@ -30,6 +30,7 @@ MCP につながっていれば、この文書は Resource `harmony://docs/ai-in
 | シーケンス・ビュー・汎用定義・規約・技術スタックを読み書きする | [mcp-design-access.md](spec/mcp-design-access.md) / [generic-definition-layer.md](spec/generic-definition-layer.md) | `list_designs` / `get_design` / `save_design` / `delete_design`、`get_conventions` / `save_conventions`、`get_tech_stack` / `save_tech_stack` |
 | DDL・OpenAPI から取り込む | [mcp-design-access.md](spec/mcp-design-access.md) | `import_ddl` / `import_openapi` (既定は予行、`apply: true` で保存) |
 | 処理フローを新しく作る | [process-flow-variables.md](spec/process-flow-variables.md) / [process-flow-expression-language.md](spec/process-flow-expression-language.md) / [process-flow-runtime-conventions.md](spec/process-flow-runtime-conventions.md) / [conversion-guideline-for-ai.md](spec/conversion-guideline-for-ai.md) | 手順 `create-flow` → `add_process_flow` / `add_action` / `add_step` |
+| 工程をまとめて直す (全部成功か何も保存しない) | [mcp-design-access.md](spec/mcp-design-access.md) | `edit_steps` (既定は予行、`apply: true` で保存) |
 | 処理フローを直す | [process-flow-story-view.md](spec/process-flow-story-view.md) (人が見る「流れ」の言葉) | まず `get_flow_story` (全体を文章で) → `list_steps` → `get_step` (1 工程) → `update_step` / `move_step` / `nest_step` / `remove_step` / `add_step_note`。分岐の抜けは `analyze_branches` |
 | 処理フローをレビューする | [process-flow-runtime-conventions.md](spec/process-flow-runtime-conventions.md) | 手順 `review-flow`、`add_review_findings` |
 | 画面を作る・直す | [screen-layout.md](spec/screen-layout.md) / [layout-components.md](spec/layout-components.md) / [screen-items.md](spec/screen-items.md) | `list_screens` / `get_screen_layout` / `set_screen_layout` / `add_screen` / `update_screen` |
@@ -71,4 +72,4 @@ tool は 100 個を超え、説明が毎回文脈に載る。作業に合わせ�
 | `…/mcp?profile=review` | 読む + レビューの指摘・マーカー |
 | `…/mcp?profile=read` | 読み取りだけ |
 
-カンマで複数 (`?profile=flow,table`)。すべての tool は、どれかのプロファイルに入る。どのプロファイルにも、ワークスペース・`get_project_context`・`check_design`・`analyze_design`・`find_references`・マーカー・タブの tool は入る。権限の制限 (`HARMONY_MCP_MODE` / `HARMONY_MCP_DENY`) は別に掛かる。詳しくは [server-security.md](spec/server-security.md)。
+カンマで複数 (`?profile=flow,table`)。説明を短くするなら `?detail=brief` (約 45% 減。詳細は `designer__get_tool_guide` で引く。`?profile=flow&detail=brief` のように重ねられる)。すべての tool は、どれかのプロファイルに入る。どのプロファイルにも、ワークスペース・`get_project_context`・`check_design`・`analyze_design`・`find_references`・マーカー・タブの tool は入る。権限の制限 (`HARMONY_MCP_MODE` / `HARMONY_MCP_DENY`) は別に掛かる。詳しくは [server-security.md](spec/server-security.md)。

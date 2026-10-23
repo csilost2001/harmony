@@ -27,6 +27,10 @@ import { readProcessFlow, validateEntitySchema } from "../projectStorage.js";
 import { resolveDataRoot } from "../storageCore.js";
 import { findById, findByPath } from "../recentStore.js";
 import { assertEntityIdMcp, type ToolHandler } from "../mcpHelpers.js";
+import { pageOf } from "./designKinds.js";
+import { tools as allTools } from "../tools.js";
+import { toolAnnotations } from "../mcpToolMeta.js";
+import { PROFILES, isInProfile } from "../security/mcpProfiles.js";
 import { wsBridge } from "../wsBridge.js";
 
 const json = (v: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(v, null, 2) }] });
@@ -163,7 +167,10 @@ export const handleDesignInsightTool: ToolHandler = async (name, args, root) => 
     case "designer__list_steps": {
       const doc = await loadFlow(a, root);
       const ctx = await flowContext(root);
-      const actions = actionsOf(doc, a.actionId).map((act) => ({ actionId: act.id, name: act.name, steps: buildOutline(act.steps ?? [], act, ctx).map(rowBrief) }));
+      const actions = actionsOf(doc, a.actionId).map((act) => {
+        const pg = pageOf(buildOutline(act.steps ?? [], act, ctx).map(rowBrief), a, 300);
+        return { actionId: act.id, name: act.name, total: pg.total, offset: pg.offset, hasMore: pg.hasMore, steps: pg.items };
+      });
       return json({ processFlowId: doc.meta?.id, actions });
     }
 
@@ -256,6 +263,17 @@ export const handleDesignInsightTool: ToolHandler = async (name, args, root) => 
       }
       changes.sort((x, y) => y.modifiedAt.localeCompare(x.modifiedAt));
       return json({ since: new Date(sinceMs).toISOString(), count: changes.length, changes: changes.slice(0, 200), ...(changes.length > 200 ? { truncated: true } : {}) });
+    }
+
+    case "designer__get_tool_guide": {
+      if (typeof a.name !== "string") {
+        // 名前を省略すると、tool の名前の一覧 (プロファイルごとの入り方つき)
+        return json({ count: allTools.length, tools: allTools.map((t) => t.name.replace(/^designer__/, "")), note: "tool 1 つの詳細 (説明・引数・注釈) は name を指定して読む" });
+      }
+      const wanted = a.name.startsWith("designer__") || a.name.startsWith("editSession__") ? a.name : `designer__${a.name}`;
+      const t = allTools.find((x) => x.name === wanted);
+      if (!t) throw bad(`tool「${a.name}」がありません (name を省略すると一覧)`);
+      return json({ name: t.name, description: t.description, inputSchema: t.inputSchema, annotations: toolAnnotations(t.name), profiles: Object.keys(PROFILES).filter((p) => isInProfile(t.name, [p])) });
     }
 
     case "designer__get_design_document": {

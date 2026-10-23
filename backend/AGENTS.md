@@ -56,6 +56,7 @@ npm run build      # shared rebuild → Compile to dist/
 | `HARMONY_MCP_MODE` | `readonly` で、AI (MCP) は読み取りの tool だけ | `full` |
 | `HARMONY_MCP_DENY` | 使わせない MCP tool の名前 (カンマ区切り。`designer__` は省略可) | unset |
 | `HARMONY_MCP_PROFILE` | AI に見せる MCP tool の絞り込み (`flow` / `table` / `screen` / `doc` / `maint` / `review` / `read`、カンマで複数)。接続の URL の `?profile=` が優先。権限の設定ではない | unset (すべて) |
+| `HARMONY_MCP_DETAIL` | `brief` で、tools/list の説明を最初の 1 文にし引数の説明を省く (約 45% 減。詳細は `designer__get_tool_guide`)。接続の URL の `?detail=brief` が優先 | unset (full) |
 | `HARMONY_DOCS_DIR` | MCP の Resources / Prompts が資料 (`docs/spec`・`schemas/v3`・`ai-skills`) を探す場所 | リポジトリの根 |
 | `HARMONY_MAX_WS_PAYLOAD_BYTES` / `HARMONY_MAX_HTTP_BODY_BYTES` / `HARMONY_MAX_WS_REQUESTS_PER_10S` | WebSocket 1 メッセージ / HTTP 本文 / 1 接続の 10 秒あたりの要求数の上限 | 32 MiB / 8 MiB / 3000 |
 

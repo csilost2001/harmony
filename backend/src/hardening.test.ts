@@ -763,12 +763,12 @@ describe("MCP の権限 (mcpAccess)", () => {
       "designer__get_er_diagram", "designer__get_extension_package", "designer__get_flow", "designer__get_flow_story", "designer__get_page_layout",
       "designer__get_process_flow", "designer__get_project_context", "designer__get_regeneration_diff", "designer__get_rename_context", "designer__get_report",
       "designer__get_response_type_extension", "designer__get_screen_layout", "designer__get_step", "designer__get_table", "designer__get_tech_stack",
-      "designer__get_test_viewpoints", "designer__list_business_flows", "designer__list_designs", "designer__list_extension_packages", "designer__list_extensions",
-      "designer__list_layout_components", "designer__list_markers", "designer__list_page_layouts", "designer__list_process_flows", "designer__list_reports",
-      "designer__list_response_type_extensions", "designer__list_review_comments", "designer__list_screens", "designer__list_steps", "designer__list_tables",
-      "designer__list_tabs", "designer__list_versions", "designer__navigate_screen", "designer__open_tab", "designer__search_design",
-      "designer__switch_tab", "designer__validate_design", "designer__workspace_close", "designer__workspace_inspect", "designer__workspace_list",
-      "designer__workspace_open", "designer__workspace_status", "editSession__fetch_payload", "editSession__list",
+      "designer__get_test_viewpoints", "designer__get_tool_guide", "designer__list_business_flows", "designer__list_designs", "designer__list_extension_packages",
+      "designer__list_extensions", "designer__list_layout_components", "designer__list_markers", "designer__list_page_layouts", "designer__list_process_flows",
+      "designer__list_reports", "designer__list_response_type_extensions", "designer__list_review_comments", "designer__list_screens", "designer__list_steps",
+      "designer__list_tables", "designer__list_tabs", "designer__list_versions", "designer__navigate_screen", "designer__open_tab",
+      "designer__search_design", "designer__switch_tab", "designer__validate_design", "designer__workspace_close", "designer__workspace_inspect",
+      "designer__workspace_list", "designer__workspace_open", "designer__workspace_status", "editSession__fetch_payload", "editSession__list",
     ]);
   });
   it("readonly でも、ワークスペースを開くのは通るが、新規作成 (init: true) は拒否", () => {

@@ -9,7 +9,7 @@ export type AuditDesignKind = "screen" | "table" | "processFlow" | "businessFlow
 const RULES: ReadonlyArray<[RegExp, AuditDesignKind]> = [
   [/^(add|update|remove)_table$/, "table"],
   [/^(add|update|remove)_screen$|^set_screen_layout$|^save_screen$|^rename_screen_item$|^apply_rename_mapping$/, "screen"],
-  [/^(add|update|delete)_process_flow$|^(add|update|remove|nest|move)_step$|^add_action$|^set_maturity$|^add_step_note$|^(add|remove)_catalog_entry$/, "processFlow"],
+  [/^(add|update|delete)_process_flow$|^(add|update|remove|nest|move)_step$|^edit_steps$|^add_action$|^set_maturity$|^add_step_note$|^(add|remove)_catalog_entry$/, "processFlow"],
   [/^(save|delete)_business_flow$/, "businessFlow"],
   [/^(save|delete)_report$/, "report"],
   [/^(add|update|remove|save)_page_layout$/, "pageLayout"],
