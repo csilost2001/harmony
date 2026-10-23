@@ -1,6 +1,7 @@
 ---
 description: "設計の種類ごとに tool を増やさず kind で 1 組にする。まとめての編集は保存済みのファイルだけが対象"
 status: decided
+decidedBy: "AI (設計者の一任のもと)"
 date: 2026-10-24
 ---
 

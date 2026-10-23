@@ -33,7 +33,7 @@
 | `cdc` | CDC | (サンプルにない) |
 | `aiCall` | AI 呼出 | `examples/diary/harmony/process-flows/ai-image-alt-generate.json` (step-05)<br>`examples/diary/harmony/process-flows/ai-summary-generate.json` (step-04)<br>`examples/diary/harmony/process-flows/ai-tag-suggest.json` (step-03) |
 | `aiAgent` | AI エージェント | (サンプルにない) |
-| `namespace:StepName` |  | `examples/english-learning/harmony/process-flows/conversation-turn-progress.json` (step-04a)<br>`examples/english-learning/harmony/process-flows/pronunciation-grade.json` (step-05)<br>`examples/english-learning-tailwind/harmony/process-flows/conversation-turn-progress.json` (step-04a) |
+| `namespace:StepName` | 拡張 | `examples/english-learning/harmony/process-flows/conversation-turn-progress.json` (step-04a)<br>`examples/english-learning/harmony/process-flows/pronunciation-grade.json` (step-05)<br>`examples/english-learning-tailwind/harmony/process-flows/conversation-turn-progress.json` (step-04a) |
 
 ## 書き方のパターン
 

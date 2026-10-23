@@ -200,6 +200,8 @@ describe("Resources (資料)", () => {
     expect(sec[1].text).toContain("## これは見出しではない");
     expect(sec[0].text).toContain("# 表題");
     expect(splitSections("## だけ\nx").map((x) => x.n)).toEqual([1]);
+    expect(splitSections("---\ndescription: x\n---abc\n\n## 一\n").map((x) => x.title)).toContain("一"); // ---abc は frontmatter の閉じではない
+    expect(splitSections("")).toEqual([]);
   });
 
   it("パスをたどる名前・未知の名前・形の違う URI は断る (許可リストにある名前だけ読める)", async () => {

@@ -1,6 +1,7 @@
 ---
 description: "tool のプロファイル (?profile=) は権限ではなく、AI に見える tool の数を減らす設定"
 status: decided
+decidedBy: "AI (設計者の一任のもと)"
 date: 2026-10-23
 ---
 

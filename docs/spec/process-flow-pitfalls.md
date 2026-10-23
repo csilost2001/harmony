@@ -4,7 +4,6 @@ status: current
 category: process-flow
 ---
 
-
 # 処理フロー作成の self-check ルール
 
 > **自動生成**: この文書は手で直さない。正本を直して `node scripts/docs/generated.mjs --write` で作り直す (ずれていると `npm run check:docs` が止める)。
@@ -25,9 +24,9 @@ category: process-flow
 | 9 | SQL SELECT カラム整合 |
 | 10 | @conv.* 参照の catalog 整合 |
 | 11 | TX 内 branch return 後の制御 |
-| 12 | affectedRowsCheck.operator は = のみ受容 (schema 制約、#486 Opus 発見) |
-| 13 | affectedRowsCheck.expected は integer リテラル必須 (schema 制約、#486 Opus 発見) |
-| 14 | OtherStep.outputSchema 形式制約 (schema 制約、#486 Opus 発見) |
+| 12 | affectedRowsCheck.operator は = のみ受容 |
+| 13 | affectedRowsCheck.expected は integer リテラル必須 |
+| 14 | OtherStep.outputSchema 形式制約 |
 | 15 | グローバル schema 変更禁止 |
 | 16 | 画面項目イベント連携整合 |
 | 17 | 画面項目値レベル整合 |
@@ -43,7 +42,7 @@ category: process-flow
 | 27 | @conv.numbering.X.nextSeq() 構文禁止 → DB sequence 利用 |
 | 28 | rollbackOn 発火可能性 + lineage.writes.purpose 整合 |
 | 29 | 単一 dbAccess.sql への複数文 SQL 詰め込み禁止 |
-| 30 | SQL SELECT 句で camelCase 化が必要な列は AS "<camelCase>" alias 必須 |
+| 30 | SQL SELECT 句で camelCase 化が必要な列は AS "&lt;camelCase&gt;" alias 必須 |
 | 31 | 業務上存在しない値 (架空値) の WHERE 句 hardcode 禁止 |
 | 32 | SQL alias で同名異物理列を取得し event payload で誤参照しない |
 | 33 | PostgreSQL aggregate (COUNT/SUM/AVG/DATE_PART 等) の型変換は outputBinding.transformations で吸収 |

@@ -1,6 +1,8 @@
 ---
 description: "「流れ」表示は既定にせず、カードを既定の表示にする"
 status: decided
+decidedBy: "AI (設計者の一任のもと)"
+confirmation: "設計者の最終確認はまだ (既定の表示の判断として残っている)"
 period: "2026-10"
 ---
 

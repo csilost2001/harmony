@@ -1,6 +1,8 @@
 ---
 description: "分岐は上から順に調べ、最初に成り立った道だけを実行する"
 status: decided
+decidedBy: "AI (設計者の一任のもと。process-flow-runtime-conventions.md §11.5 に 2026-10-20 と記録)"
+confirmation: "設計者の最終確認はまだ"
 period: "2026-10"
 ---
 
@@ -13,5 +15,7 @@ period: "2026-10"
 **理由**: 実装 (if / else if) の自然な読みと一致し、AI が生成するコードも同じになる。人が表で読むときも、上の道が優先と分かる。
 
 **選ばなかった案**: 成り立つ道をすべて実行する (switch の貫通に近く、事故が多い) / 重なりをスキーマで禁止する (既存の設計を壊し、書きにくい)。
+
+**変えるとき**: 判定表の指摘の計算 (`shared/src/flowDecision.ts`) と編集 (`frontend/src/components/process-flow/story/storyDecision.ts`)、create-flow スキル、サンプルの分岐の並びも合わせて直す。
 
 **結果**: [process-flow-runtime-conventions.md](../spec/process-flow-runtime-conventions.md) §11.5。判定表 (`designer__analyze_branches`・画面の「流れ」・設計書) が、隠れる道・重なる道・どの道にも入らない組み合わせを指摘する ([process-flow-story-view.md](../spec/process-flow-story-view.md))。create-flow スキルにも書いた。

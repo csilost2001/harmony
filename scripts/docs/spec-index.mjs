@@ -70,7 +70,7 @@ export const renderIndex = (entries) => `${JSON.stringify({ generatedFrom: "docs
 export function checkSpecIndex(base = root) {
   const { entries, problems } = buildSpecIndex(base);
   const target = path.join(base, "docs/spec/index.json");
-  const stale = !fs.existsSync(target) || fs.readFileSync(target, "utf8") !== renderIndex(entries);
+  const stale = !fs.existsSync(target) || fs.readFileSync(target, "utf8").replace(/\r\n/g, "\n") !== renderIndex(entries);
   return { problems, stale };
 }
 

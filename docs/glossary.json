@@ -5,7 +5,7 @@
       "term": "処理フロー",
       "english": "ProcessFlow",
       "meaning": "画面やバッチの裏の処理を、アクションと工程の並びで書いた設計",
-      "schema": "process-flow#ProcessFlow",
+      "schema": "process-flow",
       "tools": [
         "list_process_flows",
         "get_process_flow",
@@ -141,9 +141,7 @@
         "generate_ddl",
         "import_ddl"
       ],
-      "spec": [
-        "integration-ops"
-      ]
+      "spec": []
     },
     {
       "term": "規約",
@@ -232,8 +230,8 @@
     {
       "term": "成熟度",
       "english": "maturity",
-      "meaning": "設計の仕上がり (draft など)。画面・テーブル・処理フロー・工程に付く",
-      "schema": "common#Maturity",
+      "meaning": "設計の仕上がり (draft など)。処理フロー (meta.maturity)・アクション・工程・業務フロー・帳票に付く",
+      "schema": "common",
       "tools": [
         "set_maturity"
       ],
@@ -244,7 +242,7 @@
     {
       "term": "マーカー",
       "english": "marker",
-      "meaning": "設計に付ける、人から AI への指示・質問・メモ。解決すると履歴に残る",
+      "meaning": "設計に付ける、人から AI への指示・質問・メモ。解決すると、解決日時と内容が付く",
       "schema": "common#Marker",
       "tools": [
         "list_markers",
@@ -423,7 +421,7 @@
       "generated": true
     },
     {
-      "term": "分岐",
+      "term": "分岐 (工程の種類)",
       "english": "branch",
       "meaning": "工程の種類 `branch`",
       "schema": "process-flow#BranchStep",
@@ -621,7 +619,7 @@
       "generated": true
     },
     {
-      "term": "拡張",
+      "term": "拡張 (工程の種類)",
       "english": "namespace:StepName",
       "meaning": "工程の種類 `namespace:StepName`。拡張 Step (extensions.v3.stepKinds で定義)。",
       "schema": "process-flow#ExtensionStep",

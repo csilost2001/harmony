@@ -83,7 +83,7 @@ Prompt `generate-code` → 生成したら `record_generation`。再生成の前
 | `edit_steps` を呼んだのに、変わらない | 既定は予行。保存するには `apply: true` |
 | 「プロファイルでは使えません」 | 接続の `?profile=` で絞られている。URL から外すか、`get_tool_guide` で、その tool がどのプロファイルにあるかを見る |
 | 「読み取り専用」で断られた | `HARMONY_MCP_MODE=readonly` かプロファイル `read` / `review`。書き込みは利用者に設定を変えてもらう |
-| id の形で断られた | 英小文字で始まる kebab-case (`order-confirm`)。大文字・日本語・`_`・UUID の形は使えない。工程・アクションは `step-03` `act-001` の形 |
+| id の形で断られた | 処理フロー・画面・テーブルなどの id は、英小文字で始まる kebab-case (`order-confirm`)。大文字・日本語・`_`・UUID の形は使えない。工程・アクションの id は `step-03` `act-001` の形 |
 | 保存したのに画面に出ない | `check_design` の要確認と、`get_changes_since` で保存されたことを確かめる。画面は保存の通知で更新される |
 | スキーマの項目が足りず、業務を表せない | スキーマは設計者の専権。拡張 (`extensions/`) か既存の項目で表す。それでも無理なら ISSUE を起票して止まる ([0004](../decisions/0004-schema-designer-only.md)) |
 | 条件が複数成り立つ | 分岐は上から順・最初に成り立った道だけ ([0001](../decisions/0001-branch-first-match.md))。`analyze_branches` で重なりを見る |

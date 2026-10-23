@@ -62,7 +62,7 @@
 | 43 | スキーマを `$defs` 単位で引く索引 | 済 | `docs/spec/schema-index.json` (`harmony://spec/schema-index`。自動生成) |
 | 44 | 工程の種類の一覧表 | 済 | `docs/spec/process-flow-step-kinds.md` (自動生成)。**`setGlobal` に日本語名が無かったのも直した** |
 | 45 | 資料の状態ラベル | 済 | 第 1 弾 (frontmatter の `status`) |
-| 46 | AGENTS.md を階層化 | 済(一部) | 索引表の各行を短くし約 9% 減。領域別の本文は、仕様書側に元からある。コマンド表・ルールは毎回必要なので残す |
+| 46 | AGENTS.md を階層化 | 済(一部) | 索引表の各行を短くし、約 6% 減 (文字数。バイトでは約 10%)。領域別の本文は、仕様書側に元からある。コマンド表・ルールは毎回必要なので残す |
 | 47 | ディレクトリごとの README | 済 | `backend/src/handlers` `backend/src/security` `shared/src` `…/process-flow/story` |
 | 48 | 用語 → ファイルの地図 | 済 | `docs/codemap.md` (`harmony://docs/codemap`)。書いたパスの実在を検査 |
 | 49 | 逆引き FAQ | 済 | `ai-recipes.md` の「よくある失敗」 |

@@ -55,7 +55,7 @@ const read = (p: string): string | null => {
 
 /** 章 (見出し ##) ごとに分ける。0 番は最初の ## より前 (表題・前書き)。コードブロックの中の # は見出しにしない */
 export function splitSections(md: string): Array<{ n: number; title: string; text: string }> {
-  const body = md.replace(/^\uFEFF/, "").replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, "");
+  const body = md.replace(/^\uFEFF/, "").replace(/^---\r?\n[\s\S]*?\r?\n---[ \t]*(?:\r?\n|$)/, "");
   const out: Array<{ n: number; title: string; lines: string[] }> = [{ n: 0, title: "(前書き)", lines: [] }];
   let fence = false;
   for (const line of body.split(/\r?\n/)) {
@@ -143,7 +143,8 @@ export async function readResource(uri: string, root: string | null, rootDir: st
         if (/^\d+$/.test(sub)) {
           const sec = sections.find((x) => x.n === Number(sub));
           if (sec) return ok("text/markdown", sec.text);
-          throw new McpError(ErrorCode.InvalidParams, `章 ${sub} がありません (0〜${sections[sections.length - 1].n}。一覧は harmony://spec/${name}/sections)`);
+          const nums = sections.map((x) => x.n);
+          throw new McpError(ErrorCode.InvalidParams, `章 ${sub} がありません (${nums.length ? `${nums[0]}〜${nums[nums.length - 1]}` : "章がありません"}。一覧は harmony://spec/${name}/sections)`);
         }
       }
     }

@@ -33,16 +33,20 @@ export function firstSentence(desc, max = 140) {
   return s.length > max ? `${s.slice(0, max - 1)}…` : s;
 }
 
-const FRONTMATTER = (description, category = "schema") => `---\ndescription: ${JSON.stringify(description)}\nstatus: current\ncategory: ${category}\n---\n\n`;
+const FRONTMATTER = (description, category = "schema") => `---\ndescription: ${JSON.stringify(description)}\nstatus: current\ncategory: ${category}\n---\n`;
 const BANNER = "> **自動生成**: この文書は手で直さない。正本を直して `node scripts/docs/generated.mjs --write` で作り直す (ずれていると `npm run check:docs` が止める)。\n\n";
 
 // ─── スキーマの索引 ─────────────────────────────────────────
 
 export function buildSchemaIndex(base = root) {
   const dir = path.join(base, "schemas/v3");
+  const files = [];
+  for (const f of fs.readdirSync(dir).filter((n) => n.endsWith(".schema.json")).sort()) files.push({ rel: f, kind: f.replace(/\.v3\.schema\.json$/, ""), top: true });
+  const gdir = path.join(dir, "generic-definitions");
+  if (fs.existsSync(gdir)) for (const f of fs.readdirSync(gdir).filter((n) => n.endsWith(".schema.json")).sort()) files.push({ rel: `generic-definitions/${f}`, kind: `generic-definitions/${f.replace(/\.v3\.schema\.json$/, "")}`, top: false });
   const out = [];
-  for (const f of fs.readdirSync(dir).filter((n) => n.endsWith(".schema.json")).sort()) {
-    const s = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8"));
+  for (const { rel, kind, top } of files) {
+    const s = JSON.parse(fs.readFileSync(path.join(dir, rel), "utf8"));
     const defs = Object.entries(s.$defs ?? {}).map(([name, d]) => {
       const parts = Array.isArray(d.allOf) ? d.allOf : [];
       const required = [...new Set([...(d.required ?? []), ...parts.flatMap((p) => (p && p.required) || [])])];
@@ -51,9 +55,14 @@ export function buildSchemaIndex(base = root) {
         ...(d.enum ? { enum: d.enum.length } : {}), ...(d.oneOf ? { oneOf: d.oneOf.length } : {}), ...(required.length ? { required } : {}),
       };
     });
-    out.push({ file: `schemas/v3/${f}`, kind: f.replace(/\.v3\.schema\.json$/, ""), uri: `harmony://schema/${f.replace(/\.v3\.schema\.json$/, "")}`, title: s.title ?? "", description: firstSentence(s.description ?? ""), defCount: defs.length, defs });
+    out.push({
+      file: `schemas/v3/${rel}`, kind, ...(top ? { uri: `harmony://schema/${kind}` } : {}), title: s.title ?? "", description: firstSentence(s.description ?? ""),
+      // ルート自身の必須の項目 (ルートに $defs の定義名はない)。条件つきの必須 (if / then) は含まない
+      ...(Array.isArray(s.required) && s.required.length ? { rootRequired: s.required } : {}), ...(s.$ref ? { rootRef: s.$ref } : {}),
+      defCount: defs.length, defs,
+    });
   }
-  return json({ generatedFrom: "schemas/v3/*.schema.json (node scripts/docs/generated.mjs --write)", schemaVersion: "v3", schemas: out });
+  return json({ generatedFrom: "schemas/v3/**/*.schema.json (node scripts/docs/generated.mjs --write)", schemaVersion: "v3", schemas: out });
 }
 
 // ─── 工程の種類 ─────────────────────────────────────────────
@@ -80,8 +89,13 @@ function stepKinds(base) {
     const kindProp = own.properties?.kind ?? {};
     const kind = kindProp.const ?? (name === "ExtensionStep" ? "namespace:StepName" : name);
     const required = (own.required ?? []).filter((r) => !["id", "kind", "description"].includes(r));
+    // 条件つきの必須 (if: { properties: { x: { const: v } } } then: { required: [...] })
+    const conditional = parts.filter((p) => p && p.if && p.then && Array.isArray(p.then.required)).map((p) => {
+      const cond = Object.entries(p.if.properties ?? {}).map(([k, v]) => `${k}=${v?.const ?? JSON.stringify(v)}`).join(", ");
+      return { when: cond, required: p.then.required };
+    });
     const fields = Object.keys(own.properties ?? {}).filter((p) => p !== "kind");
-    rows.push({ kind, label: labels[kind] ?? (name === "ExtensionStep" ? labels.extension : ""), def: name, required, fields, description: firstSentence(d.description ?? "") });
+    rows.push({ kind, label: labels[kind] ?? (name === "ExtensionStep" ? labels.extension : ""), def: name, required, conditional, fields, description: firstSentence(d.description ?? "") });
   }
   return rows;
 }
@@ -93,9 +107,9 @@ export function buildStepKinds(base = root) {
     "# 処理フローの工程の種類\n",
     BANNER,
     `工程 (Step) は \`kind\` で種類を表す。組み込みの ${rows.length - 1} 種類と、拡張の工程 (\`namespace:StepName\`)。どの工程も \`id\` / \`kind\` / \`description\` は必須で、実行条件 (\`runIf\`)・備考 (\`notes\`)・成熟度 (\`maturity\`)・見出し (\`heading\`)・入れ子の工程 (\`subSteps\`)・失敗時の挙動 (\`errorHandling\`) などの共通の項目を持てる (スキーマの \`StepBaseProps\`)。\n`,
-    "| kind | 日本語名 | スキーマの定義 | この種類で必須の項目 | 固有の項目 |",
-    "|---|---|---|---|---|",
-    ...rows.map((r) => `| \`${r.kind}\` | ${r.label || ""} | \`${r.def}\` | ${r.required.map((x) => `\`${x}\``).join(", ") || "—"} | ${r.fields.slice(0, 10).map((x) => `\`${x}\``).join(", ")}${r.fields.length > 10 ? ` ほか ${r.fields.length - 10}` : ""} |`),
+    "| kind | 日本語名 | スキーマの定義 | 常に必須の項目 | 条件つきで必須 | 固有の項目 |",
+    "|---|---|---|---|---|---|",
+    ...rows.map((r) => `| \`${r.kind}\` | ${r.label || ""} | \`${r.def}\` | ${r.required.map((x) => `\`${x}\``).join(", ") || "—"} | ${r.conditional.map((c) => `\`${c.when}\` のとき ${c.required.map((x) => `\`${x}\``).join(", ")}`).join("<br>") || "—"} | ${r.fields.slice(0, 10).map((x) => `\`${x}\``).join(", ") || "—"}${r.fields.length > 10 ? ` ほか ${r.fields.length - 10}` : ""} |`),
     "",
     "- 形の正本: `harmony://schema/process-flow` (`schemas/v3/process-flow.v3.schema.json`)。`$defs` の一覧と要約は [schema-index.json](schema-index.json)",
     "- 意味 (実行時の約束): [process-flow-runtime-conventions.md](process-flow-runtime-conventions.md)。式の書き方: [process-flow-expression-language.md](process-flow-expression-language.md)",
@@ -109,7 +123,7 @@ export function buildStepKinds(base = root) {
 
 export function buildPitfalls(base = root) {
   const src = read(base, "ai-skills/create-flow/SKILL.md");
-  const rules = [...src.matchAll(/^###{0,1} Rule (\d+[a-z]?): (.+)$/gm)].map((m) => ({ no: m[1], title: m[2].replace(/\s*\((?:#|retail).*$/, "").replace(/`/g, "").trim() }));
+  const rules = [...src.matchAll(/^###{0,1} Rule (\d+[a-z]?): (.+)$/gm)].map((m) => ({ no: m[1], title: m[2].replace(/\s*\((?:[^()]*(?:#\d+|retail|schema 制約|落とし穴)[^()]*)\)\s*$/, "").replace(/\s*\((?:#|retail).*$/, "").replace(/`/g, "").replace(/</g, "&lt;").replace(/>/g, "&gt;").trim() }));
   const lines = [
     FRONTMATTER("処理フロー作成の self-check ルール (よくある間違い) の一覧。create-flow スキルの見出しから自動生成", "process-flow"),
     "# 処理フロー作成の self-check ルール\n",
@@ -183,7 +197,7 @@ export function buildPatterns(base = root) {
     "## 工程の種類ごと\n",
     "| kind | 日本語名 | 例 (サンプルの場所と工程の id) |",
     "|---|---|---|",
-    ...kinds.map((k) => `| \`${k}\` | ${labels[k] ?? ""} | ${cell(found.get(`kind:${k}`))} |`),
+    ...kinds.map((k) => `| \`${k}\` | ${labels[k] ?? (k.includes(":") ? labels.extension : "") ?? ""} | ${cell(found.get(`kind:${k}`))} |`),
     "",
     "## 書き方のパターン\n",
     "| パターン | 例 |",
@@ -198,7 +212,7 @@ export function buildPatterns(base = root) {
 
 /** 中心の用語 (手で保つ)。tool の名前・仕様書・スキーマの定義が実在することは、生成のときに確かめる */
 export const CORE_TERMS = [
-  { term: "処理フロー", english: "ProcessFlow", meaning: "画面やバッチの裏の処理を、アクションと工程の並びで書いた設計", schema: "process-flow#ProcessFlow", tools: ["list_process_flows", "get_process_flow", "add_process_flow", "update_process_flow", "get_flow_story"], spec: ["process-flow-variables", "process-flow-story-view"] },
+  { term: "処理フロー", english: "ProcessFlow", meaning: "画面やバッチの裏の処理を、アクションと工程の並びで書いた設計", schema: "process-flow", tools: ["list_process_flows", "get_process_flow", "add_process_flow", "update_process_flow", "get_flow_story"], spec: ["process-flow-variables", "process-flow-story-view"] },
   { term: "アクション", english: "ActionDefinition", meaning: "処理フローの中の、1 つの入口 (ボタン・API・バッチ) ごとの処理のまとまり。工程を持つ", schema: "process-flow#ActionDefinition", tools: ["add_action"], spec: ["process-flow-variables"] },
   { term: "工程", english: "Step", meaning: "処理の 1 手順。kind で種類を表す (入力チェック・DB アクセス・分岐 など)", schema: "process-flow#Step", tools: ["add_step", "update_step", "edit_steps", "list_steps", "get_step"], spec: ["process-flow-step-kinds", "process-flow-substeps"] },
   { term: "分岐", english: "BranchStep", meaning: "条件で道を選ぶ工程。上から順に調べ、最初に成り立った道だけを実行する", schema: "process-flow#BranchStep", tools: ["analyze_branches"], spec: ["process-flow-runtime-conventions", "process-flow-story-view"] },
@@ -207,15 +221,15 @@ export const CORE_TERMS = [
   { term: "画面", english: "Screen", meaning: "利用者が見る 1 画面の設計。業務部品の木で組む", schema: "screen#Screen", tools: ["list_screens", "get_screen_layout", "set_screen_layout", "add_screen", "update_screen"], spec: ["screen-layout", "layout-components"] },
   { term: "画面項目", english: "ScreenItem", meaning: "画面の入力・表示の 1 項目 (型・必須・長さ・テーブルの列への結びつき)", schema: "screen-item#ScreenItem", tools: ["rename_screen_item", "check_screen_item_refs"], spec: ["screen-items"] },
   { term: "業務部品", english: "layout component", meaning: "画面を組む部品。プロジェクト独自の部品も登録できる", schema: "layout-components", tools: ["list_layout_components"], spec: ["layout-components", "screen-layout"] },
-  { term: "テーブル", english: "Table", meaning: "データベースのテーブル定義 (カラム・インデックス・制約)", schema: "table#Table", tools: ["list_tables", "get_table", "add_table", "update_table", "generate_ddl", "import_ddl"], spec: ["integration-ops"] },
+  { term: "テーブル", english: "Table", meaning: "データベースのテーブル定義 (カラム・インデックス・制約)", schema: "table#Table", tools: ["list_tables", "get_table", "add_table", "update_table", "generate_ddl", "import_ddl"], spec: [] },
   { term: "規約", english: "conventions", meaning: "プロジェクトの取り決め (ロール・権限・上限値・正規表現・DB 規約・メッセージ)。@conv.* で参照する", schema: "conventions", tools: ["get_conventions", "save_conventions"], spec: ["process-flow-prefix-system"] },
   { term: "汎用定義", english: "generic definition", meaning: "メッセージ・ドメイン型・定数 など 17 種の、名前で引く定義", schema: "generic-definition", tools: ["list_designs", "get_design", "save_design"], spec: ["generic-definition-layer"] },
   { term: "業務フロー", english: "BusinessFlow", meaning: "スイムレーンで書く、人と画面と処理をまたぐ業務の流れ", schema: "business-flow", tools: ["list_business_flows", "get_business_flow", "save_business_flow"], spec: ["business-flow"] },
   { term: "帳票", english: "Report", meaning: "帳票の出力・部・項目の設計", schema: "report", tools: ["list_reports", "get_report", "save_report"], spec: ["report"] },
   { term: "ページレイアウト", english: "PageLayout", meaning: "共通のヘッダ・フッタ・サイドバーなどの、画面をまたぐ部品", schema: "page-layout", tools: ["list_page_layouts", "get_page_layout", "save_page_layout"], spec: ["page-layout"] },
   { term: "ワークスペース", english: "workspace", meaning: "1 つのプロジェクトの設計一式を置くフォルダ (harmony.json と dataDir)", schema: "harmony", tools: ["workspace_list", "workspace_open", "workspace_status"], spec: ["workspace", "workspace-multi"] },
-  { term: "成熟度", english: "maturity", meaning: "設計の仕上がり (draft など)。画面・テーブル・処理フロー・工程に付く", schema: "common#Maturity", tools: ["set_maturity"], spec: ["process-flow-maturity"] },
-  { term: "マーカー", english: "marker", meaning: "設計に付ける、人から AI への指示・質問・メモ。解決すると履歴に残る", schema: "common#Marker", tools: ["list_markers", "find_all_markers", "add_marker", "resolve_marker"], spec: ["ui-markers"] },
+  { term: "成熟度", english: "maturity", meaning: "設計の仕上がり (draft など)。処理フロー (meta.maturity)・アクション・工程・業務フロー・帳票に付く", schema: "common", tools: ["set_maturity"], spec: ["process-flow-maturity"] },
+  { term: "マーカー", english: "marker", meaning: "設計に付ける、人から AI への指示・質問・メモ。解決すると、解決日時と内容が付く", schema: "common#Marker", tools: ["list_markers", "find_all_markers", "add_marker", "resolve_marker"], spec: ["ui-markers"] },
   { term: "要確認", english: "issue", meaning: "設計の抜け・矛盾の指摘 (check_design が返す)。黙らせるのは人 (理由つきの抑制)", schema: "", tools: ["check_design", "analyze_design"], spec: ["design-check", "design-document"] },
   { term: "設計書", english: "design document", meaning: "設計を紙面の体裁で読む成果物 (HTML / Word / Excel)。原本と常に一致する", schema: "", tools: ["get_design_document"], spec: ["design-document"] },
   { term: "テスト観点", english: "test viewpoints", meaning: "画面入力の境界値や処理の分岐から導く、ID つきのテストの観点表", schema: "", tools: ["get_test_viewpoints"], spec: ["test-viewpoints"] },
@@ -232,7 +246,6 @@ function toolNames(base) {
 
 export function buildGlossary(base = root) {
   const tools = toolNames(base);
-  const labels = stepKindLabels(base);
   const kinds = stepKinds(base);
   const defsOf = (file) => { try { return Object.keys(JSON.parse(read(base, `schemas/v3/${file}.v3.schema.json`)).$defs ?? {}); } catch { return null; } };
   const problems = [];
@@ -242,12 +255,12 @@ export function buildGlossary(base = root) {
     if (t.schema) {
       const [file, def] = t.schema.split("#");
       if (!exists(base, `schemas/v3/${file}.v3.schema.json`)) problems.push(`用語「${t.term}」: スキーマ「${file}」がありません`);
-      else if (def) { const d = defsOf(file); if (d && d.length && !d.includes(def) && !["ProcessFlow", "Screen", "ScreenItem", "Table"].includes(def)) problems.push(`用語「${t.term}」: スキーマ ${file} に定義「${def}」がありません`); }
+      else if (def) { const d = defsOf(file); if (d && !d.includes(def)) problems.push(`用語「${t.term}」: スキーマ ${file} に定義「${def}」がありません`); }
     }
   }
   if (problems.length) throw new Error(`用語集の整合: ${problems.join(" / ")}`);
-  const stepTerms = kinds.filter((k) => k.label).map((k) => ({ term: k.label, english: k.kind, meaning: `工程の種類 \`${k.kind}\`${k.description ? `。${k.description}` : ""}`, schema: `process-flow#${k.def}`, tools: [], spec: ["process-flow-step-kinds"], generated: true }));
-  void labels;
+  const coreNames = new Set(CORE_TERMS.map((t) => t.term));
+  const stepTerms = kinds.filter((k) => k.label).map((k) => ({ term: coreNames.has(k.label) ? `${k.label} (工程の種類)` : k.label, english: k.kind, meaning: `工程の種類 \`${k.kind}\`${k.description ? `。${k.description}` : ""}`, schema: `process-flow#${k.def}`, tools: [], spec: ["process-flow-step-kinds"], generated: true }));
   return json({ generatedFrom: "scripts/docs/generated.mjs の CORE_TERMS と、スキーマの工程の種類 (node scripts/docs/generated.mjs --write)", terms: [...CORE_TERMS, ...stepTerms] });
 }
 
@@ -268,7 +281,7 @@ export function checkGenerated(base = root) {
     let expected;
     try { expected = g.build(base); } catch (e) { out.push({ file: g.file, message: `作れません: ${e.message}` }); continue; }
     const target = path.join(base, g.file);
-    if (!fs.existsSync(target) || fs.readFileSync(target, "utf8") !== expected) out.push({ file: g.file, message: "正本と合っていません。node scripts/docs/generated.mjs --write で作り直してください" });
+    if (!fs.existsSync(target) || fs.readFileSync(target, "utf8").replace(/\r\n/g, "\n") !== expected) out.push({ file: g.file, message: "正本と合っていません。node scripts/docs/generated.mjs --write で作り直してください" });
   }
   return out;
 }

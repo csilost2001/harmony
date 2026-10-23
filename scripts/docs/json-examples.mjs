@@ -18,7 +18,7 @@ import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const MARK = /^<!--\s*schema:\s*([A-Za-z0-9._-]+)(#[^\s]*)?\s*-->\s*$/;
+const MARK = /^<!--\s*schema:\s*([A-Za-z0-9._/-]+)(#[^\s]*)?\s*-->\s*$/;
 
 function mdFiles(dir, acc = []) {
   if (!fs.existsSync(dir)) return acc;
@@ -54,11 +54,14 @@ export function checkJsonExamples(base = root) {
   addFormats(ajv);
   const dir = path.join(base, "schemas/v3");
   const ids = new Map();
-  for (const f of fs.readdirSync(dir).filter((n) => n.endsWith(".schema.json"))) {
-    const s = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8"));
-    if (s.$id && !ajv.getSchema(s.$id)) ajv.addSchema(s);
-    ids.set(f.replace(/\.v3\.schema\.json$/, ""), s.$id);
-  }
+  const add = (file, key) => {
+    const s = JSON.parse(fs.readFileSync(file, "utf8"));
+    try { if (s.$id && !ajv.getSchema(s.$id)) ajv.addSchema(s); } catch { /* 登録できないスキーマは、その検査先を使ったときに知らせる */ }
+    ids.set(key, s.$id);
+  };
+  for (const f of fs.readdirSync(dir).filter((n) => n.endsWith(".schema.json"))) add(path.join(dir, f), f.replace(/\.v3\.schema\.json$/, ""));
+  const gdir = path.join(dir, "generic-definitions");
+  if (fs.existsSync(gdir)) for (const f of fs.readdirSync(gdir).filter((n) => n.endsWith(".schema.json"))) add(path.join(gdir, f), `generic-definitions/${f.replace(/\.v3\.schema\.json$/, "")}`);
   const problems = [];
   let checked = 0;
   for (const file of [...mdFiles(path.join(base, "docs")), ...mdFiles(path.join(base, "ai-skills"))]) {
@@ -70,7 +73,8 @@ export function checkJsonExamples(base = root) {
       if (!id) { problems.push(`${where}: スキーマ「${ex.schema}」がありません`); continue; }
       let data;
       try { data = JSON.parse(ex.body); } catch (e) { problems.push(`${where}: JSON として読めません (${e.message})`); continue; }
-      const validate = ajv.getSchema(`${id}${ex.pointer}`);
+      let validate;
+      try { validate = ajv.getSchema(`${id}${ex.pointer}`); } catch (e) { problems.push(`${where}: 検査先「${ex.schema}${ex.pointer}」を解決できません (${e.message.slice(0, 80)})`); continue; }
       if (!validate) { problems.push(`${where}: 検査先「${ex.schema}${ex.pointer}」がスキーマにありません`); continue; }
       checked++;
       if (!validate(data)) problems.push(`${where}: スキーマ ${ex.schema}${ex.pointer} に合いません — ${(validate.errors ?? []).slice(0, 3).map((e) => `${e.instancePath || "(全体)"} ${e.message}`).join(" / ")}`);

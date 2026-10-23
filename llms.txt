@@ -2,7 +2,7 @@
 
 > 日本の Web システム開発の設計書 (画面・処理フロー・テーブル・規約) を Web 上で編集・閲覧する設計ツール。設計の原本は JSON で、JSON Schema (schemas/v3) が正本。AI は MCP (http://localhost:5179/mcp) で設計を読み書きする。
 
-AI は、まずこの 3 つだけを読む。
+AI は、まずこれらを読む。
 
 - [AI 向けの入口](docs/AI-INDEX.md): やりたいこと → 読む資料・使う MCP tool・使う手順の対応
 - [仕様書の索引](docs/spec/index.json): docs/spec の全仕様書の要約・状態 (current / deprecated / record)・種別

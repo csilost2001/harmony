@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "schemas/v3/*.schema.json (node scripts/docs/generated.mjs --write)",
+  "generatedFrom": "schemas/v3/**/*.schema.json (node scripts/docs/generated.mjs --write)",
   "schemaVersion": "v3",
   "schemas": [
     {
@@ -8,6 +8,13 @@
       "uri": "harmony://schema/business-flow",
       "title": "BusinessFlow (v3 業務フロー)",
       "description": "業務の流れ (スイムレーン)。",
+      "rootRequired": [
+        "version",
+        "id",
+        "name",
+        "lanes",
+        "steps"
+      ],
       "defCount": 5,
       "defs": [
         {
@@ -318,6 +325,9 @@
       "uri": "harmony://schema/conventions",
       "title": "Conventions (v3 横断規約カタログ)",
       "description": "プロジェクト横断の規約カタログ。",
+      "rootRequired": [
+        "version"
+      ],
       "defCount": 17,
       "defs": [
         {
@@ -463,6 +473,10 @@
       "uri": "harmony://schema/er-layout",
       "title": "ErLayout (v3 ER 図 UI 座標)",
       "description": "ER 図の UI 座標および論理リレーション (FK 未定義の概念リレーション) を集約。",
+      "rootRequired": [
+        "positions",
+        "updatedAt"
+      ],
       "defCount": 1,
       "defs": [
         {
@@ -599,6 +613,7 @@
       "uri": "harmony://schema/generic-definition",
       "title": "Generic Definition (v3 汎用設計定義 親 schema)",
       "description": "Layer 2 Generic Definition Catalog の 17 kind 共通メタモデル (#1263 Phase X2 / RFC #1254 件 3.7 で 8 → 14 kind に拡張、#1303 で 14 → 17 kind に拡張、#1310 で 1…",
+      "rootRef": "#/$defs/GenericDefinition",
       "defCount": 7,
       "defs": [
         {
@@ -657,6 +672,11 @@
       "uri": "harmony://schema/harmony",
       "title": "Harmony Workspace Marker (v3)",
       "description": "ワークスペースルートを識別する marker ファイル (harmony.json) の定義。",
+      "rootRequired": [
+        "schemaVersion",
+        "meta",
+        "dataDir"
+      ],
       "defCount": 10,
       "defs": [
         {
@@ -723,6 +743,10 @@
       "uri": "harmony://schema/layout-components",
       "title": "LayoutComponents (v3 プロジェクト独自部品)",
       "description": "プロジェクト共通の独自部品の集合。",
+      "rootRequired": [
+        "version",
+        "components"
+      ],
       "defCount": 6,
       "defs": [
         {
@@ -773,6 +797,7 @@
       "uri": "harmony://schema/page-layout",
       "title": "PageLayout (v3 共通レイアウト entity)",
       "description": "共通レイアウト entity 1 件分の正規定義 (#1021)。",
+      "rootRef": "#/$defs/PageLayout",
       "defCount": 3,
       "defs": [
         {
@@ -806,6 +831,10 @@
       "uri": "harmony://schema/process-flow",
       "title": "ProcessFlow (v3 処理フロー定義)",
       "description": "業務処理フロー entity 1 件分の正規定義。",
+      "rootRequired": [
+        "meta",
+        "actions"
+      ],
       "defCount": 86,
       "defs": [
         {
@@ -1459,6 +1488,12 @@
       "uri": "harmony://schema/report",
       "title": "Report (v3 帳票)",
       "description": "紙 (PDF・Excel・CSV) に出力する帳票の設計。",
+      "rootRequired": [
+        "version",
+        "id",
+        "name",
+        "sections"
+      ],
       "defCount": 8,
       "defs": [
         {
@@ -1519,6 +1554,10 @@
       "uri": "harmony://schema/screen-flow-positions",
       "title": "ScreenFlowPositions (v3 画面フロー UI 座標)",
       "description": "画面フロー図 (ReactFlow キャンバス) 上の各画面・グループ・遷移の UI 座標を集約する。",
+      "rootRequired": [
+        "positions",
+        "updatedAt"
+      ],
       "defCount": 2,
       "defs": [
         {
@@ -1541,6 +1580,7 @@
       "uri": "harmony://schema/screen-item",
       "title": "ScreenItem (v3 画面項目定義)",
       "description": "画面項目 1 件の正規定義。",
+      "rootRef": "#/$defs/ScreenItem",
       "defCount": 6,
       "defs": [
         {
@@ -1597,6 +1637,7 @@
       "uri": "harmony://schema/screen",
       "title": "Screen (v3 画面定義)",
       "description": "画面 entity 1 件分の正規定義。",
+      "rootRef": "#/$defs/Screen",
       "defCount": 7,
       "defs": [
         {
@@ -1648,6 +1689,7 @@
       "uri": "harmony://schema/sequence",
       "title": "Sequence (v3 シーケンス定義)",
       "description": "DB シーケンス 1 件の定義。",
+      "rootRef": "#/$defs/Sequence",
       "defCount": 1,
       "defs": [
         {
@@ -1665,6 +1707,7 @@
       "uri": "harmony://schema/table",
       "title": "Table (v3 テーブル定義)",
       "description": "テーブル entity 1 件分の正規定義。",
+      "rootRef": "#/$defs/Table",
       "defCount": 12,
       "defs": [
         {
@@ -1775,6 +1818,7 @@
       "uri": "harmony://schema/view-definition",
       "title": "ViewDefinition (v3 画面 一覧 UI 表示定義)",
       "description": "画面側の一覧 UI 表示設定 (list / detail / kanban / calendar 等)。",
+      "rootRef": "#/$defs/ViewDefinition",
       "defCount": 9,
       "defs": [
         {
@@ -1853,6 +1897,7 @@
       "uri": "harmony://schema/view",
       "title": "View (v3 ビュー定義)",
       "description": "DB ビュー 1 件の定義。",
+      "rootRef": "#/$defs/View",
       "defCount": 2,
       "defs": [
         {
@@ -1873,6 +1918,142 @@
           ]
         }
       ]
+    },
+    {
+      "file": "schemas/v3/generic-definitions/application-rule.v3.schema.json",
+      "kind": "generic-definitions/application-rule",
+      "title": "Application Rule (v3 generic-definition kind: application-rule)",
+      "description": "Generic Definition Catalog の application-rule kind 固有 schema。",
+      "defCount": 0,
+      "defs": []
+    },
+    {
+      "file": "schemas/v3/generic-definitions/component-definition.v3.schema.json",
+      "kind": "generic-definitions/component-definition",
+      "title": "Component Definition (v3 generic-definition kind: component-definition)",
+      "description": "Generic Definition Catalog の component-definition kind 固有 schema (#1254 件 3.7 / #1263 Phase X2、#1066 で概念導入済)。",
+      "defCount": 0,
+      "defs": []
+    },
+    {
+      "file": "schemas/v3/generic-definitions/constants.v3.schema.json",
+      "kind": "generic-definitions/constants",
+      "title": "Constants (v3 generic-definition kind: constants)",
+      "description": "Generic Definition Catalog の constants kind 固有 schema (#1254 件 3.7 / #1263 Phase X2)。",
+      "defCount": 0,
+      "defs": []
+    },
+    {
+      "file": "schemas/v3/generic-definitions/data-contract.v3.schema.json",
+      "kind": "generic-definitions/data-contract",
+      "title": "Data Contract (v3 generic-definition kind: data-contract)",
+      "description": "Generic Definition Catalog の data-contract kind 固有 schema。",
+      "defCount": 0,
+      "defs": []
+    },
+    {
+      "file": "schemas/v3/generic-definitions/dialog.v3.schema.json",
+      "kind": "generic-definitions/dialog",
+      "title": "Dialog (v3 generic-definition kind: dialog)",
+      "description": "Generic Definition Catalog の dialog kind 固有 schema (#1303)。",
+      "defCount": 0,
+      "defs": []
+    },
+    {
+      "file": "schemas/v3/generic-definitions/domain-event.v3.schema.json",
+      "kind": "generic-definitions/domain-event",
+      "title": "Domain Event (v3 generic-definition kind: domain-event)",
+      "description": "Generic Definition Catalog の domain-event kind 固有 schema (#1254 件 3.7 / #1263 Phase X2)。",
+      "defCount": 0,
+      "defs": []
+    },
+    {
+      "file": "schemas/v3/generic-definitions/domain-type.v3.schema.json",
+      "kind": "generic-definitions/domain-type",
+      "title": "Domain Type (v3 generic-definition kind: domain-type)",
+      "description": "Generic Definition Catalog の domain-type kind 固有 schema。",
+      "defCount": 0,
+      "defs": []
+    },
+    {
+      "file": "schemas/v3/generic-definitions/exception-type.v3.schema.json",
+      "kind": "generic-definitions/exception-type",
+      "title": "Exception Type (v3 generic-definition kind: exception-type)",
+      "description": "Generic Definition Catalog の exception-type kind 固有 schema。",
+      "defCount": 0,
+      "defs": []
+    },
+    {
+      "file": "schemas/v3/generic-definitions/global.v3.schema.json",
+      "kind": "generic-definitions/global",
+      "title": "Global (v3 generic-definition kind: global)",
+      "description": "Generic Definition Catalog の global kind 固有 schema (#1310)。",
+      "defCount": 0,
+      "defs": []
+    },
+    {
+      "file": "schemas/v3/generic-definitions/log-config.v3.schema.json",
+      "kind": "generic-definitions/log-config",
+      "title": "Log Config (v3 generic-definition kind: log-config)",
+      "description": "Generic Definition Catalog の log-config kind 固有 schema (#1254 件 3.7 / #1263 Phase X2)。",
+      "defCount": 0,
+      "defs": []
+    },
+    {
+      "file": "schemas/v3/generic-definitions/log-event.v3.schema.json",
+      "kind": "generic-definitions/log-event",
+      "title": "Log Event (v3 generic-definition kind: log-event)",
+      "description": "Generic Definition Catalog の log-event kind 固有 schema (#1254 件 3.7 / #1263 Phase X2)。",
+      "defCount": 0,
+      "defs": []
+    },
+    {
+      "file": "schemas/v3/generic-definitions/message-area.v3.schema.json",
+      "kind": "generic-definitions/message-area",
+      "title": "MessageArea (v3 generic-definition kind: message-area)",
+      "description": "Generic Definition Catalog の message-area kind 固有 schema (#1303 で導入、#1318 で messageArea → message-area に kebab-case 統一)。",
+      "defCount": 0,
+      "defs": []
+    },
+    {
+      "file": "schemas/v3/generic-definitions/message.v3.schema.json",
+      "kind": "generic-definitions/message",
+      "title": "Message (v3 generic-definition kind: message)",
+      "description": "Generic Definition Catalog の message kind 固有 schema (#1254 件 3.7 / #1263 Phase X2)。",
+      "defCount": 0,
+      "defs": []
+    },
+    {
+      "file": "schemas/v3/generic-definitions/options.v3.schema.json",
+      "kind": "generic-definitions/options",
+      "title": "Options (v3 generic-definition kind: options)",
+      "description": "Generic Definition Catalog の options kind 固有 schema (#1303)。",
+      "defCount": 0,
+      "defs": []
+    },
+    {
+      "file": "schemas/v3/generic-definitions/runtime-policy.v3.schema.json",
+      "kind": "generic-definitions/runtime-policy",
+      "title": "Runtime Policy (v3 generic-definition kind: runtime-policy)",
+      "description": "Generic Definition Catalog の runtime-policy kind 固有 schema。",
+      "defCount": 0,
+      "defs": []
+    },
+    {
+      "file": "schemas/v3/generic-definitions/ui-behavior.v3.schema.json",
+      "kind": "generic-definitions/ui-behavior",
+      "title": "UI Behavior (v3 generic-definition kind: ui-behavior)",
+      "description": "Generic Definition Catalog の ui-behavior kind 固有 schema。",
+      "defCount": 0,
+      "defs": []
+    },
+    {
+      "file": "schemas/v3/generic-definitions/validation-rule.v3.schema.json",
+      "kind": "generic-definitions/validation-rule",
+      "title": "Validation Rule (v3 generic-definition kind: validation-rule)",
+      "description": "Generic Definition Catalog の validation-rule kind 固有 schema (#1254 件 3.7 / #1263 Phase X2)。",
+      "defCount": 0,
+      "defs": []
     }
   ]
 }

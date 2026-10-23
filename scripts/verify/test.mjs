@@ -43,7 +43,8 @@ function assert(name, cond, detail = "") {
 
 async function group(title, fn) {
   console.log(`\n• ${title}`);
-  await fn(); // 同期の試験は、その場で最後まで動く。非同期の試験は、呼び出し側が await する
+  // 同期の試験は、その場で最後まで動く。非同期の試験は、呼び出し側が await する。例外は失敗として数える
+  try { await fn(); } catch (e) { fail++; console.log(`  ✗ (群の途中で例外) ${e && e.stack ? e.stack.split("\n").slice(0, 3).join(" / ") : e}`); }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -712,11 +713,17 @@ await group("AI 向けの資料の自動生成と検査 (generated / json-exampl
   assert("firstSentence: 括弧の中の。では切らない", fs1("汎用定義 (genericDefinition。メッセージ)。次。") === "汎用定義 (genericDefinition。メッセージ)。");
   const kinds = buildStepKinds();
   assert("工程の種類の一覧: 25 の組み込みの種類と拡張が載り、日本語名が付く", /\| `validation` \| 入力チェック \|/.test(kinds) && /\| `setGlobal` \| グローバル設定 \|/.test(kinds) && /namespace:StepName/.test(kinds) && (kinds.match(/^\| `/gm) ?? []).length === 26);
+  assert("工程の種類の一覧: 条件つきの必須 (loop は loopKind=count のとき countExpression ほか) を載せ、見出しは『常に必須』", /常に必須の項目/.test(kinds) && /\| `loop` \|[^\n]*`loopKind=count` のとき `countExpression`/.test(kinds) && /`pattern=approval-quorum` のとき `quorum`/.test(kinds));
   const idx = JSON.parse(buildSchemaIndex());
+  assert("スキーマの索引: ルートの必須の項目と、汎用定義のスキーマも載る", idx.schemas.find((s) => s.kind === "process-flow").rootRequired?.join() === "meta,actions" && idx.schemas.some((s) => s.kind.startsWith("generic-definitions/")));
   assert("スキーマの索引: 全ファイルと $defs、BranchStep の必須の項目", idx.schemas.length >= 15 && idx.schemas.find((s) => s.kind === "process-flow").defs.some((d) => d.name === "BranchStep" && d.required?.includes("branches")));
   assert("self-check ルールの一覧: 33 件以上、番号と題", (buildPitfalls().match(/^\| \d+[a-z]? \|/gm) ?? []).length >= 33);
   const gl = JSON.parse(buildGlossary());
-  assert("用語集: 中心の用語と、工程の種類の用語が両方ある。tool の名前は実在する (作れること自体が検査)", gl.terms.length > CORE_TERMS.length && gl.terms.some((t) => t.term === "判定表") && gl.terms.some((t) => t.generated && t.term === "分岐"));
+  assert("用語集: 中心の用語と、工程の種類の用語が両方ある。tool の名前は実在する (作れること自体が検査)", gl.terms.length > CORE_TERMS.length && gl.terms.some((t) => t.term === "判定表") && gl.terms.some((t) => t.generated && t.term === "分岐 (工程の種類)"));
+  const names = JSON.parse(buildGlossary()).terms.map((t) => t.term);
+  assert("用語集: 用語が重複しない (生成の用語は、中心の用語と同名なら『(工程の種類)』を付ける)", new Set(names).size === names.length && names.includes("分岐 (工程の種類)") && names.includes("分岐"), names.filter((n, i) => names.indexOf(n) !== i).join());
+  assert("self-check ルールの題: 注記 (#486 など) と山括弧が残らない", !/#486|schema 制約|<camelCase>/.test(buildPitfalls()));
+  assert("サンプルのパターン: 拡張の行にも日本語名が付く", /\| `namespace:StepName` \| 拡張 \|/.test(buildPatterns()));
   assert("サンプルのパターン: 種類ごとの例の場所", /\| `branch` \| 分岐 \| `examples\//.test(buildPatterns()));
   assert("このリポジトリの生成物が、正本と合っている", checkGenerated().length === 0, JSON.stringify(checkGenerated()));
   const tmp = mkdtempSync(join(tmpdir(), "gen-"));
