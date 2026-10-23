@@ -25,6 +25,7 @@ import type { ExternalSpecSummary } from "./analysis/externalContract.js";
 import { localDate, opLetters, type CrudLetter } from "./analysis/common.js";
 import { applySuppressions, issueKey, type SuppressionStatus } from "./analysis/suppress.js";
 import { deriveSqlCatalog, findDuplicateSql } from "./analysis/sqlCatalog.js";
+import { checkIntegrity } from "./analysis/integrity.js";
 import { namingIssues } from "./analysis/naming.js";
 import { deriveOperationMatrix } from "./analysis/accessOps.js";
 import { customRuleIssues } from "./analysis/customRules.js";
@@ -767,7 +768,7 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
 
   // 要確認事項 (設計の外で検出したものも含める)。命名規約・独自ルールの違反も加え、理由つきで抑制されたものを除く
   for (const x of input.extraIssues ?? []) issues.push(x);
-  issues.push(...namingIssues(input), ...customRuleIssues(input));
+  issues.push(...checkIntegrity(input), ...namingIssues(input), ...customRuleIssues(input));
   for (const x of issues) x.key = issueKey(x);
   const { active, status: suppression } = applySuppressions(issues, input.checkSettings?.suppressions ?? [], input.generatedAt ? date : localDate()); // 期限の判定は、利用者の (この環境の) 日付で
   issues.length = 0;

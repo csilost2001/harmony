@@ -353,6 +353,18 @@ Screen JSON の `kind` フィールドとテンプレート分岐。詳細は `a
 
 ---
 
+## 9.5 生成の前後を支える道具 (MCP / CLI)
+
+| 場面 | 道具 |
+|---|---|
+| 生成の前に、設計から情報を集める | `designer__get_generation_brief` — 処理フロー (`processFlowId`) / 画面 (`screenId`) ごとに、何を作るか・技術スタック・処理の流れ (言葉)・使うテーブルのカラム・規約の参照 (`@conv.*` の値つき)・呼び出す画面の項目・テスト観点・記録の呼び方を 1 つの文書 (Markdown) にまとめる。大きさに上限がある (テーブル 30・項目 80・観点 60 まで。超えた分は件数で知らせる) |
+| 生成したら | `designer__record_generation` — 作ったファイルと元にした設計を記録する。**テストのファイルは、パスに `test` か `spec` を含める** |
+| テストが観点表をどれだけ覆うか | `designer__check_test_coverage` — 記録されたテストのうち、本文に観点の ID が書かれているものを数える (割合・覆っていない観点)。ID をテスト名に書く約束は [test-viewpoints.md](test-viewpoints.md) §5。`screenIds` / `flowIds` の一方だけ指定したら、もう一方は対象にしない |
+| 設計が変わったときの再生成の範囲 | `designer__check_generation_drift` → `designer__get_regeneration_diff`。変更に絞ったテスト観点は `designer__get_test_viewpoints` の `since` |
+| CI・コミット前の確認 | `npm run check:generation -- <ワークスペース> [--coverage [--min <割合>]] [--require-records] [--json]` — ずれ (設計が変わった・生成物が書き換わった・消えた) か、記録の読み込みの問題があれば終了コード 1。記録が 0 件のときは何も検査していないので 0 (`--require-records` で 1 にできる)。`--coverage --min` で観点の覆い方の下限も見る |
+
+`get_generation_brief` と `check_test_coverage` は読み取りだけ (読み取り専用モード・プロファイル `read` でも使える)。`check_test_coverage` が読むのは、記録された生成物だけ (ワークスペースか `.tmp/generated-code/` の中の通常のファイル。外へ出るパス・外を指すシンボリックリンク・2 MiB を超えるものは読まない)。
+
 ## 10. 検証方法
 
 ### `/generate-code` スキルの smoke 検証 (Step 6)

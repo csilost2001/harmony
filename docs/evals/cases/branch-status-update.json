@@ -1,0 +1,11 @@
+{
+  "id": "branch-status-update",
+  "title": "状態を見て分岐する更新 (条件で道を分け、UPDATE、トランザクション)",
+  "request": "注文を確定する処理を作ってください。注文の状態が「カート」のときだけ「確定」に更新し、それ以外のときは 409 を返します。在庫を減らす更新と注文の更新は、同じトランザクションにします。設計が終わったら designer__check_design で要確認を 0 件にしてください。",
+  "expectations": [
+    { "type": "hasFlow", "matches": "order|confirm|注文|確定", "stepKinds": ["branch", "dbAccess", "transactionScope", "return"], "dbOperations": ["UPDATE"], "successStatus": 200, "errorStatus": true },
+    { "type": "noIssues" },
+    { "type": "flowsCallable" }
+  ],
+  "selfTest": "examples/retail"
+}

@@ -31,6 +31,8 @@ import { pageOf } from "./designKinds.js";
 import { tools as allTools } from "../tools.js";
 import { toolAnnotations } from "../mcpToolMeta.js";
 import { filterTools } from "../security/mcpAccess.js";
+import { buildGenerationBrief } from "../generationBrief.js";
+import { checkTestCoverage } from "../testCoverage.js";
 import { PROFILES, isInProfile } from "../security/mcpProfiles.js";
 import { wsBridge } from "../wsBridge.js";
 
@@ -50,7 +52,7 @@ async function loadFlow(a: Record<string, unknown>, root: string): Promise<FlowD
   return doc as FlowDoc;
 }
 
-function actionsOf(doc: FlowDoc, actionId: unknown) {
+export function actionsOf(doc: FlowDoc, actionId: unknown) {
   const all = Array.isArray(doc.actions) ? doc.actions.filter(isRecord) : [];
   if (typeof actionId !== "string") return all;
   const one = all.filter((x) => x.id === actionId);
@@ -58,7 +60,7 @@ function actionsOf(doc: FlowDoc, actionId: unknown) {
   return one;
 }
 
-async function flowContext(root: string): Promise<FlowContext> {
+export async function flowContext(root: string): Promise<FlowContext> {
   const { input } = await loadDesignInputFromRoot(root);
   const tables = new Map(input.tables.filter(isRecord).map((t) => [String(t.id), (t.name as string | undefined) || (t.physicalName as string | undefined)]));
   const screens = new Map(input.screens.filter(isRecord).map((s) => [String(s.id), s.name as string | undefined]));
@@ -84,7 +86,7 @@ const rowBrief = (r: OutlineRow) => ({
 });
 
 /** 「流れ」の文章 (Markdown)。画面の「流れ」表示・設計書と同じ、条件を言葉にした読み方 */
-function storyOf(doc: FlowDoc, actions: ReturnType<typeof actionsOf>, ctx: FlowContext): string {
+export function storyOf(doc: FlowDoc, actions: ReturnType<typeof actionsOf>, ctx: FlowContext): string {
   const out: string[] = [`# ${doc.meta?.name || doc.meta?.id || "処理フロー"} (${doc.meta?.id ?? ""})`];
   for (const act of actions) {
     const labels = buildVarLabels(act as never);
@@ -153,6 +155,21 @@ async function walkJson(dir: string, depth = 0): Promise<string[]> {
     else if (e.isFile() && e.name.endsWith(".json")) out.push(p);
   }
   return out;
+}
+
+/** ある時刻より後に変わった設計ファイル (新しい順)。get_changes_since と、変更に絞るテスト観点が使う */
+export async function changedFilesSince(root: string, sinceMs: number): Promise<Array<{ kind: string; id: string; file: string; modifiedAt: string }>> {
+  const dataRoot = await resolveDataRoot(root);
+  const changes: Array<{ kind: string; id: string; file: string; modifiedAt: string }> = [];
+  for (const file of await walkJson(dataRoot)) {
+    const st = await fs.stat(file).catch(() => null);
+    if (!st || st.mtimeMs <= sinceMs) continue;
+    const rel = path.relative(dataRoot, file).split(path.sep).join("/");
+    const top = rel.split("/")[0];
+    changes.push({ kind: DIR_KIND[top] ?? (rel.includes("/") ? top : "project"), id: path.basename(file, ".json"), file: rel, modifiedAt: st.mtime.toISOString() });
+  }
+  changes.sort((x, y) => y.modifiedAt.localeCompare(x.modifiedAt));
+  return changes;
 }
 
 export const handleDesignInsightTool: ToolHandler = async (name, args, root) => {
@@ -253,17 +270,19 @@ export const handleDesignInsightTool: ToolHandler = async (name, args, root) => 
       if (a.since !== undefined && typeof a.since !== "string") throw bad("since は ISO の日時の文字列で指定してください");
       const sinceMs = typeof a.since === "string" ? Date.parse(a.since) : Date.now() - 24 * 3600 * 1000;
       if (!Number.isFinite(sinceMs)) throw bad("since は ISO の日時で指定してください (例: 2026-10-24T09:00:00+09:00)。省略すると直近 24 時間");
-      const dataRoot = await resolveDataRoot(root);
-      const changes: Array<{ kind: string; id: string; file: string; modifiedAt: string }> = [];
-      for (const file of await walkJson(dataRoot)) {
-        const st = await fs.stat(file).catch(() => null);
-        if (!st || st.mtimeMs <= sinceMs) continue;
-        const rel = path.relative(dataRoot, file).split(path.sep).join("/");
-        const top = rel.split("/")[0];
-        changes.push({ kind: DIR_KIND[top] ?? (rel.includes("/") ? top : "project"), id: path.basename(file, ".json"), file: rel, modifiedAt: st.mtime.toISOString() });
-      }
-      changes.sort((x, y) => y.modifiedAt.localeCompare(x.modifiedAt));
+      const changes = await changedFilesSince(root, sinceMs);
       return json({ since: new Date(sinceMs).toISOString(), count: changes.length, changes: changes.slice(0, 200), ...(changes.length > 200 ? { truncated: true } : {}) });
+    }
+
+    case "designer__get_generation_brief": {
+      try {
+        return text(await buildGenerationBrief(root, { processFlowId: typeof a.processFlowId === "string" ? a.processFlowId : undefined, screenId: typeof a.screenId === "string" ? a.screenId : undefined }));
+      } catch (e) { throw bad((e as Error).message); }
+    }
+
+    case "designer__check_test_coverage": {
+      const ids = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : undefined);
+      return json(await checkTestCoverage(root, { screenIds: ids(a.screenIds), flowIds: ids(a.flowIds) }));
     }
 
     case "designer__get_tool_guide": {

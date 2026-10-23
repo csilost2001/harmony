@@ -196,7 +196,89 @@ export async function validateEntitySchema(kind: EntityKind, data: unknown): Pro
   if (typeof data !== "object" || data === null || Array.isArray(data)) return [];
   const validate = await getEntityValidator(kind);
   if (validate(data)) return [];
-  return selectAjvErrors(validate.errors ?? []);
+  const errors = validate.errors ?? [];
+  return selectAjvErrors(kind === "processFlow" ? await refineStepErrors(data as Record<string, unknown>, errors) : errors);
+}
+
+const STEP_LIST_KEYS = ["steps", "subSteps", "onCommit", "onRollback", "onApproved", "onRejected", "onTimeout"] as const;
+
+/** 処理フローの全工程を (JSON ポインタ, 工程) で集める。入れ子の置き場所はすべて (shared の stepChildLists と同じ) */
+function collectStepSubjects(doc: Record<string, unknown>): Array<{ path: string; step: Record<string, unknown> }> {
+  const out: Array<{ path: string; step: Record<string, unknown> }> = [];
+  const isRec = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
+  const walk = (list: unknown, p: string): void => {
+    if (!Array.isArray(list)) return;
+    list.forEach((st, i) => {
+      if (!isRec(st)) return;
+      const sp = `${p}/${i}`;
+      out.push({ path: sp, step: st });
+      for (const k of STEP_LIST_KEYS) walk(st[k], `${sp}/${k}`);
+      if (Array.isArray(st.branches)) st.branches.forEach((b, bi) => { if (isRec(b)) walk(b.steps, `${sp}/branches/${bi}/steps`); });
+      if (isRec(st.elseBranch)) walk(st.elseBranch.steps, `${sp}/elseBranch/steps`);
+      if (isRec(st.inlineBranch)) { walk(st.inlineBranch.ok, `${sp}/inlineBranch/ok`); walk(st.inlineBranch.ng, `${sp}/inlineBranch/ng`); }
+      const oc = isRec(st.errorHandling) ? st.errorHandling.outcomes : undefined;
+      if (isRec(oc)) for (const [key, spec] of Object.entries(oc)) if (isRec(spec)) walk(spec.sideEffects, `${sp}/errorHandling/outcomes/${key}/sideEffects`);
+    });
+  };
+  if (Array.isArray(doc.actions)) doc.actions.forEach((a, i) => { if (a && typeof a === "object") walk((a as Record<string, unknown>).steps, `/actions/${i}/steps`); });
+  return out;
+}
+
+let _stepKindToDef: Map<string, string> | undefined;
+/** 工程の種類 (kind) → スキーマの定義名 (Step の oneOf から) */
+function stepKindToDef(schema: { $defs?: Record<string, { oneOf?: Array<{ $ref?: string }>; allOf?: Array<{ properties?: { kind?: { const?: string } } }> }> }): Map<string, string> {
+  if (_stepKindToDef) return _stepKindToDef;
+  const m = new Map<string, string>();
+  for (const r of schema.$defs?.Step?.oneOf ?? []) {
+    const name = r.$ref?.replace("#/$defs/", "");
+    const c = name ? schema.$defs?.[name]?.allOf?.map((p) => p.properties?.kind?.const).find((x) => typeof x === "string") : undefined;
+    if (name && c) m.set(c, name);
+  }
+  return (_stepKindToDef = m);
+}
+
+/**
+ * 工程のスキーマ違反を、**その工程の種類の定義に対してだけ**検査し直した違反に置き換える。
+ * 工程 (Step) は 26 種類の oneOf で、そのまま検査すると、必須の項目が 1 つ足りないだけで、ほかの 25 種類の枝の違反が 100 件以上並び、本当の原因が埋もれる。
+ * 種類 (kind) がどの定義にもない (綴り間違い) 工程は、kind の違反を 1 件だけにする。
+ */
+async function refineStepErrors(doc: Record<string, unknown>, errors: ErrorObject[]): Promise<ErrorObject[]> {
+  const subjects = collectStepSubjects(doc).sort((a, b) => b.path.length - a.path.length); // 深い方から当てる
+  if (!subjects.length) return errors;
+  const ownerOf = (ip: string) => subjects.find((s) => ip === s.path || ip.startsWith(`${s.path}/`));
+  const rootSchemaId = entityKindToSchemaId("processFlow");
+  const rootValidate = _ajv.getSchema(rootSchemaId);
+  const schema = rootValidate?.schema as Parameters<typeof stepKindToDef>[0] | undefined;
+  if (!schema) return errors;
+  const kept: ErrorObject[] = [];
+  const touched = new Map<string, (typeof subjects)[number]>();
+  for (const e of errors) {
+    const o = ownerOf(e.instancePath);
+    if (!o) kept.push(e); else touched.set(o.path, o);
+  }
+  if (!touched.size) return errors;
+  const map = stepKindToDef(schema);
+  for (const o of touched.values()) {
+    const k = o.step.kind;
+    const def = typeof k === "string" ? map.get(k) ?? (k.includes(":") ? "ExtensionStep" : undefined) : undefined;
+    // 失敗系の結果ごとの副作用 (errorHandling.outcomes.*.sideEffects) は、return 以外の工程 (NonReturnStep)
+    if (k === "return" && /\/sideEffects\/\d+$/.test(o.path)) {
+      kept.push({ instancePath: `${o.path}/kind`, schemaPath: "#/properties/kind/const", keyword: "const", params: { allowedValue: "return 以外の工程" }, message: "must be equal to constant" } as ErrorObject);
+      continue;
+    }
+    const v = def ? _ajv.getSchema(`${rootSchemaId}#/$defs/${def}`) : undefined;
+    if (!v) {
+      kept.push({ instancePath: `${o.path}/kind`, schemaPath: "#/properties/kind/const", keyword: "const", params: { allowedValue: [...map.keys()].join(" | ") }, message: "must be equal to constant" } as ErrorObject);
+      continue;
+    }
+    if (v(o.step)) continue; // この工程自体は合っている (違反は、入れ子の工程にある)
+    for (const e2 of v.errors ?? []) {
+      const ip = `${o.path}${e2.instancePath}`;
+      if (ownerOf(ip) !== o) continue; // 入れ子の工程の違反は、その工程の検査で出す
+      kept.push({ ...e2, instancePath: ip });
+    }
+  }
+  return kept;
 }
 
 /**

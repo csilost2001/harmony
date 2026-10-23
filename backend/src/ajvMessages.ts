@@ -33,8 +33,9 @@ export function describeAjvError(err: Pick<ErrorObject, "keyword" | "message" | 
 }
 
 /**
- * 違反の一覧から、マーカーにする違反を選ぶ。`if` / `then` の副次的な違反 (必須の項目がないと、
- * 「then のスキーマに合わない」が重ねて出る) は、元の違反と重複するので除く。
+ * 違反の一覧から、要確認に出す違反を選ぶ。`if` / `then` の副次的な違反 (必須の項目がないと、「then のスキーマに合わない」が重ねて出る) は、元の違反と重複するので除く。
+ * (工程 26 種類の oneOf の雑音は、projectStorage.ts の refineStepErrors が、その種類の定義だけに対して検査し直して除く。
+ *  Ajv の schemaPath は $ref が展開されて oneOf の番号を含まないので、ここでは枝を見分けられない)
  */
 export function selectAjvErrors<T extends Pick<ErrorObject, "keyword">>(errors: readonly T[]): T[] {
   const primary = errors.filter((e) => e.keyword !== "if");

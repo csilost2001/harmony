@@ -72,7 +72,11 @@ Prompt `review-flow`。指摘は `add_review_findings` (位置つきのコメン
 
 ## 8. コードを生成する
 
-Prompt `generate-code` → 生成したら `record_generation`。再生成の前に `check_generation_drift` / `get_regeneration_diff`。テストは `get_test_viewpoints` と Prompt `generate-tests`。
+1. `get_generation_brief` — 処理フロー / 画面ごとに、流れ・使うテーブル・規約の値・テスト観点が 1 つの文書になる
+2. Prompt `generate-code` で生成 → `record_generation` (テストのファイルはパスに `test` か `spec`)
+3. テストは `get_test_viewpoints` と Prompt `generate-tests`。テストの名前に観点の ID を書く → `check_test_coverage` で覆い方を確かめる
+4. 設計が変わったら、再生成の前に `check_generation_drift` / `get_regeneration_diff`。変更の影響を受ける観点だけは `get_test_viewpoints` の `since`
+5. CI・コミット前: `npm run check:generation -- <ワークスペース> --coverage --min 80`
 
 ## 逆引き: よくある失敗
 

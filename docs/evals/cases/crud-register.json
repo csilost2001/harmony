@@ -1,0 +1,11 @@
+{
+  "id": "crud-register",
+  "title": "登録 API (入力チェック → INSERT → 201、重複などは異常終了)",
+  "request": "商品マスタを新しく登録する API を作ってください。商品コード・商品名・単価を受け取り、入力を確かめ、商品テーブルに追加して、成功したら 201 を返します。商品コードがすでにあるときは 409 を返します。設計が終わったら designer__check_design で要確認を 0 件にしてください。",
+  "expectations": [
+    { "type": "hasTable", "matches": "product|商品", "minColumns": 3, "hasPrimaryKey": true, "note": "商品のテーブルがあり、主キーを持つ" },
+    { "type": "hasFlow", "matches": "product|商品", "stepKinds": ["validation", "dbAccess", "return"], "dbOperations": ["INSERT"], "successStatus": 201, "errorStatus": true, "note": "入力チェック・INSERT・201・異常終了がそろう" },
+    { "type": "noIssues" },
+    { "type": "testViewpoints", "min": 1 }
+  ]
+}

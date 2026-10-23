@@ -1,0 +1,27 @@
+{
+  "id": "search-list",
+  "title": "検索 API (条件を確かめ → SELECT → 200、見つからないときの扱い)",
+  "request": "商品を検索する API を作ってください。商品名(部分一致)と、価格の範囲を条件にでき、条件に合う商品の一覧を返します。条件の形が不正なときは 400 を返します。設計が終わったら designer__check_design で要確認を 0 件にしてください。",
+  "expectations": [
+    {
+      "type": "hasFlow",
+      "matches": "search|検索",
+      "stepKinds": [
+        "validation",
+        "dbAccess",
+        "return"
+      ],
+      "dbOperations": [
+        "SELECT"
+      ],
+      "successStatus": 200,
+      "errorStatus": true
+    },
+    {
+      "type": "noIssues"
+    },
+    {
+      "type": "flowsCallable"
+    }
+  ]
+}

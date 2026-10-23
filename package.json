@@ -34,6 +34,8 @@
     "ui:narrow": "node scripts/dev/narrow-audit.mjs",
     "export:doc": "node scripts/export-design-doc.mjs",
     "check:design": "node scripts/check-design.mjs",
+    "check:generation": "tsx scripts/dev/check-generation.mts",
+    "eval:design": "tsx scripts/dev/eval-design.mts",
     "check:docs": "node scripts/verify/docs-freshness.mjs",
     "docs:shots": "node scripts/dev/docs-shots.mjs",
     "coverage": "node scripts/verify/changed-coverage.mjs --all",

@@ -159,6 +159,24 @@ async function outputHash(root: string, rel: string, genBase?: GenBase): Promise
   } catch { return null; }
 }
 
+/**
+ * 記録された生成物 1 つの本文を読む (読み取り専用)。outputHash と同じ守り: 基準 (ワークスペースか .tmp/generated-code) の外・シンボリックリンクの先が外・
+ * 通常のファイルでない・大きすぎるものは、読まない (null)。
+ */
+export async function readGeneratedText(root: string, rel: string, genBase?: GenBase, maxBytes = 2 * 1024 * 1024): Promise<string | null> {
+  const top = baseDir(root, genBase);
+  const abs = path.resolve(top, rel);
+  if (abs !== top && !abs.startsWith(path.resolve(top) + path.sep)) return null;
+  try {
+    const real = await fs.realpath(abs);
+    const base = await fs.realpath(top);
+    if (real !== base && !real.startsWith(base + path.sep)) return null;
+    const st = await fs.stat(real);
+    if (!st.isFile() || st.size > maxBytes) return null;
+    return await fs.readFile(real, "utf8");
+  } catch { return null; }
+}
+
 export interface RecordGenerationInput { outputs: Array<{ path: unknown; base?: unknown; sources?: unknown; generator?: unknown; note?: unknown }> }
 
 export async function recordGeneration(root: string, input: RecordGenerationInput, actor = "AI"): Promise<{ recorded: number; warnings: string[] }> {
