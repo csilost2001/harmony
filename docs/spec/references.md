@@ -1,3 +1,9 @@
+---
+description: "参照元 (その設計を参照している設計の一覧。改名・削除の前の影響確認。UI の「参照元」/ MCP designer__find_references)"
+status: current
+category: schema
+---
+
 # 参照元 (どこで使われているか) — 仕様書
 
 **Status**: 実装済 (2026-10)

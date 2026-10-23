@@ -25,6 +25,7 @@ Claude Code 固有の補足は `CLAUDE.md`、Codex 固有の設定は `.codex/co
 | 初めての人が迷いやすいところの改善 (一覧のダブルクリックの案内・閲覧中の案内・「編集を終える」・追加ボタンの名前を「〜を追加」に・未配置のタブ・新しい処理フローはラフから・デザインと項目定義を行き来しても確認が出ない: 衝突の判定と「前回の編集の続き」の条件) | [ui-first-run-ux.md](docs/spec/ui-first-run-ux.md) |
 | 処理フローの「流れ」表示 (AI が作った複雑な処理を人が読み、顧客指定の細かい仕様を人が書くための画面: 入れ子・ガード・言葉の条件・概要 / 詳細 / 実装・見出し・出口の一覧・変数の流れ・確認済み ✓・その場で直す・判定表 (複合条件を表で見る・直す、抜けと隠れの指摘)。schema の任意項目 `heading` / `label` / `collectionItemLabel`) | [process-flow-story-view.md](docs/spec/process-flow-story-view.md) |
 | 入力補助 (参照の補完・SQL の表名とカラム名・定義へ移動 F12・検索できる選択・カラムの物理名と型の提案・外部キーの候補・テーブルから画面項目・ID の候補・工程のおすすめ・日本語入力の Enter) | [ui-input-assist.md](docs/spec/ui-input-assist.md) |
+| AI 向けの入口 (やりたいこと → 読む資料・使う MCP tool・使う手順。`harmony://docs/ai-index`・仕様書の索引 `docs/spec/index.json`・tool の絞り込み `?profile=`・接続して最初に `designer__get_project_context`) | [docs/AI-INDEX.md](docs/AI-INDEX.md) / [llms.txt](llms.txt) |
 | 完了判定 (回帰テストの trace 照合) | [docs/conventions/completion-gate.md](docs/conventions/completion-gate.md) |
 | 進行中の再設計計画と設計者判断 | [docs/plans/redesign-2026-10.md](docs/plans/redesign-2026-10.md) |
 | サーバの守り (接続トークン・要求の上限・MCP の権限)・保存前の版・外部更新の検知・ファイルの健全性 | [server-security.md](docs/spec/server-security.md) / [file-backup.md](docs/spec/file-backup.md) / [external-change-detection.md](docs/spec/external-change-detection.md) / [workspace-health.md](docs/spec/workspace-health.md) |

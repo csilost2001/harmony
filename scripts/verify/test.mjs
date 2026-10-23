@@ -631,7 +631,7 @@ group("export-design-doc (体裁・改訂履歴)", () => {
 // ─────────────────────────────────────────────────────────────
 // docs-freshness.mjs (資料の鮮度検査)
 // ─────────────────────────────────────────────────────────────
-const { brokenLinks, unknownNpmScripts, appRoutes, docRoutes, routeTableDrift, uiReferenceIssues, skillIssues, specIndexGaps, normRoute, runChecks } = await import("./docs-freshness.mjs");
+const { brokenLinks, unknownNpmScripts, appRoutes, docRoutes, routeTableDrift, uiReferenceIssues, skillIssues, specIndexGaps, specFrontmatterIssues, aiIndexToolIssues, normRoute, runChecks } = await import("./docs-freshness.mjs");
 const { pickTargets, DOC_SHOT_NAMES } = await import("../dev/docs-shots.mjs");
 const { planSetup, versionAtLeast, requiredNode } = await import("../lib/setup.mjs");
 const { toNoteLine, renderNotes } = await import("../release/notes.mjs");
@@ -684,6 +684,21 @@ group("docs-freshness (資料の鮮度検査)", () => {
     const sk = skillIssues(readFileSync(join(tmp, "CLAUDE.md"), "utf8"), tmp);
     assert("スキル表のスキルが ai-skills/ になければ error、表にないスキルは知らせる", sk.errors.length === 1 && sk.errors[0].message.includes("/ghost") && sk.infos.some((i) => i.message.includes("ai-skills/extra")), JSON.stringify(sk));
     assert("仕様書の索引にない仕様書を知らせる", specIndexGaps(tmp).length === 1 && specIndexGaps(tmp)[0].message.includes("b.md"));
+    const fm = specFrontmatterIssues(tmp);
+    assert("仕様書の frontmatter がなければ検出する", fm.length === 3 && fm.every((f) => f.message.includes("frontmatter")), JSON.stringify(fm));
+    writeFileSync(join(tmp, "docs/spec/README.md"), '---\ndescription: "索引"\nstatus: current\ncategory: guide\n---\n# README\n| [a.md](a.md) | [b.md](b.md) |\n');
+    writeFileSync(join(tmp, "docs/spec/a.md"), '---\ndescription: "A"\nstatus: current\ncategory: ui\n---\n# a\n');
+    writeFileSync(join(tmp, "docs/spec/b.md"), '---\ndescription: "B"\nstatus: bogus\ncategory: ui\n---\n# b\n');
+    assert("status が決まった値でなければ検出する", specFrontmatterIssues(tmp).some((f) => f.message.includes("status")));
+    writeFileSync(join(tmp, "docs/spec/b.md"), '---\ndescription: "B"\nstatus: record\ncategory: record\n---\n# b\n');
+    assert("frontmatter が揃っていて索引がなければ、索引のずれを検出する", specFrontmatterIssues(tmp).length === 1 && specFrontmatterIssues(tmp)[0].file === "docs/spec/index.json");
+    spawnSync(process.execPath, ["-e", `import("${resolve(dirname(fileURLToPath(import.meta.url)), "../docs/spec-index.mjs").replace(/\\/g, "/")}").then(async (m) => { const fs = await import("node:fs"); const { entries } = m.buildSpecIndex(${JSON.stringify(tmp)}); fs.writeFileSync(${JSON.stringify(join(tmp, "docs/spec/index.json"))}, m.renderIndex(entries)); })`]);
+    assert("索引を作り直せば、食い違いなし", specFrontmatterIssues(tmp).length === 0, JSON.stringify(specFrontmatterIssues(tmp)));
+    mkdirSync(join(tmp, "backend/src"), { recursive: true });
+    writeFileSync(join(tmp, "backend/src/tools.ts"), 'export const tools = [{ name: "designer__check_design" }];');
+    writeFileSync(join(tmp, "docs/AI-INDEX.md"), "`check_design` と `ghost_tool` と `apply: true` と `HARMONY_MCP_MODE`");
+    const ai = aiIndexToolIssues(tmp);
+    assert("AI 向けの入口にある tool の名前が MCP になければ検出する (ほかの `…` は見ない)", ai.length === 1 && ai[0].message.includes("ghost_tool"), JSON.stringify(ai));
     const all = runChecks(tmp);
     assert("runChecks: 全体を通して、error と知らせを返す", all.errors.length > 0 && all.infos.length > 0 && all.docCount >= 4);
   } finally { rmSync(tmp, { recursive: true, force: true }); }

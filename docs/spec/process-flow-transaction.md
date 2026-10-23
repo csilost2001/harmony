@@ -1,3 +1,9 @@
+---
+description: "TransactionScopeStep (複数 DB 操作を 1 TX でまとめる meta-step、v3 で TX 表現一本化、旧 txBoundary は #1221 で廃止)"
+status: current
+category: process-flow
+---
+
 # Process Flow — Transaction Scope (`TransactionScopeStep`)
 
 ISSUE: #415 / 親 #396 (Power Platform Changeset / EF Core TransactionScope 由来)

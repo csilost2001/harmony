@@ -1,3 +1,9 @@
+---
+description: "画面項目定義 (フォーム系バリデーション 3 層のうち「画面」層) — ドラフト v0.1"
+status: current
+category: ui
+---
+
 # 画面項目定義 (Screen Items)
 
 **ステータス**: v3 整合 (schema v3.0.2 確定済)

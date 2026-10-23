@@ -1,3 +1,9 @@
+---
+description: "廃止 (2026-10) designer__export_screen MCP tool 用 HTML→JSX 機械変換器 (backend/reactExporter.ts) の存在意義 / /generate-code skill との関係 / 14 event placeholder"
+status: deprecated
+category: design
+---
+
 # reactExporter — designer__export_screen 用 HTML→JSX 変換器 (ISSUE #1147 N-8)
 
 > **廃止 (2026-10)**: 旧エディタ (GrapesJS / Puck) は廃止し、画面デザインは「業務部品デザイナ」に一本化しました。

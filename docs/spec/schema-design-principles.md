@@ -1,3 +1,9 @@
+---
+description: "本ドキュメントは、本フレームワークの JSON Schema 設計原則 を集約する。schema を どう書くか の規範であり、何を書くか (個別フィールド仕様) は各 process-flow-*.md を参照。"
+status: current
+category: schema
+---
+
 # Schema 設計原則 — Harnize Harmony ProcessFlow / Conventions / Extensions
 
 | 項目 | 値 |

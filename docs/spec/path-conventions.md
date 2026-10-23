@@ -1,3 +1,9 @@
+---
+description: "Harmony の永続化対象データの配置規約と、container 配布時の mount 設計指針。"
+status: current
+category: schema
+---
+
 # path-conventions.md
 
 Harmony の永続化対象データの配置規約と、container 配布時の mount 設計指針。

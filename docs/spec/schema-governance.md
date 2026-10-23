@@ -1,3 +1,9 @@
+---
+description: "本フレームワークの最重要原則を定める。"
+status: current
+category: schema
+---
+
 # Schema Governance — グローバル定義スキーマ変更ガバナンス
 
 本フレームワークの**最重要原則**を定める。

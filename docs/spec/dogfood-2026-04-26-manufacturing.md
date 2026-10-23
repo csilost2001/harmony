@@ -1,3 +1,9 @@
+---
+description: "再ドッグフード (製造業) 評価レポート — Codex 抜き / Sonnet vs Opus 比較 / 3 分類別件数集計"
+status: record
+category: record
+---
+
 # 再ドッグフード (製造業) 評価レポート (2026-04-26)
 
 > **📝 ステータス**: 完了済 **historical record** (製造業 dogfood、#478、Phase 4 前の検証)。本書は当時の検証結果記録として保持、削除不可 (他 spec から参照ある場合あり)。最新の状況・運用は現行 spec を参照。

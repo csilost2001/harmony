@@ -1,3 +1,9 @@
+---
+description: "変数・入出力・outputBinding (Phase 1 基盤)"
+status: current
+category: process-flow
+---
+
 # 処理フローの入出力・変数構造化
 
 Issue: #152 (親トラッキング: #151) / #525 R3 fix で StepBaseProps.lineage 透過 / #533 R3-1 で IdentifierPath 化 / **#539 で v3 schema 反映**

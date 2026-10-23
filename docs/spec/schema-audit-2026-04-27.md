@@ -1,3 +1,9 @@
+---
+description: "Schema 変更履歴監査レポート — 過去 102 コミット精査、(A) 正当 88% / (B) 不規則 2-3% / (C) 不適切 0%"
+status: record
+category: record
+---
+
 # Schema 変更履歴監査レポート (2026-04-27)
 
 > **📝 ステータス**: 完了済 historical record (Phase B-1 / #511 の成果物として保持)。`schema-design-principles.md` から証拠文書として line 参照あり、削除不可。

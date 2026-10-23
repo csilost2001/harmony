@@ -1,3 +1,9 @@
+---
+description: "AI コード生成プロトコル (project.techStack に基づく指針。/generate-code skill)"
+status: current
+category: design
+---
+
 # AI コード生成プロトコル
 
 `project.techStack` に基づく AI コード生成の指針を定義する。

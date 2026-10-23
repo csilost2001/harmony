@@ -1,3 +1,9 @@
+---
+description: "帳票 (出力・契機・出力条件・部と項目・用紙の見本図・検証・編集 UI・MCP)"
+status: current
+category: design
+---
+
 # 帳票 — 仕様書
 
 **Status**: 実装済 (2026-10、再設計 段階 4)

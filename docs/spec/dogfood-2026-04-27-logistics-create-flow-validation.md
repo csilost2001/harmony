@@ -1,3 +1,9 @@
+---
+description: "/create-flow 効果検証レポート (物流業務、Must-fix 50-75% 削減)"
+status: record
+category: record
+---
+
 # `/create-flow` 効果検証レポート — 物流業務 (2026-04-27)
 
 > **📝 ステータス**: 完了済 **historical record** (物流業務 `/create-flow` 効果検証、Phase 4 retail 検証と並行実施)。本書は当時の検証結果記録として保持、削除不可 (他 spec から参照ある場合あり)。最新の状況・運用は現行 spec を参照。

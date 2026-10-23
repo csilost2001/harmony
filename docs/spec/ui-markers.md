@@ -1,3 +1,9 @@
+---
+description: "マーカー (AI への指示・質問): どの設計にも付けられる・MCP が画面と同じ場所を読み書き・全設計の一覧と集計・AI に渡す文・Ctrl+Alt+M"
+status: current
+category: ui
+---
+
 # マーカー (AI への指示・質問) — 仕様書 (UI 改善提案 第 4 弾)
 
 **Status**: 実装済 (2026-10)。スキーマの追加が要る部分は、設計者の判断待ち ([#1510](https://github.com/csilost2001/harmony/issues/1510))

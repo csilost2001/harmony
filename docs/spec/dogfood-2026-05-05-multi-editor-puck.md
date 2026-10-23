@@ -1,3 +1,9 @@
+---
+description: "旧エディタ (Puck) × cssFramework の検証の記録 (2026-05-05。旧エディタは廃止済み)"
+status: record
+category: record
+---
+
 # dogfood レポート — マルチエディタ / Puck × cssFramework 検証 (2026-05-05)
 
 > **廃止 (2026-10)**: 旧エディタ (GrapesJS / Puck) は廃止し、画面デザインは「業務部品デザイナ」に一本化しました。

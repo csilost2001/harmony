@@ -1,3 +1,9 @@
+---
+description: "---"
+status: current
+category: ops
+---
+
 # edit-session-protocol — 協調編集の正規プロトコル
 
 > **位置付け**: 既存 [`collab-presence.md`](./collab-presence.md) (#876 / RFC #855 派生) の **発展的後継**。

@@ -8,6 +8,8 @@
  *   3. AGENTS.md の「Routing」の表と、画面の経路 (AppShell.tsx の <Route>) が合わない (表にない経路 / 画面にない経路)
  *   4. UI 操作リファレンス (docs/user-guide/ui-reference) の「対象画面」のファイルがない・「ルート」の経路がない・スクリーンショットがない
  *   5. CLAUDE.md のスキル表のスキルが ai-skills/ にない
+ *   6. 仕様書 (docs/spec/*.md) の先頭の frontmatter (description / status / category) の不足、索引 docs/spec/index.json のずれ (直し方: node scripts/docs/spec-index.mjs --write)
+ *   7. AI 向けの入口 (docs/AI-INDEX.md) の `tool_name` が、MCP の tool にない
  * 知らせるだけのもの (--info で表示。--strict で失敗):
  *   - UI 操作リファレンスのない画面 / 仕様書の索引 (docs/spec/README.md) にない仕様書 / ai-skills/ にあるが CLAUDE.md の表にないスキル
  *   - スクリーンショットが、画面のコードの最後の変更より古いもの (git の履歴で比べる)
@@ -17,6 +19,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { checkSpecIndex } from "../docs/spec-index.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -201,6 +204,26 @@ export function specIndexGaps(base) {
   return fs.readdirSync(dir).filter((n) => n.endsWith(".md") && n !== "README.md" && !SKIP_FILE.test(n) && !text.includes(n)).map((n) => ({ message: `docs/spec/${n} が、仕様書の索引 (docs/spec/README.md) にありません` }));
 }
 
+/** 6. 仕様書の frontmatter の不足と、索引のずれ */
+export function specFrontmatterIssues(base) {
+  if (!fs.existsSync(path.join(base, "docs/spec"))) return [];
+  const { problems, stale } = checkSpecIndex(base);
+  const out = problems.map((message) => ({ file: message.split(":")[0], message: message.slice(message.indexOf(":") + 2) }));
+  if (!out.length && stale) out.push({ file: "docs/spec/index.json", message: "仕様書の frontmatter と合っていません。node scripts/docs/spec-index.mjs --write で作り直してください" });
+  return out;
+}
+
+/** 7. AI 向けの入口にある `snake_case` の名前 (tool の名前) が、MCP の tool にあるか */
+export function aiIndexToolIssues(base) {
+  const doc = path.join(base, "docs/AI-INDEX.md");
+  const toolsTs = path.join(base, "backend/src/tools.ts");
+  if (!fs.existsSync(doc) || !fs.existsSync(toolsTs)) return [];
+  const known = new Set([...fs.readFileSync(toolsTs, "utf8").matchAll(/name:\s*"(?:designer|editSession)__([a-z_]+)"/g)].map((m) => m[1]));
+  const out = [];
+  for (const m of fs.readFileSync(doc, "utf8").matchAll(/`([a-z]+(?:_[a-z]+)+)`/g)) if (!known.has(m[1])) out.push({ file: "docs/AI-INDEX.md", message: `MCP の tool にない名前です: ${m[1]}` });
+  return [...new Map(out.map((o) => [o.message, o])).values()];
+}
+
 export function runChecks(base = root) {
   const errors = [], infos = [];
   const files = listDocs(base);
@@ -229,6 +252,8 @@ export function runChecks(base = root) {
     for (const i of sk.infos) infos.push({ kind: "スキル", ...i });
   }
   for (const g of specIndexGaps(base)) infos.push({ kind: "仕様書の索引", ...g });
+  for (const f of specFrontmatterIssues(base)) errors.push({ kind: "仕様書の frontmatter", ...f });
+  for (const t of aiIndexToolIssues(base)) errors.push({ kind: "AI 向けの入口", ...t });
   return { errors, infos, docCount: files.length };
 }
 

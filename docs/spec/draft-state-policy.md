@@ -1,3 +1,9 @@
+---
+description: "改訂日: 2026-04-29"
+status: current
+category: ops
+---
+
 # draft-state policy (設計途中許容 + 警告可視化)
 
 **改訂日: 2026-04-29**

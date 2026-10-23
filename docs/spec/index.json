@@ -1,0 +1,649 @@
+{
+  "generatedFrom": "docs/spec/*.md の frontmatter (node scripts/docs/spec-index.mjs --write)",
+  "specs": [
+    {
+      "file": "docs/spec/README.md",
+      "title": "docs/spec/",
+      "description": "本プロジェクトの UI・操作・内部 API の詳細仕様を集約する場所。",
+      "status": "current",
+      "category": "guide"
+    },
+    {
+      "file": "docs/spec/_audit-2026-05-17.md",
+      "title": "docs/ 監査レポート 2026-05-17",
+      "description": "docs/ 監査レポート 2026-05-17 (仕様書・プレゼンの HTML 化プロジェクト Phase A の前提作業の記録)",
+      "status": "record",
+      "category": "record"
+    },
+    {
+      "file": "docs/spec/business-flow.md",
+      "title": "業務フロー (スイムレーン) — 仕様書",
+      "description": "業務フロー (スイムレーン。レーン・工程・自動配置・検証・編集 UI・MCP)",
+      "status": "current",
+      "category": "design"
+    },
+    {
+      "file": "docs/spec/code-generation.md",
+      "title": "AI コード生成プロトコル",
+      "description": "AI コード生成プロトコル (project.techStack に基づく指針。/generate-code skill)",
+      "status": "current",
+      "category": "design"
+    },
+    {
+      "file": "docs/spec/collab-presence.md",
+      "title": "collab-presence — 協調編集 (Direction B) 仕様",
+      "description": "協調編集 (Direction B) overture — 採用根拠 / Forward-Compat 4 原則 / Activity taxonomy (正規プロトコルは edit-session-protocol.md 参照)",
+      "status": "current",
+      "category": "ops"
+    },
+    {
+      "file": "docs/spec/conversion-guideline-for-ai.md",
+      "title": "Markdown → Harmony JSON 変換ガイドライン (AI 向け)",
+      "description": "Status: 🟡 draft v0.1 (RFC) — ISSUE #1060 Q7-Q11 決定を反映 起点 spec: [generic-definition-layer.md](generic-definition-layer.md) スキル起点: [ai-skills/import-md/SKILL.md](../../a…",
+      "status": "current",
+      "category": "design"
+    },
+    {
+      "file": "docs/spec/css-framework-switching.md",
+      "title": "CSS フレームワーク切替対応 (#793) — 仕様書",
+      "description": "画面ごとに CSS フレームワーク (Bootstrap / Tailwind) を選択可能にする framework 中規模再設計の仕様書。",
+      "status": "current",
+      "category": "ui"
+    },
+    {
+      "file": "docs/spec/design-analysis.md",
+      "title": "設計の分析 (改善提案 第 3 弾)",
+      "description": "設計の分析 (影響分析・対応表・未使用・用語・命名規約・メッセージ・操作単位の権限・SLA / ジョブ・外部システムの契約・進捗・テスト雛形・テストデータ・OpenAPI・DDL の差分)",
+      "status": "current",
+      "category": "design"
+    },
+    {
+      "file": "docs/spec/design-check.md",
+      "title": "点検の設定 (`design-check.json`)",
+      "description": "点検の設定 design-check.json (要確認の抑制・独自の検査ルール)",
+      "status": "current",
+      "category": "design"
+    },
+    {
+      "file": "docs/spec/design-document.md",
+      "title": "設計書ビューと HTML 出力 — 仕様書",
+      "description": "設計書ビュー (/document) と HTML 出力、CRUD 図の導出規則",
+      "status": "current",
+      "category": "design"
+    },
+    {
+      "file": "docs/spec/design-payload-storage.md",
+      "title": "Design Payload Storage",
+      "description": "廃止 (2026-10) 旧エディタ (GrapesJS) の編集内容の保存の形 (記録として残す)",
+      "status": "deprecated",
+      "category": "design"
+    },
+    {
+      "file": "docs/spec/dogfood-2026-04-26-finance.md",
+      "title": "金融複合業務ドッグフード 評価レポート (2026-04-26)",
+      "description": "金融複合業務ドッグフード評価レポート (2026-04-26、6 シナリオで 5/5 達成)",
+      "status": "record",
+      "category": "record"
+    },
+    {
+      "file": "docs/spec/dogfood-2026-04-26-manufacturing.md",
+      "title": "再ドッグフード (製造業) 評価レポート (2026-04-26)",
+      "description": "再ドッグフード (製造業) 評価レポート — Codex 抜き / Sonnet vs Opus 比較 / 3 分類別件数集計",
+      "status": "record",
+      "category": "record"
+    },
+    {
+      "file": "docs/spec/dogfood-2026-04-27-logistics-create-flow-validation.md",
+      "title": "`/create-flow` 効果検証レポート — 物流業務 (2026-04-27)",
+      "description": "/create-flow 効果検証レポート (物流業務、Must-fix 50-75% 削減)",
+      "status": "record",
+      "category": "record"
+    },
+    {
+      "file": "docs/spec/dogfood-2026-04-27-phase4-retail-validation.md",
+      "title": "Phase 4 (全仕様書統合検証) 評価レポート — retail (2026-04-27)",
+      "description": "Phase 4 全仕様書統合検証レポート — retail (既存退避→AI 生成→改善ループで Must-fix ゼロ達成)",
+      "status": "record",
+      "category": "record"
+    },
+    {
+      "file": "docs/spec/dogfood-2026-04-29-phase2-validator-audit.md",
+      "title": "Phase 2 子 1 — バリデータ活用度監査 (2026-04-29)",
+      "description": "Phase 2 子 1: 4 バリデータ (sqlColumnValidator / conventionsValidator / referentialIntegrity / identifierScope) の活用度監査の記録 (2026-04-29)",
+      "status": "record",
+      "category": "record"
+    },
+    {
+      "file": "docs/spec/dogfood-2026-04-30-phase2-healthcare-welfare.md",
+      "title": "Phase 2 子 2 ドッグフード — 医療 + 社会保険行政業務 (2026-04-30)",
+      "description": "Phase 2 メタ #493 子 2 (#600) として、Phase 1 で未検証の業界 — 医療 (healthcare) と社会保険行政 (welfare-benefit) — を対象に v3 ProcessFlow を 2 シナリオずつ計 4 フロー実装し、子 3 (/create-flow validator 統合 PR …",
+      "status": "record",
+      "category": "record"
+    },
+    {
+      "file": "docs/spec/dogfood-2026-05-04-english-learning.md",
+      "title": "dogfood レポート — english-learning サンプル (2026-05-04)",
+      "description": "english-learning サンプル (英会話学習アプリ) の dogfood 評価の記録 (2026-05-04)",
+      "status": "record",
+      "category": "record"
+    },
+    {
+      "file": "docs/spec/dogfood-2026-05-05-multi-editor-puck.md",
+      "title": "dogfood レポート — マルチエディタ / Puck × cssFramework 検証 (2026-05-05)",
+      "description": "旧エディタ (Puck) × cssFramework の検証の記録 (2026-05-05。旧エディタは廃止済み)",
+      "status": "record",
+      "category": "record"
+    },
+    {
+      "file": "docs/spec/dogfood-2026-05-29-puck-external-components.md",
+      "title": "dogfood レポート — 外部 React Component + 複合部品 通し検証 (2026-05-29)",
+      "description": "旧エディタ (Puck) への外部 React Component 取り込みの通し検証の記録 (2026-05-29。旧エディタは廃止済み)",
+      "status": "record",
+      "category": "record"
+    },
+    {
+      "file": "docs/spec/draft-state-policy.md",
+      "title": "draft-state policy (設計途中許容 + 警告可視化)",
+      "description": "改訂日: 2026-04-29",
+      "status": "current",
+      "category": "ops"
+    },
+    {
+      "file": "docs/spec/e2e-vite-stability.md",
+      "title": "e2e-vite-stability.md",
+      "description": "Vite dev server が複数ブラウザ文脈の E2E で間欠的に落ちる問題の調査記録と回避策",
+      "status": "record",
+      "category": "record"
+    },
+    {
+      "file": "docs/spec/edit-session-draft.md",
+      "title": "edit-session-draft — サーバ側 draft 管理モデル仕様",
+      "description": "---",
+      "status": "current",
+      "category": "ops"
+    },
+    {
+      "file": "docs/spec/edit-session-protocol.md",
+      "title": "edit-session-protocol — 協調編集の正規プロトコル",
+      "description": "---",
+      "status": "current",
+      "category": "ops"
+    },
+    {
+      "file": "docs/spec/examples-english-learning.md",
+      "title": "examples/english-learning/ — 英会話学習アプリ サンプル仕様書",
+      "description": "examples/english-learning/ (英会話学習アプリ) の業務スコープ・データモデル・画面構成",
+      "status": "current",
+      "category": "sample"
+    },
+    {
+      "file": "docs/spec/examples-retail.md",
+      "title": "examples/retail/ — リテール総合サンプル仕様書",
+      "description": "examples/retail/ (リテール総合) の業務スコープ・データモデル・画面構成",
+      "status": "current",
+      "category": "sample"
+    },
+    {
+      "file": "docs/spec/external-change-detection.md",
+      "title": "外部での更新の検知",
+      "description": "外部で書き換えられた設計ファイルの検知 (ファイル監視・画面への反映・自分の書き込みの除外)",
+      "status": "current",
+      "category": "ops"
+    },
+    {
+      "file": "docs/spec/file-backup.md",
+      "title": "保存前の版 (自動バックアップ)",
+      "description": "保存前の版 (上書きされる前の内容を世代で残す・画面と MCP からの確認・読み込み)",
+      "status": "current",
+      "category": "ops"
+    },
+    {
+      "file": "docs/spec/generic-definition-layer.md",
+      "title": "汎用設計定義レイヤー (Generic Definition Layer)",
+      "description": "Status: 🟡 draft v0.2 (RFC) — schema 即時固定化を伴わない整理段階 / Q1-Q11 決定反映 (2026-05-13) 起票 ISSUE: #1060 関連 memory: project_framework_research_2026_04_25.md (拡張仕様 19 項目との突合) 起票日:…",
+      "status": "current",
+      "category": "schema"
+    },
+    {
+      "file": "docs/spec/grid-keyboard.md",
+      "title": "表の入力: キーボード操作",
+      "description": "表の入力のキーボード操作 (画面項目の行移動・カラムの編集パネルの連続入力)",
+      "status": "current",
+      "category": "ui"
+    },
+    {
+      "file": "docs/spec/integration-ops.md",
+      "title": "連携と運用 — 仕様書 (改善提案 第 5 弾)",
+      "description": "連携と運用 (Word / Excel 書き出し・設計書の体裁と改訂履歴・図の書き出し・Git・レビューコメント・承認・利用者と権限・変更の記録・通知・DDL / OpenAPI / Excel の取り込み・生成の管理・技術スタックのプリセット・版とリリースノート・初回セットアップ・資料の鮮度検査)",
+      "status": "current",
+      "category": "ops"
+    },
+    {
+      "file": "docs/spec/layout-components.md",
+      "title": "プロジェクト独自部品 (layout components) — 仕様書",
+      "description": "プロジェクト独自部品 (登録・差し込み口・展開・管理 UI)",
+      "status": "current",
+      "category": "ui"
+    },
+    {
+      "file": "docs/spec/list-common.md",
+      "title": "一覧画面の共通仕様",
+      "description": "一覧系画面の操作・見た目・内部 API (選択・キーボード・D&D・コピペ・ソート・フィルタ・Read-only モード・No 列永続フィールド)",
+      "status": "current",
+      "category": "ui"
+    },
+    {
+      "file": "docs/spec/multi-editor-puck.md",
+      "title": "マルチエディタ対応 (Puck 併設) — 仕様書",
+      "description": "GrapesJS ベースの既存デザイナに加え、React 向けコンポーネントエディタ「Puck (by Measured)」を併設し、画面ごとに editorKind / cssFramework を選択可能にする framework 中規模拡張の仕様書。",
+      "status": "current",
+      "category": "ui"
+    },
+    {
+      "file": "docs/spec/page-layout.md",
+      "title": "PageLayout + Gadget 仕様",
+      "description": "PageLayout + Gadget (共通ヘッダ / フッタ / サイドバーなどの layout 横断部品)",
+      "status": "current",
+      "category": "ui"
+    },
+    {
+      "file": "docs/spec/path-conventions.md",
+      "title": "path-conventions.md",
+      "description": "Harmony の永続化対象データの配置規約と、container 配布時の mount 設計指針。",
+      "status": "current",
+      "category": "schema"
+    },
+    {
+      "file": "docs/spec/phase2-evaluation-2026-04-30.md",
+      "title": "Phase 2 統合評価レポート + Phase 3 移行判断 (2026-04-30)",
+      "description": "Phase 2 メタ #493 (処理フロー + テーブル + 規約の連携整合性検証) の評価の記録 (2026-04-30)",
+      "status": "record",
+      "category": "record"
+    },
+    {
+      "file": "docs/spec/phase3-evaluation-2026-04-30.md",
+      "title": "Phase 3 統合評価レポート + Phase 4 移行判断 (2026-04-30)",
+      "description": "Phase 3 メタ #611 (処理フロー + 画面項目 + 画面フローの連携整合性検証) の評価の記録 (2026-04-30)",
+      "status": "record",
+      "category": "record"
+    },
+    {
+      "file": "docs/spec/phase4-evaluation-2026-04-30.md",
+      "title": "Phase 4 統合評価レポート + Phase 5 移行判断 (2026-04-30)",
+      "description": "Phase 4 メタ #648 (画面 ↔ DB ↔ 処理フローの構造系統合) の評価の記録 (2026-04-30)",
+      "status": "record",
+      "category": "record"
+    },
+    {
+      "file": "docs/spec/plugin-system.md",
+      "title": "プラグインシステム仕様",
+      "description": "プラグインシステム — ソース変更なしにスキーマ・ステップ型・enum を拡張する仕組み",
+      "status": "current",
+      "category": "schema"
+    },
+    {
+      "file": "docs/spec/process-flow-ai-step-kind.md",
+      "title": "ProcessFlow AI Step Kind (#935)",
+      "description": "AI step kind (aiCall / aiAgent) と modelEndpoints catalog — provider 抽象 / tool use / structured output / vision input (業界標準形式準拠)",
+      "status": "current",
+      "category": "process-flow"
+    },
+    {
+      "file": "docs/spec/process-flow-criterion.md",
+      "title": "Criterion — 成功判定条件仕様 (#427 P3-2)",
+      "description": "Criterion (ExternalSystemStep の successCriteria、Arazzo 1.0 互換、$ Runtime Expression 推奨)",
+      "status": "current",
+      "category": "process-flow"
+    },
+    {
+      "file": "docs/spec/process-flow-env-vars.md",
+      "title": "環境変数カタログ (context.catalogs.envVars) 仕様",
+      "description": "環境変数カタログ (envVarsCatalog) — 環境別 (dev/staging/prod) の型付き設定値",
+      "status": "current",
+      "category": "process-flow"
+    },
+    {
+      "file": "docs/spec/process-flow-expression-language.md",
+      "title": "処理フロー式言語 (runIf / expression / bodyExpression / condition)",
+      "description": "runIf / expression / bodyExpression の式言語 BNF (js-subset)",
+      "status": "current",
+      "category": "process-flow"
+    },
+    {
+      "file": "docs/spec/process-flow-extensions.md",
+      "title": "処理フロースキーマ拡張 (Phase B 包括リファレンス)",
+      "description": "HTTP 契約 / TX / Saga / 外部 outcomes / ValidationRule / compute / return (Phase B)",
+      "status": "current",
+      "category": "process-flow"
+    },
+    {
+      "file": "docs/spec/process-flow-external-system.md",
+      "title": "ProcessFlow ExternalSystemStep OpenAPI 参照 (#413)",
+      "description": "ExternalSystemStep の OpenAPI operation 参照 (openApiSpec / operationRef)",
+      "status": "current",
+      "category": "process-flow"
+    },
+    {
+      "file": "docs/spec/process-flow-keyboard.md",
+      "title": "処理フロー: キーボード操作",
+      "description": "処理フローのキーボード操作 (工程の移動・開閉・挿入・Tab のインデント)",
+      "status": "current",
+      "category": "process-flow"
+    },
+    {
+      "file": "docs/spec/process-flow-maturity.md",
+      "title": "処理フローの成熟度・曖昧さ管理",
+      "description": "成熟度・付箋・上流/下流モード (Phase 1 基盤)",
+      "status": "current",
+      "category": "process-flow"
+    },
+    {
+      "file": "docs/spec/process-flow-outline.md",
+      "title": "処理フロー: アウトライン (テキスト) 編集 (試作)",
+      "description": "処理フローのアウトライン (1 行 1 工程のテキスト) 編集 (試作)",
+      "status": "current",
+      "category": "process-flow"
+    },
+    {
+      "file": "docs/spec/process-flow-prefix-system.md",
+      "title": "ProcessFlow 参照 prefix 24 種 + 階層参照 (`@<key>` 統一記法)",
+      "description": "ProcessFlow の参照 prefix 24 種 + 階層参照 (@<key> 統一記法)",
+      "status": "current",
+      "category": "process-flow"
+    },
+    {
+      "file": "docs/spec/process-flow-runtime-conventions.md",
+      "title": "処理フロー 実行時規約 (ランタイム挙動)",
+      "description": "SQL 式補間 / HTTP body シリアライズ / TX×throw×tryCatch / fireAndForget / sideEffects TX 境界等の実行時規約",
+      "status": "current",
+      "category": "process-flow"
+    },
+    {
+      "file": "docs/spec/process-flow-secrets.md",
+      "title": "Secrets カタログ (context.catalogs.secrets) 仕様",
+      "description": "Secrets カタログ (secretsCatalog) — 秘匿値メタデータ + 環境別参照式",
+      "status": "current",
+      "category": "process-flow"
+    },
+    {
+      "file": "docs/spec/process-flow-sla.md",
+      "title": "ProcessFlow SLA / Timeout 仕様",
+      "description": "SLA / Timeout 宣言 (ProcessFlow / ActionDefinition / StepBase)",
+      "status": "current",
+      "category": "process-flow"
+    },
+    {
+      "file": "docs/spec/process-flow-story-view.md",
+      "title": "処理フローの「流れ」表示 (読むための画面)",
+      "description": "処理フローの「流れ」表示 (入れ子・ガード・言葉の条件・概要/詳細/実装・見出し・出口の一覧・変数の流れ・確認済み ✓・その場で直す・判定表 と、schema の任意項目 heading / label / collectionItemLabel)",
+      "status": "current",
+      "category": "process-flow"
+    },
+    {
+      "file": "docs/spec/process-flow-substeps.md",
+      "title": "処理フロー: 工程の入れ子 (subSteps)",
+      "description": "工程の入れ子 (subSteps) の形・実行の意味・走査",
+      "status": "current",
+      "category": "process-flow"
+    },
+    {
+      "file": "docs/spec/process-flow-testing.md",
+      "title": "処理フロー テストシナリオ仕様",
+      "description": "処理フローの Given-When-Then テストシナリオ (testScenarios)",
+      "status": "current",
+      "category": "process-flow"
+    },
+    {
+      "file": "docs/spec/process-flow-tier-c.md",
+      "title": "ProcessFlow Tier C 仕様",
+      "description": "Tier C 拡張 — circuitBreaker / bulkhead / ClosingStep / CdcStep / health / readiness / resources",
+      "status": "current",
+      "category": "process-flow"
+    },
+    {
+      "file": "docs/spec/process-flow-transaction.md",
+      "title": "Process Flow — Transaction Scope (`TransactionScopeStep`)",
+      "description": "TransactionScopeStep (複数 DB 操作を 1 TX でまとめる meta-step、v3 で TX 表現一本化、旧 txBoundary は #1221 で廃止)",
+      "status": "current",
+      "category": "process-flow"
+    },
+    {
+      "file": "docs/spec/process-flow-variables.md",
+      "title": "処理フローの入出力・変数構造化",
+      "description": "変数・入出力・outputBinding (Phase 1 基盤)",
+      "status": "current",
+      "category": "process-flow"
+    },
+    {
+      "file": "docs/spec/process-flow-workflow.md",
+      "title": "Process Flow Workflow Step",
+      "description": "WorkflowStep / WorkflowPattern (承認ワークフロー標準 11 パターン)",
+      "status": "current",
+      "category": "process-flow"
+    },
+    {
+      "file": "docs/spec/quick-open.md",
+      "title": "クイックオープン (Ctrl+K) — 仕様書",
+      "description": "クイックオープン (Ctrl+K。画面・テーブル・処理フロー等を ID・名前で探して開く)",
+      "status": "current",
+      "category": "ui"
+    },
+    {
+      "file": "docs/spec/react-exporter.md",
+      "title": "reactExporter — designer__export_screen 用 HTML→JSX 変換器 (ISSUE #1147 N-8)",
+      "description": "廃止 (2026-10) designer__export_screen MCP tool 用 HTML→JSX 機械変換器 (backend/reactExporter.ts) の存在意義 / /generate-code skill との関係 / 14 event placeholder",
+      "status": "deprecated",
+      "category": "design"
+    },
+    {
+      "file": "docs/spec/references.md",
+      "title": "参照元 (どこで使われているか) — 仕様書",
+      "description": "参照元 (その設計を参照している設計の一覧。改名・削除の前の影響確認。UI の「参照元」/ MCP designer__find_references)",
+      "status": "current",
+      "category": "schema"
+    },
+    {
+      "file": "docs/spec/report.md",
+      "title": "帳票 — 仕様書",
+      "description": "帳票 (出力・契機・出力条件・部と項目・用紙の見本図・検証・編集 UI・MCP)",
+      "status": "current",
+      "category": "design"
+    },
+    {
+      "file": "docs/spec/sample-project-structure.md",
+      "title": "サンプルプロジェクト構造",
+      "description": "examples/<project-id>/ 以下の各サブディレクトリは、designer で作成する業務アプリ設計成果物の独立したサンプル単位。フレームワーク本体のデバッグ・テスト・動作確認・ドッグフード検証を多様なシナリオで行うために配置されている。",
+      "status": "current",
+      "category": "sample"
+    },
+    {
+      "file": "docs/spec/schema-audit-2026-04-27.md",
+      "title": "Schema 変更履歴監査レポート (2026-04-27)",
+      "description": "Schema 変更履歴監査レポート — 過去 102 コミット精査、(A) 正当 88% / (B) 不規則 2-3% / (C) 不適切 0%",
+      "status": "record",
+      "category": "record"
+    },
+    {
+      "file": "docs/spec/schema-deletions-record.md",
+      "title": "Schema 削除事項記録 (Phase X1-X3 で取り下げられた提案 + 削除された field)",
+      "description": "スキーマ削除事項の記録 (不採用の提案・削除した field)",
+      "status": "record",
+      "category": "record"
+    },
+    {
+      "file": "docs/spec/schema-design-principles.md",
+      "title": "Schema 設計原則 — Harnize Harmony ProcessFlow / Conventions / Extensions",
+      "description": "本ドキュメントは、本フレームワークの JSON Schema 設計原則 を集約する。schema を どう書くか の規範であり、何を書くか (個別フィールド仕様) は各 process-flow-*.md を参照。",
+      "status": "current",
+      "category": "schema"
+    },
+    {
+      "file": "docs/spec/schema-governance.md",
+      "title": "Schema Governance — グローバル定義スキーマ変更ガバナンス",
+      "description": "本フレームワークの最重要原則を定める。",
+      "status": "current",
+      "category": "schema"
+    },
+    {
+      "file": "docs/spec/schema-migration.md",
+      "title": "スキーマの版の移行",
+      "description": "スキーマの版の移行の枠組み (予行・世代・冪等)",
+      "status": "current",
+      "category": "schema"
+    },
+    {
+      "file": "docs/spec/schema-v3-design.md",
+      "title": "Schema v3 横断再設計案 (Opus 設計版)",
+      "description": "スキーマ v3 横断再設計案 (Opus 設計版)",
+      "status": "current",
+      "category": "schema"
+    },
+    {
+      "file": "docs/spec/screen-items.md",
+      "title": "画面項目定義 (Screen Items)",
+      "description": "画面項目定義 (フォーム系バリデーション 3 層のうち「画面」層) — ドラフト v0.1",
+      "status": "current",
+      "category": "ui"
+    },
+    {
+      "file": "docs/spec/screen-layout.md",
+      "title": "画面レイアウト (業務部品の木) — 仕様書",
+      "description": "画面レイアウト (業務部品の木)・業務部品デザイナ・旧デザインからの自動変換",
+      "status": "current",
+      "category": "ui"
+    },
+    {
+      "file": "docs/spec/server-security.md",
+      "title": "サーバのセキュリティ設定",
+      "description": "サーバの守り (Origin・パス・ログのマスク、接続トークン、要求の上限、MCP の権限)",
+      "status": "current",
+      "category": "ops"
+    },
+    {
+      "file": "docs/spec/spec-package.md",
+      "title": "@harmony/spec package contract",
+      "description": "@harmony/spec package contract (schema・仕様・サンプルを読み取り専用の参照として配る単位)",
+      "status": "current",
+      "category": "schema"
+    },
+    {
+      "file": "docs/spec/test-viewpoints.md",
+      "title": "テスト観点表 — 仕様書",
+      "description": "テスト観点表 (画面入力の正常・異常・境界値を項目の制約から導出、処理の観点に ID を付与。CSV / JSON / Markdown に書き出し)",
+      "status": "current",
+      "category": "design"
+    },
+    {
+      "file": "docs/spec/ui-a11y-settings-perf.md",
+      "title": "アクセシビリティ・設定・学習・性能 — 仕様書 (UI 改善提案 続編 第 10 弾)",
+      "description": "アクセシビリティ・設定・学習・性能 (スキップリンク・フォーカスリング・高コントラスト / 強制カラー・動きを減らす・表の読み上げ・フォーカスのツールチップ・タッチ / ショートカットの割り当て・ヘルプの検索・新しくなったこと・設定の書き出し・通しの案内・エラー報告用のコピー / 長い一覧の窓表示・骨組み・進み具合・接続の復帰)",
+      "status": "current",
+      "category": "ui"
+    },
+    {
+      "file": "docs/spec/ui-diagrams.md",
+      "title": "図・可視化 — 仕様書 (UI 改善提案 続編 第 7 弾)",
+      "description": "図・可視化 (図の検索・強調・絞り込み・整列とガイド・ER のカラム表示・線の形・凡例・書き出し・印刷・基準との差分・表示位置の記憶・つながり図・処理フローの流れ図とシーケンス図・画面フローの自動配置)",
+      "status": "current",
+      "category": "ui"
+    },
+    {
+      "file": "docs/spec/ui-direct-manipulation.md",
+      "title": "ドラッグ・直接操作・一括 — 仕様書 (UI 改善提案 第 3 弾)",
+      "description": "ドラッグ・直接操作・一括 (画面デザイナの文言のその場編集・右クリック・複数選択・段の幅・属性コピー、一覧の列の設定・条件で選ぶ・表としてコピー、行の並べ替え・オートフィル、図の拡大縮小・ER のカラムから線・画面フローの線、タブのドラッグ、ファイルのドロップ、参照の付け替え)",
+      "status": "current",
+      "category": "ui"
+    },
+    {
+      "file": "docs/spec/ui-editing-depth.md",
+      "title": "編集体験の深掘り — 仕様書 (UI 改善提案 続編 第 8 弾)",
+      "description": "編集体験の深掘り (画面デザイナのサンプル値・状態・寸法・部品検索 / 処理フローの畳み・変数・囲む・判定表・式の試し実行・机上演習 / テーブルの型変更の影響・サンプル INSERT・インデックス提案 / 画面項目の食い違い / スクロール復元・最後の編集へ・クリップボード履歴・用語ゆれ)",
+      "status": "current",
+      "category": "ui"
+    },
+    {
+      "file": "docs/spec/ui-first-run-ux.md",
+      "title": "初めての人が迷いやすいところの改善",
+      "description": "初めての人が迷いやすいところの改善 (一覧の開き方の案内・閲覧中の案内・「編集を終える」・追加ボタンの名前・未配置のタブ・新しいフローはラフから・デザインと項目定義の行き来で確認が出ない衝突判定)",
+      "status": "current",
+      "category": "ui"
+    },
+    {
+      "file": "docs/spec/ui-history-sharing.md",
+      "title": "履歴・比較・共有・書き出し — 仕様書 (UI 改善提案 続編 第 9 弾)",
+      "description": "履歴・比較・共有・書き出し (設計のあゆみ: 変更の記録・版を比べる・コミット文・完了の確認・メモ・この設計だけの書き出し・ファイルの場所・試作 / 最終編集者 / レビューの宛先・畳み・進み具合 / 印刷用スタイル・読み取り専用スナップショット・書き出しの設定 / 取り込みの差・通知の受け取り方・期間のまとめ)",
+      "status": "current",
+      "category": "ui"
+    },
+    {
+      "file": "docs/spec/ui-input-assist.md",
+      "title": "入力補助 — 仕様書 (UI 改善提案 第 1 弾)",
+      "description": "入力補助 (参照の補完・SQL の表名とカラム名・定義へ移動・検索できる選択・カラムの物理名と型の提案・外部キーの候補・テーブルから画面項目・ID の候補・工程のおすすめ・IME)",
+      "status": "current",
+      "category": "ui"
+    },
+    {
+      "file": "docs/spec/ui-input-reliability.md",
+      "title": "入力の信頼性・見通し — 仕様書 (UI 改善提案 第 5 弾)",
+      "description": "入力の信頼性・見通し (欄の直下の指摘と直し方・式の書き間違い・近い名前・保存の状態・変更した欄・取り消した内容の通知・取り消せる削除・F8 で次の要確認・目次・直接のリンク・入力専用モード・全角の正規化・操作数の予算)",
+      "status": "current",
+      "category": "ui"
+    },
+    {
+      "file": "docs/spec/ui-keyboard.md",
+      "title": "キーボード・移動 — 仕様書 (UI 改善提案 第 2 弾)",
+      "description": "キーボード・移動 (画面内検索 Ctrl+F・参照元 Shift+F12・表の Ctrl+D / 行の挿入・複製・削除・コマンドパレットの画面の操作・F6・部品の追加・ダイアログのキー)",
+      "status": "current",
+      "category": "ui"
+    },
+    {
+      "file": "docs/spec/ui-lists-navigation.md",
+      "title": "一覧・探索・見通し — 仕様書 (UI 改善提案 続編 第 6 弾)",
+      "description": "一覧・探索・見通し (閉じたタブを開き直す・画面の履歴・パンくず・保存した絞り込み・グループ表示・のぞき見・まとめての操作・最近開いた順・行の印・CSV / Excel・近い名前・使っているもの・Ctrl+K の接頭辞・今日やること)",
+      "status": "current",
+      "category": "ui"
+    },
+    {
+      "file": "docs/spec/ui-markers.md",
+      "title": "マーカー (AI への指示・質問) — 仕様書 (UI 改善提案 第 4 弾)",
+      "description": "マーカー (AI への指示・質問): どの設計にも付けられる・MCP が画面と同じ場所を読み書き・全設計の一覧と集計・AI に渡す文・Ctrl+Alt+M",
+      "status": "current",
+      "category": "ui"
+    },
+    {
+      "file": "docs/spec/ux-operations.md",
+      "title": "操作性 — 仕様書 (改善提案 第 4 弾)",
+      "description": "操作性 (通知の履歴・表示の設定・お気に入り・コマンドパレット・変更履歴・一括変更・別画面へのコピー・スニペット・検索置換・表で編集・キーボード代替・ツアーとヘルプ・並べて表示・エラー復旧)",
+      "status": "current",
+      "category": "ui"
+    },
+    {
+      "file": "docs/spec/view-definition.md",
+      "title": "ViewDefinition (画面 一覧 UI 表示定義)",
+      "description": "ViewDefinition (画面 一覧 UI 表示定義) — 3 レベル DSL (Simple / Structured / Raw SQL) / items[] の presentation.viewDefinitionId 連携 / kind 別レイアウト / validator 11 観点",
+      "status": "current",
+      "category": "ui"
+    },
+    {
+      "file": "docs/spec/workspace-health.md",
+      "title": "ワークスペースの健全性",
+      "description": "ワークスペースの健全性 (壊れた JSON・食い違いの検査、一覧・uuid の保守、複数ファイル操作の復旧、旧形式の画面の扱い)",
+      "status": "current",
+      "category": "ops"
+    },
+    {
+      "file": "docs/spec/workspace-multi.md",
+      "title": "マルチワークスペース対応仕様 (workspace-multi)",
+      "description": "PR #679 シリーズで導入する「同時複数ワークスペース対応」の正規仕様。 本書は v1 仕様 [workspace.md](workspace.md) の拡張 (v2) として位置付ける。",
+      "status": "current",
+      "category": "ops"
+    },
+    {
+      "file": "docs/spec/workspace.md",
+      "title": "ワークスペース仕様 (v1)",
+      "description": "PR #676 で導入した「複数ワークスペース管理機能」の正規仕様。",
+      "status": "current",
+      "category": "ops"
+    }
+  ]
+}

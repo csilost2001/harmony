@@ -1,3 +1,9 @@
+---
+description: "処理フローの Given-When-Then テストシナリオ (testScenarios)"
+status: current
+category: process-flow
+---
+
 # 処理フロー テストシナリオ仕様
 
 **改訂日: 2026-04-28 (v3 反映)**

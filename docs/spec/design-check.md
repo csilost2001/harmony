@@ -1,3 +1,9 @@
+---
+description: "点検の設定 design-check.json (要確認の抑制・独自の検査ルール)"
+status: current
+category: design
+---
+
 # 点検の設定 (`design-check.json`)
 
 要確認事項の**抑制**と、プロジェクト独自の**検査ルール**を置く設定ファイル。場所は `<データフォルダ>/design-check.json` (例: `examples/retail/harmony/design-check.json`)。設計の原本ではなく運用の設定なので、`schemas/v3` には載せず、コード側 (`@harmony/shared` の `parseCheckSettings`) で検証する。git で、設計と一緒にチームで共有できる。

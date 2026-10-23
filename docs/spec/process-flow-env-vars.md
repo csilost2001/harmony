@@ -1,3 +1,9 @@
+---
+description: "環境変数カタログ (envVarsCatalog) — 環境別 (dev/staging/prod) の型付き設定値"
+status: current
+category: process-flow
+---
+
 # 環境変数カタログ (context.catalogs.envVars) 仕様
 
 **改訂日: 2026-04-28 (v3 反映)**

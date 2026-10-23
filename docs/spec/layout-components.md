@@ -1,3 +1,9 @@
+---
+description: "プロジェクト独自部品 (登録・差し込み口・展開・管理 UI)"
+status: current
+category: ui
+---
+
 # プロジェクト独自部品 (layout components) — 仕様書
 
 **Status**: 実装中 (2026-10、再設計 段階 1 の続き)

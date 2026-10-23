@@ -1,3 +1,9 @@
+---
+description: "ViewDefinition (画面 一覧 UI 表示定義) — 3 レベル DSL (Simple / Structured / Raw SQL) / items[] の presentation.viewDefinitionId 連携 / kind 別レイアウト / validator 11 観点"
+status: current
+category: ui
+---
+
 # ViewDefinition (画面 一覧 UI 表示定義)
 
 **ステータス**: v3 整合 (schema v3、3 レベル DSL #745 反映済)

@@ -1,3 +1,9 @@
+---
+description: "Phase 2 子 1: 4 バリデータ (sqlColumnValidator / conventionsValidator / referentialIntegrity / identifierScope) の活用度監査の記録 (2026-04-29)"
+status: record
+category: record
+---
+
 # Phase 2 子 1 — バリデータ活用度監査 (2026-04-29)
 
 > **📝 ステータス**: 完了済 **historical record** (Phase 2 validator 活用度監査、#493 子 1)。本書は当時の検証結果記録として保持、削除不可 (他 spec から参照ある場合あり)。最新の状況・運用は現行 spec を参照。

@@ -1,3 +1,9 @@
+---
+description: "PageLayout + Gadget (共通ヘッダ / フッタ / サイドバーなどの layout 横断部品)"
+status: current
+category: ui
+---
+
 # PageLayout + Gadget 仕様
 
 RFC #1021 で導入された **共通レイアウト機能** の仕様書。schemas/v3/page-layout.v3.schema.json と本ドキュメントを並行参照すること。

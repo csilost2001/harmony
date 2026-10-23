@@ -40,7 +40,10 @@ logs
 *.key
 
 # README / docs (将来 README を含めたい場合は許可リスト化)
-docs
+# docs/spec と docs/AI-INDEX.md は、AI (MCP) の Resources が読むので image に含める
+docs/*
+!docs/spec
+!docs/AI-INDEX.md
 
 # 開発時 workspaces / data (利用者が volume mount する)
 workspaces

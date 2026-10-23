@@ -1,3 +1,9 @@
+---
+description: "クイックオープン (Ctrl+K。画面・テーブル・処理フロー等を ID・名前で探して開く)"
+status: current
+category: ui
+---
+
 # クイックオープン (Ctrl+K) — 仕様書
 
 **Status**: 実装済 (2026-10)

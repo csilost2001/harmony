@@ -1,3 +1,9 @@
+---
+description: "---"
+status: current
+category: ops
+---
+
 # edit-session-draft — サーバ側 draft 管理モデル仕様
 
 > **シリーズ**: #683 メタ ISSUE / PR-1/7 (本 spec ドキュメント)

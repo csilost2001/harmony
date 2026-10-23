@@ -13,6 +13,7 @@ import {
   type NodeKind, type SqlQuote, type TestFramework,
 } from "@harmony/shared";
 import { loadDesignInputFromRoot, loadDesignInputFull } from "../designInput.js";
+import { buildProjectContext } from "../projectContext.js";
 import { readProgressHistory } from "../progressStore.js";
 import { findReferences } from "../references.js";
 import { collectExtraIssues } from "../schemaIssues.js";
@@ -58,6 +59,8 @@ export const handleDesignTool: ToolHandler = async (name, args, root, sessionId)
         issues: all.filter((i) => includeInfo || i.severity !== "info"),
       });
     }
+
+    case "designer__get_project_context": return json(await buildProjectContext(root, { limit: typeof a.limit === "number" ? a.limit : undefined }));
 
     case "designer__get_test_viewpoints": {
       const { input } = await loadDesignInputFromRoot(root);

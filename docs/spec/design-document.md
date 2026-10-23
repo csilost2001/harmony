@@ -1,3 +1,9 @@
+---
+description: "設計書ビュー (/document) と HTML 出力、CRUD 図の導出規則"
+status: current
+category: design
+---
+
 # 設計書ビューと HTML 出力 — 仕様書
 
 **Status**: 実装済 (2026-10、再設計 段階 3)

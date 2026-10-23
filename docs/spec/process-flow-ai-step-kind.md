@@ -1,3 +1,9 @@
+---
+description: "AI step kind (aiCall / aiAgent) と modelEndpoints catalog — provider 抽象 / tool use / structured output / vision input (業界標準形式準拠)"
+status: current
+category: process-flow
+---
+
 # ProcessFlow AI Step Kind (#935)
 
 **初版: 2026-05-08**

@@ -1,3 +1,9 @@
+---
+description: "設計の分析 (影響分析・対応表・未使用・用語・命名規約・メッセージ・操作単位の権限・SLA / ジョブ・外部システムの契約・進捗・テスト雛形・テストデータ・OpenAPI・DDL の差分)"
+status: current
+category: design
+---
+
 # 設計の分析 (改善提案 第 3 弾)
 
 設計の品質を、機械が助ける機能の仕様。画面は「設計の分析」(`/analysis`。メニューの「出力」)。計算はすべて `@harmony/shared` の純粋関数 (`shared/src/analysis/`) で、画面・`npm run check:design`・MCP が同じ結果を使う。**設計は書き換えない** (書くのは点検の設定 [design-check.md](design-check.md) と、進捗の記録だけ)。

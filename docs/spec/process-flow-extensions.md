@@ -1,3 +1,9 @@
+---
+description: "HTTP 契約 / TX / Saga / 外部 outcomes / ValidationRule / compute / return (Phase B)"
+status: current
+category: process-flow
+---
+
 # 処理フロースキーマ拡張 (Phase B 包括リファレンス)
 
 Issue: #182 (親: #151, #152) / **#539 で v3 反映**

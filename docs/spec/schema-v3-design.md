@@ -1,3 +1,9 @@
+---
+description: "スキーマ v3 横断再設計案 (Opus 設計版)"
+status: current
+category: schema
+---
+
 # Schema v3 横断再設計案 (Opus 設計版)
 
 | 項目 | 値 |

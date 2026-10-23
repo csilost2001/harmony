@@ -1,3 +1,9 @@
+---
+description: "一覧系画面の操作・見た目・内部 API (選択・キーボード・D&D・コピペ・ソート・フィルタ・Read-only モード・No 列永続フィールド)"
+status: current
+category: ui
+---
+
 # 一覧画面の共通仕様
 
 Issue: [#133](https://github.com/csilost2001/harmony/issues/133)
