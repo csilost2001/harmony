@@ -1,5 +1,5 @@
 /**
- * 「流れ」表示の、大きな処理 (約 360 工程) での速さ (ISSUE #1530)。回帰には含めない (時間の目安を出す)。
+ * 「流れ」表示の、大きな処理 (既定は約 360 工程。PERF_STORY_REPEAT で増やせる) での速さ (ISSUE #1530)。回帰には含めない (時間の目安を出す)。
  *
  * 実行: cd frontend && npx playwright test e2e/perf-process-flow-story.spec.ts
  * 測るもの: 流れを開くまで / 編集を始めるまで / 1 回の操作 (↑) の描き直し / 判定表を開くまで / 画面の固まり (long task) の最大
@@ -16,7 +16,9 @@ function bigSteps(): unknown[] {
   const steps: unknown[] = [];
   let n = 0;
   const id = () => `step-${String(++n).padStart(4, "0")}`;
-  for (let i = 0; i < 20; i++) {
+  // 既定は約 360 工程。PERF_STORY_REPEAT=60 で約 1080 工程 (提案 93: 1000 工程以上の確認)
+  const repeat = Math.max(1, Number(process.env.PERF_STORY_REPEAT) || 20);
+  for (let i = 0; i < repeat; i++) {
     steps.push({ id: id(), kind: "dbAccess", heading: i % 4 === 0 ? `区切り ${i}` : undefined, description: `取得 ${i}`, tableId: "order", operation: "SELECT", sql: `SELECT id, name FROM t${i} WHERE id = @inputs.k`, outputBinding: { name: `row${i}`, label: `行${i}` } });
     steps.push({ id: id(), kind: "branch", description: "無ければ返す", branches: [{ id: `br-${i}a`, code: "A", condition: { kind: "expression", expression: `@row${i} == null` }, steps: [{ id: id(), kind: "return", description: "404", responseId: "404-nf" }] }], elseBranch: { id: `br-${i}b`, code: "B", steps: [] } });
     steps.push({

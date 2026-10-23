@@ -13,7 +13,7 @@ import { createMcpServer } from "./mcpServer.js";
 import { tools } from "./tools.js";
 import { isReadOnlyTool } from "./security/mcpAccess.js";
 import { PROFILE_NAMES, PROFILES, isInProfile, parseProfiles, profileRefusal, profilesFromRequest } from "./security/mcpProfiles.js";
-import { PROMPT_SKILLS, findDocsRoot, getPrompt, listPrompts, listResources, readResource, splitSections } from "./mcpKnowledge.js";
+import { PROMPT_SKILLS, findDocsRoot, getPrompt, listPrompts, listResources, readResource, schemaDefClosure, splitSections } from "./mcpKnowledge.js";
 import { NEXT_STEPS, buildProjectContext } from "./projectContext.js";
 import { connect as wsConnect, disconnect as wsDisconnect, setActivePath } from "./workspaceState.js";
 
@@ -191,6 +191,30 @@ describe("Resources (資料)", () => {
       await expect(client.readResource({ uri: "harmony://docs/glossary/1" })).rejects.toThrow();
       await expect(client.readResource({ uri: "harmony://spec/index/sections" })).rejects.toThrow();
     } finally { await close(); }
+  });
+
+  it("スキーマの定義 1 つと、参照する定義だけを読める (処理フローのスキーマ 92KB の部分読み)", async () => {
+    const { client, close } = await open();
+    try {
+      const text = async (uri: string) => ((await client.readResource({ uri })).contents[0] as { text: string }).text;
+      const whole = await text("harmony://schema/process-flow");
+      const part = JSON.parse(await text("harmony://schema/process-flow/BranchStep"));
+      expect(part).toMatchObject({ kind: "process-flow", def: "BranchStep" });
+      expect(JSON.stringify(part.definition)).toContain("branches");
+      expect(Object.keys(part.dependencies)).toEqual(expect.arrayContaining(["StepBaseProps", "Branch"]));
+      // 外部の参照は <種類>#<定義名>
+      expect(Object.keys(part.dependencies).some((k) => k.startsWith("common#"))).toBe(true);
+      expect(JSON.stringify(part).length).toBeLessThan(whole.length / 4);
+      expect(JSON.stringify(part.dependencies.Step)).toContain("26 種類の oneOf"); // 工程の union の中身までは辿らない
+      // 入れ子の Step の oneOf まで辿るので、Step 全体を引くと大きい (それでも全体以下)
+      expect(Object.keys(JSON.parse(await text("harmony://schema/process-flow/Step")).dependencies).length).toBeGreaterThan(40);
+      await expect(client.readResource({ uri: "harmony://schema/process-flow/NoSuchDef" })).rejects.toThrow(/スキーマにありません/);
+      await expect(client.readResource({ uri: "harmony://schema/process-flow/__proto__" })).rejects.toThrow();
+      await expect(client.readResource({ uri: "harmony://schema/process-flow/..%2Fx" })).rejects.toThrow();
+      await expect(client.readResource({ uri: "harmony://schema/index/Foo" })).rejects.toThrow();
+    } finally { await close(); }
+    expect(schemaDefClosure(path.join(REPO, "schemas/v3"), "nope", "X")).toBeNull();
+    expect(schemaDefClosure(path.join(REPO, "schemas/v3"), "table", "constructor")).toBeNull();
   });
 
   it("splitSections: コードブロックの中の ## は見出しにしない。frontmatter は除く", () => {
