@@ -40,8 +40,8 @@ MCP につながっていれば、この文書は Resource `harmony://docs/ai-in
 | 名前を変える・参照を付け替える | [references.md](spec/references.md) | `find_references` → `rename_entity` (既定は予行、`apply: true` で実行) / `replace_references`、取り消しは `undo_rename` / `undo_replace_references` |
 | 設計を点検する | [design-document.md](spec/design-document.md) / [design-check.md](spec/design-check.md) | `check_design`、影響・未使用・用語などは `analyze_design` ([design-analysis.md](spec/design-analysis.md)) |
 | 人からの指示・質問に答える | [ui-markers.md](spec/ui-markers.md) | `find_all_markers` → 対応したら `resolve_marker`、新しい質問は `add_marker` |
-| コードを生成する | [code-generation.md](spec/code-generation.md) | 手順 `generate-code` → 生成したら `record_generation`。再生成の前は `check_generation_drift` / `get_regeneration_diff` |
-| テストを作る | [test-viewpoints.md](spec/test-viewpoints.md) / [process-flow-testing.md](spec/process-flow-testing.md) | `get_test_viewpoints` (ID つきの観点表)、手順 `generate-tests` / `test-strategy` |
+| コードを生成する | [code-generation.md](spec/code-generation.md) | まず `get_generation_brief` (必要な情報が 1 文書に) → 手順 `generate-code` → 生成したら `record_generation`(テストのパスに test / spec)。再生成の前は `check_generation_drift` / `get_regeneration_diff`。テストの覆い方は `check_test_coverage`。CI は `npm run check:generation` |
+| テストを作る | [test-viewpoints.md](spec/test-viewpoints.md) / [process-flow-testing.md](spec/process-flow-testing.md) | `get_test_viewpoints` (ID つきの観点表。`since` で変更に絞る)、手順 `generate-tests` / `test-strategy`。テスト名に観点の ID を書く → `check_test_coverage` |
 | Markdown の設計書から取り込む | [conversion-guideline-for-ai.md](spec/conversion-guideline-for-ai.md) | 手順 `import-md` |
 | 外部の仕様 (OpenAPI など) へ書き出す | [integration-ops.md](spec/integration-ops.md) | `export_openapi` / `export_arazzo` / `export_spec` |
 | 前の版に戻す・壊れた設計を直す | [file-backup.md](spec/file-backup.md) / [workspace-health.md](spec/workspace-health.md) | `list_versions` → `restore_version`、`repair_registry`、`persist_uuids` |
@@ -54,6 +54,7 @@ MCP につながっていれば、この文書は Resource `harmony://docs/ai-in
 - **用語**: `docs/glossary.json` (`harmony://docs/glossary`) — 日本語の用語 ↔ スキーマの定義 ↔ MCP tool ↔ 仕様書
 - **スキーマ**: `harmony://schema/<種類>`。`$defs` ごとの要約・必須の項目は `docs/spec/schema-index.json` (`harmony://spec/schema-index`)。工程の種類の一覧は [process-flow-step-kinds.md](spec/process-flow-step-kinds.md)
 - **作業の手順**: [ai-recipes.md](spec/ai-recipes.md) (作業別の呼び順と、よくある失敗の逆引き)。処理フローの self-check ルールの一覧は [process-flow-pitfalls.md](spec/process-flow-pitfalls.md)
+- **AI の出来を測る**: [evals/README.md](evals/README.md) — 依頼 → 期待の事例と、LLM なしの採点 (`npm run eval:design`)
 - **例**: [examples/PATTERNS.md](../examples/PATTERNS.md) — 工程の種類・書き方ごとに、近いサンプルの場所
 - **なぜそうなっているか**: [decisions/](decisions/README.md) — 設計判断の記録 (分岐は上から順・SQL は工程に書く・スキーマは設計者の専権 ほか)
 - **実装を読む・直すとき**: [codemap.md](codemap.md) — 用語・機能 → ファイル

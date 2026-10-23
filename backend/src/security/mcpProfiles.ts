@@ -28,7 +28,7 @@ export interface McpProfile {
 /** どのプロファイルにも入る土台: ワークスペース・設計の俯瞰と点検・参照元・マーカーを読む・版・タブ (読み取りだけ) */
 const BASE: RegExp[] = [
   /^workspace_(list|status|open|inspect|close)$/, /^get_project_context$/, /^check_design$/, /^analyze_design$/, /^find_references$/,
-  /^(find_all_markers|list_markers)$/, /^list_versions$/, /^(search_design|validate_design|get_changes_since|compare_workspaces|get_design_document|get_tool_guide|list_designs|get_design|get_conventions|get_tech_stack)$/, /^(list_tabs|open_tab|switch_tab|close_tab|navigate_screen)$/,
+  /^(find_all_markers|list_markers)$/, /^list_versions$/, /^(search_design|validate_design|get_changes_since|compare_workspaces|get_design_document|get_tool_guide|get_generation_brief|check_test_coverage|list_designs|get_design|get_conventions|get_tech_stack)$/, /^(list_tabs|open_tab|switch_tab|close_tab|navigate_screen)$/,
 ];
 /** 設計を作る・直すプロファイル (flow / table / screen / doc) に共通の操作: 生成の記録・改名・参照の付け替え・版を戻す */
 const AUTHORING: RegExp[] = [/^record_generation$/, /^(rename_entity|undo_rename|replace_references|undo_replace_references|restore_version)$/];

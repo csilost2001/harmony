@@ -3,18 +3,13 @@
  * 入力は設計書と同じ `DesignDocInput`。純粋関数だけで、書き込まない。
  */
 import type { FlowStep } from "../flowStructure.js";
+import { stepChildLists } from "../flowWords.js";
 
-/** 処理フローのステップを、入れ子 (steps / subSteps / branches / elseBranch / onCommit / onRollback) ごとたどる */
+/** 処理フローのステップを、入れ子 (steps / subSteps / 分岐の道 / コミット後・ロールバック時 / 承認・却下・期限切れ / 検証の OK・NG / 失敗系の副作用) ごとたどる */
 export function forEachStep(steps: readonly FlowStep[] | undefined, visit: (s: FlowStep) => void): void {
   for (const s of steps ?? []) {
     visit(s);
-    const x = s as Record<string, unknown>;
-    forEachStep(x.steps as FlowStep[] | undefined, visit);
-    forEachStep(x.subSteps as FlowStep[] | undefined, visit);
-    for (const b of (x.branches as Array<{ steps?: FlowStep[] }> | undefined) ?? []) forEachStep(b.steps, visit);
-    forEachStep((x.elseBranch as { steps?: FlowStep[] } | undefined)?.steps, visit);
-    forEachStep(x.onCommit as FlowStep[] | undefined, visit);
-    forEachStep(x.onRollback as FlowStep[] | undefined, visit);
+    for (const g of stepChildLists(s)) forEachStep(g.steps, visit);
   }
 }
 

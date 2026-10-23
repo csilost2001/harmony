@@ -13,6 +13,8 @@ import { createMcpServer } from "./mcpServer.js";
 import { connect as wsConnect, disconnect as wsDisconnect, setActivePath } from "./workspaceState.js";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+/** retail の設計 (harmony.json と harmony/) だけを複製する (生成物のフォルダは大きいので含めない) */
+const copyRetail = async (dest: string) => { await fs.mkdir(dest, { recursive: true }); await fs.copyFile(path.join(REPO, "examples/retail/harmony.json"), path.join(dest, "harmony.json")); await fs.cp(path.join(REPO, "examples/retail/harmony"), path.join(dest, "harmony"), { recursive: true }); };
 const SESSION = `design-access-${process.pid}`;
 const WS = path.join(os.tmpdir(), `design-access-ws-${process.pid}-${Date.now()}`);
 
@@ -28,7 +30,7 @@ const call = async (name: string, args: Record<string, unknown> = {}) => {
 const J = async (name: string, args: Record<string, unknown> = {}) => JSON.parse(await call(name, args));
 
 beforeAll(async () => {
-  await fs.cp(path.join(REPO, "examples/retail"), WS, { recursive: true });
+  await copyRetail(WS);
   wsConnect(SESSION);
   setActivePath(SESSION, WS);
   const server = createMcpServer(SESSION);

@@ -14,6 +14,7 @@ import {
 } from "@harmony/shared";
 import { loadDesignInputFromRoot, loadDesignInputFull } from "../designInput.js";
 import { buildProjectContext } from "../projectContext.js";
+import { changedFilesSince } from "./designInsight.js";
 import { readProgressHistory } from "../progressStore.js";
 import { findReferences } from "../references.js";
 import { collectExtraIssues } from "../schemaIssues.js";
@@ -64,7 +65,17 @@ export const handleDesignTool: ToolHandler = async (name, args, root, sessionId)
 
     case "designer__get_test_viewpoints": {
       const { input } = await loadDesignInputFromRoot(root);
-      const onlyScreens = asIds(a.screenIds), onlyFlows = asIds(a.flowIds);
+      let onlyScreens = asIds(a.screenIds), onlyFlows = asIds(a.flowIds);
+      // since: ある時刻より後に変わった画面・処理フローだけに絞る (変更の影響を受けるテスト観点だけを作り直すため)
+      if (a.since !== undefined) {
+        const ms = typeof a.since === "string" ? Date.parse(a.since) : NaN;
+        if (!Number.isFinite(ms)) throw new McpError(ErrorCode.InvalidParams, "since は ISO の日時で指定してください (例: 2026-10-24T09:00:00+09:00)");
+        const changed = await changedFilesSince(root, ms);
+        const cs = new Set(changed.filter((c) => c.kind === "screen" || c.kind === "screenItems").map((c) => c.id.replace(/\.design$/, "")));
+        const cf = new Set(changed.filter((c) => c.kind === "processFlow").map((c) => c.id));
+        onlyScreens = (onlyScreens.length ? onlyScreens.filter((x) => cs.has(x)) : [...cs]).concat(onlyScreens.length || cs.size ? [] : ["\u0000none"]);
+        onlyFlows = (onlyFlows.length ? onlyFlows.filter((x) => cf.has(x)) : [...cf]).concat(onlyFlows.length || cf.size ? [] : ["\u0000none"]);
+      }
       const pick = <T,>(items: T[], ids: string[], idOf: (x: T) => string) => (ids.length ? items.filter((x) => ids.includes(idOf(x))) : items);
       const sheet = deriveTestViewpointSheet({
         limits: input.limits, regex: input.regex, messages: input.messages,

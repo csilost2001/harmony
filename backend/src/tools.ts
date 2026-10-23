@@ -431,6 +431,24 @@ export const tools = [
     },
   },
   {
+    name: "designer__get_generation_brief",
+    description: "コードを生成する前に集める情報を、1 つの文書 (Markdown) にまとめる。処理フロー (processFlowId) なら: 何を作るか・技術スタック・処理の流れ (言葉)・使うテーブル (カラム)・規約の参照 (@conv.*)・呼び出す画面の項目・テスト観点・記録の呼び方。画面 (screenId) なら: 項目の制約・呼ぶ処理フロー・遷移・テスト観点。生成の手順は Prompt generate-code。",
+    inputSchema: {
+      type: "object" as const,
+      properties: { processFlowId: { type: "string" }, screenId: { type: "string" } },
+      required: [],
+    },
+  },
+  {
+    name: "designer__check_test_coverage",
+    description: "生成したテストが、テスト観点表 (designer__get_test_viewpoints) の何 % を覆うかを数える。record_generation で記録された生成物のうち、パスに test / spec を含むものの本文に、観点の ID が書かれているかで見る。観点ごとの覆い方・覆っていない観点を返す。screenIds / flowIds で対象を絞れる (一方だけ指定したら、もう一方は対象にしない)。",
+    inputSchema: {
+      type: "object" as const,
+      properties: { screenIds: { type: "array", items: { type: "string" } }, flowIds: { type: "array", items: { type: "string" } } },
+      required: [],
+    },
+  },
+  {
     name: "designer__compare_workspaces",
     description: "いまのワークスペースと、登録済みの別のワークスペース (id またはパス。designer__workspace_list) を、種類ごとに id で比べる (片方だけにあるもの・両方にあるものの数)。",
     inputSchema: { type: "object" as const, properties: { other: { type: "string", description: "比べる相手のワークスペースの id またはパス" } }, required: ["other"] },
@@ -666,6 +684,7 @@ export const tools = [
       properties: {
         screenIds: { type: "array", items: { type: "string" }, description: "この画面だけに絞る (省略時は全画面)" },
         flowIds: { type: "array", items: { type: "string" }, description: "この処理フローだけに絞る (省略時は全処理)" },
+        since: { type: "string", description: "ISO の日時。この時刻より後に変わった画面・処理フローだけに絞る (変更の影響を受ける観点だけを作り直す)" },
         format: { type: "string", enum: ["json", "csv"], description: "既定は json (入力値つき)" },
         scaffold: { type: "string", enum: ["vitest", "jest", "playwright"], description: "指定すると、観点からテストの雛形 (題名・入力・期待結果を持つ未実装のテスト) のファイル一覧を返す" },
       },

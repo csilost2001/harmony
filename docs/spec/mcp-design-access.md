@@ -61,6 +61,13 @@ category: ops
 
 処理フローの画面で開いて未保存の内容があるときは、その内容を読む (`get_process_flow` と同じ)。
 
+## 生成の前後 (読み取り専用)
+
+| tool | 内容 |
+|---|---|
+| `designer__get_generation_brief` | コードを生成する前に集める情報を 1 つの文書にまとめる (処理フロー / 画面)。詳細は [code-generation.md](code-generation.md) §9.5 |
+| `designer__check_test_coverage` | 生成したテストが、テスト観点表のどれだけを覆うか |
+
 ## 検証だけ・変更の差分・比較 (読み取り専用)
 
 | tool | 内容 |
@@ -83,4 +90,4 @@ category: ops
 
 ## 読み取り専用の tool
 
-`HARMONY_MCP_MODE=readonly` と、プロファイル `read` / `review` で使える。次は何も書かない (試験 `designAccess.test.ts` が、書く tool を断ることを確かめる): `list_designs` `get_design` `get_conventions` `get_tech_stack` `search_design` `list_steps` `get_step` `get_flow_story` `analyze_branches` `get_design_document` `validate_design` `get_changes_since` `compare_workspaces` `get_tool_guide`。書く tool は `save_design` `delete_design` `save_conventions` `save_tech_stack` `import_ddl` `import_openapi` `edit_steps`。
+`HARMONY_MCP_MODE=readonly` と、プロファイル `read` / `review` で使える。次は何も書かない (試験 `designAccess.test.ts` が、書く tool を断ることを確かめる): `list_designs` `get_design` `get_conventions` `get_tech_stack` `search_design` `list_steps` `get_step` `get_flow_story` `analyze_branches` `get_design_document` `validate_design` `get_changes_since` `compare_workspaces` `get_tool_guide` `get_generation_brief` `check_test_coverage`。書く tool は `save_design` `delete_design` `save_conventions` `save_tech_stack` `import_ddl` `import_openapi` `edit_steps`。
