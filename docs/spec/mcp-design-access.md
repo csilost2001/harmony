@@ -23,6 +23,19 @@ category: ops
 - 一覧 (`list_designs`) は読むだけ (フォルダを作らない)。ないものの削除は `deleted: false`
 - 規約・技術スタックが未設定のときは、JSON ではなく「未設定です」という文を返す (そのまま保存に渡して、注記が原本に入らないように)
 
+## 工程のまとめての編集
+
+| tool | 内容 |
+|---|---|
+| `designer__edit_steps` | 工程の追加・更新・削除・移動・入れ子の移動を、1 回の呼び出しで適用する。`edits` を先頭から順に適用し、**全部成功するか、何も保存しないか**のどちらか。既定は予行 (`apply: true` で保存)。1 回 100 件まで |
+
+- `edits[].op` = `add` { `actionId` `kind` `description?` `detail?` `id?` `position?` `parentStepId?` } / `update` { `stepId` `patch` } / `remove` { `stepId` } / `move` { `stepId` `newIndex` } / `nest` { `stepId` `direction`: `indent` | `outdent` }。`add` の `id` を指定すると、後ろの編集がその工程を指せる (指定しなければ `step-NN` を採番)
+- **保存済みのファイルだけが対象**。画面で開いている処理フローは断る (未保存の内容を壊さないため)。ただし確かめられるのは、**最後に接続した 1 つのブラウザ**が開いているものだけ (複数のタブ・ウィンドウで開いている場合、応答が遅れた場合は、断れずにファイルへ書く。ほかの工程の tool のファイル書き込みも同じ)。別のワークスペースで同じ id が開いていても断るその場合は 1 工程ずつの tool (`add_step` `update_step` など。画面に適用され、保存で確定する)
+- 失敗した編集の番号 (`edits[2]`) を言い、この呼び出しの編集はすべて破棄する。工程の id が重複するときも保存しない。成功したときは、**この編集で増えたスキーマ違反**だけを `newSchemaIssues` に出す (もとからある違反は言わない。配列の番号は無視して比べるので、工程を動かしただけでは増えない。10 件まで、残りは `moreSchemaIssues` の件数)
+- 更新日時は `meta.updatedAt` に入る (トップレベルの `updatedAt` はスキーマにない項目。`add_step` などの保存も同じ処理で、これまで書いていたトップレベルの値は取り除く)
+- `apply` は true / false だけ
+- 監査ログでは処理フローの変更として数える。予行は残さない
+
 ## 取り込み (既定は予行)
 
 | tool | 内容 |
@@ -56,14 +69,18 @@ category: ops
 | `designer__get_changes_since` | ある時刻より後に変わった設計ファイル (種類・id・更新時刻)。人が画面で直した分を知る。`since` は ISO の日時 (省略すると直近 24 時間)。`.` で始まるフォルダ (`.harmony-backups` など) は含めない。200 件まで |
 | `designer__compare_workspaces` | いまのワークスペースと、**登録済み**の別のワークスペース (id またはパス) を、画面・テーブル・処理フロー・業務フロー・帳票の id で比べる (シーケンス・ビュー・汎用定義は比べない)。登録されていないパスは読まない |
 
+## 一覧の件数制限
+
+`list_designs` と `list_steps` は `limit` (既定 200 / 工程は 300、最大 1000) と `offset` を取り、`count` / `total`・`offset`・`hasMore` を返す。ほかの一覧は、すでに上限がある (`search_design` 30〜100・`get_changes_since` 200・取り込みの予行 100)。`list_process_flows` などの従来の一覧 (文章で返すもの) は変えていない。
+
 ## 判断した点・限界
 
 - **tool を種類ごとに増やさず、`kind` で 1 組にした** (シーケンス・ビュー・ビュー定義・汎用定義)。tool の説明は毎回 AI の文脈に載るため。画面・処理フロー・テーブル・帳票・業務フロー・ページレイアウトの既存の tool は、そのまま
 - `remove_*` と `delete_*` の混在は、名前を変えない (既存の呼び出し・スキル・資料が広く使っている)。新しい tool は `delete_*` に揃えた
-- 各 `save_*` / `update_*` への `dryRun` 引数と、更新の応答に「影響を受ける設計」を添えることは、していない。代わりに `validate_design` (保存前の確認) と `find_references` (影響) を使う
+- 各 `save_*` / `update_*` への `dryRun` 引数と、更新の応答に「影響を受ける設計」を添えることは、していない。代わりに `validate_design` (保存前の確認)・`edit_steps` と取り込みの予行・`find_references` (影響) を使う
 - 処理フローの雛形づくり (`scaffold_process_flow`) は、tool にしない。手順は Prompt `create-flow` が持ち、HTTP の骨組みは `import_openapi` が作る
 - `get_changes_since` は、ファイルの更新時刻で見る (誰が変えたかは分からない。誰が・なぜは「設計のあゆみ」)
 
 ## 読み取り専用の tool
 
-`HARMONY_MCP_MODE=readonly` と、プロファイル `read` / `review` で使える。次は何も書かない (試験 `designAccess.test.ts` が、書く tool を断ることを確かめる): `list_designs` `get_design` `get_conventions` `get_tech_stack` `search_design` `list_steps` `get_step` `get_flow_story` `analyze_branches` `get_design_document` `validate_design` `get_changes_since` `compare_workspaces`。書く tool は `save_design` `delete_design` `save_conventions` `save_tech_stack` `import_ddl` `import_openapi`。
+`HARMONY_MCP_MODE=readonly` と、プロファイル `read` / `review` で使える。次は何も書かない (試験 `designAccess.test.ts` が、書く tool を断ることを確かめる): `list_designs` `get_design` `get_conventions` `get_tech_stack` `search_design` `list_steps` `get_step` `get_flow_story` `analyze_branches` `get_design_document` `validate_design` `get_changes_since` `compare_workspaces` `get_tool_guide`。書く tool は `save_design` `delete_design` `save_conventions` `save_tech_stack` `import_ddl` `import_openapi` `edit_steps`。

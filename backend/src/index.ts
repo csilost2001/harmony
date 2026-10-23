@@ -6,6 +6,7 @@ import { installSelfWriteTracking } from "./externalChanges.js";
 import { installApprovalGuard } from "./ops/policy.js";
 import { profilesFromRequest } from "./security/mcpProfiles.js";
 import { createMcpServer } from "./mcpServer.js";
+import { detailFromRequest } from "./mcpToolMeta.js";
 import { handleAuthCheck, handlePropose } from "./aiRename.js";
 import { createStaticAssetHandler } from "./staticAssets.js";
 import {
@@ -146,7 +147,14 @@ async function main() {
       res.end(`未知のプロファイルです: ${prof.unknown.join(", ")}`);
       return;
     }
-    const server = createMcpServer(sessionId, prof.names);
+    const det = detailFromRequest(req.url);
+    if (det.unknown) {
+      wsDisconnect(sessionId);
+      res.writeHead(400, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end(`未知の detail です: ${det.unknown} (full / brief)`);
+      return;
+    }
+    const server = createMcpServer(sessionId, prof.names, det.mode);
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined, // stateless
     });

@@ -33,6 +33,13 @@ const MAX_IMPORT_SQL_CHARS = 512 * 1024; // DDL の解析は列数の 2 乗に�
 const MAX_IMPORT_WRITES = 500; // OpenAPI の取り込み上限 (500 operation) に合わせる
 const PREVIEW_LIMIT = 100; // 予行の応答に載せる件数 (残りは「ほか N 件」)
 
+/** 一覧の件数の制限 (limit 既定 200 / 最大 1000、offset 既定 0)。超えた分は hasMore で知らせる */
+export function pageOf<T>(items: T[], a: Record<string, unknown>, defaultLimit = 200): { items: T[]; total: number; offset: number; limit: number; hasMore: boolean } {
+  const limit = typeof a.limit === "number" && Number.isFinite(a.limit) ? Math.max(1, Math.min(1000, Math.floor(a.limit))) : defaultLimit;
+  const offset = typeof a.offset === "number" && Number.isFinite(a.offset) ? Math.max(0, Math.floor(a.offset)) : 0;
+  return { items: items.slice(offset, offset + limit), total: items.length, offset, limit, hasMore: offset + limit < items.length };
+}
+
 const clip = <T,>(items: T[]): { items: T[]; more: number } => ({ items: items.slice(0, PREVIEW_LIMIT), more: Math.max(0, items.length - PREVIEW_LIMIT) });
 
 /** 保存の前に、すべての id を検査する (途中で止まって一部だけ書かれないように) */
@@ -78,12 +85,13 @@ export const handleDesignKindsTool: ToolHandler = async (name, args, root, sessi
         const kinds = typeof a.definitionKind === "string" ? [definitionKindOf(a)] : [...GENERIC_DEFINITION_KINDS];
         const out: Array<Record<string, unknown>> = [];
         for (const dk of kinds) for (const e of await listGenericDefinitionsReadOnly(root, dk)) if (isRecord(e)) out.push(summary(kind, e, dk));
-        return json({ kind, count: out.length, items: out });
+        const pg = pageOf(out, a);
+        return json({ kind, count: pg.total, offset: pg.offset, hasMore: pg.hasMore, items: pg.items });
       }
       // 一覧は読むだけ (フォルダを作らない読み出しを使う。読み取り専用の環境でも呼べるように)
       const list = await listEntitiesReadOnly(kind, root);
-      const items = list.filter(isRecord).map((e) => summary(kind, e));
-      return json({ kind, count: items.length, items });
+      const pg = pageOf(list.filter(isRecord).map((e) => summary(kind, e)), a);
+      return json({ kind, count: pg.total, offset: pg.offset, hasMore: pg.hasMore, items: pg.items });
     }
 
     case "designer__get_design": {

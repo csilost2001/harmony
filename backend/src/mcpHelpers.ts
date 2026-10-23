@@ -51,7 +51,10 @@ export function assertLocalIdMcp(value: unknown, label: string): asserts value i
 
 /** ProcessFlow を保存してブラウザに変更通知 (#700 R-2: root 必須, #703 R-5: wsId=root で scope) */
 export async function saveAndBroadcast(agId: string, ag: ProcessFlowDoc, root: string): Promise<void> {
-  ag.updatedAt = new Date().toISOString();
+  // 更新日時は meta.updatedAt (スキーマの置き場所)。トップレベルの updatedAt は、スキーマにない項目なので書かない (あれば取り除く)
+  const now = new Date().toISOString();
+  const meta = (ag as unknown as { meta?: Record<string, unknown> }).meta;
+  if (meta && typeof meta === "object" && !Array.isArray(meta)) { meta.updatedAt = now; delete ag.updatedAt; } else ag.updatedAt = now;
   await writeProcessFlow(agId, ag, root);
   // root が wsId = per-workspace scoping (#703 R-5 A-1)
   wsBridge.broadcast({ wsId: root, event: "processFlowChanged", data: { processFlowId: agId } });

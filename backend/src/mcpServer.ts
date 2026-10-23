@@ -17,6 +17,7 @@ import { wsBridge } from "./wsBridge.js";
 import { ensureRecovered } from "./operationJournal.js";
 import { assertToolAllowed, filterTools, isReadOnlyTool } from "./security/mcpAccess.js";
 import { filterToolsByProfile, isInProfile, profileRefusal } from "./security/mcpProfiles.js";
+import { briefTool, toolAnnotations, withHint, type DetailMode } from "./mcpToolMeta.js";
 import { SERVER_INSTRUCTIONS, getPrompt, listPrompts, listResources, listResourceTemplates, readResource } from "./mcpKnowledge.js";
 import { recordAudit } from "./ops/audit.js";
 import { describeAiTool, isAiDryRun, isAiNoWrite } from "./ops/auditMap.js";
@@ -44,6 +45,7 @@ import { handleBusinessFlowTool } from "./handlers/businessFlow.js";
 import { handleDesignTool } from "./handlers/design.js";
 import { handleDesignKindsTool } from "./handlers/designKinds.js";
 import { handleDesignInsightTool } from "./handlers/designInsight.js";
+import { handleFlowBatchTool } from "./handlers/flowBatch.js";
 import { handleReportTool } from "./handlers/report.js";
 import { handleWorkspaceTool } from "./handlers/workspace.js";
 import { handleEditSessionTool } from "./handlers/editSession.js";
@@ -53,7 +55,7 @@ import { handleEditSessionTool } from "./handlers/editSession.js";
 // 作成することで、複数クライアントが同時接続しても互いの initialize 状態と干渉しない
 // (Server.connect(transport) は 1:1 関係、1 Server を複数 transport に share はできないため)
 // sessionId を受け取り、workspaceContextManager に connect して per-session active を解決する。
-export function createMcpServer(sessionId: string, profiles: readonly string[] = []): Server {
+export function createMcpServer(sessionId: string, profiles: readonly string[] = [], detail: DetailMode = "full"): Server {
   const server = new Server(
     { name: "harmony-mcp", version: "0.1.0" },
     { capabilities: { tools: {}, resources: {}, prompts: {} }, instructions: SERVER_INSTRUCTIONS }
@@ -61,7 +63,9 @@ export function createMcpServer(sessionId: string, profiles: readonly string[] =
 
   // ツール一覧 (権限で使えないもの・選んだプロファイルに入らないものは出さない)
   server.setRequestHandler(ListToolsRequestSchema, async () => {
-    return { tools: filterToolsByProfile(filterTools(tools), profiles) };
+    // 注釈 (読み取り専用・破壊的・冪等) を付ける。brief のときは説明を短くする (詳細は designer__get_tool_guide)
+    const visible = filterToolsByProfile(filterTools(tools), profiles).map((t) => ({ ...t, annotations: toolAnnotations(t.name) }));
+    return { tools: detail === "brief" ? visible.map(briefTool) : visible };
   });
 
   // 資料 (Resources) と手順 (Prompts): 読み取り専用。仕様: docs/spec/server-security.md
@@ -118,6 +122,7 @@ export function createMcpServer(sessionId: string, profiles: readonly string[] =
         handleDesignTool,
         handleDesignKindsTool,
         handleDesignInsightTool,
+        handleFlowBatchTool,
         handleReportTool,
         handleWorkspaceTool,
         handleEditSessionTool,
@@ -147,10 +152,15 @@ export function createMcpServer(sessionId: string, profiles: readonly string[] =
       if (err instanceof WorkspaceUnsetError) {
         throw new McpError(ErrorCode.InvalidParams, `${err.message} (designer__workspace_list で探し、designer__workspace_open で開いてください)`);
       }
-      if (err instanceof McpError) throw err;
+      if (err instanceof McpError) {
+        // 「直し方」を添えて投げ直す (McpError の文には "MCP error -32602: " が付くので、外してから)
+        const plain = err.message.replace(/^MCP error -?\d+: /, "");
+        const hinted = withHint(plain);
+        throw hinted === plain ? err : new McpError(err.code, hinted, err.data);
+      }
       const message = err instanceof Error ? err.message : String(err);
       return {
-        content: [{ type: "text", text: `エラー: ${message}` }],
+        content: [{ type: "text", text: `エラー: ${withHint(message)}` }],
         isError: true,
       };
     }

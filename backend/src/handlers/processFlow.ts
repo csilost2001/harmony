@@ -75,7 +75,7 @@ const EXTENSION_PACKAGE_TYPES: ExtensionFileKind[] = ["steps", "fieldTypes", "tr
  *
  * 階層命名 (`step-01-a-01` 等) は本 helper では扱わない (設計者が手動で組み直す)。
  */
-function nextLocalId(existingIds: Set<string>, prefix: string, padWidth: number): string {
+export function nextLocalId(existingIds: Set<string>, prefix: string, padWidth: number): string {
   // 既存 ID から `<prefix>-<digits>` 形式を抽出して最大値を求める
   const escapedPrefix = prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const re = new RegExp(`^${escapedPrefix}-(\\d+)$`);
@@ -100,7 +100,7 @@ function nextLocalId(existingIds: Set<string>, prefix: string, padWidth: number)
 }
 
 /** ProcessFlow doc 内の全 action / step / response / branch / note / outcome の id を 1 つの Set に集める。 */
-function collectAllLocalIds(doc: ProcessFlowDoc): Set<string> {
+export function collectAllLocalIds(doc: ProcessFlowDoc): Set<string> {
   const ids = new Set<string>();
   const collectNotes = (notes: unknown): void => {
     if (!Array.isArray(notes)) return;
