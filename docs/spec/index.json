@@ -1,5 +1,6 @@
 {
   "generatedFrom": "docs/spec/*.md の frontmatter (node scripts/docs/spec-index.mjs --write)",
+  "schemaVersion": "v3",
   "specs": [
     {
       "file": "docs/spec/README.md",
@@ -14,6 +15,13 @@
       "description": "docs/ 監査レポート 2026-05-17 (仕様書・プレゼンの HTML 化プロジェクト Phase A の前提作業の記録)",
       "status": "record",
       "category": "record"
+    },
+    {
+      "file": "docs/spec/ai-recipes.md",
+      "title": "AI の作業別レシピ",
+      "description": "AI の作業別レシピ: やりたい作業ごとの tool の呼び順、工程の最小の例 (スキーマで検査済み)、よくある失敗の逆引き",
+      "status": "current",
+      "category": "guide"
     },
     {
       "file": "docs/spec/business-flow.md",
@@ -352,6 +360,13 @@
       "category": "process-flow"
     },
     {
+      "file": "docs/spec/process-flow-pitfalls.md",
+      "title": "処理フロー作成の self-check ルール",
+      "description": "処理フロー作成の self-check ルール (よくある間違い) の一覧。create-flow スキルの見出しから自動生成",
+      "status": "current",
+      "category": "process-flow"
+    },
+    {
       "file": "docs/spec/process-flow-prefix-system.md",
       "title": "ProcessFlow 参照 prefix 24 種 + 階層参照 (`@<key>` 統一記法)",
       "description": "ProcessFlow の参照 prefix 24 種 + 階層参照 (@<key> 統一記法)",
@@ -376,6 +391,13 @@
       "file": "docs/spec/process-flow-sla.md",
       "title": "ProcessFlow SLA / Timeout 仕様",
       "description": "SLA / Timeout 宣言 (ProcessFlow / ActionDefinition / StepBase)",
+      "status": "current",
+      "category": "process-flow"
+    },
+    {
+      "file": "docs/spec/process-flow-step-kinds.md",
+      "title": "処理フローの工程の種類",
+      "description": "処理フローの工程の種類の一覧 (種類・日本語名・スキーマの定義・必須の項目・固有の項目)。スキーマから自動生成",
       "status": "current",
       "category": "process-flow"
     },

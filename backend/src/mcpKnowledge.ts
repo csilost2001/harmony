@@ -34,6 +34,16 @@ export function findDocsRoot(env: NodeJS.ProcessEnv = process.env): string | nul
   return found;
 }
 
+/** harmony://docs/<名前> で読める資料 (リポジトリの根からの相対パス)。許可リスト */
+const DOC_FILES: Record<string, { file: string; name: string; description: string; mimeType: string }> = {
+  "ai-index": { file: "docs/AI-INDEX.md", name: "AI 向けの資料の入口", description: "やりたいこと → 読む資料・使う tool の対応。最初に読む", mimeType: "text/markdown" },
+  glossary: { file: "docs/glossary.json", name: "用語集", description: "日本語の用語 ↔ スキーマの定義 ↔ MCP tool ↔ 仕様書 (JSON。工程の種類も含む)", mimeType: "application/json" },
+  codemap: { file: "docs/codemap.md", name: "コードの地図", description: "用語・機能 → ファイルの対応 (実装を読む・直すとき)", mimeType: "text/markdown" },
+  recipes: { file: "docs/spec/ai-recipes.md", name: "作業別のレシピ", description: "やりたい作業ごとの tool の呼び順と、よくある疑問の逆引き", mimeType: "text/markdown" },
+  patterns: { file: "examples/PATTERNS.md", name: "サンプルが示す工程のパターン", description: "工程の種類・書き方ごとに、近い例のサンプルの場所", mimeType: "text/markdown" },
+  decisions: { file: "docs/decisions/README.md", name: "設計判断の記録", description: "決めたこととその理由 (ADR) の一覧", mimeType: "text/markdown" },
+};
+
 const SCHEMA_SUFFIX = ".v3.schema.json";
 const names = (dir: string, suffix: string): string[] => {
   try { return fs.readdirSync(dir).filter((n) => n.endsWith(suffix)).map((n) => n.slice(0, -suffix.length)).sort(); } catch { return []; }
@@ -42,6 +52,20 @@ const names = (dir: string, suffix: string): string[] => {
 const read = (p: string): string | null => {
   try { return fs.lstatSync(p).isFile() ? fs.readFileSync(p, "utf8") : null; } catch { return null; }
 };
+
+/** 章 (見出し ##) ごとに分ける。0 番は最初の ## より前 (表題・前書き)。コードブロックの中の # は見出しにしない */
+export function splitSections(md: string): Array<{ n: number; title: string; text: string }> {
+  const body = md.replace(/^\uFEFF/, "").replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, "");
+  const out: Array<{ n: number; title: string; lines: string[] }> = [{ n: 0, title: "(前書き)", lines: [] }];
+  let fence = false;
+  for (const line of body.split(/\r?\n/)) {
+    if (/^(```|~~~)/.test(line)) fence = !fence;
+    const h = !fence && /^## (.+)$/.exec(line);
+    if (h) out.push({ n: out.length, title: h[1].trim(), lines: [line] });
+    else out[out.length - 1].lines.push(line);
+  }
+  return out.map((x) => ({ n: x.n, title: x.title, text: x.lines.join("\n").trim() })).filter((x) => x.n > 0 || x.text);
+}
 
 interface SpecEntry { file: string; title: string; description: string; status: string; category: string }
 function specIndex(rootDir: string): SpecEntry[] {
@@ -57,13 +81,17 @@ export function listResources(rootDir: string | null = findDocsRoot()): Resource
     { uri: "harmony://project/context", name: "設計全体の要約", description: "いま開いているワークスペースの設計の件数・名前・規約・未解決のマーカー (designer__get_project_context と同じ)", mimeType: "application/json" },
   ];
   if (!rootDir) return out;
-  if (fs.existsSync(path.join(rootDir, "docs/AI-INDEX.md"))) out.push({ uri: "harmony://docs/ai-index", name: "AI 向けの資料の入口", description: "やりたいこと → 読む資料・使う tool の対応。最初に読む", mimeType: "text/markdown" });
+  for (const [key, d] of Object.entries(DOC_FILES)) if (fs.existsSync(path.join(rootDir, d.file))) out.push({ uri: `harmony://docs/${key}`, name: d.name, description: d.description, mimeType: d.mimeType });
   if (fs.existsSync(path.join(rootDir, "docs/spec/index.json"))) out.push({ uri: "harmony://spec/index", name: "仕様書の索引", description: "docs/spec の全仕様書の要約・状態・種別 (JSON)", mimeType: "application/json" });
+  if (fs.existsSync(path.join(rootDir, "docs/spec/schema-index.json"))) out.push({ uri: "harmony://spec/schema-index", name: "スキーマの索引", description: "schemas/v3 の $defs の名前・要約・必須の項目 (JSON)", mimeType: "application/json" });
+  for (const n of names(path.join(rootDir, "docs/decisions"), ".md")) if (n !== "README") out.push({ uri: `harmony://decisions/${n}`, name: `設計判断: ${n}`, mimeType: "text/markdown" });
   out.push({ uri: "harmony://schema/index", name: "JSON Schema の一覧", description: "schemas/v3 の種類と、読む URI", mimeType: "application/json" });
   const byFile = new Map(specIndex(rootDir).map((e) => [e.file, e]));
   for (const n of names(path.join(rootDir, "docs/spec"), ".md")) {
     const e = byFile.get(`docs/spec/${n}.md`);
-    out.push({ uri: `harmony://spec/${n}`, name: e?.title || n, ...(e ? { description: `[${e.status}] ${e.description}` } : {}), mimeType: "text/markdown" });
+    const big = (() => { try { return fs.statSync(path.join(rootDir, "docs/spec", `${n}.md`)).size; } catch { return 0; } })();
+    const sectionNote = big > 20000 ? ` (${Math.round(big / 1000)}KB。harmony://spec/${n}/sections で章の一覧、harmony://spec/${n}/<番号> で章ごとに読める)` : "";
+    out.push({ uri: `harmony://spec/${n}`, name: e?.title || n, ...(e ? { description: `[${e.status}] ${e.description}${sectionNote}` } : {}), mimeType: "text/markdown" });
   }
   for (const n of names(path.join(rootDir, "schemas/v3"), SCHEMA_SUFFIX)) out.push({ uri: `harmony://schema/${n}`, name: `${n} の JSON Schema`, mimeType: "application/json" });
   return out;
@@ -72,6 +100,8 @@ export function listResources(rootDir: string | null = findDocsRoot()): Resource
 export function listResourceTemplates(): Array<{ uriTemplate: string; name: string; description: string; mimeType: string }> {
   return [
     { uriTemplate: "harmony://spec/{name}", name: "仕様書", description: "docs/spec/<name>.md。name は harmony://spec/index の file から .md を除いたもの", mimeType: "text/markdown" },
+    { uriTemplate: "harmony://spec/{name}/sections", name: "仕様書の章の一覧", description: "仕様書の章 (## の見出し) の番号・題・大きさ。大きな仕様書は、この一覧で選んで 1 章ずつ読む", mimeType: "application/json" },
+    { uriTemplate: "harmony://spec/{name}/{n}", name: "仕様書の 1 章", description: "n は章の番号 (0 = 前書き、1 以降 = ## の見出し順)", mimeType: "text/markdown" },
     { uriTemplate: "harmony://schema/{kind}", name: "JSON Schema", description: "schemas/v3/<kind>.v3.schema.json。kind は harmony://schema/index にある", mimeType: "application/json" },
   ];
 }
@@ -81,9 +111,10 @@ export interface ResourceContents { [x: string]: unknown; contents: Array<{ uri:
 /** URI の中身を返す。root は、いま開いているワークスペース (project/context だけが使う。未選択なら null) */
 export async function readResource(uri: string, root: string | null, rootDir: string | null = findDocsRoot()): Promise<ResourceContents> {
   const ok = (mimeType: string, text: string): ResourceContents => ({ contents: [{ uri, mimeType, text }] });
-  const m = uri.match(/^harmony:\/\/([a-z-]+)\/([A-Za-z0-9._-]+)$/);
-  if (!m) throw new McpError(ErrorCode.InvalidParams, `未知の資料です: ${uri} (harmony://docs/… spec/… schema/… project/context)`);
-  const [, area, name] = m;
+  const m = uri.match(/^harmony:\/\/([a-z-]+)\/([A-Za-z0-9._-]+)(?:\/([A-Za-z0-9._-]+))?$/);
+  if (!m) throw new McpError(ErrorCode.InvalidParams, `未知の資料です: ${uri} (harmony://docs/… spec/… schema/… decisions/… project/context)`);
+  const [, area, name, sub] = m;
+  if (sub !== undefined && area !== "spec") throw new McpError(ErrorCode.InvalidParams, `見つかりません: ${uri}`);
 
   if (area === "project" && name === "context") {
     if (!root) throw new McpError(ErrorCode.InvalidParams, "ワークスペースが選ばれていません (designer__workspace_open で開いてください)");
@@ -91,16 +122,30 @@ export async function readResource(uri: string, root: string | null, rootDir: st
   }
   if (!rootDir) throw new McpError(ErrorCode.InvalidParams, "この環境には資料が同梱されていません");
 
-  if (area === "docs" && name === "ai-index") {
-    const t = read(path.join(rootDir, "docs/AI-INDEX.md"));
+  if (area === "docs" && Object.hasOwn(DOC_FILES, name)) {
+    const d = DOC_FILES[name];
+    const t = read(path.join(rootDir, d.file));
+    if (t !== null) return ok(d.mimeType, t);
+  } else if (area === "decisions" && name !== "README" && names(path.join(rootDir, "docs/decisions"), ".md").includes(name)) {
+    const t = read(path.join(rootDir, "docs/decisions", `${name}.md`));
     if (t !== null) return ok("text/markdown", t);
   } else if (area === "spec") {
-    if (name === "index") {
-      const t = read(path.join(rootDir, "docs/spec/index.json"));
+    if (name === "index" || name === "schema-index") {
+      if (sub !== undefined) throw new McpError(ErrorCode.InvalidParams, `見つかりません: ${uri}`);
+      const t = read(path.join(rootDir, "docs/spec", `${name}.json`));
       if (t !== null) return ok("application/json", t);
     } else if (names(path.join(rootDir, "docs/spec"), ".md").includes(name)) { // 許可リストにある名前だけ
       const t = read(path.join(rootDir, "docs/spec", `${name}.md`));
-      if (t !== null) return ok("text/markdown", t);
+      if (t !== null) {
+        if (sub === undefined) return ok("text/markdown", t);
+        const sections = splitSections(t);
+        if (sub === "sections") return ok("application/json", JSON.stringify({ spec: name, sections: sections.map((x) => ({ n: x.n, title: x.title, chars: x.text.length })), note: "harmony://spec/<名前>/<n> で 1 章ずつ読む (0 = 前書き)" }, null, 2));
+        if (/^\d+$/.test(sub)) {
+          const sec = sections.find((x) => x.n === Number(sub));
+          if (sec) return ok("text/markdown", sec.text);
+          throw new McpError(ErrorCode.InvalidParams, `章 ${sub} がありません (0〜${sections[sections.length - 1].n}。一覧は harmony://spec/${name}/sections)`);
+        }
+      }
     }
   } else if (area === "schema") {
     const kinds = names(path.join(rootDir, "schemas/v3"), SCHEMA_SUFFIX);

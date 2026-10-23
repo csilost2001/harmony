@@ -45,6 +45,31 @@
 | 31 | 冪等キー | 見送り | stateless で、キーを覚えておく場所が無い。`save_*` `update_*` `delete_*` は元から冪等、`add_*` の再送は一覧で確かめられる (注釈の `idempotentHint` で区別) |
 | 32 | 設計全体の要約 | 済 | 第 1 弾 `get_project_context` |
 
-## C〜F
+## C. AI 向けの資料 (33〜52)
 
-(第 3 弾以降の PR で、ここに足す)
+| # | 提案 | 状態 | 備考 |
+|---|---|---|---|
+| 33 | `llms.txt` / AI-INDEX | 済 | 第 1 弾 |
+| 34 | 仕様書の frontmatter と索引 | 済 | 第 1 弾 (`docs/spec/index.json`) |
+| 35 | `conversion-guideline-for-ai.md` (88KB) を分ける | 済(別の形) | ファイルは分けず、**章ごとに読める** Resource にした: `harmony://spec/<名前>/sections` (章の一覧) と `harmony://spec/<名前>/<n>`。大きな仕様書すべてに効く。ファイルを分けると、既存の参照・リンクが広く壊れる |
+| 36 | `schema-design-principles.md` の要約 | 済(別の形) | 同上 (章単位)。要約を別に書くと、本文とずれる |
+| 37 | 用語集 (機械可読) | 済 | `docs/glossary.json` (`harmony://docs/glossary`)。中心の用語は手で、工程の種類はスキーマから自動。tool・仕様書・スキーマの定義の実在を検査 |
+| 38 | 設計判断の記録 (ADR) | 済 | `docs/decisions/` (8 件。`harmony://decisions/<名前>`) |
+| 39 | 「よくある間違い」集 | 済 | `docs/spec/process-flow-pitfalls.md` (create-flow スキルの見出しから自動生成。本文はスキルにある) |
+| 40 | 作業別レシピ | 済 | `docs/spec/ai-recipes.md` (`harmony://docs/recipes`) |
+| 41 | 資料の JSON 例をスキーマで検査 | 済 | 印 `<!-- schema: … -->` つきのブロックを検査 (`scripts/docs/json-examples.mjs`)。印のないブロックは、断片が多く検査先を機械で決められないので見ない |
+| 42 | 資料の例を `examples/` から自動で埋め込む | 見送り | 埋め込むと文書が読みにくくなる。代わりに、印つきの例の検査 (41) と、サンプルの場所の索引 (51) |
+| 43 | スキーマを `$defs` 単位で引く索引 | 済 | `docs/spec/schema-index.json` (`harmony://spec/schema-index`。自動生成) |
+| 44 | 工程の種類の一覧表 | 済 | `docs/spec/process-flow-step-kinds.md` (自動生成)。**`setGlobal` に日本語名が無かったのも直した** |
+| 45 | 資料の状態ラベル | 済 | 第 1 弾 (frontmatter の `status`) |
+| 46 | AGENTS.md を階層化 | 済(一部) | 索引表の各行を短くし約 9% 減。領域別の本文は、仕様書側に元からある。コマンド表・ルールは毎回必要なので残す |
+| 47 | ディレクトリごとの README | 済 | `backend/src/handlers` `backend/src/security` `shared/src` `…/process-flow/story` |
+| 48 | 用語 → ファイルの地図 | 済 | `docs/codemap.md` (`harmony://docs/codemap`)。書いたパスの実在を検査 |
+| 49 | 逆引き FAQ | 済 | `ai-recipes.md` の「よくある失敗」 |
+| 50 | user-guide と spec の相互リンク | 見送り | AI-INDEX から両方へ行ける。全ページの相互リンクは、保つ手間に見合わない |
+| 51 | サンプルが示すパターンの索引 | 済 | `examples/PATTERNS.md` (自動生成) |
+| 52 | 資料とスキーマの版の紐づけ | 済(一部) | 仕様書の索引・スキーマの索引に `schemaVersion: v3` |
+
+## D〜F
+
+(第 5 弾以降の PR で、ここに足す)

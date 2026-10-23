@@ -44,6 +44,9 @@ logs
 docs/*
 !docs/spec
 !docs/AI-INDEX.md
+!docs/codemap.md
+!docs/glossary.json
+!docs/decisions
 
 # 開発時 workspaces / data (利用者が volume mount する)
 workspaces

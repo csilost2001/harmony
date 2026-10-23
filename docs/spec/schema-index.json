@@ -1,0 +1,1878 @@
+{
+  "generatedFrom": "schemas/v3/*.schema.json (node scripts/docs/generated.mjs --write)",
+  "schemaVersion": "v3",
+  "schemas": [
+    {
+      "file": "schemas/v3/business-flow.v3.schema.json",
+      "kind": "business-flow",
+      "uri": "harmony://schema/business-flow",
+      "title": "BusinessFlow (v3 業務フロー)",
+      "description": "業務の流れ (スイムレーン)。",
+      "defCount": 5,
+      "defs": [
+        {
+          "name": "LaneKind",
+          "description": "レーンの種類。",
+          "enum": 3
+        },
+        {
+          "name": "Lane",
+          "description": "",
+          "required": [
+            "id",
+            "name"
+          ]
+        },
+        {
+          "name": "StepKind",
+          "description": "工程の種類。",
+          "enum": 4
+        },
+        {
+          "name": "Next",
+          "description": "",
+          "required": [
+            "to"
+          ]
+        },
+        {
+          "name": "Step",
+          "description": "",
+          "required": [
+            "id",
+            "lane",
+            "kind",
+            "name"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "schemas/v3/common.v3.schema.json",
+      "kind": "common",
+      "uri": "harmony://schema/common",
+      "title": "Common (v3 共通定義)",
+      "description": "全 v3 schema が参照する共通 $defs。",
+      "defCount": 42,
+      "defs": [
+        {
+          "name": "Uuid",
+          "description": "Top-level entity (Project / Screen / Table / ProcessFlow / View / Sequence / CustomBlock 等) の永続識別子。"
+        },
+        {
+          "name": "EntityId",
+          "description": "Top-level entity (Screen / Table / ProcessFlow / Sequence / View / ViewDefinition / PageLayout) の人間可読識別子。"
+        },
+        {
+          "name": "UuidLoose",
+          "description": "[非本番] テスト・サンプル専用の擬似 UUID。"
+        },
+        {
+          "name": "LocalId",
+          "description": "ネスト構造 (Step / Action / Branch / Column / Index / Constraint / Trigger / Note / TestScenario / Decision / Response / Marker 等) の識別子。"
+        },
+        {
+          "name": "Identifier",
+          "description": "業務識別子 (画面項目 ID / API key / ProcessFlow 変数名 / FieldType 拡張 kind 等)。"
+        },
+        {
+          "name": "PhysicalName",
+          "description": "システム物理名 (DB テーブル名 / カラム名 / シーケンス名 等)。"
+        },
+        {
+          "name": "IdentifierPath",
+          "description": "識別子のドット区切りパス。"
+        },
+        {
+          "name": "EnvVarKey",
+          "description": "環境変数キー。"
+        },
+        {
+          "name": "ErrorCode",
+          "description": "エラーコード。"
+        },
+        {
+          "name": "EventTopic",
+          "description": "イベント topic。"
+        },
+        {
+          "name": "Timestamp",
+          "description": "ISO 8601 / RFC 3339 形式の UTC タイムスタンプ。"
+        },
+        {
+          "name": "SemVer",
+          "description": "Semantic Versioning 2.0 文字列。"
+        },
+        {
+          "name": "SemVerRange",
+          "description": "SemVer 範囲式。"
+        },
+        {
+          "name": "Description",
+          "description": "自由記述の説明文。"
+        },
+        {
+          "name": "DisplayName",
+          "description": "人間向け表示名。"
+        },
+        {
+          "name": "Maturity",
+          "description": "成熟度 3 値。",
+          "enum": 3
+        },
+        {
+          "name": "Mode",
+          "description": "ProcessFlow / Project の上流・下流モード。",
+          "enum": 2
+        },
+        {
+          "name": "TemplateString",
+          "description": "テンプレート文字列 (#1254 件 3 / #1263 Phase X2)。"
+        },
+        {
+          "name": "SelectorString",
+          "description": "JSONPath sublanguage (#1254 件 3 / #1263 Phase X2)。"
+        },
+        {
+          "name": "VariableScope",
+          "description": "ProcessFlow 変数 scope 名 (#1264 verdict 観点 1)。"
+        },
+        {
+          "name": "Namespace",
+          "description": "拡張機構 / 業界別定義の namespace 識別子。"
+        },
+        {
+          "name": "EntityMeta",
+          "description": "全 top-level entity (Project / Screen / Table / ProcessFlow / View / Sequence 等) の共通 meta。",
+          "required": [
+            "id",
+            "uuid",
+            "name",
+            "createdAt",
+            "updatedAt"
+          ]
+        },
+        {
+          "name": "Authoring",
+          "description": "設計プロセス用情報 (実行に不要)。"
+        },
+        {
+          "name": "Marker",
+          "description": "人間↔AI のメッセージマーカー。",
+          "required": [
+            "id",
+            "kind",
+            "body",
+            "author",
+            "createdAt"
+          ]
+        },
+        {
+          "name": "MarkerShape",
+          "description": "自由描画マーカーの形状。",
+          "required": [
+            "kind",
+            "d"
+          ]
+        },
+        {
+          "name": "DecisionRecord",
+          "description": "MADR 形式のアーキテクチャ決定記録。",
+          "required": [
+            "id",
+            "title",
+            "status",
+            "context",
+            "decision"
+          ]
+        },
+        {
+          "name": "GlossaryEntry",
+          "description": "ドメイン用語集の 1 エントリ。",
+          "required": [
+            "definition"
+          ]
+        },
+        {
+          "name": "Note",
+          "description": "Step / Action / Field レベルの付箋。",
+          "required": [
+            "id",
+            "kind",
+            "body",
+            "createdAt"
+          ]
+        },
+        {
+          "name": "FieldType",
+          "description": "全領域 (StructuredField / ScreenItem / DomainEntry / TableColumn 派生型) で共有するフィールド型。",
+          "oneOf": 9
+        },
+        {
+          "name": "StructuredField",
+          "description": "構造化フィールド定義。",
+          "required": [
+            "name",
+            "type"
+          ]
+        },
+        {
+          "name": "ScreenItemRef",
+          "description": "Screen 内の画面項目への複合参照 (Pattern B)。",
+          "required": [
+            "screenId",
+            "itemId"
+          ]
+        },
+        {
+          "name": "TableColumnRef",
+          "description": "Table 内のカラムへの複合参照。",
+          "required": [
+            "tableId",
+            "columnId"
+          ]
+        },
+        {
+          "name": "ViewColumnRef",
+          "description": "View 内のカラムへの複合参照。",
+          "required": [
+            "viewId",
+            "columnPhysicalName"
+          ]
+        },
+        {
+          "name": "ActionRef",
+          "description": "ProcessFlow 内のアクションへの複合参照。",
+          "required": [
+            "processFlowId",
+            "actionId"
+          ]
+        },
+        {
+          "name": "StepRef",
+          "description": "ProcessFlow 内のステップへの複合参照。",
+          "required": [
+            "processFlowId",
+            "actionId",
+            "stepId"
+          ]
+        },
+        {
+          "name": "ResponseRef",
+          "description": "Action.responses[] への複合参照。",
+          "required": [
+            "processFlowId",
+            "actionId",
+            "responseId"
+          ]
+        },
+        {
+          "name": "ExtensionApplied",
+          "description": "プロジェクトが適用する拡張 namespace の宣言。",
+          "required": [
+            "namespace"
+          ]
+        },
+        {
+          "name": "ExtensionRoot",
+          "description": "拡張定義 root の共通プロパティ (extensions.v3.schema.json で allOf マージ)。",
+          "required": [
+            "namespace",
+            "version"
+          ]
+        },
+        {
+          "name": "TestScenario",
+          "description": "Given-When-Then 形式のテストシナリオ 1 件。",
+          "required": [
+            "id",
+            "name",
+            "given",
+            "when",
+            "then"
+          ]
+        },
+        {
+          "name": "TestPrecondition",
+          "description": "テスト前提条件。",
+          "oneOf": 5
+        },
+        {
+          "name": "TestInvocation",
+          "description": "テスト起動点。",
+          "required": [
+            "actionId",
+            "input"
+          ]
+        },
+        {
+          "name": "TestAssertion",
+          "description": "テスト期待結果。",
+          "oneOf": 7
+        }
+      ]
+    },
+    {
+      "file": "schemas/v3/conventions.v3.schema.json",
+      "kind": "conventions",
+      "uri": "harmony://schema/conventions",
+      "title": "Conventions (v3 横断規約カタログ)",
+      "description": "プロジェクト横断の規約カタログ。",
+      "defCount": 17,
+      "defs": [
+        {
+          "name": "I18nConfig",
+          "description": "",
+          "required": [
+            "supportedLocales",
+            "defaultLocale"
+          ]
+        },
+        {
+          "name": "MessageTemplate",
+          "description": "",
+          "required": [
+            "template"
+          ]
+        },
+        {
+          "name": "RegexEntry",
+          "description": "",
+          "required": [
+            "pattern"
+          ]
+        },
+        {
+          "name": "LimitEntry",
+          "description": "",
+          "required": [
+            "value"
+          ]
+        },
+        {
+          "name": "DefaultableEntry",
+          "description": "ambient default 機構を持つエントリの共通フィールド (scope / currency / tax / auth / db で使用)。"
+        },
+        {
+          "name": "ScopeEntry",
+          "description": "",
+          "required": [
+            "value"
+          ]
+        },
+        {
+          "name": "CurrencyEntry",
+          "description": "",
+          "required": [
+            "code"
+          ]
+        },
+        {
+          "name": "TaxEntry",
+          "description": "",
+          "required": [
+            "kind",
+            "rate"
+          ]
+        },
+        {
+          "name": "AuthEntry",
+          "description": "",
+          "required": [
+            "scheme"
+          ]
+        },
+        {
+          "name": "RoleEntry",
+          "description": "",
+          "required": [
+            "permissions"
+          ]
+        },
+        {
+          "name": "PermissionEntry",
+          "description": "",
+          "required": [
+            "resource",
+            "action"
+          ]
+        },
+        {
+          "name": "DbEntry",
+          "description": ""
+        },
+        {
+          "name": "NumberingEntry",
+          "description": "",
+          "required": [
+            "format"
+          ]
+        },
+        {
+          "name": "TxEntry",
+          "description": "",
+          "required": [
+            "policy"
+          ]
+        },
+        {
+          "name": "ExternalOutcomeEntry",
+          "description": "",
+          "required": [
+            "outcome",
+            "action"
+          ]
+        },
+        {
+          "name": "RoundingMode",
+          "description": "",
+          "enum": 3
+        },
+        {
+          "name": "FieldKeyEntry",
+          "description": "画面横断 論理フィールド カタログ 1 件 (#651)。"
+        }
+      ]
+    },
+    {
+      "file": "schemas/v3/custom-block.v3.schema.json",
+      "kind": "custom-block",
+      "uri": "harmony://schema/custom-block",
+      "title": "CustomBlock (v3 カスタムブロック集合)",
+      "description": "Designer (画面デザイナー) で再利用するカスタムブロックの集合。",
+      "defCount": 1,
+      "defs": [
+        {
+          "name": "CustomBlock",
+          "description": "",
+          "required": [
+            "id",
+            "label",
+            "category",
+            "content",
+            "shared",
+            "createdAt",
+            "updatedAt"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "schemas/v3/er-layout.v3.schema.json",
+      "kind": "er-layout",
+      "uri": "harmony://schema/er-layout",
+      "title": "ErLayout (v3 ER 図 UI 座標)",
+      "description": "ER 図の UI 座標および論理リレーション (FK 未定義の概念リレーション) を集約。",
+      "defCount": 1,
+      "defs": [
+        {
+          "name": "LogicalRelation",
+          "description": "",
+          "required": [
+            "id",
+            "sourceTableId",
+            "targetTableId",
+            "cardinality"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "schemas/v3/extensions.v3.schema.json",
+      "kind": "extensions",
+      "uri": "harmony://schema/extensions",
+      "title": "Extensions (v3 統合拡張定義)",
+      "description": "業界・業態別 (retail / finance / manufacturing 等) の全種類の拡張を 1 namespace = 1 ファイルで定義する。",
+      "defCount": 12,
+      "defs": [
+        {
+          "name": "CustomFieldType",
+          "description": "",
+          "required": [
+            "kind",
+            "label"
+          ]
+        },
+        {
+          "name": "CustomDataType",
+          "description": "",
+          "required": [
+            "physicalKind",
+            "label"
+          ]
+        },
+        {
+          "name": "CustomScreenKind",
+          "description": "",
+          "required": [
+            "kind",
+            "label"
+          ]
+        },
+        {
+          "name": "CustomActionTrigger",
+          "description": "",
+          "required": [
+            "value",
+            "label"
+          ]
+        },
+        {
+          "name": "CustomDbOperation",
+          "description": "",
+          "required": [
+            "value",
+            "label"
+          ]
+        },
+        {
+          "name": "CustomStepKind",
+          "description": "拡張 Step 種別。",
+          "required": [
+            "label",
+            "icon",
+            "description",
+            "schema"
+          ]
+        },
+        {
+          "name": "CustomProcessFlowKind",
+          "description": "拡張 ProcessFlowKind。",
+          "required": [
+            "kind",
+            "label"
+          ]
+        },
+        {
+          "name": "CustomResponseType",
+          "description": "",
+          "required": [
+            "schema"
+          ]
+        },
+        {
+          "name": "CustomColumnTemplate",
+          "description": "",
+          "required": [
+            "id",
+            "label",
+            "category",
+            "column"
+          ]
+        },
+        {
+          "name": "CustomConstraintPattern",
+          "description": "",
+          "required": [
+            "id",
+            "label",
+            "kind"
+          ]
+        },
+        {
+          "name": "CustomConventionCategory",
+          "description": "",
+          "required": [
+            "categoryName",
+            "label",
+            "entrySchema"
+          ]
+        },
+        {
+          "name": "DynamicFormSchema",
+          "description": "拡張 schema 定義用の JSON Schema subset。"
+        }
+      ]
+    },
+    {
+      "file": "schemas/v3/external-catalogs.v3.schema.json",
+      "kind": "external-catalogs",
+      "uri": "harmony://schema/external-catalogs",
+      "title": "External Catalogs (v3 project-level 共有カタログ)",
+      "description": "プロジェクト全体で共有する外部システム / AI / シークレット / 環境変数 / イベント / 関数の catalog 定義。",
+      "defCount": 0,
+      "defs": []
+    },
+    {
+      "file": "schemas/v3/generic-definition.v3.schema.json",
+      "kind": "generic-definition",
+      "uri": "harmony://schema/generic-definition",
+      "title": "Generic Definition (v3 汎用設計定義 親 schema)",
+      "description": "Layer 2 Generic Definition Catalog の 17 kind 共通メタモデル (#1263 Phase X2 / RFC #1254 件 3.7 で 8 → 14 kind に拡張、#1303 で 14 → 17 kind に拡張、#1310 で 1…",
+      "defCount": 7,
+      "defs": [
+        {
+          "name": "GenericDefinition",
+          "description": "",
+          "required": [
+            "kind",
+            "name",
+            "purpose",
+            "responsibilities",
+            "targets"
+          ]
+        },
+        {
+          "name": "GenericDefinitionKind",
+          "description": "Generic Definition Catalog の 17 kind (#1254 件 3.7 / #1263 Phase X2 で 14 種 / #1303 で 14→17 種に拡張、#1310 で global 追加、#1436 で ui-fragment 廃止後 17…",
+          "enum": 17
+        },
+        {
+          "name": "GenericDefinitionName",
+          "description": "catalog 記録の identifier。"
+        },
+        {
+          "name": "GenericDefinitionTarget",
+          "description": "適用領域。",
+          "enum": 4
+        },
+        {
+          "name": "GenericField",
+          "description": "",
+          "required": [
+            "name",
+            "type"
+          ]
+        },
+        {
+          "name": "GenericOperation",
+          "description": "",
+          "required": [
+            "name"
+          ]
+        },
+        {
+          "name": "GenericRelation",
+          "description": "",
+          "required": [
+            "kind",
+            "ref"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "schemas/v3/harmony.v3.schema.json",
+      "kind": "harmony",
+      "uri": "harmony://schema/harmony",
+      "title": "Harmony Workspace Marker (v3)",
+      "description": "ワークスペースルートを識別する marker ファイル (harmony.json) の定義。",
+      "defCount": 10,
+      "defs": [
+        {
+          "name": "EntryBase",
+          "description": "entities.* 配列要素の共通プロパティ。",
+          "required": [
+            "id",
+            "no",
+            "name",
+            "updatedAt"
+          ]
+        },
+        {
+          "name": "ScreenEntry",
+          "description": ""
+        },
+        {
+          "name": "TableEntry",
+          "description": ""
+        },
+        {
+          "name": "ProcessFlowEntry",
+          "description": ""
+        },
+        {
+          "name": "ViewEntry",
+          "description": ""
+        },
+        {
+          "name": "ViewDefinitionEntry",
+          "description": "ViewDefinition (画面 一覧 UI viewer) entry。"
+        },
+        {
+          "name": "SequenceEntry",
+          "description": ""
+        },
+        {
+          "name": "PageLayoutEntry",
+          "description": "PageLayout entry (RFC #1021)。"
+        },
+        {
+          "name": "ScreenGroupEntry",
+          "description": "",
+          "required": [
+            "id",
+            "name"
+          ]
+        },
+        {
+          "name": "ScreenTransitionEntry",
+          "description": "画面間の遷移定義。",
+          "required": [
+            "id",
+            "sourceScreenId",
+            "targetScreenId",
+            "trigger"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "schemas/v3/layout-components.v3.schema.json",
+      "kind": "layout-components",
+      "uri": "harmony://schema/layout-components",
+      "title": "LayoutComponents (v3 プロジェクト独自部品)",
+      "description": "プロジェクト共通の独自部品の集合。",
+      "defCount": 6,
+      "defs": [
+        {
+          "name": "LayoutComponentParamKind",
+          "description": "差し込み口の種別。",
+          "enum": 3
+        },
+        {
+          "name": "LayoutComponentParam",
+          "description": "差し込み口。",
+          "required": [
+            "id",
+            "label",
+            "kind"
+          ]
+        },
+        {
+          "name": "LayoutComponent",
+          "description": "独自部品 1 つ。",
+          "required": [
+            "id",
+            "label",
+            "params",
+            "nodes"
+          ]
+        },
+        {
+          "name": "TemplatePlaceholder",
+          "description": "差し込み口の参照 `{{paramId}}`。"
+        },
+        {
+          "name": "LayoutTemplateNode",
+          "description": "テンプレートの部品 1 つ。",
+          "required": [
+            "id",
+            "type"
+          ]
+        },
+        {
+          "name": "LayoutTemplateNodeProps",
+          "description": "テンプレート部品の表示属性。"
+        }
+      ]
+    },
+    {
+      "file": "schemas/v3/page-layout.v3.schema.json",
+      "kind": "page-layout",
+      "uri": "harmony://schema/page-layout",
+      "title": "PageLayout (v3 共通レイアウト entity)",
+      "description": "共通レイアウト entity 1 件分の正規定義 (#1021)。",
+      "defCount": 3,
+      "defs": [
+        {
+          "name": "PageLayout",
+          "description": "PageLayout entity 本体。",
+          "required": [
+            "regions",
+            "assignments"
+          ]
+        },
+        {
+          "name": "Region",
+          "description": "PageLayout 内の region (slot) 宣言。",
+          "required": [
+            "name"
+          ]
+        },
+        {
+          "name": "PageLayoutDesign",
+          "description": "PageLayout デザインの参照情報。",
+          "required": [
+            "editorKind",
+            "cssFramework"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "schemas/v3/process-flow.v3.schema.json",
+      "kind": "process-flow",
+      "uri": "harmony://schema/process-flow",
+      "title": "ProcessFlow (v3 処理フロー定義)",
+      "description": "業務処理フロー entity 1 件分の正規定義。",
+      "defCount": 86,
+      "defs": [
+        {
+          "name": "Meta",
+          "description": "ProcessFlow の identity と運用設定。",
+          "required": [
+            "flowType"
+          ]
+        },
+        {
+          "name": "PrimaryInvoker",
+          "description": "本処理フローの主たる呼び出し元 (任意、#624 / #1019)。",
+          "oneOf": 1
+        },
+        {
+          "name": "ProcessFlowKind",
+          "description": "ProcessFlow の種別。",
+          "oneOf": 2
+        },
+        {
+          "name": "Sla",
+          "description": "SLA / Timeout 設定。"
+        },
+        {
+          "name": "Context",
+          "description": "実行に必要な参照情報 (catalog 群 / ambient / 健全性 / リソース)。"
+        },
+        {
+          "name": "Catalogs",
+          "description": "ProcessFlow 内 catalog 群を階層化集約。"
+        },
+        {
+          "name": "ErrorCatalogEntry",
+          "description": ""
+        },
+        {
+          "name": "ExternalSystemCatalogEntry",
+          "description": "",
+          "required": [
+            "name"
+          ]
+        },
+        {
+          "name": "SecretEntry",
+          "description": "",
+          "required": [
+            "source",
+            "name"
+          ]
+        },
+        {
+          "name": "EnvVarEntry",
+          "description": "",
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "name": "DomainEntry",
+          "description": "",
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "name": "FunctionEntry",
+          "description": "",
+          "required": [
+            "signature",
+            "returnType",
+            "description"
+          ]
+        },
+        {
+          "name": "EventEntry",
+          "description": ""
+        },
+        {
+          "name": "ModelEndpointEntry",
+          "description": "AI モデルエンドポイント定義。",
+          "required": [
+            "provider",
+            "model"
+          ]
+        },
+        {
+          "name": "ActionDefinition",
+          "description": "",
+          "required": [
+            "id",
+            "name",
+            "trigger",
+            "steps"
+          ]
+        },
+        {
+          "name": "ActionTrigger",
+          "description": "",
+          "oneOf": 2
+        },
+        {
+          "name": "HttpRoute",
+          "description": "",
+          "required": [
+            "method",
+            "path"
+          ]
+        },
+        {
+          "name": "HttpResponseSpec",
+          "description": "",
+          "required": [
+            "id",
+            "status"
+          ]
+        },
+        {
+          "name": "BodySchema",
+          "description": "Response body の schema。",
+          "oneOf": 2
+        },
+        {
+          "name": "StepBaseProps",
+          "description": "全 Step variant 共通のプロパティ集合。"
+        },
+        {
+          "name": "ErrorHandling",
+          "description": "Step の失敗系挙動を集約する object (#1263 Phase X3 / #1254 件 2 案 D)。"
+        },
+        {
+          "name": "OutputBinding",
+          "description": "Step 結果の outputBinding (構造化のみ、v3 で string 短縮形は廃止)。",
+          "required": [
+            "name"
+          ]
+        },
+        {
+          "name": "ExternalChain",
+          "description": "",
+          "required": [
+            "chainId",
+            "phase"
+          ]
+        },
+        {
+          "name": "RetryPolicy",
+          "description": "",
+          "required": [
+            "maxAttempts"
+          ]
+        },
+        {
+          "name": "ExternalAuth",
+          "description": "",
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "name": "Step",
+          "description": "Step union。",
+          "oneOf": 26
+        },
+        {
+          "name": "NonReturnStep",
+          "description": "Return を除く Step subset。",
+          "oneOf": 25
+        },
+        {
+          "name": "ValidationStep",
+          "description": "",
+          "required": [
+            "id",
+            "kind",
+            "description",
+            "fieldErrorsVar"
+          ]
+        },
+        {
+          "name": "ValidationRule",
+          "description": "",
+          "required": [
+            "field",
+            "type"
+          ]
+        },
+        {
+          "name": "ValidationInlineBranch",
+          "description": "",
+          "required": [
+            "ok",
+            "ng"
+          ]
+        },
+        {
+          "name": "DbAccessStep",
+          "description": "DB アクセス step。",
+          "required": [
+            "id",
+            "kind",
+            "description",
+            "tableId",
+            "operation"
+          ]
+        },
+        {
+          "name": "DbOperation",
+          "description": "",
+          "oneOf": 2
+        },
+        {
+          "name": "AffectedRowsCheck",
+          "description": "",
+          "required": [
+            "operator",
+            "expected",
+            "onViolation"
+          ]
+        },
+        {
+          "name": "CacheHint",
+          "description": "",
+          "required": [
+            "ttlSeconds"
+          ]
+        },
+        {
+          "name": "ExternalSystemStep",
+          "description": "外部システム呼出ステップ。",
+          "required": [
+            "id",
+            "kind",
+            "description",
+            "systemRef"
+          ]
+        },
+        {
+          "name": "ExternalHttpCall",
+          "description": "",
+          "required": [
+            "method",
+            "path"
+          ]
+        },
+        {
+          "name": "ExternalCallOutcomes",
+          "description": ""
+        },
+        {
+          "name": "ExternalCallOutcomeSpec",
+          "description": "",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "name": "Criterion",
+          "description": "Arazzo 互換の成功判定条件。",
+          "required": [
+            "type",
+            "expression"
+          ]
+        },
+        {
+          "name": "CircuitBreakerConfig",
+          "description": "",
+          "required": [
+            "failureThreshold",
+            "timeout"
+          ]
+        },
+        {
+          "name": "BulkheadConfig",
+          "description": "",
+          "required": [
+            "maxConcurrent"
+          ]
+        },
+        {
+          "name": "AiCallStep",
+          "description": "single-shot LLM 呼び出し step (text / vision multimodal / tool use / structured output 込み)。",
+          "required": [
+            "id",
+            "kind",
+            "description",
+            "modelRef",
+            "messages"
+          ]
+        },
+        {
+          "name": "AiAgentStep",
+          "description": "multi-step agent loop step。",
+          "required": [
+            "id",
+            "kind",
+            "description",
+            "modelRef",
+            "messages",
+            "tools"
+          ]
+        },
+        {
+          "name": "AiMessageItem",
+          "description": "messages[] の要素 1 件。",
+          "oneOf": 2
+        },
+        {
+          "name": "AiMessage",
+          "description": "LLM 入力メッセージ 1 件。",
+          "required": [
+            "role",
+            "content"
+          ]
+        },
+        {
+          "name": "AiMessageSpread",
+          "description": "messages[] 内の動的配列展開ディレクティブ。",
+          "required": [
+            "kind",
+            "ref"
+          ]
+        },
+        {
+          "name": "AiContentBlock",
+          "description": "LLM message の content block。",
+          "oneOf": 2
+        },
+        {
+          "name": "AiImageSource",
+          "description": "vision input の画像ソース。",
+          "oneOf": 3
+        },
+        {
+          "name": "AiToolRef",
+          "description": "LLM に提供する tool 1 件。",
+          "oneOf": 2
+        },
+        {
+          "name": "AiToolChoice",
+          "description": "tool 選択戦略。",
+          "oneOf": 2
+        },
+        {
+          "name": "AiResponseFormat",
+          "description": "LLM 出力の format 指定。",
+          "oneOf": 4
+        },
+        {
+          "name": "AiInferenceParameters",
+          "description": "LLM 推論パラメータ。"
+        },
+        {
+          "name": "AiName",
+          "description": "AI tool / response schema 名。"
+        },
+        {
+          "name": "CommonProcessStep",
+          "description": "他 ProcessFlow (kind='common') を呼び出す step。",
+          "required": [
+            "id",
+            "kind",
+            "description",
+            "refId"
+          ]
+        },
+        {
+          "name": "ComponentCallStep",
+          "description": "component-definition の operation 呼び出し step。",
+          "required": [
+            "id",
+            "kind",
+            "description",
+            "componentRef"
+          ]
+        },
+        {
+          "name": "ScreenTransitionStep",
+          "description": "",
+          "required": [
+            "id",
+            "kind",
+            "description",
+            "targetScreenId"
+          ]
+        },
+        {
+          "name": "DisplayUpdateStep",
+          "description": "",
+          "required": [
+            "id",
+            "kind",
+            "description",
+            "target"
+          ]
+        },
+        {
+          "name": "BranchStep",
+          "description": "",
+          "required": [
+            "id",
+            "kind",
+            "description",
+            "branches"
+          ]
+        },
+        {
+          "name": "Branch",
+          "description": "",
+          "required": [
+            "id",
+            "code",
+            "condition",
+            "steps"
+          ]
+        },
+        {
+          "name": "ElseBranch",
+          "description": "",
+          "required": [
+            "id",
+            "code",
+            "steps"
+          ]
+        },
+        {
+          "name": "BranchCondition",
+          "description": "分岐条件。",
+          "oneOf": 4
+        },
+        {
+          "name": "LoopStep",
+          "description": "繰り返しステップ。",
+          "required": [
+            "id",
+            "kind",
+            "description",
+            "loopKind",
+            "steps"
+          ]
+        },
+        {
+          "name": "LoopBreakStep",
+          "description": "",
+          "required": [
+            "id",
+            "kind",
+            "description"
+          ]
+        },
+        {
+          "name": "LoopContinueStep",
+          "description": "",
+          "required": [
+            "id",
+            "kind",
+            "description"
+          ]
+        },
+        {
+          "name": "JumpStep",
+          "description": "",
+          "required": [
+            "id",
+            "kind",
+            "description",
+            "jumpTo"
+          ]
+        },
+        {
+          "name": "ComputeStep",
+          "description": "",
+          "required": [
+            "id",
+            "kind",
+            "description",
+            "expression"
+          ]
+        },
+        {
+          "name": "ReturnStep",
+          "description": "",
+          "required": [
+            "id",
+            "kind",
+            "description"
+          ]
+        },
+        {
+          "name": "LogStep",
+          "description": "",
+          "required": [
+            "id",
+            "kind",
+            "description",
+            "level",
+            "message"
+          ]
+        },
+        {
+          "name": "AuditStep",
+          "description": "",
+          "required": [
+            "id",
+            "kind",
+            "description",
+            "action"
+          ]
+        },
+        {
+          "name": "SetGlobalStep",
+          "description": "globals catalog (generic-definitions/global/<name>) への write 操作 (#1322 Phase B-3e)。",
+          "required": [
+            "id",
+            "kind",
+            "description",
+            "globalName",
+            "value"
+          ]
+        },
+        {
+          "name": "WorkflowStep",
+          "description": "",
+          "required": [
+            "id",
+            "kind",
+            "description",
+            "pattern",
+            "approvers"
+          ]
+        },
+        {
+          "name": "WorkflowPattern",
+          "description": "",
+          "enum": 11
+        },
+        {
+          "name": "WorkflowApprover",
+          "description": "",
+          "required": [
+            "role"
+          ]
+        },
+        {
+          "name": "WorkflowQuorum",
+          "description": "",
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "name": "TransactionScopeStep",
+          "description": "TX スコープ step。",
+          "required": [
+            "id",
+            "kind",
+            "description",
+            "steps"
+          ]
+        },
+        {
+          "name": "EventPublishStep",
+          "description": "イベント発行 step。",
+          "required": [
+            "id",
+            "kind",
+            "description",
+            "topic"
+          ]
+        },
+        {
+          "name": "EventSubscribeStep",
+          "description": "イベント購読 step。",
+          "required": [
+            "id",
+            "kind",
+            "description",
+            "topic"
+          ]
+        },
+        {
+          "name": "ClosingStep",
+          "description": "",
+          "required": [
+            "id",
+            "kind",
+            "description",
+            "period"
+          ]
+        },
+        {
+          "name": "CdcStep",
+          "description": "",
+          "required": [
+            "id",
+            "kind",
+            "description",
+            "tableIds",
+            "captureMode",
+            "destination"
+          ]
+        },
+        {
+          "name": "CdcDestination",
+          "description": "CDC 出力先。",
+          "oneOf": 3
+        },
+        {
+          "name": "ExtensionStep",
+          "description": "拡張 Step (extensions.v3.stepKinds で定義)。",
+          "required": [
+            "id",
+            "kind",
+            "description"
+          ]
+        },
+        {
+          "name": "HealthCheckGroup",
+          "description": "",
+          "required": [
+            "checks"
+          ]
+        },
+        {
+          "name": "ReadinessCheckGroup",
+          "description": "",
+          "required": [
+            "checks"
+          ]
+        },
+        {
+          "name": "HealthCheck",
+          "description": "",
+          "required": [
+            "name",
+            "kind"
+          ]
+        },
+        {
+          "name": "ResourceRequirements",
+          "description": ""
+        },
+        {
+          "name": "ResourceQuota",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "file": "schemas/v3/report.v3.schema.json",
+      "kind": "report",
+      "uri": "harmony://schema/report",
+      "title": "Report (v3 帳票)",
+      "description": "紙 (PDF・Excel・CSV) に出力する帳票の設計。",
+      "defCount": 8,
+      "defs": [
+        {
+          "name": "Output",
+          "description": ""
+        },
+        {
+          "name": "Trigger",
+          "description": ""
+        },
+        {
+          "name": "Param",
+          "description": "",
+          "required": [
+            "id",
+            "label"
+          ]
+        },
+        {
+          "name": "Sort",
+          "description": "",
+          "required": [
+            "field"
+          ]
+        },
+        {
+          "name": "SectionKind",
+          "description": "部の種類。",
+          "enum": 7
+        },
+        {
+          "name": "FieldKind",
+          "description": "項目の種類。",
+          "enum": 5
+        },
+        {
+          "name": "Section",
+          "description": "",
+          "required": [
+            "id",
+            "kind",
+            "fields"
+          ]
+        },
+        {
+          "name": "Field",
+          "description": "",
+          "required": [
+            "id",
+            "kind"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "schemas/v3/screen-flow-positions.v3.schema.json",
+      "kind": "screen-flow-positions",
+      "uri": "harmony://schema/screen-flow-positions",
+      "title": "ScreenFlowPositions (v3 画面フロー UI 座標)",
+      "description": "画面フロー図 (ReactFlow キャンバス) 上の各画面・グループ・遷移の UI 座標を集約する。",
+      "defCount": 2,
+      "defs": [
+        {
+          "name": "Position",
+          "description": "",
+          "required": [
+            "x",
+            "y"
+          ]
+        },
+        {
+          "name": "TransitionLayout",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "file": "schemas/v3/screen-item.v3.schema.json",
+      "kind": "screen-item",
+      "uri": "harmony://schema/screen-item",
+      "title": "ScreenItem (v3 画面項目定義)",
+      "description": "画面項目 1 件の正規定義。",
+      "defCount": 6,
+      "defs": [
+        {
+          "name": "ScreenItem",
+          "description": "画面項目 1 件。",
+          "required": [
+            "id",
+            "label",
+            "type"
+          ]
+        },
+        {
+          "name": "ScreenItemEvent",
+          "description": "画面項目イベント (#624 / #1019)。",
+          "required": [
+            "id",
+            "handlerFlowId"
+          ]
+        },
+        {
+          "name": "ScreenItemBinding",
+          "description": "画面項目の binding metadata (#1065 / #1445)。",
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "name": "ScreenItemPresentation",
+          "description": "画面項目の表示形態。",
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "name": "ScreenItemPresentationColumn",
+          "description": "table/list presentation の列定義。",
+          "required": [
+            "id",
+            "label",
+            "path",
+            "type"
+          ]
+        },
+        {
+          "name": "ScreenItemEventEffect",
+          "description": "ScreenItemEvent の UI ローカル効果 (#1065 / spec §3.2)。",
+          "oneOf": 7
+        }
+      ]
+    },
+    {
+      "file": "schemas/v3/screen.v3.schema.json",
+      "kind": "screen",
+      "uri": "harmony://schema/screen",
+      "title": "Screen (v3 画面定義)",
+      "description": "画面 entity 1 件分の正規定義。",
+      "defCount": 7,
+      "defs": [
+        {
+          "name": "Screen",
+          "description": "画面 entity 本体。",
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "name": "ScreenKind",
+          "description": "画面種別。",
+          "oneOf": 2
+        },
+        {
+          "name": "ScreenLayout",
+          "description": "画面レイアウト (業務部品の木)。",
+          "required": [
+            "version",
+            "nodes"
+          ]
+        },
+        {
+          "name": "LayoutNodeType",
+          "description": "業務部品の種別。",
+          "enum": 19
+        },
+        {
+          "name": "LayoutNode",
+          "description": "業務部品 1 つ。",
+          "required": [
+            "id",
+            "type"
+          ]
+        },
+        {
+          "name": "LayoutNodeProps",
+          "description": "部品の表示属性。"
+        },
+        {
+          "name": "ScreenDesign",
+          "description": "画面デザインの参照情報。"
+        }
+      ]
+    },
+    {
+      "file": "schemas/v3/sequence.v3.schema.json",
+      "kind": "sequence",
+      "uri": "harmony://schema/sequence",
+      "title": "Sequence (v3 シーケンス定義)",
+      "description": "DB シーケンス 1 件の定義。",
+      "defCount": 1,
+      "defs": [
+        {
+          "name": "Sequence",
+          "description": "",
+          "required": [
+            "physicalName"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "schemas/v3/table.v3.schema.json",
+      "kind": "table",
+      "uri": "harmony://schema/table",
+      "title": "Table (v3 テーブル定義)",
+      "description": "テーブル entity 1 件分の正規定義。",
+      "defCount": 12,
+      "defs": [
+        {
+          "name": "Table",
+          "description": "",
+          "required": [
+            "physicalName",
+            "columns"
+          ]
+        },
+        {
+          "name": "Column",
+          "description": "カラム 1 件。",
+          "required": [
+            "id",
+            "physicalName",
+            "name",
+            "dataType"
+          ]
+        },
+        {
+          "name": "DataType",
+          "description": "DB データ型。",
+          "oneOf": 2
+        },
+        {
+          "name": "Index",
+          "description": "",
+          "required": [
+            "id",
+            "physicalName",
+            "columns"
+          ]
+        },
+        {
+          "name": "Constraint",
+          "description": "テーブル制約。",
+          "oneOf": 4
+        },
+        {
+          "name": "PrimaryKeyConstraint",
+          "description": "主キー (PRIMARY KEY) 制約。",
+          "required": [
+            "id",
+            "kind",
+            "columnIds"
+          ]
+        },
+        {
+          "name": "UniqueConstraint",
+          "description": "",
+          "required": [
+            "id",
+            "kind",
+            "columnIds"
+          ]
+        },
+        {
+          "name": "CheckConstraint",
+          "description": "",
+          "required": [
+            "id",
+            "kind",
+            "expression"
+          ]
+        },
+        {
+          "name": "ForeignKeyConstraint",
+          "description": "外部キー制約。",
+          "required": [
+            "id",
+            "kind",
+            "columnIds",
+            "referencedTableId",
+            "referencedColumnIds"
+          ]
+        },
+        {
+          "name": "FkAction",
+          "description": "FK 違反時のアクション。",
+          "enum": 5
+        },
+        {
+          "name": "DefaultDefinition",
+          "description": "カラム DEFAULT 値の構造化定義。",
+          "required": [
+            "columnId",
+            "kind",
+            "value"
+          ]
+        },
+        {
+          "name": "TriggerDefinition",
+          "description": "",
+          "required": [
+            "id",
+            "physicalName",
+            "timing",
+            "events",
+            "body"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "schemas/v3/view-definition.v3.schema.json",
+      "kind": "view-definition",
+      "uri": "harmony://schema/view-definition",
+      "title": "ViewDefinition (v3 画面 一覧 UI 表示定義)",
+      "description": "画面側の一覧 UI 表示設定 (list / detail / kanban / calendar 等)。",
+      "defCount": 9,
+      "defs": [
+        {
+          "name": "ViewDefinition",
+          "description": "ViewDefinition entity 本体。",
+          "required": [
+            "kind",
+            "columns"
+          ]
+        },
+        {
+          "name": "ViewQuery",
+          "description": "Level 2 (Structured) または Level 3 (Raw SQL) の query 定義。",
+          "oneOf": 2
+        },
+        {
+          "name": "ViewQueryFrom",
+          "description": "Level 2 の起点テーブル。",
+          "required": [
+            "tableId",
+            "alias"
+          ]
+        },
+        {
+          "name": "ViewQueryJoin",
+          "description": "Level 2 の join 1 件。",
+          "required": [
+            "kind",
+            "tableId",
+            "alias",
+            "on"
+          ]
+        },
+        {
+          "name": "ViewQueryParameterRef",
+          "description": "Level 3 raw SQL の @param.<name> 参照を宣言する。",
+          "required": [
+            "name",
+            "fieldType"
+          ]
+        },
+        {
+          "name": "ViewDefinitionKind",
+          "description": "viewer 種別。",
+          "oneOf": 2
+        },
+        {
+          "name": "ViewColumn",
+          "description": "viewer 1 列の定義。",
+          "required": [
+            "name",
+            "type"
+          ]
+        },
+        {
+          "name": "SortSpec",
+          "description": "ソート 1 列。",
+          "required": [
+            "columnName",
+            "order"
+          ]
+        },
+        {
+          "name": "FilterSpec",
+          "description": "フィルタ 1 件。",
+          "required": [
+            "columnName",
+            "operator"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "schemas/v3/view.v3.schema.json",
+      "kind": "view",
+      "uri": "harmony://schema/view",
+      "title": "View (v3 ビュー定義)",
+      "description": "DB ビュー 1 件の定義。",
+      "defCount": 2,
+      "defs": [
+        {
+          "name": "View",
+          "description": "",
+          "required": [
+            "physicalName",
+            "selectStatement",
+            "outputColumns"
+          ]
+        },
+        {
+          "name": "OutputColumn",
+          "description": "",
+          "required": [
+            "physicalName",
+            "dataType"
+          ]
+        }
+      ]
+    }
+  ]
+}

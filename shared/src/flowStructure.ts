@@ -41,6 +41,7 @@ export const STEP_KIND_LABELS: Record<string, string> = {
   return: "レスポンス返却",
   log: "ログ",
   audit: "監査",
+  setGlobal: "グローバル設定",
   workflow: "ワークフロー",
   transactionScope: "トランザクション",
   eventPublish: "イベント発行",

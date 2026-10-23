@@ -46,7 +46,9 @@ COPY data/extensions ./data/extensions
 # AI (MCP) が Resources / Prompts で読む資料 (docs/spec・docs/AI-INDEX.md・schemas・ai-skills)。.dockerignore の docs 除外から、これらだけ戻している
 COPY schemas ./schemas
 COPY docs/spec ./docs/spec
-COPY docs/AI-INDEX.md ./docs/AI-INDEX.md
+COPY docs/AI-INDEX.md docs/codemap.md docs/glossary.json ./docs/
+COPY docs/decisions ./docs/decisions
+COPY examples/PATTERNS.md ./examples/PATTERNS.md
 COPY ai-skills ./ai-skills
 
 # Docker は named volume 初期化時に image 内ディレクトリの owner/mode を引き継ぐ。

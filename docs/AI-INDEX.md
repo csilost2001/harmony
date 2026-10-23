@@ -51,6 +51,14 @@ MCP につながっていれば、この文書は Resource `harmony://docs/ai-in
 
 ## 資料の探し方
 
+- **用語**: `docs/glossary.json` (`harmony://docs/glossary`) — 日本語の用語 ↔ スキーマの定義 ↔ MCP tool ↔ 仕様書
+- **スキーマ**: `harmony://schema/<種類>`。`$defs` ごとの要約・必須の項目は `docs/spec/schema-index.json` (`harmony://spec/schema-index`)。工程の種類の一覧は [process-flow-step-kinds.md](spec/process-flow-step-kinds.md)
+- **作業の手順**: [ai-recipes.md](spec/ai-recipes.md) (作業別の呼び順と、よくある失敗の逆引き)。処理フローの self-check ルールの一覧は [process-flow-pitfalls.md](spec/process-flow-pitfalls.md)
+- **例**: [examples/PATTERNS.md](../examples/PATTERNS.md) — 工程の種類・書き方ごとに、近いサンプルの場所
+- **なぜそうなっているか**: [decisions/](decisions/README.md) — 設計判断の記録 (分岐は上から順・SQL は工程に書く・スキーマは設計者の専権 ほか)
+- **実装を読む・直すとき**: [codemap.md](codemap.md) — 用語・機能 → ファイル
+- **大きな仕様書**: 全体を読まず、`harmony://spec/<名前>/sections` で章の一覧を見て、`harmony://spec/<名前>/<n>` で 1 章ずつ読む
+
 - 仕様書は `docs/spec/` に 90 本余り。各ファイルの先頭の `description` (要約)・`status` (current / deprecated / record)・`category` を、`docs/spec/index.json` にまとめてある。**まず索引で選ぶ**
 - `status: record` は過去の時点の記録 (評価・監査・ドッグフード)。現行の仕様ではない。`deprecated` は廃止済み (記録として残す)
 - 判断の経緯: [plans/redesign-2026-10.md](plans/redesign-2026-10.md)

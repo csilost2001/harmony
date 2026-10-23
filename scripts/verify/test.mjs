@@ -41,9 +41,9 @@ function assert(name, cond, detail = "") {
   }
 }
 
-function group(title, fn) {
+async function group(title, fn) {
   console.log(`\n• ${title}`);
-  fn();
+  await fn(); // 同期の試験は、その場で最後まで動く。非同期の試験は、呼び出し側が await する
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -631,7 +631,7 @@ group("export-design-doc (体裁・改訂履歴)", () => {
 // ─────────────────────────────────────────────────────────────
 // docs-freshness.mjs (資料の鮮度検査)
 // ─────────────────────────────────────────────────────────────
-const { brokenLinks, unknownNpmScripts, appRoutes, docRoutes, routeTableDrift, uiReferenceIssues, skillIssues, specIndexGaps, specFrontmatterIssues, aiIndexToolIssues, normRoute, runChecks } = await import("./docs-freshness.mjs");
+const { brokenLinks, unknownNpmScripts, appRoutes, docRoutes, routeTableDrift, uiReferenceIssues, skillIssues, specIndexGaps, specFrontmatterIssues, aiIndexToolIssues, generatedIssues, jsonExampleIssues, codemapPathIssues, normRoute, runChecks } = await import("./docs-freshness.mjs");
 const { pickTargets, DOC_SHOT_NAMES } = await import("../dev/docs-shots.mjs");
 const { planSetup, versionAtLeast, requiredNode } = await import("../lib/setup.mjs");
 const { toNoteLine, renderNotes } = await import("../release/notes.mjs");
@@ -704,6 +704,35 @@ group("docs-freshness (資料の鮮度検査)", () => {
   } finally { rmSync(tmp, { recursive: true, force: true }); }
   const real = runChecks();
   assert("このリポジトリの資料に、食い違いがない", real.errors.length === 0, real.errors.slice(0, 3).map((e) => `${e.file}: ${e.message}`).join(" / "));
+});
+
+await group("AI 向けの資料の自動生成と検査 (generated / json-examples / codemap)", async () => {
+  const { buildSchemaIndex, buildStepKinds, buildPitfalls, buildGlossary, buildPatterns, firstSentence: fs1, checkGenerated, CORE_TERMS } = await import("../docs/generated.mjs");
+  const { collectExamples, checkJsonExamples } = await import("../docs/json-examples.mjs");
+  assert("firstSentence: 括弧の中の。では切らない", fs1("汎用定義 (genericDefinition。メッセージ)。次。") === "汎用定義 (genericDefinition。メッセージ)。");
+  const kinds = buildStepKinds();
+  assert("工程の種類の一覧: 25 の組み込みの種類と拡張が載り、日本語名が付く", /\| `validation` \| 入力チェック \|/.test(kinds) && /\| `setGlobal` \| グローバル設定 \|/.test(kinds) && /namespace:StepName/.test(kinds) && (kinds.match(/^\| `/gm) ?? []).length === 26);
+  const idx = JSON.parse(buildSchemaIndex());
+  assert("スキーマの索引: 全ファイルと $defs、BranchStep の必須の項目", idx.schemas.length >= 15 && idx.schemas.find((s) => s.kind === "process-flow").defs.some((d) => d.name === "BranchStep" && d.required?.includes("branches")));
+  assert("self-check ルールの一覧: 33 件以上、番号と題", (buildPitfalls().match(/^\| \d+[a-z]? \|/gm) ?? []).length >= 33);
+  const gl = JSON.parse(buildGlossary());
+  assert("用語集: 中心の用語と、工程の種類の用語が両方ある。tool の名前は実在する (作れること自体が検査)", gl.terms.length > CORE_TERMS.length && gl.terms.some((t) => t.term === "判定表") && gl.terms.some((t) => t.generated && t.term === "分岐"));
+  assert("サンプルのパターン: 種類ごとの例の場所", /\| `branch` \| 分岐 \| `examples\//.test(buildPatterns()));
+  assert("このリポジトリの生成物が、正本と合っている", checkGenerated().length === 0, JSON.stringify(checkGenerated()));
+  const tmp = mkdtempSync(join(tmpdir(), "gen-"));
+  try {
+    mkdirSync(join(tmp, "schemas/v3"), { recursive: true }); mkdirSync(join(tmp, "docs"), { recursive: true }); mkdirSync(join(tmp, "ai-skills/create-flow"), { recursive: true });
+    writeFileSync(join(tmp, "schemas/v3/x.v3.schema.json"), JSON.stringify({ $id: "https://example.com/x.v3.schema.json", $defs: { T: { type: "object", required: ["a"], properties: { a: { type: "string" } }, additionalProperties: false } } }));
+    writeFileSync(join(tmp, "docs/a.md"), "<!-- schema: x#/$defs/T -->\n```json\n{ \"a\": \"ok\" }\n```\n\n<!-- schema: x#/$defs/T -->\n```json\n{ \"a\": 1 }\n```\n\n<!-- schema: nope -->\n```json\n{}\n```\n\n<!-- schema: x#/$defs/Missing -->\n```json\n{}\n```\n\n<!-- schema: x -->\n\n本文\n\n<!-- schema: x#/$defs/T -->\n```json\n{ 壊れ\n```\n\n```json\n{ \"印のないものは検査しない\": 1 }\n```\n");
+    const r = checkJsonExamples(tmp);
+    assert("JSON の例: 合うものは通り、合わない・スキーマがない・定義がない・印の次がコードブロックでない・JSON として壊れているものを検出し、印のないものは見ない", r.checked === 2 && r.problems.length === 5 && r.problems.some((p) => p.includes("a.md:6") && p.includes("に合いません")) && r.problems.some((p) => p.includes("スキーマ「nope」")) && r.problems.some((p) => p.includes("x#/$defs/Missing")) && r.problems.some((p) => p.includes("```json のコードブロックではありません")) && r.problems.some((p) => p.includes("JSON として読めません")), JSON.stringify(r));
+    assert("collectExamples: 行番号と検査先", collectExamples("a\n<!-- schema: x#/$defs/T -->\n```json\n{}\n```\n")[0].line === 2);
+    writeFileSync(join(tmp, "docs/codemap.md"), "`schemas/v3/x.v3.schema.json` と `docs/nope.md` と `npm run check` と `a/*.ts`\n");
+    const cm = codemapPathIssues(tmp);
+    assert("コードの地図: 実在しないパスだけを検出する (npm の例・ワイルドカードは見ない)", cm.length === 1 && cm[0].message.includes("docs/nope.md"), JSON.stringify(cm));
+    writeFileSync(join(tmp, "docs/AI-INDEX.md"), "ツールなし");
+    assert("鮮度検査の関数は、材料のないディレクトリでは何も言わない", generatedIssues(tmp).length === 0 && jsonExampleIssues(join(tmp, "nowhere")).length === 0);
+  } finally { rmSync(tmp, { recursive: true, force: true }); }
 });
 
 group("docs-shots (スクリーンショットの撮り直しの対象)", () => {

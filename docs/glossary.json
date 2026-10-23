@@ -1,0 +1,635 @@
+{
+  "generatedFrom": "scripts/docs/generated.mjs の CORE_TERMS と、スキーマの工程の種類 (node scripts/docs/generated.mjs --write)",
+  "terms": [
+    {
+      "term": "処理フロー",
+      "english": "ProcessFlow",
+      "meaning": "画面やバッチの裏の処理を、アクションと工程の並びで書いた設計",
+      "schema": "process-flow#ProcessFlow",
+      "tools": [
+        "list_process_flows",
+        "get_process_flow",
+        "add_process_flow",
+        "update_process_flow",
+        "get_flow_story"
+      ],
+      "spec": [
+        "process-flow-variables",
+        "process-flow-story-view"
+      ]
+    },
+    {
+      "term": "アクション",
+      "english": "ActionDefinition",
+      "meaning": "処理フローの中の、1 つの入口 (ボタン・API・バッチ) ごとの処理のまとまり。工程を持つ",
+      "schema": "process-flow#ActionDefinition",
+      "tools": [
+        "add_action"
+      ],
+      "spec": [
+        "process-flow-variables"
+      ]
+    },
+    {
+      "term": "工程",
+      "english": "Step",
+      "meaning": "処理の 1 手順。kind で種類を表す (入力チェック・DB アクセス・分岐 など)",
+      "schema": "process-flow#Step",
+      "tools": [
+        "add_step",
+        "update_step",
+        "edit_steps",
+        "list_steps",
+        "get_step"
+      ],
+      "spec": [
+        "process-flow-step-kinds",
+        "process-flow-substeps"
+      ]
+    },
+    {
+      "term": "分岐",
+      "english": "BranchStep",
+      "meaning": "条件で道を選ぶ工程。上から順に調べ、最初に成り立った道だけを実行する",
+      "schema": "process-flow#BranchStep",
+      "tools": [
+        "analyze_branches"
+      ],
+      "spec": [
+        "process-flow-runtime-conventions",
+        "process-flow-story-view"
+      ]
+    },
+    {
+      "term": "判定表",
+      "english": "decision table",
+      "meaning": "複合条件の分岐を、条件の行 × 道の列の表 (○ × －) で見る・直す。隠れる道・抜けを指摘する",
+      "schema": "",
+      "tools": [
+        "analyze_branches"
+      ],
+      "spec": [
+        "process-flow-story-view",
+        "ui-editing-depth"
+      ]
+    },
+    {
+      "term": "流れ",
+      "english": "story view",
+      "meaning": "処理フローを、入れ子と言葉の条件で読む表示。AI が作った複雑な処理を人が読み、細かい仕様を人が書く",
+      "schema": "",
+      "tools": [
+        "get_flow_story"
+      ],
+      "spec": [
+        "process-flow-story-view"
+      ]
+    },
+    {
+      "term": "画面",
+      "english": "Screen",
+      "meaning": "利用者が見る 1 画面の設計。業務部品の木で組む",
+      "schema": "screen#Screen",
+      "tools": [
+        "list_screens",
+        "get_screen_layout",
+        "set_screen_layout",
+        "add_screen",
+        "update_screen"
+      ],
+      "spec": [
+        "screen-layout",
+        "layout-components"
+      ]
+    },
+    {
+      "term": "画面項目",
+      "english": "ScreenItem",
+      "meaning": "画面の入力・表示の 1 項目 (型・必須・長さ・テーブルの列への結びつき)",
+      "schema": "screen-item#ScreenItem",
+      "tools": [
+        "rename_screen_item",
+        "check_screen_item_refs"
+      ],
+      "spec": [
+        "screen-items"
+      ]
+    },
+    {
+      "term": "業務部品",
+      "english": "layout component",
+      "meaning": "画面を組む部品。プロジェクト独自の部品も登録できる",
+      "schema": "layout-components",
+      "tools": [
+        "list_layout_components"
+      ],
+      "spec": [
+        "layout-components",
+        "screen-layout"
+      ]
+    },
+    {
+      "term": "テーブル",
+      "english": "Table",
+      "meaning": "データベースのテーブル定義 (カラム・インデックス・制約)",
+      "schema": "table#Table",
+      "tools": [
+        "list_tables",
+        "get_table",
+        "add_table",
+        "update_table",
+        "generate_ddl",
+        "import_ddl"
+      ],
+      "spec": [
+        "integration-ops"
+      ]
+    },
+    {
+      "term": "規約",
+      "english": "conventions",
+      "meaning": "プロジェクトの取り決め (ロール・権限・上限値・正規表現・DB 規約・メッセージ)。@conv.* で参照する",
+      "schema": "conventions",
+      "tools": [
+        "get_conventions",
+        "save_conventions"
+      ],
+      "spec": [
+        "process-flow-prefix-system"
+      ]
+    },
+    {
+      "term": "汎用定義",
+      "english": "generic definition",
+      "meaning": "メッセージ・ドメイン型・定数 など 17 種の、名前で引く定義",
+      "schema": "generic-definition",
+      "tools": [
+        "list_designs",
+        "get_design",
+        "save_design"
+      ],
+      "spec": [
+        "generic-definition-layer"
+      ]
+    },
+    {
+      "term": "業務フロー",
+      "english": "BusinessFlow",
+      "meaning": "スイムレーンで書く、人と画面と処理をまたぐ業務の流れ",
+      "schema": "business-flow",
+      "tools": [
+        "list_business_flows",
+        "get_business_flow",
+        "save_business_flow"
+      ],
+      "spec": [
+        "business-flow"
+      ]
+    },
+    {
+      "term": "帳票",
+      "english": "Report",
+      "meaning": "帳票の出力・部・項目の設計",
+      "schema": "report",
+      "tools": [
+        "list_reports",
+        "get_report",
+        "save_report"
+      ],
+      "spec": [
+        "report"
+      ]
+    },
+    {
+      "term": "ページレイアウト",
+      "english": "PageLayout",
+      "meaning": "共通のヘッダ・フッタ・サイドバーなどの、画面をまたぐ部品",
+      "schema": "page-layout",
+      "tools": [
+        "list_page_layouts",
+        "get_page_layout",
+        "save_page_layout"
+      ],
+      "spec": [
+        "page-layout"
+      ]
+    },
+    {
+      "term": "ワークスペース",
+      "english": "workspace",
+      "meaning": "1 つのプロジェクトの設計一式を置くフォルダ (harmony.json と dataDir)",
+      "schema": "harmony",
+      "tools": [
+        "workspace_list",
+        "workspace_open",
+        "workspace_status"
+      ],
+      "spec": [
+        "workspace",
+        "workspace-multi"
+      ]
+    },
+    {
+      "term": "成熟度",
+      "english": "maturity",
+      "meaning": "設計の仕上がり (draft など)。画面・テーブル・処理フロー・工程に付く",
+      "schema": "common#Maturity",
+      "tools": [
+        "set_maturity"
+      ],
+      "spec": [
+        "process-flow-maturity"
+      ]
+    },
+    {
+      "term": "マーカー",
+      "english": "marker",
+      "meaning": "設計に付ける、人から AI への指示・質問・メモ。解決すると履歴に残る",
+      "schema": "common#Marker",
+      "tools": [
+        "list_markers",
+        "find_all_markers",
+        "add_marker",
+        "resolve_marker"
+      ],
+      "spec": [
+        "ui-markers"
+      ]
+    },
+    {
+      "term": "要確認",
+      "english": "issue",
+      "meaning": "設計の抜け・矛盾の指摘 (check_design が返す)。黙らせるのは人 (理由つきの抑制)",
+      "schema": "",
+      "tools": [
+        "check_design",
+        "analyze_design"
+      ],
+      "spec": [
+        "design-check",
+        "design-document"
+      ]
+    },
+    {
+      "term": "設計書",
+      "english": "design document",
+      "meaning": "設計を紙面の体裁で読む成果物 (HTML / Word / Excel)。原本と常に一致する",
+      "schema": "",
+      "tools": [
+        "get_design_document"
+      ],
+      "spec": [
+        "design-document"
+      ]
+    },
+    {
+      "term": "テスト観点",
+      "english": "test viewpoints",
+      "meaning": "画面入力の境界値や処理の分岐から導く、ID つきのテストの観点表",
+      "schema": "",
+      "tools": [
+        "get_test_viewpoints"
+      ],
+      "spec": [
+        "test-viewpoints"
+      ]
+    },
+    {
+      "term": "参照元",
+      "english": "references",
+      "meaning": "ある設計を参照している設計の一覧。改名・削除の前の影響確認",
+      "schema": "",
+      "tools": [
+        "find_references",
+        "rename_entity",
+        "replace_references"
+      ],
+      "spec": [
+        "references"
+      ]
+    },
+    {
+      "term": "拡張",
+      "english": "extension",
+      "meaning": "独自の工程・型・トリガーなどを足す仕組み (名前空間つき)。スキーマは変えずに表す",
+      "schema": "extensions",
+      "tools": [
+        "list_extensions",
+        "add_step_extension"
+      ],
+      "spec": [
+        "process-flow-extensions",
+        "plugin-system"
+      ]
+    },
+    {
+      "term": "編集セッション",
+      "english": "edit session",
+      "meaning": "画面での編集の作業コピー (下書き)。保存で原本が変わる",
+      "schema": "",
+      "tools": [],
+      "spec": [
+        "edit-session-draft",
+        "edit-session-protocol"
+      ]
+    },
+    {
+      "term": "プロファイル",
+      "english": "profile",
+      "meaning": "AI に見せる MCP tool の絞り込み (?profile=flow など)。権限ではない",
+      "schema": "",
+      "tools": [
+        "get_tool_guide"
+      ],
+      "spec": [
+        "server-security"
+      ]
+    },
+    {
+      "term": "入力チェック",
+      "english": "validation",
+      "meaning": "工程の種類 `validation`",
+      "schema": "process-flow#ValidationStep",
+      "tools": [],
+      "spec": [
+        "process-flow-step-kinds"
+      ],
+      "generated": true
+    },
+    {
+      "term": "DBアクセス",
+      "english": "dbAccess",
+      "meaning": "工程の種類 `dbAccess`。DB アクセス step。",
+      "schema": "process-flow#DbAccessStep",
+      "tools": [],
+      "spec": [
+        "process-flow-step-kinds"
+      ],
+      "generated": true
+    },
+    {
+      "term": "外部システム",
+      "english": "externalSystem",
+      "meaning": "工程の種類 `externalSystem`。外部システム呼出ステップ。",
+      "schema": "process-flow#ExternalSystemStep",
+      "tools": [],
+      "spec": [
+        "process-flow-step-kinds"
+      ],
+      "generated": true
+    },
+    {
+      "term": "共通処理",
+      "english": "commonProcess",
+      "meaning": "工程の種類 `commonProcess`。他 ProcessFlow (kind='common') を呼び出す step。",
+      "schema": "process-flow#CommonProcessStep",
+      "tools": [],
+      "spec": [
+        "process-flow-step-kinds"
+      ],
+      "generated": true
+    },
+    {
+      "term": "コンポーネント呼出",
+      "english": "componentCall",
+      "meaning": "工程の種類 `componentCall`。component-definition の operation 呼び出し step。",
+      "schema": "process-flow#ComponentCallStep",
+      "tools": [],
+      "spec": [
+        "process-flow-step-kinds"
+      ],
+      "generated": true
+    },
+    {
+      "term": "画面遷移",
+      "english": "screenTransition",
+      "meaning": "工程の種類 `screenTransition`",
+      "schema": "process-flow#ScreenTransitionStep",
+      "tools": [],
+      "spec": [
+        "process-flow-step-kinds"
+      ],
+      "generated": true
+    },
+    {
+      "term": "表示更新",
+      "english": "displayUpdate",
+      "meaning": "工程の種類 `displayUpdate`",
+      "schema": "process-flow#DisplayUpdateStep",
+      "tools": [],
+      "spec": [
+        "process-flow-step-kinds"
+      ],
+      "generated": true
+    },
+    {
+      "term": "分岐",
+      "english": "branch",
+      "meaning": "工程の種類 `branch`",
+      "schema": "process-flow#BranchStep",
+      "tools": [],
+      "spec": [
+        "process-flow-step-kinds"
+      ],
+      "generated": true
+    },
+    {
+      "term": "ループ",
+      "english": "loop",
+      "meaning": "工程の種類 `loop`。繰り返しステップ。",
+      "schema": "process-flow#LoopStep",
+      "tools": [],
+      "spec": [
+        "process-flow-step-kinds"
+      ],
+      "generated": true
+    },
+    {
+      "term": "ループ終了",
+      "english": "loopBreak",
+      "meaning": "工程の種類 `loopBreak`",
+      "schema": "process-flow#LoopBreakStep",
+      "tools": [],
+      "spec": [
+        "process-flow-step-kinds"
+      ],
+      "generated": true
+    },
+    {
+      "term": "次の繰り返し",
+      "english": "loopContinue",
+      "meaning": "工程の種類 `loopContinue`",
+      "schema": "process-flow#LoopContinueStep",
+      "tools": [],
+      "spec": [
+        "process-flow-step-kinds"
+      ],
+      "generated": true
+    },
+    {
+      "term": "ジャンプ",
+      "english": "jump",
+      "meaning": "工程の種類 `jump`",
+      "schema": "process-flow#JumpStep",
+      "tools": [],
+      "spec": [
+        "process-flow-step-kinds"
+      ],
+      "generated": true
+    },
+    {
+      "term": "計算/代入",
+      "english": "compute",
+      "meaning": "工程の種類 `compute`",
+      "schema": "process-flow#ComputeStep",
+      "tools": [],
+      "spec": [
+        "process-flow-step-kinds"
+      ],
+      "generated": true
+    },
+    {
+      "term": "レスポンス返却",
+      "english": "return",
+      "meaning": "工程の種類 `return`",
+      "schema": "process-flow#ReturnStep",
+      "tools": [],
+      "spec": [
+        "process-flow-step-kinds"
+      ],
+      "generated": true
+    },
+    {
+      "term": "ログ",
+      "english": "log",
+      "meaning": "工程の種類 `log`",
+      "schema": "process-flow#LogStep",
+      "tools": [],
+      "spec": [
+        "process-flow-step-kinds"
+      ],
+      "generated": true
+    },
+    {
+      "term": "監査",
+      "english": "audit",
+      "meaning": "工程の種類 `audit`",
+      "schema": "process-flow#AuditStep",
+      "tools": [],
+      "spec": [
+        "process-flow-step-kinds"
+      ],
+      "generated": true
+    },
+    {
+      "term": "グローバル設定",
+      "english": "setGlobal",
+      "meaning": "工程の種類 `setGlobal`。globals catalog (generic-definitions/global/<name>) への write 操作 (#1322 Phase B-3e)。",
+      "schema": "process-flow#SetGlobalStep",
+      "tools": [],
+      "spec": [
+        "process-flow-step-kinds"
+      ],
+      "generated": true
+    },
+    {
+      "term": "ワークフロー",
+      "english": "workflow",
+      "meaning": "工程の種類 `workflow`",
+      "schema": "process-flow#WorkflowStep",
+      "tools": [],
+      "spec": [
+        "process-flow-step-kinds"
+      ],
+      "generated": true
+    },
+    {
+      "term": "トランザクション",
+      "english": "transactionScope",
+      "meaning": "工程の種類 `transactionScope`。TX スコープ step。",
+      "schema": "process-flow#TransactionScopeStep",
+      "tools": [],
+      "spec": [
+        "process-flow-step-kinds"
+      ],
+      "generated": true
+    },
+    {
+      "term": "イベント発行",
+      "english": "eventPublish",
+      "meaning": "工程の種類 `eventPublish`。イベント発行 step。",
+      "schema": "process-flow#EventPublishStep",
+      "tools": [],
+      "spec": [
+        "process-flow-step-kinds"
+      ],
+      "generated": true
+    },
+    {
+      "term": "イベント購読",
+      "english": "eventSubscribe",
+      "meaning": "工程の種類 `eventSubscribe`。イベント購読 step。",
+      "schema": "process-flow#EventSubscribeStep",
+      "tools": [],
+      "spec": [
+        "process-flow-step-kinds"
+      ],
+      "generated": true
+    },
+    {
+      "term": "締め処理",
+      "english": "closing",
+      "meaning": "工程の種類 `closing`",
+      "schema": "process-flow#ClosingStep",
+      "tools": [],
+      "spec": [
+        "process-flow-step-kinds"
+      ],
+      "generated": true
+    },
+    {
+      "term": "CDC",
+      "english": "cdc",
+      "meaning": "工程の種類 `cdc`",
+      "schema": "process-flow#CdcStep",
+      "tools": [],
+      "spec": [
+        "process-flow-step-kinds"
+      ],
+      "generated": true
+    },
+    {
+      "term": "AI 呼出",
+      "english": "aiCall",
+      "meaning": "工程の種類 `aiCall`。single-shot LLM 呼び出し step (text / vision multimodal / tool use / structured output 込み)。",
+      "schema": "process-flow#AiCallStep",
+      "tools": [],
+      "spec": [
+        "process-flow-step-kinds"
+      ],
+      "generated": true
+    },
+    {
+      "term": "AI エージェント",
+      "english": "aiAgent",
+      "meaning": "工程の種類 `aiAgent`。multi-step agent loop step。",
+      "schema": "process-flow#AiAgentStep",
+      "tools": [],
+      "spec": [
+        "process-flow-step-kinds"
+      ],
+      "generated": true
+    },
+    {
+      "term": "拡張",
+      "english": "namespace:StepName",
+      "meaning": "工程の種類 `namespace:StepName`。拡張 Step (extensions.v3.stepKinds で定義)。",
+      "schema": "process-flow#ExtensionStep",
+      "tools": [],
+      "spec": [
+        "process-flow-step-kinds"
+      ],
+      "generated": true
+    }
+  ]
+}

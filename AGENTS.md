@@ -10,25 +10,27 @@ Claude Code 固有の補足は `CLAUDE.md`、Codex 固有の設定は `.codex/co
 | ISSUE 起票・PR 作成・レビュー・シリーズ PR の詳細 | [docs/conventions/issue-and-pr-policy.md](docs/conventions/issue-and-pr-policy.md) |
 | docs-site (HTML 仕様書) と AI ブラウザ確認 | [docs/conventions/docs-site-and-browser-smoke.md](docs/conventions/docs-site-and-browser-smoke.md) |
 | 品質・性能の検査と道具 (ビルドサイズ予算 / 型の食い違い / カバレッジ / E2E 報告 / 使い回し) | [docs/conventions/quality-and-performance-tooling.md](docs/conventions/quality-and-performance-tooling.md) |
-| 設計の分析 (影響分析・対応表・未使用・用語・命名規約・SLA / ジョブ・外部契約・進捗・テスト雛形 / データ・OpenAPI) と、点検の設定 (抑制・独自ルール) | [design-analysis.md](docs/spec/design-analysis.md) / [design-check.md](docs/spec/design-check.md) |
-| 操作性 (通知の履歴・表示の設定・お気に入り・コマンドパレット・変更履歴・一括変更・別画面へのコピー・スニペット・設計全体の検索置換・表で編集・ドラッグのキーボード代替・ツアーとヘルプ・並べて表示・エラー復旧) | [ux-operations.md](docs/spec/ux-operations.md) |
-| 連携と運用 (Word / Excel 書き出し・設計書の体裁と改訂履歴・図の書き出し・Git・レビューコメント・承認・利用者と権限・変更の記録・通知・取り込み・生成の管理・技術スタックのプリセット・版とリリースノート・資料の鮮度検査) | [integration-ops.md](docs/spec/integration-ops.md) |
-| マーカー (AI への指示・質問。どの設計にも付けられる・`/markers` の一覧と集計・AI に渡す文・Ctrl+Alt+M・`authoring.markers` を画面と MCP が共通に読み書き) | [ui-markers.md](docs/spec/ui-markers.md) |
-| キーボード・移動 (画面内の検索 Ctrl+F・参照元 Shift+F12・表の Ctrl+D と行の挿入・複製・削除・コマンドパレットの画面の操作・F6 で領域・部品の追加 /・ダイアログの Esc とフォーカス) | [ui-keyboard.md](docs/spec/ui-keyboard.md) |
-| ドラッグ・直接操作・一括 (画面デザイナの文言のその場編集・右クリック・複数選択・段の幅・属性コピー / 一覧の列の設定・条件で選ぶ・表としてコピー・行の並べ替え・オートフィル / 図の拡大縮小・ER のカラムから線・画面フローの線 / タブを右へドラッグ・ファイルのドロップで取り込み・参照の一括付け替え) | [ui-direct-manipulation.md](docs/spec/ui-direct-manipulation.md) |
-| 入力の信頼性・見通し (欄の直下の指摘と直し方・式の書き間違い・近い名前・保存の状態・変更した欄・元に戻した内容の通知・取り消せる削除・F8 次の要確認・処理フローの目次・直接のリンク・入力専用モード・全角の正規化・操作数の予算) | [ui-input-reliability.md](docs/spec/ui-input-reliability.md) |
-| 一覧・探索・見通し (閉じたタブを開き直す Ctrl+Alt+T・画面の履歴 Ctrl+Alt+←→・パンくず・保存した絞り込み・グループ表示・Space ですぐ見る・まとめての操作・最近開いた順・行の印・CSV / Excel 保存・近い名前・使っているもの・Ctrl+K の `t:` 接頭辞・今日やること) | [ui-lists-navigation.md](docs/spec/ui-lists-navigation.md) |
-| 図・可視化 (図の道具: 検索 Ctrl+F・つながりの強調・関連 N 段・整列とガイド・ER のカラム表示・線の形・凡例・PNG / Mermaid / 印刷・基準との差分・表示位置の記憶・`[` `]` でつながりをたどる / つながり図 / 処理フローの流れ図とシーケンス図 / 画面フローの自動配置) | [ui-diagrams.md](docs/spec/ui-diagrams.md) |
-| 編集体験の深掘り (画面デザイナのサンプル値・状態・寸法・部品検索 / 処理フローの畳み・変数・囲む・判定表・式の試し実行・机上演習 / テーブルの型変更の影響・サンプル INSERT・インデックス提案 / 画面項目の食い違い / スクロール復元・Ctrl+Alt+Backspace で最後の編集へ・クリップボード履歴・用語ゆれ) | [ui-editing-depth.md](docs/spec/ui-editing-depth.md) |
-| 履歴・比較・共有・書き出し (ヘッダーの「設計のあゆみ」: 変更の記録と最終編集者・版を比べる・コミット文 / レビュー依頼文・完了の確認・個人メモ・この設計だけの書き出し・ファイルの場所のコピー・試作 / レビューの宛先 @名前・進み具合 / 印刷用スタイル・スナップショット HTML の検索・書き出しの設定 / 取り込みの差・通知の受け取り方・期間のまとめ) | [ui-history-sharing.md](docs/spec/ui-history-sharing.md) |
-| アクセシビリティ・設定・学習・性能 (スキップリンク・フォーカスリング (outline: none を増やさない検査)・高コントラスト / 強制カラー・動きを減らす設定・表の読み上げ・ショートカットの割り当て・ヘルプの検索・設定の書き出し / 読み込み・通しの案内・長い一覧の窓表示・進み具合) | [ui-a11y-settings-perf.md](docs/spec/ui-a11y-settings-perf.md) |
-| 初めての人が迷いやすいところの改善 (一覧のダブルクリックの案内・閲覧中の案内・「編集を終える」・追加ボタンの名前を「〜を追加」に・未配置のタブ・新しい処理フローはラフから・デザインと項目定義を行き来しても確認が出ない: 衝突の判定と「前回の編集の続き」の条件) | [ui-first-run-ux.md](docs/spec/ui-first-run-ux.md) |
-| 処理フローの「流れ」表示 (AI が作った複雑な処理を人が読み、顧客指定の細かい仕様を人が書くための画面: 入れ子・ガード・言葉の条件・概要 / 詳細 / 実装・見出し・出口の一覧・変数の流れ・確認済み ✓・その場で直す・判定表 (複合条件を表で見る・直す、抜けと隠れの指摘)。schema の任意項目 `heading` / `label` / `collectionItemLabel`) | [process-flow-story-view.md](docs/spec/process-flow-story-view.md) |
-| 入力補助 (参照の補完・SQL の表名とカラム名・定義へ移動 F12・検索できる選択・カラムの物理名と型の提案・外部キーの候補・テーブルから画面項目・ID の候補・工程のおすすめ・日本語入力の Enter) | [ui-input-assist.md](docs/spec/ui-input-assist.md) |
-| AI 向けの入口 (やりたいこと → 読む資料・使う MCP tool・使う手順。`harmony://docs/ai-index`・仕様書の索引 `docs/spec/index.json`・tool の絞り込み `?profile=`・接続して最初に `designer__get_project_context`)。設計を読む・書く・探す・検証する tool の仕様は [mcp-design-access.md](docs/spec/mcp-design-access.md) | [docs/AI-INDEX.md](docs/AI-INDEX.md) / [llms.txt](llms.txt) |
+| 設計の分析 (影響分析・対応表・未使用・用語・命名規約・SLA / ジョブ・進捗・テスト雛形・OpenAPI)・点検の設定 (抑制・独自ルール) | [design-analysis.md](docs/spec/design-analysis.md) / [design-check.md](docs/spec/design-check.md) |
+| 操作性全般 (コマンドパレット・変更履歴・一括変更・設計全体の検索置換・表で編集・ツアーとヘルプ・並べて表示・エラー復旧 ほか) | [ux-operations.md](docs/spec/ux-operations.md) |
+| 連携と運用 (Word / Excel 書き出し・設計書の体裁・Git・レビューと承認・利用者と権限・取り込み・生成の管理・技術スタックのプリセット・版とリリースノート・資料の鮮度検査) | [integration-ops.md](docs/spec/integration-ops.md) |
+| マーカー (AI への指示・質問。どの設計にも付けられる。画面と MCP が `authoring.markers` を共通に読み書き) | [ui-markers.md](docs/spec/ui-markers.md) |
+| キーボード・移動 (画面内の検索・参照元・表の行操作・F6・部品の追加・ダイアログのフォーカス) | [ui-keyboard.md](docs/spec/ui-keyboard.md) |
+| ドラッグ・直接操作・一括 (その場編集・複数選択・列の設定・並べ替え・図の操作・ファイルのドロップ・参照の一括付け替え) | [ui-direct-manipulation.md](docs/spec/ui-direct-manipulation.md) |
+| 入力の信頼性・見通し (欄の直下の指摘・式の書き間違い・保存の状態・取り消せる削除・処理フローの目次・入力専用モード・操作数の予算) | [ui-input-reliability.md](docs/spec/ui-input-reliability.md) |
+| 一覧・探索・見通し (タブ・画面の履歴・パンくず・保存した絞り込み・まとめての操作・CSV / Excel・今日やること) | [ui-lists-navigation.md](docs/spec/ui-lists-navigation.md) |
+| 図・可視化 (図の検索・強調・整列・ER のカラム表示・書き出し・基準との差分・つながり図・処理フローの流れ図とシーケンス図) | [ui-diagrams.md](docs/spec/ui-diagrams.md) |
+| 編集体験の深掘り (画面デザイナ・処理フローの畳み / 変数 / 囲む / 判定表 / 式の試し実行 / 机上演習・テーブルの型変更の影響・クリップボード履歴) | [ui-editing-depth.md](docs/spec/ui-editing-depth.md) |
+| 履歴・比較・共有・書き出し (設計のあゆみ・版を比べる・コミット文 / レビュー依頼文・個人メモ・この設計だけの書き出し・印刷用スタイル) | [ui-history-sharing.md](docs/spec/ui-history-sharing.md) |
+| アクセシビリティ・設定・学習・性能 (フォーカスリング・高コントラスト・動きを減らす・ショートカット・ヘルプの検索・長い一覧の窓表示) | [ui-a11y-settings-perf.md](docs/spec/ui-a11y-settings-perf.md) |
+| 初めての人が迷いやすいところの改善 (一覧の開き方の案内・「編集を終える」・追加ボタンの名前・衝突の判定と「前回の編集の続き」) | [ui-first-run-ux.md](docs/spec/ui-first-run-ux.md) |
+| 処理フローの「流れ」表示 (AI が作った複雑な処理を人が読み、細かい仕様を人が書く画面: 入れ子・言葉の条件・確認済み ✓・その場で直す・判定表) | [process-flow-story-view.md](docs/spec/process-flow-story-view.md) |
+| 入力補助 (参照の補完・SQL の表名とカラム名・定義へ移動・検索できる選択・ID の候補・工程のおすすめ) | [ui-input-assist.md](docs/spec/ui-input-assist.md) |
+| AI 向けの入口 (やりたいこと → 読む資料・使う MCP tool・手順。接続して最初に `designer__get_project_context`。資料は MCP の Resources `harmony://docs/…`・`harmony://spec/…`) | [docs/AI-INDEX.md](docs/AI-INDEX.md) / [llms.txt](llms.txt) / [mcp-design-access.md](docs/spec/mcp-design-access.md) / [ai-recipes.md](docs/spec/ai-recipes.md) / [設計判断の記録](docs/decisions/README.md) / [コードの地図](docs/codemap.md) |
 | 完了判定 (回帰テストの trace 照合) | [docs/conventions/completion-gate.md](docs/conventions/completion-gate.md) |
 | 進行中の再設計計画と設計者判断 | [docs/plans/redesign-2026-10.md](docs/plans/redesign-2026-10.md) |
-| サーバの守り (接続トークン・要求の上限・MCP の権限)・保存前の版・外部更新の検知・ファイルの健全性 | [server-security.md](docs/spec/server-security.md) / [file-backup.md](docs/spec/file-backup.md) / [external-change-detection.md](docs/spec/external-change-detection.md) / [workspace-health.md](docs/spec/workspace-health.md) |
+| サーバの守り (接続トークン・要求の上限・MCP の権限とプロファイル)・保存前の版・外部更新の検知・ファイルの健全性 | [server-security.md](docs/spec/server-security.md) / [file-backup.md](docs/spec/file-backup.md) / [external-change-detection.md](docs/spec/external-change-detection.md) / [workspace-health.md](docs/spec/workspace-health.md) |
+
+各仕様書の要約・状態は [docs/spec/index.json](docs/spec/index.json) (MCP では `harmony://spec/index`)。大きな仕様書は `harmony://spec/<名前>/sections` で章ごとに読める。
 
 ## Project Overview
 
