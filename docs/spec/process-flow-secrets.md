@@ -1,3 +1,9 @@
+---
+description: "Secrets カタログ (secretsCatalog) — 秘匿値メタデータ + 環境別参照式"
+status: current
+category: process-flow
+---
+
 # Secrets カタログ (context.catalogs.secrets) 仕様
 
 **改訂日: 2026-04-28 (v3 反映)**

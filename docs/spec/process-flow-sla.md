@@ -1,3 +1,9 @@
+---
+description: "SLA / Timeout 宣言 (ProcessFlow / ActionDefinition / StepBase)"
+status: current
+category: process-flow
+---
+
 # ProcessFlow SLA / Timeout 仕様
 
 **改訂日: 2026-04-28 (v3 反映)**

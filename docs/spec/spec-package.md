@@ -1,3 +1,9 @@
+---
+description: "@harmony/spec package contract (schema・仕様・サンプルを読み取り専用の参照として配る単位)"
+status: current
+category: schema
+---
+
 # @harmony/spec package contract
 
 `@harmony/spec` は Harmony 本体 source を業務 project の writable scope に入れず、AI / 開発者が schema・仕様・サンプルを readonly reference として参照するための配布単位。

@@ -1,3 +1,9 @@
+---
+description: "SQL 式補間 / HTTP body シリアライズ / TX×throw×tryCatch / fireAndForget / sideEffects TX 境界等の実行時規約"
+status: current
+category: process-flow
+---
+
 # 処理フロー 実行時規約 (ランタイム挙動)
 
 **改訂日: 2026-04-28 (v3 反映)**

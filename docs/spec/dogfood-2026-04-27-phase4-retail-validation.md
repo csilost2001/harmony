@@ -1,3 +1,9 @@
+---
+description: "Phase 4 全仕様書統合検証レポート — retail (既存退避→AI 生成→改善ループで Must-fix ゼロ達成)"
+status: record
+category: record
+---
+
 # Phase 4 (全仕様書統合検証) 評価レポート — retail (2026-04-27)
 
 > **📝 ステータス**: 完了済 **historical record** (Phase 4 retail 全仕様書統合検証、#500)。本書は当時の検証結果記録として保持、削除不可 (他 spec から参照ある場合あり)。最新の状況・運用は現行 spec を参照。

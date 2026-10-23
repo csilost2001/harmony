@@ -1,3 +1,9 @@
+---
+description: "Phase 2 メタ #493 子 2 (#600) として、Phase 1 で未検証の業界 — 医療 (healthcare) と社会保険行政 (welfare-benefit) — を対象に v3 ProcessFlow を 2 シナリオずつ計 4 フロー実装し、子 3 (/create-flow validator 統合 PR …"
+status: record
+category: record
+---
+
 # Phase 2 子 2 ドッグフード — 医療 + 社会保険行政業務 (2026-04-30)
 
 > **📝 ステータス**: 完了済 **historical record** (Phase 2 医療・社会保険行政業務 dogfood、#493 子 2)。本書は当時の検証結果記録として保持、削除不可 (他 spec から参照ある場合あり)。最新の状況・運用は現行 spec を参照。

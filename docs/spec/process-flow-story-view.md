@@ -1,3 +1,9 @@
+---
+description: "処理フローの「流れ」表示 (入れ子・ガード・言葉の条件・概要/詳細/実装・見出し・出口の一覧・変数の流れ・確認済み ✓・その場で直す・判定表 と、schema の任意項目 heading / label / collectionItemLabel)"
+status: current
+category: process-flow
+---
+
 # 処理フローの「流れ」表示 (読むための画面)
 
 > 対象: 処理フロー編集画面 (`/process-flow/edit/:processFlowId`) の表示形式「**流れ**」

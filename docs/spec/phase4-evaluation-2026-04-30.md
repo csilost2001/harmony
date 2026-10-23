@@ -1,3 +1,9 @@
+---
+description: "Phase 4 メタ #648 (画面 ↔ DB ↔ 処理フローの構造系統合) の評価の記録 (2026-04-30)"
+status: record
+category: record
+---
+
 # Phase 4 統合評価レポート + Phase 5 移行判断 (2026-04-30)
 
 > **📝 ステータス**: 完了済 **historical record** (Phase 4 統合評価レポート、#648、Phase 5 移行判断を含む)。本書は当時の評価記録として保持、削除不可 (他 spec から参照ある場合あり)。最新の状況・運用は現行 spec を参照。

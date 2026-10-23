@@ -1,3 +1,9 @@
+---
+description: "テスト観点表 (画面入力の正常・異常・境界値を項目の制約から導出、処理の観点に ID を付与。CSV / JSON / Markdown に書き出し)"
+status: current
+category: design
+---
+
 # テスト観点表 — 仕様書
 
 **Status**: 実装済 (2026-10)

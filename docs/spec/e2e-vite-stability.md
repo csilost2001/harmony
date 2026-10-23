@@ -1,3 +1,9 @@
+---
+description: "Vite dev server が複数ブラウザ文脈の E2E で間欠的に落ちる問題の調査記録と回避策"
+status: record
+category: record
+---
+
 # e2e-vite-stability.md
 
 Vite dev server (port 5173) が e2e batch 実行中に間欠 crash する問題の調査記録 + 既知回避策 (#992)。

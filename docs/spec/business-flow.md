@@ -1,3 +1,9 @@
+---
+description: "業務フロー (スイムレーン。レーン・工程・自動配置・検証・編集 UI・MCP)"
+status: current
+category: design
+---
+
 # 業務フロー (スイムレーン) — 仕様書
 
 **Status**: 実装済 (2026-10、再設計 段階 4)

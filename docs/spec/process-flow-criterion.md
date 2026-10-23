@@ -1,3 +1,9 @@
+---
+description: "Criterion (ExternalSystemStep の successCriteria、Arazzo 1.0 互換、$ Runtime Expression 推奨)"
+status: current
+category: process-flow
+---
+
 # Criterion — 成功判定条件仕様 (#427 P3-2)
 
 **改訂日: 2026-04-28 (v3 反映)**

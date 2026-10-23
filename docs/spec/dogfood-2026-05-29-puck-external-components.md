@@ -1,3 +1,9 @@
+---
+description: "旧エディタ (Puck) への外部 React Component 取り込みの通し検証の記録 (2026-05-29。旧エディタは廃止済み)"
+status: record
+category: record
+---
+
 # dogfood レポート — 外部 React Component + 複合部品 通し検証 (2026-05-29)
 
 > **廃止 (2026-10)**: 旧エディタ (GrapesJS / Puck) は廃止し、画面デザインは「業務部品デザイナ」に一本化しました。

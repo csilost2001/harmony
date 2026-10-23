@@ -1,3 +1,9 @@
+---
+description: "スキーマ削除事項の記録 (不採用の提案・削除した field)"
+status: record
+category: record
+---
+
 # Schema 削除事項記録 (Phase X1-X3 で取り下げられた提案 + 削除された field)
 
 Issue: [#1254](https://github.com/csilost2001/harmony/issues/1254) (RFC) / [#1263](https://github.com/csilost2001/harmony/issues/1263) (実装)

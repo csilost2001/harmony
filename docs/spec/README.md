@@ -1,6 +1,28 @@
+---
+description: "本プロジェクトの UI・操作・内部 API の詳細仕様を集約する場所。"
+status: current
+category: guide
+---
+
 # docs/spec/
 
 本プロジェクトの UI・操作・内部 API の詳細仕様を集約する場所。
+
+AI が読むときは、まず [../AI-INDEX.md](../AI-INDEX.md) (やりたいこと → 読む資料) と [index.json](index.json) (全仕様書の要約・状態・種別) を使う。
+
+## 仕様書の frontmatter と索引
+
+`docs/spec/*.md` の先頭には、次の frontmatter を置く (`npm run check:docs` が不足を止める)。
+
+```yaml
+---
+description: "1 行の要約 (何についての仕様か)"
+status: current        # current = 現行 / deprecated = 廃止 (記録として残す) / record = 過去の時点の記録 (評価・監査・ドッグフード)
+category: ui           # ui / process-flow / schema / design / ops / sample / guide / record
+---
+```
+
+仕様書を足す・要約を変えたら `node scripts/docs/spec-index.mjs --write` で `index.json` を作り直す (ずれていると `npm run check:docs` が止める)。この索引は MCP の Resource `harmony://spec/index` でも読める ([server-security.md](server-security.md))。
 
 ## 現在の仕様書
 

@@ -1,6 +1,6 @@
 # Harmony L1 .dockerignore (#1055)
 #
-# Dockerfile が backend/ のみ COPY するため過剰除外は不要だが、
+# Dockerfile が必要なものだけ COPY するため過剰除外は不要だが、
 # 仮にコンテキスト全体を読まれた場合の事故防止 + build 速度向上のため記載。
 
 # node modules (各 stage で npm ci する)
@@ -40,13 +40,17 @@ logs
 *.key
 
 # README / docs (将来 README を含めたい場合は許可リスト化)
-docs
+# docs/spec と docs/AI-INDEX.md は、AI (MCP) の Resources が読むので image に含める
+docs/*
+!docs/spec
+!docs/AI-INDEX.md
 
 # 開発時 workspaces / data (利用者が volume mount する)
 workspaces
-# data/ は built-in 拡張定義を含むが L1 image では同梱しない (docs/spec/path-conventions.md §7 参照)。
-# L2 で frontend + extensions を一括同梱する際にこの除外を解除する。
-data
+# data/ は built-in 拡張定義 (data/extensions) だけを同梱する。L2 の Dockerfile が COPY data/extensions するため、そこだけ戻す
+# (docs/spec/path-conventions.md §7 参照。画面の下書き data/.drafts などは含めない)
+data/*
+!data/extensions
 
 # Claude / Codex 設定 (image には不要)
 .claude

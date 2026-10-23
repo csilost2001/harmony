@@ -1,3 +1,9 @@
+---
+description: "本ドキュメントは、本フレームワークの JSON Schema 設計原則 を集約する。schema を どう書くか の規範であり、何を書くか (個別フィールド仕様) は各 process-flow-*.md を参照。"
+status: current
+category: schema
+---
+
 # Schema 設計原則 — Harnize Harmony ProcessFlow / Conventions / Extensions
 
 | 項目 | 値 |
@@ -50,7 +56,7 @@ draft 2020-12 で利用可能な以下を**積極的に活用**してよい:
 
 ### 1.3 後方互換性は絶対
 
-102 コミット監査 (`docs/spec/schema-audit-2026-04-27.md:138-145`) で破壊的変更ゼロが確認されている。本原則は維持:
+102 コミット監査 (`docs/spec/schema-audit-2026-04-27.md:144-151`) で破壊的変更ゼロが確認されている。本原則は維持:
 
 - フィールド追加は **必ず optional** で行う
 - enum 値追加は **additive のみ** (削除・置換不可)
@@ -86,7 +92,7 @@ schema で表現できないが業務上重要な規約は、**spec 文書 (`doc
 
 判断基準: schema で表現できるもの (型・必須・enum・参照整合) は schema に。**実行時の動作・解決順序・テンプレート展開**は spec で convention として規定する。
 
-`docs/spec/process-flow-expression-language.md:13-20` も同様の判断 (`expression: { lang, src }` ラッパー化を YAGNI で不採用、convention で 1 言語固定)。
+`docs/spec/process-flow-expression-language.md:19-26` も同様の判断 (`expression: { lang, src }` ラッパー化を YAGNI で不採用、convention で 1 言語固定)。
 
 ---
 
@@ -154,14 +160,14 @@ enum 値の命名は**対象ドメインの慣習** に従う。schema 全体で
 | Catalog | キー命名 | 例 (sample / spec) |
 |---|---|---|
 | `errorCatalog` | `UPPER_SNAKE` (errorCode 慣習) | `STOCK_SHORTAGE`, `INSUFFICIENT_INVENTORY`, `VALIDATION`, `CART_EMPTY` (`docs/sample-project/process-flows/gggggggg-0003-*.json:170-204`) |
-| `externalSystemCatalog` | `lowercase` 1 語 (system 識別子) | `stripe`, `sendgrid` (`docs/spec/process-flow-extensions.md:240-252`) |
-| `secretsCatalog` | `lowerCamelCase` (変数名相当) | `stripeApiKey`, `thirdPartyKey` (`docs/spec/process-flow-secrets.md:38-52`) |
-| `envVarsCatalog` | `UPPER_SNAKE` (環境変数 OS 慣習) | `STRIPE_API_BASE`, `MAX_RETRY_ATTEMPTS`, `FEATURE_FLAG_NEW_PRICING` (`docs/spec/process-flow-env-vars.md:26-49`) |
-| `domainsCatalog` | `PascalCase` (型らしい) | `OrderId`, `CustomerId`, `Amount`, `EmailAddress`, `Quantity` (`docs/sample-project/process-flows/gggggggg-0003-*.json:209-232` / `docs/spec/process-flow-extensions.md:710-718`) |
+| `externalSystemCatalog` | `lowercase` 1 語 (system 識別子) | `stripe`, `sendgrid` (`docs/spec/process-flow-extensions.md:246-258`) |
+| `secretsCatalog` | `lowerCamelCase` (変数名相当) | `stripeApiKey`, `thirdPartyKey` (`docs/spec/process-flow-secrets.md:44-58`) |
+| `envVarsCatalog` | `UPPER_SNAKE` (環境変数 OS 慣習) | `STRIPE_API_BASE`, `MAX_RETRY_ATTEMPTS`, `FEATURE_FLAG_NEW_PRICING` (`docs/spec/process-flow-env-vars.md:32-55`) |
+| `domainsCatalog` | `PascalCase` (型らしい) | `OrderId`, `CustomerId`, `Amount`, `EmailAddress`, `Quantity` (`docs/sample-project/process-flows/gggggggg-0003-*.json:209-232` / `docs/spec/process-flow-extensions.md:716-724`) |
 | `functionsCatalog` | `lowerCamelCase` (JS 関数慣習) | `generateUUID`, `calcTax`, `calcSubtotal`, `formatCurrency` (`docs/sample-project/process-flows/gggggggg-0003-*.json:234-258`) |
 | `eventsCatalog` | `dot.separated.lowercase` (メッセージング topic 慣習) | `order.confirmed`, `order.confirm_failed`, `invoice.issued`, `retail.order_tax_calculated` (`docs/sample-project/process-flows/gggggggg-0003-*.json:11-73`) |
 | `glossary` | 自然言語 (日本語可) | `注文確定`, `在庫引当`, `消費税計算` (`docs/sample-project/process-flows/gggggggg-0003-*.json:76-115`) |
-| `decisions` | `ADR-NNN` (id 規約) | `ADR-001`, `ADR-002` (`docs/spec/process-flow-extensions.md:1027-1038`) |
+| `decisions` | `ADR-NNN` (id 規約) | `ADR-001`, `ADR-002` (`docs/spec/process-flow-extensions.md:1033-1044`) |
 | `conventions/msg` | `lowerCamelCase` | `required`, `maxLength`, `invalidFormat`, `mustBePositive`, `cartExpired` (`docs/sample-project/conventions/conventions-catalog.json:15-46`) |
 | `conventions/regex` | `kebab-case` | `email-simple`, `phone-jp`, `postal-jp`, `product-code` (`docs/sample-project/conventions/conventions-catalog.json:49-73`) |
 | `conventions/limit` | `lowerCamelCase` | `nameMax`, `quantityMax`, `cartItemMax`, `lowStockThreshold` (`docs/sample-project/conventions/conventions-catalog.json:76-87`) |
@@ -476,13 +482,13 @@ draft 2019-09 から `deprecated: true` がアノテーションとして使え�
 
 - **基本は `@` 記法 (一括統一)**
 - `$` 記法は **Criterion (`ExternalSystemStep.successCriteria`) 内のみ** (Arazzo 1.0 互換性のため)
-- 旧 `@statusCode` / `@responseBody` も Criterion 内では後方互換で valid (`docs/spec/process-flow-criterion.md:21-23`)
+- 旧 `@statusCode` / `@responseBody` も Criterion 内では後方互換で valid (`docs/spec/process-flow-criterion.md:27-29`)
 - schema 上は string で受け、参照整合性バリデータ (`frontend/src/schemas/identifierScope.ts` / `conventionsValidator.ts` / `referentialIntegrity.ts`) で警告を出す
 
 #### 採用しない代替案
 
 - 「全部 `$` 記法に統一」: 既存 4 sample 全件に影響 (破壊的変更)、@ 記法は spec 全体で確立
-- 「`expression: { lang, src }` ラッパー化」: `docs/spec/process-flow-expression-language.md:13-20` で既に YAGNI 棄却済
+- 「`expression: { lang, src }` ラッパー化」: `docs/spec/process-flow-expression-language.md:19-26` で既に YAGNI 棄却済
 
 ### 4.4 SQL 内式補間
 
@@ -603,7 +609,7 @@ JSON Schema → TypeScript 型生成 (json-schema-to-typescript / quicktype) は
 
 ### 5.6 動的フォーム生成のスコープ制限
 
-`docs/spec/plugin-system.md:265-281` で確立済みの **DynamicFormSchema 対応キーワード**:
+`docs/spec/plugin-system.md:271-287` で確立済みの **DynamicFormSchema 対応キーワード**:
 
 | キーワード | 対応 |
 |---|---|
@@ -658,7 +664,7 @@ JSON Schema → TypeScript 型生成 (json-schema-to-typescript / quicktype) は
 
 ### 6.2 グローバル化の判断基準
 
-`docs/spec/plugin-system.md:11-18` 由来。**「どの業務プロジェクトでも合理的に必要になるか」** を問う:
+`docs/spec/plugin-system.md:17-24` 由来。**「どの業務プロジェクトでも合理的に必要になるか」** を問う:
 
 | 区分 | 基準 | 例 |
 |---|---|---|
@@ -712,7 +718,7 @@ JSON Schema → TypeScript 型生成 (json-schema-to-typescript / quicktype) は
 
 ### 6.4 二段検証 (core schema + extension registry の合成 validation)
 
-`docs/spec/plugin-system.md:247-248` で既に方針が示されているが、原則として明文化:
+`docs/spec/plugin-system.md:253-254` で既に方針が示されているが、原則として明文化:
 
 #### 規範
 
@@ -749,7 +755,7 @@ JSON Schema → TypeScript 型生成 (json-schema-to-typescript / quicktype) は
 - enum 値追加は **additive のみ** (削除・置換不可)
 - 既存 sample / 業務データが引き続き valid であること
 
-監査根拠: `docs/spec/schema-audit-2026-04-27.md:138-145` (102 コミット精査で破壊的変更ゼロ確認)
+監査根拠: `docs/spec/schema-audit-2026-04-27.md:144-151` (102 コミット精査で破壊的変更ゼロ確認)
 
 ### 7.2 旧形式は union 型で path を残す
 

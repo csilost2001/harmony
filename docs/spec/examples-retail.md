@@ -1,3 +1,9 @@
+---
+description: "examples/retail/ (リテール総合) の業務スコープ・データモデル・画面構成"
+status: current
+category: sample
+---
+
 # examples/retail/ — リテール総合サンプル仕様書
 
 `examples/retail/` の業務スコープ・データモデル・画面構成・進め方をまとめた spec。Sonnet サブエージェントへの briefing 兼用。

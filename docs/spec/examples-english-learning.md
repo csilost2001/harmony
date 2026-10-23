@@ -1,3 +1,9 @@
+---
+description: "examples/english-learning/ (英会話学習アプリ) の業務スコープ・データモデル・画面構成"
+status: current
+category: sample
+---
+
 # examples/english-learning/ — 英会話学習アプリ サンプル仕様書
 
 `examples/english-learning/` の業務スコープ・データモデル・画面構成・進め方をまとめた spec。Sonnet サブエージェントへの briefing 兼用。

@@ -1,3 +1,9 @@
+---
+description: "ProcessFlow の参照 prefix 24 種 + 階層参照 (@<key> 統一記法)"
+status: current
+category: process-flow
+---
+
 # ProcessFlow 参照 prefix 24 種 + 階層参照 (`@<key>` 統一記法)
 
 Issue: [RFC #1254](https://github.com/csilost2001/harmony/issues/1254) 件 3.7 / [#1263](https://github.com/csilost2001/harmony/issues/1263) Phase X2

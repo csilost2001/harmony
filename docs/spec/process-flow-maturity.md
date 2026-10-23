@@ -1,3 +1,9 @@
+---
+description: "成熟度・付箋・上流/下流モード (Phase 1 基盤)"
+status: current
+category: process-flow
+---
+
 # 処理フローの成熟度・曖昧さ管理
 
 **改訂日: 2026-04-28 (v3 反映)**

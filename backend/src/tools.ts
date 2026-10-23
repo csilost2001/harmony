@@ -246,6 +246,17 @@ export const tools = [
   // ── 業務フロー (スイムレーン) ──
 
   {
+    name: "designer__get_project_context",
+    description:
+      "いま開いているワークスペースの設計全体の要約を返します。接続して最初に 1 回呼ぶと、種類ごとの一覧 tool を何度も呼ばずに全体をつかめます: プロジェクト名・技術スタック・各設計 (画面 / 処理フロー / テーブル / 業務フロー / 帳票) の id と名前と件数・規約の数・未解決のマーカー (人から AI への指示・質問)・次に使う tool と資料。" +
+      "中身 (工程・カラム) は載せません。読むには get_process_flow / get_table などを使ってください。資料は Resources (harmony://docs/ai-index) にあります。",
+    inputSchema: {
+      type: "object" as const,
+      properties: { limit: { type: "number", description: "種類ごとに載せる設計の数の上限 (既定 60、最大 500)。超えた分は total で件数だけ分かる" } },
+      required: [],
+    },
+  },
+  {
     name: "designer__check_design",
     description:
       "設計全体の「要確認事項」(画面の部品・項目、処理フロー、業務フロー、帳票、権限、CRUD などの抜け・矛盾) を検査して返します。設計書ビュー・`npm run check:design` と同じ検査です。" +

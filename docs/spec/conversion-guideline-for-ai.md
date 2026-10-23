@@ -1,3 +1,9 @@
+---
+description: "Status: 🟡 draft v0.1 (RFC) — ISSUE #1060 Q7-Q11 決定を反映 起点 spec: [generic-definition-layer.md](generic-definition-layer.md) スキル起点: [ai-skills/import-md/SKILL.md](../../a…"
+status: current
+category: design
+---
+
 # Markdown → Harmony JSON 変換ガイドライン (AI 向け)
 
 **Status**: 🟡 **draft v0.1 (RFC)** — ISSUE #1060 Q7-Q11 決定を反映

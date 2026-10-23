@@ -1,3 +1,9 @@
+---
+description: "Status: 🟡 draft v0.2 (RFC) — schema 即時固定化を伴わない整理段階 / Q1-Q11 決定反映 (2026-05-13) 起票 ISSUE: #1060 関連 memory: project_framework_research_2026_04_25.md (拡張仕様 19 項目との突合) 起票日:…"
+status: current
+category: schema
+---
+
 # 汎用設計定義レイヤー (Generic Definition Layer)
 
 **Status**: 🟡 **draft v0.2 (RFC)** — schema 即時固定化を伴わない整理段階 / Q1-Q11 決定反映 (2026-05-13)

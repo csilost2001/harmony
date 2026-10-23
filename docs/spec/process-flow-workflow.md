@@ -1,3 +1,9 @@
+---
+description: "WorkflowStep / WorkflowPattern (承認ワークフロー標準 11 パターン)"
+status: current
+category: process-flow
+---
+
 # Process Flow Workflow Step
 
 `WorkflowStep` は承認、レビュー、確認、協議など、人の判断を含む業務ワークフローを表す。

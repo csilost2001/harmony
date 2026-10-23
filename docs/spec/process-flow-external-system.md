@@ -1,3 +1,9 @@
+---
+description: "ExternalSystemStep の OpenAPI operation 参照 (openApiSpec / operationRef)"
+status: current
+category: process-flow
+---
+
 # ProcessFlow ExternalSystemStep OpenAPI 参照 (#413)
 
 **改訂日: 2026-04-28 (v3 反映)**

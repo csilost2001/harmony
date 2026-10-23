@@ -1,3 +1,9 @@
+---
+description: "Phase 2 メタ #493 (処理フロー + テーブル + 規約の連携整合性検証) の評価の記録 (2026-04-30)"
+status: record
+category: record
+---
+
 # Phase 2 統合評価レポート + Phase 3 移行判断 (2026-04-30)
 
 > **📝 ステータス**: 完了済 **historical record** (Phase 2 統合評価レポート、#493、Phase 3 移行判断を含む)。本書は当時の評価記録として保持、削除不可 (他 spec から参照ある場合あり)。最新の状況・運用は現行 spec を参照。

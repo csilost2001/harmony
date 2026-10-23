@@ -1,3 +1,9 @@
+---
+description: "runIf / expression / bodyExpression の式言語 BNF (js-subset)"
+status: current
+category: process-flow
+---
+
 # 処理フロー式言語 (runIf / expression / bodyExpression / condition)
 
 Issue: #253 (初版) / #533 R3 fix で IdentifierPath 規範化 / **#539 R5-3 で datetime 算術明文化** / **#1263 Phase X2 (RFC #1254 件 3) で TemplateString rename + 副作用 inline 禁止 enforce**

@@ -1,0 +1,21 @@
+# Harmony (Harnize Harmony)
+
+> 日本の Web システム開発の設計書 (画面・処理フロー・テーブル・規約) を Web 上で編集・閲覧する設計ツール。設計の原本は JSON で、JSON Schema (schemas/v3) が正本。AI は MCP (http://localhost:5179/mcp) で設計を読み書きする。
+
+AI は、まずこの 3 つだけを読む。
+
+- [AI 向けの入口](docs/AI-INDEX.md): やりたいこと → 読む資料・使う MCP tool・使う手順の対応
+- [仕様書の索引](docs/spec/index.json): docs/spec の全仕様書の要約・状態 (current / deprecated / record)・種別
+- [リポジトリの共通ルール](AGENTS.md): 守ること (schema は設計者の専権、main へ直接コミットしない 等)
+
+## MCP
+
+- 接続して最初に designer__get_project_context を呼ぶ。設計の全体と、未解決のマーカー (人からの指示・質問) が分かる
+- 資料は MCP の Resources: harmony://docs/ai-index / harmony://spec/<名前> / harmony://schema/<種類>
+- 手順は MCP の Prompts: create-flow / review-flow / generate-code / generate-tests / import-md / rename-screen-ids / test-strategy
+- tool を絞る: http://localhost:5179/mcp?profile=flow (flow / table / screen / doc / maint / review / read)
+
+## 正本
+
+- [JSON Schema](schemas/v3/README.md)
+- [サンプル](examples/retail/README.md): examples/<project-id>/ に業務アプリ単位で置く

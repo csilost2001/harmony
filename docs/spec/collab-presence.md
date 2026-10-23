@@ -1,3 +1,9 @@
+---
+description: "協調編集 (Direction B) overture — 採用根拠 / Forward-Compat 4 原則 / Activity taxonomy (正規プロトコルは edit-session-protocol.md 参照)"
+status: current
+category: ops
+---
+
 # collab-presence — 協調編集 (Direction B) 仕様
 
 > **2026-05-07 改訂**: PR #888 の dogfood で「後から接続した viewer が編集中の最新 state を取得できない」根本欠陥が発覚 (= Direction B のメインユースケース破綻)。本 spec の lock + draft + presence の 3 層モデルから、**EditSession 一級概念を中核とする正規プロトコル**に再定義された。正規プロトコルは [`edit-session-protocol.md`](./edit-session-protocol.md) を参照。

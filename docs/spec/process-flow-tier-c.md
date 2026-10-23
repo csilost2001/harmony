@@ -1,3 +1,9 @@
+---
+description: "Tier C 拡張 — circuitBreaker / bulkhead / ClosingStep / CdcStep / health / readiness / resources"
+status: current
+category: process-flow
+---
+
 # ProcessFlow Tier C 仕様
 
 **改訂日: 2026-04-28 (v3 反映)**

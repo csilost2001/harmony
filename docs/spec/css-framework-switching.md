@@ -1,3 +1,9 @@
+---
+description: "画面ごとに CSS フレームワーク (Bootstrap / Tailwind) を選択可能にする framework 中規模再設計の仕様書。"
+status: current
+category: ui
+---
+
 # CSS フレームワーク切替対応 (#793) — 仕様書
 
 > **廃止 (2026-10)**: 旧エディタ (GrapesJS / Puck) は廃止し、画面デザインは「業務部品デザイナ」に一本化しました。

@@ -1,3 +1,9 @@
+---
+description: "スキーマの版の移行の枠組み (予行・世代・冪等)"
+status: current
+category: schema
+---
+
 # スキーマの版の移行
 
 スキーマの版 (`harmony.json` の `schemaVersion`) が上がったとき、既存の設計データ (JSON) を新しい版へ書き換える枠組み。

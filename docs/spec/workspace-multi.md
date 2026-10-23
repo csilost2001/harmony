@@ -1,3 +1,9 @@
+---
+description: "PR #679 シリーズで導入する「同時複数ワークスペース対応」の正規仕様。 本書は v1 仕様 [workspace.md](workspace.md) の拡張 (v2) として位置付ける。"
+status: current
+category: ops
+---
+
 # マルチワークスペース対応仕様 (workspace-multi)
 
 PR #679 シリーズで導入する「同時複数ワークスペース対応」の正規仕様。

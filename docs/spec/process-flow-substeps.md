@@ -1,3 +1,9 @@
+---
+description: "工程の入れ子 (subSteps) の形・実行の意味・走査"
+status: current
+category: process-flow
+---
+
 # 処理フロー: 工程の入れ子 (subSteps)
 
 工程 (Step) は、`subSteps` で配下の工程を持てる。UI の「インデント」(Tab)・「サブステップ追加」・アウトラインの字下げが書き込む先。

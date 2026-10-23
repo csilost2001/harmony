@@ -1,3 +1,9 @@
+---
+description: "廃止 (2026-10) 旧エディタ (GrapesJS) の編集内容の保存の形 (記録として残す)"
+status: deprecated
+category: design
+---
+
 # Design Payload Storage
 
 > **廃止 (2026-10)**: 旧エディタ (GrapesJS / Puck) は廃止し、画面デザインは「業務部品デザイナ」に一本化しました。
