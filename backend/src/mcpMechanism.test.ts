@@ -44,13 +44,16 @@ beforeAll(async () => {
 });
 afterAll(async () => { await closeC(); wsDisconnect(SESSION); await fs.rm(WS, { recursive: true, force: true }); });
 
+/** 設計のデータは変えないが、画面の表示・作業の状態は変える tool (注釈は readOnly にしない) */
+const UI_STATE = ["designer__open_tab", "designer__close_tab", "designer__switch_tab", "designer__navigate_screen", "designer__workspace_open", "designer__workspace_close"];
+
 describe("tool の注釈", () => {
   it("すべての tool に注釈がある。読み取りの tool は readOnly、書き込みは readOnly でない", async () => {
     const list = (await c.listTools()).tools;
     expect(list.length).toBe(tools.length);
     for (const t of list) {
       expect(t.annotations, t.name).toBeDefined();
-      expect(t.annotations!.readOnlyHint, t.name).toBe(isReadOnlyTool(t.name));
+      expect(t.annotations!.readOnlyHint, t.name).toBe(isReadOnlyTool(t.name) && !UI_STATE.includes(t.name));
       expect(t.annotations!.openWorldHint).toBe(false);
       if (t.annotations!.readOnlyHint) expect(t.annotations!.destructiveHint, t.name).toBeUndefined();
     }
@@ -65,6 +68,19 @@ describe("tool の注釈", () => {
     expect(toolAnnotations("designer__rename_entity")).toMatchObject({ destructiveHint: true, idempotentHint: false });
     expect(toolAnnotations("designer__edit_steps").destructiveHint).toBe(true);
   });
+
+  it("表示・作業状態を変える tool は readOnly にしない (init: true の新規作成や force: true の破棄が、確認なしで通らないように)", () => {
+    for (const n of UI_STATE) expect(toolAnnotations(n).readOnlyHint, n).toBe(false);
+    expect(toolAnnotations("designer__close_tab").destructiveHint).toBe(true);
+    expect(toolAnnotations("designer__switch_tab")).toMatchObject({ destructiveHint: false, idempotentHint: true });
+    // 既存を上書きし得る add_* は、足すだけ扱いにしない
+    expect(toolAnnotations("designer__add_catalog_entry").destructiveHint).toBe(true);
+    expect(toolAnnotations("designer__add_step_extension").destructiveHint).toBe(true);
+    expect(toolAnnotations("designer__persist_uuids").idempotentHint).toBe(true);
+    expect(toolAnnotations("designer__resolve_marker").destructiveHint).toBe(false);
+    expect(toolAnnotations("designer__workspace_remove")).toMatchObject({ destructiveHint: true, idempotentHint: true });
+    expect(toolAnnotations("editSession__update").destructiveHint).toBe(true);
+  });
 });
 
 describe("説明の短縮 (brief) と get_tool_guide", () => {
@@ -78,11 +94,13 @@ describe("説明の短縮 (brief) と get_tool_guide", () => {
       expect(b.description).toMatch(/。$|…$/);
       const props = (b.inputSchema as { properties: Record<string, { description?: string; type?: string; enum?: string[] }>; required: string[] }).properties;
       expect(props.processFlowId.type).toBe("string");
-      expect(props.apply.description).toBeUndefined();
+      expect(props.apply.description).toContain("既定は予行"); // 保存の既定は、brief でも残す
+      expect(props.edits.description).toContain("op = add"); // 使い方が説明にしかない引数も残す
+      expect(props.processFlowId.description).toBeUndefined();
       expect((b.inputSchema as { required: string[] }).required).toEqual(["processFlowId", "edits"]);
       expect(b.annotations?.readOnlyHint).toBe(false);
       const size = (l: unknown) => Buffer.byteLength(JSON.stringify(l)); // 日本語は 1 文字 3 バイト。文脈に載る量の目安はバイト数
-      expect(size(brief)).toBeLessThan(size(full) * 0.65); // 3 分の 1 以上減る
+      expect(size(brief)).toBeLessThan(size(full) * 0.65); // 35% 以上減る (実測は約 39%)
     } finally { await o.close(); }
   });
 
@@ -90,6 +108,8 @@ describe("説明の短縮 (brief) と get_tool_guide", () => {
     expect(firstSentence("一文だけ")).toBe("一文だけ");
     expect(firstSentence("一文目。二文目。")).toBe("一文目。");
     expect(firstSentence("あ".repeat(200)).length).toBe(110);
+    expect(firstSentence("汎用定義 (genericDefinition。メッセージなど)。次の文。")).toBe("汎用定義 (genericDefinition。メッセージなど)。"); // 括弧の中の。では切らない
+    expect(firstSentence("全角（かっこ。の中）も同じ。次。")).toBe("全角（かっこ。の中）も同じ。");
     const src = { name: "x", description: "説明。詳細。", inputSchema: { type: "object", properties: { a: { type: "string", description: "引数 a" } } } };
     const out = briefTool(src);
     expect(out.description).toBe("説明。");
@@ -102,6 +122,15 @@ describe("説明の短縮 (brief) と get_tool_guide", () => {
     expect(detailFromRequest("/mcp?detail=full", { HARMONY_MCP_DETAIL: "brief" }).mode).toBe("full");
     expect(detailFromRequest("/mcp?detail=", { HARMONY_MCP_DETAIL: "brief" }).mode).toBe("brief");
     expect(detailFromRequest("/mcp?detail=tiny", {})).toEqual({ mode: "full", unknown: "tiny" });
+  });
+
+  it("get_tool_guide: 拒否した tool は、一覧にも詳細にも出さない", async () => {
+    const prev = process.env.HARMONY_MCP_DENY;
+    process.env.HARMONY_MCP_DENY = "remove_table";
+    try {
+      expect((await J("designer__get_tool_guide")).tools).not.toContain("remove_table");
+      await expect(call("designer__get_tool_guide", { name: "remove_table" })).rejects.toThrow(/ありません/);
+    } finally { if (prev === undefined) delete process.env.HARMONY_MCP_DENY; else process.env.HARMONY_MCP_DENY = prev; }
   });
 
   it("get_tool_guide: 完全な説明・引数・注釈・入っているプロファイル。名前を省くと一覧", async () => {
@@ -127,10 +156,14 @@ describe("エラーの直し方", () => {
     expect(errorHint("テーブル x が見つかりません")).toContain("designer__list_tables");
     expect(errorHint("工程「x」が見つかりません")).toContain("designer__list_steps");
     expect(errorHint("sequence「x」が見つかりません")).toContain("designer__list_designs");
-    expect(errorHint("この環境は読み取り専用 (HARMONY_MCP_MODE=readonly) のため")).toContain("読み取り専用");
+    expect(errorHint("id X のワークスペースが見つかりません")).toContain("workspace_list");
     expect(errorHint("スキーマに合いません")).toContain("validate_design");
     expect(errorHint("工程「x」が見つかりません (designer__list_steps で一覧)")).toBeNull();
     expect(errorHint("何かの失敗")).toBeNull();
+    // 設計の id と関係のない「見つかりません」・循環する案内には付けない
+    for (const m of ["git が見つかりません。git をインストールしてください", "harmony.json が見つかりません", "取り消せる置換が見つかりません (30 分を過ぎた)", "版 abc が見つかりません", "Undo 対象が見つかりません", "通知先 x が見つかりません", "kind は processFlow / screen のどれかです (スキーマの検査の対象外です)", "key, schema は必須です", "何かが見つかりません"]) {
+      expect(errorHint(m), m).toBeNull();
+    }
     expect(withHint("何かの失敗")).toBe("何かの失敗");
     expect(withHint("処理フロー x が見つかりません")).toMatch(/\n直し方: /);
   });
@@ -225,6 +258,49 @@ describe("edit_steps (工程の一括編集)", () => {
     // 壊す編集: 必須の項目を消す → 新しい違反として出る (予行なので保存されない)
     const broken = await J("designer__edit_steps", { processFlowId: "cart-add", edits: [{ op: "update", stepId: "step-02", patch: { kind: "no-such-kind" } }] });
     expect(broken.newSchemaIssues?.length ?? 0).toBeGreaterThan(0);
+  });
+
+  it("重複する id は保存しない: patch の中の入れ子の工程が、あとで足す id と同じ・id を省いた採番が重ならない", async () => {
+    const before = await fs.readFile(file("cart-add"), "utf8");
+    await expect(call("designer__edit_steps", { processFlowId: "cart-add", apply: true, edits: [
+      { op: "update", stepId: "step-02", patch: { subSteps: [{ id: "step-50", kind: "compute", description: "入れ子" }] } },
+      { op: "add", actionId: "act-001", kind: "compute", id: "step-50" },
+    ] })).rejects.toThrow(/すでに使われています/);
+    // patch で既存と同じ id の入れ子の工程を入れると、重複として断る
+    await expect(call("designer__edit_steps", { processFlowId: "cart-add", apply: true, edits: [
+      { op: "update", stepId: "step-02", patch: { subSteps: [{ id: "step-04", kind: "compute", description: "重複" }] } },
+    ] })).rejects.toThrow(/id が重複します/);
+    expect(await fs.readFile(file("cart-add"), "utf8")).toBe(before);
+    // 採番は、patch で入れた工程の id も避ける
+    const r = await J("designer__edit_steps", { processFlowId: "cart-add", edits: [
+      { op: "update", stepId: "step-02", patch: { subSteps: [{ id: "step-90", kind: "compute", description: "入れ子" }] } },
+      { op: "add", actionId: "act-001", kind: "compute" },
+    ] });
+    expect(r.results[1].stepId).toBe("step-91");
+  });
+
+  it("消した id は、同じバッチの後ろで使い直せる", async () => {
+    const r = await J("designer__edit_steps", { processFlowId: "cart-summary", edits: [{ op: "remove", stepId: "step-01" }, { op: "add", actionId: "act-001", kind: "compute", id: "step-01" }] });
+    expect(r.edits).toBe(2);
+  });
+
+  it("もとからあるスキーマ違反は、工程を動かしただけでは『新しい違反』にならない。保存後の更新日時は meta に入る", async () => {
+    // 先に 1 つ壊した状態で保存する
+    await J("designer__edit_steps", { processFlowId: "cart-add", apply: true, edits: [{ op: "update", stepId: "step-13", patch: { kind: "bogus" } }] });
+    const saved = JSON.parse(await fs.readFile(file("cart-add"), "utf8"));
+    expect("updatedAt" in saved).toBe(false); // トップレベルの updatedAt はスキーマにない
+    expect(typeof saved.meta.updatedAt).toBe("string");
+    const moved = await J("designer__edit_steps", { processFlowId: "cart-add", edits: [{ op: "move", stepId: "step-02", newIndex: 12 }] });
+    expect(moved.newSchemaIssues ?? []).toEqual([]);
+    expect(moved.moreSchemaIssues).toBeUndefined();
+  });
+
+  it("apply は true / false だけ。文字列の true は断る", async () => {
+    await expect(call("designer__edit_steps", { processFlowId: "cart-add", apply: "true", edits: [{ op: "remove", stepId: "step-02" }] })).rejects.toThrow(/true \/ false/);
+  });
+
+  it("失敗の文: edits[N] を言い、接頭辞を重ねない", async () => {
+    await expect(call("designer__edit_steps", { processFlowId: "cart-add", edits: [{ op: "update", stepId: "BAD ID", patch: {} }] })).rejects.toThrow(/^(?!.*MCP error -\d+: .*MCP error)edits\[0\]: Invalid stepId|edits\[0\]: Invalid/s);
   });
 
   it("監査: edit_steps は処理フローの変更として数え、予行 (apply なし) は記録しない", async () => {

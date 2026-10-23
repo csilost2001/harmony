@@ -16,6 +16,7 @@ import {
   insertStepAt, moveStep as editMoveStep, nestStep as editNestStep, removeStep as editRemoveStep, updateStep as editUpdateStep,
   type ProcessFlowDoc,
 } from "../processFlowEdits.js";
+import { stepChildLists } from "@harmony/shared";
 import { collectAllLocalIds, nextLocalId } from "./processFlow.js";
 import { wsBridge } from "../wsBridge.js";
 
@@ -25,10 +26,29 @@ const json = (v: unknown) => ({ content: [{ type: "text" as const, text: JSON.st
 
 export const MAX_BATCH_EDITS = 100;
 
-/** スキーマ違反の文言の集合 (編集の前後で比べ、この編集で増えたものだけを知らせる) */
+/**
+ * スキーマ違反の文言 (編集の前後で比べ、この編集で増えたものだけを知らせる)。
+ * 配列の番号は # にそろえる: 工程を動かしただけで、もとからある違反が「新しい違反」に見えないように。
+ */
 async function schemaMessages(doc: unknown): Promise<string[]> {
-  return (await validateEntitySchema("processFlow", doc)).map((e) => `${describeAjvError(e)}${e.instancePath ? ` (${e.instancePath})` : ""}`);
+  const out = (await validateEntitySchema("processFlow", doc)).map((e) => `${describeAjvError(e)}${e.instancePath ? ` (${e.instancePath.replace(/\/\d+(?=\/|$)/g, "/#")})` : ""}`);
+  return [...new Set(out)];
 }
+
+/** 全アクションの工程 id (入れ子を含む)。重複の検出に使う */
+function allStepIds(doc: ProcessFlowDoc): string[] {
+  const out: string[] = [];
+  const walk = (steps: unknown[] | undefined) => {
+    for (const st of steps ?? []) {
+      if (!isRecord(st)) continue;
+      if (typeof st.id === "string") out.push(st.id);
+      for (const g of stepChildLists(st)) walk(g.steps);
+    }
+  };
+  for (const act of doc.actions ?? []) walk(act.steps as unknown[]);
+  return out;
+}
+const duplicatesOf = (ids: string[]) => new Set(ids.filter((id, i) => ids.indexOf(id) !== i));
 
 export const handleFlowBatchTool: ToolHandler = async (name, args, root) => {
   if (name !== "designer__edit_steps") return null;
@@ -45,11 +65,15 @@ export const handleFlowBatchTool: ToolHandler = async (name, args, root) => {
   if (!isRecord(stored)) throw bad(`処理フロー ${a.processFlowId} が見つかりません (designer__list_process_flows で一覧)`);
   const before = await schemaMessages(stored);
   const doc = structuredClone(stored) as unknown as ProcessFlowDoc;
-  const ids = collectAllLocalIds(doc);
+  const dupsBefore = duplicatesOf(allStepIds(stored as unknown as ProcessFlowDoc));
+
+  if (a.apply !== undefined && typeof a.apply !== "boolean") throw bad("apply は true / false で指定してください (true で保存。既定は予行)");
 
   const results: Array<Record<string, unknown>> = [];
   for (let i = 0; i < a.edits.length; i++) {
     const e = a.edits[i];
+    // 前の編集で、id の集合が変わる (patch や detail の中の入れ子の工程・削除) ので、毎回集め直す
+    const ids = collectAllLocalIds(doc);
     const where = `edits[${i}]`;
     try {
       if (!isRecord(e) || typeof e.op !== "string") throw new Error("op が必要です (add / update / remove / move / nest)");
@@ -61,7 +85,6 @@ export const handleFlowBatchTool: ToolHandler = async (name, args, root) => {
           let id: string;
           if (e.id !== undefined) { assertLocalIdMcp(e.id, "id"); id = e.id as string; if (ids.has(id)) throw new Error(`id「${id}」はすでに使われています`); }
           else id = nextLocalId(ids, "step", 2);
-          ids.add(id);
           const detail = isRecord(e.detail) ? e.detail : {};
           const step = { ...detail, id, kind: e.kind, description: typeof e.description === "string" ? e.description : typeof detail.description === "string" ? detail.description : "" } as never;
           insertStepAt(doc, e.actionId as string, step, typeof e.position === "number" ? e.position : undefined, typeof e.parentStepId === "string" ? e.parentStepId : undefined);
@@ -100,18 +123,25 @@ export const handleFlowBatchTool: ToolHandler = async (name, args, root) => {
           throw new Error(`op「${String(e.op)}」は使えません (add / update / remove / move / nest)`);
       }
     } catch (err) {
-      throw bad(`${where}: ${(err as Error).message}。何も保存していません (${i} 件目までの編集は破棄しました)`);
+      const why = (err as Error).message.replace(/^MCP error -?\d+: /, "");
+      throw bad(`${where}: ${why}。何も保存していません (この呼び出しの編集は、すべて破棄しました)`);
     }
   }
 
-  // この編集で増えたスキーマ違反だけを知らせる (もとからあった違反は、ここでは言わない)
-  const was = new Set(before);
-  const introduced = (await schemaMessages(doc)).filter((m) => !was.has(m));
+  // 工程の id が重複したら、保存しない (patch や detail の中の入れ子の工程が、既存の id を使った場合など)
+  const dupNow = [...duplicatesOf(allStepIds(doc))].filter((id) => !dupsBefore.has(id));
+  if (dupNow.length) throw bad(`工程の id が重複します: ${dupNow.slice(0, 5).join(", ")}。何も保存していません (この呼び出しの編集は、すべて破棄しました)`);
+
   const apply = a.apply === true;
-  if (apply) await saveAndBroadcast(a.processFlowId, doc, root);
+  // 保存するときは、更新日時を付けた最終の形で検査する (保存の処理が足すものも含めて見る)
+  const toSave = structuredClone(doc);
+  if (apply) await saveAndBroadcast(a.processFlowId, toSave, root);
+  // この編集で増えたスキーマ違反だけを知らせる (もとからあった違反は言わない。配列の番号は無視して比べる)
+  const was = new Set(before);
+  const introduced = (await schemaMessages(toSave)).filter((m) => !was.has(m));
   return json({
     applied: apply, processFlowId: a.processFlowId, edits: results.length, results,
-    ...(introduced.length ? { newSchemaIssues: introduced.slice(0, 20), ...(introduced.length > 20 ? { moreSchemaIssues: introduced.length - 20 } : {}) } : {}),
+    ...(introduced.length ? { newSchemaIssues: introduced.slice(0, 10), ...(introduced.length > 10 ? { moreSchemaIssues: introduced.length - 10 } : {}) } : {}),
     note: apply ? "保存しました。設計の確認は designer__check_design で" : "予行です (何も保存していません)。保存するには apply: true",
   });
 };

@@ -30,6 +30,7 @@ import { assertEntityIdMcp, type ToolHandler } from "../mcpHelpers.js";
 import { pageOf } from "./designKinds.js";
 import { tools as allTools } from "../tools.js";
 import { toolAnnotations } from "../mcpToolMeta.js";
+import { filterTools } from "../security/mcpAccess.js";
 import { PROFILES, isInProfile } from "../security/mcpProfiles.js";
 import { wsBridge } from "../wsBridge.js";
 
@@ -267,11 +268,12 @@ export const handleDesignInsightTool: ToolHandler = async (name, args, root) => 
 
     case "designer__get_tool_guide": {
       if (typeof a.name !== "string") {
-        // 名前を省略すると、tool の名前の一覧 (プロファイルごとの入り方つき)
-        return json({ count: allTools.length, tools: allTools.map((t) => t.name.replace(/^designer__/, "")), note: "tool 1 つの詳細 (説明・引数・注釈) は name を指定して読む" });
+        // 名前を省略すると、この環境で使える tool の名前の一覧 (拒否した tool・読み取り専用で使えない tool は出さない)
+        const usable = filterTools(allTools);
+        return json({ count: usable.length, tools: usable.map((t) => t.name.replace(/^designer__/, "")), note: "tool 1 つの詳細 (説明・引数・注釈) は name を指定して読む" });
       }
       const wanted = a.name.startsWith("designer__") || a.name.startsWith("editSession__") ? a.name : `designer__${a.name}`;
-      const t = allTools.find((x) => x.name === wanted);
+      const t = filterTools(allTools).find((x) => x.name === wanted);
       if (!t) throw bad(`tool「${a.name}」がありません (name を省略すると一覧)`);
       return json({ name: t.name, description: t.description, inputSchema: t.inputSchema, annotations: toolAnnotations(t.name), profiles: Object.keys(PROFILES).filter((p) => isInProfile(t.name, [p])) });
     }
