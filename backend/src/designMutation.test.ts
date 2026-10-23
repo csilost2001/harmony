@@ -45,6 +45,7 @@ const MUTATIONS: Array<{ name: string; mutate: (ws: string) => Promise<void>; ex
   { name: "アクションの responses を空にする (return の responseId が切れる)", mutate: (ws) => rw(flow(ws), (j) => { j.actions[0].responses = []; }), expect: /レスポンス「[^」]+」が、このアクションの responses にありません/, max: 8 },
   { name: "分岐の道の条件を空にする", mutate: (ws) => rw(flow(ws), (j) => { j.actions[0].steps.find((s: any) => s.kind === "branch").branches[0].condition = { kind: "expression", expression: "" }; }), expect: /条件が空です/, max: 2 },
   { name: "画面項目のイベントが呼ぶ処理フローを、ないものにする", mutate: (ws) => rw(path.join(ws, "harmony/screens/cart.json"), (j) => { j.items[0].events = [{ id: "ev-x", handlerFlowId: "no-such-flow" }]; }), expect: /処理フロー「no-such-flow」がありません/, max: 2 },
+  { name: "入力チェックの NG のときのレスポンスを、ないレスポンスにする", mutate: (ws) => rw(flow(ws), (j) => { j.actions[0].steps.find((s: any) => s.kind === "validation").inlineBranch.ngResponseId = "no-such-response"; }), expect: /レスポンス「no-such-response」/, max: 2 },
   { name: "画面遷移の工程の行き先を、ない画面にする", mutate: (ws) => rw(flow(ws), (j) => { j.actions[0].steps.push({ id: "step-98", kind: "screenTransition", description: "x", targetScreenId: "no-such-screen" }); }), expect: /遷移先の画面「no-such-screen」/, max: 3 },
 ];
 
@@ -118,6 +119,16 @@ describe("工程のスキーマ違反は、その種類の定義に対してだ�
     const errs = await validateEntitySchema("processFlow", j);
     expect(errs).toHaveLength(1);
     expect(errs[0].instancePath).toBe("/actions/0/steps/0/kind");
+  });
+
+  it("失敗系の副作用 (errorHandling.outcomes.*.sideEffects) に return を置くと違反 (return 以外の工程だけ置ける)。正しい副作用は通る", async () => {
+    const j = await load();
+    j.actions[0].steps[0].errorHandling = { outcomes: { timeout: { action: "continue", sideEffects: [{ id: "se-1", kind: "return", description: "x" }] } } };
+    const errs = await validateEntitySchema("processFlow", j);
+    expect(errs.length).toBeGreaterThan(0);
+    expect(errs[0].instancePath).toBe("/actions/0/steps/0/errorHandling/outcomes/timeout/sideEffects/0/kind");
+    j.actions[0].steps[0].errorHandling = { outcomes: { timeout: { action: "continue", sideEffects: [{ id: "se-1", kind: "log", description: "x", level: "warn", message: "m" }] } } };
+    expect((await validateEntitySchema("processFlow", j)).filter((e) => e.instancePath.includes("sideEffects")).map((e) => e.message)).not.toContain("must be equal to constant");
   });
 
   it("正しい処理フローは違反 0 件 (サンプル全部)", async () => {

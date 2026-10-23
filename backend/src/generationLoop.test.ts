@@ -62,6 +62,18 @@ describe("生成の指示書 (get_generation_brief)", () => {
     expect(t).toContain('{ "kind": "screen", "id": "cart" }');
   });
 
+  it("壊れた設計 (工程が null・文字列・actions が配列でない) でも落ちず、壊れた部分を飛ばして出す", async () => {
+    const f = path.join(WS, "harmony/process-flows/broken-brief.json");
+    await fs.writeFile(f, JSON.stringify({ meta: { id: "broken-brief", name: "壊れた", flowType: "common" }, actions: [{ id: "a1", steps: [null, "x", 5, { id: "s1", kind: "dbAccess", tableId: "store-master", operation: "SELECT" }] }, "not-an-action"] }));
+    const t = await call("designer__get_generation_brief", { processFlowId: "broken-brief" });
+    expect(t).toContain("# 生成の指示書: 壊れた");
+    expect(t).toContain("### 店舗マスタ"); // 読める工程のテーブルは出る
+    // 設計全体の検査も止まらない。壊れた部分は、スキーマの違反として知らされる
+    const chk = await J("designer__check_design");
+    expect(chk.issues.some((i: { section: string; message: string }) => i.section.includes("壊れた") && /スキーマ/.test(i.message))).toBe(true);
+    await fs.rm(f);
+  });
+
   it("引数がない・ないものは断る", async () => {
     await expect(call("designer__get_generation_brief", {})).rejects.toThrow(/どちらかを指定/);
     await expect(call("designer__get_generation_brief", { processFlowId: "no-such-flow" })).rejects.toThrow(/見つかりません/);
@@ -92,10 +104,25 @@ describe("テスト観点のカバレッジ (check_test_coverage) とずれ検�
     expect(r.total).toBe(ids.length);
     expect(r.covered).toBe(2);
     expect(r.testFiles).toEqual(["generated/cart-add.test.ts"]);
+    expect(r.note).toContain("目安");
     expect(r.uncovered.map((u: { id: string }) => u.id)).toEqual(expect.arrayContaining([ids[2]]));
     expect(r.uncovered.map((u: { id: string }) => u.id)).not.toContain(ids[0]);
     expect(r.percent).toBeCloseTo((2 / ids.length) * 100, 0);
     expect(r.byTarget[0]).toMatchObject({ total: ids.length, covered: 2 });
+  });
+
+  it("ID の部分一致では数えない: TV-1 を書いても TV-10 は覆わない / 別の処理の同じ接尾辞は覆わない", async () => {
+    const sheet = await J("designer__get_test_viewpoints", { flowIds: ["cart-add"] });
+    const ids: string[] = sheet.flows[0].cases.map((c: { id: string }) => c.id);
+    await fs.writeFile(path.join(WS, "generated/cart-add.test.ts"), `// pre-${ids[0]}\n// ${ids[1]}.\n// ${ids[2]}x\nit("${ids[3]}")\n`);
+    await J("designer__record_generation", { outputs: [{ path: "generated/cart-add.test.ts", sources: [{ kind: "processFlow", id: "cart-add" }] }] });
+    const r = await J("designer__check_test_coverage", { flowIds: ["cart-add"] });
+    const uncovered = r.uncovered.map((u: { id: string }) => u.id);
+    expect(uncovered).toContain(ids[0]); // 前に文字が付いたものは別の語
+    expect(uncovered).not.toContain(ids[1]); // 文末の . は語に含めない
+    expect(uncovered).toContain(ids[2]); // あとに文字が続くものは別の語
+    expect(uncovered).not.toContain(ids[3]);
+    expect(r.covered).toBe(2);
   });
 
   it("記録した生成物が消えると unreadableFiles に出る", async () => {
@@ -129,6 +156,8 @@ describe("テスト観点のカバレッジ (check_test_coverage) とずれ検�
     expect(r.stdout).toMatch(/テスト観点 \d+ 件のうち/);
     expect(run("--json").stdout).toContain('"generation"');
     expect(spawnSync("npx", ["tsx", path.join(REPO, "scripts/dev/check-generation.mts"), "/nonexistent"], { cwd: REPO, encoding: "utf8" }).status).toBe(2);
+    expect(run("--min", "50").status).toBe(2); // --min は --coverage と一緒に
+    expect(run("--no-such-flag").status).toBe(2);
   }, 240_000);
 });
 
@@ -145,6 +174,13 @@ describe("変更に絞ったテスト観点 (get_test_viewpoints の since)", ()
     const some = await J("designer__get_test_viewpoints", { since: mark.toISOString() });
     expect(some.flows.map((x: { flowId: string }) => x.flowId)).toEqual(["cart-summary"]);
     expect(some.screens).toEqual([]);
+    // 指定との積: 変わっていないものを指定したら 0 件 (全部に広がらない)
+    const both = await J("designer__get_test_viewpoints", { since: mark.toISOString(), flowIds: ["cart-add"] });
+    expect(both.flows).toEqual([]);
+    expect(both.screens).toEqual([]);
+    const scr = await J("designer__get_test_viewpoints", { since: mark.toISOString(), screenIds: ["cart"] });
+    expect(scr.screens).toEqual([]);
+    expect(scr.flows.map((x: { flowId: string }) => x.flowId)).toEqual(["cart-summary"]);
     await expect(call("designer__get_test_viewpoints", { since: "きのう" })).rejects.toThrow(/ISO/);
   });
 });

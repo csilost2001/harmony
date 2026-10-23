@@ -4,7 +4,7 @@
  * 資料・スキル・tool の説明を変えたとき、AI の出来が悪くならないかを測る道具。期待は**構造**で書く (名前に依存せず、種類・件数・参照・検査の結果で見る)。
  * 使い方: docs/evals/README.md。事例: docs/evals/cases/*.json
  */
-import { buildDesignDocument, returnStatus, walkAllSteps, type DesignDocInput, type FlowStep } from "@harmony/shared";
+import { buildDesignDocument, deriveTestViewpointSheet, returnStatus, walkAllSteps, type DesignDocInput, type FlowStep } from "@harmony/shared";
 import { loadDesignInputFromRoot } from "../designInput.js";
 import { collectExtraIssues } from "../schemaIssues.js";
 
@@ -80,8 +80,8 @@ function check(input: DesignDocInput, issues: Array<{ severity: string; message:
       return { ok: broken.length === 0, detail: broken.length ? `参照が切れている: ${broken.slice(0, 3).join(", ")}` : "参照は切れていない" };
     }
     case "testViewpoints": {
-      const n = input.flows.length + input.screens.reduce((a, s) => a + (s.items?.length ?? 0), 0);
-      return { ok: n >= e.min, detail: `観点の元になる処理フロー・画面項目 ${n} 件` };
+      const n = deriveTestViewpointSheet({ limits: input.limits, regex: input.regex, messages: input.messages, screens: input.screens.filter((s) => s.purpose !== "gadget"), flows: input.flows }).total;
+      return { ok: n >= e.min, detail: `テスト観点 ${n} 件` };
     }
   }
 }

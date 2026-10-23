@@ -25,13 +25,13 @@ category: design
 
 `designer__check_design` / `npm run check:design` / 設計書の「要確認事項」は、同じ検査を使う。主なもの:
 
-- **設計どうしの参照の整合** (`shared/src/analysis/integrity.ts`): 処理フローの `meta.screenId`・DB アクセスの `tableId`・画面遷移の `targetScreenId`・`return` の `responseId`、画面項目の結びつき先のテーブルとカラム・イベントが呼ぶ処理フロー / アクション、テーブルの外部キーの参照先、規約の参照 (`@conv.limit.*` `regex` `msg` `role` `permission`。規約の側が読めているときだけ)、分岐の道の条件が空、同じアクションでの工程 id の重複 (警告)。アクションをまたぐ同じ工程 id は**情報** (動作は壊れないが、工程を id で指す操作は、最初に見つかったアクションに当たる)
+- **設計どうしの参照の整合** (`shared/src/analysis/integrity.ts`): 処理フローの `meta.screenId`・DB アクセスの `tableId`・画面遷移の `targetScreenId`・`return` の `responseId`、画面項目の結びつき先のテーブルとカラム・イベントが呼ぶ処理フロー / アクション、テーブルの外部キーの参照先、規約の参照 (`@conv.limit.*` `regex` `msg` `role` `permission`。その種類の定義が 1 つもないときは見ない — 規約が読めていないと全部が未定義になるため。`@conv.limit.max-1` のように式が続く参照・`product:view` の形の権限キーも扱う)、`inlineBranch.ngResponseId` が `responses` にあること、分岐の道の条件が空、同じアクションでの工程 id の重複 (警告)。アクションをまたぐ同じ工程 id は**情報** (動作は壊れないが、工程を id で指す操作は、最初に見つかったアクションに当たる)
 - **スキーマ違反**: 工程は、その**種類 (kind) の定義に対してだけ**検査し直した違反を出す (工程は 26 種類の oneOf で、そのまま検査すると 1 つの項目の不足で 100 件以上並ぶ)。種類の綴り間違いは kind の違反 1 件
 - 画面・テーブル・業務フロー・帳票・権限・CRUD・SQL の重複 など (各仕様書)
 
 細かい契約 (式の中の変数・SQL の列・画面項目の型 ほか) は `cd frontend && npm run validate:samples -- ../examples/<project-id>` と画面の欄の直下の指摘が見る。
 
-**回帰試験**: `backend/src/designMutation.test.ts` が、正しい設計 (retail) をわざと壊し (テーブルの削除・参照先の誤り・工程 id の重複・規約の参照切れ・必須項目の欠落・JSON の破損 ほか 14 種)、検査が見つけることと、雑音で原因が埋もれないことを確かめる。検査に穴を見つけたら、壊し方をここに足す。
+**回帰試験**: `backend/src/designMutation.test.ts` が、正しい設計 (retail) をわざと壊し (テーブルの削除・参照先の誤り・工程 id の重複・規約の参照切れ・必須項目の欠落・JSON の破損 ほか 15 種)、検査が見つけることと、雑音で原因が埋もれないことを確かめる。検査に穴を見つけたら、壊し方をここに足す。
 
 ## 抑制
 

@@ -12,6 +12,7 @@ import { readProject } from "./projectStorage.js";
 import { actionsOf, flowContext, storyOf } from "./handlers/designInsight.js";
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
+const MAX_STORY_CHARS = 40000;
 const MAX_TABLES = 30, MAX_ITEMS = 80, MAX_CASES = 60, MAX_CONV = 60;
 const more = <T,>(items: T[], max: number): { shown: T[]; extra: number } => ({ shown: items.slice(0, max), extra: Math.max(0, items.length - max) });
 
@@ -61,7 +62,11 @@ export async function buildGenerationBrief(root: string, args: { processFlowId?:
     if (!flow) throw new Error(`処理フロー「${args.processFlowId}」が見つかりません (designer__list_process_flows で一覧)`);
     const screen = flow.meta.screenId ? input.screens.find((s) => s.id === flow.meta.screenId) : undefined;
     const tableIds = new Set<string>();
-    for (const act of flow.actions ?? []) for (const st of walkAllSteps(act.steps as never)) { const t = (st as { tableId?: unknown }).tableId; if (typeof t === "string") tableIds.add(t); }
+    // 設計は途中でも保存できる (工程が null・文字列だったり、actions が配列でなかったりする)。壊れた部分は飛ばす
+    const actionList = Array.isArray(flow.actions) ? flow.actions.filter(isRecord) : [];
+    for (const act of actionList) {
+      try { for (const st of walkAllSteps(Array.isArray(act.steps) ? (act.steps as never) : undefined)) { const t = isRecord(st) ? st.tableId : undefined; if (typeof t === "string") tableIds.add(t); } } catch { /* 壊れた工程は飛ばす */ }
+    }
     const tables = input.tables.filter((t) => tableIds.has(t.id));
     const convs = convRefs(flow);
     const sheet = deriveTestViewpointSheet({ ...testCtx, screens: [], flows: [flow] });
@@ -69,9 +74,12 @@ export async function buildGenerationBrief(root: string, args: { processFlowId?:
 
     out.push(`# 生成の指示書: ${flow.meta.name ?? flow.meta.id} (処理フロー \`${flow.meta.id}\`)`, "");
     out.push("## 何を作るか", "", flow.meta.description ?? "(説明なし)", "");
-    for (const a of flow.actions ?? []) out.push(`- アクション \`${a.id ?? ""}\` ${a.name ?? ""}${a.httpRoute ? ` — ${a.httpRoute.method} ${a.httpRoute.path}${a.httpRoute.auth ? ` (認証: ${a.httpRoute.auth})` : ""}` : ""}${a.requiredPermissions?.length ? ` / 必要な権限: ${a.requiredPermissions.join(", ")}` : ""}`);
+    for (const a of actionList) out.push(`- アクション \`${a.id ?? ""}\` ${a.name ?? ""}${a.httpRoute ? ` — ${a.httpRoute.method} ${a.httpRoute.path}${a.httpRoute.auth ? ` (認証: ${a.httpRoute.auth})` : ""}` : ""}${a.requiredPermissions?.length ? ` / 必要な権限: ${a.requiredPermissions.join(", ")}` : ""}`);
     out.push("", "## 技術スタック", "", techStack ? "```json\n" + JSON.stringify(techStack, null, 2) + "\n```" : "(未設定。designer__get_tech_stack / save_tech_stack)", "");
-    out.push("## 処理の流れ", "", "条件は言葉で書いてある。もとの式は designer__get_step で読む。", "", storyOf(flow as never, actionsOf(flow as never, undefined), await flowContext(root)), "");
+    let story: string;
+    try { story = storyOf(flow as never, actionsOf(flow as never, undefined), await flowContext(root)); } catch { story = "(処理の流れを組み立てられませんでした。設計が壊れている可能性があります。designer__check_design で確かめてください)"; }
+    if (story.length > MAX_STORY_CHARS) story = `${story.slice(0, MAX_STORY_CHARS)}\n\n(長いので ${MAX_STORY_CHARS} 文字で切りました。続きは designer__get_flow_story { processFlowId, actionId } でアクションごとに)`;
+    out.push("## 処理の流れ", "", "条件は言葉で書いてある。もとの式は designer__get_step で読む。", "", story, "");
     const tb = more(tables, MAX_TABLES);
     out.push("## 使うテーブル", "", tb.shown.length ? tb.shown.map(tableBlock).join("\n\n") : "(この処理フローが直接使うテーブルはありません)", ...(tb.extra ? [`\n(ほか ${tb.extra} 件)`] : []), "");
     const cv = more(convs, MAX_CONV);

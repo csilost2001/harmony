@@ -2,10 +2,11 @@
 /**
  * check-generation — 生成したコードと設計のずれ、生成したテストが観点表を覆う割合を、CLI で確かめる (CI・コミット前の確認用)。
  *
- * 使い方: npm run check:generation -- <ワークスペース> [--coverage [--min <割合 %>]] [--json]
+ * 使い方: npm run check:generation -- <ワークスペース> [--coverage [--min <割合 %>]] [--require-records] [--json]
  *
  * - 既定: `record_generation` で記録された生成物と、いまの設計・生成物を突き合わせる (designer__check_generation_drift と同じ)。
  *         設計が変わった (design-changed)・生成物が書き換わった (output-changed)・両方 (both-changed)・生成物が消えた (output-missing) があれば、終了コード 1
+ * - 記録 (record_generation) の読み込みに問題があれば、終了コード 1。記録が 0 件のときは、何も検査していないので 0 のまま (--require-records を付けると 1 — CI で「記録がない」を失敗にしたいとき)
  * - --coverage: テスト観点表のうち、記録されたテストの本文に ID が書かれているものの割合を出す。--min を付けると、それ未満なら終了コード 1
  * 仕様: docs/spec/code-generation.md
  */
@@ -15,16 +16,20 @@ import { generationStatus } from "../../backend/src/ops/service.js";
 import { checkTestCoverage } from "../../backend/src/testCoverage.js";
 
 const args = process.argv.slice(2);
-const dir = args.find((a) => !a.startsWith("--") && !/^\d+(\.\d+)?$/.test(a));
-if (!dir || !fs.existsSync(path.join(path.resolve(dir), "harmony.json"))) {
-  console.error("使い方: check-generation.mts <ワークスペース> [--coverage [--min <割合>]] [--json]");
-  process.exit(2);
-}
-const root = path.resolve(dir);
-const wantJson = args.includes("--json");
+const KNOWN = new Set(["--coverage", "--min", "--json", "--require-records"]);
 const minIdx = args.indexOf("--min");
 const min = minIdx >= 0 ? Number(args[minIdx + 1]) : undefined;
+const unknown = args.filter((a) => a.startsWith("--") && !KNOWN.has(a));
+const dir = args.find((a, i) => !a.startsWith("--") && !(minIdx >= 0 && i === minIdx + 1));
+if (unknown.length) { console.error(`知らない指定です: ${unknown.join(" ")}`); process.exit(2); }
+if (!dir || !fs.existsSync(path.join(path.resolve(dir), "harmony.json"))) {
+  console.error("使い方: check-generation.mts <ワークスペース> [--coverage [--min <割合>]] [--require-records] [--json]");
+  process.exit(2);
+}
+if (minIdx >= 0 && !args.includes("--coverage")) { console.error("--min は --coverage と一緒に指定してください"); process.exit(2); }
 if (minIdx >= 0 && !(Number.isFinite(min) && min! >= 0 && min! <= 100)) { console.error("--min は 0〜100 の数で指定してください"); process.exit(2); }
+const root = path.resolve(dir);
+const wantJson = args.includes("--json");
 
 const LABEL: Record<string, string> = { current: "最新", "design-changed": "設計が変わった (再生成が必要)", "output-changed": "生成物が書き換えられた", "both-changed": "設計も生成物も変わった (衝突)", "output-missing": "生成物がない" };
 
@@ -34,7 +39,8 @@ async function main(): Promise<number> {
   const { rows, problems } = await generationStatus(root);
   const drifted = rows.filter((r) => r.state !== "current");
   result.generation = { total: rows.length, drifted: drifted.length, problems, rows: drifted };
-  if (drifted.length) exit = 1;
+  if (drifted.length || problems.length) exit = 1;
+  if (args.includes("--require-records") && rows.length === 0) exit = 1;
   if (!wantJson) {
     console.log(`生成物 ${rows.length} 件: 最新 ${rows.length - drifted.length} / ずれ ${drifted.length}`);
     for (const r of drifted) console.log(`  ✗ ${r.path}${r.base === "generated-code" ? " (generated-code)" : ""}: ${LABEL[r.state] ?? r.state}${r.changedSources.length ? ` — ${r.changedSources.map((c) => `${c.kind}:${c.id} ${c.state === "deleted" ? "削除" : "変更"}`).join(", ")}` : ""}`);

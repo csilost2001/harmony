@@ -261,6 +261,11 @@ async function refineStepErrors(doc: Record<string, unknown>, errors: ErrorObjec
   for (const o of touched.values()) {
     const k = o.step.kind;
     const def = typeof k === "string" ? map.get(k) ?? (k.includes(":") ? "ExtensionStep" : undefined) : undefined;
+    // 失敗系の結果ごとの副作用 (errorHandling.outcomes.*.sideEffects) は、return 以外の工程 (NonReturnStep)
+    if (k === "return" && /\/sideEffects\/\d+$/.test(o.path)) {
+      kept.push({ instancePath: `${o.path}/kind`, schemaPath: "#/properties/kind/const", keyword: "const", params: { allowedValue: "return 以外の工程" }, message: "must be equal to constant" } as ErrorObject);
+      continue;
+    }
     const v = def ? _ajv.getSchema(`${rootSchemaId}#/$defs/${def}`) : undefined;
     if (!v) {
       kept.push({ instancePath: `${o.path}/kind`, schemaPath: "#/properties/kind/const", keyword: "const", params: { allowedValue: [...map.keys()].join(" | ") }, message: "must be equal to constant" } as ErrorObject);

@@ -85,7 +85,7 @@
 | 77 | ずれの検査を CLI に | 済 | `npm run check:generation -- <ワークスペース> [--coverage --min]` |
 | 78 | OpenAPI から処理フローの雛形 | 済 | 第 2 弾 `import_openapi` |
 | 79 | 実 DB から ER を取り込む | 見送り | 接続情報の扱い・外部への接続を増やす割に、`pg_dump -s` / `mysqldump --no-data` の出力を `import_ddl` で取り込めば足りる |
-| 80 | わざと壊した設計で検査を試す | 済 | `backend/src/designMutation.test.ts` (14 種の壊し方)。**検査の穴を 8 つ見つけて塞いだ**(下) |
+| 80 | わざと壊した設計で検査を試す | 済 | `backend/src/designMutation.test.ts` (15 種の壊し方)。**検査の穴を 8 つ見つけて塞いだ**(下) |
 | 81 | AI の出力の評価セット | 済 | `docs/evals/` と `npm run eval:design` (LLM なしの構造の採点。事例 3 件) |
 | 82 | MCP 呼び出しのログ分析 | 第 6 弾 | |
 | 83 | 要確認の直し方を機械的に付ける | 第 6 弾 | |

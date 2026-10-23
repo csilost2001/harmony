@@ -73,8 +73,11 @@ export const handleDesignTool: ToolHandler = async (name, args, root, sessionId)
         const changed = await changedFilesSince(root, ms);
         const cs = new Set(changed.filter((c) => c.kind === "screen" || c.kind === "screenItems").map((c) => c.id.replace(/\.design$/, "")));
         const cf = new Set(changed.filter((c) => c.kind === "processFlow").map((c) => c.id));
-        onlyScreens = (onlyScreens.length ? onlyScreens.filter((x) => cs.has(x)) : [...cs]).concat(onlyScreens.length || cs.size ? [] : ["\u0000none"]);
-        onlyFlows = (onlyFlows.length ? onlyFlows.filter((x) => cf.has(x)) : [...cf]).concat(onlyFlows.length || cf.size ? [] : ["\u0000none"]);
+        // 指定と変更の積。空になったら「該当なし」(空の配列は、下流で『絞らない』になるので、存在しない id を入れる)
+        const none = ["\u0000none"];
+        const inter = (given: string[], changedSet: Set<string>) => { const r = given.length ? given.filter((x) => changedSet.has(x)) : [...changedSet]; return r.length ? r : none; };
+        onlyScreens = inter(onlyScreens, cs);
+        onlyFlows = inter(onlyFlows, cf);
       }
       const pick = <T,>(items: T[], ids: string[], idOf: (x: T) => string) => (ids.length ? items.filter((x) => ids.includes(idOf(x))) : items);
       const sheet = deriveTestViewpointSheet({

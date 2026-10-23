@@ -28,6 +28,31 @@ export function stepChildLists(step: unknown): Array<{ role: string; steps: Flow
   return out;
 }
 
+/**
+ * 設計書・検査・生成の指示書に渡す前に、処理フローの壊れた部分 (工程が null・文字列・数だったり、actions が配列でなかったり) を取り除く。
+ * 設計は途中でも保存でき、壊れた設計も普通にある。取り除かずに渡すと、1 件の壊れた工程で、設計全体の検査が例外で止まる。
+ * 壊れた部分はスキーマの検査 (type must be object) が別に知らせるので、ここでは黙って取り除く。渡された flow を直接直し、取り除いた数を返す。
+ */
+export function dropBrokenFlowParts(flow: unknown): number {
+  if (!flow || typeof flow !== "object") return 0;
+  const f = flow as Record<string, unknown>;
+  let n = 0;
+  if (!Array.isArray(f.actions)) { if (f.actions !== undefined) n++; f.actions = []; }
+  const acts = f.actions as unknown[];
+  for (let i = acts.length - 1; i >= 0; i--) if (!acts[i] || typeof acts[i] !== "object" || Array.isArray(acts[i])) { acts.splice(i, 1); n++; }
+  const clean = (list: unknown[]): number => {
+    let c = 0;
+    for (let i = list.length - 1; i >= 0; i--) if (!list[i] || typeof list[i] !== "object" || Array.isArray(list[i])) { list.splice(i, 1); c++; }
+    for (const st of list) for (const g of stepChildLists(st)) c += clean(g.steps as unknown[]);
+    return c;
+  };
+  for (const a of acts as Array<Record<string, unknown>>) {
+    if (a.steps !== undefined && !Array.isArray(a.steps)) { a.steps = []; n++; }
+    else if (Array.isArray(a.steps)) n += clean(a.steps);
+  }
+  return n;
+}
+
 /** 入れ子の中も含め、すべての工程を順に歩く */
 export function* walkAllSteps(steps: readonly FlowStep[] | undefined): Generator<FlowStep> {
   for (const s of steps ?? []) {

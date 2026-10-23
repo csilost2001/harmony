@@ -684,7 +684,7 @@ export const tools = [
       properties: {
         screenIds: { type: "array", items: { type: "string" }, description: "この画面だけに絞る (省略時は全画面)" },
         flowIds: { type: "array", items: { type: "string" }, description: "この処理フローだけに絞る (省略時は全処理)" },
-        since: { type: "string", description: "ISO の日時。この時刻より後に変わった画面・処理フローだけに絞る (変更の影響を受ける観点だけを作り直す)" },
+        since: { type: "string", description: "ISO の日時。この時刻より後に変わった画面・処理フローだけに絞る (変更の影響を受ける観点だけを作り直す。screenIds / flowIds と一緒なら積。規約の変更で変わる観点は拾わない)" },
         format: { type: "string", enum: ["json", "csv"], description: "既定は json (入力値つき)" },
         scaffold: { type: "string", enum: ["vitest", "jest", "playwright"], description: "指定すると、観点からテストの雛形 (題名・入力・期待結果を持つ未実装のテスト) のファイル一覧を返す" },
       },

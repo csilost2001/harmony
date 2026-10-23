@@ -3,7 +3,7 @@
  * shared には試験の実行がないので、ここに置く。
  */
 import { describe, expect, it } from "vitest";
-import { checkIntegrity, forEachStep, type DesignDocInput } from "@harmony/shared";
+import { checkIntegrity, dropBrokenFlowParts, forEachStep, type DesignDocInput } from "@harmony/shared";
 
 const base = (): DesignDocInput => ({
   project: { name: "t" },
@@ -68,6 +68,7 @@ describe("checkIntegrity (設計どうしの参照)", () => {
 
   it("規約の参照: 定義された側があるときだけ見る。定義の中の項目まで書く参照は先頭の名前で見る", () => {
     const i = base();
+    (i as unknown as Record<string, unknown>).regex = { zip: {} }; // 定義がある種類だけ見る
     const f = i.flows[0] as unknown as { actions: Array<{ steps: Array<Record<string, unknown>> }> };
     f.actions[0].steps.push({ id: "s-7", kind: "compute", expression: "@conv.limit.max + @conv.limit.max.value + @conv.limit.gone + @conv.msg.ok + @conv.msg.gone2 + @conv.regex.nothing" });
     const out = msgs(i).join("\n");
@@ -78,6 +79,23 @@ describe("checkIntegrity (設計どうしの参照)", () => {
     const i2 = base(); (i2 as unknown as Record<string, unknown>).limits = undefined;
     (i2.flows[0] as unknown as { actions: Array<{ steps: Array<Record<string, unknown>> }> }).actions[0].steps.push({ id: "s-7", kind: "compute", expression: "@conv.limit.gone" });
     expect(checkIntegrity(i2)).toEqual([]); // 規約を読めていないときは、言わない
+  });
+
+  it("規約の参照: 式が続く参照 (@conv.limit.max-1)・権限キーの : (product:view) を偽陽性にしない。定義が 1 つもない種類は見ない", () => {
+    const i = base();
+    (i as unknown as Record<string, unknown>).permissions = { "product:view": {} };
+    (i.flows[0] as unknown as { actions: Array<{ steps: Array<Record<string, unknown>> }> }).actions[0].steps.push({ id: "s-8", kind: "compute", expression: "@conv.limit.max-1 + @conv.limit.max.value" }, { id: "s-9", kind: "compute", requiredPermissions: ["@conv.permission.product:view"] });
+    expect(checkIntegrity(i)).toEqual([]);
+    (i.flows[0] as unknown as { actions: Array<{ steps: Array<Record<string, unknown>> }> }).actions[0].steps.push({ id: "s-10", kind: "compute", expression: "@conv.limit.maxx" });
+    expect(msgs(i).join("\n")).toContain("@conv.limit.maxx");
+    (i as unknown as Record<string, unknown>).limits = {};
+    expect(checkIntegrity(i)).toEqual([]); // 上限値の定義が 1 つもない → 規約が読めていないとみなして見ない
+  });
+
+  it("入力チェックの NG のレスポンス (ngResponseId) も、responses にあること", () => {
+    const i = base();
+    (i.flows[0] as unknown as { actions: Array<{ steps: Array<Record<string, unknown>> }> }).actions[0].steps.push({ id: "v", kind: "validation", inlineBranch: { ok: [], ng: [], ngResponseId: "r999" } });
+    expect(msgs(i).join("\n")).toContain("レスポンス「r999」");
   });
 
   it("アクションをまたぐ同じ工程 id は、警告でなく情報", () => {
@@ -114,5 +132,18 @@ describe("forEachStep: 入れ子の置き場所をすべて歩く", () => {
     const seen: string[] = [];
     forEachStep(steps as never, (s) => { seen.push(String((s as { id?: string }).id)); });
     expect(seen.sort()).toEqual(["a", "a1", "a2", "b", "b1", "b2", "c", "c1", "c2", "d", "d1", "d2", "d3", "e", "e1", "e2", "f", "f1", "f2"]);
+  });
+});
+
+describe("dropBrokenFlowParts: 壊れた工程を取り除く (設計全体の検査が、1 件の壊れた工程で止まらないように)", () => {
+  it("null・文字列・数・配列の工程と、配列でない actions / steps を取り除き、取り除いた数を返す。入れ子の中も", () => {
+    const f = { meta: { id: "x" }, actions: [{ id: "a", steps: [null, "x", 5, [], { id: "ok", kind: "branch", branches: [{ steps: [null, { id: "in" }] }], elseBranch: { steps: ["z"] }, inlineBranch: { ok: [7], ng: [] } }] }, "bad-action", { id: "b", steps: "nope" }] };
+    expect(dropBrokenFlowParts(f)).toBe(4 + 1 + 1 + 1 + 1 + 1); // 工程 4・入れ子 3・不正な action 1・配列でない steps 1
+    expect(f.actions).toHaveLength(2);
+    expect((f.actions[0] as { steps: unknown[] }).steps).toHaveLength(1);
+    expect((f.actions[1] as { steps: unknown[] }).steps).toEqual([]);
+    expect(dropBrokenFlowParts({ actions: "x" })).toBe(1);
+    expect(dropBrokenFlowParts({ meta: {} })).toBe(0); // actions がなければ、空にするだけ (壊れてはいない)
+    expect(dropBrokenFlowParts(null)).toBe(0);
   });
 });

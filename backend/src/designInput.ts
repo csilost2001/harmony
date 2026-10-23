@@ -12,7 +12,7 @@ import { memoizeBySignature } from "./dataSignature.js";
 import { readProjectWithUnregistered } from "./registryMerge.js";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { summarizeOpenApi, type ExternalSpecSummary } from "@harmony/shared";
+import { dropBrokenFlowParts, summarizeOpenApi, type ExternalSpecSummary } from "@harmony/shared";
 import { createFileMemo } from "./fileMemo.js";
 import { genericDefinitionsDir, resolveDataRoot } from "./storageCore.js";
 import { readCheckSettings } from "./designCheckSettings.js";
@@ -56,6 +56,8 @@ async function computeDesignInput(root: string): Promise<LoadedDesignInput> {
   };
   const flows = registered(await listEntitiesReadOnly("processFlow", root), entities.processFlows,
     (x) => (isRecord(x) && isRecord(x.meta) ? (x.meta.id as string | undefined) : undefined), "処理フロー");
+  // 壊れた工程で、設計全体の検査が止まらないように、壊れた部分を取り除く (壊れた部分はスキーマの検査が知らせる)。読み込みの使い回しの本体を直さないよう、複製に対して行う
+  for (let i = 0; i < flows.length; i++) { const c = structuredClone(flows[i]); if (dropBrokenFlowParts(c) > 0) flows[i] = c; }
   const tables = registered(await listEntitiesReadOnly("table", root), entities.tables,
     (x) => (isRecord(x) ? (x.id as string | undefined) : undefined), "テーブル");
 

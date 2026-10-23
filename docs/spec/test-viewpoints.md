@@ -58,5 +58,5 @@ ID は `<画面 ID>.<項目 ID>.<規則>`。規則は次のとおり。
 
 ### ID を書く約束と、覆い方の確認
 
-- テストの名前かコメントに、観点表の ID をそのまま書く (`cart-add.act-001.TV-001`、`cart.addQuantity.max-over`)。`designer__check_test_coverage` / `npm run check:generation -- <workspace> --coverage` は、**記録された (`record_generation`) テストの本文に ID の文字列があるか**で、覆っているかを数える。ID を書いていないテストは、覆っていないと数える
-- 設計を直したあとに、影響のある観点だけを作り直すときは `designer__get_test_viewpoints` の `since` (その時刻より後に変わった画面・処理フローの観点だけ)
+- テストの名前かコメントに、観点表の ID をそのまま書く (`cart-add.act-001.TV-01`、`cart.addQuantity.max-over`)。`designer__check_test_coverage` / `npm run check:generation -- <workspace> --coverage` は、**記録された (`record_generation`) テストの本文に ID の文字列があるか**で、覆っているかを数える。ID を書いていないテストは、覆っていないと数える
+- 設計を直したあとに、影響のある観点だけを作り直すときは `designer__get_test_viewpoints` の `since` (その時刻より後に変わった画面・処理フローの観点だけ。規約 — 上限値・正規表現・メッセージ — の変更で変わる観点は拾わないので、規約を直したときは全部を作り直す)

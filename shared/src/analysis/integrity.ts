@@ -13,7 +13,7 @@
 import type { DesignDocInput, DocIssue } from "../designDocument.js";
 import type { FlowStep } from "../flowStructure.js";
 import { stepChildLists } from "../flowWords.js";
-import { convRefs, jsonText } from "./common.js";
+import { jsonText } from "./common.js";
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
 
@@ -49,6 +49,8 @@ export function checkIntegrity(input: DesignDocInput): DocIssue[] {
         if (x.kind === "dbAccess" && typeof x.tableId === "string" && x.tableId && !tableById.has(x.tableId)) warn(sec, `${at}: テーブル「${x.tableId}」がありません (tableId)`, ref);
         if (x.kind === "screenTransition" && typeof x.targetScreenId === "string" && x.targetScreenId && !screenIds.has(x.targetScreenId)) warn(sec, `${at}: 遷移先の画面「${x.targetScreenId}」がありません (targetScreenId)`, ref);
         if (x.kind === "return" && typeof x.responseId === "string" && x.responseId && !responseIds.has(x.responseId)) warn(sec, `${at}: レスポンス「${x.responseId}」が、このアクションの responses にありません (responseId)`, ref);
+        const ng = isRecord(x.inlineBranch) ? x.inlineBranch.ngResponseId : undefined;
+        if (typeof ng === "string" && ng && !responseIds.has(ng)) warn(sec, `${at}: NG のときのレスポンス「${ng}」が、このアクションの responses にありません (inlineBranch.ngResponseId)`, ref);
         if (x.kind === "branch" && Array.isArray(x.branches)) {
           for (const b of x.branches as Array<Record<string, unknown>>) {
             const c = b?.condition;
@@ -99,16 +101,24 @@ export function checkIntegrity(input: DesignDocInput): DocIssue[] {
   }
 
   // ── 規約の参照 (規約の側が定義されているときだけ) ──
+  // 規約の参照: `@conv.<種類>.<キー>` のキーは、英数字・_・.・-・: (権限は `product:view` の形)。`@conv.limit.max-1` のように、あとに式が続くこともあるので、
+  // 定義されたキーのどれかで始まり、続きが . - [ から始まるものは、そのキーへの参照として扱う
+  const refKeys = (text: string, cat: string): Set<string> => {
+    const out = new Set<string>();
+    for (const m of text.matchAll(new RegExp(`@conv\\.${cat}\\.([A-Za-z0-9_.:\\-]*[A-Za-z0-9_])`, "g"))) out.add(m[1]);
+    return out;
+  };
+  const resolves = (k: string, defs: Record<string, unknown>): boolean => k in defs || Object.keys(defs).some((d) => k.startsWith(d) && /^[.\-[]/.test(k.slice(d.length)));
   const groups: Array<[string, "limit" | "regex" | "msg" | "role" | "permission", Record<string, unknown> | undefined]> = [
     ["上限値", "limit", input.limits], ["正規表現", "regex", input.regex], ["メッセージ", "msg", input.messages], ["ロール", "role", input.roles], ["権限", "permission", input.permissions],
   ];
   for (const f of input.flows) {
     const text = jsonText(f);
     for (const [label, cat, defs] of groups) {
-      if (!defs) continue;
-      for (const k of convRefs(text, cat)) {
-        // `@conv.limit.a.b` のように、定義の中の項目まで書く参照は、先頭の名前で見る
-        if (k in defs || k.split(".")[0] in defs) continue;
+      // 規約が読めていない (定義がひとつもない) ときは、見ない。全部の参照が「未定義」になって、本当の原因が埋もれるため
+      if (!defs || Object.keys(defs).length === 0) continue;
+      for (const k of refKeys(text, cat)) {
+        if (resolves(k, defs)) continue;
         warn(`処理フロー ${f.meta.name ?? f.meta.id}`, `規約の${label}「@conv.${cat}.${k}」が、規約に定義されていません`, { kind: "processFlow", id: f.meta.id });
       }
     }
