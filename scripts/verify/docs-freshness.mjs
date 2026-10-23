@@ -9,7 +9,10 @@
  *   4. UI 操作リファレンス (docs/user-guide/ui-reference) の「対象画面」のファイルがない・「ルート」の経路がない・スクリーンショットがない
  *   5. CLAUDE.md のスキル表のスキルが ai-skills/ にない
  *   6. 仕様書 (docs/spec/*.md) の先頭の frontmatter (description / status / category) の不足、索引 docs/spec/index.json のずれ (直し方: node scripts/docs/spec-index.mjs --write)
- *   7. AI 向けの入口 (docs/AI-INDEX.md) の `tool_name` が、MCP の tool にない
+ *   7. AI 向けの資料 (docs/AI-INDEX.md・docs/spec/ai-recipes.md・docs/spec/mcp-design-access.md) の `tool_name` が、MCP の tool にない
+ *   8. 正本から自動で作る資料 (スキーマの索引・工程の種類・self-check ルール・用語集・サンプルのパターン) が、正本とずれている (直し方: node scripts/docs/generated.mjs --write)
+ *   9. 資料の中の、印 (`<!-- schema: … -->`) つきの JSON の例が、スキーマに合わない (scripts/docs/json-examples.mjs)
+ *  10. docs/codemap.md と、主要ディレクトリの README に書いた `パス` が、実在しない
  * 知らせるだけのもの (--info で表示。--strict で失敗):
  *   - UI 操作リファレンスのない画面 / 仕様書の索引 (docs/spec/README.md) にない仕様書 / ai-skills/ にあるが CLAUDE.md の表にないスキル
  *   - スクリーンショットが、画面のコードの最後の変更より古いもの (git の履歴で比べる)
@@ -20,6 +23,8 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { checkSpecIndex } from "../docs/spec-index.mjs";
+import { checkGenerated } from "../docs/generated.mjs";
+import { checkJsonExamples } from "../docs/json-examples.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -213,19 +218,55 @@ export function specFrontmatterIssues(base) {
   return out;
 }
 
-/** 7. AI 向けの入口にある `snake_case` の名前 (tool の名前) が、MCP の tool にあるか */
+/** 7. AI 向けの資料にある tool の名前 (`snake_case` / `designer__x`) が、MCP の tool にあるか */
+const TOOL_NAME_DOCS = ["docs/AI-INDEX.md", "docs/spec/ai-recipes.md", "docs/spec/mcp-design-access.md"];
 export function aiIndexToolIssues(base) {
-  const doc = path.join(base, "docs/AI-INDEX.md");
   const toolsTs = path.join(base, "backend/src/tools.ts");
-  if (!fs.existsSync(doc) || !fs.existsSync(toolsTs)) return [];
+  if (!fs.existsSync(toolsTs)) return [];
   const known = new Set([...fs.readFileSync(toolsTs, "utf8").matchAll(/name:\s*"(?:designer|editSession)__([a-z_]+)"/g)].map((m) => m[1]));
   const out = [];
-  // `designer__x` / `editSession__x` は接頭辞つきで、`x_y` は接頭辞なしで書く (1 語の `check` などは tool の名前とみなさない)
-  for (const m of fs.readFileSync(doc, "utf8").matchAll(/`(?:(?:designer|editSession)__([a-z]+(?:_[a-z]+)*)|([a-z]+(?:_[a-z]+)+))`/g)) {
-    const name = m[1] ?? m[2];
-    if (!known.has(name)) out.push({ file: "docs/AI-INDEX.md", message: `MCP の tool にない名前です: ${name}` });
+  for (const rel of TOOL_NAME_DOCS) {
+    const doc = path.join(base, rel);
+    if (!fs.existsSync(doc)) continue;
+    // `designer__x` / `editSession__x` は接頭辞つきで、`x_y` は接頭辞なしで書く (1 語の `check` などは tool の名前とみなさない)
+    for (const m of fs.readFileSync(doc, "utf8").matchAll(/`(?:(?:designer|editSession)__([a-z]+(?:_[a-z]+)*)|([a-z]+(?:_[a-z]+)+))`/g)) {
+      const name = m[1] ?? m[2];
+      if (!known.has(name)) out.push({ file: rel, message: `MCP の tool にない名前です: ${name}` });
+    }
   }
-  return [...new Map(out.map((o) => [o.message, o])).values()];
+  return [...new Map(out.map((o) => [`${o.file}|${o.message}`, o])).values()];
+}
+
+/** 8. 正本から作る資料のずれ */
+export function generatedIssues(base) {
+  if (!fs.existsSync(path.join(base, "schemas/v3")) || !fs.existsSync(path.join(base, "ai-skills/create-flow/SKILL.md"))) return [];
+  return checkGenerated(base);
+}
+
+/** 9. 印つきの JSON の例のずれ */
+export function jsonExampleIssues(base) {
+  if (!fs.existsSync(path.join(base, "schemas/v3"))) return [];
+  return checkJsonExamples(base).problems.map((p) => ({ file: p.split(":")[0], message: p.slice(p.indexOf(":") + 1).replace(/^\d+: /, "").trim() }));
+}
+
+/** 10. 地図・README に書いた `パス` の実在。パスらしいもの (/ を含み、拡張子か末尾の / がある) だけを見る */
+const PATH_DOCS = ["docs/codemap.md", "backend/src/handlers/README.md", "backend/src/security/README.md", "shared/src/README.md", "frontend/src/components/process-flow/story/README.md"];
+export function codemapPathIssues(base) {
+  const out = [];
+  for (const rel of PATH_DOCS) {
+    const doc = path.join(base, rel);
+    if (!fs.existsSync(doc)) continue;
+    const dir = path.dirname(rel);
+    for (const m of fs.readFileSync(doc, "utf8").matchAll(/`([A-Za-z0-9_.\-/]+(?:\/|\.[a-z]{2,5}))`/g)) {
+      const p = m[1];
+      if (!p.includes("/") && !/\.(ts|tsx|json|md|mjs|css)$/.test(p)) continue;
+      if (/^https?:|^npm|\*/.test(p)) continue;
+      // README は同じディレクトリのファイル名だけを書く。地図はリポジトリの根からの相対
+      const candidates = rel === "docs/codemap.md" ? [p] : [path.join(dir, p), p];
+      if (!candidates.some((c) => fs.existsSync(path.join(base, c)))) out.push({ file: rel, message: `実在しないパスです: ${p}` });
+    }
+  }
+  return [...new Map(out.map((o) => [`${o.file}|${o.message}`, o])).values()];
 }
 
 export function runChecks(base = root) {
@@ -257,7 +298,10 @@ export function runChecks(base = root) {
   }
   for (const g of specIndexGaps(base)) infos.push({ kind: "仕様書の索引", ...g });
   for (const f of specFrontmatterIssues(base)) errors.push({ kind: "仕様書の frontmatter", ...f });
-  for (const t of aiIndexToolIssues(base)) errors.push({ kind: "AI 向けの入口", ...t });
+  for (const t of aiIndexToolIssues(base)) errors.push({ kind: "AI 向けの資料", ...t });
+  for (const g of generatedIssues(base)) errors.push({ kind: "自動生成の資料", ...g });
+  for (const j of jsonExampleIssues(base)) errors.push({ kind: "JSON の例", ...j });
+  for (const c of codemapPathIssues(base)) errors.push({ kind: "コードの地図", ...c });
   return { errors, infos, docCount: files.length };
 }
 

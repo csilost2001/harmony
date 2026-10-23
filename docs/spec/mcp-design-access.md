@@ -78,7 +78,7 @@ category: ops
 - **tool を種類ごとに増やさず、`kind` で 1 組にした** (シーケンス・ビュー・ビュー定義・汎用定義)。tool の説明は毎回 AI の文脈に載るため。画面・処理フロー・テーブル・帳票・業務フロー・ページレイアウトの既存の tool は、そのまま
 - `remove_*` と `delete_*` の混在は、名前を変えない (既存の呼び出し・スキル・資料が広く使っている)。新しい tool は `delete_*` に揃えた
 - 各 `save_*` / `update_*` への `dryRun` 引数と、更新の応答に「影響を受ける設計」を添えることは、していない。代わりに `validate_design` (保存前の確認)・`edit_steps` と取り込みの予行・`find_references` (影響) を使う
-- 処理フローの雛形づくり (`scaffold_process_flow`) は、tool にしない。手順は Prompt `create-flow` が持ち、HTTP の骨組みは `import_openapi` が作る
+- 処理フローの雛形を作る専用の tool は作らない。手順は Prompt `create-flow` が持ち、HTTP の骨組みは `import_openapi` が作る
 - `get_changes_since` は、ファイルの更新時刻で見る (誰が変えたかは分からない。誰が・なぜは「設計のあゆみ」)
 
 ## 読み取り専用の tool

@@ -2,10 +2,12 @@
 
 > 日本の Web システム開発の設計書 (画面・処理フロー・テーブル・規約) を Web 上で編集・閲覧する設計ツール。設計の原本は JSON で、JSON Schema (schemas/v3) が正本。AI は MCP (http://localhost:5179/mcp) で設計を読み書きする。
 
-AI は、まずこの 3 つだけを読む。
+AI は、まずこれらを読む。
 
 - [AI 向けの入口](docs/AI-INDEX.md): やりたいこと → 読む資料・使う MCP tool・使う手順の対応
 - [仕様書の索引](docs/spec/index.json): docs/spec の全仕様書の要約・状態 (current / deprecated / record)・種別
+- [用語集](docs/glossary.json): 日本語の用語 ↔ スキーマ ↔ MCP tool ↔ 仕様書
+- [作業別のレシピ](docs/spec/ai-recipes.md): tool の呼び順と、よくある失敗の逆引き
 - [リポジトリの共通ルール](AGENTS.md): 守ること (schema は設計者の専権、main へ直接コミットしない 等)
 
 ## MCP
@@ -14,6 +16,11 @@ AI は、まずこの 3 つだけを読む。
 - 資料は MCP の Resources: harmony://docs/ai-index / harmony://spec/<名前> / harmony://schema/<種類>
 - 手順は MCP の Prompts: create-flow / review-flow / generate-code / generate-tests / import-md / rename-screen-ids / test-strategy
 - tool を絞る: http://localhost:5179/mcp?profile=flow (flow / table / screen / doc / maint / review / read)
+
+## 補助
+
+- [設計判断の記録](docs/decisions/README.md) / [コードの地図](docs/codemap.md) / [サンプルのパターン](examples/PATTERNS.md) / [スキーマの索引](docs/spec/schema-index.json)
+- 大きな仕様書は MCP の Resource `harmony://spec/<名前>/sections` で章の一覧、`harmony://spec/<名前>/<n>` で 1 章ずつ
 
 ## 正本
 

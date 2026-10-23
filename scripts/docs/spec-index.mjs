@@ -64,13 +64,13 @@ export function buildSpecIndex(base = root) {
   return { entries, problems };
 }
 
-export const renderIndex = (entries) => `${JSON.stringify({ generatedFrom: "docs/spec/*.md の frontmatter (node scripts/docs/spec-index.mjs --write)", specs: entries }, null, 2)}\n`;
+export const renderIndex = (entries) => `${JSON.stringify({ generatedFrom: "docs/spec/*.md の frontmatter (node scripts/docs/spec-index.mjs --write)", schemaVersion: "v3", specs: entries }, null, 2)}\n`;
 
 /** 索引ファイルが最新か。problems (frontmatter の不足) と stale (index.json のずれ) を返す */
 export function checkSpecIndex(base = root) {
   const { entries, problems } = buildSpecIndex(base);
   const target = path.join(base, "docs/spec/index.json");
-  const stale = !fs.existsSync(target) || fs.readFileSync(target, "utf8") !== renderIndex(entries);
+  const stale = !fs.existsSync(target) || fs.readFileSync(target, "utf8").replace(/\r\n/g, "\n") !== renderIndex(entries);
   return { problems, stale };
 }
 

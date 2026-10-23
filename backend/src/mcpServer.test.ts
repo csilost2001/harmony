@@ -13,7 +13,7 @@ import { createMcpServer } from "./mcpServer.js";
 import { tools } from "./tools.js";
 import { isReadOnlyTool } from "./security/mcpAccess.js";
 import { PROFILE_NAMES, PROFILES, isInProfile, parseProfiles, profileRefusal, profilesFromRequest } from "./security/mcpProfiles.js";
-import { PROMPT_SKILLS, findDocsRoot, getPrompt, listPrompts, listResources, readResource } from "./mcpKnowledge.js";
+import { PROMPT_SKILLS, findDocsRoot, getPrompt, listPrompts, listResources, readResource, splitSections } from "./mcpKnowledge.js";
 import { NEXT_STEPS, buildProjectContext } from "./projectContext.js";
 import { connect as wsConnect, disconnect as wsDisconnect, setActivePath } from "./workspaceState.js";
 
@@ -152,6 +152,56 @@ describe("Resources (資料)", () => {
       expect(JSON.parse(await text("harmony://schema/table")).$schema).toBeTruthy();
       expect(JSON.parse(await text("harmony://schema/index")).schemas.map((s: { kind: string }) => s.kind)).toContain("process-flow");
     } finally { await close(); }
+  });
+
+  it("資料の許可リスト: 用語集・コードの地図・レシピ・パターン・設計判断・スキーマの索引が読める", async () => {
+    const uris = listResources().map((r) => r.uri);
+    for (const u of ["harmony://docs/glossary", "harmony://docs/codemap", "harmony://docs/recipes", "harmony://docs/patterns", "harmony://docs/decisions", "harmony://spec/schema-index", "harmony://decisions/0001-branch-first-match"]) expect(uris, u).toContain(u);
+    expect(uris).not.toContain("harmony://decisions/README");
+    const { client, close } = await open();
+    try {
+      const text = async (uri: string) => ((await client.readResource({ uri })).contents[0] as { text: string }).text;
+      const glossary = JSON.parse(await text("harmony://docs/glossary"));
+      expect(glossary.terms.map((t: { term: string }) => t.term)).toEqual(expect.arrayContaining(["処理フロー", "分岐", "判定表", "入力チェック", "DBアクセス"]));
+      const idx = JSON.parse(await text("harmony://spec/schema-index"));
+      expect(idx.schemas.find((s: { kind: string }) => s.kind === "process-flow").defs.map((d: { name: string }) => d.name)).toContain("BranchStep");
+      expect(await text("harmony://decisions/0001-branch-first-match")).toContain("最初に成り立った道");
+      expect(await text("harmony://docs/patterns")).toContain("サンプルが示す工程のパターン");
+    } finally { await close(); }
+  });
+
+  it("大きな仕様書は章ごとに読める: 一覧 → n 番目の章。範囲外・spec 以外・パスをたどる指定は断る", async () => {
+    const { client, close } = await open();
+    try {
+      const text = async (uri: string) => ((await client.readResource({ uri })).contents[0] as { text: string }).text;
+      const outline = JSON.parse(await text("harmony://spec/process-flow-runtime-conventions/sections"));
+      expect(outline.sections.length).toBeGreaterThan(5);
+      expect(outline.sections[0]).toMatchObject({ n: 0, title: "(前書き)" });
+      const sec = outline.sections.find((x: { title: string }) => /分岐/.test(x.title)) ?? outline.sections[2];
+      const body = await text(`harmony://spec/process-flow-runtime-conventions/${sec.n}`);
+      expect(body.startsWith("## ")).toBe(true);
+      expect(body.length).toBe(sec.chars);
+      // 章の合計は、元の文書より大きく欠けない
+      const whole = await text("harmony://spec/process-flow-runtime-conventions");
+      const sum = outline.sections.reduce((a: number, x: { chars: number }) => a + x.chars, 0);
+      expect(sum).toBeGreaterThan(whole.length * 0.9);
+      await expect(client.readResource({ uri: "harmony://spec/process-flow-runtime-conventions/9999" })).rejects.toThrow(/章 9999 がありません/);
+      await expect(client.readResource({ uri: "harmony://spec/process-flow-runtime-conventions/.." })).rejects.toThrow();
+      await expect(client.readResource({ uri: "harmony://schema/table/sections" })).rejects.toThrow();
+      await expect(client.readResource({ uri: "harmony://docs/glossary/1" })).rejects.toThrow();
+      await expect(client.readResource({ uri: "harmony://spec/index/sections" })).rejects.toThrow();
+    } finally { await close(); }
+  });
+
+  it("splitSections: コードブロックの中の ## は見出しにしない。frontmatter は除く", () => {
+    const md = "---\ndescription: x\n---\n\n# 表題\n\n前書き\n\n## 一\n本文\n```\n## これは見出しではない\n```\n\n## 二\n本文 2\n";
+    const sec = splitSections(md);
+    expect(sec.map((x) => x.title)).toEqual(["(前書き)", "一", "二"]);
+    expect(sec[1].text).toContain("## これは見出しではない");
+    expect(sec[0].text).toContain("# 表題");
+    expect(splitSections("## だけ\nx").map((x) => x.n)).toEqual([1]);
+    expect(splitSections("---\ndescription: x\n---abc\n\n## 一\n").map((x) => x.title)).toContain("一"); // ---abc は frontmatter の閉じではない
+    expect(splitSections("")).toEqual([]);
   });
 
   it("パスをたどる名前・未知の名前・形の違う URI は断る (許可リストにある名前だけ読める)", async () => {
