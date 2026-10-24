@@ -173,6 +173,12 @@ describe("checkIntegrity: スキーマの参照の宣言 (x-ref-kind) から、�
     expect(msgs(i).filter((m) => /「gone」がありません/.test(m))).toHaveLength(2);
   });
 
+  it("引用符つきの文字・式は、id ではないので見ない", () => {
+    const i = base();
+    (i.flows[0] as unknown as { actions: Array<Record<string, unknown>> }).actions[0].extra = { screenId: "'S001'", tableId: "orders[0]", processFlowId: "a b" };
+    expect(checkIntegrity(i)).toEqual([]);
+  });
+
   it("画面遷移の一覧・画面・テーブルの中も見る", () => {
     const i = base();
     (i as unknown as { transitions: unknown[] }).transitions = [{ sourceScreenId: "s1", targetScreenId: "ghost" }];
@@ -221,6 +227,17 @@ describe("checkIntegrity: 結果の形 (outputBinding.shape) と読み方", () =
     expect(checkIntegrity(withSteps([bind("list"), { id: "u", kind: "compute", expression: "@rows.length + @rows[0].a + @rowsX.b + @rows.map(r => r)" }]))).toEqual([]);
     expect(checkIntegrity(withSteps([bind("one"), { id: "u", kind: "compute", expression: "@rows.name" }]))).toEqual([]);
     expect(checkIntegrity(withSteps([bind(), { id: "u", kind: "compute", expression: "@rows.name + @rows[0]" }]))).toEqual([]);
+  });
+
+  it("検証の ok / ng・失敗時の副作用の中の工程の読み方は、その工程だけが指摘される (親と二重にならない)", () => {
+    const val = { id: "v", kind: "validation", description: "@rows.name は説明文", inlineBranch: { ok: [{ id: "u", kind: "compute", expression: "@rows.name" }], ng: [] } };
+    const hits = msgs(withSteps([bind("list"), val])).filter((m) => m.includes("変数「rows」は一覧"));
+    expect(hits).toHaveLength(1);
+    expect(hits[0]).toContain("工程 u");
+  });
+
+  it("同じ名前を別の形で宣言した変数 (分岐ごとの同名) は、決められないので見ない", () => {
+    expect(checkIntegrity(withSteps([bind("list"), { ...bind("one"), id: "q2" }, { id: "u", kind: "compute", expression: "@rows.name + @rows[0]" }]))).toEqual([]);
   });
 
   it("入れ子の工程の中の読み方も見る。結果を作る工程自身の式 (SQL など) は、自分の変数として見ない", () => {

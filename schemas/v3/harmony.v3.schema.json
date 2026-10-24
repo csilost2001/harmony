@@ -198,6 +198,7 @@
         "path": { "type": "string", "description": "URL ルーティングパス (purpose='page' のみ意味を持つ)。" },
         "pageLayoutId": {
           "$ref": "common.v3.schema.json#/$defs/EntityId",
+          "x-ref-kind": "pageLayout",
           "description": "本 Screen が使用する PageLayout の ID (purpose='page' のみ)。逆参照表示用にキャッシュ。"
         },
         "groupId": { "$ref": "common.v3.schema.json#/$defs/EntityId", "x-ref-kind": "screenGroup" },

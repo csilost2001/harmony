@@ -16,7 +16,7 @@
     "view",
     "viewDefinition"
   ],
-  "count": 64,
+  "count": 66,
   "refs": [
     {
       "schema": "common",
@@ -205,6 +205,13 @@
       "def": "LogicalRelation",
       "property": "targetColumnId",
       "refKind": "column",
+      "many": false
+    },
+    {
+      "schema": "harmony",
+      "def": "ScreenEntry",
+      "property": "pageLayoutId",
+      "refKind": "pageLayout",
       "many": false
     },
     {
@@ -450,6 +457,13 @@
       "def": "DefaultDefinition",
       "property": "columnId",
       "refKind": "column",
+      "many": false
+    },
+    {
+      "schema": "view-definition",
+      "def": "ViewDefinition",
+      "property": "sourceTableId",
+      "refKind": "table",
       "many": false
     },
     {

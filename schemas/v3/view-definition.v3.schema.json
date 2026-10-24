@@ -24,6 +24,7 @@
         "kind": { "$ref": "#/$defs/ViewDefinitionKind" },
         "sourceTableId": {
           "$ref": "common.v3.schema.json#/$defs/EntityId",
+          "x-ref-kind": "table",
           "description": "Level 1 (Simple) の主要ソーステーブル。1 ViewDefinition = 1 ベース table。Level 2/3 では query フィールドを使う (排他)。"
         },
         "query": {
