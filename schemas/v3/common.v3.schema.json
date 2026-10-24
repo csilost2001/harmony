@@ -217,7 +217,7 @@
           "description": "マーカーが指す entity 内の位置。stepId / fieldPath / shape (DOM 描画用) を任意。",
           "additionalProperties": false,
           "properties": {
-            "stepId": { "$ref": "#/$defs/LocalId" },
+            "stepId": { "$ref": "#/$defs/LocalId", "x-ref-kind": "step" },
             "fieldPath": { "type": "string", "description": "JSON path 風 (例: '$.actions[0].steps[2].sql')" },
             "shape": { "$ref": "#/$defs/MarkerShape" }
           }
@@ -335,7 +335,7 @@
           "additionalProperties": false,
           "properties": {
             "kind": { "const": "tableRow" },
-            "tableId": { "$ref": "#/$defs/EntityId" }
+            "tableId": { "$ref": "#/$defs/EntityId", "x-ref-kind": "table" }
           }
         },
         {
@@ -345,7 +345,7 @@
           "additionalProperties": false,
           "properties": {
             "kind": { "const": "tableList" },
-            "tableId": { "$ref": "#/$defs/EntityId" }
+            "tableId": { "$ref": "#/$defs/EntityId", "x-ref-kind": "table" }
           }
         },
         {
@@ -355,7 +355,7 @@
           "additionalProperties": false,
           "properties": {
             "kind": { "const": "screenInput" },
-            "screenId": { "$ref": "#/$defs/EntityId" }
+            "screenId": { "$ref": "#/$defs/EntityId", "x-ref-kind": "screen" }
           }
         },
         {
@@ -425,8 +425,8 @@
       "required": ["screenId", "itemId"],
       "additionalProperties": false,
       "properties": {
-        "screenId": { "$ref": "#/$defs/EntityId" },
-        "itemId": { "$ref": "#/$defs/Identifier" }
+        "screenId": { "$ref": "#/$defs/EntityId", "x-ref-kind": "screen" },
+        "itemId": { "$ref": "#/$defs/Identifier", "x-ref-kind": "screenItem" }
       }
     },
 
@@ -436,8 +436,8 @@
       "required": ["tableId", "columnId"],
       "additionalProperties": false,
       "properties": {
-        "tableId": { "$ref": "#/$defs/EntityId" },
-        "columnId": { "$ref": "#/$defs/LocalId" }
+        "tableId": { "$ref": "#/$defs/EntityId", "x-ref-kind": "table" },
+        "columnId": { "$ref": "#/$defs/LocalId", "x-ref-kind": "column" }
       }
     },
 
@@ -447,7 +447,7 @@
       "required": ["viewId", "columnPhysicalName"],
       "additionalProperties": false,
       "properties": {
-        "viewId": { "$ref": "#/$defs/EntityId" },
+        "viewId": { "$ref": "#/$defs/EntityId", "x-ref-kind": "view" },
         "columnPhysicalName": { "$ref": "#/$defs/PhysicalName" }
       }
     },
@@ -458,8 +458,8 @@
       "required": ["processFlowId", "actionId"],
       "additionalProperties": false,
       "properties": {
-        "processFlowId": { "$ref": "#/$defs/EntityId" },
-        "actionId": { "$ref": "#/$defs/LocalId" }
+        "processFlowId": { "$ref": "#/$defs/EntityId", "x-ref-kind": "processFlow" },
+        "actionId": { "$ref": "#/$defs/LocalId", "x-ref-kind": "action" }
       }
     },
 
@@ -469,9 +469,9 @@
       "required": ["processFlowId", "actionId", "stepId"],
       "additionalProperties": false,
       "properties": {
-        "processFlowId": { "$ref": "#/$defs/EntityId" },
-        "actionId": { "$ref": "#/$defs/LocalId" },
-        "stepId": { "$ref": "#/$defs/LocalId" }
+        "processFlowId": { "$ref": "#/$defs/EntityId", "x-ref-kind": "processFlow" },
+        "actionId": { "$ref": "#/$defs/LocalId", "x-ref-kind": "action" },
+        "stepId": { "$ref": "#/$defs/LocalId", "x-ref-kind": "step" }
       }
     },
 
@@ -481,9 +481,9 @@
       "required": ["processFlowId", "actionId", "responseId"],
       "additionalProperties": false,
       "properties": {
-        "processFlowId": { "$ref": "#/$defs/EntityId" },
-        "actionId": { "$ref": "#/$defs/LocalId" },
-        "responseId": { "$ref": "#/$defs/LocalId" }
+        "processFlowId": { "$ref": "#/$defs/EntityId", "x-ref-kind": "processFlow" },
+        "actionId": { "$ref": "#/$defs/LocalId", "x-ref-kind": "action" },
+        "responseId": { "$ref": "#/$defs/LocalId", "x-ref-kind": "response" }
       }
     },
 
@@ -553,7 +553,7 @@
           "additionalProperties": false,
           "properties": {
             "kind": { "const": "dbState" },
-            "tableId": { "$ref": "#/$defs/EntityId" },
+            "tableId": { "$ref": "#/$defs/EntityId", "x-ref-kind": "table" },
             "rows": { "type": "array", "items": { "type": "object", "additionalProperties": true } }
           }
         },
@@ -591,7 +591,7 @@
           "additionalProperties": false,
           "properties": {
             "kind": { "const": "screenInput" },
-            "screenId": { "$ref": "#/$defs/EntityId" },
+            "screenId": { "$ref": "#/$defs/EntityId", "x-ref-kind": "screen" },
             "items": { "type": "object", "additionalProperties": true, "description": "画面項目 ID → 入力値のマップ。" }
           }
         }
@@ -604,8 +604,8 @@
       "required": ["actionId", "input"],
       "additionalProperties": false,
       "properties": {
-        "processFlowId": { "$ref": "#/$defs/EntityId", "description": "起動対象 ProcessFlow の EntityId。省略時は同 ProcessFlow 内の actionId として解決 (ProcessFlow.authoring.testScenarios 経由の場合)。" },
-        "actionId": { "$ref": "#/$defs/LocalId" },
+        "processFlowId": { "$ref": "#/$defs/EntityId", "description": "起動対象 ProcessFlow の EntityId。省略時は同 ProcessFlow 内の actionId として解決 (ProcessFlow.authoring.testScenarios 経由の場合)。", "x-ref-kind": "processFlow" },
+        "actionId": { "$ref": "#/$defs/LocalId", "x-ref-kind": "action" },
         "input": { "type": "object", "additionalProperties": true }
       }
     },
@@ -629,7 +629,7 @@
           "additionalProperties": false,
           "properties": {
             "kind": { "const": "dbRow" },
-            "tableId": { "$ref": "#/$defs/EntityId" },
+            "tableId": { "$ref": "#/$defs/EntityId", "x-ref-kind": "table" },
             "match": { "type": "object", "additionalProperties": true },
             "count": { "type": "integer", "minimum": 0 }
           }
@@ -681,7 +681,7 @@
           "additionalProperties": false,
           "properties": {
             "kind": { "const": "screenItemValue" },
-            "screenId": { "$ref": "#/$defs/EntityId" },
+            "screenId": { "$ref": "#/$defs/EntityId", "x-ref-kind": "screen" },
             "items": { "type": "object", "additionalProperties": true, "description": "画面項目 ID → 期待表示値のマップ。" }
           }
         }

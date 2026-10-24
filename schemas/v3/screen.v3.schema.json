@@ -28,10 +28,12 @@
         },
         "pageLayoutId": {
           "$ref": "common.v3.schema.json#/$defs/EntityId",
+          "x-ref-kind": "pageLayout",
           "description": "本 Screen が使用する PageLayout の ID (RFC #1021)。purpose='page' のときのみ意味を持ち、未指定の場合は project default layout (or layout なし) で表示される。purpose='gadget' のときは無視。"
         },
         "processFlowId": {
           "$ref": "common.v3.schema.json#/$defs/EntityId",
+          "x-ref-kind": "processFlow",
           "description": "本 Screen に紐付く ProcessFlow の ID (#1019/#1020 の「1 画面 = 1 処理フロー + 複数アクション」モデル)。gadget Screen の場合は自律 controller として機能 (例: logout / file-upload handler を内包)。"
         },
         "auth": {
@@ -41,6 +43,7 @@
         },
         "groupId": {
           "$ref": "common.v3.schema.json#/$defs/EntityId",
+          "x-ref-kind": "screenGroup",
           "description": "所属画面グループ ID (project.v3.entities.screenGroups[].id 参照)。"
         },
         "items": {

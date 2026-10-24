@@ -122,10 +122,12 @@
         },
         "handlerFlowId": {
           "$ref": "common.v3.schema.json#/$defs/EntityId",
+          "x-ref-kind": "processFlow",
           "description": "発火時に実行する処理フローの ID (backward reference)。"
         },
         "handlerActionId": {
           "$ref": "common.v3.schema.json#/$defs/LocalId",
+          "x-ref-kind": "action",
           "description": "発火時に実行する処理フロー内 action の ID (#1019、ProcessFlow.actions[].id を参照)。省略時は処理フローが actions 配列を 1 件のみ持つ前提で actions[0] を実行する (validator が単一 action 制約を担保)。複数 action を持つ処理フローでは必須。"
         },
         "argumentMapping": {
@@ -166,6 +168,7 @@
         },
         "processFlowId": {
           "$ref": "common.v3.schema.json#/$defs/EntityId",
+          "x-ref-kind": "processFlow",
           "description": "flowVariable の参照先 ProcessFlow。省略時はカレント画面に紐付く ProcessFlow を解決する。"
         },
         "formatHint": {
@@ -220,6 +223,7 @@
         },
         "viewDefinitionId": {
           "$ref": "common.v3.schema.json#/$defs/EntityId",
+          "x-ref-kind": "viewDefinition",
           "description": "列定義・sort/pageSize/layout を外部 ViewDefinition として再利用する場合の参照。"
         },
         "columns": {

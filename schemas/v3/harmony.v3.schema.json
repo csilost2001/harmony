@@ -200,7 +200,7 @@
           "$ref": "common.v3.schema.json#/$defs/EntityId",
           "description": "本 Screen が使用する PageLayout の ID (purpose='page' のみ)。逆参照表示用にキャッシュ。"
         },
-        "groupId": { "$ref": "common.v3.schema.json#/$defs/EntityId" },
+        "groupId": { "$ref": "common.v3.schema.json#/$defs/EntityId", "x-ref-kind": "screenGroup" },
         "hasDesign": { "type": "boolean" }
       },
       "unevaluatedProperties": false
@@ -222,7 +222,7 @@
       "type": "object",
       "properties": {
         "flowType": { "type": "string", "description": "ProcessFlowKind (screen/batch/scheduled/system/common/other、または 'retail:posTransaction' 等の拡張参照)。#1263 Phase X1 で kind → flowType に rename。" },
-        "screenId": { "$ref": "common.v3.schema.json#/$defs/EntityId", "description": "flowType='screen' の場合の関連画面 ID。" },
+        "screenId": { "$ref": "common.v3.schema.json#/$defs/EntityId", "description": "flowType='screen' の場合の関連画面 ID。", "x-ref-kind": "screen" },
         "actionCount": { "type": "integer", "minimum": 0 },
         "notesCount": { "type": "integer", "minimum": 0 }
       },
@@ -244,7 +244,7 @@
       "type": "object",
       "properties": {
         "kind": { "type": "string", "description": "ViewDefinitionKind (list / detail / kanban / calendar、または 'retail:storefront' 等の拡張参照)。" },
-        "sourceTableId": { "$ref": "common.v3.schema.json#/$defs/EntityId", "description": "ベースとなる source table の EntityId (一覧 UI 表示用)。" },
+        "sourceTableId": { "$ref": "common.v3.schema.json#/$defs/EntityId", "description": "ベースとなる source table の EntityId (一覧 UI 表示用)。", "x-ref-kind": "table" },
         "columnCount": { "type": "integer", "minimum": 0 }
       },
       "unevaluatedProperties": false
@@ -291,8 +291,8 @@
       "additionalProperties": false,
       "properties": {
         "id": { "$ref": "common.v3.schema.json#/$defs/LocalId" },
-        "sourceScreenId": { "$ref": "common.v3.schema.json#/$defs/EntityId" },
-        "targetScreenId": { "$ref": "common.v3.schema.json#/$defs/EntityId" },
+        "sourceScreenId": { "$ref": "common.v3.schema.json#/$defs/EntityId", "x-ref-kind": "screen" },
+        "targetScreenId": { "$ref": "common.v3.schema.json#/$defs/EntityId", "x-ref-kind": "screen" },
         "label": { "$ref": "common.v3.schema.json#/$defs/DisplayName" },
         "trigger": {
           "type": "string",

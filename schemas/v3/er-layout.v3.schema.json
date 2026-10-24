@@ -36,10 +36,10 @@
       "additionalProperties": false,
       "properties": {
         "id": { "$ref": "common.v3.schema.json#/$defs/LocalId" },
-        "sourceTableId": { "$ref": "common.v3.schema.json#/$defs/EntityId" },
-        "sourceColumnId": { "$ref": "common.v3.schema.json#/$defs/LocalId" },
-        "targetTableId": { "$ref": "common.v3.schema.json#/$defs/EntityId" },
-        "targetColumnId": { "$ref": "common.v3.schema.json#/$defs/LocalId" },
+        "sourceTableId": { "$ref": "common.v3.schema.json#/$defs/EntityId", "x-ref-kind": "table" },
+        "sourceColumnId": { "$ref": "common.v3.schema.json#/$defs/LocalId", "x-ref-kind": "column" },
+        "targetTableId": { "$ref": "common.v3.schema.json#/$defs/EntityId", "x-ref-kind": "table" },
+        "targetColumnId": { "$ref": "common.v3.schema.json#/$defs/LocalId", "x-ref-kind": "column" },
         "cardinality": {
           "type": "string",
           "enum": ["one-to-one", "one-to-many", "many-to-many"],

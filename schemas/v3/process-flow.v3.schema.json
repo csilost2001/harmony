@@ -57,7 +57,7 @@
       "required": ["flowType"],
       "properties": {
         "flowType": { "$ref": "#/$defs/ProcessFlowKind" },
-        "screenId": { "$ref": "common.v3.schema.json#/$defs/EntityId", "description": "flowType='screen' の場合に紐付く Screen の EntityId。flowType='screen' 時は必須 (#1221)。" },
+        "screenId": { "$ref": "common.v3.schema.json#/$defs/EntityId", "description": "flowType='screen' の場合に紐付く Screen の EntityId。flowType='screen' 時は必須 (#1221)。", "x-ref-kind": "screen" },
         "apiVersion": { "type": "string", "description": "ProcessFlow が公開する API のバージョン (例: 'v1', '2026-04-25')。" },
         "mode": { "$ref": "common.v3.schema.json#/$defs/Mode" },
         "sla": { "$ref": "#/$defs/Sla" },
@@ -75,10 +75,10 @@
           "additionalProperties": false,
           "properties": {
             "kind": { "const": "screen-item-event", "description": "画面項目イベントから呼ばれる処理フロー。" },
-            "screenId": { "$ref": "common.v3.schema.json#/$defs/EntityId", "description": "主たる呼び出し元の画面 EntityId。" },
-            "itemId": { "$ref": "common.v3.schema.json#/$defs/Identifier", "description": "主たる呼び出し元の画面項目 id (Screen.items[].id)。" },
-            "eventId": { "type": "string", "description": "主たる呼び出し元のイベント id (ScreenItem.events[].id)。" },
-            "actionId": { "$ref": "common.v3.schema.json#/$defs/LocalId", "description": "主たる呼び出し対象の action id (#1019、actions[].id)。省略時は actions[0] (1-action 処理フロー前提)。" }
+            "screenId": { "$ref": "common.v3.schema.json#/$defs/EntityId", "description": "主たる呼び出し元の画面 EntityId。", "x-ref-kind": "screen" },
+            "itemId": { "$ref": "common.v3.schema.json#/$defs/Identifier", "description": "主たる呼び出し元の画面項目 id (Screen.items[].id)。", "x-ref-kind": "screenItem" },
+            "eventId": { "type": "string", "description": "主たる呼び出し元のイベント id (ScreenItem.events[].id)。", "x-ref-kind": "screenEvent" },
+            "actionId": { "$ref": "common.v3.schema.json#/$defs/LocalId", "description": "主たる呼び出し対象の action id (#1019、actions[].id)。省略時は actions[0] (1-action 処理フロー前提)。", "x-ref-kind": "action" }
           }
         }
       ]
@@ -194,7 +194,7 @@
       "properties": {
         "httpStatus": { "type": "integer", "minimum": 100, "maximum": 599 },
         "defaultMessage": { "type": "string" },
-        "responseId": { "$ref": "common.v3.schema.json#/$defs/LocalId", "description": "Action.responses[].id 参照。" },
+        "responseId": { "$ref": "common.v3.schema.json#/$defs/LocalId", "description": "Action.responses[].id 参照。", "x-ref-kind": "response" },
         "description": { "$ref": "common.v3.schema.json#/$defs/Description" },
         "exceptionTypeRef": {
           "type": "string",
@@ -268,6 +268,12 @@
           "items": { "$ref": "#/$defs/ValidationRule" }
         },
         "uiHint": { "type": "string", "description": "UI 表示ヒント (例: 'email', 'tel', 'textarea')。" },
+        "unit": { "type": "string", "minLength": 1, "maxLength": 16, "description": "単位 (例: 金額の通貨 'JPY'、数量の 'kg')。生成コードの表示・桁・変換の根拠になる。" },
+        "rounding": {
+          "type": "string",
+          "enum": ["half-up", "half-even", "down", "up", "none"],
+          "description": "小数の丸め規則。half-up=四捨五入 / half-even=銀行丸め / down=切り捨て / up=切り上げ / none=丸めない。金額の計算で、生成コードの丸めがずれないよう、ドメインで 1 か所に決める。"
+        },
         "description": { "$ref": "common.v3.schema.json#/$defs/Description" }
       }
     },
@@ -516,6 +522,11 @@
           "maxLength": 40,
           "description": "結果変数の呼び名 (例: 「取引先」「受注合計」)。処理フローの「流れ」表示で、条件や変数の一覧に、名前の代わりに出す。実行には影響しない (設計者承認 #1530)。"
         },
+        "shape": {
+          "type": "string",
+          "enum": ["one", "list"],
+          "description": "結果の形。one=1 件 (行・値) / list=0 件以上の一覧。省略時は SQL などから推定する (断定はしない)。宣言すると、check_design が「一覧なのに項目名で読む」「1 件なのに添字で読む」食い違いを見つけ、生成コードの型にも使える。"
+        },
         "operation": {
           "type": "string",
           "enum": ["assign", "accumulate", "push"],
@@ -711,7 +722,7 @@
         "ok": { "type": "array", "items": { "$ref": "#/$defs/Step" }, "description": "OK 時の後続 step 列。" },
         "ng": { "type": "array", "items": { "$ref": "#/$defs/Step" }, "description": "NG 時の後続 step 列。" },
         "ngJumpTo": { "$ref": "common.v3.schema.json#/$defs/LocalId" },
-        "ngResponseId": { "$ref": "common.v3.schema.json#/$defs/LocalId", "description": "NG 時の Response.id 参照。" },
+        "ngResponseId": { "$ref": "common.v3.schema.json#/$defs/LocalId", "description": "NG 時の Response.id 参照。", "x-ref-kind": "response" },
         "ngBodyExpression": { "$ref": "common.v3.schema.json#/$defs/TemplateString" },
         "ngEventPublish": {
           "type": "object",
@@ -735,7 +746,7 @@
           "required": ["id", "kind", "description", "tableId", "operation"],
           "properties": {
             "kind": { "const": "dbAccess" },
-            "tableId": { "$ref": "common.v3.schema.json#/$defs/EntityId", "description": "対象 Table の EntityId (物理名直書きは v3 廃止)。" },
+            "tableId": { "$ref": "common.v3.schema.json#/$defs/EntityId", "description": "対象 Table の EntityId (物理名直書きは v3 廃止)。", "x-ref-kind": "table" },
             "operation": { "$ref": "#/$defs/DbOperation" },
             "fields": { "type": "string", "description": "対象フィールド (人間向け簡易表記)。" },
             "sql": { "type": "string", "description": "完全 SQL 文 (式補間は @<var> / @conv.* / @env.* 等)。`maturity: \"committed\"` で必須、`draft` で省略可 (#1263 Phase X3)。" },
@@ -1207,7 +1218,7 @@
           "required": ["id", "kind", "description", "refId"],
           "properties": {
             "kind": { "const": "commonProcess" },
-            "refId": { "$ref": "common.v3.schema.json#/$defs/EntityId", "description": "呼び出し先 ProcessFlow の EntityId (kind='common' の他フロー)。" },
+            "refId": { "$ref": "common.v3.schema.json#/$defs/EntityId", "description": "呼び出し先 ProcessFlow の EntityId (kind='common' の他フロー)。", "x-ref-kind": "processFlow" },
             "argumentMapping": {
               "type": "object",
               "additionalProperties": { "$ref": "common.v3.schema.json#/$defs/TemplateString" },
@@ -1258,7 +1269,7 @@
           "required": ["id", "kind", "description", "targetScreenId"],
           "properties": {
             "kind": { "const": "screenTransition" },
-            "targetScreenId": { "$ref": "common.v3.schema.json#/$defs/EntityId" }
+            "targetScreenId": { "$ref": "common.v3.schema.json#/$defs/EntityId", "x-ref-kind": "screen" }
           }
         }
       ],
@@ -1363,7 +1374,7 @@
           "additionalProperties": false,
           "properties": {
             "kind": { "const": "affectedRowsZero" },
-            "stepId": { "$ref": "common.v3.schema.json#/$defs/LocalId" },
+            "stepId": { "$ref": "common.v3.schema.json#/$defs/LocalId", "x-ref-kind": "step" },
             "description": { "$ref": "common.v3.schema.json#/$defs/Description" }
           }
         },
@@ -1373,7 +1384,7 @@
           "additionalProperties": false,
           "properties": {
             "kind": { "const": "externalOutcome" },
-            "stepId": { "$ref": "common.v3.schema.json#/$defs/LocalId" },
+            "stepId": { "$ref": "common.v3.schema.json#/$defs/LocalId", "x-ref-kind": "step" },
             "outcome": { "type": "string", "enum": ["success", "failure", "timeout"] },
             "description": { "$ref": "common.v3.schema.json#/$defs/Description" }
           }
@@ -1488,7 +1499,7 @@
           "required": ["id", "kind", "description"],
           "properties": {
             "kind": { "const": "return" },
-            "responseId": { "$ref": "common.v3.schema.json#/$defs/LocalId", "description": "Action.responses[].id 参照。" },
+            "responseId": { "$ref": "common.v3.schema.json#/$defs/LocalId", "description": "Action.responses[].id 参照。", "x-ref-kind": "response" },
             "bodyExpression": { "$ref": "common.v3.schema.json#/$defs/TemplateString" }
           }
         }
@@ -1741,7 +1752,7 @@
             "tableIds": {
               "type": "array",
               "minItems": 1,
-              "items": { "$ref": "common.v3.schema.json#/$defs/EntityId" },
+              "items": { "$ref": "common.v3.schema.json#/$defs/EntityId", "x-ref-kind": "table" },
               "description": "対象 Table の EntityId 配列。"
             },
             "captureMode": { "type": "string", "enum": ["full", "incremental"] },
@@ -1789,7 +1800,7 @@
           "additionalProperties": false,
           "properties": {
             "kind": { "const": "table" },
-            "tableId": { "$ref": "common.v3.schema.json#/$defs/EntityId" }
+            "tableId": { "$ref": "common.v3.schema.json#/$defs/EntityId", "x-ref-kind": "table" }
           }
         }
       ],

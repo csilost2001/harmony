@@ -62,6 +62,21 @@ describe("生成の指示書 (get_generation_brief)", () => {
     expect(t).toContain('{ "kind": "screen", "id": "cart" }');
   });
 
+  it("ドメインの単位・丸めと、工程の結果の形があれば、「単位・丸め・結果の形」の節に出す。なければ節ごと出さない", async () => {
+    expect(await call("designer__get_generation_brief", { processFlowId: "cart-add" })).not.toContain("## 単位・丸め・結果の形");
+    const f = path.join(WS, "harmony/process-flows/unit-brief.json");
+    await fs.writeFile(f, JSON.stringify({
+      meta: { id: "unit-brief", name: "金額", flowType: "common" },
+      context: { catalogs: { domains: { Price: { type: "number", unit: "JPY", rounding: "half-up" }, Plain: { type: "string" } } } },
+      actions: [{ id: "a1", steps: [{ id: "s1", kind: "dbAccess", tableId: "store-master", operation: "SELECT", outputBinding: { name: "stores", shape: "list" } }] }],
+    }));
+    const t = await call("designer__get_generation_brief", { processFlowId: "unit-brief" });
+    expect(t).toContain("## 単位・丸め・結果の形");
+    expect(t).toContain("- ドメイン `Price`: 単位 JPY / 丸め half-up");
+    expect(t).not.toContain("`Plain`");
+    expect(t).toContain("- 変数 `stores` (工程 `s1`): 一覧 (0 件以上)");
+  });
+
   it("壊れた設計 (工程が null・文字列・actions が配列でない) でも落ちず、壊れた部分を飛ばして出す", async () => {
     const f = path.join(WS, "harmony/process-flows/broken-brief.json");
     await fs.writeFile(f, JSON.stringify({ meta: { id: "broken-brief", name: "壊れた", flowType: "common" }, actions: [{ id: "a1", steps: [null, "x", 5, { id: "s1", kind: "dbAccess", tableId: "store-master", operation: "SELECT" }] }, "not-an-action"] }));

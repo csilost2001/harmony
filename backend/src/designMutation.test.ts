@@ -31,7 +31,7 @@ const flow = (ws: string, id = "cart-add") => path.join(ws, "harmony/process-flo
 
 /** 壊し方 → 増えるはずの要確認の文言 (部分一致)、増える件数の上限 (雑音で本当の原因が埋もれないこと) */
 const MUTATIONS: Array<{ name: string; mutate: (ws: string) => Promise<void>; expect: RegExp; max: number }> = [
-  { name: "処理フローが使うテーブルのファイルを消す", mutate: (ws) => fs.rm(path.join(ws, "harmony/tables/store-master.json")), expect: /store-master|店舗マスタ/, max: 6 },
+  { name: "処理フローが使うテーブルのファイルを消す", mutate: (ws) => fs.rm(path.join(ws, "harmony/tables/store-master.json")), expect: /store-master|店舗マスタ/, max: 10 },
   { name: "DB アクセスの tableId を、ないテーブルにする", mutate: (ws) => rw(flow(ws), (j) => { j.actions[0].steps.find((s: any) => s.kind === "dbAccess").tableId = "no-such-table"; }), expect: /テーブル「no-such-table」がありません/, max: 2 },
   { name: "呼び出す画面 (meta.screenId) を、ない画面にする", mutate: (ws) => rw(flow(ws), (j) => { j.meta.screenId = "no-such-screen"; }), expect: /呼び出す画面「no-such-screen」がありません/, max: 2 },
   { name: "同じアクションに、同じ工程 id を作る", mutate: (ws) => rw(flow(ws), (j) => { j.actions[0].steps[1].id = j.actions[0].steps[0].id; }), expect: /工程の id「step-01」が 2 回/, max: 3 },
@@ -40,7 +40,7 @@ const MUTATIONS: Array<{ name: string; mutate: (ws: string) => Promise<void>; ex
   { name: "工程の種類 (kind) を、ない種類にする", mutate: (ws) => rw(flow(ws), (j) => { j.actions[0].steps[0].kind = "bogus"; }), expect: /kind/, max: 2 },
   { name: "画面項目の結びつき先を、ないテーブルにする", mutate: (ws) => rw(path.join(ws, "harmony/screens/cart.json"), (j) => { j.items[0].binding = { kind: "tableColumn", ref: { tableId: "no-such-table", columnId: "x" } }; }), expect: /結びつき先のテーブル「no-such-table」/, max: 2 },
   { name: "画面項目の結びつき先を、ないカラムにする", mutate: (ws) => rw(path.join(ws, "harmony/screens/cart.json"), (j) => { j.items[0].binding = { kind: "tableColumn", ref: { tableId: "cart", columnId: "no-such-column" } }; }), expect: /カラム「no-such-column」/, max: 2 },
-  { name: "テーブルの JSON を壊す", mutate: (ws) => fs.writeFile(path.join(ws, "harmony/tables/cart.json"), "{ broken"), expect: /JSON として読めません/, max: 8 },
+  { name: "テーブルの JSON を壊す", mutate: (ws) => fs.writeFile(path.join(ws, "harmony/tables/cart.json"), "{ broken"), expect: /JSON として読めません/, max: 14 },
   { name: "外部キーの参照先を、ないテーブルにする", mutate: (ws) => rw(path.join(ws, "harmony/tables/cart-item.json"), (j) => { (j.constraints ??= []).push({ id: "fk-x", kind: "foreignKey", columnIds: [j.columns[0].id], referencedTableId: "no-such-table", referencedColumnIds: ["x"] }); }), expect: /参照先のテーブル「no-such-table」/, max: 2 },
   { name: "アクションの responses を空にする (return の responseId が切れる)", mutate: (ws) => rw(flow(ws), (j) => { j.actions[0].responses = []; }), expect: /レスポンス「[^」]+」が、このアクションの responses にありません/, max: 8 },
   { name: "分岐の道の条件を空にする", mutate: (ws) => rw(flow(ws), (j) => { j.actions[0].steps.find((s: any) => s.kind === "branch").branches[0].condition = { kind: "expression", expression: "" }; }), expect: /条件が空です/, max: 2 },

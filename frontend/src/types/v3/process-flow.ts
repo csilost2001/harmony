@@ -196,6 +196,10 @@ export interface DomainEntry {
   constraints?: ValidationRule[];
   /** UI 表示ヒント (例: `email`, `tel`, `textarea`)。 */
   uiHint?: string;
+  /** 単位 (例: 通貨 `JPY`、`kg`)。 */
+  unit?: string;
+  /** 小数の丸め規則。half-up=四捨五入 / half-even=銀行丸め / down=切り捨て / up=切り上げ / none=丸めない。 */
+  rounding?: "half-up" | "half-even" | "down" | "up" | "none";
   description?: Description;
 }
 
@@ -405,6 +409,8 @@ export interface OutputBinding {
   name: Identifier;
   /** 結果変数の呼び名 (例: 「取引先」)。「流れ」表示で名前の代わりに出す。実行には影響しない (#1530)。 */
   label?: string;
+  /** 結果の形。one=1 件 / list=0 件以上の一覧。省略時は推定 (断定しない)。check_design が使い方との食い違いを見つける。 */
+  shape?: "one" | "list";
   /** 代入方式。assign=上書き / accumulate=数値加算 / push=配列追加。既定: assign。 */
   operation?: "assign" | "accumulate" | "push";
   /** accumulate / push 時の初期値。JSON 値 (例: 0, []) または式文字列。 */

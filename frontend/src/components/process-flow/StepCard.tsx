@@ -590,6 +590,34 @@ export function StepCard({
                 </select>
               </div>
             </div>
+            {getBindingName(step.outputBinding) && (
+              <div className="row g-2 mb-2">
+                <div className="col-4">
+                  <label className="form-label small" htmlFor={`ob-shape-${step.id}`}>結果の形</label>
+                  <select
+                    id={`ob-shape-${step.id}`}
+                    className="form-select form-select-sm"
+                    aria-label="結果の形"
+                    value={typeof step.outputBinding === "object" && step.outputBinding?.shape ? step.outputBinding.shape : ""}
+                    disabled={readOnly}
+                    onChange={(e) => {
+                      const name = getBindingName(step.outputBinding);
+                      if (!name) return;
+                      const shape = e.target.value === "one" || e.target.value === "list" ? e.target.value : undefined;
+                      onChange({ outputBinding: { ...(typeof step.outputBinding === "object" ? step.outputBinding : {}), name, shape } } as Partial<Step>);
+                      onCommit?.();
+                    }}
+                  >
+                    <option value="">決めない (推定)</option>
+                    <option value="one">1 件</option>
+                    <option value="list">一覧 (0 件以上)</option>
+                  </select>
+                </div>
+                <div className="col-8 small text-muted d-flex align-items-end">
+                  決めておくと、あとの工程の式の読み方 (一覧を項目名で読む・1 件を添字で読む) の食い違いを、点検が見つけます。
+                </div>
+              </div>
+            )}
             <div className="step-card-section" data-level-min="implementation">
               <StepAdvancedMetadataPanel
                 step={step}

@@ -3,7 +3,7 @@
  * shared には試験の実行がないので、ここに置く。
  */
 import { describe, expect, it } from "vitest";
-import { checkIntegrity, dropBrokenFlowParts, forEachStep, issueHint, type DesignDocInput } from "@harmony/shared";
+import { REF_KINDS_BY_PROPERTY, checkIntegrity, dropBrokenFlowParts, forEachStep, issueHint, type DesignDocInput } from "@harmony/shared";
 
 const base = (): DesignDocInput => ({
   project: { name: "t" },
@@ -148,8 +148,94 @@ describe("dropBrokenFlowParts: 壊れた工程を取り除く (設計全体の�
   });
 });
 
+describe("checkIntegrity: スキーマの参照の宣言 (x-ref-kind) から、どこの参照も見る", () => {
+  const ENTITY: Record<string, string> = { table: "テーブル", screen: "画面", processFlow: "処理フロー" };
+  const entityProps = Object.entries(REF_KINDS_BY_PROPERTY).filter(([, k]) => k.length === 1 && ENTITY[k[0]]);
+
+  it("宣言されたテーブル・画面・処理フローの項目は、ないものを指せば、置き場所によらず指摘される", () => {
+    expect(entityProps.length).toBeGreaterThan(10);
+    for (const [prop, [kind]] of entityProps) {
+      const i = base();
+      const many = prop.endsWith("Ids");
+      (i.flows[0] as unknown as { actions: Array<Record<string, unknown>> }).actions[0].extra = { deep: [{ [prop]: many ? ["nowhere"] : "nowhere" }] };
+      const hit = msgs(i).filter((m) => m.includes(`${ENTITY[kind]}「nowhere」がありません (${prop})`));
+      expect(hit, prop).toHaveLength(1);
+    }
+  });
+
+  it("あるものを指す・式・個別の検査が見た場所は、二重に指摘しない", () => {
+    const i = base();
+    const f = i.flows[0] as unknown as { actions: Array<Record<string, any>>; meta: Record<string, unknown> };
+    f.actions[0].extra = { tableId: "t1", screenId: "s1", processFlowId: "f1", tableIds: ["t1"], refId: "@inputs.x", targetScreenId: "{{x}}" };
+    expect(checkIntegrity(i)).toEqual([]);
+    f.actions[0].steps[0].tableId = "gone";
+    f.meta.screenId = "gone";
+    expect(msgs(i).filter((m) => /「gone」がありません/.test(m))).toHaveLength(2);
+  });
+
+  it("画面遷移の一覧・画面・テーブルの中も見る", () => {
+    const i = base();
+    (i as unknown as { transitions: unknown[] }).transitions = [{ sourceScreenId: "s1", targetScreenId: "ghost" }];
+    (i.screens[0] as unknown as Record<string, unknown>).extra = { processFlowId: "ghost-flow" };
+    const out = msgs(i).join("\n");
+    expect(out).toContain("画面「ghost」がありません (targetScreenId)");
+    expect(out).toContain("処理フロー「ghost-flow」がありません (processFlowId)");
+  });
+});
+
+describe("checkIntegrity: 共通処理の呼び出しの契約 (引数と呼び先の入力)", () => {
+  const withCall = (callee: unknown, mapping?: Record<string, string>) => {
+    const i = base();
+    i.flows.push(callee as never);
+    (i.flows[0] as unknown as { actions: Array<Record<string, unknown>> }).actions[0].steps = [{ id: "c", kind: "commonProcess", description: "d", refId: "common-1", ...(mapping ? { argumentMapping: mapping } : {}) }];
+    return i;
+  };
+  const common = (inputs: unknown[], more: unknown[] = []) => ({ meta: { id: "common-1", name: "共通", flowType: "common" }, actions: [{ id: "x", inputs }, ...more] });
+
+  it("余分な引数・必須の入力に渡していないものを指摘する", () => {
+    const out = msgs(withCall(common([{ name: "id", required: true }, { name: "memo" }]), { memo: "@a", extra: "@b" })).join("\n");
+    expect(out).toContain("呼び先の処理フロー「共通」の入力に、引数「extra」がありません");
+    expect(out).toContain("必須の入力「id」に、引数が渡されていません");
+    expect(out).not.toContain("「memo」");
+  });
+
+  it("合っている・既定値がある・アクションが複数 (どれを呼ぶか決められない) ときは、必須の不足を指摘しない", () => {
+    expect(checkIntegrity(withCall(common([{ name: "id", required: true }]), { id: "@a" }))).toEqual([]);
+    expect(checkIntegrity(withCall(common([{ name: "id", required: true, defaultValue: "1" }])))).toEqual([]);
+    expect(checkIntegrity(withCall(common([{ name: "id", required: true }], [{ id: "y", inputs: [] }])))).toEqual([]);
+    expect(msgs(withCall(common([{ name: "id" }], [{ id: "y", inputs: [] }]), { zzz: "1" })).join("\n")).toContain("引数「zzz」がありません");
+  });
+});
+
+describe("checkIntegrity: 結果の形 (outputBinding.shape) と読み方", () => {
+  const withSteps = (steps: unknown[]) => { const i = base(); (i.flows[0] as unknown as { actions: Array<Record<string, unknown>> }).actions[0].steps = steps; return i; };
+  const bind = (shape?: string) => ({ id: "q", kind: "dbAccess", tableId: "t1", operation: "SELECT", outputBinding: { name: "rows", ...(shape ? { shape } : {}) } });
+
+  it("一覧と宣言した変数を項目名で読む・1 件と宣言した変数を添字で読むと、指摘される", () => {
+    expect(msgs(withSteps([bind("list"), { id: "u", kind: "compute", expression: "@rows.name" }])).join("\n")).toContain("一覧 (shape: list) と宣言されていますが、項目名で読んでいます (@rows.name)");
+    expect(msgs(withSteps([bind("one"), { id: "u", kind: "compute", expression: "@rows[0].name" }])).join("\n")).toContain("1 件 (shape: one) と宣言されていますが、一覧として読んでいます (@rows[0])");
+    expect(msgs(withSteps([bind("one"), { id: "u", kind: "compute", expression: "@rows.map(x => x)" }])).join("\n")).toContain("1 件 (shape: one)");
+  });
+
+  it("合った読み方・宣言なし・別の名前は、指摘しない", () => {
+    expect(checkIntegrity(withSteps([bind("list"), { id: "u", kind: "compute", expression: "@rows.length + @rows[0].a + @rowsX.b + @rows.map(r => r)" }]))).toEqual([]);
+    expect(checkIntegrity(withSteps([bind("one"), { id: "u", kind: "compute", expression: "@rows.name" }]))).toEqual([]);
+    expect(checkIntegrity(withSteps([bind(), { id: "u", kind: "compute", expression: "@rows.name + @rows[0]" }]))).toEqual([]);
+  });
+
+  it("入れ子の工程の中の読み方も見る。結果を作る工程自身の式 (SQL など) は、自分の変数として見ない", () => {
+    const nested = { id: "b", kind: "branch", branches: [{ id: "x", code: "A", condition: { kind: "expression", expression: "@rows.id == 1" }, steps: [] }] };
+    expect(msgs(withSteps([bind("list"), nested])).join("\n")).toContain("工程 b: 変数「rows」は一覧");
+  });
+});
+
 describe("issueHint: 主な指摘に、直し方が付く (実際の文言で)", () => {
   const CASES: Array<[string, RegExp, string?]> = [
+    ["/actions/0/steps/2/x: 画面「x」がありません (screenId)", /list_screens.*screenId/],
+    ["アクション a の工程 c: 呼び先の処理フロー「共通」の入力に、引数「extra」がありません (argumentMapping)", /inputs.*argumentMapping/],
+    ["アクション a の工程 c: 呼び先の処理フロー「共通」の必須の入力「id」に、引数が渡されていません (argumentMapping)", /argumentMapping.*「id」/],
+    ["アクション a の工程 s: 変数「rows」は一覧 (shape: list) と宣言されていますが、項目名で読んでいます (@rows.name)。1 件なら…", /shape を|"one"/],
+    ["アクション a の工程 s: 変数「rows」は 1 件 (shape: one) と宣言されていますが、一覧として読んでいます (@rows[0])。一覧なら…", /"list"/],
     ["アクション act-001 の工程 step-02: テーブル「no-such-table」がありません (tableId)", /list_tables.*tableId/],
     ["呼び出す画面「x」がありません (meta.screenId)", /list_screens.*update_process_flow/],
     ["アクション a の工程 s: 遷移先の画面「x」がありません (targetScreenId)", /targetScreenId/],

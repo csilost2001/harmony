@@ -122,7 +122,7 @@
       "required": ["tableId", "alias"],
       "additionalProperties": false,
       "properties": {
-        "tableId": { "$ref": "common.v3.schema.json#/$defs/EntityId" },
+        "tableId": { "$ref": "common.v3.schema.json#/$defs/EntityId", "x-ref-kind": "table" },
         "alias": {
           "type": "string",
           "pattern": "^[a-z][a-z0-9_]*$",
@@ -142,7 +142,7 @@
           "enum": ["INNER", "LEFT", "RIGHT", "FULL"],
           "description": "join 種別。"
         },
-        "tableId": { "$ref": "common.v3.schema.json#/$defs/EntityId" },
+        "tableId": { "$ref": "common.v3.schema.json#/$defs/EntityId", "x-ref-kind": "table" },
         "alias": {
           "type": "string",
           "pattern": "^[a-z][a-z0-9_]*$",
