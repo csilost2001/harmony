@@ -1,7 +1,7 @@
 /** 「流れ」表示の、表示まわりの共有状態 (変数の選び・表示の細かさ・その場で直す窓口) */
 import { createContext, useContext } from "react";
 import type { ActionDefinition } from "../../../types/v3";
-import type { StoryCtx } from "./storyModel";
+import type { StepChipCtx, StoryCtx } from "./storyModel";
 
 /** その場で直すための窓口 (編集中だけ。閲覧中は null) */
 export interface StoryEditApi {
@@ -40,8 +40,30 @@ export interface StoryUi {
 
 const Ctx = createContext<StoryUi | null>(null);
 export const StoryUiProvider = Ctx.Provider;
+/** 全部入り (アクション全体を含む。操作のたびに変わる)。直す窓・判定表など、アクション全体を読むところだけが使う */
 export function useStoryUi(): StoryUi {
   const v = useContext(Ctx);
   if (!v) throw new Error("StoryUiProvider が必要です");
+  return v;
+}
+
+/**
+ * 行の描画に要るものだけ。アクション全体を含まないので、直した工程のほかの行は、これが変わらず、描き直さずに済む (React.memo)。
+ * 変わるとき: 呼び名の内容・応答の一覧・表示の細かさ・選んだ変数・編集の入り切り など (工程の中身ではない)。
+ */
+export interface StoryRowUi {
+  ctx: StepChipCtx;
+  showNames: boolean;
+  activeVar: string | null;
+  setActiveVar: (name: string | null) => void;
+  edit: StoryEditApi | null;
+  /** いまのアクション全体 (押したときに読む。描画には使わない — 変わっても行は描き直されない) */
+  getAction: () => StoryCtx["action"];
+}
+const RowCtx = createContext<StoryRowUi | null>(null);
+export const StoryRowUiProvider = RowCtx.Provider;
+export function useRowUi(): StoryRowUi {
+  const v = useContext(RowCtx);
+  if (!v) throw new Error("StoryRowUiProvider が必要です");
   return v;
 }

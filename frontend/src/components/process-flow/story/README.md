@@ -11,5 +11,6 @@ AI が作った複雑な処理を人が読み、細かい仕様を人が書く�
 | `storyModel.ts` `storyEdit.ts` `storyDecision.ts` | 表示のモデル / 編集の操作 (純粋関数) / 判定表の編集操作 |
 | `conditionBuilder.ts` | 式 ⇄ 「どの値を・どうなら・何と比べる」の部品 |
 | `sqlShape.ts` | SQL の結果が 1 件か一覧かの推定 |
+| `storyShare.ts` `storyUi.ts` | 変わっていない部分を前の参照に戻す / 文脈 (`useRowUi` = 行が読む分・アクション全体を含まない、`useStoryUi` = 全部入り。行・枠・並びは `React.memo` なので、行の中では `useRowUi` を使う) |
 
 条件の言葉への変換・判定表の計算は **`shared/src/flowWords.ts` と `shared/src/flowDecision.ts`** にある (設計書と共有)。

@@ -289,12 +289,17 @@ export interface Chip {
   title?: string;
 }
 
-export interface StoryCtx {
+/** 工程の印 (チップ) を作るのに要るもの。アクション全体は要らない (応答の一覧だけ) */
+export interface StepChipCtx {
   flow: FlowContext;
-  action: Pick<ActionDefinition, "name" | "responses" | "inputs" | "steps">;
+  action: Pick<ActionDefinition, "responses">;
   labels: VarLabels;
   /** テーブルの 1 行を決める列 (検索の結果が 1 件か一覧かの推定に使う)。分からなければ無し */
   shapeEnv?: ShapeEnv;
+}
+
+export interface StoryCtx extends StepChipCtx {
+  action: Pick<ActionDefinition, "name" | "responses" | "inputs" | "steps">;
 }
 
 /** 更新・削除の件数のチェックを、言葉に (演算子と、外れたときの動きまで) */
@@ -358,7 +363,7 @@ function outputChip(step: Loose): Chip[] {
 }
 
 /** 行の下に並べる、短い印 */
-export function stepChips(step: Loose, ctx: StoryCtx): Chip[] {
+export function stepChips(step: Loose, ctx: StepChipCtx): Chip[] {
   const chips: Chip[] = [];
   switch (step.kind) {
     case "dbAccess": {

@@ -2,7 +2,7 @@
  * 「流れ」表示の、工程の並び・行・枠。読む表示に、編集中だけ、その場で直す窓口 (書き換え・足す・動かす・消す) が付く。
  * 仕様: docs/spec/process-flow-story-view.md
  */
-import { useMemo, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { memo, useMemo, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { kindLabel, returnStatus } from "@harmony/shared";
 import type { Step } from "../../../types/v3";
 import { showToast } from "../../../utils/toast";
@@ -22,7 +22,7 @@ import {
   type Chip, type ChildGroup, type Loose,
 } from "./storyModel";
 import type { ReviewedSteps } from "./useReviewedSteps";
-import { useStoryUi, type AutoEdit, type StoryEditApi } from "./storyUi";
+import { useRowUi, type AutoEdit, type StoryEditApi } from "./storyUi";
 import type { ValidationError } from "../../../utils/actionValidation";
 
 export interface RowEnv {
@@ -38,6 +38,48 @@ export interface RowEnv {
   onOpen: (id: string) => void;
   /** 工程を入れたあと (選択・光らせ・続けて開く欄) */
   onInserted: (items: Step[], templateKey: string, addr: ListAddr) => void;
+  /** 入れた直後に、続けて開く欄 (その工程の行だけが読む) */
+  autoEdit: AutoEdit | null;
+}
+
+/**
+ * 行の描き直しを省く (React.memo の比べ方)。行が読む env は、その行の id について見るものだけ。
+ * env の関数 (onSelect など) は、親が毎回同じ物を渡す (呼ぶときに最新の処理へ回す) ので、比べない。
+ */
+function envSliceEqual(a: RowEnv, b: RowEnv, id: string, digest: string): boolean {
+  return a.zoom === b.zoom
+    && a.selected.has(id) === b.selected.has(id)
+    && a.hl.has(id) === b.hl.has(id)
+    && (a.flashId === id) === (b.flashId === id)
+    && sameProblemList(a.problems.get(id), b.problems.get(id))
+    && a.reviewed.toggle === b.reviewed.toggle
+    && a.reviewed.isReviewed(id, digest) === b.reviewed.isReviewed(id, digest)
+    && a.reviewed.isStale(id, digest) === b.reviewed.isStale(id, digest)
+    && (a.autoEdit?.stepId === id ? a.autoEdit : null) === (b.autoEdit?.stepId === id ? b.autoEdit : null)
+    && a.digests.get(id) === b.digests.get(id);
+}
+const sameProblemList = (a: readonly ValidationError[] | undefined, b: readonly ValidationError[] | undefined): boolean => a === b || (!!a && !!b && a.length === b.length && a.every((p, i) => p.severity === b[i].severity && p.message === b[i].message));
+const sameSet = (a: ReadonlySet<string>, b: ReadonlySet<string>): boolean => a === b || (a.size === b.size && [...a].every((x) => b.has(x)));
+function sameProblems(a: RowEnv["problems"], b: RowEnv["problems"]): boolean {
+  if (a === b) return true;
+  if (a.size !== b.size) return false;
+  for (const [id, la] of a) {
+    const lb = b.get(id);
+    if (!lb || lb.length !== la.length || la.some((p, i) => p.severity !== lb[i].severity || p.message !== lb[i].message)) return false;
+  }
+  return true;
+}
+/** 枠 (判定・繰り返しなど、中に工程を持つもの) の比べ方: 工程が前と同じ参照なら、中身は同じ。env は、中のすべての行に効くものを比べる */
+function nodePropsEqual(p: { step: Loose; num: string; env: RowEnv; topLevel: boolean }, n: { step: Loose; num: string; env: RowEnv; topLevel: boolean }): boolean {
+  const a = p.env, b = n.env;
+  return p.step === n.step && p.num === n.num && p.topLevel === n.topLevel
+    && a.zoom === b.zoom && a.flashId === b.flashId && a.autoEdit === b.autoEdit && a.reviewed.revision === b.reviewed.revision
+    && a.onSelect === b.onSelect && a.onOpen === b.onOpen && a.onInserted === b.onInserted
+    && sameSet(a.selected, b.selected) && sameSet(a.hl, b.hl) && sameProblems(a.problems, b.problems);
+}
+function rowPropsEqual(p: { step: Loose; num: string; env: RowEnv; topLevel: boolean; inside?: number }, n: { step: Loose; num: string; env: RowEnv; topLevel: boolean; inside?: number }): boolean {
+  if (p.step !== n.step || p.num !== n.num || p.topLevel !== n.topLevel || p.inside !== n.inside) return false;
+  return envSliceEqual(p.env, n.env, n.step.id, n.env.digests.get(n.step.id) ?? stepDigest(n.step));
 }
 
 const KIND_TONE: Record<string, string> = {
@@ -67,7 +109,20 @@ const DRAG_TYPE = "application/x-pfs-step";
 
 // ─── 並びと、足す場所 ───────────────────────────────────
 
-export function StepList({ steps, addr, numPrefix, startIndex, env }: { steps: readonly Loose[]; addr: ListAddr; numPrefix: string; startIndex: number; env: RowEnv }) {
+type StepListProps = { steps: readonly Loose[]; addr: ListAddr; numPrefix: string; startIndex: number; env: RowEnv };
+/** 並びの比べ方: 工程が (参照で) 同じ並び・同じ場所・env の全体に効く部分が同じなら、描き直さない */
+function stepListEqual(p: StepListProps, n: StepListProps): boolean {
+  if (p.numPrefix !== n.numPrefix || p.startIndex !== n.startIndex || p.addr.ownerId !== n.addr.ownerId || p.addr.key !== n.addr.key) return false;
+  if (p.steps.length !== n.steps.length || p.steps.some((s, i) => s !== n.steps[i])) return false;
+  const a = p.env, b = n.env;
+  return a.zoom === b.zoom && a.flashId === b.flashId && a.autoEdit === b.autoEdit && a.reviewed.revision === b.reviewed.revision
+    && a.onSelect === b.onSelect && a.onOpen === b.onOpen && a.onInserted === b.onInserted
+    && sameSet(a.selected, b.selected) && sameSet(a.hl, b.hl) && sameProblems(a.problems, b.problems);
+}
+
+export const StepList = memo(StepListImpl, stepListEqual);
+
+function StepListImpl({ steps, addr, numPrefix, startIndex, env }: StepListProps) {
   return (
     <>
       {steps.map((s, i) => (
@@ -81,8 +136,10 @@ export function StepList({ steps, addr, numPrefix, startIndex, env }: { steps: r
   );
 }
 
-function Gap({ addr, index, always, env }: { addr: ListAddr; index: number; always?: boolean; env?: RowEnv }) {
-  const ui = useStoryUi();
+const Gap = memo(GapImpl, (p, n) => p.addr.ownerId === n.addr.ownerId && p.addr.key === n.addr.key && p.index === n.index && p.always === n.always && p.env?.onInserted === n.env?.onInserted);
+
+function GapImpl({ addr, index, always, env }: { addr: ListAddr; index: number; always?: boolean; env?: RowEnv }) {
+  const ui = useRowUi();
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const [open, setOpen] = useState(false);
   const [over, setOver] = useState(false);
@@ -100,7 +157,7 @@ function Gap({ addr, index, always, env }: { addr: ListAddr; index: number; alwa
         e.preventDefault();
         e.stopPropagation();
         // 動かせるかは、先に (更新の外で) 確かめる。通知を、更新の関数の中で出さないため
-        if (!canMoveInto(ui.ctx.action.steps as unknown as Step[], id, addr.ownerId)) { showToast("自分の中へは動かせません", "info"); return; }
+        if (!canMoveInto(ui.getAction().steps as unknown as Step[], id, addr.ownerId)) { showToast("自分の中へは動かせません", "info"); return; }
         edit.mutate((a) => { moveStepTo(a.steps, id, addr, index); });
       }}
     >
@@ -125,7 +182,7 @@ function RunIfLine({ step, onEdit }: { step: Loose; onEdit?: (el: HTMLElement) =
 }
 
 function RowActions({ step, env, topLevel }: { step: Loose; env: RowEnv; topLevel: boolean }) {
-  const ui = useStoryUi();
+  const ui = useRowUi();
   const edit = ui.edit;
   const digest = env.digests.get(step.id) ?? stepDigest(step);
   const done = env.reviewed.isReviewed(step.id, digest);
@@ -178,7 +235,7 @@ function removeWithToast(edit: StoryEditApi, id: string): void {
 }
 
 /** 行にフォーカスがあるとき: Enter で選ぶ、Shift+Enter でカードで開く。編集中は、Alt+↑↓ で動かし、Delete で消す */
-function rowKey(e: ReactKeyboardEvent, id: string, env: RowEnv, edit: ReturnType<typeof useStoryUi>["edit"]): void {
+function rowKey(e: ReactKeyboardEvent, id: string, env: RowEnv, edit: ReturnType<typeof useRowUi>["edit"]): void {
   if (e.target !== e.currentTarget) return;
   if (edit && e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
     e.preventDefault();
@@ -202,7 +259,7 @@ function rowClass(step: Loose, env: RowEnv, extra = ""): string {
 
 /** ドラッグの持ち手 (編集中だけ)。キーボードでは、Alt+↑↓ または ↑↓ ボタン */
 function DragHandle({ id }: { id: string }) {
-  const ui = useStoryUi();
+  const ui = useRowUi();
   if (!ui.edit) return null;
   return (
     <span
@@ -224,9 +281,8 @@ type PopState =
   | { kind: "cond"; anchor: HTMLElement | null; target: CondTarget; initial: string; beforeStepId: string };
 
 /** 工程の行で使う、直す窓の出し入れ。挿入の直後は、続けて開く窓を最初から開く (autoEdit) */
-function usePops(step: Loose) {
-  const ui = useStoryUi();
-  const auto = ui.autoEdit && ui.autoEdit.stepId === step.id ? ui.autoEdit : null;
+function usePops(step: Loose, autoEdit: AutoEdit | null) {
+  const auto = autoEdit && autoEdit.stepId === step.id ? autoEdit : null;
   const [pop, setPop] = useState<PopState | null>(() => (auto ? initialPop(auto, step) : null));
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   return { pop: pop ? { ...pop, anchor: pop.anchor ?? anchorEl } : null, setPop, setAnchorEl, autoDesc: auto?.what === "desc" };
@@ -289,7 +345,7 @@ function missingGroups(step: Loose): Array<{ key: string; label: string }> {
 }
 
 function AddGroups({ step }: { step: Loose }) {
-  const ui = useStoryUi();
+  const ui = useRowUi();
   const edit = ui.edit;
   if (!edit) return null;
   const groups = missingGroups(step);
@@ -324,8 +380,10 @@ function Problems({ step, env }: { step: Loose; env: RowEnv }) {
 
 // ─── 工程 ──────────────────────────────────────────────
 
-function StepNode({ step, num, env, topLevel }: { step: Loose; num: string; env: RowEnv; topLevel: boolean }) {
-  const ui = useStoryUi();
+const StepNode = memo(StepNodeImpl, nodePropsEqual);
+
+function StepNodeImpl({ step, num, env, topLevel }: { step: Loose; num: string; env: RowEnv; topLevel: boolean }) {
+  const ui = useRowUi();
   if (step.kind === "branch" && isGuardBranch(step)) return <GuardRow step={step} num={num} env={env} topLevel={topLevel} />;
   if (step.kind === "loopContinue" || step.kind === "loopBreak") {
     return (
@@ -348,7 +406,7 @@ function StepNode({ step, num, env, topLevel }: { step: Loose; num: string; env:
       <StepRow step={step} num={num} env={env} inside={inside} topLevel={topLevel} />
       {(groups.length > 0 || ui.edit) && (
         <div className="pfs-nest">
-          {step.kind === "branch" && <DecisionTable step={step} guard={false} defaultOpen={ui.autoEdit?.stepId === step.id && ui.autoEdit.what === "decision"} onSelect={env.onSelect} />}
+          {step.kind === "branch" && <DecisionTable step={step} guard={false} defaultOpen={env.autoEdit?.stepId === step.id && env.autoEdit.what === "decision"} onSelect={env.onSelect} />}
           {groups.map((g) => <GroupBlock key={g.key} owner={step} group={g} num={num} env={env} />)}
           <AddGroups step={step} />
         </div>
@@ -358,11 +416,11 @@ function StepNode({ step, num, env, topLevel }: { step: Loose; num: string; env:
 }
 
 function BoxNode({ step, num, env, groups, inside, topLevel }: { step: Loose; num: string; env: RowEnv; groups: ChildGroup[]; inside: number; topLevel: boolean }) {
-  const ui = useStoryUi();
+  const ui = useRowUi();
   const isTx = step.kind === "transactionScope";
   const body = groups.find((g) => g.role === "body");
   const rest = groups.filter((g) => g !== body);
-  const { pop, setPop, setAnchorEl, autoDesc } = usePops(step);
+  const { pop, setPop, setAnchorEl, autoDesc } = usePops(step, env.autoEdit);
   const [bindEl, setBindEl] = useState<HTMLElement | null>(null);
   return (
     <div className={`pfs-box pfs-box--${isTx ? "tx" : "loop"}${env.hl.has(step.id) ? " is-hl" : ""}${env.flashId === step.id ? " is-flash" : ""}${env.selected.has(step.id) ? " is-selected" : ""}`} data-step-id={step.id}>
@@ -396,7 +454,7 @@ function BoxNode({ step, num, env, groups, inside, topLevel }: { step: Loose; nu
 
 /** 編集中だけ出る、「＋ 結果の変数」「＋ 実行条件」 */
 function EditExtras({ step, setPop, bindRef }: { step: Loose; setPop: (p: PopState | null) => void; bindRef?: (el: HTMLElement | null) => void }) {
-  const ui = useStoryUi();
+  const ui = useRowUi();
   if (!ui.edit) return null;
   const hasBinding = Boolean((step.outputBinding as { name?: string } | undefined)?.name);
   const hasRunIf = typeof step.runIf === "string" && step.runIf !== "";
@@ -422,13 +480,13 @@ function EditExtras({ step, setPop, bindRef }: { step: Loose; setPop: (p: PopSta
 }
 
 function GroupBlock({ owner, group, num, env }: { owner: Loose; group: ChildGroup; num: string; env: RowEnv }) {
-  const ui = useStoryUi();
+  const ui = useRowUi();
   const edit = ui.edit;
   const segs = group.role === "arm" ? conditionSegments(group.condition) : [];
   const lead = group.role === "arm" ? "もし" : group.role === "else" ? "それ以外" : group.label;
   const armId = group.role === "arm" ? group.key.slice(4) : "";
   const [pop, setPop] = useState<{ anchor: HTMLElement } | null>(null);
-  const autoCond = ui.autoEdit && ui.autoEdit.stepId === owner.id && ui.autoEdit.what === "cond" && ui.autoEdit.armId === armId ? ui.autoEdit : null;
+  const autoCond = env.autoEdit && env.autoEdit.stepId === owner.id && env.autoEdit.what === "cond" && env.autoEdit.armId === armId ? env.autoEdit : null;
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [auto, setAuto] = useState(Boolean(autoCond));
   const initial = group.role === "arm" ? String((group.condition as { expression?: string } | undefined)?.expression ?? "") : "";
@@ -472,12 +530,14 @@ function GroupBlock({ owner, group, num, env }: { owner: Loose; group: ChildGrou
 
 // ─── 行 ────────────────────────────────────────────────
 
-function StepRow({ step, num, env, inside, topLevel }: { step: Loose; num: string; env: RowEnv; inside: number; topLevel: boolean }) {
-  const ui = useStoryUi();
+const StepRow = memo(StepRowImpl, rowPropsEqual);
+
+function StepRowImpl({ step, num, env, inside, topLevel }: { step: Loose; num: string; env: RowEnv; inside: number; topLevel: boolean }) {
+  const ui = useRowUi();
   const status = step.kind === "return" ? returnStatus(step, ui.ctx.action) : undefined;
   const k = rowKindLabel(step, status);
   const code = env.zoom === "impl" ? stepCode(step) : undefined;
-  const { pop, setPop, setAnchorEl, autoDesc } = usePops(step);
+  const { pop, setPop, setAnchorEl, autoDesc } = usePops(step, env.autoEdit);
   const editable = Boolean(ui.edit);
   const chips = stepChips(step, ui.ctx);
   const needsResponse = editable && step.kind === "return" && !chips.some((c) => c.edit === "response");
@@ -523,8 +583,10 @@ function StepRow({ step, num, env, inside, topLevel }: { step: Loose; num: strin
   );
 }
 
-function GuardRow({ step, num, env, topLevel }: { step: Loose; num: string; env: RowEnv; topLevel: boolean }) {
-  const ui = useStoryUi();
+const GuardRow = memo(GuardRowImpl, rowPropsEqual);
+
+function GuardRowImpl({ step, num, env, topLevel }: { step: Loose; num: string; env: RowEnv; topLevel: boolean }) {
+  const ui = useRowUi();
   const arm = childGroups(step).find((g) => g.role === "arm");
   const ret = arm?.steps[0];
   const status = ret ? returnStatus(ret, ui.ctx.action) : undefined;
@@ -533,7 +595,7 @@ function GuardRow({ step, num, env, topLevel }: { step: Loose; num: string; env:
   const editable = Boolean(ui.edit);
   const armId = arm ? arm.key.slice(4) : "";
   const initial = String((arm?.condition as { expression?: string } | undefined)?.expression ?? "");
-  const auto = ui.autoEdit && ui.autoEdit.stepId === step.id && ui.autoEdit.what === "cond" ? ui.autoEdit : null;
+  const auto = env.autoEdit && env.autoEdit.stepId === step.id && env.autoEdit.what === "cond" ? env.autoEdit : null;
   const [pop, setPop] = useState<{ kind: "cond" | "response"; anchor: HTMLElement | null } | null>(null);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [autoOpen, setAutoOpen] = useState(Boolean(auto));

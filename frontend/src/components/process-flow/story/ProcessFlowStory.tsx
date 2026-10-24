@@ -10,7 +10,7 @@
  *
  * 仕様: docs/spec/process-flow-story-view.md
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ActionDefinition, Step } from "../../../types/v3";
 import type { FlowContext } from "@harmony/shared";
 import type { ValidationError } from "../../../utils/actionValidation";
@@ -31,7 +31,8 @@ import {
 } from "./storyModel";
 import { noteAction } from "./actionTracker";
 import { buildShapeEnv } from "./sqlShape";
-import { StoryUiProvider, type AutoEdit, type StoryEditApi } from "./storyUi";
+import { StoryRowUiProvider, StoryUiProvider, type AutoEdit, type StoryEditApi, type StoryRowUi } from "./storyUi";
+import { shareStructure } from "./storyShare";
 import { useReviewedSteps } from "./useReviewedSteps";
 import "../../../styles/processFlowStory.css";
 
@@ -80,7 +81,62 @@ export interface ProcessFlowStoryProps {
   problems?: readonly ValidationError[];
 }
 
-export function ProcessFlowStory({ action, reviewKey, ctx, selectedStepIds, onSelectStep, onOpenStep, editable = false, onMutate, flowIds, tables, ambient, externalSystems, onAskAi, onUndo, problems }: ProcessFlowStoryProps) {
+/** 内容が同じ間は、同じ物を返す (呼び名・接続先の一覧など、毎回作り直されて渡されるものを、行が使い回せるように) */
+function useStableBy<T>(value: T, key: string): T {
+  const [held, setHeld] = useState({ key, value });
+  if (held.key === key) return held.value;
+  setHeld({ key, value }); // 内容が変わったときだけ、新しい物に替える (描画の途中の状態の更新)
+  return value;
+}
+
+/** 親の関数・いまのアクションを、最新の物へ回す窓口 (中身は変わらない物なので、これを渡された行は、親の関数が変わっても描き直されない) */
+interface LatestInput {
+  onSelectStep: (id: string) => void;
+  onOpenStep: (id: string) => void;
+  onMutate?: (fn: (a: ActionDefinition) => void) => void;
+  flowIds?: () => Set<string>;
+  onAskAi?: (prompt: string) => void;
+  onUndo?: () => void;
+  action: ActionDefinition;
+}
+function useLatestApi(input: LatestInput) {
+  const ref = useRef(input);
+  useLayoutEffect(() => { ref.current = input; });
+  return useMemo(() => ({
+    select: (id: string) => ref.current.onSelectStep(id),
+    open: (id: string) => ref.current.onOpenStep(id),
+    mutate: (fn: (a: ActionDefinition) => void) => { ref.current.onMutate?.(fn); },
+    undo: () => { ref.current.onUndo?.(); },
+    flowIds: () => (ref.current.flowIds ?? (() => new Set<string>()))(),
+    ask: (prompt: string) => { ref.current.onAskAi?.(prompt); },
+    getAction: () => ref.current.action,
+  }), []);
+}
+
+/** 操作のたびにアクション全体が複製されるので、前と同じ内容の部分は前の参照に戻す (行が、変わっていないことを見分けられる)。親の版が変わったときだけ計算する */
+function useSharedAction(action: ActionDefinition): ActionDefinition {
+  const prev = useRef(action);
+  // eslint-disable-next-line react-hooks/refs -- 前の共有結果を覚えるだけ (action が変わったときだけ 1 回計算し、描画の結果は、その値だけで決まる)
+  return useMemo(() => { prev.current = shareStructure(prev.current, action); return prev.current; }, [action]);
+}
+
+export function ProcessFlowStory(props: ProcessFlowStoryProps) {
+  const action = useSharedAction(props.action);
+  // 見ているアクションの版を記録する (消したあとの「元に戻す」の確かめ)。版は、親が持つ版 (内容が同じでも、親の履歴は 1 件積まれる) で見る。画面を離れたら、記録を外す
+  const version = props.action;
+  useEffect(() => { noteAction(version); }, [version]);
+  useEffect(() => () => { noteAction(null); }, []);
+  return <ProcessFlowStoryBody {...props} action={action} />;
+}
+
+function ProcessFlowStoryBody({ action, reviewKey, ctx, selectedStepIds, onSelectStep, onOpenStep, editable = false, onMutate, flowIds, tables, ambient: ambientProp, externalSystems: externalSystemsProp, onAskAi, onUndo, problems }: ProcessFlowStoryProps) {
+  const externalSystems = useStableBy(externalSystemsProp, (externalSystemsProp ?? []).join("\u0000"));
+  // 親は、編集のたびに作り直した物を渡す。内容が同じ間は同じ物にする (行が描き直されないように)
+  const ambient = useStableBy(ambientProp, JSON.stringify(ambientProp ?? null));
+  // 親の関数は、最新の物を呼ぶ窓口を通す (行は、親の関数が変わっても描き直されないので、古い物を持たないように)
+  const api = useLatestApi({ onSelectStep, onOpenStep, onMutate, flowIds, onAskAi, onUndo, action });
+  const stableSelect = api.select;
+  const stableOpen = api.open;
   const [zoom, setZoom] = useState<Zoom>(readZoom);
   const [tab, setTab] = useState<Tab>("flow");
   /** 畳んだ区切り (区切りの最初の工程の ID。見出しを足しても、ずれない) */
@@ -93,9 +149,6 @@ export function ProcessFlowStory({ action, reviewKey, ctx, selectedStepIds, onSe
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** 変数の「前 / 次」で、いま何番目の場所にいるか (-1 は、まだ移っていない) */
   const varCursor = useRef(-1);
-  // 見ているアクションの版を記録する (消したあとの「元に戻す」の確かめ)。画面を離れたら、記録を外す
-  useEffect(() => { noteAction(action); }, [action]);
-  useEffect(() => () => { noteAction(null); }, []);
   useEffect(() => () => { if (flashTimer.current) clearTimeout(flashTimer.current); if (autoTimer.current) clearTimeout(autoTimer.current); }, []);
 
   const changeZoom = useCallback((z: Zoom) => {
@@ -105,9 +158,13 @@ export function ProcessFlowStory({ action, reviewKey, ctx, selectedStepIds, onSe
   const setActiveVar = useCallback((name: string | null) => { varCursor.current = -1; setActiveVarState(name); }, []);
 
   const steps = useMemo(() => asLooseList(action.steps), [action.steps]);
-  const labels = useMemo(() => buildVarLabels(action), [action]);
+  const labelsRaw = useMemo(() => buildVarLabels(action), [action]);
+  // 呼び名の内容が変わらない間は同じ物 (工程を直すたびに、全部の行が描き直されないように)
+  const labels = useStableBy(labelsRaw, labelsRaw.key);
   const shapeEnv = useMemo(() => buildShapeEnv(tables), [tables]);
   const storyCtx = useMemo<StoryCtx>(() => ({ flow: ctx, action, labels, shapeEnv }), [ctx, action, labels, shapeEnv]);
+  /** 行が読む分だけ (アクション全体を含まない)。応答の一覧が同じ間は、同じ物 */
+  const rowCtx = useMemo(() => ({ flow: ctx, action: { responses: action.responses }, labels, shapeEnv }), [ctx, action.responses, labels, shapeEnv]);
   const sections = useMemo(() => sectionsOf(steps), [steps]);
   const exits = useMemo(() => collectExits(action, labels), [action, labels]);
   const vars = useMemo(() => variableFlow(action, labels), [action, labels]);
@@ -161,7 +218,7 @@ export function ProcessFlowStory({ action, reviewKey, ctx, selectedStepIds, onSe
     const first = items[0] as unknown as { id: string; branches?: Array<{ id: string }> } | undefined;
     if (!first) return;
     // 選ぶのは、最上位に足したときだけ (入れ子の中の工程は、カード表示の選びが、最上位の工程を前提にしているため)
-    if (addr.ownerId === null) onSelectStep(first.id);
+    if (addr.ownerId === null) stableSelect(first.id);
     const guard = items.find((i) => i.kind === "branch") as unknown as { id: string; branches?: Array<{ id: string }> } | undefined;
     let next: AutoEdit | null = null;
     if (key === "guard" && guard?.branches?.[0]) next = { stepId: guard.id, what: "cond", armId: guard.branches[0].id };
@@ -179,17 +236,22 @@ export function ProcessFlowStory({ action, reviewKey, ctx, selectedStepIds, onSe
       const el = rootRef.current?.querySelector(`[data-step-id="${CSS.escape(first.id)}"]`);
       el?.scrollIntoView({ behavior: "smooth", block: "center" });
     });
-  }, [onSelectStep]);
+  }, [stableSelect]);
 
-  // 直す操作の回数。「元に戻す」は、その消す操作のあとに、別の操作をしていないときだけ効かせる
-  const countedMutate = useCallback((fn: (a: ActionDefinition) => void) => { onMutate?.(fn); }, [onMutate]);
-  const edit = useMemo<StoryEditApi | null>(() => (editable && onMutate ? { mutate: countedMutate, undo: onUndo, flowIds: flowIds ?? (() => new Set<string>()), tables: tables ?? [], ambient, externalSystems, askAi: onAskAi } : null), [editable, onMutate, countedMutate, onUndo, flowIds, tables, ambient, externalSystems, onAskAi]);
-  const env: RowEnv = { zoom, selected: selectedStepIds, hl, flashId, reviewed, digests, problems: problemMap, onSelect: onSelectStep, onOpen: onOpenStep, onInserted };
+  // 編集の窓口。親の関数は最新の物を呼ぶ窓口を通すので、親が毎回作り直しても、内容 (編集の入り切り・テーブル・接続先) が同じ間は同じ物 (行が描き直されない)
+  const hasMutate = Boolean(onMutate), hasUndo = Boolean(onUndo), hasAsk = Boolean(onAskAi);
+  const edit = useMemo<StoryEditApi | null>(() => (editable && hasMutate ? {
+    mutate: api.mutate, undo: hasUndo ? api.undo : undefined, flowIds: api.flowIds,
+    tables: tables ?? [], ambient, externalSystems, askAi: hasAsk ? api.ask : undefined,
+  } : null), [editable, hasMutate, hasUndo, hasAsk, api, tables, ambient, externalSystems]);
+  const env: RowEnv = { zoom, selected: selectedStepIds, hl, flashId, reviewed, digests, problems: problemMap, onSelect: stableSelect, onOpen: stableOpen, onInserted, autoEdit };
   const ui = useMemo(() => ({ ctx: storyCtx, showNames: zoom === "impl", activeVar, setActiveVar, edit, autoEdit }), [storyCtx, zoom, activeVar, setActiveVar, edit, autoEdit]);
+  /** 行が読む分 (アクション全体を含まない)。ここが変わらない限り、行は描き直されない */
+  const rowUi = useMemo<StoryRowUi>(() => ({ ctx: rowCtx, showNames: zoom === "impl", activeVar, setActiveVar, edit, getAction: api.getAction }), [rowCtx, zoom, activeVar, setActiveVar, edit, api]);
 
   if (steps.length === 0) {
     return (
-      <StoryUiProvider value={ui}>
+      <StoryRowUiProvider value={rowUi}><StoryUiProvider value={ui}>
         <div className="pfs-empty" data-testid="process-flow-story">
           {edit ? (
             <>
@@ -198,7 +260,7 @@ export function ProcessFlowStory({ action, reviewKey, ctx, selectedStepIds, onSe
             </>
           ) : "工程がありません。編集を始めると、ここから工程を足せます。"}
         </div>
-      </StoryUiProvider>
+      </StoryUiProvider></StoryRowUiProvider>
     );
   }
 
@@ -217,7 +279,7 @@ export function ProcessFlowStory({ action, reviewKey, ctx, selectedStepIds, onSe
   };
 
   return (
-    <StoryUiProvider value={ui}>
+    <StoryRowUiProvider value={rowUi}><StoryUiProvider value={ui}>
       <div className={`pfs-root pfs-z-${zoom}`} ref={rootRef} data-testid="process-flow-story">
         <div className="pfs-toolbar">
           <div className="pfs-tabs" role="tablist" aria-label="流れの見方">
@@ -336,7 +398,7 @@ export function ProcessFlowStory({ action, reviewKey, ctx, selectedStepIds, onSe
           )}
         </div>
       </div>
-    </StoryUiProvider>
+    </StoryUiProvider></StoryRowUiProvider>
   );
 }
 
