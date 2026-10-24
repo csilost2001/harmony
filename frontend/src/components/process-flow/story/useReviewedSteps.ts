@@ -35,6 +35,8 @@ export interface ReviewedSteps {
   /** 確認したあと、内容が変わったか */
   isStale: (stepId: string, digest: string) => boolean;
   toggle: (stepId: string, digest: string) => void;
+  /** 記録の版。印が変わると、別の物になる (描き直しの要否の判断に使う) */
+  revision: object;
   /** 確認済みの数 (いまの内容のまま) */
   countReviewed: (digests: ReadonlyMap<string, string>) => number;
   clear: () => void;
@@ -62,6 +64,7 @@ export function useReviewedSteps(storageKey: string): ReviewedSteps {
   return {
     isReviewed: (id, digest) => map[id] === digest,
     isStale: (id, digest) => id in map && map[id] !== digest,
+    revision: map,
     toggle,
     countReviewed: (digests) => {
       let n = 0;

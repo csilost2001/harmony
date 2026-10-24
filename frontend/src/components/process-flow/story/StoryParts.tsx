@@ -2,10 +2,10 @@
 import type { ReactNode } from "react";
 import type { Seg } from "./expressionText";
 import type { Chip, VarLabels } from "./storyModel";
-import { useStoryUi } from "./storyUi";
+import { useRowUi } from "./storyUi";
 
 function VarSeg({ name, path, raw, labels, showNames, plain }: { name: string; path: string[]; raw: string; labels: VarLabels; showNames: boolean; plain?: boolean }) {
-  const ui = useStoryUi();
+  const ui = useRowUi();
   const text = showNames ? raw : labels.full(name, path);
   // この処理の中で作られる変数だけを、ボタンにする。入力・規約・セッションの値などは、ふつうの文字
   // ボタンの中に入れるときは (plain)、入れ子のボタンにならないよう、文字にする
@@ -25,7 +25,7 @@ function VarSeg({ name, path, raw, labels, showNames, plain }: { name: string; p
 
 /** 条件の部品 → 表示 */
 export function CondText({ segs, plain }: { segs: readonly Seg[]; plain?: boolean }) {
-  const ui = useStoryUi();
+  const ui = useRowUi();
   if (segs.length === 0) return <span className="pfs-muted">（条件が空です）</span>;
   return (
     <span className="pfs-cond">
@@ -39,7 +39,7 @@ export function CondText({ segs, plain }: { segs: readonly Seg[]; plain?: boolea
 }
 
 export function ChipView({ chip, onEdit }: { chip: Chip; onEdit?: (chip: Chip, el: HTMLElement) => void }) {
-  const ui = useStoryUi();
+  const ui = useRowUi();
   // 編集中は、直せる印をクリックすると、その場で直す窓が開く
   if (ui.edit && onEdit && chip.edit) {
     return (

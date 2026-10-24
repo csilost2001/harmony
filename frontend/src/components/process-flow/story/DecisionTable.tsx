@@ -19,7 +19,7 @@ import {
 } from "./storyDecision";
 import { stepHeadline, type Loose } from "./storyModel";
 import { composeClause } from "./conditionBuilder";
-import { useStoryUi } from "./storyUi";
+import { useRowUi, useStoryUi } from "./storyUi";
 import { showToast } from "../../../utils/toast";
 
 const GLYPH: Record<DtCell, string> = { yes: "○", no: "×", any: "－" };
@@ -27,7 +27,7 @@ const NEXT: Record<DtCell, DtCell> = { any: "yes", yes: "no", no: "any" };
 const WORD: Record<DtCell, string> = { yes: "成り立つ", no: "成り立たない", any: "関係しない" };
 
 /** 道の中身の、ひと言 (最初の工程。返すなら状態コードと応答の説明) */
-function outcomeOf(c: DtColumn, ui: ReturnType<typeof useStoryUi>): { text: string; tone: "ok" | "err" | "plain" } {
+function outcomeOf(c: DtColumn, ui: ReturnType<typeof useRowUi>): { text: string; tone: "ok" | "err" | "plain" } {
   if (c.implicit) return { text: "次の工程へ進む", tone: "plain" };
   const first = c.steps[0];
   if (!first) return { text: "（何もしない）", tone: "plain" };
@@ -99,7 +99,8 @@ function RowHead({ row, index, model, editable, onEdit, onRemove }: { row: DtRow
 }
 
 export function DecisionTable({ step, guard, defaultOpen, onSelect }: { step: Loose; guard: boolean; defaultOpen?: boolean; onSelect?: (id: string) => void }) {
-  const ui = useStoryUi();
+  // 行と同じ、アクション全体を含まない文脈 (工程を直すたびに、閉じている判定表まで描き直されないように)。アクション全体が要る条件の窓 (RowEditor) だけが、全部入りを読む
+  const ui = useRowUi();
   const edit = ui.edit;
   const [open, setOpen] = useState(Boolean(defaultOpen));
   const [pendingRows, setPendingRows] = useState<DtRowSpec[]>([]);

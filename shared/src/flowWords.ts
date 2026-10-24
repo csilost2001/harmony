@@ -255,6 +255,8 @@ export interface VarLabels {
   full: (name: string, path: string[]) => string;
   /** この処理の中で作られる変数か (結果変数・繰り返しの 1 行・入力エラー・捕まえたエラー)。規約・セッションの値などは false */
   isDefined: (name: string) => boolean;
+  /** 呼び名の内容の印。同じ内容なら同じ文字 (画面が、内容の変わっていない呼び名を使い回すため) */
+  key: string;
 }
 
 const PROP_LABELS: Record<string, string> = {
@@ -295,6 +297,8 @@ export function buildVarLabels(action: { inputs?: ReadonlyArray<{ name: string; 
   const prop = (name: string, p: string) => (txNames.has(name) ? TX_PROP_LABELS[p] : undefined) ?? PROP_LABELS[p] ?? p;
   return {
     base,
+    // 並び (工程の順) に依らない印。工程を動かしただけでは、呼び名の内容は変わらない
+    key: JSON.stringify([[...labels].sort(), [...txNames].sort(), [...defined].sort(), [...inputLabels].sort()]),
     isDefined: (name) => defined.has(name),
     full: (name, path) => {
       // この処理の中で作られない値 (規約・セッション・環境など) は、書かれた名前のまま

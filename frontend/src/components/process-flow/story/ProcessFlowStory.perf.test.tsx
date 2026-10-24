@@ -6,14 +6,18 @@ import { collectAllProcessFlowLocalIds } from "../../../utils/localIdGenerator";
 import { countSteps, asLooseList } from "./storyModel";
 import { ProcessFlowStory } from "./ProcessFlowStory";
 
+const NO_TABLES: never[] = [];
 const flowCtx = { tableName: () => undefined, screenName: () => undefined };
+
+/** 繰り返しの数 (PERF_STORY_REPEAT=3 で約 1000 工程。既定は 1 = 約 330 工程) */
+const REPEAT = Math.max(1, Number(process.env.PERF_STORY_REPEAT ?? 1) || 1);
 
 /** 約 300 工程の大きな流れ (判定・繰り返し・ガード・DB・計算が入る) */
 function big(): ActionDefinition {
   const steps: unknown[] = [];
   let n = 0;
   const id = () => `step-${String(++n).padStart(4, "0")}`;
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < 20 * REPEAT; i++) {
     steps.push({ id: id(), kind: "dbAccess", heading: i % 4 === 0 ? `区切り ${i}` : undefined, description: `取得 ${i}`, tableId: "t", operation: "SELECT", sql: `SELECT id, name FROM t${i} WHERE id = @inputs.k`, outputBinding: { name: `row${i}`, label: `行${i}` } });
     steps.push({ id: id(), kind: "branch", description: "無ければ返す", branches: [{ id: `br-${i}a`, code: "A", condition: { kind: "expression", expression: `@row${i} == null` }, steps: [{ id: id(), kind: "return", description: "404", responseId: "404-nf" }] }], elseBranch: { id: `br-${i}b`, code: "B", steps: [] } });
     steps.push({
@@ -32,7 +36,7 @@ function Harness({ editable }: { editable: boolean }) {
   return (
     <ProcessFlowStory action={action} reviewKey="t:perf" ctx={flowCtx} selectedStepIds={new Set()} onSelectStep={vi.fn()} onOpenStep={vi.fn()} editable={editable}
       onMutate={(fn) => setAction((cur) => { const next = structuredClone(cur); fn(next); return next; })}
-      flowIds={() => collectAllProcessFlowLocalIds({ actions: [action] })} tables={[]} />
+      flowIds={() => collectAllProcessFlowLocalIds({ actions: [action] })} tables={NO_TABLES} />
   );
 }
 
