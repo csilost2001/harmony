@@ -7,6 +7,12 @@ export interface HintableIssue { severity?: string; section?: string; message: s
 
 /** [指摘の文言, 直し方, (あれば) 指摘の対象 (section) が合うこと] */
 const RULES: Array<[RegExp, (m: RegExpExecArray) => string, RegExp?]> = [
+  // スキーマの参照の宣言 (x-ref-kind) による一般の指摘: 「/場所: テーブル「x」がありません (項目名)」
+  [/^\/[^:]*: (テーブル|画面|処理フロー)「([^」]+)」がありません \((\w+)\)(?: — ほか \d+ か所)?$/, (m) => `designer__${m[1] === "テーブル" ? "list_tables" : m[1] === "画面" ? "list_screens" : "list_process_flows"} で正しい id を確かめ、指摘の場所 (先頭の /… は、その設計の中の位置) の「${m[3]}」を直す。${m[1]}「${m[2]}」が本当に要るなら、先にそれを作る`],
+  [/呼び先の処理フロー「([^」]+)」の入力に、引数「([^」]+)」がありません/, (m) => `designer__get_process_flow で呼び先「${m[1]}」の actions[].inputs を確かめ、update_step の patch で argumentMapping のキーを入力の名前に直す (入力の側を足すなら update_process_flow)`],
+  [/呼び先の処理フロー「([^」]+)」の必須の入力「([^」]+)」に、引数が渡されていません/, (m) => `update_step の patch で argumentMapping に「${m[2]}」の引数式を足す。呼び先「${m[1]}」でその入力が要らないなら、呼び先の inputs の required を外す`],
+  [/変数「([^」]+)」は一覧 \(shape: list\) と宣言されていますが/, (m) => `designer__list_steps で「${m[1]}」を作る工程を探し、結果が 1 件なら update_step の patch で outputBinding.shape を "one" にする。一覧のままなら、読む側の式を添字 (@${m[1]}[0].項目) か繰り返しに直す`],
+  [/変数「([^」]+)」は 1 件 \(shape: one\) と宣言されていますが/, (m) => `designer__list_steps で「${m[1]}」を作る工程を探し、結果が一覧なら update_step の patch で outputBinding.shape を "list" にする。1 件のままなら、読む側の式から添字・一覧の関数を外す`],
   [/テーブル「([^」]+)」がありません \(tableId\)/, (m) => `designer__list_tables で正しいテーブルの id を確かめ、update_step の patch に { "tableId": "<id>" } を入れて直す。テーブル「${m[1]}」を作るつもりなら add_table か import_ddl`],
   [/呼び出す画面「([^」]+)」がありません/, () => "designer__list_screens で画面の id を確かめ、get_process_flow で定義を読み、meta.screenId を直した完全な定義を update_process_flow の definition に渡す (呼び出す画面がないなら meta.screenId を消す)"],
   [/遷移先の画面「([^」]+)」がありません/, () => "designer__list_screens で画面の id を確かめ、update_step の patch で targetScreenId を直す"],

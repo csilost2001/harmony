@@ -1,0 +1,484 @@
+{
+  "generatedFrom": "schemas/v3/*.schema.json の x-ref-kind (node scripts/docs/generated.mjs --write)",
+  "note": "項目名 → 参照先の種類。entity 種類 (table / screen / processFlow / view / viewDefinition / pageLayout / screenGroup) は設計の id、それ以外 (column / action / response / step / screenItem / screenEvent) は、ある設計の中の id。",
+  "kinds": [
+    "action",
+    "column",
+    "pageLayout",
+    "processFlow",
+    "response",
+    "screen",
+    "screenEvent",
+    "screenGroup",
+    "screenItem",
+    "step",
+    "table",
+    "view",
+    "viewDefinition"
+  ],
+  "count": 66,
+  "refs": [
+    {
+      "schema": "common",
+      "def": "Marker",
+      "property": "stepId",
+      "refKind": "step",
+      "many": false
+    },
+    {
+      "schema": "common",
+      "def": "FieldType",
+      "property": "tableId",
+      "refKind": "table",
+      "many": false
+    },
+    {
+      "schema": "common",
+      "def": "FieldType",
+      "property": "tableId",
+      "refKind": "table",
+      "many": false
+    },
+    {
+      "schema": "common",
+      "def": "FieldType",
+      "property": "screenId",
+      "refKind": "screen",
+      "many": false
+    },
+    {
+      "schema": "common",
+      "def": "ScreenItemRef",
+      "property": "screenId",
+      "refKind": "screen",
+      "many": false
+    },
+    {
+      "schema": "common",
+      "def": "ScreenItemRef",
+      "property": "itemId",
+      "refKind": "screenItem",
+      "many": false
+    },
+    {
+      "schema": "common",
+      "def": "TableColumnRef",
+      "property": "tableId",
+      "refKind": "table",
+      "many": false
+    },
+    {
+      "schema": "common",
+      "def": "TableColumnRef",
+      "property": "columnId",
+      "refKind": "column",
+      "many": false
+    },
+    {
+      "schema": "common",
+      "def": "ViewColumnRef",
+      "property": "viewId",
+      "refKind": "view",
+      "many": false
+    },
+    {
+      "schema": "common",
+      "def": "ActionRef",
+      "property": "processFlowId",
+      "refKind": "processFlow",
+      "many": false
+    },
+    {
+      "schema": "common",
+      "def": "ActionRef",
+      "property": "actionId",
+      "refKind": "action",
+      "many": false
+    },
+    {
+      "schema": "common",
+      "def": "StepRef",
+      "property": "processFlowId",
+      "refKind": "processFlow",
+      "many": false
+    },
+    {
+      "schema": "common",
+      "def": "StepRef",
+      "property": "actionId",
+      "refKind": "action",
+      "many": false
+    },
+    {
+      "schema": "common",
+      "def": "StepRef",
+      "property": "stepId",
+      "refKind": "step",
+      "many": false
+    },
+    {
+      "schema": "common",
+      "def": "ResponseRef",
+      "property": "processFlowId",
+      "refKind": "processFlow",
+      "many": false
+    },
+    {
+      "schema": "common",
+      "def": "ResponseRef",
+      "property": "actionId",
+      "refKind": "action",
+      "many": false
+    },
+    {
+      "schema": "common",
+      "def": "ResponseRef",
+      "property": "responseId",
+      "refKind": "response",
+      "many": false
+    },
+    {
+      "schema": "common",
+      "def": "TestPrecondition",
+      "property": "tableId",
+      "refKind": "table",
+      "many": false
+    },
+    {
+      "schema": "common",
+      "def": "TestPrecondition",
+      "property": "screenId",
+      "refKind": "screen",
+      "many": false
+    },
+    {
+      "schema": "common",
+      "def": "TestInvocation",
+      "property": "processFlowId",
+      "refKind": "processFlow",
+      "many": false
+    },
+    {
+      "schema": "common",
+      "def": "TestInvocation",
+      "property": "actionId",
+      "refKind": "action",
+      "many": false
+    },
+    {
+      "schema": "common",
+      "def": "TestAssertion",
+      "property": "tableId",
+      "refKind": "table",
+      "many": false
+    },
+    {
+      "schema": "common",
+      "def": "TestAssertion",
+      "property": "screenId",
+      "refKind": "screen",
+      "many": false
+    },
+    {
+      "schema": "er-layout",
+      "def": "LogicalRelation",
+      "property": "sourceTableId",
+      "refKind": "table",
+      "many": false
+    },
+    {
+      "schema": "er-layout",
+      "def": "LogicalRelation",
+      "property": "sourceColumnId",
+      "refKind": "column",
+      "many": false
+    },
+    {
+      "schema": "er-layout",
+      "def": "LogicalRelation",
+      "property": "targetTableId",
+      "refKind": "table",
+      "many": false
+    },
+    {
+      "schema": "er-layout",
+      "def": "LogicalRelation",
+      "property": "targetColumnId",
+      "refKind": "column",
+      "many": false
+    },
+    {
+      "schema": "harmony",
+      "def": "ScreenEntry",
+      "property": "pageLayoutId",
+      "refKind": "pageLayout",
+      "many": false
+    },
+    {
+      "schema": "harmony",
+      "def": "ScreenEntry",
+      "property": "groupId",
+      "refKind": "screenGroup",
+      "many": false
+    },
+    {
+      "schema": "harmony",
+      "def": "ProcessFlowEntry",
+      "property": "screenId",
+      "refKind": "screen",
+      "many": false
+    },
+    {
+      "schema": "harmony",
+      "def": "ViewDefinitionEntry",
+      "property": "sourceTableId",
+      "refKind": "table",
+      "many": false
+    },
+    {
+      "schema": "harmony",
+      "def": "ScreenTransitionEntry",
+      "property": "sourceScreenId",
+      "refKind": "screen",
+      "many": false
+    },
+    {
+      "schema": "harmony",
+      "def": "ScreenTransitionEntry",
+      "property": "targetScreenId",
+      "refKind": "screen",
+      "many": false
+    },
+    {
+      "schema": "page-layout",
+      "def": "PageLayout",
+      "property": "processFlowId",
+      "refKind": "processFlow",
+      "many": false
+    },
+    {
+      "schema": "process-flow",
+      "def": "Meta",
+      "property": "screenId",
+      "refKind": "screen",
+      "many": false
+    },
+    {
+      "schema": "process-flow",
+      "def": "PrimaryInvoker",
+      "property": "screenId",
+      "refKind": "screen",
+      "many": false
+    },
+    {
+      "schema": "process-flow",
+      "def": "PrimaryInvoker",
+      "property": "itemId",
+      "refKind": "screenItem",
+      "many": false
+    },
+    {
+      "schema": "process-flow",
+      "def": "PrimaryInvoker",
+      "property": "eventId",
+      "refKind": "screenEvent",
+      "many": false
+    },
+    {
+      "schema": "process-flow",
+      "def": "PrimaryInvoker",
+      "property": "actionId",
+      "refKind": "action",
+      "many": false
+    },
+    {
+      "schema": "process-flow",
+      "def": "ErrorCatalogEntry",
+      "property": "responseId",
+      "refKind": "response",
+      "many": false
+    },
+    {
+      "schema": "process-flow",
+      "def": "ValidationInlineBranch",
+      "property": "ngResponseId",
+      "refKind": "response",
+      "many": false
+    },
+    {
+      "schema": "process-flow",
+      "def": "DbAccessStep",
+      "property": "tableId",
+      "refKind": "table",
+      "many": false
+    },
+    {
+      "schema": "process-flow",
+      "def": "CommonProcessStep",
+      "property": "refId",
+      "refKind": "processFlow",
+      "many": false
+    },
+    {
+      "schema": "process-flow",
+      "def": "ScreenTransitionStep",
+      "property": "targetScreenId",
+      "refKind": "screen",
+      "many": false
+    },
+    {
+      "schema": "process-flow",
+      "def": "BranchCondition",
+      "property": "stepId",
+      "refKind": "step",
+      "many": false
+    },
+    {
+      "schema": "process-flow",
+      "def": "BranchCondition",
+      "property": "stepId",
+      "refKind": "step",
+      "many": false
+    },
+    {
+      "schema": "process-flow",
+      "def": "ReturnStep",
+      "property": "responseId",
+      "refKind": "response",
+      "many": false
+    },
+    {
+      "schema": "process-flow",
+      "def": "CdcStep",
+      "property": "tableIds",
+      "refKind": "table",
+      "many": true
+    },
+    {
+      "schema": "process-flow",
+      "def": "CdcDestination",
+      "property": "tableId",
+      "refKind": "table",
+      "many": false
+    },
+    {
+      "schema": "screen-item",
+      "def": "ScreenItemEvent",
+      "property": "handlerFlowId",
+      "refKind": "processFlow",
+      "many": false
+    },
+    {
+      "schema": "screen-item",
+      "def": "ScreenItemEvent",
+      "property": "handlerActionId",
+      "refKind": "action",
+      "many": false
+    },
+    {
+      "schema": "screen-item",
+      "def": "ScreenItemBinding",
+      "property": "processFlowId",
+      "refKind": "processFlow",
+      "many": false
+    },
+    {
+      "schema": "screen-item",
+      "def": "ScreenItemPresentation",
+      "property": "viewDefinitionId",
+      "refKind": "viewDefinition",
+      "many": false
+    },
+    {
+      "schema": "screen",
+      "def": "Screen",
+      "property": "pageLayoutId",
+      "refKind": "pageLayout",
+      "many": false
+    },
+    {
+      "schema": "screen",
+      "def": "Screen",
+      "property": "processFlowId",
+      "refKind": "processFlow",
+      "many": false
+    },
+    {
+      "schema": "screen",
+      "def": "Screen",
+      "property": "groupId",
+      "refKind": "screenGroup",
+      "many": false
+    },
+    {
+      "schema": "table",
+      "def": "Index",
+      "property": "columnId",
+      "refKind": "column",
+      "many": false
+    },
+    {
+      "schema": "table",
+      "def": "PrimaryKeyConstraint",
+      "property": "columnIds",
+      "refKind": "column",
+      "many": true
+    },
+    {
+      "schema": "table",
+      "def": "UniqueConstraint",
+      "property": "columnIds",
+      "refKind": "column",
+      "many": true
+    },
+    {
+      "schema": "table",
+      "def": "ForeignKeyConstraint",
+      "property": "columnIds",
+      "refKind": "column",
+      "many": true
+    },
+    {
+      "schema": "table",
+      "def": "ForeignKeyConstraint",
+      "property": "referencedTableId",
+      "refKind": "table",
+      "many": false
+    },
+    {
+      "schema": "table",
+      "def": "ForeignKeyConstraint",
+      "property": "referencedColumnIds",
+      "refKind": "column",
+      "many": true
+    },
+    {
+      "schema": "table",
+      "def": "DefaultDefinition",
+      "property": "columnId",
+      "refKind": "column",
+      "many": false
+    },
+    {
+      "schema": "view-definition",
+      "def": "ViewDefinition",
+      "property": "sourceTableId",
+      "refKind": "table",
+      "many": false
+    },
+    {
+      "schema": "view-definition",
+      "def": "ViewQueryFrom",
+      "property": "tableId",
+      "refKind": "table",
+      "many": false
+    },
+    {
+      "schema": "view-definition",
+      "def": "ViewQueryJoin",
+      "property": "tableId",
+      "refKind": "table",
+      "many": false
+    }
+  ]
+}

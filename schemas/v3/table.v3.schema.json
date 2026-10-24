@@ -97,7 +97,7 @@
             "required": ["columnId"],
             "additionalProperties": false,
             "properties": {
-              "columnId": { "$ref": "common.v3.schema.json#/$defs/LocalId", "description": "Column.id (LocalId) を参照。" },
+              "columnId": { "$ref": "common.v3.schema.json#/$defs/LocalId", "description": "Column.id (LocalId) を参照。", "x-ref-kind": "column" },
               "order": { "type": "string", "enum": ["asc", "desc"] }
             }
           }
@@ -137,7 +137,7 @@
           "type": "array",
           "minItems": 1,
           "uniqueItems": true,
-          "items": { "$ref": "common.v3.schema.json#/$defs/LocalId" },
+          "items": { "$ref": "common.v3.schema.json#/$defs/LocalId", "x-ref-kind": "column" },
           "description": "PK を構成する Column.id 配列。複合 PK の場合は 2 件以上指定。"
         },
         "description": { "$ref": "common.v3.schema.json#/$defs/Description" }
@@ -156,7 +156,7 @@
           "type": "array",
           "minItems": 1,
           "uniqueItems": true,
-          "items": { "$ref": "common.v3.schema.json#/$defs/LocalId" },
+          "items": { "$ref": "common.v3.schema.json#/$defs/LocalId", "x-ref-kind": "column" },
           "description": "UNIQUE 制約を構成する Column.id 配列 (#1185 追加#1: 重複列指定禁止のため uniqueItems)。"
         },
         "description": { "$ref": "common.v3.schema.json#/$defs/Description" }
@@ -189,15 +189,15 @@
           "type": "array",
           "minItems": 1,
           "uniqueItems": true,
-          "items": { "$ref": "common.v3.schema.json#/$defs/LocalId" },
+          "items": { "$ref": "common.v3.schema.json#/$defs/LocalId", "x-ref-kind": "column" },
           "description": "本テーブルの Column.id 配列 (#1185 追加#1: 重複列指定禁止のため uniqueItems)。"
         },
-        "referencedTableId": { "$ref": "common.v3.schema.json#/$defs/EntityId", "description": "参照先 Table の EntityId。" },
+        "referencedTableId": { "$ref": "common.v3.schema.json#/$defs/EntityId", "description": "参照先 Table の EntityId。", "x-ref-kind": "table" },
         "referencedColumnIds": {
           "type": "array",
           "minItems": 1,
           "uniqueItems": true,
-          "items": { "$ref": "common.v3.schema.json#/$defs/LocalId" },
+          "items": { "$ref": "common.v3.schema.json#/$defs/LocalId", "x-ref-kind": "column" },
           "description": "参照先 Column.id 配列 (#1185 追加#1: 重複列指定禁止のため uniqueItems)。columnIds との件数一致は tableValidation.ts で runtime 検証。"
         },
         "onDelete": { "$ref": "#/$defs/FkAction" },
@@ -222,7 +222,7 @@
       "required": ["columnId", "kind", "value"],
       "additionalProperties": false,
       "properties": {
-        "columnId": { "$ref": "common.v3.schema.json#/$defs/LocalId" },
+        "columnId": { "$ref": "common.v3.schema.json#/$defs/LocalId", "x-ref-kind": "column" },
         "kind": {
           "type": "string",
           "enum": ["literal", "function", "sequence", "convention"],

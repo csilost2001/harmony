@@ -26,6 +26,9 @@ category: design
 `designer__check_design` / `npm run check:design` / 設計書の「要確認事項」は、同じ検査を使う。主なもの:
 
 - **設計どうしの参照の整合** (`shared/src/analysis/integrity.ts`): 処理フローの `meta.screenId`・DB アクセスの `tableId`・画面遷移の `targetScreenId`・`return` の `responseId`、画面項目の結びつき先のテーブルとカラム・イベントが呼ぶ処理フロー / アクション、テーブルの外部キーの参照先、規約の参照 (`@conv.limit.*` `regex` `msg` `role` `permission`。その種類の定義が 1 つもないときは見ない — 規約が読めていないと全部が未定義になるため。`@conv.limit.max-1` のように式が続く参照・`product:view` の形の権限キーも扱う)、`inlineBranch.ngResponseId` が `responses` にあること、分岐の道の条件が空、同じアクションでの工程 id の重複 (警告)。アクションをまたぐ同じ工程 id は**情報** (動作は壊れないが、工程を id で指す操作は、最初に見つかったアクションに当たる)
+- **スキーマの参照の宣言 (`x-ref-kind`)**: スキーマで「テーブル・画面・処理フローを指す id」と宣言された項目は、どこに書かれていても (テストの前提データの中でも) ないものを指せば指摘する。同じ設計の中で同じ参照が何度もあれば 1 件にまとめて「ほか N か所」と書く。項目と種類の一覧は `docs/spec/schema-refs.json` ([ADR 0009](../decisions/0009-ref-kind-annotation.md))
+- **共通処理の呼び出しの契約**: `commonProcess` の `argumentMapping` が、呼び先の入力に無い名前を渡していないか、呼び先のアクションが 1 つのとき必須の入力 (既定値なし) に渡しているか
+- **結果の形 (`outputBinding.shape`)**: 一覧と宣言した変数を項目名で読む・1 件と宣言した変数を添字や `.map` で読む食い違い
 - **スキーマ違反**: 工程は、その**種類 (kind) の定義に対してだけ**検査し直した違反を出す (工程は 26 種類の oneOf で、そのまま検査すると 1 つの項目の不足で 100 件以上並ぶ)。種類の綴り間違いは kind の違反 1 件
 - 画面・テーブル・業務フロー・帳票・権限・CRUD・SQL の重複 など (各仕様書)
 

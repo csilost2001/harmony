@@ -9,6 +9,10 @@
 
 v1 (機械変換前) / v2 (機械変換版) を base にせず、業務概念から一から再設計した版。
 
+## 注釈 (`x-ref-kind`)
+
+id を持つ項目には `"x-ref-kind": "<種類>"` がある (どの種類の設計を指す id か。業務フロー・帳票・画面レイアウトの `screenRef` / `processFlowRef` は、個別の検査が見ているので、まだ付けていない — ADR 0009)。検証の動作は変えない注釈で、参照の整合の検査と資料が同じ宣言から作られる。一覧は `docs/spec/schema-refs.json` (自動生成: `node scripts/docs/generated.mjs --write`)。新しい参照の項目を足すときは、注釈も足す。経緯: [ADR 0009](../../docs/decisions/0009-ref-kind-annotation.md)。
+
 ## ファイル構成 (34 ファイル)
 
 合計 34 ファイル: top-level **17 ファイル** + `generic-definitions/` サブディレクトリ **17 ファイル** (#1263 Phase X2 で 7 → 14 kind に拡張、#1303 で 17 kind、#1310 で global 追加、#1436 で ui-fragment 廃止)。

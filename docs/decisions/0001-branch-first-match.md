@@ -2,7 +2,7 @@
 description: "分岐は上から順に調べ、最初に成り立った道だけを実行する"
 status: decided
 decidedBy: "AI (設計者の一任のもと。process-flow-runtime-conventions.md §11.5 に 2026-10-20 と記録)"
-confirmation: "設計者の最終確認はまだ"
+confirmation: "設計者が承認 (2026-10-24)"
 period: "2026-10"
 ---
 

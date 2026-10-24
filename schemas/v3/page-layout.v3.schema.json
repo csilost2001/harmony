@@ -28,6 +28,7 @@
         },
         "processFlowId": {
           "$ref": "common.v3.schema.json#/$defs/EntityId",
+          "x-ref-kind": "processFlow",
           "description": "ガジェット間連携 orchestrator として紐付ける ProcessFlow ID (optional)。MVP では schema 上は枠のみ用意、実装は Phase 2 (RFC #1021 Q2=a)。"
         },
         "design": {

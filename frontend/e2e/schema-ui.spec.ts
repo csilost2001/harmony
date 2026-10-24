@@ -179,6 +179,19 @@ test.describe("step outputBinding 入力 (#204)", { tag: ["@regression"] }, () =
     }
     await expect(nameInput).toHaveValue("myResult");
   });
+
+  test("結果の形 (shape) は、結果変数名があるときに選べる", async ({ page }) => {
+    await setupEditor(page);
+    const card = await expandStep(page, 2);
+    const nameInput = card.locator('input[placeholder*="duplicateCustomer"]').first();
+    await nameInput.fill("shapedResult");
+    const shape = card.getByLabel("結果の形");
+    await expect(shape).toBeVisible();
+    await shape.selectOption("list");
+    await expect(shape).toHaveValue("list");
+    await shape.selectOption("");
+    await expect(shape).toHaveValue("");
+  });
 });
 
 test.describe("アクション HTTP 契約編集 (#206)", { tag: ["@regression"] }, () => {

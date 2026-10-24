@@ -591,6 +591,8 @@ type OutputBinding = string | OutputBindingObject;
 - `{ "name": "subtotal", "operation": "accumulate", "initialValue": "0" }` (ループ内累積、初期値明示)
 - `{ "name": "enrichedItems", "operation": "push", "initialValue": "[]" }` (配列追加、初期値明示)
 
+**shape (2026-10-24)**: 結果の形。`one` = 1 件 (行・値)、`list` = 0 件以上の一覧。省略時は SQL などから推定する (断定しない)。宣言すると、`designer__check_design` が「一覧と宣言した変数を `@名前.項目` で読む」「1 件と宣言した変数を `@名前[0]` や `.map(...)` で読む」食い違いを指摘し、生成の指示書に結果の形が出る。画面では、工程カードの「結果の形」で選ぶ。
+
 **initialValue (#253 v1.2)**: `accumulate` / `push` 時の初期値を式で明示。未指定時の既定は `accumulate` → `"0"`、`push` → `"[]"`。実装側は変数スコープ開始時 (アクション先頭、またはループ入口) で初期化する。
 
 ヘルパー: `frontend/src/utils/outputBinding.ts` の `getBindingName` / `getBindingOperation`
@@ -737,9 +739,12 @@ domainRef?: string;   // context.catalogs.domains のキー参照 (例: "@conv.d
       { "field": "quantity", "type": "range", "minRef": "@conv.limit.quantityMin", "maxRef": "@conv.limit.quantityMax", "severity": "error" }
     ],
     "uiHint": "number"
-  }
+  },
+  "Price": { "type": "number", "unit": "JPY", "rounding": "half-up" }
 }
 ```
+
+**単位・丸め (2026-10-24)**: ドメインは、任意で `unit` (金額の通貨 `JPY`・数量の `kg` など) と `rounding` (`half-up` 四捨五入 / `half-even` 銀行丸め / `down` 切り捨て / `up` 切り上げ / `none`) を持てる。金額の丸めを、生成コードごとにずらさず、ドメインで 1 か所に決める。`designer__get_generation_brief` の「単位・丸め・結果の形」に出る。
 
 ```json
 { "name": "qty", "type": "number", "domainRef": "Quantity" }

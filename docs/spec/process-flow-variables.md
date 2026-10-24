@@ -100,6 +100,7 @@ interface OutputBindingTransformation {
 
 interface OutputBinding {
   name: string;                            // Identifier (camelCase 強制)
+  shape?: "one" | "list";                  // 結果の形 (1 件 / 一覧)。省略時は推定。check_design が読み方との食い違いを指摘する
   operation?: OutputBindingOperation;      // 既定 "assign"
   initialValue?: string;                   // accumulate: "0", push: "[]" 相当 (式可)
   transformations?: OutputBindingTransformation[]; // SELECT 結果の型変換 (#781)

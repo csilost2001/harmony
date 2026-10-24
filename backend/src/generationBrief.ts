@@ -22,6 +22,27 @@ function tableBlock(t: DocTable): string {
   return [`### ${t.name ?? t.physicalName ?? t.id} (\`${t.physicalName ?? ""}\`, id: ${t.id})`, ...cols, ...fks].join("\n");
 }
 
+/** ドメインの単位・丸め規則 (`context.catalogs.domains`) と、工程の結果の形 (`outputBinding.shape`)。生成コードの桁・丸め・型がずれないように */
+function unitAndRounding(flow: DocFlow, actions: ReadonlyArray<object>): string[] {
+  const out: string[] = [];
+  const domains = (flow as { context?: { catalogs?: { domains?: unknown } } }).context?.catalogs?.domains;
+  if (isRecord(domains)) {
+    for (const [name, d] of Object.entries(domains)) {
+      if (!isRecord(d) || (d.unit === undefined && d.rounding === undefined)) continue;
+      out.push(`- ドメイン \`${name}\`: ${[d.unit !== undefined ? `単位 ${String(d.unit)}` : "", d.rounding !== undefined ? `丸め ${String(d.rounding)}` : ""].filter(Boolean).join(" / ")}`);
+    }
+  }
+  for (const act of actions) {
+    try {
+      for (const st of walkAllSteps(Array.isArray((act as { steps?: unknown }).steps) ? ((act as { steps?: unknown }).steps as never) : undefined)) {
+        const ob = isRecord(st) ? st.outputBinding : undefined;
+        if (isRecord(ob) && (ob.shape === "one" || ob.shape === "list") && typeof ob.name === "string") out.push(`- 変数 \`${ob.name}\` (工程 \`${String((st as Record<string, unknown>).id ?? "?")}\`): ${ob.shape === "one" ? "1 件" : "一覧 (0 件以上)"}`);
+      }
+    } catch { /* 壊れた工程は飛ばす */ }
+  }
+  return out.slice(0, 40);
+}
+
 function convRefs(obj: unknown): string[] {
   return [...new Set([...JSON.stringify(obj).matchAll(/@conv\.[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)*/g)].map((m) => m[0]))].sort();
 }
@@ -82,6 +103,8 @@ export async function buildGenerationBrief(root: string, args: { processFlowId?:
     out.push("## 処理の流れ", "", "条件は言葉で書いてある。もとの式は designer__get_step で読む。", "", story, "");
     const tb = more(tables, MAX_TABLES);
     out.push("## 使うテーブル", "", tb.shown.length ? tb.shown.map(tableBlock).join("\n\n") : "(この処理フローが直接使うテーブルはありません)", ...(tb.extra ? [`\n(ほか ${tb.extra} 件)`] : []), "");
+    const rules = unitAndRounding(flow, actionList);
+    if (rules.length) out.push("## 単位・丸め・結果の形 (設計で決めてある。コードでそのまま守る)", "", ...rules, "");
     const cv = more(convs, MAX_CONV);
     out.push("## 規約の参照 (@conv.*)", "", cv.shown.length ? cv.shown.map((r) => `- \`${r}\`${resolveConv(r, input) ? ` = ${resolveConv(r, input)}` : ""}`).join("\n") : "(なし)", ...(cv.extra ? [`\n(ほか ${cv.extra} 件)`] : []), "");
     if (screen) {

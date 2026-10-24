@@ -1,5 +1,6 @@
 export { toCsv, csvCell, normalizeTerm, normalizeIdentifier, oneLine, localDate, forEachStep } from "./common.js";
 export * from "./integrity.js";
+export * from "./refKinds.generated.js";
 export * from "./issueHints.js";
 export * from "./settings.js";
 export * from "./suppress.js";

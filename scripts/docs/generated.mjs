@@ -7,6 +7,8 @@
  *   docs/spec/process-flow-pitfalls.md       処理フロー作成の self-check ルールの一覧 (ai-skills/create-flow/SKILL.md の見出しから)
  *   docs/glossary.json                       用語集 (日本語の用語 ↔ スキーマ ↔ MCP tool ↔ 仕様書。工程の種類は自動、中心の用語は下の CORE_TERMS)
  *   examples/PATTERNS.md                     サンプルが示す工程のパターン (種類ごとの例の場所)
+ *   docs/spec/schema-refs.json               参照の宣言 (x-ref-kind) の一覧 (項目・種類)
+ *   shared/src/analysis/refKinds.generated.ts  項目名 → 参照先の種類 の表 (参照の整合の検査が使う)
  *
  * 使い方: node scripts/docs/generated.mjs [--write | --check]   (--check は npm run check:docs に含まれる。直し方: --write)
  */
@@ -63,6 +65,56 @@ export function buildSchemaIndex(base = root) {
     });
   }
   return json({ generatedFrom: "schemas/v3/**/*.schema.json (node scripts/docs/generated.mjs --write)", schemaVersion: "v3", schemas: out });
+}
+
+// ─── 参照の種類 (x-ref-kind) ────────────────────────────────
+
+/**
+ * スキーマの `x-ref-kind` 注釈を集める。項目名 → 種類 の対応は、参照の検査・改名・付け替えが同じ宣言を使うための正本。
+ * 読むのは `properties.<名>` の直下と、その `items` だけ (`additionalProperties` の写像・`oneOf` の中の注釈は拾わない。そういう場所に付けるときは、ここも直す)。
+ */
+export function collectRefKinds(base = root) {
+  const dir = path.join(base, "schemas/v3");
+  const out = [];
+  const files = fs.readdirSync(dir).filter((n) => n.endsWith(".schema.json")).sort();
+  for (const f of files) {
+    const s = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8"));
+    const schema = f.replace(/\.v3\.schema\.json$/, "");
+    const visit = (node, def, trail) => {
+      if (Array.isArray(node)) { node.forEach((n, i) => visit(n, def, `${trail}[${i}]`)); return; }
+      if (!node || typeof node !== "object") return;
+      if (node.properties && typeof node.properties === "object") {
+        for (const [name, p] of Object.entries(node.properties)) {
+          if (!p || typeof p !== "object") continue;
+          if (typeof p["x-ref-kind"] === "string") out.push({ schema, def, property: name, refKind: p["x-ref-kind"], many: false });
+          else if (p.items && typeof p.items === "object" && typeof p.items["x-ref-kind"] === "string") out.push({ schema, def, property: name, refKind: p.items["x-ref-kind"], many: true });
+        }
+      }
+      for (const [k, v] of Object.entries(node)) visit(v, def, `${trail}/${k}`);
+    };
+    for (const [name, d] of Object.entries(s.$defs ?? {})) visit(d, name, "");
+    visit({ ...s, $defs: undefined }, "(root)", "");
+  }
+  return out;
+}
+
+export function buildRefKinds(base = root) {
+  const refs = collectRefKinds(base);
+  const kinds = [...new Set(refs.map((r) => r.refKind))].sort();
+  return json({
+    generatedFrom: "schemas/v3/*.schema.json の x-ref-kind (node scripts/docs/generated.mjs --write)",
+    note: "項目名 → 参照先の種類。entity 種類 (table / screen / processFlow / view / viewDefinition / pageLayout / screenGroup) は設計の id、それ以外 (column / action / response / step / screenItem / screenEvent) は、ある設計の中の id。",
+    kinds, count: refs.length, refs,
+  });
+}
+
+/** shared が、スキーマを読まずに使えるように、項目名 → 種類 の表を TypeScript にする */
+export function buildRefKindsTs(base = root) {
+  const refs = collectRefKinds(base);
+  const byName = new Map();
+  for (const r of refs) { if (!byName.has(r.property)) byName.set(r.property, new Set()); byName.get(r.property).add(r.refKind); }
+  const lines = [...byName].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([name, ks]) => `  ${JSON.stringify(name)}: ${JSON.stringify([...ks].sort())},`);
+  return `// 自動生成: schemas/v3/*.schema.json の x-ref-kind から (node scripts/docs/generated.mjs --write)。手で直さない。\n/** 項目名 → 参照先の種類 (同じ名前で種類が複数あるときは、あいまいなので、検査は使わない) */\nexport const REF_KINDS_BY_PROPERTY: Readonly<Record<string, readonly string[]>> = {\n${lines.join("\n")}\n};\n`;
 }
 
 // ─── 工程の種類 ─────────────────────────────────────────────
@@ -268,6 +320,8 @@ export function buildGlossary(base = root) {
 
 export const GENERATED = [
   { file: "docs/spec/schema-index.json", build: buildSchemaIndex },
+  { file: "docs/spec/schema-refs.json", build: buildRefKinds },
+  { file: "shared/src/analysis/refKinds.generated.ts", build: buildRefKindsTs },
   { file: "docs/spec/process-flow-step-kinds.md", build: buildStepKinds },
   { file: "docs/spec/process-flow-pitfalls.md", build: buildPitfalls },
   { file: "docs/glossary.json", build: buildGlossary },
