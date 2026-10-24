@@ -17,7 +17,7 @@ vi.mock("./storyModel", async (orig) => {
 });
 import { ProcessFlowStory } from "./ProcessFlowStory";
 
-const flowCtx = { tableName: () => undefined, screenName: () => undefined };
+const flowCtx: { tableName: (id: string) => string | undefined; screenName: (id: string) => string | undefined } = { tableName: () => undefined, screenName: () => undefined };
 const NO_TABLES: never[] = [];
 
 function flat(n: number): ActionDefinition {
