@@ -58,4 +58,15 @@ describe("shareStructure: 作り直された JSON の、同じ内容の部分を
     expect(shareStructure({ a: 1 }, { a: 1, b: 2 })).toEqual({ a: 1, b: 2 });
     expect(shareStructure({ a: 1, b: 2 }, { a: 1 })).toEqual({ a: 1 });
   });
+
+  it("NaN・Date などの、=== で比べられない値があっても、同じ内容なら同じ参照になる (描画が止まらなくならない)", () => {
+    const d = new Date(0);
+    const prev = { a: Number.NaN, steps: [{ id: "s", n: Number.NaN }], d };
+    const next = { a: Number.NaN, steps: [{ id: "s", n: Number.NaN }], d };
+    expect(shareStructure(prev, next)).toBe(prev);
+    // 同じ時刻でも別の Date は、あとの値のまま (全体は新しい物でよい。止まらないことが大事)
+    const again = shareStructure(prev, { ...next, d: new Date(0) });
+    expect(again.d).not.toBe(d);
+    expect(shareStructure(again, { ...next, d: again.d })).toBe(again);
+  });
 });

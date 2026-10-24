@@ -386,8 +386,7 @@ describe("流れの表示: その場で直す (編集中)", () => {
     // もう一度消してから、別の操作 (動かす) をすると、戻せない
     fireEvent.click(screen.getAllByTestId("pfs-delete")[0]);
     const undo2 = toasts.at(-1)!.undo!;
-    // 動かす操作は、残りが 1 つだと何も変わらず (版も変わらない) 戻せてしまうので、確かに内容が変わる操作 (道を足す) にする
-    fireEvent.click(screen.getAllByTestId("pfs-add-arm")[0]);
+    fireEvent.click(screen.getAllByTestId("pfs-down")[0]);
     undo2();
     expect(onUndo).toHaveBeenCalledTimes(1);
     expect(toasts.at(-1)?.text).toContain("そのあとに別の操作");

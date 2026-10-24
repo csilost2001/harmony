@@ -9,7 +9,7 @@ const isPlain = (v: unknown): v is Record<string, unknown> => !!v && typeof v ==
 const idOf = (v: unknown): string | undefined => (isPlain(v) && typeof v.id === "string" ? v.id : undefined);
 
 export function shareStructure<T>(prev: unknown, next: T): T {
-  if (prev === next) return next;
+  if (Object.is(prev, next)) return next;
   if (Array.isArray(prev) && Array.isArray(next)) {
     // 並べ替え・挿入・削除でも、id が同じ要素は前の物を使い回す (id がなければ、位置で)
     const byId = new Map<string, unknown>();
@@ -18,7 +18,7 @@ export function shareStructure<T>(prev: unknown, next: T): T {
     const out = next.map((n, i) => {
       const id = idOf(n);
       const s = shareStructure(id !== undefined && byId.has(id) ? byId.get(id) : prev[i], n);
-      if (s !== prev[i]) same = false;
+      if (!Object.is(s, prev[i])) same = false;
       return s;
     });
     return (same ? prev : out) as unknown as T;
@@ -30,7 +30,7 @@ export function shareStructure<T>(prev: unknown, next: T): T {
     for (const k of keys) {
       const s = shareStructure(prev[k], next[k]);
       out[k] = s;
-      if (!(k in prev) || s !== prev[k]) same = false;
+      if (!(k in prev) || !Object.is(s, prev[k])) same = false;
     }
     return (same ? prev : out) as T;
   }

@@ -51,12 +51,14 @@ function envSliceEqual(a: RowEnv, b: RowEnv, id: string, digest: string): boolea
     && a.selected.has(id) === b.selected.has(id)
     && a.hl.has(id) === b.hl.has(id)
     && (a.flashId === id) === (b.flashId === id)
-    && a.problems.get(id) === b.problems.get(id)
+    && sameProblemList(a.problems.get(id), b.problems.get(id))
+    && a.reviewed.toggle === b.reviewed.toggle
     && a.reviewed.isReviewed(id, digest) === b.reviewed.isReviewed(id, digest)
     && a.reviewed.isStale(id, digest) === b.reviewed.isStale(id, digest)
     && (a.autoEdit?.stepId === id ? a.autoEdit : null) === (b.autoEdit?.stepId === id ? b.autoEdit : null)
     && a.digests.get(id) === b.digests.get(id);
 }
+const sameProblemList = (a: readonly ValidationError[] | undefined, b: readonly ValidationError[] | undefined): boolean => a === b || (!!a && !!b && a.length === b.length && a.every((p, i) => p.severity === b[i].severity && p.message === b[i].message));
 const sameSet = (a: ReadonlySet<string>, b: ReadonlySet<string>): boolean => a === b || (a.size === b.size && [...a].every((x) => b.has(x)));
 function sameProblems(a: RowEnv["problems"], b: RowEnv["problems"]): boolean {
   if (a === b) return true;

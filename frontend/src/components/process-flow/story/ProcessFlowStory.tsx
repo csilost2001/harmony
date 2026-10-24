@@ -113,16 +113,26 @@ function useLatestApi(input: LatestInput) {
   }), []);
 }
 
+/** 操作のたびにアクション全体が複製されるので、前と同じ内容の部分は前の参照に戻す (行が、変わっていないことを見分けられる)。親の版が変わったときだけ計算する */
+function useSharedAction(action: ActionDefinition): ActionDefinition {
+  const prev = useRef(action);
+  // eslint-disable-next-line react-hooks/refs -- 前の共有結果を覚えるだけ (action が変わったときだけ 1 回計算し、描画の結果は、その値だけで決まる)
+  return useMemo(() => { prev.current = shareStructure(prev.current, action); return prev.current; }, [action]);
+}
+
 export function ProcessFlowStory(props: ProcessFlowStoryProps) {
-  // 操作のたびにアクション全体が複製されるので、前と同じ内容の部分は前の参照に戻す (行が、変わっていないことを見分けられる)
-  const [shared, setShared] = useState(props.action);
-  const action = shareStructure(shared, props.action);
-  if (action !== shared) setShared(action); // 描画の途中の状態の更新 (この部品の本体を、もう一度描かずに済むよう、ここで 1 回だけ)
+  const action = useSharedAction(props.action);
+  // 見ているアクションの版を記録する (消したあとの「元に戻す」の確かめ)。版は、親が持つ版 (内容が同じでも、親の履歴は 1 件積まれる) で見る。画面を離れたら、記録を外す
+  const version = props.action;
+  useEffect(() => { noteAction(version); }, [version]);
+  useEffect(() => () => { noteAction(null); }, []);
   return <ProcessFlowStoryBody {...props} action={action} />;
 }
 
-function ProcessFlowStoryBody({ action, reviewKey, ctx, selectedStepIds, onSelectStep, onOpenStep, editable = false, onMutate, flowIds, tables, ambient, externalSystems: externalSystemsProp, onAskAi, onUndo, problems }: ProcessFlowStoryProps) {
+function ProcessFlowStoryBody({ action, reviewKey, ctx, selectedStepIds, onSelectStep, onOpenStep, editable = false, onMutate, flowIds, tables, ambient: ambientProp, externalSystems: externalSystemsProp, onAskAi, onUndo, problems }: ProcessFlowStoryProps) {
   const externalSystems = useStableBy(externalSystemsProp, (externalSystemsProp ?? []).join("\u0000"));
+  // 親は、編集のたびに作り直した物を渡す。内容が同じ間は同じ物にする (行が描き直されないように)
+  const ambient = useStableBy(ambientProp, JSON.stringify(ambientProp ?? null));
   // 親の関数は、最新の物を呼ぶ窓口を通す (行は、親の関数が変わっても描き直されないので、古い物を持たないように)
   const api = useLatestApi({ onSelectStep, onOpenStep, onMutate, flowIds, onAskAi, onUndo, action });
   const stableSelect = api.select;
@@ -139,9 +149,6 @@ function ProcessFlowStoryBody({ action, reviewKey, ctx, selectedStepIds, onSelec
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** 変数の「前 / 次」で、いま何番目の場所にいるか (-1 は、まだ移っていない) */
   const varCursor = useRef(-1);
-  // 見ているアクションの版を記録する (消したあとの「元に戻す」の確かめ)。画面を離れたら、記録を外す
-  useEffect(() => { noteAction(action); }, [action]);
-  useEffect(() => () => { noteAction(null); }, []);
   useEffect(() => () => { if (flashTimer.current) clearTimeout(flashTimer.current); if (autoTimer.current) clearTimeout(autoTimer.current); }, []);
 
   const changeZoom = useCallback((z: Zoom) => {
