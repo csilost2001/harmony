@@ -33,7 +33,7 @@ beforeAll(async () => {
     kind: "data-contract", name: "OrderForm", purpose: "納品書の入力契約。引当に使う", responsibilities: ["入力を受ける"], targets: ["backend"],
   }, ROOT);
 });
-afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true }); });
+afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
 
 describe("設計の本文検索", () => {
   it("カラムの備考・工程の説明 (入れ子の中も) から、どこに合ったかつきで探せる", async () => {
@@ -94,7 +94,7 @@ describe("検索は、設計のファイルを書き換えない (開いただ�
       expect(await Promise.all(files.map((f) => fs.readFile(f, "utf-8")))).toEqual(before);
       expect((await fs.readdir(path.join(root, "harmony"))).sort()).toEqual(dirsBefore); // ディレクトリも作らない
     } finally {
-      await fs.rm(root, { recursive: true, force: true });
+      await fs.rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
     }
   });
 

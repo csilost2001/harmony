@@ -13,6 +13,9 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { countOutlineNone } from "./no-new-outline-none.mjs";
+import { scanText } from "./no-secrets.mjs";
+import { measure as measureHygiene } from "./hygiene.mjs";
+import { licenseOk } from "../dev/deps-report.mjs";
 import {
   parseArgs,
   extractFailedTests,
@@ -779,6 +782,29 @@ group("release:notes (リリースノート)", () => {
 group("no-new-outline-none (フォーカス輪郭の検査)", () => {
   assert("outline: none / 0 を数える (空白の違いも)", countOutlineNone(".a{outline:none}.b{ outline : 0 }.c{outline: 2px solid red}") === 2);
   assert("コメントの中は数えない。outline-offset などは数えない", countOutlineNone("/* outline: none */ .a{outline-offset:0;outline-style:none}") === 0);
+});
+
+group("no-secrets (秘密らしい文字列の検査)", () => {
+  const fake = (parts) => parts.join("");
+  assert("AWS のキー・GitHub のトークン・秘密鍵・JWT を見つける", scanText(fake(["AK", "IA", "ABCDEFGHIJKLMNOP"])).length === 1 && scanText(fake(["gh", "p_", "a".repeat(36)])).length === 1 && scanText(fake(["-----BEGIN ", "PRIVATE KEY-----"])).length === 1 && scanText(fake(["ey", "J", "a".repeat(12), ".ey", "J", "b".repeat(12), ".", "c".repeat(12)])).length === 1);
+  assert("ふつうの文字・短い sk- の文字は見つけない。出力には全文を出さない", scanText("sk-learn and AKIA short and ghp_short").length === 0 && !JSON.stringify(scanText(fake(["gh", "p_", "a".repeat(36)]))).includes("a".repeat(20)));
+});
+
+group("hygiene (コードの衛生の検査)", () => {
+  const files = ["backend/src/a.ts", "backend/src/a.test.ts", "frontend/src/b.tsx"];
+  const body = {
+    "backend/src/a.ts": "console.log(1);\n// eslint-disable-next-line x -- 理由\n// eslint-disable-next-line y\n// TODO: あとで\n// TODO(#1): ok\nconst s = `// TODO: 文字列`;",
+    "backend/src/a.test.ts": "console.log(2);\ndescribe.only('x', () => {});",
+    "frontend/src/b.tsx": "const a = 1;",
+  };
+  const m = measureHygiene(files, (f) => body[f]);
+  assert("理由なしの eslint-disable・番号なしの TODO・.only・backend の console を数える (試験の console は除く・理由つき・番号つき・文字列の中は除く)", m.disableWithoutReason.length === 1 && m.badTodo.length === 1 && m.only.length === 1 && m.backendConsole.length === 1, JSON.stringify(m));
+  const big = measureHygiene(["backend/src/big.ts", "backend/src/big.test.ts"], () => "x\n".repeat(1600));
+  assert("1500 行を超える (試験以外の) ファイルを数える", Object.keys(big.big).join() === "backend/src/big.ts");
+});
+
+group("deps-report (ライセンスの判定)", () => {
+  assert("許可リストの SPDX・OR・AND を判定する", licenseOk("MIT") && licenseOk("(MIT OR GPL-3.0)") && licenseOk("(MPL-2.0 OR Apache-2.0)") && licenseOk("MIT AND BSD-3-Clause") && !licenseOk("GPL-3.0") && !licenseOk("(GPL-3.0 AND MIT)") && !licenseOk(undefined) && !licenseOk("UNLICENSED"));
 });
 
 // ─────────────────────────────────────────────────────────────

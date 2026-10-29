@@ -33,7 +33,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await fs.rm(TMP_ROOT, { recursive: true, force: true });
+  await fs.rm(TMP_ROOT, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
 });
 
 describe("browseFs", () => {

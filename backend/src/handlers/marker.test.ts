@@ -42,7 +42,7 @@ beforeAll(async () => {
     createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z", items: [], layout: { version: 1, nodes: [] },
   }, ROOT);
 });
-afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true }); });
+afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
 
 const SCHEMA_DIR = path.resolve(__dirname, "../../../schemas/v3");
 const EXAMPLE_FLOW = path.resolve(__dirname, "../../../examples/retail/harmony/process-flows");

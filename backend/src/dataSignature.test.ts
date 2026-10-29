@@ -15,7 +15,7 @@ beforeAll(async () => {
   await fs.mkdir(path.join(ROOT, "harmony", "tables"), { recursive: true });
   await fs.writeFile(path.join(ROOT, "harmony.json"), JSON.stringify({ schemaVersion: "v3", dataDir: "harmony", meta: { id: "00000000-0000-4000-8000-00000000000d", name: "t", createdAt: ts, updatedAt: ts }, entities: {} }));
 });
-afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true }); });
+afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
 
 describe("データの署名と、結果の使い回し", () => {
   it("ファイルが変わると署名が変わり、変わらなければ同じ", async () => {

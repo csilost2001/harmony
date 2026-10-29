@@ -35,7 +35,7 @@ beforeAll(async () => {
     items: [{ id: "qty", label: "数量", type: "integer" }],
   }, ROOT);
 });
-afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true }); });
+afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
 
 describe("designer__get/set_screen_layout", () => {
   it("layout が無い画面は layout: null で返す", async () => {

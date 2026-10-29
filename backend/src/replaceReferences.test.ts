@@ -23,7 +23,7 @@ const seedFlow = (root: string, id: string, tableIds: string[]) =>
   writeProcessFlow(id, { id, name: id, steps: tableIds.map((t, i) => ({ id: `s${i}`, kind: "db", tableId: t })) }, root);
 
 beforeEach(() => _clearReplaceUndoForTest());
-afterAll(async () => { await fs.rm(TMP, { recursive: true, force: true }).catch(() => {}); });
+afterAll(async () => { await fs.rm(TMP, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }).catch(() => {}); });
 
 async function seed() {
   const root = await makeWorkspace();

@@ -22,7 +22,7 @@ beforeAll(async () => {
     entities: { tables: [{ id: "orders", physicalName: "orders", name: "注文" }] },
   }));
 });
-afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true }); });
+afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
 
 describe("readTable の同時読込", () => {
   it("並行して読んでも全員が同じ内容・同じ uuid を受け取り、ファイルは書き換わらない", async () => {

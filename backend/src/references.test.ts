@@ -25,7 +25,7 @@ beforeAll(async () => {
   await writeBusinessFlow("order", { name: "注文", lanes: [{ id: "a", name: "顧客" }], steps: [{ id: "s1", lane: "a", kind: "task", name: "カートを見る", screenRef: "cart" }] }, ROOT);
   await writeReport("slip", { name: "伝票", output: { format: "pdf" }, trigger: { kind: "screen", screenRef: "cart" }, sections: [] }, ROOT);
 });
-afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true }); });
+afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
 
 describe("参照元の検索", () => {
   it("画面を参照している業務フロー・帳票・画面の遷移を、設計ごとにまとめて返す", async () => {

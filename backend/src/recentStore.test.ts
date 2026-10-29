@@ -46,7 +46,7 @@ beforeEach(async () => {
 afterAll(async () => {
   // tmp ディレクトリ全削除 + env 復元
   try {
-    await fs.rm(TMP_DIR, { recursive: true, force: true });
+    await fs.rm(TMP_DIR, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
   } catch { /* ignore */ }
   if (ORIGINAL_ENV !== undefined) {
     process.env.DESIGNER_RECENT_FILE = ORIGINAL_ENV;

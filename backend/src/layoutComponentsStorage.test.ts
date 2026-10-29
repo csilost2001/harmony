@@ -21,7 +21,7 @@ beforeAll(async () => {
     entities: { screens: [{ id: "cart", name: "カート", kind: "form", path: "/cart" }] },
   }));
 });
-afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true }); });
+afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
 
 describe("layout-components.json", () => {
   it("無ければ空の定義集合を返す", async () => {

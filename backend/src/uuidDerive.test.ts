@@ -27,7 +27,7 @@ async function put(root: string, dir: string, id: string, body: object) {
 }
 
 beforeAll(async () => { await manifest(ROOT, "11111111-1111-4111-8111-111111111111"); });
-afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true }); });
+afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
 
 describe("deriveStableUuid", () => {
   it("v4 の形で、同じ入力なら同じ値。種類・id・プロジェクト固有の値が違えば別の値", () => {
@@ -78,7 +78,7 @@ describe("uuid の無いファイルは、読んでも書き換わらない (7 �
       const b = (await readTable("t-a", other) as any).uuid;
       expect(b).toMatch(V4);
       expect(b).not.toBe(a);
-    } finally { await fs.rm(other, { recursive: true, force: true }); }
+    } finally { await fs.rm(other, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); }
   });
 });
 

@@ -15,7 +15,7 @@ import { ensureDataDir, harmonyFile, validateEntitySchema, writeTable } from "./
 import { collectSchemaIssues } from "./schemaIssues.js";
 
 const TMP = path.join(os.tmpdir(), `schema-incr-${process.pid}-${Date.now()}`);
-afterAll(async () => { await fs.rm(TMP, { recursive: true, force: true }); });
+afterAll(async () => { await fs.rm(TMP, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
 
 describe("collectSchemaIssues の増分化", () => {
   it("1 件だけ保存したあとの再検査は、その 1 件だけを検査し直す", async () => {

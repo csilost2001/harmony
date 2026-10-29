@@ -43,7 +43,7 @@ async function seed() {
 }
 
 beforeEach(async () => { ROOT = path.join(os.tmpdir(), `design-replace-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`); await seed(); _clearReplaceUndoForTest(); });
-afterEach(async () => { await fs.rm(ROOT, { recursive: true, force: true }); });
+afterEach(async () => { await fs.rm(ROOT, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
 
 describe("検索置換の予行", () => {
   it("名前・備考・工程の説明 (入れ子の中も) から、場所つきで見つけ、置換後の文言を見せる。何も書かない", async () => {

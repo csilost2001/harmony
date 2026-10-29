@@ -19,7 +19,7 @@ beforeAll(async () => {
     entities: {},
   }));
 });
-afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true }); });
+afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
 
 const table = (columns: unknown[]) => ({
   id: "customers", uuid: "44444444-4444-4444-8444-444444444444", physicalName: "customers", name: "顧客",

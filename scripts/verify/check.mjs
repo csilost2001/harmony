@@ -31,6 +31,8 @@ const steps = [
   ["スキーマと型の食い違い検査", "node", ["scripts/verify/types-drift.mjs"], root],
   ["文字サイズの検査", "node", ["scripts/dev/scale-font-sizes.mjs", "--check"], root],
   ["ドラッグ操作の代替の検査", "node", ["scripts/verify/drag-alternatives.mjs"], root],
+  ["秘密の混入の検査", "node", ["scripts/verify/no-secrets.mjs"], root],
+  ["コードの衛生の検査", "node", ["scripts/verify/hygiene.mjs"], root],
   ["フォーカス輪郭の検査", "node", ["scripts/verify/no-new-outline-none.mjs"], root],
   ["CSS 未定義クラス検査", "node", ["scripts/verify/no-undefined-bootstrap-classes.mjs"], root],
   ["サンプル設計の要確認", "node", ["scripts/check-design.mjs", ...sampleDirs, "--strict"], root],

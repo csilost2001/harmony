@@ -34,7 +34,7 @@ beforeAll(async () => {
     steps: [{ id: "s1", lane: "a", kind: "start", name: "開始", screenRef: "nowhere" }],
   }, ROOT);
 });
-afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true }); });
+afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
 
 describe("designer__check_design", () => {
   it("要確認事項と件数を返す。読めない画面と参照先のない業務フローが出る", async () => {

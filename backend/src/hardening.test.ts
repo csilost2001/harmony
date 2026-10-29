@@ -40,7 +40,7 @@ const table = (id: string, name: string, extra: Record<string, unknown> = {}) =>
 const read = async (p: string) => JSON.parse(await fs.readFile(p, "utf-8"));
 
 beforeAll(async () => { await fs.mkdir(TMP, { recursive: true }); });
-afterAll(async () => { await fs.rm(TMP, { recursive: true, force: true }); });
+afterAll(async () => { await fs.rm(TMP, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
 
 describe("保存前の版 (fileBackup / fileVersions)", () => {
   it("上書きの直前の内容が、新しい順に残る。同じ内容の保存では増えない", async () => {
@@ -340,7 +340,7 @@ describe("外部変更の検知 (externalChanges)", () => {
     const dir = path.join(TMP, "rmdir-case");
     await fs.mkdir(path.join(dir, "sub"), { recursive: true });
     await fs.writeFile(path.join(dir, "sub", "a.json"), "{}");
-    await fs.rm(dir, { recursive: true, force: true });
+    await fs.rm(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
     expect(isSelfWritePath(path.join(dir, "sub", "a.json"))).toBe(true);
     expect(isSelfWritePath(path.join(TMP, "other-dir", "a.json"))).toBe(false);
   });
@@ -362,7 +362,7 @@ describe("外部変更の検知 (externalChanges)", () => {
     fsSync.writeFileSync(c, "C");
     expect(fsSync.readFileSync(c, "utf-8")).toBe("C");
     expect(isSelfWritePath(c)).toBe(true);
-    await fs.rm(dir, { recursive: true, force: true });
+    await fs.rm(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
   });
 
   const waitFor = async (cond: () => boolean, ms = 5_000): Promise<boolean> => {
@@ -492,7 +492,7 @@ describe("外部変更の検知 (externalChanges)", () => {
     const dir = path.join(root, "harmony", "tables", "d");
     await fs.mkdir(dir, { recursive: true });
     await fs.writeFile(path.join(dir, "x.json"), "{}");
-    await fs.rm(dir, { recursive: true, force: true });
+    await fs.rm(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
     expect(isSelfWritePath(path.join(dir, "x.json"))).toBe(true);
     await fs.mkdir(dir, { recursive: true });
     await fs.writeFile(path.join(dir, "x.json"), "{}");

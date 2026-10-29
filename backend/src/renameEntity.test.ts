@@ -67,7 +67,7 @@ async function makeWorkspace(): Promise<string> {
 }
 
 afterAll(async () => {
-  await fs.rm(TMP_ROOT, { recursive: true, force: true }).catch(() => {});
+  await fs.rm(TMP_ROOT, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }).catch(() => {});
 });
 
 beforeEach(() => {

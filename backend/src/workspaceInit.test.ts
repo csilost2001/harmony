@@ -31,14 +31,14 @@ beforeEach(async () => {
 
 afterEach(async () => {
   try {
-    await fs.rm(TMP_ROOT, { recursive: true, force: true });
+    await fs.rm(TMP_ROOT, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
   } catch { /* ignore */ }
   resetWorkspaceState();
 });
 
 afterAll(async () => {
   try {
-    await fs.rm(TMP_ROOT, { recursive: true, force: true });
+    await fs.rm(TMP_ROOT, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
   } catch { /* ignore */ }
   if (ORIGINAL_RECENT_FILE === undefined) {
     delete process.env.DESIGNER_RECENT_FILE;

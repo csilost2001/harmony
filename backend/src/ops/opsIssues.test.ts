@@ -17,7 +17,7 @@ beforeEach(async () => {
   await fs.writeFile(path.join(ROOT, "harmony.json"), JSON.stringify({ schemaVersion: "v3", dataDir: "harmony", meta: { id: "00000000-0000-4000-8000-00000000000c", name: "t", createdAt: ts, updatedAt: ts }, entities: { tables: [{ id: "orders", no: 1, name: "注文", physicalName: "orders", maturity: "draft", updatedAt: ts }] } }));
   await writeTable("orders", table({ maturity: "committed" }), ROOT);
 });
-afterEach(async () => { await fs.rm(ROOT, { recursive: true, force: true }); });
+afterEach(async () => { await fs.rm(ROOT, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
 
 describe("運用の記録の「要確認」", () => {
   it("方針が無効なら、確定の設計に承認が無くても、何も出さない", async () => {

@@ -46,7 +46,7 @@ beforeAll(async () => {
     columns: [{ id: "name-col", physicalName: "name_col", name: "名", dataType: "VARCHAR", length: 50 }, { id: "qty-col", physicalName: "qty_col", name: "数", dataType: "INTEGER" }],
   }, ROOT);
 });
-afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true }); });
+afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
 
 describe("帳票の MCP tool", () => {
   it("保存すると id がファイル名に固定され、$schema と日時が付き、検証の指摘は無い", async () => {

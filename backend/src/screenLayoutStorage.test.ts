@@ -24,7 +24,7 @@ beforeAll(async () => {
     items: [{ id: "qty", label: "数量", type: "integer" }],
   }, ROOT);
 });
-afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true }); });
+afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
 
 describe("writeScreenItems + layout", () => {
   it("payload の layout を画面 entity に保存する", async () => {
