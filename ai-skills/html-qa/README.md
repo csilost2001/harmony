@@ -82,22 +82,15 @@ Claude Code の Remote Control (スマホの Claude アプリから、PC で動�
 
 Remote Control そのものはチャットだけを中継するので、画面を開けるのは **家庭内 LAN にいるとき** だけです (家の外からは開けない)。
 
-## hook とサーバの自動起動を入れる
+## hook とサーバの自動起動
 
-どちらも任意です。AI が自分で入れようとすると、Claude Code の auto mode が「AI 自身の設定の変更」「常駐する仕組みの追加」として止めます (そういう決まりです)。入れたいときは、チャットで **名指しして** 頼むか、自分で書き足してください。
+どちらも、このリポジトリでは設定済みです。
 
-- hook (`.claude/settings.json` の `"hooks"` の中に足す):
+- **hook** (`.claude/settings.json` の `UserPromptSubmit`): 書き換えた時点で効きます (再起動は不要)。未読の回答が無ければ何もしません
+- **サーバの自動起動** (`.vscode/tasks.json` の `"runOn": "folderOpen"`): 動かすには、**自分の PC の VS Code のユーザー設定** で `task.allowAutomaticTasks` を `on` にする必要があります
+  - 設定画面 (Ctrl+,) で `task.allowAutomaticTasks` を検索して「on」にする。または「基本設定: ユーザー設定を開く (JSON)」で `"task.allowAutomaticTasks": "on"` を足す
+  - この設定は VS Code の決まりで **ユーザー設定にしか書けません** (ワークスペースの `.vscode/settings.json` やコンテナ側の設定に書いても無視される。勝手にコードを動かされないための守り)
+  - on にしたあと、フォルダを開き直すとサーバが起動します (ターミナルの「html-qa: 表示サーバ」)
+  - on にすると、ほかのプロジェクトの自動タスクも動くようになります。信頼していないフォルダ (制限モード) では動きません
 
-  ```json
-  "UserPromptSubmit": [
-    {
-      "hooks": [
-        { "type": "command", "command": "node ${CLAUDE_PROJECT_DIR}/ai-skills/html-qa/scripts/hook-inject.mjs", "timeout": 10 }
-      ]
-    }
-  ]
-  ```
-
-  書き足せば、そのまま効きます (再起動は不要)。
-
-- サーバの自動起動: `.vscode/tasks.json` のタスクに `"runOptions": { "runOn": "folderOpen" }` を足し、VS Code の設定 `task.allowAutomaticTasks` を `on` にする。フォルダを開くとサーバが起動します。
+AI がこうした設定を自分で入れようとすると、Claude Code の auto mode が「AI 自身の設定の変更」「常駐する仕組みの追加」として止めます。入れるときは、チャットで変更を名指しして頼みます。

@@ -70,7 +70,7 @@ node ai-skills/html-qa/scripts/wait.mjs .tmp/html-qa/<topic>
 回答は次のどれかで届く。どれも `[html-qa の回答]` で始まる同じ形。
 
 1. **wait.mjs の出力** (ふつうはこれ)
-2. **hook が発言に添えたもの** (hook を登録している場合。[README.md](README.md)): 待ち受けが動いていなかったとき (セッションを開き直した等) は、利用者が次にチャットで何か書いたときに、UserPromptSubmit hook ([scripts/hook-inject.mjs](scripts/hook-inject.mjs)) が未読の回答を添える
+2. **hook が発言に添えたもの** (このリポジトリでは `.claude/settings.json` に登録済み): 待ち受けが動いていなかったとき (セッションを開き直した等) は、利用者が次にチャットで何か書いたときに、UserPromptSubmit hook ([scripts/hook-inject.mjs](scripts/hook-inject.mjs)) が未読の回答を添える
 3. 利用者がチャットに貼ったもの (サーバを使わず「返答をコピー」した場合)
 
 返答文には「回答」「おまかせ」「保留」「未回答」「全体へのコメント」が分かれて入っている。「おまかせ」は推奨どおりに進め、「保留」と必須の「未回答」は次の版でもう一度聞く。

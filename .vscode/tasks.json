@@ -9,7 +9,8 @@
       "command": "node ai-skills/html-qa/scripts/serve.mjs",
       "isBackground": true,
       "problemMatcher": [],
-      "presentation": { "reveal": "silent", "panel": "dedicated", "group": "html-qa" }
+      "presentation": { "reveal": "silent", "panel": "dedicated", "group": "html-qa" },
+      "runOptions": { "runOn": "folderOpen" }
     }
   ]
 }
