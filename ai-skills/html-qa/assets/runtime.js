@@ -125,7 +125,8 @@
   function mermaidBlock(b) {
     const view = h("div", { class: "mmview" }); const m = { b, view }; MM.push(m);
     mmQ = mmQ.then(() => mmDraw(m));
-    return h("div", { class: "figure mermaid" }, figureZoom(view), b.caption && h("div", { class: "caption" }, b.caption));
+    view.addEventListener("click", () => { if (view.querySelector("svg")) openLightbox(view); }); // 文字のままの表示は拡大しない
+    return h("div", { class: "figure mermaid" }, view, b.caption && h("div", { class: "caption" }, b.caption));
   }
   const RENDER = {
     text: (b) => mdEl(b.md),
