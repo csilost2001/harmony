@@ -109,7 +109,7 @@ const server = http.createServer((req, res) => {
       // 構造化された回答 (vN.answer.json)。古い画面からの送信には無い。.md より先に書く (.md が届いた時点で揃っているように)
       if (answers && typeof answers === "object" && !Array.isArray(answers) && answers.topic === topic && answers.version === version) {
         try { fs.writeFileSync(path.join(dir, `v${version}.answer.json`), `${JSON.stringify(answers, null, 2)}\n`); } catch (err) { console.error(`vN.answer.json を書けませんでした: ${err.message}`); }
-      }
+      } else fs.rmSync(path.join(dir, `v${version}.answer.json`), { force: true }); // 古い画面からの送信: 前の構造化回答を残さない
       fs.writeFileSync(file, `<!-- html-qa の回答 (${new Date().toISOString()}) -->\n${text.replace(/\r\n?/g, "\n")}\n`);
       const rel = path.relative(process.cwd(), file).split(path.sep).join("/");
       console.log(`回答を保存: ${rel}`);

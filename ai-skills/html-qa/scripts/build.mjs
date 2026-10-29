@@ -164,6 +164,12 @@ function summarize(d, dir) {
   return { version: d.v, title: d.doc.title, decisions: (d.doc.decisions || []).map((x) => x.title), questions, answers };
 }
 
+// ページごとに、そのページの版に無い質問 (消えた質問になりうるもの) の回答だけを残す。回答の全文は HTML に入れない
+function historyFor(history, cur) {
+  const ids = new Set(cur.questions.map((x) => x.id));
+  return history.map((h) => ({ ...h, answers: h.version >= cur.version || !h.answers ? null : { questions: (h.answers.questions || []).filter((x) => x && !ids.has(x.id)).map((x) => ({ id: x.id, state: x.state, answer: x.answer })) } }));
+}
+
 function buildTopic(dir, css, js) {
   const vs = versionsIn(dir);
   if (!vs.length) return { ok: false, out: [`${dir}: v*.json がありません`] };
@@ -186,7 +192,7 @@ function buildTopic(dir, css, js) {
   const rel = (f) => path.relative(process.cwd(), f).split(path.sep).join("/");
   for (const d of docs) {
     if (d.errs.length) continue;
-    const metaFor = { versions: meta, latest, jsonPath: rel(d.file), indexHref: "../index.html", history };
+    const metaFor = { versions: meta, latest, jsonPath: rel(d.file), indexHref: "../index.html", history: historyFor(history, history.find((x) => x.version === d.v)) };
     const body = `<script type="application/json" id="qa-doc">${jsonForScript(d.doc)}</script>
 <script type="application/json" id="qa-meta">${jsonForScript(metaFor)}</script>
 <noscript>この資料の表示には JavaScript が必要です。</noscript>

@@ -260,6 +260,7 @@ label.chk { display: inline-flex; gap: 6px; align-items: center; font-size: 13px
 /* ---- Mermaid の図 ---- */
 .mermaid .mmview { overflow-x: auto; }
 .mermaid .mmview pre.code { text-align: left; margin-top: 6px; }
+.mermaid .mmview pre.mmerr { color: var(--danger); white-space: pre-wrap; }
 
 /* ---- 発表モード ---- */
 .ptitle { display: none; }

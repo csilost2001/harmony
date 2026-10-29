@@ -153,6 +153,7 @@ node ai-skills/html-qa/scripts/wait.mjs .tmp/html-qa/<topic>
 
 1. 質問に `ref` を付けて聞く。形は `<種類>:<ID>` (設計全体: `screen:login`) / `processFlow:<ID>#<stepId>` (処理フローの工程) / `<種類>:<ID>@<fieldPath>` (設計の中の位置。fieldPath は `$` で始める: `table:orders@$.columns[col-02]`)。種類は `processFlow` `screen` `table` `view` `viewDefinition` `sequence` `pageLayout`
 2. 回答が届いたら `node scripts/dev/html-qa-markers.mjs .tmp/html-qa/<topic> [--version N]` を動かす。`vN.answer.json` を、`designer__add_marker` に渡す引数の JSON 配列にして出す (回答・おまかせ → todo / human、保留 → question / ai。`ref` の無い質問・未回答は出さない。`ref` の誤りは終了コード 1、`vN.answer.json` が無い (返答をコピーした回答) ときは 2)
+   `ref` の形の誤りは、この変換で分かる (build では文字列かどうかしか見ない)。1 件でも誤りがあると何も出力されず終了コード 1 になるので、`ref` の形を間違えないこと
 3. 登録の前に `designer__find_all_markers` で、本文 1 行目の印 (`[html-qa <topic> v<N> <質問 id>]`) が既にあるか確かめ、あるものは登録しない (二重に付けない)。出力の残りを `designer__add_marker` で 1 件ずつ登録する
 
 ## 気をつけること

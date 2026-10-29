@@ -45,6 +45,19 @@ test("toMarkers: review は項目ごと。項目 ref → 質問 ref の順、未
   assert.match(markers[1].body, /保留: B/);
 });
 
+test("toMarkers: review でも defer / delegate は質問単位 1 件 (項目の判断は出さない)", () => {
+  const items = [{ id: "a", title: "A", ref: "screen:scr", judgement: "ng" }, { id: "b", title: "B", judgement: "ok" }];
+  const d = toMarkers(doc, { ...base, questions: [{ id: "rv", n: 1, type: "review", q: "R?", state: "defer", items }] }).markers;
+  assert.equal(d.length, 1);
+  assert.deepEqual([d[0].entityType, d[0].stepId, d[0].kind, d[0].author], ["processFlow", "s0", "question", "ai"]);
+  assert.ok(!d[0].body.includes("不採用"));
+  const g = toMarkers(doc, { ...base, questions: [{ id: "rv", n: 1, type: "review", q: "R?", state: "delegate", items }] }).markers;
+  assert.equal(g.length, 1);
+  assert.deepEqual([g[0].kind, g[0].author], ["todo", "human"]);
+  assert.match(g[0].body, /おまかせ/);
+  assert.equal(toMarkers(doc, { ...base, questions: [{ id: "rv", n: 1, type: "review", q: "R?", state: "open", items }] }).markers.length, 0);
+});
+
 test("toMarkers: ref の誤りは errors に集める", () => {
   const { errors } = toMarkers(null, { ...base, questions: [{ id: "q1", n: 1, q: "x", ref: "bogus:x", state: "answered", answer: "a" }, { id: "q2", n: 2, q: "y", ref: "table:t@bad", state: "answered", answer: "a" }] });
   assert.equal(errors.length, 2);

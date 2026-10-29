@@ -108,16 +108,16 @@
   const MM = []; let mmLib = null, mmP = null, mmSeq = 0, mmQ = Promise.resolve();
   const isDark = () => (document.documentElement.dataset.theme ? document.documentElement.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches);
   const loadMermaid = () => mmP ||= Promise.race([import(MM_URL).then((m) => (mmLib = m.default)), new Promise((_, no) => setTimeout(() => no(new Error("時間切れ")), 8000))]);
-  function mmText(m, why) { m.view.replaceChildren(h("div", { class: "caption" }, why), h("pre", { class: "code" }, m.b.code)); }
+  function mmText(m, why, detail) { m.view.replaceChildren(...[h("div", { class: "caption" }, why), detail ? h("pre", { class: "code mmerr" }, detail) : null, h("pre", { class: "code" }, m.b.code)].filter(Boolean)); }
   async function mmDraw(m) {
     if (!mmLib) mmText(m, "図を読み込み中…");
-    try { await loadMermaid(); } catch { return mmText(m, "図の表示にはネット接続が要ります (cdn.jsdelivr.net)。文字のまま表示しています"); }
+    try { await loadMermaid(); } catch { mmP = null; return mmText(m, "図の表示にはネット接続が要ります (cdn.jsdelivr.net)。文字のまま表示しています"); }
     const id = `qa-mm-${++mmSeq}`;
     try {
       mmLib.initialize({ startOnLoad: false, securityLevel: "strict", theme: isDark() ? "dark" : "default" });
       await mmLib.parse(m.b.code);
       m.view.innerHTML = (await mmLib.render(id, m.b.code)).svg;
-    } catch (err) { mmText(m, `図の書き方に誤りがあるため、文字のまま表示しています: ${String(err?.message || err).split("\n")[0]}`); }
+    } catch (err) { mmText(m, "図の書き方に誤りがあるため、文字のまま表示しています", String(err?.message || err).split("\n").slice(0, 6).join("\n")); }
     document.getElementById(`d${id}`)?.remove();
   }
   const mmRedraw = () => MM.forEach((m) => { mmQ = mmQ.then(() => mmDraw(m)); });
@@ -587,11 +587,17 @@
     if (d) { e.preventDefault(); goPresent(d); }
   });
   let touch = null;
-  addEventListener("touchstart", (e) => { const t = e.touches[0]; touch = present >= 0 && e.touches.length === 1 && !e.target.closest("input,textarea,select,.tablewrap,pre") ? { x: t.clientX, y: t.clientY } : null; }, { passive: true });
+  addEventListener("touchstart", (e) => { const t = e.touches[0]; touch = present >= 0 && e.touches.length === 1 && !e.target.closest("input,textarea,select,.tablewrap,pre,.mmview,.svgbox,.figure") ? { x: t.clientX, y: t.clientY } : null; }, { passive: true });
   addEventListener("touchend", (e) => {
     if (!touch || present < 0) return; const t = e.changedTouches[0]; const dx = t.clientX - touch.x, dy = t.clientY - touch.y; touch = null;
     if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) goPresent(dx < 0 ? 1 : -1);
   }, { passive: true });
+  // ブラウザの戻る / 進む: #present-N に追従し、hash が消えたら発表を終える (replaceState は hashchange を出さない)
+  addEventListener("hashchange", () => {
+    const m = location.hash.match(/^#present-(\d+)$/);
+    if (m) { if (present < 0) enterPresent(Number(m[1]) - 1); else if (Number(m[1]) - 1 !== present) showSlide(Number(m[1]) - 1); }
+    else if (present >= 0) exitPresent();
+  });
   // 発表中の目次・「v1 からの変化」のリンクは、その場所がある画面へ移ってから飛ぶ
   main.addEventListener("click", (e) => {
     const a = e.target.closest?.('a[href^="#"]'); if (!a || present < 0) return;

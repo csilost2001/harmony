@@ -31,7 +31,7 @@ const SCRIPT = `(() => {
     cnt.textContent = n + " 件"; none.hidden = n > 0;
     btns.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.filter === filter)));
     const p = new URLSearchParams(); if (qi.value.trim()) p.set("q", qi.value); if (filter !== "all") p.set("filter", filter);
-    try { history.replaceState(null, "", location.pathname + (p.size ? "?" + p : "")); } catch { /* file:// など */ }
+    try { history.replaceState(null, "", location.pathname + (p.toString() ? "?" + p : "")); } catch { /* file:// など */ }
   };
   qi.addEventListener("input", apply);
   btns.forEach((b) => b.addEventListener("click", () => { filter = b.dataset.filter; apply(); }));

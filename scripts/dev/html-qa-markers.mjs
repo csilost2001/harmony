@@ -50,7 +50,7 @@ export function toMarkers(doc, answers) {
   for (const q of answers.questions || []) {
     const b = blocks.get(q.id); const label = `Q${q.n ?? "?"} (${q.id})`; const tag = (id) => `[html-qa ${topic} v${version} ${id}]`;
     const qref = q.ref ?? b?.ref; const note = q.note?.trim() ? `補足: ${q.note.trim()}` : null;
-    if (q.type === "review") {
+    if (q.type === "review" && q.state === "answered") {
       const judged = (q.items || []).filter((it) => it.judgement);
       for (const it of judged) {
         const ref = it.ref ?? b?.items?.find((x) => x.id === it.id)?.ref ?? qref;
@@ -60,7 +60,7 @@ export function toMarkers(doc, answers) {
         if (!word) { errors.push(`${lab}: judgement "${it.judgement}" は未知です`); continue; }
         emit(lab, ref, it.judgement === "hold" ? "question" : "todo", it.judgement === "hold" ? "ai" : "human", [tag(`${q.id}/${it.id}`), q.q, `${word}: ${it.title || it.id}`, it.note?.trim() ? `コメント: ${it.note.trim()}` : null]);
       }
-      if (judged.length) continue;
+      continue;
     }
     if (q.state === "open" || !q.state) continue;
     if (!qref) { skipped.push(label); continue; }
