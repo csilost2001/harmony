@@ -175,7 +175,7 @@ describe("backend HTTP transport (#302)", () => {
     // #758: fixture workspace の cleanup
     if (tempFixtureDir) {
       try {
-        await fs.rm(tempFixtureDir, { recursive: true, force: true });
+        await fs.rm(tempFixtureDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
       } catch { /* ignore — OS が後で GC する */ }
       tempFixtureDir = null;
     }

@@ -41,7 +41,7 @@ beforeEach(async () => {
 
 afterAll(async () => {
   try {
-    await fs.rm(TMP_DIR, { recursive: true, force: true });
+    await fs.rm(TMP_DIR, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
   } catch { /* ignore */ }
   if (ORIGINAL_ENV !== undefined) {
     process.env.DESIGNER_RECENT_FILE = ORIGINAL_ENV;

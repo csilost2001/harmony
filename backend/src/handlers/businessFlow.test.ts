@@ -41,7 +41,7 @@ beforeAll(async () => {
     createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z", items: [],
   }, ROOT);
 });
-afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true }); });
+afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
 
 describe("業務フローの MCP tool", () => {
   it("無いときは空の一覧、保存すると id がファイル名に固定され、$schema と日時が付く", async () => {

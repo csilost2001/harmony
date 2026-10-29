@@ -20,7 +20,7 @@ beforeEach(async () => {
   await writeTable("orders", { id: "orders", uuid: "44444444-4444-4444-8444-444444444441", physicalName: "orders", name: "注文", createdAt: ts, updatedAt: ts, columns: [] }, ROOT);
   await notifyStore.update(ROOT, () => ({ version: 1, webhooks: [{ id: "h", name: "n", url: "https://hooks.example.com/x", format: "slack", events: ["comment"], enabled: true }] }));
 });
-afterEach(async () => { await fs.rm(ROOT, { recursive: true, force: true }); });
+afterEach(async () => { await fs.rm(ROOT, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
 const settle = () => new Promise((r) => setTimeout(r, 50));
 
 describe("コメントの通知", () => {

@@ -59,7 +59,7 @@ async function makeWorkspace(root: string): Promise<void> {
 }
 
 afterAll(async () => {
-  await fs.rm(TMP_ROOT, { recursive: true, force: true }).catch(() => {});
+  await fs.rm(TMP_ROOT, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }).catch(() => {});
 });
 
 // ── 1. designer__add_process_flow が v3 構造で書き込む ─────────────────────────
@@ -429,7 +429,7 @@ describe("writeProcessFlow AJV validation — #1141 F-2", () => {
 describe("designer__list_process_flows — #1141 F-4 v3 meta path", () => {
   const root = path.join(TMP_ROOT, "ws-list");
   beforeEach(async () => {
-    await fs.rm(root, { recursive: true, force: true }).catch(() => {});
+    await fs.rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }).catch(() => {});
     await makeWorkspace(root);
   });
 

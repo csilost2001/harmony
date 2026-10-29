@@ -36,7 +36,7 @@ beforeAll(async () => {
   await Promise.all([server.connect(a), client.connect(b)]);
   closeAll = async () => { await client.close(); await server.close(); };
 });
-afterAll(async () => { await closeAll(); wsDisconnect(SESSION); await fs.rm(WS, { recursive: true, force: true }); });
+afterAll(async () => { await closeAll(); wsDisconnect(SESSION); await fs.rm(WS, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
 
 describe("生成の指示書 (get_generation_brief)", () => {
   it("処理フロー: 何を作るか・技術スタック・流れ・使うテーブル・規約の参照(値つき)・画面の項目・テスト観点・記録の呼び方", async () => {

@@ -44,7 +44,7 @@ beforeAll(async () => {
   wsConnect(SESSION); setActivePath(SESSION, WS);
   const o = await open(); c = o.client; closeC = o.close;
 });
-afterAll(async () => { await closeC(); wsDisconnect(SESSION); await fs.rm(WS, { recursive: true, force: true }); });
+afterAll(async () => { await closeC(); wsDisconnect(SESSION); await fs.rm(WS, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
 
 /** 設計のデータは変えないが、画面の表示・作業の状態は変える tool (注釈は readOnly にしない) */
 const UI_STATE = ["designer__open_tab", "designer__close_tab", "designer__switch_tab", "designer__navigate_screen", "designer__workspace_open", "designer__workspace_close"];

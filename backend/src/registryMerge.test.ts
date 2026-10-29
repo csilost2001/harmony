@@ -31,7 +31,7 @@ beforeAll(async () => {
     actions: [],
   }, ROOT);
 });
-afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true }); });
+afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
 
 describe("一覧に載っていない設計", () => {
   it("読み出すと、一覧の後ろに足される (載っているものはそのまま)", async () => {

@@ -11,7 +11,7 @@ import { collectSchemaIssues } from "./schemaIssues.js";
 import { scanWorkspaceHealth } from "./workspaceHealth.js";
 
 const TMP = path.join(os.tmpdir(), `perf-cache-${process.pid}-${Date.now()}`);
-afterAll(async () => { await fs.rm(TMP, { recursive: true, force: true }); });
+afterAll(async () => { await fs.rm(TMP, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
 
 describe("fileMemo", () => {
   it("ファイルの状態が変わらないあいだは使い回し、変わったら計算し直す。ファイルが無ければ覚えない", async () => {

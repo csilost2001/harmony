@@ -47,7 +47,7 @@ beforeAll(async () => {
   await fs.writeFile(harmonyFile(WS), JSON.stringify({ schemaVersion: "v3", dataDir: "harmony", meta: { id: "fuzz", name: "f", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" }, extensionsApplied: [], entities: {} }));
   await ensureDataDir(WS, "harmony");
 });
-afterAll(async () => { await fs.rm(TMP, { recursive: true, force: true }); });
+afterAll(async () => { await fs.rm(TMP, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
 
 describe("ID の検査 (ランダム入力)", () => {
   const r = rng(20261013);

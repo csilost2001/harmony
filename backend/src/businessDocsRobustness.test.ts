@@ -29,7 +29,7 @@ beforeAll(async () => {
     entities: { screens: [] },
   }));
 });
-afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true }); });
+afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
 
 describe("改名追従は読んだファイルへ書き戻す", () => {
   it("ファイル名と中の id が食い違っていても、別名の重複ファイルを作らない", async () => {

@@ -47,7 +47,7 @@ beforeAll(async () => {
   wsConnect(SESSION); setActivePath(SESSION, WS);
   const o = await open(); c = o.client; closeC = o.close;
 });
-afterAll(async () => { await closeC(); wsDisconnect(SESSION); await fs.rm(WS, { recursive: true, force: true }); await fs.rm(LOGROOT, { recursive: true, force: true }); });
+afterAll(async () => { await closeC(); wsDisconnect(SESSION); await fs.rm(WS, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); await fs.rm(LOGROOT, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
 
 describe("机上の実行 (walk_flow)", () => {
   it("選ぶ道がなければ、最初の分岐で止まり、選べる道を返す", async () => {

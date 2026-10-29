@@ -42,7 +42,7 @@ beforeAll(async () => {
 afterAll(async () => {
   await closeAll();
   wsDisconnect(SESSION);
-  await fs.rm(WS, { recursive: true, force: true });
+  await fs.rm(WS, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
 });
 
 describe("シーケンス・ビュー・ビュー定義・汎用定義", () => {
@@ -269,7 +269,7 @@ describe("レビューの指摘 (第 2 弾)", () => {
       }
       await c.callTool({ name: "designer__validate_design", arguments: { kind: "report", design: { name: "r", sections: [] } } });
       expect(await fs.readdir(MIN)).toEqual(["harmony.json"]); // 何も作られていない
-    } finally { await c.close(); await server.close(); wsDisconnect(SID); await fs.rm(MIN, { recursive: true, force: true }); }
+    } finally { await c.close(); await server.close(); wsDisconnect(SID); await fs.rm(MIN, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); }
   });
 
   it("読み取り専用モード: 新しい読む tool は通り、書く tool は断られる", async () => {

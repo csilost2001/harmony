@@ -306,7 +306,8 @@ describe("生成の管理・版と更新", () => {
     await open("generation");
     expect((await screen.findByTestId("op-generation-summary")).textContent).toContain("1 件が、確認を要します (全 2 件)");
     fireEvent.click(screen.getByTestId("op-drift-diff"));
-    expect((await screen.findByTestId("op-drift-diff-view")).textContent).toContain("追記");
+    // 差分の枠は、取得中の表示で先に出る。中身が入るまで待つ (待たないと、負荷の高いときに「取得中」を読んで落ちる)
+    await waitFor(() => expect(screen.getByTestId("op-drift-diff-view").textContent).toContain("追記"));
     expect(calls("generation.diff")).toEqual([{ path: "gen/a.ts" }]);
   });
 

@@ -18,7 +18,7 @@ async function copyRetail(dest: string): Promise<void> {
 const loadCases = async (): Promise<EvalCase[]> => Promise.all((await fs.readdir(CASES_DIR)).filter((n) => n.endsWith(".json")).sort().map(async (n) => parseEvalCase(JSON.parse(await fs.readFile(path.join(CASES_DIR, n), "utf8")), n)));
 
 beforeAll(async () => { await copyRetail(path.join(TMP, "retail")); });
-afterAll(async () => { await fs.rm(TMP, { recursive: true, force: true }); });
+afterAll(async () => { await fs.rm(TMP, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
 
 describe("評価の事例", () => {
   it("すべての事例が正しい形で、id が重複せず、依頼に check_design の約束が入っている", async () => {

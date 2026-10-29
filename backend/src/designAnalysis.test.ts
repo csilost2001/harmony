@@ -51,7 +51,7 @@ beforeAll(async () => {
   await fs.writeFile(path.join(ROOT, "specs", "pay.yaml"), "openapi: 3.0.0\n");
   await fs.writeFile(path.join(ROOT, "specs", "broken.json"), "{ not json");
 });
-afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true }); });
+afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
 
 describe("点検の設定: 抑制", () => {
   const issue = { severity: "warning" as const, section: "テスト", message: "何かの指摘" };
@@ -318,7 +318,7 @@ describe("RPC (画面からの要求)", () => {
   });
 
   it("design.progress: 記録を求められたら残し、record: false なら読むだけ", async () => {
-    await fs.rm(path.join(ROOT, ".harmony-progress"), { recursive: true, force: true });
+    await fs.rm(path.join(ROOT, ".harmony-progress"), { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
     const ro = await call(analysisHandlers, "design.progress", { record: false });
     expect(ro.response.history).toEqual([]);
     expect(ro.response.summary.overall.total).toBeGreaterThan(0);

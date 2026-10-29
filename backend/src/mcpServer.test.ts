@@ -334,7 +334,7 @@ describe("get_project_context: 壊れた設計があっても落ちない (draft
       expect(ctx.designs.flows.items.find((f) => f.id === "f2")?.steps).toBe(0);
       expect(ctx.designs.flows.items.find((f) => f.id === "f4")?.steps).toBe(1);
       expect(ctx.unreadable?.length ?? 0).toBeGreaterThan(0); // 読めなかったものは、黙って消さず知らせる
-    } finally { await fs.rm(root, { recursive: true, force: true }); }
+    } finally { await fs.rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); }
   });
 
   it("limit が数でないときは既定 (NaN にならない)", async () => {

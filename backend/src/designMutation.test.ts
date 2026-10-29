@@ -54,7 +54,7 @@ beforeAll(async () => {
   await copyRetail(path.join(BASE, "clean"));
   baseline = new Set(await issuesOf(path.join(BASE, "clean")));
 });
-afterAll(async () => { await fs.rm(BASE, { recursive: true, force: true }); });
+afterAll(async () => { await fs.rm(BASE, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
 
 describe("設計の検査の回帰試験 (わざと壊す)", () => {
   it("壊す前の retail は、要確認 (警告・エラー) が 0 件", () => {

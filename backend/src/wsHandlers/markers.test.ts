@@ -31,7 +31,7 @@ beforeAll(async () => {
   }));
   await writeTable("orders", { id: "orders", name: "注文", physicalName: "orders", columns: [], authoring: { markers: [mk(U1, "既存 (AI が付けた)", { author: "ai" })] } }, ROOT);
 });
-afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true }); });
+afterAll(async () => { await fs.rm(ROOT, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
 
 describe("マーカーの RPC", () => {
   it("listMarkers: 設計のマーカー。無い設計は空", async () => {

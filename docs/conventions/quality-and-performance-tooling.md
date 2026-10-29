@@ -12,6 +12,8 @@
 | フォーカス輪郭の検査 | `scripts/verify/no-new-outline-none.mjs` | キーボードのフォーカスの輪郭を消す宣言 (`outline: none` / `0`) を、ファイルごとに baseline (`no-new-outline-none.baseline.json`) より増やさない。新しい部品は、共通のフォーカスリング (`styles/a11y.css`) に任せる。消すなら、同じ規則に代わりの見た目 (box-shadow・border-color) を書き、`-- --update` で baseline を更新 |
 | E2E の無条件 skip | `scripts/verify/no-unconditional-e2e-skip.mjs` | 題名だけの常時 skip (`test.skip("題名", …)` / `test.describe.skip` / `test.fixme`) を失敗にする。条件つきの skip は可 |
 | 型検査の抑止 | `scripts/verify/no-type-suppression.mjs` | テスト以外の `@ts-nocheck` / `@ts-ignore` / `@ts-expect-error` を失敗にする |
+| 秘密の混入の検査 | `scripts/verify/no-secrets.mjs` | git が管理するファイルに、API キー (AWS・GitHub・Anthropic・OpenAI・Slack・Google)・秘密鍵・JWT の形の文字列がないか。試験・検査自身は除く。見つけても全文は出さない |
+| コードの衛生の検査 | `scripts/verify/hygiene.mjs` | 予算で守る: 理由 (`-- 理由`) のない `eslint-disable` (45 件まで)・backend の `console.*` 直書き (48 件まで。ログは `serverLog` 経由)・1500 行を超える既存ファイル (いまの行数より増やさない)。`.only(` と、`TODO(#番号)` でない TODO / FIXME は 0 件。数を下げたら、予算も下げる (`--print` でいまの数) |
 | frontend lint | `scripts/verify/check.mjs` | ESLint の警告は 18 件まで (`--max-warnings`)。増やさない |
 | 検査スクリプトの試験 | `scripts/verify/test.mjs` | `check-design.mjs` ほか、検査スクリプト自身の試験 (4 秒)。以前は `npm run check` に入っておらず、仕様の変更に追従していない試験が見つからなかった |
 
@@ -21,6 +23,7 @@
 |---|---|
 | 差分の行のカバレッジ (PR 本文に載せる) | `npm run coverage:changed` (全体の割合も見るときは `npm run coverage`) |
 | E2E の遅い試験・flake の一覧と履歴 | `(cd frontend && HARMONY_E2E_RETRIES=1 npx playwright test) && npm run e2e:report` |
+| 依存の健全性 (脆弱性・ライセンス・ロックの整合・未使用・古さ・Node の版) | `npm run check:deps` (`scripts/dev/deps-report.mjs`。ネットワークを使うので `check` には含めない。high 以上の脆弱性は 0 件が予算。`-- audit license` のように絞れる) |
 | E2E の並列数 | `HARMONY_E2E_WORKERS=<n>` (既定 2) |
 | 他のブラウザ (任意。`@smoke` のみ) | `cd frontend && npm run e2e:cross-browser` (Firefox / WebKit のシステムライブラリが要る) |
 | 規模を変えた性能 (回帰には含めない) | `npx playwright test e2e/perf-scale.spec.ts` / `e2e/perf-large-project.spec.ts` |

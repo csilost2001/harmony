@@ -27,7 +27,7 @@ async function seed() {
   await writeTable("orders", table(), ROOT);
 }
 beforeEach(async () => { ROOT = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "ops-"))); await seed(); installApprovalGuard(); });
-afterEach(async () => { await fs.rm(ROOT, { recursive: true, force: true }); });
+afterEach(async () => { await fs.rm(ROOT, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
 
 const setAccess = (users: Array<{ name: string; role: string }>, requireApproval = false) =>
   accessStore.update(ROOT, () => ({ version: 1, users, policy: { requireApprovalForCommitted: requireApproval } }) as never);
@@ -274,7 +274,7 @@ describe("生成の記録と乖離の検出", () => {
       await expect(recordGeneration(ROOT, { outputs: [{ path: "a.ts", base: "elsewhere", sources: [{ kind: "table", id: "orders" }] }] })).rejects.toThrow(/base は/);
     } finally {
       if (prev === undefined) delete process.env.HARMONY_GENERATED_CODE_DIR; else process.env.HARMONY_GENERATED_CODE_DIR = prev;
-      await fs.rm(gen, { recursive: true, force: true });
+      await fs.rm(gen, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
     }
   });
   it("外へ出る場所・絶対パス・存在しない設計・元の設計がない記録は、拒否する。ワークスペースの外のファイルは、書き換えを検出しない", async () => {
@@ -289,7 +289,7 @@ describe("生成の記録と乖離の検出", () => {
     const r = await recordGeneration(ROOT, { outputs: [{ path: "link.ts", sources: [{ kind: "table", id: "orders" }] }, { path: "missing.ts", sources: [{ kind: "table", id: "orders" }] }] });
     expect(r.warnings).toHaveLength(2);
     expect((await generationStore.read(ROOT)).value.outputs.every((o) => o.outputHash === undefined)).toBe(true);
-    await fs.rm(outside, { recursive: true, force: true });
+    await fs.rm(outside, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
   });
 });
 
@@ -439,7 +439,7 @@ describe("Git 連携", () => {
     const ws = path.join(parent, "ws");
     await fs.mkdir(ws);
     expect((await gitStatus(ws)).isRepo).toBe(false);
-    await fs.rm(parent, { recursive: true, force: true });
+    await fs.rm(parent, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
   });
 });
 
@@ -463,7 +463,7 @@ describe("版の情報", () => {
     const noGit = await readVersionInfo(async () => { throw new Error("git が見つかりません"); }, proj);
     expect(noGit.version).toBe("2.3.4");
     expect(noGit.commit).toBeUndefined();
-    await fs.rm(proj, { recursive: true, force: true });
+    await fs.rm(proj, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
   });
 });
 
