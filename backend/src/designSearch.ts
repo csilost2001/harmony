@@ -32,6 +32,7 @@ export function normalizeForSearch(s: string): string {
 const TEXT_KEYS = new Set([
   "name", "label", "description", "comment", "physicalName", "conditions", "title", "path", "message", "note", "text", "purpose",
   "condition", "expression", "sql", "defaultValue", "placeholder", "helperText",
+  "trigger", "guard", "metric",
 ]);
 /** 配列の見出し (「カラム order_id」のように、どの要素かを示す) */
 const ARRAY_LABELS: Record<string, string> = {

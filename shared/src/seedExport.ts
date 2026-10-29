@@ -1,6 +1,7 @@
 /**
  * 初期データ (汎用定義 seed-data) の書き出し: INSERT 文 / JSON (#1499)。
  * 行のキーは、テーブルのカラムの id でも物理名でもよい。書き出すときは物理名にそろえる。
+ * 文字は標準 SQL の書き方 ('' で ' を逃がす)。MySQL の既定のように、バックスラッシュを逃がし文字にする DB へ流すときは、NO_BACKSLASH_ESCAPES にするか、バックスラッシュを含む値に気をつける。
  * 純粋関数。仕様: docs/spec/generic-definition-layer.md §4.2.1
  */
 import type { DocTable } from "./designDocument.js";
@@ -8,7 +9,7 @@ import type { DocTable } from "./designDocument.js";
 type Row = Record<string, unknown>;
 type Col = NonNullable<DocTable["columns"]>[number];
 
-const NUMERIC = /^(TINYINT|SMALLINT|INT|INTEGER|BIGINT|DECIMAL|NUMERIC|FLOAT|DOUBLE|REAL|NUMBER)/i;
+const NUMERIC = /^(TINYINT|SMALLINT|MEDIUMINT|INT|INTEGER|BIGINT|DECIMAL|NUMERIC|FLOAT|DOUBLE|REAL|NUMBER)\b/i;
 const BOOLEAN = /^BOOL/i;
 const quoteIdent = (s: string): string => `"${s.replace(/"/g, '""')}"`;
 const quoteStr = (s: string): string => `'${s.replace(/'/g, "''")}'`;
@@ -38,7 +39,7 @@ function literal(v: unknown, col: Col | undefined): string {
   if (typeof v === "boolean") return v ? "TRUE" : "FALSE";
   if (typeof v === "number") return Number.isFinite(v) ? String(v) : "NULL";
   if (typeof v === "string") {
-    if (col?.dataType && NUMERIC.test(col.dataType) && v.trim() !== "" && Number.isFinite(Number(v))) return v.trim();
+    if (col?.dataType && NUMERIC.test(col.dataType) && /^-?\d+(\.\d+)?$/.test(v.trim())) return v.trim();
     if (col?.dataType && BOOLEAN.test(col.dataType) && /^(true|false)$/i.test(v)) return v.toUpperCase();
     return quoteStr(v);
   }
@@ -49,7 +50,8 @@ function literal(v: unknown, col: Col | undefined): string {
 export function seedDataToSql(table: DocTable, rows: readonly Row[]): string {
   const { rows: named } = normalizeSeedRows(table, rows);
   const target = table.physicalName ?? table.id;
-  const lines = [`-- ${table.name ?? table.id} (${target}) の初期データ ${named.length} 行`];
+  // コメントに改行が入ると、次の行が実行される文になる。空白にする
+  const lines = [`-- ${`${table.name ?? table.id} (${target})`.replace(/[\r\n]+/g, " ")} の初期データ ${named.length} 行`];
   for (const r of named) {
     const keys = Object.keys(r);
     if (!keys.length) continue;

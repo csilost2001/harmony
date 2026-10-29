@@ -66,17 +66,48 @@ describe("KindSections", () => {
     render(<Host initial={base("seed-data")} />);
     fireEvent.change(screen.getByLabelText("対象のテーブル"), { target: { value: "t1" } });
     expect(screen.getByText(/store_code \*/)).toBeTruthy();
-    const ta = screen.getByTestId("gd-seed-rows");
-    fireEvent.change(ta, { target: { value: '[{"store_code":"TOKYO"}]' } });
-    fireEvent.blur(ta);
+    const ta0 = screen.getByTestId("gd-seed-rows");
+    fireEvent.change(ta0, { target: { value: '[{"store_code":"TOKYO"}]' } });
+    fireEvent.blur(ta0);
+    const ta = screen.getByTestId("gd-seed-rows"); // 反映すると、欄は作り直される
     expect(dump().tableId).toBe("t1");
     expect(dump().rows).toEqual([{ store_code: "TOKYO" }]);
     fireEvent.change(ta, { target: { value: "[{" } });
     fireEvent.blur(ta);
     expect(dump().rows).toEqual([{ store_code: "TOKYO" }]);
+    expect(screen.getByTestId("gd-seed-error").textContent).toContain("JSON として読めません");
+    expect((screen.getByTestId("gd-seed-rows") as HTMLTextAreaElement).value).toBe("[{"); // 書いた文字は残る
     fireEvent.change(ta, { target: { value: '["x"]' } });
     fireEvent.blur(ta);
     expect(dump().rows).toEqual([{ store_code: "TOKYO" }]);
+    expect(screen.getByTestId("gd-seed-error").textContent).toContain("配列にしてください");
+    fireEvent.change(screen.getByTestId("gd-seed-rows"), { target: { value: '[{"store_code":"OSAKA"}]' } });
+    fireEvent.blur(screen.getByTestId("gd-seed-rows"));
+    expect(screen.queryByTestId("gd-seed-error")).toBeNull();
+    expect(dump().rows).toEqual([{ store_code: "OSAKA" }]);
+  });
+
+  it("状態の名前を変えると、その状態を指す遷移も追う。名前が空のまま最初の状態にしても、名前の欄は消えない", () => {
+    render(<Host initial={base("state-machine", { states: [{ name: "A", initial: true }, { name: "B" }], transitions: [{ from: "A", to: "B", trigger: "t" }] })} />);
+    fireEvent.change(screen.getByLabelText("状態 1 の名前"), { target: { value: "Start" } });
+    expect(dump().transitions?.[0]).toMatchObject({ from: "Start", to: "B" });
+    fireEvent.click(screen.getByTestId("gd-add-state"));
+    fireEvent.click(screen.getByLabelText("状態 3 は最初の状態"));
+    expect(dump().states?.[2]).toEqual({ name: "", initial: true });
+    expect(dump().states?.[0]).toEqual({ name: "Start" });
+  });
+
+  it("目標値・実行の種類は、未設定のうちは空で見せる (入れた値だけが定義になる)", () => {
+    render(<Host initial={base("requirement")} />);
+    expect((screen.getByLabelText("比べ方") as HTMLSelectElement).value).toBe("");
+    expect((screen.getByLabelText("目標値") as HTMLInputElement).value).toBe("");
+    cleanup();
+    render(<Host initial={base("job-definition")} />);
+    expect((screen.getByLabelText("実行の種類") as HTMLSelectElement).value).toBe("");
+    fireEvent.change(screen.getByLabelText("実行の種類"), { target: { value: "interval" } });
+    fireEvent.change(screen.getByLabelText("実行の式"), { target: { value: "PT15M" } });
+    fireEvent.change(screen.getByLabelText("実行の種類"), { target: { value: "cron" } });
+    expect(dump().schedule).toEqual({ kind: "cron" }); // 種類を変えたら、前の式は消える
   });
 
   it("非機能要件: 目標値を入れる", () => {
@@ -98,13 +129,21 @@ describe("KindSections", () => {
     fireEvent.change(screen.getByLabelText("実行の式"), { target: { value: "0 2 * * *" } });
     fireEvent.change(screen.getByLabelText("タイムゾーン"), { target: { value: "Asia/Tokyo" } });
     fireEvent.change(screen.getByLabelText("実行する処理フロー"), { target: { value: "f1" } });
+    expect(screen.queryByLabelText("最大の試行の回数")).toBeNull(); // 再実行しないうちは、欄を出さない
+    fireEvent.click(screen.getByLabelText("失敗したら再実行する"));
     fireEvent.change(screen.getByLabelText("最大の試行の回数"), { target: { value: "3" } });
     fireEvent.change(screen.getByLabelText("間隔の取り方"), { target: { value: "exponential" } });
     fireEvent.change(screen.getByLabelText("最初の間隔"), { target: { value: "60" } });
     expect(dump().schedule).toEqual({ kind: "cron", expression: "0 2 * * *", timezone: "Asia/Tokyo" });
     expect(dump().retry).toEqual({ maxAttempts: 3, backoff: "exponential", intervalSeconds: 60 });
     expect(dump().processFlowId).toBe("f1");
+    // 回数を打ち直す途中で空にしても、再実行の方針は消えない。外すのは「失敗したら再実行する」のチェック
     fireEvent.change(screen.getByLabelText("最大の試行の回数"), { target: { value: "" } });
+    expect(dump().retry).toEqual({ maxAttempts: 3, backoff: "exponential", intervalSeconds: 60 });
+    fireEvent.click(screen.getByLabelText("失敗したら再実行する"));
     expect(dump().retry).toBeUndefined();
+    expect(screen.queryByLabelText("最大の試行の回数")).toBeNull();
+    fireEvent.click(screen.getByLabelText("失敗したら再実行する"));
+    expect(dump().retry).toEqual({ maxAttempts: 3 });
   });
 });

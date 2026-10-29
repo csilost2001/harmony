@@ -20,6 +20,13 @@ const defs = [
 ];
 
 describe("設計書: 状態遷移・初期データ・要件・ジョブ", () => {
+  it("初期データの行のキー・入れ子の値も、HTML として解釈されない", () => {
+    const html = buildDesignDocument(input([{ kind: "seed-data", name: "X", tableId: "t1", rows: [{ "<img src=x onerror=alert(1)>": { a: "<i>" } }] }])).html;
+    expect(html).not.toContain("<img src=x");
+    expect(html).toContain("&lt;img src=x onerror=alert(1)&gt;");
+    expect(html).toContain("{&quot;a&quot;:&quot;&lt;i&gt;&quot;}");
+  });
+
   it("定義がなければ、章を出さない", () => {
     expect(buildDesignDocument(input([])).html).not.toContain("behavior-defs");
   });
@@ -71,6 +78,16 @@ describe("初期データの書き出し (SQL)", () => {
       "",
     ]);
   });
+  it("コメントに改行が入っても、次の行を実行する文にしない。数の文字は、10 進の数だけ引用符なし", async () => {
+    const { seedDataToSql } = await import("@harmony/shared");
+    const t = { ...table, name: "T\n); DROP TABLE x;--" };
+    const sql = seedDataToSql(t as never, [{ qty: "0x10" }, { qty: "1e3" }, { qty: "-5" }]);
+    expect(sql.split("\n").filter((l) => l.startsWith("DROP") || l.startsWith(");"))).toEqual([]);
+    expect(sql).toContain("VALUES ('0x10')");
+    expect(sql).toContain("VALUES ('1e3')");
+    expect(sql).toContain("VALUES (-5)");
+  });
+
   it("テーブルにないキーは、書き出さず、報告する", async () => {
     const { normalizeSeedRows } = await import("@harmony/shared");
     const r = normalizeSeedRows(table as never, [{ code: 1, zzz: 2 }, { yyy: 1 }]);

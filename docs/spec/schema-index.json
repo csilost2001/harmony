@@ -612,7 +612,7 @@
       "kind": "generic-definition",
       "uri": "harmony://schema/generic-definition",
       "title": "Generic Definition (v3 汎用設計定義 親 schema)",
-      "description": "Layer 2 Generic Definition Catalog の 17 kind 共通メタモデル (#1263 Phase X2 / RFC #1254 件 3.7 で 8 → 14 kind に拡張、#1303 で 14 → 17 kind に拡張、#1310 で 1…",
+      "description": "Layer 2 Generic Definition Catalog の 21 kind 共通メタモデル (#1499 で 17 → 21 kind。状態遷移・初期データ・要件・ジョブ) (#1263 Phase X2 / RFC #1254 件 3.7 で 8 → 14 ki…",
       "rootRef": "#/$defs/GenericDefinition",
       "defCount": 12,
       "defs": [

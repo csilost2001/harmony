@@ -247,7 +247,7 @@ export const tools = [
 
   {
     name: "designer__list_designs",
-    description: "シーケンス図 (sequence)・DB ビュー (view)・ビュー定義 (viewDefinition)・汎用定義 (genericDefinition。メッセージ・ドメイン型など 17 種) の一覧。kind で種類を選ぶ。genericDefinition は definitionKind で絞れる (省略すると全種)。",
+    description: "シーケンス図 (sequence)・DB ビュー (view)・ビュー定義 (viewDefinition)・汎用定義 (genericDefinition。メッセージ・ドメイン型・状態遷移・初期データなど 21 種) の一覧。kind で種類を選ぶ。genericDefinition は definitionKind で絞れる (省略すると全種)。",
     inputSchema: {
       type: "object" as const,
       properties: {

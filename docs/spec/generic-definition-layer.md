@@ -199,7 +199,7 @@ category: schema
 
 ### 4.2 21 種類の kind
 
-初期 7 種 (#1064-#1068) → Phase X2 で 14 種 (#1263) → #1303 で 17 種に拡張 → #1310 で 18 種に拡張 → #1436 で `ui-fragment` 廃止 (17 種)。#1318 で `messageArea` kind を `message-area` に kebab-case 統一 (prefix `@messageArea.<name>` は維持、kind=kebab/prefix=camelCase は log-event/logEvent と同じ分離パターン)。
+初期 7 種 (#1064-#1068) → Phase X2 で 14 種 (#1263) → #1303 で 17 種に拡張 → #1310 で 18 種に拡張 → #1436 で `ui-fragment` 廃止 (17 種) → #1499 で 21 種。#1318 で `messageArea` kind を `message-area` に kebab-case 統一 (prefix `@messageArea.<name>` は維持、kind=kebab/prefix=camelCase は log-event/logEvent と同じ分離パターン)。
 
 | kind | 用途 | 主な参照元 |
 |---|---|---|

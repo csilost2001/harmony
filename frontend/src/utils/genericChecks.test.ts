@@ -57,6 +57,15 @@ describe("状態遷移 (state-machine)", () => {
     expect(msgs(withDef(sm)).join("\n")).not.toContain("条件なしの遷移");
   });
 
+  it("自分への遷移だけの状態は行き止まり。アクションだけ書いて処理フローがない遷移は指摘する", () => {
+    const sm = goodSm();
+    sm.states = [{ name: "A", initial: true }, { name: "B" }] as never;
+    sm.transitions = [{ from: "A", to: "B", trigger: "進む", actionId: "a1" }, { from: "B", to: "B", trigger: "待つ" }] as never;
+    const out = msgs(withDef(sm)).join("\n");
+    expect(out).toContain("状態「B」は、行き先の遷移がなく");
+    expect(out).toContain("アクション「a1」がありますが、処理フロー (processFlowId) がありません");
+  });
+
   it("処理フロー・アクション・テーブル・カラムが、ないものを指せば指摘する", () => {
     const sm = goodSm();
     (sm.transitions[0] as Record<string, unknown>).processFlowId = "gone";
@@ -84,6 +93,19 @@ describe("初期データ (seed-data)", () => {
     const out = msgs(withDef(seed([{ code: "A", extra: 1 }, { qty: "abc" }, { code: null }, { code: "TOOLONG" }, { id: 1, code: "A" }, { id: 1, code: "B" }]))).join("\n");
     for (const w of ["カラム「extra」が、テーブル「表1」にありません", "必須のカラム「code」の値がありません", "の、必須のカラム「code」が null です", "カラム「qty」(INTEGER) の値が数ではありません", "カラム「code」の値が、長さ 5 を超えています", "6 行目は、5 行目と主キー (c-id) が重複しています"]) expect(out, w).toContain(w);
     expect(out).not.toContain("必須のカラム「id」");
+  });
+
+  it("型の判定: INTERVAL は数ではない。真偽は数のカラムに入れてよい。DECIMAL の length は桁数。主キーは必須として見る", () => {
+    const i = base();
+    (i.tables[0] as unknown as { columns: unknown[] }).columns.push(
+      { id: "c-iv", physicalName: "iv", dataType: "INTERVAL" }, { id: "c-flag", physicalName: "flag", dataType: "TINYINT" }, { id: "c-amt", physicalName: "amt", dataType: "DECIMAL", length: 5 },
+      { id: "c-pk", physicalName: "pk2", dataType: "VARCHAR", primaryKey: true });
+    i.genericDefinitions = [{ kind: "seed-data", name: "S", tableId: "t1", rows: [{ code: "A", pk2: "k", iv: "1 day", flag: true, amt: "1234.56" }, { code: "B", iv: "x" }] }] as never;
+    const out = msgs(i).join("\n");
+    expect(out).not.toContain("「iv」");
+    expect(out).not.toContain("「flag」");
+    expect(out).not.toContain("「amt」");
+    expect(out).toContain("2 行目に、必須のカラム「pk2」の値がありません");
   });
 
   it("テーブルがなければ、行の中身は見ずに、参照の指摘だけ。行の値は参照として見ない", () => {
@@ -119,7 +141,12 @@ describe("ジョブ (job-definition)", () => {
     expect(msgs(withDef(job({ kind: "cron", expression: "*/15 0-6 1,15 * MON-FRI" })))).toEqual([]);
     expect(msgs(withDef(job({ kind: "cron", expression: "0 2 * *" }))).join("\n")).toContain("5 つの欄");
     expect(msgs(withDef(job({ kind: "cron", expression: "0 2 * * !" }))).join("\n")).toContain("5 つの欄");
+    expect(msgs(withDef(job({ kind: "cron", expression: "@daily" })))).toEqual([]);
+    expect(msgs(withDef(job({ kind: "cron", expression: "30 4 * JAN-MAR MON-FRI" })))).toEqual([]);
+    for (const bad of ["99 99 99 99 99", "60 * * * *", "* 24 * * *", "* * 0 * *", "* * * 13 *", "* * * * 8", "5-1 * * * *", "*/x * * * *"]) expect(msgs(withDef(job({ kind: "cron", expression: bad }))).join("\n"), bad).toContain("5 つの欄");
     expect(msgs(withDef(job({ kind: "interval", expression: "PT15M" })))).toEqual([]);
+    for (const ok of ["P1W", "PT0.5S", "P1DT12H", "P1Y2M"]) expect(msgs(withDef(job({ kind: "interval", expression: ok }))), ok).toEqual([]);
+    for (const bad of ["P", "PT", "P1DT", "1H"]) expect(msgs(withDef(job({ kind: "interval", expression: bad }))).join("\n"), bad).toContain("ISO 8601");
     expect(msgs(withDef(job({ kind: "interval", expression: "15分" }))).join("\n")).toContain("ISO 8601 の期間");
     expect(msgs(withDef(job({ kind: "event", expression: "" }))).join("\n")).toContain("出来事の名前");
     expect(msgs(withDef(job({ kind: "manual" })))).toEqual([]);
@@ -160,5 +187,26 @@ describe("スキーマ (4 種類) とサンプル (retail)", () => {
     const i = { project: { name: "r" }, screens: [], tables: [tbl, order], flows: [flow, { meta: { id: "order-confirm" }, actions: [] }, { meta: { id: "dashboard-kpi-summary" }, actions: [] }], genericDefinitions: [read("state-machine", "OrderStatus"), read("seed-data", "StoreMasterSeed"), read("job-definition", "DashboardKpiNightly")] } as unknown as DesignDocInput;
     // 最小の入力なので、画面・ほかのテーブルがない指摘は除き、汎用定義に関わる指摘だけを見る
     expect(msgs(i).filter((m) => m.startsWith("warning") && /状態遷移|初期データ|ジョブ|汎用定義/.test(m))).toEqual([]);
+  });
+});
+
+describe("影響分析・未使用の検出が、4 種類を読む", () => {
+  it("テーブル・処理フローを変えたときに影響を受けるものとして、初期データ・ジョブ・要件・状態遷移が出る。ジョブからだけ呼ばれる処理フローは、未使用ではない", async () => {
+    const { buildDesignGraph, findUnused } = await import("@harmony/shared");
+    const i = base();
+    i.flows = [{ meta: { id: "f1", name: "処理1", flowType: "common" }, actions: [{ id: "a1" }] }, { meta: { id: "f2", name: "処理2", flowType: "common" }, actions: [{ id: "a1" }] }] as never;
+    i.genericDefinitions = [
+      { kind: "seed-data", name: "Seed", tableId: "t1", rows: [{ code: "A" }] },
+      { kind: "job-definition", name: "Job", processFlowId: "f1", schedule: { kind: "manual" } },
+      { kind: "requirement", name: "Req", processFlowId: "f1", measure: { metric: "x", operator: "<=", value: 1 } },
+      { kind: "state-machine", name: "SM", states: [{ name: "A", initial: true }], transitions: [{ from: "A", to: "A", trigger: "t", processFlowId: "f1" }], stateColumn: { tableId: "t1", columnId: "c-st" } },
+    ] as never;
+    const g = buildDesignGraph(i);
+    const into = (key: string) => (g.dependents.get(key) ?? []).map((e) => e.from).sort();
+    expect(into("table:t1")).toEqual(["genericDefinition:seed-data/Seed", "genericDefinition:state-machine/SM"]);
+    expect(into("processFlow:f1")).toEqual(["genericDefinition:job-definition/Job", "genericDefinition:requirement/Req", "genericDefinition:state-machine/SM"]);
+    const unused = findUnused(i, g).map((u) => `${u.kind}:${u.id}`);
+    expect(unused).not.toContain("processFlow:f1");
+    expect(unused).toContain("processFlow:f2");
   });
 });

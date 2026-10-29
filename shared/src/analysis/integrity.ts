@@ -187,7 +187,7 @@ export function checkIntegrity(input: DesignDocInput): DocIssue[] {
             if (!idLike(id) || e.has(id)) continue;
             const key = `${k}\u0000${id}`;
             const hit = found.get(key);
-            if (hit) hit.n += 1; else found.set(key, { at: ptr || "/", label: e.label, id, k, n: 1 });
+            if (hit) hit.n += 1; else found.set(key, { at: `${ptr}/${k}`, label: e.label, id, k, n: 1 });
           }
         }
         if (v && typeof v === "object" && k !== "examples") visit(v, `${ptr}/${k}`);

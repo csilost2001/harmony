@@ -287,6 +287,8 @@ function walkAndReplace(value: unknown, pointer: string, opts: WalkOpts): unknow
   const result: Record<string, unknown> = {};
   for (const [key, v] of Object.entries(obj)) {
     const childPointer = `${pointer}/${escapeJsonPointerToken(key)}`;
+    // 初期データの行 (seed-data の rows) は値であって、参照ではない。キー名が tableId などでも、書き換えない
+    if (pointer === "" && key === "rows" && obj.kind === "seed-data") { result[key] = v; continue; }
 
     // composite ref check: 親 field 名一致 + 内部の sub field 一致
     const composite = opts.compositeFields.find((c) => c.parent === key);

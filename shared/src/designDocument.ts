@@ -157,7 +157,7 @@ export interface DocIssue {
   key?: string;
 }
 
-const isRecord2 = (v: unknown): boolean => !!v && typeof v === "object" && !Array.isArray(v);
+const isPlainObject = (v: unknown): boolean => !!v && typeof v === "object" && !Array.isArray(v);
 
 // ── 小道具 ───────────────────────────────────────────────────────────────
 
@@ -745,6 +745,7 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
         <p class="hd-desc">業務の状態の移り変わり、テーブルに最初から入れておく行、非機能要件の目標値、定期・出来事を契機に動く処理の定義です。</p></section>`);
       const arr = (v: unknown): Array<Record<string, unknown>> => (Array.isArray(v) ? v.filter((x): x is Record<string, unknown> => !!x && typeof x === "object") : []);
       const s = (v: unknown): string => (typeof v === "string" ? v : v === undefined || v === null ? "" : String(v));
+      const cell = (v: unknown): string => (v !== null && typeof v === "object" ? JSON.stringify(v) : s(v));
       const flowLink2 = (id: string) => (id ? `<a href="#${anchor("flow", id)}">${esc(input.flows.find((f) => f.meta.id === id)?.meta.name ?? id)}</a>` : "");
       const tableLink = (id: string) => (id ? `<a href="#${anchor("table", id)}">${esc(tableName.get(id) ?? id)}</a>` : "");
       for (const g of sms) {
@@ -752,7 +753,7 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
         const label = new Map(states.map((x) => [s(x.name), s(x.label) || s(x.name)]));
         sec(anchor("state-machine", g.name), `状態遷移: ${g.name}`, 2, `
           ${g.purpose ? `<p class="hd-desc">${prose(s(g.purpose))}</p>` : ""}
-          ${isRecord2(g.stateColumn) ? `<p class="hd-note">状態を入れるカラム: ${tableLink(s((g.stateColumn as Record<string, unknown>).tableId))} の <code>${esc(s((g.stateColumn as Record<string, unknown>).columnId))}</code></p>` : ""}
+          ${isPlainObject(g.stateColumn) ? `<p class="hd-note">状態を入れるカラム: ${tableLink(s((g.stateColumn as Record<string, unknown>).tableId))} の <code>${esc(s((g.stateColumn as Record<string, unknown>).columnId))}</code></p>` : ""}
           <h4 class="hd-sub">状態<small>${states.length} 件</small></h4>
           ${table(["状態", "呼び名", "種類", "説明"], states.map((x) => [`<code>${esc(s(x.name))}</code>`, esc(s(x.label)), x.initial ? "最初" : x.final ? "終わり" : "", esc(s(x.description))]))}
           <h4 class="hd-sub">遷移<small>${trs.length} 件</small></h4>
@@ -765,20 +766,20 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
         sec(anchor("seed-data", g.name), `初期データ: ${g.name}`, 2, `
           ${g.purpose ? `<p class="hd-desc">${prose(s(g.purpose))}</p>` : ""}
           ${infoGrid([["対象のテーブル", tableLink(s(g.tableId))], ["行数", `${rows.length} 行`]])}
-          ${table(keys, rows.slice(0, 200).map((r) => keys.map((k) => esc(s(r[k])))))}
+          ${table(keys.map(esc), rows.slice(0, 200).map((r) => keys.map((k) => esc(cell(r[k])))))}
           ${rows.length > 200 ? `<p class="hd-note">先頭の 200 行だけ載せています (全 ${rows.length} 行)。</p>` : ""}`);
       }
       if (reqs.length) {
         sec("requirements", "非機能要件", 2, table(["要件", "測るもの", "目標", "対象の処理フロー", "説明"], reqs.map((g) => {
-          const m = isRecord2(g.measure) ? (g.measure as Record<string, unknown>) : {};
+          const m = isPlainObject(g.measure) ? (g.measure as Record<string, unknown>) : {};
           return [esc(g.name), esc(s(m.metric)), esc(`${s(m.percentile) ? `${s(m.percentile)} ` : ""}${s(m.operator)} ${s(m.value)}${s(m.unit) ? ` ${s(m.unit)}` : ""}`), flowLink2(s(g.processFlowId)), esc(s(g.purpose))];
         })));
       }
       if (jobs.length) {
         const kindLabel2: Record<string, string> = { cron: "cron", interval: "間隔", event: "出来事", manual: "手で起動" };
         sec("jobs", "ジョブ", 2, table(["ジョブ", "実行の時刻", "処理フロー", "再実行", "説明"], jobs.map((g) => {
-          const sc = isRecord2(g.schedule) ? (g.schedule as Record<string, unknown>) : {};
-          const rt = isRecord2(g.retry) ? (g.retry as Record<string, unknown>) : {};
+          const sc = isPlainObject(g.schedule) ? (g.schedule as Record<string, unknown>) : {};
+          const rt = isPlainObject(g.retry) ? (g.retry as Record<string, unknown>) : {};
           return [esc(g.name), esc(`${kindLabel2[s(sc.kind)] ?? s(sc.kind)}${s(sc.expression) ? ` ${s(sc.expression)}` : ""}${s(sc.timezone) ? ` (${s(sc.timezone)})` : ""}`), flowLink2(s(g.processFlowId)), rt.maxAttempts ? esc(`最大 ${s(rt.maxAttempts)} 回${s(rt.backoff) && s(rt.backoff) !== "none" ? `・${s(rt.backoff) === "fixed" ? "一定" : "だんだん長く"}` : ""}`) : "", esc(s(g.purpose))];
         })));
       }

@@ -1884,6 +1884,19 @@ describe("renameEntityId — Phase I E: generic-definitions の path 形式 ref 
     expect(rels[1].ref).toBe("generic-definitions/domain-type/Money");
   });
 
+  it("Table rename で、初期データ (seed-data) の tableId は追い、行 (rows) の中の同じ値は書き換えない (行は値であって参照ではない)", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "stores");
+    const gdDir = dataPath(root, "generic-definitions", "seed-data");
+    await fs.mkdir(gdDir, { recursive: true });
+    const gdPath = path.join(gdDir, "StoreSeed.json");
+    await fs.writeFile(gdPath, JSON.stringify({ kind: "seed-data", name: "StoreSeed", tableId: "stores", rows: [{ tableId: "stores", name: "東京" }] }, null, 2), "utf-8");
+    await renameEntityId("table", "stores", "shops", root);
+    const updated = JSON.parse(await fs.readFile(gdPath, "utf-8")) as { tableId: string; rows: Array<Record<string, string>> };
+    expect(updated.tableId).toBe("shops");
+    expect(updated.rows[0].tableId).toBe("stores");
+  });
+
   it("Screen rename で generic-definitions の `screens/<oldId>` ref が更新される", async () => {
     const root = await makeWorkspace();
     await writeScreenEntity("dashboard", { id: "dashboard", kind: "page", path: "/d", items: [] }, root);

@@ -130,7 +130,7 @@ AI Agent ──(http://localhost:5179/mcp)──┐
 | `/business-flow/list` `/business-flow/edit/:id` | 業務フロー (スイムレーン) 一覧 / 編集 |
 | `/report/list` `/report/edit/:id` | 帳票 一覧 / 編集 |
 | `/page-layout/list` `/page-layout/edit/:id` `/gadget/list` | ページレイアウト / ガジェット |
-| `/generic-definition[/:kind[/:name]]` | 汎用定義 (メッセージ・ドメイン型 等 17 種) |
+| `/generic-definition[/:kind[/:name]]` | 汎用定義 (メッセージ・ドメイン型・状態遷移・初期データ 等 21 種) |
 | `/conventions/catalog` `/extensions` `/project/tech-stack` | 規約 / 拡張 / 技術スタック |
 | `/workspace/*` | ワークスペースの一覧・選択 (top-level) |
 | `/ai-settings` | AI 設定 (top-level) |

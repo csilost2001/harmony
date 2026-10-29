@@ -11,9 +11,36 @@ const recs = (v: unknown): Rec[] => (Array.isArray(v) ? v.filter(isRecord) : [])
 const str = (v: unknown): string => (typeof v === "string" ? v : "");
 
 const KIND_LABEL: Record<string, string> = { "state-machine": "状態遷移", "seed-data": "初期データ", requirement: "非機能要件", "job-definition": "ジョブ" };
-const NUMERIC = /^(TINYINT|SMALLINT|INT|INTEGER|BIGINT|DECIMAL|NUMERIC|FLOAT|DOUBLE|REAL|NUMBER)/i;
-const CRON_FIELD = /^[0-9A-Za-z*/,\-?#]+$/;
-const ISO_DURATION = /^P(?!$)(\d+D)?(T(?=\d)(\d+H)?(\d+M)?(\d+S)?)?$/;
+const NUMERIC = /^(TINYINT|SMALLINT|MEDIUMINT|INT|INTEGER|BIGINT|DECIMAL|NUMERIC|FLOAT|DOUBLE|REAL|NUMBER)\b/i;
+const ISO_DURATION = /^P(?!$)(\d+Y)?(\d+M)?(\d+W)?(\d+D)?(T(?=\d)(\d+H)?(\d+M)?(\d+(\.\d+)?S)?)?$/;
+const CRON_MACROS = new Set(["@yearly", "@annually", "@monthly", "@weekly", "@daily", "@midnight", "@hourly"]);
+const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+const WEEKDAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+
+/** cron の 1 つの欄 (`*` `?` 数 `a-b` `*\/n` `a-b/n` と、コンマの並び。月・曜日は英名も)。範囲を外れた数は不可。Quartz の `L` `W` `#` は、形だけ許す */
+function cronFieldOk(field: string, min: number, max: number, names?: string[]): boolean {
+  return field.split(",").every((item) => {
+    const [range, step, ...extra] = item.split("/");
+    if (extra.length || item === "") return false;
+    if (step !== undefined && !/^\d+$/.test(step)) return false;
+    if (range === "*" || range === "?") return true;
+    const num = (x: string): number | null => {
+      if (/^\d+$/.test(x)) { const n = Number(x); return n >= min && n <= max ? n : null; }
+      const i = names ? names.indexOf(x.toUpperCase()) : -1;
+      return i >= 0 ? i + (min === 0 && names === WEEKDAYS ? 0 : min) : null;
+    };
+    if (/[LW#]/.test(range) && /^[0-9LW#\-]+$/i.test(range)) return true;
+    const parts = range.split("-");
+    if (parts.length > 2) return false;
+    const nums = parts.map(num);
+    return nums.every((n) => n !== null) && (nums.length < 2 || (nums[0] as number) <= (nums[1] as number));
+  });
+}
+function cronOk(expr: string): boolean {
+  if (CRON_MACROS.has(expr.toLowerCase())) return true;
+  const f = expr.split(/\s+/).filter(Boolean);
+  return f.length === 5 && cronFieldOk(f[0], 0, 59) && cronFieldOk(f[1], 0, 23) && cronFieldOk(f[2], 1, 31) && cronFieldOk(f[3], 1, 12, MONTHS) && cronFieldOk(f[4], 0, 7, WEEKDAYS);
+}
 
 export function checkGenericDefinitions(input: DesignDocInput): DocIssue[] {
   const out: DocIssue[] = [];
@@ -63,6 +90,7 @@ function checkStateMachine(g: G, warn: Warn, tableById: Map<string, DocTable>, f
     if (to && !known.has(to)) warn(`遷移「${str(t.trigger)}」の先の状態「${to}」が、状態の一覧にありません`);
     const pid = str(t.processFlowId);
     const aid = str(t.actionId);
+    if (aid && !pid) warn(`遷移「${str(t.trigger)}」にアクション「${aid}」がありますが、処理フロー (processFlowId) がありません`);
     if (pid && aid) {
       const f = flowById.get(pid);
       if (f && !(f.actions ?? []).some((a) => a.id === aid)) warn(`遷移「${str(t.trigger)}」のアクション「${aid}」が、処理フロー「${f.meta.name ?? pid}」にありません`);
@@ -75,10 +103,12 @@ function checkStateMachine(g: G, warn: Warn, tableById: Map<string, DocTable>, f
   // 終わりの状態からの遷移・行き止まり・到達できない状態
   const out = new Map<string, string[]>();
   for (const t of transitions) out.set(str(t.from), [...(out.get(str(t.from)) ?? []), str(t.to)]);
+  // 自分への遷移だけの状態は、先へ進めない (行き止まりと同じ)
+  const leaves = (n: string): boolean => !(out.get(n) ?? []).some((to) => to !== n);
   for (const s of states) {
     const n = str(s.name);
     if (s.final === true && (out.get(n) ?? []).length) warn(`終わりの状態「${n}」から、遷移が出ています`);
-    if (s.final !== true && n && !(out.get(n) ?? []).length && transitions.length) warn(`状態「${n}」は、行き先の遷移がなく、終わりの状態でもありません (行き止まり)`);
+    if (s.final !== true && n && leaves(n) && transitions.length) warn(`状態「${n}」は、行き先の遷移がなく、終わりの状態でもありません (行き止まり)`);
   }
   if (initial.length === 1) {
     const reach = new Set<string>([initial[0]]);
@@ -105,14 +135,17 @@ function checkSeedData(g: G, warn: Warn, tableById: Map<string, DocTable>): void
   const valueOf = (r: Rec, c: (typeof cols)[number]): unknown => (c.id !== undefined && c.id in r ? r[c.id] : c.physicalName in r ? r[c.physicalName] : undefined);
   for (const c of cols) {
     const label = c.name ?? c.physicalName;
-    const required = c.notNull === true && c.autoIncrement !== true && c.defaultValue === undefined;
+    const required = (c.notNull === true || c.primaryKey === true) && c.autoIncrement !== true && c.defaultValue === undefined;
     let missingAt = -1, nullAt = -1, typeAt = -1, lenAt = -1;
     rows.forEach((r, i) => {
       const v = valueOf(r, c);
       if (v === undefined) { if (required && missingAt < 0) missingAt = i; return; }
-      if (v === null) { if (c.notNull === true && nullAt < 0) nullAt = i; return; }
-      if (c.dataType && NUMERIC.test(c.dataType) && !(typeof v === "number" || (typeof v === "string" && v.trim() !== "" && Number.isFinite(Number(v)))) && typeAt < 0) typeAt = i;
-      if (typeof v === "string" && typeof c.length === "number" && c.length > 0 && v.length > c.length && lenAt < 0) lenAt = i;
+      if (v === null) { if ((c.notNull === true || c.primaryKey === true) && nullAt < 0) nullAt = i; return; }
+      const numeric = !!c.dataType && NUMERIC.test(c.dataType);
+      // 数のカラムに、真偽 (TINYINT(1) など) を入れるのは、よくある書き方なので咎めない
+      if (numeric && !(typeof v === "number" || typeof v === "boolean" || (typeof v === "string" && /^-?\d+(\.\d+)?$/.test(v.trim()))) && typeAt < 0) typeAt = i;
+      // 長さは文字のカラムだけ (DECIMAL の length は桁数)
+      if (!numeric && typeof v === "string" && typeof c.length === "number" && c.length > 0 && v.length > c.length && lenAt < 0) lenAt = i;
     });
     if (missingAt >= 0) warn(`${missingAt + 1} 行目に、必須のカラム「${label}」の値がありません`);
     if (nullAt >= 0) warn(`${nullAt + 1} 行目の、必須のカラム「${label}」が null です`);
@@ -148,8 +181,7 @@ function checkJob(g: G, warn: Warn, info: Warn): void {
   if (s) {
     const kind = str(s.kind), ex = str(s.expression).trim();
     if (kind === "cron") {
-      const fields = ex.split(/\s+/).filter(Boolean);
-      if (fields.length !== 5 || !fields.every((x) => CRON_FIELD.test(x))) warn(`cron の式「${ex}」が、5 つの欄 (分 時 日 月 曜日) になっていません`);
+      if (!cronOk(ex)) warn(`cron の式「${ex}」が、5 つの欄 (分 時 日 月 曜日。範囲は 0-59 / 0-23 / 1-31 / 1-12 / 0-7) になっていません`);
     } else if (kind === "interval") {
       if (!ISO_DURATION.test(ex)) warn(`間隔「${ex}」が、ISO 8601 の期間 (例: PT15M) になっていません`);
     } else if (kind === "event" && !ex) warn("出来事を契機にするジョブに、出来事の名前 (expression) がありません");

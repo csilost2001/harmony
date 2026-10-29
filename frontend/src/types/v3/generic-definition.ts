@@ -2,7 +2,7 @@
  * Generic Definition Catalog 型定義 (v3 schema 準拠)
  *
  * schema: schemas/v3/generic-definition.v3.schema.json
- * 17 kind (#1254 件 3.7 / #1263 Phase X2 / #1303 / #1310 / #1436 で ui-fragment 廃止):
+ * 21 kind (#1254 件 3.7 / #1263 Phase X2 / #1303 / #1310 / #1436 で ui-fragment 廃止 / #1499 で 状態遷移・初期データ・要件・ジョブ):
  *   既存 7: data-contract / domain-type / exception-type / application-rule /
  *            ui-behavior / runtime-policy / component-definition
  *   新規 6: validation-rule / constants / message / domain-event / log-event / log-config

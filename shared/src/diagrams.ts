@@ -396,7 +396,9 @@ export function businessFlowSvg(input: DesignDocInput, flowId: string): string |
 /** 状態遷移 (汎用定義 state-machine) の Mermaid 図。状態の呼び名・契機・条件を入れる (#1499) */
 export function stateMachineToMermaid(def: { states?: Array<{ name?: string; label?: string; initial?: boolean; final?: boolean }>; transitions?: Array<{ from?: string; to?: string; trigger?: string; guard?: string }> }): string {
   const q = (s: string) => s.replace(/"/g, "'").replace(/[\r\n]+/g, " ");
-  const id = (s: string) => s.replace(/[^A-Za-z0-9_]/g, "_") || "_";
+  // Mermaid の予約語 (end・state など) は、図の id にできない
+  const RESERVED = new Set(["end", "state", "note", "direction", "class", "classDef", "click", "style", "default", "fork", "join", "choice"]);
+  const id = (s: string) => { const x = s.replace(/[^A-Za-z0-9_]/g, "_") || "_"; return RESERVED.has(x) ? `s_${x}` : x; };
   const lines = ["stateDiagram-v2"];
   for (const s of def.states ?? []) if (s.name && s.label) lines.push(`  state "${q(s.label)}" as ${id(s.name)}`);
   for (const s of def.states ?? []) if (s.name && s.initial) lines.push(`  [*] --> ${id(s.name)}`);

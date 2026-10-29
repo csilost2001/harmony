@@ -90,7 +90,7 @@ export function GenericDefinitionCatalogView() {
     <div style={{ padding: "24px" }}>
       <h2 style={{ marginBottom: "8px", fontSize: "1.3rem" }}>汎用定義カタログ</h2>
       <p style={{ color: "var(--hm-fg-2)", marginBottom: "24px", fontSize: "0.9rem" }}>
-        Generic Definition Catalog — データ契約・ドメイン型・例外型など 17 種類の汎用設計定義を管理します。
+        Generic Definition Catalog — データ契約・ドメイン型・例外型・状態遷移・初期データなど 21 種類の汎用設計定義を管理します。
       </p>
       <div style={{
         display: "grid",
