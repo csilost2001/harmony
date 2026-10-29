@@ -1982,7 +1982,7 @@ ai-skills/generate-code/templates/devcontainer/
    | `nestjs` | `thymeleaf` | `templates/devcontainer/nestjs-thymeleaf/` |
    | `nestjs` | `react` | `templates/devcontainer/nestjs-nextjs/` |
 
-3. **既存 scaffold check**: `<出力先>/.devcontainer/devcontainer.json` の存在を確認、あれば全 scaffold 出力を skip + 「既存 .devcontainer/ を上書きしません」と報告 (上書き事故防止)
+3. **既存 scaffold check**: `<出力先>/.devcontainer/devcontainer.json` と、ワークスペースのルート (`harmony.json` のあるフォルダ) の `.devcontainer/devcontainer.json` の存在を確認、どちらかがあれば全 scaffold 出力を skip + 「既存 .devcontainer/ を上書きしません」と報告 (上書き事故防止。Harmony 同居の構成で出力先を `backend/` などにしたとき、`backend/.devcontainer/` を入れ子で作らないため)
 4. **ファイルコピー**: 選択したテンプレディレクトリ配下の以下を Read → Write で `<出力先>/` に verbatim コピー (改変・補完なし、AI 解釈なし):
    - `.devcontainer/devcontainer.json` → `<出力先>/.devcontainer/devcontainer.json`
    - `.devcontainer/compose.yml` → `<出力先>/.devcontainer/compose.yml`
