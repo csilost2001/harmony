@@ -10,6 +10,7 @@ Harmony を **開発せず、設計ツールとして起動して使う** 場合
 | Harmony を GUI ツールとして使う | Docker Compose | `docker compose up` |
 | Docker ではなく Podman で使う | Podman Compose | `podman compose up` |
 | image を作る maintainer 作業 | host の Docker / Podman | `bash scripts/build-harmony-image.sh local` |
+| 外の業務アプリの開発コンテナと一緒に Harmony を使う (MCP で設計・生成) | Dev Containers (compose 形式、dev + harmony) | [`app-devcontainer-sidecar.md`](./app-devcontainer-sidecar.md) |
 
 Compose は複数コンテナ専用ではなく、単一コンテナの起動設定をファイル化する用途にも使う。Harmony の配布 runtime は 1 container なので、`compose.yml` は長い `docker run` を利用者に打たせないための起動レシピ。
 

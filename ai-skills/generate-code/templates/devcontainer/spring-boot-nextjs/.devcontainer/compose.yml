@@ -1,0 +1,32 @@
+# 開発コンテナ (dev) と Harmony (harmony) を同居させる構成。
+#
+# - dev     : AI CLI・ビルド・テストを動かす。プロジェクトのフォルダを /workspaces/app に置く
+# - harmony : 設計ツール (Harmony の配布 image)。dev とネットワークを共有するので、dev からは
+#             http://localhost:5179/mcp で届く。ports は書かない (画面は VS Code のポート転送 5179 で開く)
+#
+# 2 つのコンテナが「同じパス /workspaces/app」で同じフォルダを見る。これにより、設計 (design/) と
+# 生成したソース (backend/・frontend/) が Harmony のワークスペースの中に入り、生成の記録 (designer__record_generation) が
+# そのまま使える。フォルダ名を /workspaces/app から変えない (compose は VS Code のフォルダ名を読めないため固定)。
+services:
+  dev:
+    image: mcr.microsoft.com/devcontainers/java:1-21-bookworm
+    command: sleep infinity
+    volumes:
+      - ..:/workspaces/app:cached
+
+  harmony:
+    # Harmony の版は .devcontainer/.env の HARMONY_IMAGE で固定する (.env.example を参照)
+    image: ${HARMONY_IMAGE:-ghcr.io/csilost2001/harmony:local}
+    network_mode: service:dev
+    environment:
+      NODE_ENV: production
+      # プロジェクトのフォルダ全体を Harmony のワークスペースとして開く
+      HARMONY_WORKSPACES_DIR: /workspaces/app
+      HARMONY_ALLOWED_BROWSE_ROOTS: /workspaces
+    volumes:
+      - ..:/workspaces/app
+      - harmony-state:/home/node/.harmony
+    restart: unless-stopped
+
+volumes:
+  harmony-state:

@@ -3,6 +3,7 @@
  *
  * - Resources: 資料の索引 (harmony://docs/ai-index)・仕様書 (harmony://spec/<名前>)・JSON Schema (harmony://schema/<種類>)・設計全体の要約 (harmony://project/context)
  * - Prompts: 設計の作成・点検用のスキル (ai-skills/<名前>/SKILL.md)。Claude Code 以外の AI も、同じ手順を使える
+ * - スキルの付属ファイル (harmony://skill/<名前>/files と harmony://skill/<名前>/<パス>): SKILL.md が参照する templates/** や golden-examples/** を、外から読む口
  *
  * 読み取り専用。読めるのは、許可リスト (ディレクトリの中身から作る) にある名前だけ。URI の中の名前を、パスに直接使わない。
  * 資料が見つからない配置 (資料を同梱しない image など) では、空の一覧を返し、project/context だけが動く。
@@ -21,6 +22,7 @@ export const SERVER_INSTRUCTIONS = [
   "資料は Resources にあります: harmony://docs/ai-index (やりたいこと → 読む資料・使う tool)、harmony://spec/index (仕様書の索引)、harmony://schema/<種類> (JSON Schema)。",
   "設計を作る・直したあとは designer__check_design を呼び、error / warning を 0 件にしてから報告してください。schema の変更は設計者の判断です (AI は変えない)。",
   "処理フローの作成・レビューなどの手順は Prompts (create-flow / review-flow ほか) にあります。",
+  "手順 (Prompts) の本文にある ai-skills/<名前>/<パス> の付属ファイル (templates・golden-examples など) は、Resource harmony://skill/<名前>/<パス> で読めます。一覧は harmony://skill/<名前>/files です。",
 ].join("\n");
 
 /** 資料を同梱するディレクトリ (リポジトリの根)。HARMONY_DOCS_DIR で変えられる。docs/AI-INDEX.md と schemas/v3 がある場所 */
@@ -140,6 +142,7 @@ export function listResources(rootDir: string | null = findDocsRoot()): Resource
     out.push({ uri: `harmony://spec/${n}`, name: e?.title || n, ...(e ? { description: `[${e.status}] ${e.description}${sectionNote}` } : {}), mimeType: "text/markdown" });
   }
   for (const n of names(path.join(rootDir, "schemas/v3"), SCHEMA_SUFFIX)) out.push({ uri: `harmony://schema/${n}`, name: `${n} の JSON Schema`, mimeType: "application/json" });
+  for (const n of PROMPT_SKILLS) if (fs.existsSync(path.join(rootDir, "ai-skills", n, "SKILL.md"))) out.push({ uri: `harmony://skill/${n}/files`, name: `スキル ${n} の付属ファイル一覧`, description: `ai-skills/${n}/ の templates・golden-examples など。1 ファイルは harmony://skill/${n}/<path> で読む`, mimeType: "application/json" });
   return out;
 }
 
@@ -148,6 +151,8 @@ export function listResourceTemplates(): Array<{ uriTemplate: string; name: stri
     { uriTemplate: "harmony://spec/{name}", name: "仕様書", description: "docs/spec/<name>.md。name は harmony://spec/index の file から .md を除いたもの", mimeType: "text/markdown" },
     { uriTemplate: "harmony://spec/{name}/sections", name: "仕様書の章の一覧", description: "仕様書の章 (## の見出し) の番号・題・大きさ。大きな仕様書は、この一覧で選んで 1 章ずつ読む", mimeType: "application/json" },
     { uriTemplate: "harmony://spec/{name}/{n}", name: "仕様書の 1 章", description: "n は章の番号 (0 = 前書き、1 以降 = ## の見出し順)", mimeType: "text/markdown" },
+    { uriTemplate: "harmony://skill/{name}/files", name: "スキルの付属ファイルの一覧", description: "手順 (Prompts) のスキルのフォルダにあるファイルの一覧 (path・大きさ・uri)。name は Prompts の名前 (generate-code など)", mimeType: "application/json" },
+    { uriTemplate: "harmony://skill/{name}/{+path}", name: "スキルの付属ファイル 1 つ", description: "SKILL.md が参照する ai-skills/<name>/<path> (templates・golden-examples など)。path は harmony://skill/{name}/files の一覧にあるもの。読み取り専用", mimeType: "text/plain" },
     { uriTemplate: "harmony://schema/{kind}", name: "JSON Schema", description: "schemas/v3/<kind>.v3.schema.json。kind は harmony://schema/index にある", mimeType: "application/json" },
     { uriTemplate: "harmony://schema/{kind}/{def}", name: "JSON Schema の定義 1 つ", description: "$defs の定義 1 つと、それが参照する定義だけ (処理フローのスキーマは 92KB あるので、工程の種類 1 つだけ読むときなど)。def は docs/spec/schema-index.json の defs の名前", mimeType: "application/json" },
   ];
@@ -158,8 +163,11 @@ export interface ResourceContents { [x: string]: unknown; contents: Array<{ uri:
 /** URI の中身を返す。root は、いま開いているワークスペース (project/context だけが使う。未選択なら null) */
 export async function readResource(uri: string, root: string | null, rootDir: string | null = findDocsRoot()): Promise<ResourceContents> {
   const ok = (mimeType: string, text: string): ResourceContents => ({ contents: [{ uri, mimeType, text }] });
+  // スキルの付属ファイルは、パスが複数の階層になるので、下の 3 階層までの形より先に判定する
+  const sk = uri.match(/^harmony:\/\/skill\/([^/]+)\/(.+)$/s);
+  if (sk) return readSkillResource(uri, sk[1], sk[2], rootDir);
   const m = uri.match(/^harmony:\/\/([a-z-]+)\/([A-Za-z0-9._-]+)(?:\/([A-Za-z0-9._-]+))?$/);
-  if (!m) throw new McpError(ErrorCode.InvalidParams, `未知の資料です: ${uri} (harmony://docs/… spec/… schema/… decisions/… project/context)`);
+  if (!m) throw new McpError(ErrorCode.InvalidParams, `未知の資料です: ${uri} (harmony://docs/… spec/… schema/… decisions/… skill/<名前>/files・skill/<名前>/<パス> project/context)`);
   const [, area, name, sub] = m;
   if (sub !== undefined && area !== "spec" && area !== "schema") throw new McpError(ErrorCode.InvalidParams, `見つかりません: ${uri}`);
 
@@ -215,6 +223,76 @@ export async function readResource(uri: string, root: string | null, rootDir: st
   throw new McpError(ErrorCode.InvalidParams, `見つかりません: ${uri}`);
 }
 
+// ─── スキルの付属ファイル (harmony://skill/…) ─────────────
+
+/** 付属ファイルの上限。ai-skills の中だけを読む読み取り専用の口なので、暴走しないための値 */
+const SKILL_MAX_FILES = 2000;
+const SKILL_MAX_DEPTH = 12;
+const SKILL_MAX_BYTES = 1024 * 1024;
+
+interface SkillFileEntry { path: string; size: number }
+
+/** スキルのフォルダの通常のファイルを列挙する。lstat 相当 (Dirent) で見て、シンボリックリンクは (ファイルもフォルダも) 辿らない・載せない */
+function listSkillFiles(rootDir: string, name: string): { files: SkillFileEntry[]; skipped: number } | null {
+  const base = path.join(rootDir, "ai-skills", name);
+  try { if (!fs.lstatSync(base).isDirectory()) return null; } catch { return null; }
+  const files: SkillFileEntry[] = [];
+  let skipped = 0;
+  const walk = (dir: string, rel: string, depth: number): void => {
+    let entries: fs.Dirent[];
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    entries.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+    for (const e of entries) {
+      const childRel = rel ? `${rel}/${e.name}` : e.name;
+      if (e.isSymbolicLink()) continue;
+      if (e.isDirectory()) {
+        if (depth + 1 > SKILL_MAX_DEPTH) { skipped++; continue; }
+        walk(path.join(dir, e.name), childRel, depth + 1);
+      } else if (e.isFile()) {
+        if (files.length >= SKILL_MAX_FILES) { skipped++; continue; }
+        let size: number;
+        try { size = fs.lstatSync(path.join(dir, e.name)).size; } catch { continue; }
+        if (size > SKILL_MAX_BYTES) { skipped++; continue; }
+        files.push({ path: childRel, size });
+      }
+    }
+  };
+  walk(base, "", 0);
+  return { files, skipped };
+}
+
+function skillMimeType(file: string): string {
+  const ext = path.extname(file).toLowerCase();
+  return ext === ".md" ? "text/markdown" : ext === ".json" ? "application/json" : "text/plain";
+}
+
+/** harmony://skill/<名前>/files と harmony://skill/<名前>/<パス> を読む。読めるのは PROMPT_SKILLS のスキルの、列挙した一覧にあるパスと完全一致したものだけ */
+function readSkillResource(uri: string, name: string, rest: string, rootDir: string | null): ResourceContents {
+  if (!(PROMPT_SKILLS as readonly string[]).includes(name)) throw new McpError(ErrorCode.InvalidParams, `未知のスキルです: ${name} (読めるのは ${PROMPT_SKILLS.join(" / ")})`);
+  if (!rootDir) throw new McpError(ErrorCode.InvalidParams, "この環境には資料が同梱されていません");
+  const listing = listSkillFiles(rootDir, name);
+  if (!listing) throw new McpError(ErrorCode.InvalidParams, `スキル「${name}」のフォルダが見つかりません`);
+  if (rest === "files") {
+    const note = `harmony://skill/${name}/<path> で 1 ファイルを読む (path はこの一覧の path)。読み取り専用。シンボリックリンク・${Math.round(SKILL_MAX_BYTES / 1024 / 1024)}MiB を超えるファイル・深さ ${SKILL_MAX_DEPTH} を超える階層は載せない${listing.skipped ? `。載せなかったもの ${listing.skipped} 件` : ""}`;
+    const body = { skill: name, files: listing.files.map((f) => ({ path: f.path, size: f.size, uri: `harmony://skill/${name}/${f.path}` })), note };
+    return { contents: [{ uri, mimeType: "application/json", text: JSON.stringify(body, null, 2) }] };
+  }
+  let decoded = rest;
+  try { decoded = decodeURIComponent(rest); } catch { /* そのまま比べる */ }
+  const hit = listing.files.find((f) => f.path === rest) ?? listing.files.find((f) => f.path === decoded);
+  if (!hit) throw new McpError(ErrorCode.InvalidParams, `見つかりません: ${uri} (一覧は harmony://skill/${name}/files)`);
+  // URI の文字列ではなく、一覧にあったパスから組み直して読む
+  const full = path.join(rootDir, "ai-skills", name, ...hit.path.split("/"));
+  let buf: Buffer;
+  try {
+    const st = fs.lstatSync(full);
+    if (!st.isFile() || st.size > SKILL_MAX_BYTES) throw new Error("not readable");
+    buf = fs.readFileSync(full);
+  } catch { throw new McpError(ErrorCode.InvalidParams, `読めません: ${uri}`); }
+  if (buf.includes(0)) throw new McpError(ErrorCode.InvalidParams, `テキストではないファイルは読めません: ${uri}`);
+  return { contents: [{ uri, mimeType: skillMimeType(hit.path), text: buf.toString("utf8") }] };
+}
+
 // ─── Prompts ────────────────────────────────────────────
 
 /** Prompts として出すスキル。設計を作る・点検する・コードやテストを作るもの (リポジトリの開発用 = issues・review-pr・publish-* などは出さない) */
@@ -264,6 +342,6 @@ export function getPrompt(name: string, args: Record<string, string> | undefined
   const given = (args?.arguments ?? "").trim();
   // スキルの本文の `$ARGUMENTS` を、渡された引数に置き換える (replace の特殊パターン $& を避けるため関数で渡す)
   const body = s.body.replace(/\$ARGUMENTS/g, () => given);
-  const header = `これは Harmony のスキル「${name}」の手順です。次の手順に従って進めてください。${given ? `\n引数: ${given}` : s.argumentHint ? `\n(引数の形: ${s.argumentHint})` : ""}\n\n`;
+  const header = `これは Harmony のスキル「${name}」の手順です。次の手順に従って進めてください。\n本文にある ai-skills/${name}/<パス> の付属ファイル (templates・golden-examples など) は、Resource harmony://skill/${name}/<パス> で読めます。一覧は harmony://skill/${name}/files です。${given ? `\n引数: ${given}` : s.argumentHint ? `\n(引数の形: ${s.argumentHint})` : ""}\n\n`;
   return { description: s.description, messages: [{ role: "user", content: { type: "text", text: header + body } }] };
 }

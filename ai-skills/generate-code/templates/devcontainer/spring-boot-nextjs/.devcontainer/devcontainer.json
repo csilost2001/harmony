@@ -1,6 +1,10 @@
 {
   "name": "App Dev (Spring Boot + Next.js)",
-  "image": "mcr.microsoft.com/devcontainers/java:1-21-bookworm",
+  "dockerComposeFile": "compose.yml",
+  "service": "dev",
+  "runServices": ["dev", "harmony"],
+  "workspaceFolder": "/workspaces/app",
+  "shutdownAction": "stopCompose",
 
   "features": {
     "ghcr.io/devcontainers/features/java:1": { "version": "21", "installMaven": true },
@@ -10,8 +14,9 @@
     "ghcr.io/devcontainers/features/copilot-cli:1.1.2": {}
   },
 
-  "forwardPorts": [8080, 3000, 5432],
+  "forwardPorts": [5179, 8080, 3000, 5432],
   "portsAttributes": {
+    "5179": { "label": "Harmony (設計)", "onAutoForward": "notify" },
     "8080": { "label": "Backend (Spring Boot)", "onAutoForward": "notify" },
     "3000": { "label": "Frontend (Next.js)", "onAutoForward": "notify" },
     "5432": { "label": "Postgres", "onAutoForward": "silent" }

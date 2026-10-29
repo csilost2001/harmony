@@ -1807,10 +1807,15 @@ Step 0 で `--all` / `--workspace <wsId>` が指定された場合、Step 1〜6 
 
 | File | 用途 | 配布対象 | techStack 依存 |
 |---|---|---|---|
-| `.devcontainer/devcontainer.json` | 開発時 (Reopen in Container) | B チーム (開発者) | Yes (4 組合せ) |
+| `.devcontainer/devcontainer.json` | 開発時 (Reopen in Container)。compose 形式 (`dockerComposeFile: compose.yml`、`service: dev`) | B チーム (開発者) | Yes (4 組合せ) |
+| `.devcontainer/compose.yml` | 開発コンテナ (`dev`) と Harmony (`harmony`、配布 image・ネットワーク共有) の 2 サービス (#1561) | B チーム (開発者) | `dev` の image だけ Yes |
+| `.devcontainer/.env.example` | Harmony の版 (`HARMONY_IMAGE`) を固定する例。使うときは `.env` にコピー | B チーム (開発者) | No |
+| `.mcp.json` | dev の AI CLI から Harmony の MCP (`http://localhost:5179/mcp`) に接続する設定 | B チーム (開発者) | No |
 | `Dockerfile` | 本番 image build | エンドユーザー (顧客本番) | Yes (java/node) |
 | `docker-compose.yml` | 本番 stack 起動 (app + DB) | エンドユーザー (顧客本番) | Yes |
 | `README.md` (scaffold セクション追記) | 開発者向け手順書 | B チーム | No (定型) |
+
+**Harmony の同居 (#1561)**: 4 組合せすべてで、開発コンテナ (`dev`) と Harmony (`harmony`) を compose で同居させる。`harmony` は `network_mode: service:dev` (dev の localhost:5179 で届く) で、プロジェクトのフォルダを dev と同じパス `/workspaces/app` に bind mount する。これでプロジェクトのルートがそのまま Harmony のワークスペース (`harmony.json` + `design/`、ソースは同じフォルダの中) になり、`designer__record_generation` / `designer__check_generation_drift` が今のまま使える。ファイルの持ち主は dev・harmony とも uid 1000 (`node` / `vscode`)。手順: [docs/setup/app-devcontainer-sidecar.md](../../docs/setup/app-devcontainer-sidecar.md)
 
 **Phase 1 では `Dockerfile.dev` を作らない** — dev container は MS 公式 base image + features + `postCreateCommand` 構成 (Harmony 本体 #847 / PR #1047 と同じ方針)。pre-build しない代わりに初回 5-10 分の features install を許容し、`Dockerfile.dev` のメンテナンスコストを払わない。
 
@@ -1819,6 +1824,7 @@ Step 0 で `--all` / `--workspace <wsId>` が指定された場合、Step 1〜6 
 - **container 内に持つ runtime**: app の起動に必要なもの (JDK / Node / Maven / npm / git / gh)
 - **docker-compose.yml で別コンテナ化**: state-ful サービス (Postgres / Redis / Mail / MinIO 等)
 - dev container は docker-compose の DB だけ参照する設計 (`forwardPorts` で 5432 を内部接続)
+- Harmony は設計ツールで、業務アプリの runtime ではない。開発用の `.devcontainer/compose.yml` に置き、本番の `docker-compose.yml` には入れない
 
 ### techStack 組合せ別テンプレ (4 組合せ)
 
@@ -1860,6 +1866,8 @@ Step 0 で `--all` / `--workspace <wsId>` が指定された場合、Step 1〜6 
 | nestjs 系 | `npm install && (npx prisma generate 2>/dev/null \|\| true)` (root 単一 package.json 構造、#1050 で確認) |
 
 ### forwardPorts (default)
+
+全組合せに Harmony の画面 `5179` (`Harmony (設計)`) を先頭に足す (#1561)。以下は業務アプリ側のポート:
 
 | techStack 組合せ | ports |
 |---|---|
@@ -1909,6 +1917,10 @@ VSCode + Dev Containers 拡張があれば、`git clone` 後に `Reopen in Conta
 
 詳細: [`.devcontainer/devcontainer.json`](.devcontainer/devcontainer.json)
 
+## 設計ツール (Harmony)
+
+開発コンテナと同時に Harmony (設計ツール) が起動します。画面は VS Code のポート転送 `5179` (`http://localhost:5179/`)、AI CLI からは `.mcp.json` の `http://localhost:5179/mcp` で使います。初回はワークスペースを作る (`designer__workspace_open { path: "/workspaces/app", init: true, dataDir: "design" }`)。版は `.devcontainer/.env` の `HARMONY_IMAGE` で固定。詳細は Harmony の `docs/setup/app-devcontainer-sidecar.md`。
+
 ## 本番デプロイ (Docker)
 
 ```bash
@@ -1924,21 +1936,33 @@ docker compose up --build
 ai-skills/generate-code/templates/devcontainer/
   spring-boot-thymeleaf/
     .devcontainer/devcontainer.json
+    .devcontainer/compose.yml
+    .devcontainer/.env.example
+    .mcp.json
     Dockerfile
     docker-compose.yml
     README.snippet.md
   spring-boot-nextjs/
     .devcontainer/devcontainer.json
+    .devcontainer/compose.yml
+    .devcontainer/.env.example
+    .mcp.json
     Dockerfile
     docker-compose.yml
     README.snippet.md
   nestjs-thymeleaf/
     .devcontainer/devcontainer.json
+    .devcontainer/compose.yml
+    .devcontainer/.env.example
+    .mcp.json
     Dockerfile
     docker-compose.yml
     README.snippet.md
   nestjs-nextjs/
     .devcontainer/devcontainer.json
+    .devcontainer/compose.yml
+    .devcontainer/.env.example
+    .mcp.json
     Dockerfile
     docker-compose.yml
     README.snippet.md
@@ -1961,16 +1985,19 @@ ai-skills/generate-code/templates/devcontainer/
 3. **既存 scaffold check**: `<出力先>/.devcontainer/devcontainer.json` の存在を確認、あれば全 scaffold 出力を skip + 「既存 .devcontainer/ を上書きしません」と報告 (上書き事故防止)
 4. **ファイルコピー**: 選択したテンプレディレクトリ配下の以下を Read → Write で `<出力先>/` に verbatim コピー (改変・補完なし、AI 解釈なし):
    - `.devcontainer/devcontainer.json` → `<出力先>/.devcontainer/devcontainer.json`
+   - `.devcontainer/compose.yml` → `<出力先>/.devcontainer/compose.yml`
+   - `.devcontainer/.env.example` → `<出力先>/.devcontainer/.env.example`
+   - `.mcp.json` → `<出力先>/.mcp.json` (既に `.mcp.json` がある場合は上書きせず、`mcpServers.harmony` を足す案内だけ最終レポートに書く)
    - `Dockerfile` → `<出力先>/Dockerfile`
    - `docker-compose.yml` → `<出力先>/docker-compose.yml`
 5. **README.md 統合**:
    - `<出力先>/README.md` 既存 → 冒頭 (最初の `# ` 見出しの直後) に `README.snippet.md` 内容を挿入
    - `<出力先>/README.md` 無し → `README.snippet.md` をベースに `# <appName>\n\n` ヘッダを付けて新規 `README.md` 作成
-6. **最終レポート反映**: Step 5 の per-entity ファイル列挙とは別カテゴリで `### プロジェクト scaffold` セクションを追加、生成 4 ファイルを列挙
+6. **最終レポート反映**: Step 5 の per-entity ファイル列挙とは別カテゴリで `### プロジェクト scaffold` セクションを追加、生成したファイルを列挙
 
 ### 出力先の運用想定 (project-root model)
 
-`<出力先>` は **業務アプリ project root** を指す設計。生成ファイルは canonical layout で project root 直下に配置され、scaffold (`.devcontainer/` / `Dockerfile` / `docker-compose.yml` / `README.md`) も同じ project root に同居する。
+`<出力先>` は **業務アプリ project root** を指す設計。生成ファイルは canonical layout で project root 直下に配置され、scaffold (`.devcontainer/` / `.mcp.json` / `Dockerfile` / `docker-compose.yml` / `README.md`) も同じ project root に同居する。この project root が、そのまま Harmony のワークスペース (`harmony.json` + `design/`) にもなる (#1561)。
 
 業務アプリ開発者 (Harmony 利用者) 向けの利用者目線の解説は [`docs/user-guide/generate-code-workflow.md`](../../docs/user-guide/generate-code-workflow.md) を参照。本節は AI 実装者向けに design intent と生成後の物理 layout を記述する。
 
@@ -1981,7 +2008,10 @@ frontend は Thymeleaf (同 project root の `src/main/resources/templates/`) or
 ```
 <出力先>/                              ← 業務アプリ project root (例: ~/projects/retail-app/)
 ├── .devcontainer/
-│   └── devcontainer.json              ← VS Code Dev Container 設定
+│   ├── devcontainer.json              ← VS Code Dev Container 設定 (compose 形式)
+│   ├── compose.yml                    ← dev + harmony (設計ツール) の 2 サービス
+│   └── .env.example                   ← HARMONY_IMAGE (Harmony の版) の例
+├── .mcp.json                           ← Harmony の MCP (http://localhost:5179/mcp)
 ├── Dockerfile                          ← backend container image 定義
 ├── docker-compose.yml                  ← backend + DB を起動する compose 定義
 ├── README.md                           ← project README + scaffold セクション
@@ -2015,7 +2045,10 @@ frontend は Thymeleaf (同 project root の `src/main/resources/templates/`) or
 ```
 <出力先>/                              ← 業務アプリ project root (例: ~/projects/inventory-admin/)
 ├── .devcontainer/
-│   └── devcontainer.json
+│   ├── devcontainer.json
+│   ├── compose.yml
+│   └── .env.example
+├── .mcp.json
 ├── Dockerfile
 ├── docker-compose.yml
 ├── README.md
@@ -2063,7 +2096,8 @@ Harmony 利用者は **意味のある folder 名** (例: `retail-app/`、`inven
 
 ### 検証 (Step 6 拡張 / B-4)
 
-- `.devcontainer/devcontainer.json` が JSON valid (構文チェック)
+- `.devcontainer/devcontainer.json` が JSON valid (構文チェック)、`.mcp.json` も JSON valid
+- `.devcontainer/compose.yml` が YAML valid (`docker compose -f .devcontainer/compose.yml config` が使えるときはそれで)
 - `docker compose config -f docker-compose.yml` が pass (CLI 利用可能時のみ)
 - B-4 retail dogfood で Reopen in Container 実機検証 (出力アプリの起動まで)
 
@@ -2149,6 +2183,9 @@ tsc が利用不可またはプロジェクト設定が不整合の場合はス�
 
 ### プロジェクト scaffold (#1048、初回 entity 出力時のみ)
 - `<出力先>/.devcontainer/devcontainer.json`
+- `<出力先>/.devcontainer/compose.yml`
+- `<出力先>/.devcontainer/.env.example`
+- `<出力先>/.mcp.json`
 - `<出力先>/Dockerfile`
 - `<出力先>/docker-compose.yml`
 - `<出力先>/README.md` (新規 or scaffold セクション追記)

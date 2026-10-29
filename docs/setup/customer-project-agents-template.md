@@ -1,6 +1,6 @@
 # Customer Project AGENTS.md Template
 
-Harmony を Docker image / readonly spec package として利用し、業務 project 側だけを AI の writable scope にするための `AGENTS.md` テンプレート。
+Harmony を Docker image として使い、業務 project 側だけを AI の writable scope にするための `AGENTS.md` テンプレート。Harmony を業務アプリの開発コンテナに同居させる構成 ([app-devcontainer-sidecar.md](./app-devcontainer-sidecar.md)) を前提にしている。
 
 ## Template
 
@@ -8,23 +8,34 @@ Harmony を Docker image / readonly spec package として利用し、業務 pro
 # AGENTS.md
 
 このリポジトリは Harmony で設計・生成する業務アプリ project です。
+プロジェクトのルートが、そのまま Harmony のワークスペースです (`harmony.json` + `design/`)。
 
 ## 編集してよい領域
 
-- `harmony-design/` — Harmony workspace。`harmony.json` と `<dataDir>/` 配下の設計 JSON を含む
-- `app/` — 生成・実装する業務アプリ本体
+- `backend/` `frontend/` — 生成・実装する業務アプリ本体
 - この project の README / tests / docs
 
-## readonly reference
+## 設計は MCP の tool で直す (ファイルを直接書き換えない)
 
-- `node_modules/@harmony/spec/` または別途配置された `@harmony/spec`
-- Harmony schemas / docs / examples の readonly copy
+- `harmony.json` と `design/` の JSON は、Harmony の MCP (`http://localhost:5179/mcp`) の tool で直す。
+  ファイルとして直接書き換えない (ロック・作業コピー・保存前の版を通らず、画面と食い違うため)
+- 読むだけなら tool でもファイルでもよいが、迷ったら tool を使う
+
+## 作業の流れ
+
+1. 接続したら最初に `designer__get_project_context` を呼ぶ (設計の全体と、未解決のマーカー = 人からの指示・質問が分かる)
+2. 設計は MCP の tool で作る・直す。直したら `designer__check_design` を呼び、error / warning を 0 件にしてから報告する
+3. コードの生成は Prompt `generate-code` の手順に従う。手順が参照する付属ファイル (`templates/**` など) は
+   Resource `harmony://skill/generate-code/<パス>` で読む (一覧は `harmony://skill/generate-code/files`)。
+   出力先は `backend/` / `frontend/`
+4. 生成したら `designer__record_generation` で「どの設計からどのファイルを作ったか」を記録する
+5. 設計を直して再生成するときは、先に `designer__check_generation_drift` (生成物を手で直していないか) と
+   `designer__get_regeneration_diff` (何が変わるか) を呼ぶ
 
 ## 編集禁止
 
-- Harmony 本体 repo
-- Harmony 本体の `frontend/`, `backend/`, `shared/`, `schemas/`, `docs/`
-- Docker image 内の Harmony 配布物
+- Harmony 本体 repo と、Docker image 内の Harmony 配布物
+- Harmony の schema (`schemas/v3/*.json`)
 
 ## Harmony 本体に問題を見つけた場合
 
@@ -41,16 +52,17 @@ Harmony を Docker image / readonly spec package として利用し、業務 pro
 
 ## 推奨 project layout
 
+プロジェクトのルート = Harmony のワークスペース。1 フォルダ = 1 git リポジトリ。
+
 ```text
-customer-system/
+customer-system/               ← git リポジトリ。Harmony のワークスペース (harmony.json の置き場所)
   AGENTS.md
-  harmony-design/
-    harmony.json
-    harmony/
-      screens/
-      tables/
-      process-flows/
-  app/
+  .mcp.json                    ← Harmony の MCP (http://localhost:5179/mcp)
+  .devcontainer/               ← dev + harmony (+ 必要なら db) を compose で起動
+  harmony.json                 ← dataDir: "design"
+  design/                      ← 設計データ (screens / tables / process-flows など)
+  backend/
+  frontend/
 ```
 
-Harmony は Docker image として起動し、`customer-system/harmony-design` を workspace として開く。AI coding agent は `customer-system/` を作業ディレクトリにし、Harmony 本体 repo を writable scope に含めない。
+Harmony は開発コンテナに同居して起動し (配布 image、版は `.devcontainer/.env` で固定)、`customer-system/` を同じパスで開く。AI coding agent は `customer-system/` を作業ディレクトリにし、Harmony 本体 repo を writable scope に含めない。構成と手順: [app-devcontainer-sidecar.md](./app-devcontainer-sidecar.md)。

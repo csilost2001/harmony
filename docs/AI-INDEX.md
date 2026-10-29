@@ -49,7 +49,7 @@ MCP につながっていれば、この文書は Resource `harmony://docs/ai-in
 | 前の版に戻す・壊れた設計を直す | [file-backup.md](spec/file-backup.md) / [workspace-health.md](spec/workspace-health.md) | `list_versions` → `restore_version`、`repair_registry`、`persist_uuids` |
 | 拡張 (独自の工程・型) を足す | [process-flow-extensions.md](spec/process-flow-extensions.md) / [plugin-system.md](spec/plugin-system.md) | `list_extensions` / `add_step_extension` ほか `add_*_extension` |
 
-手順 (`create-flow` など) は MCP の Prompts で取れる。`prompts/list` で一覧、`prompts/get` で本文。引数は `arguments` に 1 本の文字列で渡す。
+手順 (`create-flow` など) は MCP の Prompts で取れる。`prompts/list` で一覧、`prompts/get` で本文。引数は `arguments` に 1 本の文字列で渡す。手順の本文にある `ai-skills/<名前>/<パス>` (テンプレート・手本など) は、Resource `harmony://skill/<名前>/<パス>` で読める。一覧は `harmony://skill/<名前>/files` ([mcp-design-access.md](spec/mcp-design-access.md))。
 
 ## 資料の探し方
 

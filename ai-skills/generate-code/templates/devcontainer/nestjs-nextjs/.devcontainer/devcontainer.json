@@ -1,6 +1,10 @@
 {
   "name": "App Dev (NestJS + Next.js)",
-  "image": "mcr.microsoft.com/devcontainers/typescript-node:20",
+  "dockerComposeFile": "compose.yml",
+  "service": "dev",
+  "runServices": ["dev", "harmony"],
+  "workspaceFolder": "/workspaces/app",
+  "shutdownAction": "stopCompose",
 
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1": {},
@@ -8,8 +12,9 @@
     "ghcr.io/devcontainers/features/copilot-cli:1.1.2": {}
   },
 
-  "forwardPorts": [3000, 3001],
+  "forwardPorts": [5179, 3000, 3001],
   "portsAttributes": {
+    "5179": { "label": "Harmony (設計)", "onAutoForward": "notify" },
     "3000": { "label": "Frontend (Next.js)", "onAutoForward": "notify" },
     "3001": { "label": "Backend (NestJS)", "onAutoForward": "notify" }
   },
