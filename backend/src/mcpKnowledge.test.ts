@@ -144,6 +144,36 @@ describe("harmony://skill/<名前>/<パス> (1 ファイル)", () => {
   });
 });
 
+describe("件数の上限", () => {
+  it("2001 個のファイルがあると、一覧は 2000 件までで、載せなかった件数を note に書く", async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "harmony-skill-count-"));
+    try {
+      const dir = path.join(root, "ai-skills/create-flow");
+      fs.mkdirSync(dir, { recursive: true });
+      for (let i = 0; i < 2001; i++) fs.writeFileSync(path.join(dir, `f${String(i).padStart(4, "0")}.txt`), "x");
+      const l = await list("create-flow", root);
+      expect(l.files).toHaveLength(2000);
+      expect(l.note).toContain("載せなかったもの 1 件");
+    } finally { fs.rmSync(root, { recursive: true, force: true }); }
+  });
+});
+
+describe("Prompt の付属ファイルの案内", () => {
+  it("付属ファイルがあるスキルにだけ出し、相対パスでも読めると伝える。SKILL.md だけのスキルには出さない", () => {
+    const withFiles = getPrompt("generate-code", undefined, tmp).messages[0].content.text;
+    expect(withFiles).toContain("templates/...");
+    expect(withFiles).toContain("harmony://skill/generate-code/<スキルのフォルダからの相対パス>");
+    const only = fs.mkdtempSync(path.join(os.tmpdir(), "harmony-skill-only-"));
+    try {
+      fs.mkdirSync(path.join(only, "ai-skills/create-flow"), { recursive: true });
+      fs.writeFileSync(path.join(only, "ai-skills/create-flow/SKILL.md"), "---\ndescription: x\n---\n本文\n");
+      const p = getPrompt("create-flow", undefined, only).messages[0].content.text;
+      expect(p).not.toContain("harmony://skill/");
+      expect(p).toContain("本文");
+    } finally { fs.rmSync(only, { recursive: true, force: true }); }
+  });
+});
+
 describe("実リポジトリの generate-code", () => {
   it("devcontainer の雛形 (隠しフォルダの中のファイルを含む) が一覧に出て、読める", async () => {
     const l = await list("generate-code", REPO);
@@ -171,7 +201,7 @@ describe("実リポジトリの generate-code", () => {
     } finally { await client.close(); await server.close(); }
     expect(SERVER_INSTRUCTIONS).toContain("harmony://skill/");
     const p = getPrompt("generate-code", undefined, REPO).messages[0].content.text;
-    expect(p).toContain("harmony://skill/generate-code/<パス>");
+    expect(p).toContain("harmony://skill/generate-code/<スキルのフォルダからの相対パス>");
     expect(p).toContain("harmony://skill/generate-code/files");
   });
 });

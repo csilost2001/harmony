@@ -28,7 +28,7 @@
 
   "onCreateCommand": "sudo chown -R node:node /home/node/.claude /home/node/.codex /home/node/.copilot /home/node/.config/gh",
 
-  "postCreateCommand": "npm install && (npx prisma generate 2>/dev/null || true) && npm install -g @openai/codex && ([ -f ~/.claude/.config.json ] || echo '{}' > ~/.claude/.config.json)",
+  "postCreateCommand": "([ -f package.json ] && npm install || true) && (npx prisma generate 2>/dev/null || true) && npm install -g @openai/codex && ([ -f ~/.claude/.config.json ] || echo '{}' > ~/.claude/.config.json)",
 
   "customizations": {
     "vscode": {

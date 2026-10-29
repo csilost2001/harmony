@@ -32,8 +32,8 @@ VSCode + Dev Containers 拡張があれば、`git clone` 後に `Reopen in Conta
 - **画面**: VS Code のポート転送 `5179` (「Harmony (設計)」) から開く → `http://localhost:5179/`
 - **AI CLI から**: プロジェクトのルートの `.mcp.json` が `http://localhost:5179/mcp` につないでいる。つないだら最初に `designer__get_project_context`
 - **初回のワークスペース**: プロジェクトのルート (`/workspaces/app`) を Harmony のワークスペースにする。AI に「`designer__workspace_open { path: "/workspaces/app", init: true, dataDir: "design" }` で開いて」と頼むか、画面の「ワークスペース」から `/workspaces/app` を選んで作る。設計は `design/`、生成したソースは同じフォルダに入る (`harmony.json` も同じフォルダ)
-- **Harmony の版**: `.devcontainer/.env.example` を `.env` にコピーして `HARMONY_IMAGE=ghcr.io/csilost2001/harmony:<version>` を指定し、`Dev Containers: Rebuild Container` で上げる。`.env` はコミットしない (`.gitignore` に `.devcontainer/.env` を足す)
-- ホストのユーザー ID が 1000 でないと、設計ファイルの持ち主が合わない場合がある。詳細: Harmony の `docs/setup/app-devcontainer-sidecar.md`
+- **Harmony の版**: `.devcontainer/compose.yml` の `image:` の既定値 (`ghcr.io/csilost2001/harmony:local`) を公開済みの版に書き換えて固定し、`Dev Containers: Rebuild Container` で上げる。このファイルは git で共有されるので、チームで同じ版になる。一時的に変えるだけならホストの環境変数 `HARMONY_IMAGE` を使う
+- この構成は、ホストのユーザー ID が 1000 のとき (WSL2 の既定のユーザー、Docker Desktop など) を前提にしている。それ以外の Linux は既知の制約。詳細: Harmony の `docs/setup/app-devcontainer-sidecar.md`
 
 ## AI CLI 利用 (任意)
 

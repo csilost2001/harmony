@@ -22,7 +22,7 @@ export const SERVER_INSTRUCTIONS = [
   "資料は Resources にあります: harmony://docs/ai-index (やりたいこと → 読む資料・使う tool)、harmony://spec/index (仕様書の索引)、harmony://schema/<種類> (JSON Schema)。",
   "設計を作る・直したあとは designer__check_design を呼び、error / warning を 0 件にしてから報告してください。schema の変更は設計者の判断です (AI は変えない)。",
   "処理フローの作成・レビューなどの手順は Prompts (create-flow / review-flow ほか) にあります。",
-  "手順 (Prompts) の本文にある ai-skills/<名前>/<パス> の付属ファイル (templates・golden-examples など) は、Resource harmony://skill/<名前>/<パス> で読めます。一覧は harmony://skill/<名前>/files です。",
+  "手順 (Prompts) の本文で参照するそのスキルの付属ファイル (`templates/...` のようなスキルのフォルダからの相対パスや `ai-skills/<名前>/...`) は、Resource harmony://skill/<名前>/<スキルのフォルダからの相対パス> で読めます。一覧は harmony://skill/<名前>/files です。付属ファイルのあるスキルだけに当てはまります。",
 ].join("\n");
 
 /** 資料を同梱するディレクトリ (リポジトリの根)。HARMONY_DOCS_DIR で変えられる。docs/AI-INDEX.md と schemas/v3 がある場所 */
@@ -342,6 +342,9 @@ export function getPrompt(name: string, args: Record<string, string> | undefined
   const given = (args?.arguments ?? "").trim();
   // スキルの本文の `$ARGUMENTS` を、渡された引数に置き換える (replace の特殊パターン $& を避けるため関数で渡す)
   const body = s.body.replace(/\$ARGUMENTS/g, () => given);
-  const header = `これは Harmony のスキル「${name}」の手順です。次の手順に従って進めてください。\n本文にある ai-skills/${name}/<パス> の付属ファイル (templates・golden-examples など) は、Resource harmony://skill/${name}/<パス> で読めます。一覧は harmony://skill/${name}/files です。${given ? `\n引数: ${given}` : s.argumentHint ? `\n(引数の形: ${s.argumentHint})` : ""}\n\n`;
+  // 付属ファイルが SKILL.md だけのスキルには、読み方の案内を出さない (騒がしいため)
+  const hasAttachments = (listSkillFiles(rootDir, name)?.files ?? []).some((f) => f.path !== "SKILL.md");
+  const attachGuide = hasAttachments ? `\n本文で参照するこのスキルの付属ファイル (\`templates/...\` のようにスキルのフォルダからの相対パスで書かれたものや \`ai-skills/${name}/...\`) は、Resource harmony://skill/${name}/<スキルのフォルダからの相対パス> で読めます。一覧は harmony://skill/${name}/files です。` : "";
+  const header = `これは Harmony のスキル「${name}」の手順です。次の手順に従って進めてください。${attachGuide}${given ? `\n引数: ${given}` : s.argumentHint ? `\n(引数の形: ${s.argumentHint})` : ""}\n\n`;
   return { description: s.description, messages: [{ role: "user", content: { type: "text", text: header + body } }] };
 }

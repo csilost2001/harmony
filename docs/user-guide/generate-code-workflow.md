@@ -25,6 +25,8 @@ PageLayout / Convention                  ├── src/
 
 `.devcontainer/` は **開発コンテナ (dev) と Harmony (設計ツール) を一緒に起動する構成** (compose 形式) です。Reopen in Container すると、設計の画面 (VS Code のポート転送 5179) と、AI CLI から使う MCP (`.mcp.json` の `http://localhost:5179/mcp`) も使えます。project root がそのまま Harmony のワークスペース (`harmony.json` + `design/`) になるので、設計とソースを 1 つの git で扱えます。手順: [app-devcontainer-sidecar.md](../setup/app-devcontainer-sidecar.md)
 
+`backend/` `frontend/` などのフォルダに分けて生成したいときは、`<出力先>` にそのフォルダを渡します。その場合、本番用の `Dockerfile` / `docker-compose.yml` / `README.md` の scaffold は作られません (開発コンテナの雛形はプロジェクトのルートにあるため)。
+
 つまり生成後にやることは:
 
 ```bash
@@ -40,8 +42,7 @@ code ~/projects/retail-app/      # project root を VS Code で開く
 ~/projects/retail-app/                  ← 業務アプリ project root
 ├── .devcontainer/
 │   ├── devcontainer.json
-│   ├── compose.yml                     ← dev + harmony (設計ツール)
-│   └── .env.example                    ← HARMONY_IMAGE (Harmony の版)
+│   └── compose.yml                     ← dev + harmony (設計ツール)
 ├── .mcp.json                           ← Harmony の MCP
 ├── Dockerfile
 ├── docker-compose.yml
@@ -66,7 +67,7 @@ code ~/projects/retail-app/      # project root を VS Code で開く
 
 ```
 ~/projects/inventory-admin/             ← 業務アプリ project root
-├── .devcontainer/                      ← devcontainer.json / compose.yml / .env.example
+├── .devcontainer/                      ← devcontainer.json / compose.yml
 ├── .mcp.json
 ├── Dockerfile
 ├── docker-compose.yml

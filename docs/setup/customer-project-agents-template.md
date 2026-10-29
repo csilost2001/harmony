@@ -12,7 +12,7 @@ Harmony を Docker image として使い、業務 project 側だけを AI の wr
 
 ## 編集してよい領域
 
-- `backend/` `frontend/` — 生成・実装する業務アプリ本体
+- 生成・実装する業務アプリ本体 (プロジェクトのルート直下のソース。`backend/` などに分けた場合はそのフォルダ)
 - この project の README / tests / docs
 
 ## 設計は MCP の tool で直す (ファイルを直接書き換えない)
@@ -26,8 +26,8 @@ Harmony を Docker image として使い、業務 project 側だけを AI の wr
 1. 接続したら最初に `designer__get_project_context` を呼ぶ (設計の全体と、未解決のマーカー = 人からの指示・質問が分かる)
 2. 設計は MCP の tool で作る・直す。直したら `designer__check_design` を呼び、error / warning を 0 件にしてから報告する
 3. コードの生成は Prompt `generate-code` の手順に従う。手順が参照する付属ファイル (`templates/**` など) は
-   Resource `harmony://skill/generate-code/<パス>` で読む (一覧は `harmony://skill/generate-code/files`)。
-   出力先は `backend/` / `frontend/` (開発コンテナの雛形 `.devcontainer/` はプロジェクトのルートにあるので、生成は作り直さない)
+   Resource `harmony://skill/generate-code/<スキルのフォルダからの相対パス>` で読む (一覧は `harmony://skill/generate-code/files`)。
+   出力先は既定でプロジェクトのルート (開発コンテナの雛形 `.devcontainer/` はルートにあるので、作り直さない)。`backend/` などに分けたいときは出力先にそのフォルダを渡す (本番用の `Dockerfile` / `docker-compose.yml` / `README.md` の雛形は作られない)
 4. 生成したら `designer__record_generation` で「どの設計からどのファイルを作ったか」を記録する
 5. 設計を直して再生成するときは、先に `designer__check_generation_drift` (生成物を手で直していないか) と
    `designer__get_regeneration_diff` (何が変わるか) を呼ぶ
@@ -61,8 +61,7 @@ customer-system/               ← git リポジトリ。Harmony のワークス
   .devcontainer/               ← dev + harmony (+ 必要なら db) を compose で起動
   harmony.json                 ← dataDir: "design"
   design/                      ← 設計データ (screens / tables / process-flows など)
-  backend/
-  frontend/
+  (アプリのソース)               ← ルート直下。backend/ などに分けてもよい (/generate-code の出力先で指定)
 ```
 
-Harmony は開発コンテナに同居して起動し (配布 image、版は `.devcontainer/.env` で固定)、`customer-system/` を同じパスで開く。AI coding agent は `customer-system/` を作業ディレクトリにし、Harmony 本体 repo を writable scope に含めない。構成と手順: [app-devcontainer-sidecar.md](./app-devcontainer-sidecar.md)。
+Harmony は開発コンテナに同居して起動し (配布 image、版は `.devcontainer/compose.yml` の `image:` で固定)、`customer-system/` を同じパスで開く。AI coding agent は `customer-system/` を作業ディレクトリにし、Harmony 本体 repo を writable scope に含めない。構成と手順: [app-devcontainer-sidecar.md](./app-devcontainer-sidecar.md)。
