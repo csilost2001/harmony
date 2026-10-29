@@ -32,6 +32,7 @@ Claude Code 向けの補足。プロジェクト共通のルールは [AGENTS.md
 | `/rename-screen-ids` | 画面項目 ID の再命名 |
 | `/document-ui [<screen>]` | UI 操作リファレンスの自動生成 |
 | `/test-strategy` | テスト実装時の方針 (自動起動) |
+| `/html-qa [<topic>]` | AI からの説明・質問を、ブラウザで答える HTML にする (JSON → スクリプトで変換。画面の「AI に送る」で AI が自動で受け取る。版を重ねて継続。質問が多いときは自動起動) |
 | `/release-review` | リリース前の自律レビュー |
 | `/publish-dev-image <ver>` | Dev Container base image の公開 (maintainer 専用) |
 | `/publish-harmony-image <ver>` | Harmony 本体の配布用 Docker image の build / smoke / ghcr push (maintainer 専用、host の WSL2 / Linux で実行) |
