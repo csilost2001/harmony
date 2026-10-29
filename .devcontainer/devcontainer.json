@@ -8,10 +8,11 @@
   // 結果: SELinux 緩和の runArgs / docker.sock mount / postStartCommand すべて不要、
   //       image size -~220 MB、複雑度減。
 
-  "forwardPorts": [5173, 5179],
+  "forwardPorts": [5173, 5179, 5190],
   "portsAttributes": {
     "5173": { "label": "Frontend (Vite)", "onAutoForward": "notify" },
-    "5179": { "label": "Backend (MCP + WS)", "onAutoForward": "silent" }
+    "5179": { "label": "Backend (MCP + WS)", "onAutoForward": "silent" },
+    "5190": { "label": "html-qa (AI とのやりとり)", "onAutoForward": "silent" }
   },
 
   "mounts": [

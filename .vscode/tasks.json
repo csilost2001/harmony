@@ -1,0 +1,15 @@
+{
+  // html-qa (AI とのやりとりの HTML) を http://localhost:5190/ で開くためのサーバ。
+  // 「ターミナル → タスクの実行 → html-qa: 表示サーバ」で起動する。止めるときはそのターミナルで Ctrl+C。
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "html-qa: 表示サーバ",
+      "type": "shell",
+      "command": "node ai-skills/html-qa/scripts/serve.mjs",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "reveal": "silent", "panel": "dedicated", "group": "html-qa" }
+    }
+  ]
+}
