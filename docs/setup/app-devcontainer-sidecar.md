@@ -38,7 +38,7 @@ Harmony 本体を開発する人は [dev-containers.md](./dev-containers.md)、H
 
 雛形は `ai-skills/generate-code/templates/devcontainer/<組合せ>/` にある。組合せは `nestjs-nextjs` / `nestjs-thymeleaf` / `spring-boot-nextjs` / `spring-boot-thymeleaf` の 4 つ。どれにも同じ Harmony の構成が入っている。取り出し方は 3 つ。
 
-1. **`/generate-code` に任せる** (Harmony につながってから): 業務プロジェクトの出力先に `.devcontainer/` がまだ無ければ、`/generate-code` が技術スタックに合う雛形を置く ([generate-code-workflow.md](../user-guide/generate-code-workflow.md))
+1. **`/generate-code` に任せる** (Harmony につながってから): ワークスペースのルートに `.devcontainer/` がまだ無ければ、`/generate-code` が技術スタックに合う雛形を置く (すでにあるファイルは飛ばす。本番用の `Dockerfile` などは、`.devcontainer/` があっても出力先に作られる) ([generate-code-workflow.md](../user-guide/generate-code-workflow.md))
 2. **Harmony の repo から取る** (初めての 1 回はこれ): 上のフォルダの `.devcontainer/` と `.mcp.json` を、業務プロジェクトのルートにコピーする (隠しフォルダ `.devcontainer/` も忘れずに)
 3. **MCP の Resource で読む** (Harmony につながってから。リポジトリを持たない場合): `harmony://skill/generate-code/files` で一覧を見て、`harmony://skill/generate-code/templates/devcontainer/<組合せ>/.devcontainer/compose.yml` のように 1 ファイルずつ読んで書き出す。AI に頼めばよい
 
@@ -74,7 +74,7 @@ designer__workspace_open { "path": "/workspaces/app", "init": true, "dataDir": "
 
 画面から作る場合: 「ワークスペース」の画面で `/workspaces/app` を選んで新規作成し、データのフォルダ名を `design` にする。
 
-できあがるもの: `/workspaces/app/harmony.json` と `/workspaces/app/design/`。以降は設計を MCP の tool か画面で直し、`/generate-code` (MCP の Prompt `generate-code`) で生成する。ソースは既定ではプロジェクトのルート直下に出る。`backend/` `frontend/` などに分けたいときは、`/generate-code` の出力先にそのフォルダを渡す (そのときは本番用の `Dockerfile` / `docker-compose.yml` / `README.md` の雛形は作られない。開発コンテナの雛形はルートにあるため)。生成したら `designer__record_generation`、再生成の前は `designer__check_generation_drift` と `designer__get_regeneration_diff`。作業の流れは [customer-project-agents-template.md](./customer-project-agents-template.md) の AGENTS.md に書いてある。
+できあがるもの: `/workspaces/app/harmony.json` と `/workspaces/app/design/`。以降は設計を MCP の tool か画面で直し、`/generate-code` (MCP の Prompt `generate-code`) で生成する。ソースは既定ではプロジェクトのルート直下に出る。`backend/` `frontend/` などに分けたいときは、`/generate-code` の出力先にそのフォルダを渡す (そのときも `.devcontainer/` と `.mcp.json` はルートのまま、入れ子にはならない。本番用の `Dockerfile` / `docker-compose.yml` と README の設計ツールの節は、その出力先のフォルダに作られる。すでにあるファイルだけは飛ばして、上書きしない)。生成したら `designer__record_generation`、再生成の前は `designer__check_generation_drift` と `designer__get_regeneration_diff`。作業の流れは [customer-project-agents-template.md](./customer-project-agents-template.md) の AGENTS.md に書いてある。
 
 ## Harmony の版
 
@@ -88,7 +88,7 @@ designer__workspace_open { "path": "/workspaces/app", "init": true, "dataDir": "
 image: ${HARMONY_IMAGE:-ghcr.io/csilost2001/harmony:<version>}
 ```
 
-`compose.yml` は git で共有されるので、チームで同じ版になる。一時的に別の版を試すだけなら、ホストの環境変数 `HARMONY_IMAGE` を設定して起動する (ファイルは変わらない)。版を上げるときは書き換えて、VS Code で `Dev Containers: Rebuild Container`。設計データ (`harmony.json`・`design/`) はホストのフォルダを共有しているもの (bind mount = ホストのフォルダをそのままコンテナに見せる仕組み) にあり、Harmony の状態 (`~/.harmony` = 最近開いたワークスペースなど) は `harmony-state` の volume に残るので、版を上げても消えない。
+`compose.yml` は git で共有されるので、チームで同じ版になる。一時的に別の版を試すだけなら、ホストの環境変数 `HARMONY_IMAGE` を設定して起動する (ファイルは変わらない。VS Code をターミナルから `code .` で開いたときに効く。GUI から起動すると環境変数を引き継がないことがある)。版を上げるときは書き換えて、VS Code で `Dev Containers: Rebuild Container`。設計データ (`harmony.json`・`design/`) はホストのフォルダを共有しているもの (bind mount = ホストのフォルダをそのままコンテナに見せる仕組み) にあり、Harmony の状態 (`~/.harmony` = 最近開いたワークスペースなど) は `harmony-state` の volume に残るので、版を上げても消えない。
 
 ### ローカルでビルドした image を使う (いまはこちら)
 
@@ -135,4 +135,5 @@ SELinux が有効なホスト (Fedora など) では、フォルダの共有 (`v
 4. 設計を直すと「再生成が必要」、生成物を手で直すと「生成物が変わった」と検出される
 5. 画面で保存した設計ファイルが、dev 側の git で差分として見える (持ち主・権限の問題がない)
 6. `compose.yml` の `image:` の既定値を書き換えると、Rebuild Container で実際に image が切り替わる (ホストの環境変数 `HARMONY_IMAGE` でも切り替わる)
-7. 設計が空の状態 (ルートに `package.json` が無い) から `Reopen in Container` しても、`postCreateCommand` が最後まで走る (Codex CLI が入る)
+7. `Dev Containers: Rebuild Container` で dev だけが作り直されたとき、またはホスト側で dev だけを再起動したあとも、dev から harmony (`localhost:5179`) に届く (`network_mode: service:dev` が古いネットワークを握ったままにならない)
+8. 設計が空の状態 (ルートに `package.json` が無い) から `Reopen in Container` しても、`postCreateCommand` が最後まで走る (Codex CLI が入る)

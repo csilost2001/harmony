@@ -77,7 +77,7 @@ category: ops
 | `harmony://skill/<名前>/files` | スキルのフォルダにある通常のファイルの一覧 (JSON: `{ skill, files: [{ path, size, uri }], note }`)。`path` は `/` 区切り |
 | `harmony://skill/<名前>/<パス>` | 1 ファイル。パスは複数の階層 (例 `harmony://skill/generate-code/templates/devcontainer/nestjs-nextjs/.devcontainer/compose.yml`)。上の一覧にあるパスだけ読める |
 
-`<名前>` は Prompts として出すスキル (`create-flow` `review-flow` `generate-code` `generate-tests` `import-md` `rename-screen-ids` `test-strategy`) だけ。Prompt の本文の冒頭にも、この読み方を書いてある。守りは [server-security.md](server-security.md) の「AI が読む資料と手順」。外の業務プロジェクトで Harmony を同居させる構成は [app-devcontainer-sidecar.md](../setup/app-devcontainer-sidecar.md)。
+`<名前>` は Prompts として出すスキル (`create-flow` `review-flow` `generate-code` `generate-tests` `import-md` `rename-screen-ids` `test-strategy`) だけ。Prompt の本文の冒頭にも、この読み方を書いてある (付属ファイルのあるスキル、いまは `generate-code` と `generate-tests` だけ)。守りは [server-security.md](server-security.md) の「AI が読む資料と手順」。外の業務プロジェクトで Harmony を同居させる構成は [app-devcontainer-sidecar.md](../setup/app-devcontainer-sidecar.md)。
 
 ## 机上の実行と、指摘の直し方
 

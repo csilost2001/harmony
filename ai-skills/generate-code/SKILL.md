@@ -582,7 +582,7 @@ CSRF token 付与 (`.with(csrf())`) を忘れないこと (Spring Security 6 def
 
 #### Frontend (Gadget Fragment) 側のフォーム
 
-Gadget HTML の logout button form は変わらず `<form th:action="@{<logoutPath>}" method="post">` を生成。Spring Security の LogoutFilter が path 一致で先に処理するため Controller 不要 ([FRAGMENT.md](../../templates/frontend/thymeleaf-bootstrap/FRAGMENT.md) 参照、auth.method=session 時の GadgetController logout メソッドも生成しない)。
+Gadget HTML の logout button form は変わらず `<form th:action="@{<logoutPath>}" method="post">` を生成。Spring Security の LogoutFilter が path 一致で先に処理するため Controller 不要 ([FRAGMENT.md](templates/frontend/thymeleaf-bootstrap/FRAGMENT.md) 参照、auth.method=session 時の GadgetController logout メソッドも生成しない)。
 
 ##### 4. login.html (新規、`templates/` 配下、最小フォーム)
 
@@ -1800,7 +1800,7 @@ Step 0 で `--all` / `--workspace <wsId>` が指定された場合、Step 1〜6 
 
 ### 生成タイミング
 
-- 単発モード (`/generate-code <id> <出力先>`): 出力先に `.devcontainer/` が**まだ無い**場合のみ生成。既にある場合は skip + 「既存 scaffold を上書きしません」と報告
+- 単発モード (`/generate-code <id> <出力先>`): ファイルごとに、まだ無いものだけ生成する (判定はステップ 3 の「既存 scaffold check」)。すでにあるファイルは飛ばし、「既存 scaffold を上書きしません」と報告
 - bulk モード (`--all` / `--workspace`): 最初の entity 出力時に 1 度だけ scaffold 生成、以降の entity では skip
 
 ### ファイル責務分離
@@ -1862,7 +1862,7 @@ Step 0 で `--all` / `--workspace <wsId>` が指定された場合、Step 1〜6 
 | techStack | postCreateCommand |
 |---|---|
 | spring-boot 系 | `./mvnw -B dependency:resolve 2>/dev/null \|\| mvn -B dependency:resolve \|\| true` (mvnw 優先 + Java feature 同梱 mvn fallback。Spring Boot 出力には #1050 で mvnw 同梱されるが旧出力との互換のため fallback 残置) |
-| nestjs 系 | `npm install && (npx prisma generate 2>/dev/null \|\| true)` (root 単一 package.json 構造、#1050 で確認) |
+| nestjs 系 | `([ -f package.json ] && npm install \|\| true) && ([ -f prisma/schema.prisma ] && npx prisma generate \|\| true)` (root 単一 package.json 構造、#1050 で確認。設計だけでまだ生成前でも止まらず、Prisma のスキーマがなければ prisma を取りに行かない) |
 
 ### forwardPorts (default)
 
@@ -1977,15 +1977,18 @@ ai-skills/generate-code/templates/devcontainer/
    | `nestjs` | `thymeleaf` | `templates/devcontainer/nestjs-thymeleaf/` |
    | `nestjs` | `react` | `templates/devcontainer/nestjs-nextjs/` |
 
-3. **既存 scaffold check**: `<出力先>/.devcontainer/devcontainer.json` と、ワークスペースのルート (`harmony.json` のあるフォルダ) の `.devcontainer/devcontainer.json` の存在を確認、どちらかがあれば全 scaffold 出力を skip + 「既存 .devcontainer/ を上書きしません」と報告 (上書き事故防止。Harmony 同居の構成で出力先を `backend/` などにしたとき、`backend/.devcontainer/` を入れ子で作らないため)
-4. **ファイルコピー**: 選択したテンプレディレクトリ配下の以下を Read → Write で `<出力先>/` に verbatim コピー (改変・補完なし、AI 解釈なし):
-   - `.devcontainer/devcontainer.json` → `<出力先>/.devcontainer/devcontainer.json`
-   - `.devcontainer/compose.yml` → `<出力先>/.devcontainer/compose.yml`
-   - `.mcp.json` → `<出力先>/.mcp.json` (既に `.mcp.json` がある場合は上書きせず、`mcpServers.harmony` を足す案内だけ最終レポートに書く)
+3. **既存 scaffold check (ファイルごとに判定する)**: 置き場所は 2 つ。ワークスペースのルート (`harmony.json` のあるフォルダ) と `<出力先>`。出力先をルート直下にしたときは同じ場所になる。
+   - `.devcontainer/` (devcontainer.json・compose.yml) と `.mcp.json` は、**常にワークスペースのルート**に置く。ルートに `.devcontainer/devcontainer.json` があれば `.devcontainer/` は作らない。ルートに `.mcp.json` があれば `.mcp.json` も作らない (`mcpServers.harmony` を足す案内だけ最終レポートに書く)。出力先を `backend/` などにしても、`backend/.devcontainer/` を入れ子で作らない
+   - `Dockerfile`・`docker-compose.yml` は**出力先**に置く。出力先にすでにある**ファイルだけ**を飛ばす (上書きしない)。無いほうは作る
+   - 飛ばしたファイルは「既存のため飛ばした」と最終レポートに書く
+4. **ファイルコピー**: 選択したテンプレディレクトリ配下の以下を Read → Write で verbatim コピー (改変・補完なし、AI 解釈なし)。ステップ 3 で飛ばすと決めたものは書かない:
+   - `.devcontainer/devcontainer.json` → `<ワークスペースのルート>/.devcontainer/devcontainer.json`
+   - `.devcontainer/compose.yml` → `<ワークスペースのルート>/.devcontainer/compose.yml`
+   - `.mcp.json` → `<ワークスペースのルート>/.mcp.json`
    - `Dockerfile` → `<出力先>/Dockerfile`
    - `docker-compose.yml` → `<出力先>/docker-compose.yml`
 5. **README.md 統合**:
-   - `<出力先>/README.md` 既存 → 冒頭 (最初の `# ` 見出しの直後) に `README.snippet.md` 内容を挿入
+   - `<出力先>/README.md` 既存 → 冒頭 (最初の `# ` 見出しの直後) に `README.snippet.md` 内容を挿入。ただし README.snippet の節 (`## 開発環境 (Dev Containers)` など) がすでに入っていれば足さない
    - `<出力先>/README.md` 無し → `README.snippet.md` をベースに `# <appName>\n\n` ヘッダを付けて新規 `README.md` 作成
 6. **最終レポート反映**: Step 5 の per-entity ファイル列挙とは別カテゴリで `### プロジェクト scaffold` セクションを追加、生成したファイルを列挙
 
@@ -1993,7 +1996,7 @@ ai-skills/generate-code/templates/devcontainer/
 
 `<出力先>` は **業務アプリ project root** を指す設計。生成ファイルは canonical layout で project root 直下に配置され、scaffold (`.devcontainer/` / `.mcp.json` / `Dockerfile` / `docker-compose.yml` / `README.md`) も同じ project root に同居する。この project root が、そのまま Harmony のワークスペース (`harmony.json` + `design/`) にもなる (#1561)。
 
-**`backend/` `frontend/` に分けたい場合**: 既定の配置はプロジェクトのルート直下。`backend/` `frontend/` などのフォルダに分けたいときは、`/generate-code` の `<出力先>` にそのフォルダを渡す。そのときは本番用の `Dockerfile` / `docker-compose.yml` / `README.md` の scaffold は作られない (開発コンテナの雛形がプロジェクトのルートにあるため、ステップ 3 の既存 scaffold check で skip される)。
+**`backend/` `frontend/` に分けたい場合**: 既定の配置はプロジェクトのルート直下。`backend/` `frontend/` などのフォルダに分けたいときは、`/generate-code` の `<出力先>` にそのフォルダを渡す。そのときも `.devcontainer/` と `.mcp.json` はワークスペースのルートに置く (`backend/.devcontainer/` のような入れ子は作らない)。本番用の `Dockerfile` / `docker-compose.yml` と README の設計ツールの節は、その出力先のフォルダに作る (すでにあるファイルだけを飛ばす)。ルート直下に出す場合も、開発コンテナの雛形を先に置いてあるだけで、本番用の雛形が作られなくなることはない。
 
 業務アプリ開発者 (Harmony 利用者) 向けの利用者目線の解説は [`docs/user-guide/generate-code-workflow.md`](../../docs/user-guide/generate-code-workflow.md) を参照。本節は AI 実装者向けに design intent と生成後の物理 layout を記述する。
 
@@ -2176,13 +2179,13 @@ tsc が利用不可またはプロジェクト設定が不整合の場合はス�
 - `<出力先>/...` (各ファイルのパスを列挙)
 
 ### プロジェクト scaffold (#1048、初回 entity 出力時のみ)
-- `<出力先>/.devcontainer/devcontainer.json`
-- `<出力先>/.devcontainer/compose.yml`
-- `<出力先>/.mcp.json`
+- `<ワークスペースのルート>/.devcontainer/devcontainer.json`
+- `<ワークスペースのルート>/.devcontainer/compose.yml`
+- `<ワークスペースのルート>/.mcp.json`
 - `<出力先>/Dockerfile`
 - `<出力先>/docker-compose.yml`
 - `<出力先>/README.md` (新規 or scaffold セクション追記)
-- (既存 .devcontainer/ ありで skip した場合は「scaffold 既存のため skip」と明記)
+- (すでにあって飛ばしたファイルは、ファイルごとに「既存のため飛ばした」と明記。例: ルートに `.devcontainer/` がある場合)
 
 ### techStack 制約検証
 - 制約 1 (backend matrix): ✓ / 違反なし

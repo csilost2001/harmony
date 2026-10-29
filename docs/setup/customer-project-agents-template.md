@@ -27,7 +27,7 @@ Harmony を Docker image として使い、業務 project 側だけを AI の wr
 2. 設計は MCP の tool で作る・直す。直したら `designer__check_design` を呼び、error / warning を 0 件にしてから報告する
 3. コードの生成は Prompt `generate-code` の手順に従う。手順が参照する付属ファイル (`templates/**` など) は
    Resource `harmony://skill/generate-code/<スキルのフォルダからの相対パス>` で読む (一覧は `harmony://skill/generate-code/files`)。
-   出力先は既定でプロジェクトのルート (開発コンテナの雛形 `.devcontainer/` はルートにあるので、作り直さない)。`backend/` などに分けたいときは出力先にそのフォルダを渡す (本番用の `Dockerfile` / `docker-compose.yml` / `README.md` の雛形は作られない)
+   出力先は既定でプロジェクトのルート (開発コンテナの雛形 `.devcontainer/` はルートにあるので、作り直さない)。`backend/` などに分けたいときは出力先にそのフォルダを渡す (`.devcontainer/` と `.mcp.json` はルートのまま。本番用の `Dockerfile` / `docker-compose.yml` と README の節は、その出力先のフォルダに作られる。すでにあるファイルだけは飛ばす)
 4. 生成したら `designer__record_generation` で「どの設計からどのファイルを作ったか」を記録する
 5. 設計を直して再生成するときは、先に `designer__check_generation_drift` (生成物を手で直していないか) と
    `designer__get_regeneration_diff` (何が変わるか) を呼ぶ

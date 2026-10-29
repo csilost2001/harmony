@@ -25,7 +25,7 @@ PageLayout / Convention                  ├── src/
 
 `.devcontainer/` は **開発コンテナ (dev) と Harmony (設計ツール) を一緒に起動する構成** (compose 形式) です。Reopen in Container すると、設計の画面 (VS Code のポート転送 5179) と、AI CLI から使う MCP (`.mcp.json` の `http://localhost:5179/mcp`) も使えます。project root がそのまま Harmony のワークスペース (`harmony.json` + `design/`) になるので、設計とソースを 1 つの git で扱えます。手順: [app-devcontainer-sidecar.md](../setup/app-devcontainer-sidecar.md)
 
-`backend/` `frontend/` などのフォルダに分けて生成したいときは、`<出力先>` にそのフォルダを渡します。その場合、本番用の `Dockerfile` / `docker-compose.yml` / `README.md` の scaffold は作られません (開発コンテナの雛形はプロジェクトのルートにあるため)。
+`backend/` `frontend/` などのフォルダに分けて生成したいときは、`<出力先>` にそのフォルダを渡します。その場合も `.devcontainer/` と `.mcp.json` はプロジェクトのルートに置かれ、`backend/.devcontainer/` のような入れ子にはなりません。本番用の `Dockerfile` / `docker-compose.yml` と README の設計ツールの節は、渡したフォルダに作られます。すでにあるファイルだけは飛ばし、上書きしません。
 
 つまり生成後にやることは:
 
