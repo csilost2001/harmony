@@ -105,13 +105,13 @@
   }
   // Mermaid の図: CDN から必要なときだけ読む。読めない・文法の誤りは、コードを文字のまま出す
   const MM_URL = "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
-  const MM = []; let mmLib = null, mmP = null, mmSeq = 0, mmQ = Promise.resolve();
+  const MM = []; let mmLib = null, mmP = null, mmFail = false, mmSeq = 0, mmQ = Promise.resolve();
   const isDark = () => (document.documentElement.dataset.theme ? document.documentElement.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches);
   const loadMermaid = () => mmP ||= Promise.race([import(MM_URL).then((m) => (mmLib = m.default)), new Promise((_, no) => setTimeout(() => no(new Error("時間切れ")), 8000))]);
   function mmText(m, why, detail) { m.view.replaceChildren(...[h("div", { class: "caption" }, why), detail ? h("pre", { class: "code mmerr" }, detail) : null, h("pre", { class: "code" }, m.b.code)].filter(Boolean)); }
   async function mmDraw(m) {
     if (!mmLib) mmText(m, "図を読み込み中…");
-    try { await loadMermaid(); } catch { mmP = null; return mmText(m, "図の表示にはネット接続が要ります (cdn.jsdelivr.net)。文字のまま表示しています"); }
+    try { await loadMermaid(); } catch { mmFail = true; return mmText(m, "図の表示にはネット接続が要ります (cdn.jsdelivr.net)。文字のまま表示しています"); }
     const id = `qa-mm-${++mmSeq}`;
     try {
       mmLib.initialize({ startOnLoad: false, securityLevel: "strict", theme: isDark() ? "dark" : "default" });
@@ -120,7 +120,8 @@
     } catch (err) { mmText(m, "図の書き方に誤りがあるため、文字のまま表示しています", String(err?.message || err).split("\n").slice(0, 6).join("\n")); }
     document.getElementById(`d${id}`)?.remove();
   }
-  const mmRedraw = () => MM.forEach((m) => { mmQ = mmQ.then(() => mmDraw(m)); });
+  // 読み込みの失敗は最初の描画では全部の図で使い回す。やり直すのは、◐ などの再描画のとき 1 回だけ
+  const mmRedraw = () => { if (mmFail) { mmFail = false; mmP = null; } MM.forEach((m) => { mmQ = mmQ.then(() => mmDraw(m)); }); };
   function mermaidBlock(b) {
     const view = h("div", { class: "mmview" }); const m = { b, view }; MM.push(m);
     mmQ = mmQ.then(() => mmDraw(m));
@@ -592,7 +593,7 @@
     if (!touch || present < 0) return; const t = e.changedTouches[0]; const dx = t.clientX - touch.x, dy = t.clientY - touch.y; touch = null;
     if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) goPresent(dx < 0 ? 1 : -1);
   }, { passive: true });
-  // ブラウザの戻る / 進む: #present-N に追従し、hash が消えたら発表を終える (replaceState は hashchange を出さない)
+  // URL の #present-N を手で書き換えたとき用: その章へ移り、hash が消えたら終える。章を進めても履歴は増やさない (replaceState。会議中の「戻る」でページを離れられる)
   addEventListener("hashchange", () => {
     const m = location.hash.match(/^#present-(\d+)$/);
     if (m) { if (present < 0) enterPresent(Number(m[1]) - 1); else if (Number(m[1]) - 1 !== present) showSlide(Number(m[1]) - 1); }
