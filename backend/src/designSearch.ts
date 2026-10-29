@@ -44,6 +44,7 @@ const MAX_MATCHES_PER_ENTITY = 3;
 export const GENERIC_DEFINITION_KINDS = [
   "data-contract", "domain-type", "exception-type", "application-rule", "validation-rule", "ui-behavior", "runtime-policy",
   "component-definition", "constants", "message", "domain-event", "log-event", "log-config", "dialog", "message-area", "options", "global",
+  "state-machine", "seed-data", "requirement", "job-definition",
 ] as const;
 
 interface SecondaryTarget { kind: SearchKind; id: string; name: string; entity: unknown }

@@ -197,7 +197,7 @@ category: schema
 - **`mappingHints` は完全 optional / advisory** (任意): 特定 techStack (Spring / Nest / Next 等) への codegen 時のヒント。設計書の本質ではなく **AI 生成側のチューニング材料**。本 spec の Spring/Nest/Next 例はあくまでサンプルで、Django / Rails / Vue 等への展開も自由
 - `mappingHints` が無くても **言語非依存の本体だけで設計意図は完結する** こと。逆に `mappingHints` だけで設計意図を表現するのは禁止 (本体に migrate する)
 
-### 4.2 18 種類の kind
+### 4.2 21 種類の kind
 
 初期 7 種 (#1064-#1068) → Phase X2 で 14 種 (#1263) → #1303 で 17 種に拡張 → #1310 で 18 種に拡張 → #1436 で `ui-fragment` 廃止 (17 種)。#1318 で `messageArea` kind を `message-area` に kebab-case 統一 (prefix `@messageArea.<name>` は維持、kind=kebab/prefix=camelCase は log-event/logEvent と同じ分離パターン)。
 
@@ -220,6 +220,27 @@ category: schema
 | `message-area` | 画面横断 message area の定義 (ScreenItemEvent.effects[].setMessage.target 参照先、#1318 で `messageArea` → `message-area` kebab-case 統一、prefix は `@messageArea.` を維持 = log-event/logEvent 前例と同様の kind=kebab/prefix=camelCase 分離) | `@messageArea.<name>` |
 | `options` | 選択肢カタログ (ScreenItemEvent.effects[].setOptions 動的差し替え参照先) | `@options.<name>` |
 | `global` | workspace/project 横断の mutable 設定 slot (`@var.global.<key>` 参照元、Spring `@Value` / `@SessionScope` 相当、#1310)。catalog で 1 instance = 1 設定群を定義 (`fields[]` で field schema 記述)、write は `setGlobal` step kind (#1322 Phase B-3e) で行う。lifetime は `application` / `session` / `request` 3 値 (catalog 側 `mappingHints.scope` で default 指定、step 側 `lifetime` で override)。詳細: [process-flow-variables.md §3.6](process-flow-variables.md) globals write 節。 | `@var.global.<key>` |
+| `state-machine` | 状態と、状態の遷移 (契機・条件・遷移を起こす処理フロー)。#1499 | 処理フロー / テーブルの状態のカラム |
+| `seed-data` | テーブルに最初から入れておく行 (マスタ・初期値)。#1499 | テーブル |
+| `requirement` | 非機能要件の目標値。対象の処理フローと結びつける。#1499 | 処理フローの SLA |
+| `job-definition` | 定期・出来事を契機に動く処理 (時刻・再実行・処理フロー)。#1499 | 処理フロー |
+
+### 4.2.1 振る舞いの 4 種類 (#1499)
+
+状態遷移・初期データ・非機能要件・ジョブは、親 schema (`generic-definition.v3.schema.json`) に足した任意の項目で表す。種類ごとに必須の項目は、種類の schema (`generic-definitions/<kind>.v3.schema.json`) が決める。
+
+| kind | 項目 (親 schema の任意の項目) | 必須 | 点検 (`designer__check_design`) |
+|---|---|---|---|
+| `state-machine` | `states[]` (名前・呼び名・initial・final)・`transitions[]` (from・to・trigger・guard・processFlowId・actionId)・`stateColumn` (tableId・columnId) | states・transitions | 最初の状態が 1 つ・状態の重複・存在しない状態への遷移・終わりからの遷移・行き止まり・たどり着けない状態・同じ契機で条件なしの遷移が複数・処理フロー / アクション / テーブル / カラムの有無 |
+| `seed-data` | `tableId`・`rows[]` (キーはカラムの id か物理名) | tableId・rows | テーブルの有無・ないカラム・必須の欠け / null・数でない値・長さ超過・主キーの重複・同じテーブルへの初期データが複数 |
+| `requirement` | `measure` (metric・operator・value・unit・percentile)・`processFlowId` | measure | 測るものが空・対象の処理フローに SLA の宣言がない (知らせ) |
+| `job-definition` | `schedule` (kind=cron / interval / event / manual・expression・timezone)・`retry` (maxAttempts・backoff・intervalSeconds)・`processFlowId` | schedule・processFlowId | cron が 5 つの欄・interval が ISO 8601 の期間・event の名前・処理フローの有無・再実行の間隔 |
+
+- 画面: 汎用定義の一覧から種類を選んで開く。編集画面に、種類ごとの入力欄 (状態の表・遷移の表・テーブルと行・目標値・時刻と再実行) が出る (`KindSections.tsx`)
+- 設計書: 「状態遷移・初期データ・要件・ジョブ」の章。状態遷移は Mermaid の図 (`stateMachineToMermaid`)
+- 書き出し: `npm run export:seed -- <workspace>` で、初期データを INSERT 文 / JSON に (`--format sql|json`)
+- サンプル: `examples/retail/harmony/generic-definitions/` の `OrderStatus` `StoreMasterSeed` `OrderConfirmResponseTime` `DashboardKpiNightly`
+- 経緯: 改善提案 第 3 弾 (#1498) で、スキーマの追加が要るため見送った部分を、設計者の承認 (2026-10-29) のもとで実施した (#1499)
 
 ### 4.3 既存仕様との関係
 

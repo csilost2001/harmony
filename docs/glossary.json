@@ -159,7 +159,7 @@
     {
       "term": "汎用定義",
       "english": "generic definition",
-      "meaning": "メッセージ・ドメイン型・定数 など 17 種の、名前で引く定義",
+      "meaning": "メッセージ・ドメイン型・定数・状態遷移・初期データ・非機能要件・ジョブ など 21 種の、名前で引く定義",
       "schema": "generic-definition",
       "tools": [
         "list_designs",

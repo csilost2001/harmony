@@ -25,7 +25,9 @@ import type { ExternalSpecSummary } from "./analysis/externalContract.js";
 import { localDate, opLetters, type CrudLetter } from "./analysis/common.js";
 import { applySuppressions, issueKey, type SuppressionStatus } from "./analysis/suppress.js";
 import { deriveSqlCatalog, findDuplicateSql } from "./analysis/sqlCatalog.js";
+import { stateMachineToMermaid } from "./diagrams.js";
 import { checkIntegrity } from "./analysis/integrity.js";
+import { checkGenericDefinitions } from "./analysis/genericChecks.js";
 import { namingIssues } from "./analysis/naming.js";
 import { deriveOperationMatrix } from "./analysis/accessOps.js";
 import { customRuleIssues } from "./analysis/customRules.js";
@@ -154,6 +156,8 @@ export interface DocIssue {
   /** 同じ指摘を同じと見分ける印 (重大度・対象・内容から決まる)。抑制の対象を決める */
   key?: string;
 }
+
+const isRecord2 = (v: unknown): boolean => !!v && typeof v === "object" && !Array.isArray(v);
 
 // ── 小道具 ───────────────────────────────────────────────────────────────
 
@@ -728,6 +732,60 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
     chap += 1;
   }
 
+  // 状態遷移・初期データ・非機能要件・ジョブ (汎用定義。あるときだけ)
+  {
+    const gd = input.genericDefinitions ?? [];
+    const sms = gd.filter((g) => g.kind === "state-machine");
+    const seeds = gd.filter((g) => g.kind === "seed-data");
+    const reqs = gd.filter((g) => g.kind === "requirement");
+    const jobs = gd.filter((g) => g.kind === "job-definition");
+    if (sms.length + seeds.length + reqs.length + jobs.length) {
+      toc.push({ id: "behavior-defs", title: "状態遷移・初期データ・要件・ジョブ", level: 1 });
+      out.push(`<section class="hd-section hd-level-1" id="behavior-defs"><h2 class="hd-title"><span class="hd-chapter">${chap}</span>状態遷移・初期データ・要件・ジョブ</h2>
+        <p class="hd-desc">業務の状態の移り変わり、テーブルに最初から入れておく行、非機能要件の目標値、定期・出来事を契機に動く処理の定義です。</p></section>`);
+      const arr = (v: unknown): Array<Record<string, unknown>> => (Array.isArray(v) ? v.filter((x): x is Record<string, unknown> => !!x && typeof x === "object") : []);
+      const s = (v: unknown): string => (typeof v === "string" ? v : v === undefined || v === null ? "" : String(v));
+      const flowLink2 = (id: string) => (id ? `<a href="#${anchor("flow", id)}">${esc(input.flows.find((f) => f.meta.id === id)?.meta.name ?? id)}</a>` : "");
+      const tableLink = (id: string) => (id ? `<a href="#${anchor("table", id)}">${esc(tableName.get(id) ?? id)}</a>` : "");
+      for (const g of sms) {
+        const states = arr(g.states), trs = arr(g.transitions);
+        const label = new Map(states.map((x) => [s(x.name), s(x.label) || s(x.name)]));
+        sec(anchor("state-machine", g.name), `状態遷移: ${g.name}`, 2, `
+          ${g.purpose ? `<p class="hd-desc">${prose(s(g.purpose))}</p>` : ""}
+          ${isRecord2(g.stateColumn) ? `<p class="hd-note">状態を入れるカラム: ${tableLink(s((g.stateColumn as Record<string, unknown>).tableId))} の <code>${esc(s((g.stateColumn as Record<string, unknown>).columnId))}</code></p>` : ""}
+          <h4 class="hd-sub">状態<small>${states.length} 件</small></h4>
+          ${table(["状態", "呼び名", "種類", "説明"], states.map((x) => [`<code>${esc(s(x.name))}</code>`, esc(s(x.label)), x.initial ? "最初" : x.final ? "終わり" : "", esc(s(x.description))]))}
+          <h4 class="hd-sub">遷移<small>${trs.length} 件</small></h4>
+          ${table(["元の状態", "先の状態", "契機", "条件", "処理フロー"], trs.map((x) => [esc(label.get(s(x.from)) ?? s(x.from)), esc(label.get(s(x.to)) ?? s(x.to)), esc(s(x.trigger)), esc(s(x.guard)), flowLink2(s(x.processFlowId))]))}
+          <h4 class="hd-sub">状態遷移図 (Mermaid)</h4><pre class="hd-code">${esc(stateMachineToMermaid(g as never))}</pre>`);
+      }
+      for (const g of seeds) {
+        const rows = arr(g.rows);
+        const keys = [...new Set(rows.flatMap((r) => Object.keys(r)))];
+        sec(anchor("seed-data", g.name), `初期データ: ${g.name}`, 2, `
+          ${g.purpose ? `<p class="hd-desc">${prose(s(g.purpose))}</p>` : ""}
+          ${infoGrid([["対象のテーブル", tableLink(s(g.tableId))], ["行数", `${rows.length} 行`]])}
+          ${table(keys, rows.slice(0, 200).map((r) => keys.map((k) => esc(s(r[k])))))}
+          ${rows.length > 200 ? `<p class="hd-note">先頭の 200 行だけ載せています (全 ${rows.length} 行)。</p>` : ""}`);
+      }
+      if (reqs.length) {
+        sec("requirements", "非機能要件", 2, table(["要件", "測るもの", "目標", "対象の処理フロー", "説明"], reqs.map((g) => {
+          const m = isRecord2(g.measure) ? (g.measure as Record<string, unknown>) : {};
+          return [esc(g.name), esc(s(m.metric)), esc(`${s(m.percentile) ? `${s(m.percentile)} ` : ""}${s(m.operator)} ${s(m.value)}${s(m.unit) ? ` ${s(m.unit)}` : ""}`), flowLink2(s(g.processFlowId)), esc(s(g.purpose))];
+        })));
+      }
+      if (jobs.length) {
+        const kindLabel2: Record<string, string> = { cron: "cron", interval: "間隔", event: "出来事", manual: "手で起動" };
+        sec("jobs", "ジョブ", 2, table(["ジョブ", "実行の時刻", "処理フロー", "再実行", "説明"], jobs.map((g) => {
+          const sc = isRecord2(g.schedule) ? (g.schedule as Record<string, unknown>) : {};
+          const rt = isRecord2(g.retry) ? (g.retry as Record<string, unknown>) : {};
+          return [esc(g.name), esc(`${kindLabel2[s(sc.kind)] ?? s(sc.kind)}${s(sc.expression) ? ` ${s(sc.expression)}` : ""}${s(sc.timezone) ? ` (${s(sc.timezone)})` : ""}`), flowLink2(s(g.processFlowId)), rt.maxAttempts ? esc(`最大 ${s(rt.maxAttempts)} 回${s(rt.backoff) && s(rt.backoff) !== "none" ? `・${s(rt.backoff) === "fixed" ? "一定" : "だんだん長く"}` : ""}`) : "", esc(s(g.purpose))];
+        })));
+      }
+      chap += 1;
+    }
+  }
+
   // 権限 (役割・権限の定義、または画面・処理の権限指定があるときだけ)
   const roles = input.roles ?? {};
   const permDefs = input.permissions ?? {};
@@ -768,7 +826,7 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
 
   // 要確認事項 (設計の外で検出したものも含める)。命名規約・独自ルールの違反も加え、理由つきで抑制されたものを除く
   for (const x of input.extraIssues ?? []) issues.push(x);
-  issues.push(...checkIntegrity(input), ...namingIssues(input), ...customRuleIssues(input));
+  issues.push(...checkIntegrity(input), ...checkGenericDefinitions(input), ...namingIssues(input), ...customRuleIssues(input));
   for (const x of issues) x.key = issueKey(x);
   const { active, status: suppression } = applySuppressions(issues, input.checkSettings?.suppressions ?? [], input.generatedAt ? date : localDate()); // 期限の判定は、利用者の (この環境の) 日付で
   issues.length = 0;
@@ -876,6 +934,7 @@ export const DESIGN_DOC_CSS = `
 .hd-stamps th,.hd-stamps td{border:1px solid var(--d-ink);width:72px;text-align:center;font-size:11px;font-weight:400;letter-spacing:.2em}
 .hd-stamps td{height:62px}
 .hd-note{margin:0;font-size:11.5px;color:var(--d-muted)}
+.hd-code{margin:6px 0 0;padding:8px 10px;background:var(--d-fill);border:1px solid var(--d-line);border-radius:4px;font:11.5px/1.5 ui-monospace,Consolas,monospace;white-space:pre;overflow-x:auto}
 .hd-title{margin:0;font-size:1.3rem;border-bottom:2px solid var(--d-ink);padding-bottom:6px;display:flex;gap:10px;align-items:baseline}
 .hd-level-2 .hd-title{font-size:1.1rem;border-bottom-width:1px}
 .hd-level-1:not(:has(> :nth-child(2))){padding-bottom:14px}

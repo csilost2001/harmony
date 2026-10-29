@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/generic-definitions/job-definition.v3.schema.json",
+  "title": "Job Definition (v3 generic-definition kind: job-definition)",
+  "description": "Generic Definition Catalog の job-definition kind 固有 schema (#1499)。定期・出来事を契機に動く処理 (ジョブ) の、実行の時刻・再実行の方針・実行する処理フローを定義する。schedule と processFlowId が必須。検査: cron の形・処理フローの有無 (check_design)。仕様: docs/spec/generic-definition-layer.md §4.2.1。",
+  "type": "object",
+  "allOf": [
+    { "$ref": "../generic-definition.v3.schema.json" },
+    { "required": ["schedule", "processFlowId"] }
+  ],
+  "properties": {
+    "kind": { "const": "job-definition" }
+  }
+}

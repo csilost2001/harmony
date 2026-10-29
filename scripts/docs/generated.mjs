@@ -275,7 +275,7 @@ export const CORE_TERMS = [
   { term: "業務部品", english: "layout component", meaning: "画面を組む部品。プロジェクト独自の部品も登録できる", schema: "layout-components", tools: ["list_layout_components"], spec: ["layout-components", "screen-layout"] },
   { term: "テーブル", english: "Table", meaning: "データベースのテーブル定義 (カラム・インデックス・制約)", schema: "table#Table", tools: ["list_tables", "get_table", "add_table", "update_table", "generate_ddl", "import_ddl"], spec: [] },
   { term: "規約", english: "conventions", meaning: "プロジェクトの取り決め (ロール・権限・上限値・正規表現・DB 規約・メッセージ)。@conv.* で参照する", schema: "conventions", tools: ["get_conventions", "save_conventions"], spec: ["process-flow-prefix-system"] },
-  { term: "汎用定義", english: "generic definition", meaning: "メッセージ・ドメイン型・定数 など 17 種の、名前で引く定義", schema: "generic-definition", tools: ["list_designs", "get_design", "save_design"], spec: ["generic-definition-layer"] },
+  { term: "汎用定義", english: "generic definition", meaning: "メッセージ・ドメイン型・定数・状態遷移・初期データ・非機能要件・ジョブ など 21 種の、名前で引く定義", schema: "generic-definition", tools: ["list_designs", "get_design", "save_design"], spec: ["generic-definition-layer"] },
   { term: "業務フロー", english: "BusinessFlow", meaning: "スイムレーンで書く、人と画面と処理をまたぐ業務の流れ", schema: "business-flow", tools: ["list_business_flows", "get_business_flow", "save_business_flow"], spec: ["business-flow"] },
   { term: "帳票", english: "Report", meaning: "帳票の出力・部・項目の設計", schema: "report", tools: ["list_reports", "get_report", "save_report"], spec: ["report"] },
   { term: "ページレイアウト", english: "PageLayout", meaning: "共通のヘッダ・フッタ・サイドバーなどの、画面をまたぐ部品", schema: "page-layout", tools: ["list_page_layouts", "get_page_layout", "save_page_layout"], spec: ["page-layout"] },

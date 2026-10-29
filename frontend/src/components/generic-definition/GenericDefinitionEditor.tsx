@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { KindSections } from "./KindSections";
 import { useNavigate, useParams } from "react-router-dom";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
 import {
@@ -1051,6 +1052,8 @@ function GenericDefinitionEditorBody() {
             + 追加
           </button>
         </section>
+
+        <KindSections def={def} updateDef={updateDef} renderIssues={renderSectionIssues} />
 
         <section style={{ marginBottom: "24px" }}>
           <h3 style={{ fontSize: "1rem", marginBottom: "4px" }}>

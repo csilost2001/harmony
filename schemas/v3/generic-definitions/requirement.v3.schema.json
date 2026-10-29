@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/generic-definitions/requirement.v3.schema.json",
+  "title": "Requirement (v3 generic-definition kind: requirement)",
+  "description": "Generic Definition Catalog の requirement kind 固有 schema (#1499)。非機能要件 (性能・可用性など) の目標値を、対象の処理フローと結びつけて定義する。measure が必須。検査: 対象の処理フローに SLA の宣言があるか (check_design)。仕様: docs/spec/generic-definition-layer.md §4.2.1。",
+  "type": "object",
+  "allOf": [
+    { "$ref": "../generic-definition.v3.schema.json" },
+    { "required": ["measure"] }
+  ],
+  "properties": {
+    "kind": { "const": "requirement" }
+  }
+}

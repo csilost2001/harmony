@@ -31,7 +31,7 @@ const flow = (ws: string, id = "cart-add") => path.join(ws, "harmony/process-flo
 
 /** 壊し方 → 増えるはずの要確認の文言 (部分一致)、増える件数の上限 (雑音で本当の原因が埋もれないこと) */
 const MUTATIONS: Array<{ name: string; mutate: (ws: string) => Promise<void>; expect: RegExp; max: number }> = [
-  { name: "処理フローが使うテーブルのファイルを消す", mutate: (ws) => fs.rm(path.join(ws, "harmony/tables/store-master.json")), expect: /store-master|店舗マスタ/, max: 9 },
+  { name: "処理フローが使うテーブルのファイルを消す", mutate: (ws) => fs.rm(path.join(ws, "harmony/tables/store-master.json")), expect: /store-master|店舗マスタ/, max: 10 },
   { name: "DB アクセスの tableId を、ないテーブルにする", mutate: (ws) => rw(flow(ws), (j) => { j.actions[0].steps.find((s: any) => s.kind === "dbAccess").tableId = "no-such-table"; }), expect: /テーブル「no-such-table」がありません/, max: 2 },
   { name: "呼び出す画面 (meta.screenId) を、ない画面にする", mutate: (ws) => rw(flow(ws), (j) => { j.meta.screenId = "no-such-screen"; }), expect: /呼び出す画面「no-such-screen」がありません/, max: 2 },
   { name: "同じアクションに、同じ工程 id を作る", mutate: (ws) => rw(flow(ws), (j) => { j.actions[0].steps[1].id = j.actions[0].steps[0].id; }), expect: /工程の id「step-01」が 2 回/, max: 3 },

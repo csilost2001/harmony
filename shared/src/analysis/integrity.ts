@@ -201,6 +201,8 @@ export function checkIntegrity(input: DesignDocInput): DocIssue[] {
   for (const t of input.tables) scan(t, "", `テーブル ${t.name ?? t.id}`, { kind: "table", id: t.id });
   // 業務フロー・帳票・画面レイアウトの screenRef / processFlowRef は、それぞれの検査 (businessFlow.ts / report.ts / layoutComponents.ts) が見ているので、まだ宣言しない (二重指摘になる。移すときに宣言する)
   scan(input.transitions ?? [], "/transitions", "画面遷移", undefined);
+  // 汎用定義 (状態遷移の処理フロー・初期データのテーブル・要件とジョブの処理フローなど)。初期データの行 (rows) は、値であって参照ではない
+  for (const g of input.genericDefinitions ?? []) scan({ ...g, rows: undefined }, "", `汎用定義 ${g.kind}/${g.name}`, undefined);
 
   // ── 規約の参照 (規約の側が定義されているときだけ) ──
   // 規約の参照: `@conv.<種類>.<キー>` のキーは、英数字・_・.・-・: (権限は `product:view` の形)。`@conv.limit.max-1` のように、あとに式が続くこともあるので、

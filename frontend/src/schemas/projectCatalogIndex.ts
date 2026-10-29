@@ -69,6 +69,14 @@ export interface ProjectCatalogIndex {
   optionSets: Set<string>;
   /** `@var.global.<key>` — global (#1310、workspace/project 横断 mutable 設定 slot) */
   globals: Set<string>;
+  /** 状態遷移 (#1499) */
+  stateMachines: Set<string>;
+  /** 初期データ (#1499) */
+  seedData: Set<string>;
+  /** 非機能要件 (#1499) */
+  requirements: Set<string>;
+  /** ジョブ (#1499) */
+  jobDefinitions: Set<string>;
 
   /**
    * `@const.<key>` — constants catalog (#1267 Phase X2)。
@@ -121,6 +129,10 @@ export function createEmptyProjectCatalogIndex(): ProjectCatalogIndex {
     messageAreas: new Set(),
     optionSets: new Set(),
     globals: new Set(),
+    stateMachines: new Set(),
+    seedData: new Set(),
+    requirements: new Set(),
+    jobDefinitions: new Set(),
     constants: new Set(),
     messages: new Set(),
     domainEvents: new Set(),
@@ -183,6 +195,11 @@ const GENERIC_KIND_TO_SET_KEY: Record<string, keyof ProjectCatalogIndex> = {
   options: "optionSets",
   // #1310 — global
   global: "globals",
+  // #1499 — 状態遷移・初期データ・要件・ジョブ
+  "state-machine": "stateMachines",
+  "seed-data": "seedData",
+  requirement: "requirements",
+  "job-definition": "jobDefinitions",
 };
 
 /** conventions catalog の中で `@conv.<category>` として ref されない metadata field */

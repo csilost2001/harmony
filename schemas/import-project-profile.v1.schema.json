@@ -403,7 +403,11 @@
         "dialog",
         "message-area",
         "options",
-        "global"
+        "global",
+        "state-machine",
+        "seed-data",
+        "requirement",
+        "job-definition"
       ]
     }
   }

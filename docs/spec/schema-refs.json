@@ -16,7 +16,7 @@
     "view",
     "viewDefinition"
   ],
-  "count": 66,
+  "count": 72,
   "refs": [
     {
       "schema": "common",
@@ -205,6 +205,48 @@
       "def": "LogicalRelation",
       "property": "targetColumnId",
       "refKind": "column",
+      "many": false
+    },
+    {
+      "schema": "generic-definition",
+      "def": "GenericDefinition",
+      "property": "tableId",
+      "refKind": "table",
+      "many": false
+    },
+    {
+      "schema": "generic-definition",
+      "def": "GenericDefinition",
+      "property": "processFlowId",
+      "refKind": "processFlow",
+      "many": false
+    },
+    {
+      "schema": "generic-definition",
+      "def": "GenericDefinition",
+      "property": "tableId",
+      "refKind": "table",
+      "many": false
+    },
+    {
+      "schema": "generic-definition",
+      "def": "GenericDefinition",
+      "property": "columnId",
+      "refKind": "column",
+      "many": false
+    },
+    {
+      "schema": "generic-definition",
+      "def": "GenericTransition",
+      "property": "processFlowId",
+      "refKind": "processFlow",
+      "many": false
+    },
+    {
+      "schema": "generic-definition",
+      "def": "GenericTransition",
+      "property": "actionId",
+      "refKind": "action",
       "many": false
     },
     {
