@@ -103,6 +103,29 @@
     else pre.textContent = lines.join("\n");
     return pre;
   }
+  // Mermaid の図: CDN から必要なときだけ読む。読めない・文法の誤りは、コードを文字のまま出す
+  const MM_URL = "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+  const MM = []; let mmLib = null, mmP = null, mmSeq = 0, mmQ = Promise.resolve();
+  const isDark = () => (document.documentElement.dataset.theme ? document.documentElement.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches);
+  const loadMermaid = () => mmP ||= Promise.race([import(MM_URL).then((m) => (mmLib = m.default)), new Promise((_, no) => setTimeout(() => no(new Error("時間切れ")), 8000))]);
+  function mmText(m, why) { m.view.replaceChildren(h("div", { class: "caption" }, why), h("pre", { class: "code" }, m.b.code)); }
+  async function mmDraw(m) {
+    if (!mmLib) mmText(m, "図を読み込み中…");
+    try { await loadMermaid(); } catch { return mmText(m, "図の表示にはネット接続が要ります (cdn.jsdelivr.net)。文字のまま表示しています"); }
+    const id = `qa-mm-${++mmSeq}`;
+    try {
+      mmLib.initialize({ startOnLoad: false, securityLevel: "strict", theme: isDark() ? "dark" : "default" });
+      await mmLib.parse(m.b.code);
+      m.view.innerHTML = (await mmLib.render(id, m.b.code)).svg;
+    } catch (err) { mmText(m, `図の書き方に誤りがあるため、文字のまま表示しています: ${String(err?.message || err).split("\n")[0]}`); }
+    document.getElementById(`d${id}`)?.remove();
+  }
+  const mmRedraw = () => MM.forEach((m) => { mmQ = mmQ.then(() => mmDraw(m)); });
+  function mermaidBlock(b) {
+    const view = h("div", { class: "mmview" }); const m = { b, view }; MM.push(m);
+    mmQ = mmQ.then(() => mmDraw(m));
+    return h("div", { class: "figure mermaid" }, figureZoom(view), b.caption && h("div", { class: "caption" }, b.caption));
+  }
   const RENDER = {
     text: (b) => mdEl(b.md),
     note: (b) => h("div", { class: `note ${b.kind || "info"}` }, b.title && h("div", { class: "t" }, b.title), mdEl(b.md)),
@@ -117,6 +140,7 @@
     code: (b) => h("div", null, codeBlock(b), b.caption && h("div", { class: "caption" }, b.caption)),
     image: (b) => h("div", { class: "figure" }, figureZoom(h("img", { src: b.src, alt: b.alt || b.caption || "" })), b.caption && h("div", { class: "caption" }, b.caption)),
     svg: (b) => h("div", { class: "figure" }, figureZoom(h("div", { class: "svgbox", html: b.svg })), b.caption && h("div", { class: "caption" }, b.caption)),
+    mermaid: mermaidBlock,
     html: (b) => h("div", { html: b.html }),
     compare: (b) => h("div", { class: "grid" }, b.options.map((o) => h("div", { class: `card ${o.recommended ? "rec" : ""}` },
       h("h4", null, o.title, o.recommended && h("span", { class: "tag" }, "推奨"), o.tag && h("span", { class: "tag warn" }, o.tag)),
@@ -152,7 +176,7 @@
     }, "data-st": st }, label);
     const rec = recommended(b);
     add(wrap,
-      h("div", { class: "qh" }, h("span", { class: "qn" }, `Q${q.n}`), h("span", { class: "qt" }, b.q), b.required && h("span", { class: "req" }, "必須")),
+      h("div", { class: "qh" }, h("span", { class: "qn" }, `Q${q.n}`), h("span", { class: "qt" }, b.q), b.ref && h("span", { class: "ref mono" }, b.ref), h("span", { class: "mk", "data-mk": q.id }), b.required && h("span", { class: "req" }, "必須")),
       b.md && mdEl(b.md, "qmd"),
       body,
       h("div", { class: "qfoot" },
@@ -291,7 +315,7 @@
         const lines = b.items.map((it) => {
           const s = { ok: "採用", ng: "不採用", hold: "保留" }[a.items?.[it.id]] || "未判断";
           const n = a.notes?.[it.id]?.trim();
-          return `- [${s}] ${it.title || it.id} (id: ${it.id})${n ? ` — ${n}` : ""}`;
+          return `- [${s}] ${it.title || it.id} (id: ${it.id}${it.ref ? `, ref: ${it.ref}` : ""})${n ? ` — ${n}` : ""}`;
         });
         return `回答:\n${lines.join("\n")}`;
       }
@@ -305,7 +329,7 @@
       if (st === "defer") deferred.push(q); else if (st === "delegate") delegated.push(q);
       else if (isAnswered(q)) answered.push(q); else open.push(q);
     }
-    const head = (q) => `Q${q.n}. ${q.b.q} (id: ${q.id})`;
+    const head = (q) => `Q${q.n}. ${q.b.q} (id: ${q.id}${q.b.ref ? `, ref: ${q.b.ref}` : ""})`;
     const out = [`[html-qa の回答] ${DOC.title}`, `topic: ${DOC.topic} / v${DOC.version}${META.jsonPath ? ` / 資料: ${META.jsonPath}` : ""}`, `回答 ${answered.length} / 全 ${QS.length} 問`];
     for (const q of answered) {
       out.push("", `■ ${head(q)}`, fmtAnswer(q));
@@ -327,6 +351,25 @@
     return out.join("\n");
   }
 
+  // 「AI に送る」で一緒に送る構造化した回答 (vN.answer.json になる)
+  function buildAnswers() {
+    const questions = QS.map((q) => {
+      const b = q.b; const a = A[q.id] || {}; const st = stateOf(q);
+      const state = st === "defer" ? "defer" : st === "delegate" ? "delegate" : isAnswered(q) ? "answered" : "open";
+      const o = { id: q.id, n: q.n, type: b.type, q: b.q };
+      if (b.ref) o.ref = b.ref;
+      o.state = state;
+      if (state === "answered") { o.answer = fmtAnswer(q).replace(/^回答(?: \(優先順\))?: ?\n?/, ""); if (b.type !== "review") o.value = a.v; }
+      if (a.note?.trim()) o.note = a.note.trim();
+      const rec = recommended(b); if (rec.length) o.recommended = rec.map((x) => x.label);
+      if (b.type === "review") o.items = b.items.map((it) => { const x = { id: it.id, title: it.title || it.id }; if (it.ref) x.ref = it.ref; x.judgement = a.items?.[it.id] || null; const n = a.notes?.[it.id]?.trim(); if (n) x.note = n; return x; });
+      return o;
+    });
+    const out = { topic: DOC.topic, version: DOC.version, title: DOC.title, sentAt: new Date().toISOString(), questions };
+    if (A._global?.trim()) out.global = A._global.trim();
+    return out;
+  }
+
   // ---------- 画面 ----------
   const root = document.documentElement;
   const applyPrefs = () => {
@@ -341,12 +384,14 @@
   const verSel = versions.length > 1 ? h("select", { class: "btn", "aria-label": "版", onchange: (e) => { location.href = e.target.value; } },
     versions.map((v) => h("option", { value: v.file, selected: v.version === DOC.version || null }, `v${v.version}${v.version === META.latest ? " (最新)" : ""}`))) : null;
 
+  const presentBtn = h("button", { class: "btn", title: "会議用に 1 枚ずつ大きく表示 (← → で進む・Esc で終わる)", onclick: () => (present < 0 ? enterPresent(0) : exitPresent()) }, "発表");
   document.title = `${DOC.title} — v${DOC.version}`;
   const bar = h("header", { class: "bar" },
     h("h1", { title: DOC.title }, DOC.title), h("span", { class: "badge" }, `v${DOC.version}`), verSel, progress,
     h("div", { class: "tools" },
       h("button", { class: "btn", title: "縮小", onclick: () => zoomBy(-0.1) }, "A−"), zoomLabel, h("button", { class: "btn", title: "拡大", onclick: () => zoomBy(0.1) }, "A＋"),
-      h("button", { class: "btn", title: "テーマ切替", onclick: () => { const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; prefs.theme = dark ? "light" : "dark"; store.set(PKEY, prefs); applyPrefs(); } }, "◐"),
+      h("button", { class: "btn", title: "テーマ切替", onclick: () => { const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; prefs.theme = dark ? "light" : "dark"; store.set(PKEY, prefs); applyPrefs(); mmRedraw(); } }, "◐"),
+      presentBtn,
       h("button", { class: "btn", onclick: () => openHistory() }, "過去の返答"),
       h("button", { class: "btn", onclick: () => print() }, "印刷"),
       META.indexHref && h("a", { class: "btn", href: META.indexHref, style: "text-decoration:none" }, "議題一覧")));
@@ -356,6 +401,7 @@
   if (META.latest > DOC.version) main.append(h("div", { class: "banner" }, `この版は古い版です。`, h("a", { href: (versions.find((v) => v.version === META.latest) || {}).file || "index.html" }, `最新の v${META.latest} を開く`)));
   const liveBanner = h("div", { class: "banner", hidden: true });
   main.append(liveBanner);
+  main.append(h("h2", { class: "ptitle" }, DOC.title));
   if (DOC.lead) main.append(h("div", { class: "lead md", html: md(DOC.lead) }));
 
   if (DOC.decisions?.length) {
@@ -363,12 +409,42 @@
       h("div", { class: "card decisions" }, DOC.decisions.map((d) => h("div", { class: "dec" }, h("span", { class: "dv" }, d.since ? `v${d.since}` : ""), h("div", null, h("b", null, d.title), d.md && mdEl(d.md, "muted")))))));
     toc.append(h("a", { class: "sec", href: "#sec-decisions" }, "これまでに決まったこと"));
   }
+  // 版どうしの違い: 比べる版 (既定は 1 つ前) からの、質問と決まったことの増減
+  const HIST = META.history || [];
+  const cmpList = HIST.map((x) => x.version).filter((v) => v < DOC.version).sort((a, b) => b - a);
+  let cmpV = cmpList[0];
+  const diffSec = cmpV != null ? h("section", { class: "sec", id: "sec-diff" }) : null;
+  const diffToc = diffSec && h("a", { class: "sec", href: "#sec-diff" });
+  if (diffSec) { main.append(diffSec); toc.append(diffToc); }
   DOC.sections.forEach((s, si) => {
     const id = `sec-${si + 1}`;
     main.append(h("section", { class: "sec", id }, h("h2", null, s.title), (s.blocks || []).map(renderBlock)));
     toc.append(h("a", { class: "sec", href: `#${id}` }, s.title));
-    for (const q of QS.filter((x) => x.sec === si)) toc.append(h("a", { href: `#q-${q.id}` }, h("span", { "data-dot": q.id, class: "dot" }), `Q${q.n} ${q.b.q}`));
+    for (const q of QS.filter((x) => x.sec === si)) toc.append(h("a", { href: `#q-${q.id}` }, h("span", { "data-dot": q.id, class: "dot" }), `Q${q.n} ${q.b.q}`, h("span", { class: "mk", "data-mk": q.id })));
   });
+  const qSum = (b) => ({ id: b.id, type: b.type, q: b.q, opts: b.type === "review" ? b.items.map((i) => i.title || i.id) : (b.options || b.items || []).map((o) => norm(o).label) });
+  function renderDiff() {
+    const old = HIST.find((x) => x.version === cmpV); if (!old) return;
+    const cur = QS.map((q) => qSum(q.b)); const oldQ = new Map(old.questions.map((x) => [x.id, x])); const curQ = new Map(cur.map((x) => [x.id, x]));
+    const numOf = (id) => QS.find((q) => q.id === id)?.n;
+    const added = cur.filter((x) => !oldQ.has(x.id)); const removed = old.questions.filter((x) => !curQ.has(x.id));
+    const changed = cur.filter((x) => oldQ.has(x.id)).map((x) => { const o = oldQ.get(x.id); return { x, why: [x.q !== o.q && "質問文", JSON.stringify(x.opts) !== JSON.stringify(o.opts) && "選択肢", x.type !== o.type && "形式"].filter(Boolean) }; }).filter((c) => c.why.length);
+    const curD = (DOC.decisions || []).map((d) => d.title); const addedD = curD.filter((t) => !old.decisions.includes(t)); const removedD = old.decisions.filter((t) => !curD.includes(t));
+    const link = (x) => h("a", { href: `#q-${x.id}` }, `Q${numOf(x.id)} ${x.q}`);
+    const rec = (x) => { const a = old.answers?.questions?.find((y) => y.id === x.id); return a?.state === "answered" && a.answer ? h("div", { class: "muted dans" }, `v${cmpV} で回答: ${String(a.answer).replace(/\s*\n\s*/g, " / ")}`) : null; };
+    const grp = (title, items) => items.length ? h("div", { class: "dgrp" }, h("h3", null, `${title} (${items.length})`), h("ul", null, items.map((i) => h("li", null, i)))) : null;
+    const groups = [
+      grp("増えた質問", added.map(link)),
+      grp("消えた質問", removed.map((x) => h("span", null, `${x.q} `, h("span", { class: "ref mono" }, x.id), rec(x)))),
+      grp("変わった質問", changed.map((c) => h("span", null, link(c.x), ` — ${c.why.join("・")}が変わりました`))),
+      grp("増えた決定", addedD), grp("消えた決定", removedD)].filter(Boolean);
+    diffSec.replaceChildren(h("h2", null, `v${cmpV} からの変化`),
+      h("div", { class: "cmprow", hidden: cmpList.length < 2 || null }, "比べる版: ", h("select", { class: "btn", "aria-label": "比べる版", onchange: (e) => { cmpV = Number(e.target.value); renderDiff(); } }, cmpList.map((v) => h("option", { value: v, selected: v === cmpV || null }, `v${v}`)))),
+      h("div", { class: "card" }, groups.length ? groups : h("span", { class: "muted" }, "質問と決まったことに変化はありません")));
+    diffToc.textContent = `v${cmpV} からの変化`;
+    const mark = new Map([...added.map((x) => [x.id, "new"]), ...changed.map((c) => [c.x.id, "changed"])]);
+    for (const el of [main, toc].flatMap((n) => [...n.querySelectorAll("[data-mk]")])) { const k = mark.get(el.dataset.mk); el.className = `mk ${k || ""}`; el.textContent = k === "new" ? "新規" : k === "changed" ? "変更" : ""; }
+  }
   const globalBox = h("textarea", { rows: 3, placeholder: "質問以外に伝えたいこと (任意)", oninput: (e) => { A._global = e.target.value; changed(); } });
   globalBox.value = A._global || "";
   const autoRec = h("input", { type: "checkbox", onchange: (e) => { A._autoRec = e.target.checked; QS.forEach(paint); changed(); } });
@@ -376,6 +452,7 @@
   add(main, h("section", { class: "sec", id: "sec-global" }, h("h2", null, "全体へのコメント"), globalBox,
     QS.some((q) => recommended(q.b).length) && h("div", { style: "margin-top:8px" }, h("label", { class: "chk" }, autoRec, "答えていない質問は、推奨がある場合は推奨どおりで良い"))));
   toc.append(h("a", { class: "sec", href: "#sec-global" }, "全体へのコメント"));
+  if (diffSec) renderDiff();
 
   // ---------- 返答のドック ----------
   const promptBox = h("textarea", { "aria-label": "AI への返答", oninput: () => { dirty = true; } });
@@ -415,7 +492,7 @@
   const doSend = async () => {
     const text = promptBox.value;
     try {
-      const r = await fetch("/api/answer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ topic: DOC.topic, version: DOC.version, text }) });
+      const r = await fetch("/api/answer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ topic: DOC.topic, version: DOC.version, text, answers: buildAnswers() }) });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || r.statusText);
       pushHistory(text, "file");
@@ -462,15 +539,72 @@
       h("button", { class: "btn", onclick: () => set(scale * 1.25) }, "＋"), h("button", { class: "btn", onclick: () => lb.classList.remove("open") }, "閉じる")));
     lb.classList.add("open");
   }
+
+  // ---------- 発表モード (1 画面 = 表紙 / 各章 / 全体へのコメント。位置は #present-<番号>) ----------
+  let present = -1;
+  const slideOf = () => {
+    const kids = (sel) => [...main.querySelectorAll(sel)];
+    const cover = [...kids(":scope > .ptitle, :scope > .lead, :scope > #sec-decisions, :scope > #sec-diff")];
+    return [cover, ...kids(":scope > section.sec").filter((x) => !cover.includes(x) && x.id !== "sec-global").map((x) => [x]), kids("#sec-global")];
+  };
+  let slides = [];
+  const pos = h("span", { class: "progress mono" });
+  const pPrev = h("button", { class: "btn", "aria-label": "前へ", onclick: () => goPresent(-1) }, "‹");
+  const pNext = h("button", { class: "btn", "aria-label": "次へ", onclick: () => goPresent(1) }, "›");
+  const pnav = h("div", { class: "pnav", hidden: true }, pPrev, pos, pNext, h("button", { class: "btn small", onclick: () => exitPresent() }, "発表を終える"));
+  function showSlide(i) {
+    present = Math.max(0, Math.min(slides.length - 1, i));
+    main.querySelectorAll(":scope > .cur").forEach((x) => x.classList.remove("cur"));
+    slides[present].forEach((x) => x.classList.add("cur"));
+    pos.textContent = `${present + 1} / ${slides.length}`; pPrev.disabled = present === 0; pNext.disabled = present === slides.length - 1;
+    try { history.replaceState(null, "", `#present-${present + 1}`); } catch { /* file:// など */ }
+    scrollTo(0, 0);
+  }
+  function enterPresent(i) {
+    document.activeElement?.blur?.(); slides = slideOf(); document.body.classList.add("present"); pnav.hidden = false; presentBtn.textContent = "発表を終える"; showSlide(i);
+  }
+  function exitPresent() {
+    present = -1; document.body.classList.remove("present"); pnav.hidden = true; presentBtn.textContent = "発表";
+    main.querySelectorAll(":scope > .cur").forEach((x) => x.classList.remove("cur"));
+    try { history.replaceState(null, "", location.pathname + location.search); } catch { /* file:// など */ }
+  }
+  const goPresent = (d) => present >= 0 && showSlide(present + d);
+  const typing = (t) => t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable);
   addEventListener("keydown", (e) => {
-    if (e.key === "Escape") { lb.classList.remove("open"); histOverlay.classList.remove("open"); }
+    if (e.key === "Escape") {
+      const was = lb.classList.contains("open") || histOverlay.classList.contains("open");
+      lb.classList.remove("open"); histOverlay.classList.remove("open");
+      if (!was && present >= 0) exitPresent();
+    }
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); live.served ? doSend() : doCopy(); }
+    if (present < 0 || e.ctrlKey || e.metaKey || e.altKey || typing(e.target) || lb.classList.contains("open") || histOverlay.classList.contains("open")) return;
+    const k = e.key; let d = 0;
+    if (k === "ArrowRight" || k === "PageDown") d = 1;
+    else if (k === "ArrowLeft" || k === "PageUp") d = -1;
+    else if (k === " " && !/^(BUTTON|SUMMARY|A)$/.test(e.target.tagName)) d = e.shiftKey ? -1 : 1;
+    else if (k === "Home") { e.preventDefault(); showSlide(0); return; }
+    else if (k === "End") { e.preventDefault(); showSlide(slides.length - 1); return; }
+    if (d) { e.preventDefault(); goPresent(d); }
+  });
+  let touch = null;
+  addEventListener("touchstart", (e) => { const t = e.touches[0]; touch = present >= 0 && e.touches.length === 1 && !e.target.closest("input,textarea,select,.tablewrap,pre") ? { x: t.clientX, y: t.clientY } : null; }, { passive: true });
+  addEventListener("touchend", (e) => {
+    if (!touch || present < 0) return; const t = e.changedTouches[0]; const dx = t.clientX - touch.x, dy = t.clientY - touch.y; touch = null;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) goPresent(dx < 0 ? 1 : -1);
+  }, { passive: true });
+  // 発表中の目次・「v1 からの変化」のリンクは、その場所がある画面へ移ってから飛ぶ
+  main.addEventListener("click", (e) => {
+    const a = e.target.closest?.('a[href^="#"]'); if (!a || present < 0) return;
+    const el = document.getElementById(decodeURIComponent(a.getAttribute("href").slice(1))); const i = slides.findIndex((s) => s.some((x) => x.contains(el)));
+    if (!el || i < 0) return;
+    e.preventDefault(); if (i !== present) showSlide(i); el.scrollIntoView();
   });
 
-  document.body.append(bar, h("div", { class: "layout" }, toc, main), dock, histOverlay, lb);
+  document.body.append(bar, h("div", { class: "layout" }, toc, main), dock, histOverlay, lb, pnav);
   applyPrefs();
   QS.forEach(paint);
   refresh();
+  { const m = location.hash.match(/^#present-(\d+)$/); if (m) enterPresent(Number(m[1]) - 1); }
 
   // 前の版の回答を引き継ぐ (同じ id の質問だけ)
   const prevV = versions.filter((v) => v.version < DOC.version).map((v) => v.version).sort((a, b) => b - a)[0];

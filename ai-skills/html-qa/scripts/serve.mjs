@@ -4,18 +4,19 @@
 //   node ai-skills/html-qa/scripts/serve.mjs [--port 5190] [--lan-url http://<PC の IP>:5191 | off] [--new-key]
 //
 // - 静的ファイルを返す (キャッシュしない。F5 で最新が見える)
-// - POST /api/answer: 画面の「AI に送る」で <topic>/vN.answer.md を書く。AI はそれを読む
+// - POST /api/answer: 画面の「AI に送る」で <topic>/vN.answer.md (と、あれば構造化した vN.answer.json) を書く。AI はそれを読む。議題一覧も作り直す
 // - GET /api/latest?topic=: 最新の版 (画面が新しい版の通知に使う)
 // - GET /api/status?topic=&version=: 回答が届いたか・AI が読んだか・AI が待ち受け中か
 //
 // 守り:
 // - 鍵 (.tmp/html-qa/.key) が無い接続は断る。URL の ?key= で一度開くと cookie で持ち続ける。
 //   VS Code・Windows のポート転送を通ると送信元はみな localhost に見えるため、送信元では見分けず、鍵で見分ける
-// - 書き込めるのは既存の議題フォルダの vN.answer.md だけ。外部サイトからの書き込みは Origin で断る
+// - 書き込めるのは既存の議題フォルダの vN.answer.md / vN.answer.json だけ。外部サイトからの書き込みは Origin で断る
 // - 「.」で始まるファイル (鍵・待ち受けの印) は返さない
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
+import { buildIndex } from "./index-page.mjs";
 import { TOPIC_RE, DEFAULT_ROOT, answerStatus, isWaiting, accessKey, keyMatches, setLanBase, pageUrls } from "./lib.mjs";
 
 const arg = (name, d) => { const i = process.argv.indexOf(`--${name}`); return i > 0 ? process.argv[i + 1] : d; };
@@ -100,14 +101,19 @@ const server = http.createServer((req, res) => {
       if (res.writableEnded) return;
       let body;
       try { body = JSON.parse(Buffer.concat(chunks).toString("utf8")); } catch { return send(res, 400, { error: "JSON が読めません" }); }
-      const { topic, version, text } = body || {};
+      const { topic, version, text, answers } = body || {};
       if (!TOPIC_RE.test(topic || "") || !Number.isInteger(version) || version < 1 || typeof text !== "string" || !text.trim()) return send(res, 400, { error: "topic / version / text が不正です" });
       const dir = path.join(ROOT, topic);
       if (!fs.existsSync(path.join(dir, `v${version}.json`))) return send(res, 404, { error: "その議題・版はありません" });
       const file = path.join(dir, `v${version}.answer.md`);
+      // 構造化された回答 (vN.answer.json)。古い画面からの送信には無い。.md より先に書く (.md が届いた時点で揃っているように)
+      if (answers && typeof answers === "object" && !Array.isArray(answers) && answers.topic === topic && answers.version === version) {
+        try { fs.writeFileSync(path.join(dir, `v${version}.answer.json`), `${JSON.stringify(answers, null, 2)}\n`); } catch (err) { console.error(`vN.answer.json を書けませんでした: ${err.message}`); }
+      }
       fs.writeFileSync(file, `<!-- html-qa の回答 (${new Date().toISOString()}) -->\n${text.replace(/\r\n?/g, "\n")}\n`);
       const rel = path.relative(process.cwd(), file).split(path.sep).join("/");
       console.log(`回答を保存: ${rel}`);
+      try { buildIndex(ROOT); } catch (err) { console.error(`議題一覧を作り直せませんでした: ${err.message}`); }
       return send(res, 200, { ok: true, path: rel });
     });
     return;
