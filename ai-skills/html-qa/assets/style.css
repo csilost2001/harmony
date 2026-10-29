@@ -222,10 +222,16 @@ label.chk { display: inline-flex; gap: 6px; align-items: center; font-size: 13px
   details.fold { display: block; }
   body { background: #fff; }
 }
+/* スマホ: 上の帯は固定したまま 2 段にまとめる (文字の大きさをいつでも変えられるように) */
 @media (max-width: 640px) {
-  .bar { position: static; }
-  .bar h1 { white-space: normal; }
+  .bar { gap: 4px 8px; padding: 6px 12px; }
+  .bar h1 { flex: 1 1 0; font-size: 15px; }
+  .bar .progress { font-size: 12px; }
+  .bar .tools { flex: 1 0 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .bar .tools::-webkit-scrollbar { display: none; }
+  .bar .tools > * { flex: none; }
   .layout { padding-top: 12px; }
+  .q, .toc a { scroll-margin-top: 110px; }
 }
 
 /* ---- AI の状態 (サーバ経由のとき) ---- */
