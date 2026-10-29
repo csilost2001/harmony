@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/generic-definitions/state-machine.v3.schema.json",
+  "title": "State Machine (v3 generic-definition kind: state-machine)",
+  "description": "Generic Definition Catalog の state-machine kind 固有 schema (#1499)。ある設計の対象 (例: 注文) が取る状態と、状態の遷移 (契機・条件・遷移を起こす処理フロー) を定義する。states と transitions が必須。状態を入れるテーブルのカラムは stateColumn で示せる。検査: 最初の状態が 1 つ・到達できない状態・行き止まり・存在しない状態への遷移・処理フローの有無 (check_design)。仕様: docs/spec/generic-definition-layer.md §4.2.1。",
+  "type": "object",
+  "allOf": [
+    { "$ref": "../generic-definition.v3.schema.json" },
+    { "required": ["states", "transitions"] }
+  ],
+  "properties": {
+    "kind": { "const": "state-machine" }
+  }
+}

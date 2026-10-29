@@ -1,0 +1,78 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/state-machine.v3.schema.json",
+  "kind": "state-machine",
+  "name": "OrderStatus",
+  "purpose": "注文 (orders.status) が取る状態と、状態を変える契機",
+  "responsibilities": [
+    "注文の状態の一覧と、遷移できる先を示す",
+    "遷移を起こす処理フローを結びつける",
+    "コード生成・テスト観点で、不正な遷移を弾く根拠にする"
+  ],
+  "targets": [
+    "backend",
+    "shared"
+  ],
+  "stateColumn": {
+    "tableId": "order",
+    "columnId": "col-status"
+  },
+  "states": [
+    {
+      "name": "pending",
+      "label": "注文済み",
+      "initial": true,
+      "description": "注文を受け付けた直後"
+    },
+    {
+      "name": "confirmed",
+      "label": "確認済み",
+      "description": "在庫と支払いの確認が済んだ"
+    },
+    {
+      "name": "shipped",
+      "label": "出荷済み",
+      "description": "配送指示を出した"
+    },
+    {
+      "name": "delivered",
+      "label": "配達済み",
+      "final": true
+    },
+    {
+      "name": "cancelled",
+      "label": "キャンセル",
+      "final": true
+    }
+  ],
+  "transitions": [
+    {
+      "from": "pending",
+      "to": "confirmed",
+      "trigger": "注文を確認する",
+      "guard": "在庫が引き当て済み"
+    },
+    {
+      "from": "confirmed",
+      "to": "shipped",
+      "trigger": "配送を指示する",
+      "processFlowId": "shipment-dispatch",
+      "actionId": "act-001"
+    },
+    {
+      "from": "shipped",
+      "to": "delivered",
+      "trigger": "配達完了を受け取る"
+    },
+    {
+      "from": "pending",
+      "to": "cancelled",
+      "trigger": "キャンセルする"
+    },
+    {
+      "from": "confirmed",
+      "to": "cancelled",
+      "trigger": "キャンセルする",
+      "guard": "出荷前"
+    }
+  ]
+}

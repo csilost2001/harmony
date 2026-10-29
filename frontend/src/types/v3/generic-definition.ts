@@ -2,7 +2,7 @@
  * Generic Definition Catalog 型定義 (v3 schema 準拠)
  *
  * schema: schemas/v3/generic-definition.v3.schema.json
- * 17 kind (#1254 件 3.7 / #1263 Phase X2 / #1303 / #1310 / #1436 で ui-fragment 廃止):
+ * 21 kind (#1254 件 3.7 / #1263 Phase X2 / #1303 / #1310 / #1436 で ui-fragment 廃止 / #1499 で 状態遷移・初期データ・要件・ジョブ):
  *   既存 7: data-contract / domain-type / exception-type / application-rule /
  *            ui-behavior / runtime-policy / component-definition
  *   新規 6: validation-rule / constants / message / domain-event / log-event / log-config
@@ -30,7 +30,11 @@ export type GenericDefinitionKind =
   | "dialog"
   | "message-area"
   | "options"
-  | "global";
+  | "global"
+  | "state-machine"
+  | "seed-data"
+  | "requirement"
+  | "job-definition";
 
 export type GenericDefinitionTarget = "backend" | "frontend" | "shared" | "runtime";
 
@@ -62,6 +66,49 @@ export interface GenericRelation {
   description?: string;
 }
 
+/** 状態 (state-machine) */
+export interface GenericState {
+  name: string;
+  label?: string;
+  initial?: boolean;
+  final?: boolean;
+  description?: string;
+}
+
+/** 状態の遷移 (state-machine) */
+export interface GenericTransition {
+  from: string;
+  to: string;
+  trigger: string;
+  guard?: string;
+  processFlowId?: string;
+  actionId?: string;
+  description?: string;
+}
+
+/** 要件の目標値 (requirement) */
+export interface GenericMeasure {
+  metric: string;
+  operator: "<=" | "<" | ">=" | ">" | "==";
+  value: number;
+  unit?: string;
+  percentile?: string;
+}
+
+/** ジョブの実行の時刻 (job-definition) */
+export interface GenericSchedule {
+  kind: "cron" | "interval" | "event" | "manual";
+  expression?: string;
+  timezone?: string;
+}
+
+/** ジョブの再実行の方針 (job-definition) */
+export interface GenericRetry {
+  maxAttempts: number;
+  backoff?: "none" | "fixed" | "exponential";
+  intervalSeconds?: number;
+}
+
 export interface GenericDefinition {
   $schema?: string;
   kind: GenericDefinitionKind;
@@ -74,6 +121,20 @@ export interface GenericDefinition {
   relations?: GenericRelation[];
   constraints?: string[];
   mappingHints?: Record<string, unknown>;
+  /** state-machine */
+  states?: GenericState[];
+  transitions?: GenericTransition[];
+  stateColumn?: { tableId: string; columnId: string };
+  /** seed-data */
+  tableId?: string;
+  rows?: Array<Record<string, unknown>>;
+  /** job-definition / requirement */
+  processFlowId?: string;
+  /** requirement */
+  measure?: GenericMeasure;
+  /** job-definition */
+  schedule?: GenericSchedule;
+  retry?: GenericRetry;
 }
 
 export interface DataContractDefinition extends GenericDefinition {
@@ -102,6 +163,10 @@ export const GENERIC_DEFINITION_KINDS: GenericDefinitionKind[] = [
   "message-area",
   "options",
   "global",
+  "state-machine",
+  "seed-data",
+  "requirement",
+  "job-definition",
 ];
 
 export const GENERIC_DEFINITION_KIND_LABELS: Record<GenericDefinitionKind, string> = {
@@ -122,6 +187,10 @@ export const GENERIC_DEFINITION_KIND_LABELS: Record<GenericDefinitionKind, strin
   "message-area": "メッセージエリア",
   options: "選択肢",
   global: "グローバル設定",
+  "state-machine": "状態遷移",
+  "seed-data": "初期データ",
+  requirement: "非機能要件",
+  "job-definition": "ジョブ",
 };
 
 export const GENERIC_DEFINITION_TARGETS: GenericDefinitionTarget[] = [

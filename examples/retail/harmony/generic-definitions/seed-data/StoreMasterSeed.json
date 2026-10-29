@@ -1,0 +1,34 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/seed-data.v3.schema.json",
+  "kind": "seed-data",
+  "name": "StoreMasterSeed",
+  "purpose": "店舗マスタ (stores) の初期データ",
+  "responsibilities": [
+    "稼働開始時に必要な店舗を入れておく",
+    "開発・試験の環境で、同じ店舗が揃うようにする"
+  ],
+  "targets": [
+    "backend"
+  ],
+  "tableId": "store-master",
+  "rows": [
+    {
+      "store_code": "TOKYO",
+      "name": "東京倉庫",
+      "region": "関東",
+      "is_active": true
+    },
+    {
+      "store_code": "OSAKA",
+      "name": "大阪倉庫",
+      "region": "関西",
+      "is_active": true
+    },
+    {
+      "store_code": "FUKUOKA",
+      "name": "福岡倉庫",
+      "region": "九州",
+      "is_active": true
+    }
+  ]
+}

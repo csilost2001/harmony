@@ -32,6 +32,7 @@ export function normalizeForSearch(s: string): string {
 const TEXT_KEYS = new Set([
   "name", "label", "description", "comment", "physicalName", "conditions", "title", "path", "message", "note", "text", "purpose",
   "condition", "expression", "sql", "defaultValue", "placeholder", "helperText",
+  "trigger", "guard", "metric",
 ]);
 /** 配列の見出し (「カラム order_id」のように、どの要素かを示す) */
 const ARRAY_LABELS: Record<string, string> = {
@@ -44,6 +45,7 @@ const MAX_MATCHES_PER_ENTITY = 3;
 export const GENERIC_DEFINITION_KINDS = [
   "data-contract", "domain-type", "exception-type", "application-rule", "validation-rule", "ui-behavior", "runtime-policy",
   "component-definition", "constants", "message", "domain-event", "log-event", "log-config", "dialog", "message-area", "options", "global",
+  "state-machine", "seed-data", "requirement", "job-definition",
 ] as const;
 
 interface SecondaryTarget { kind: SearchKind; id: string; name: string; entity: unknown }

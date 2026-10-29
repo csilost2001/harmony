@@ -17,6 +17,7 @@ description: "設計判断の記録 (ADR): 決めたこととその理由。1 �
 | [0007-mcp-stateless](0007-mcp-stateless.md) | MCP の接続は要求ごとに作り直す。通知は押し出さず、聞かれて答える |
 | [0008-mcp-kind-tools-and-batch](0008-mcp-kind-tools-and-batch.md) | 設計の種類ごとに tool を増やさず kind で 1 組にする。まとめての編集は保存済みのファイルだけ |
 | [0009-ref-kind-annotation](0009-ref-kind-annotation.md) | 参照の種類をスキーマで宣言する (`x-ref-kind`)。検査・資料は同じ宣言から作る |
+| [0010-collaborative-editing](0010-collaborative-editing.md) | 共同編集 (CRDT) はいまは入れない。ロックと外部更新の検知で足りる範囲を明示 |
 
 各記録の先頭に、**決めた人** (`decidedBy`) と**設計者の確認** (`confirmation`) を書く。設計者の確認がまだのものは、AI が「承認済み」と読まないように、そう書く (いまは、すべて承認済み。0001・0003 は 2026-10-24 に承認)。
 

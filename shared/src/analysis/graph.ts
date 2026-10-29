@@ -129,6 +129,23 @@ export function buildDesignGraph(input: DesignDocInput): DesignGraph {
     }
   }
 
+  // 汎用定義 (状態遷移・初期データ・要件・ジョブ) から、テーブル・処理フローへ
+  for (const g of input.genericDefinitions ?? []) {
+    const me = nodeKey("genericDefinition", `${g.kind}/${g.name}`);
+    const str = (v: unknown): string => (typeof v === "string" ? v : "");
+    if (g.kind === "seed-data" && str(g.tableId)) link(me, nodeKey("table", str(g.tableId)), "初期データの対象のテーブル");
+    if (g.kind === "requirement" && str(g.processFlowId)) link(me, nodeKey("processFlow", str(g.processFlowId)), "要件の対象の処理");
+    if (g.kind === "job-definition" && str(g.processFlowId)) link(me, nodeKey("processFlow", str(g.processFlowId)), "ジョブが実行する処理");
+    if (g.kind === "state-machine") {
+      const sc = g.stateColumn as { tableId?: unknown; columnId?: unknown } | undefined;
+      if (sc && str(sc.tableId)) link(me, nodeKey("table", str(sc.tableId)), "状態を入れるテーブル", str(sc.columnId) || undefined);
+      for (const t of Array.isArray(g.transitions) ? g.transitions : []) {
+        const pid = str((t as { processFlowId?: unknown })?.processFlowId);
+        if (pid) link(me, nodeKey("processFlow", pid), `遷移「${str((t as { trigger?: unknown }).trigger)}」を起こす処理`);
+      }
+    }
+  }
+
   // 文字列の参照 (@conv.* / generic-definitions/*)
   const scan = (from: string, value: unknown) => {
     const text = jsonText(value);

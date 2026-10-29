@@ -1,0 +1,21 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/requirement.v3.schema.json",
+  "kind": "requirement",
+  "name": "OrderConfirmResponseTime",
+  "purpose": "注文確定の応答時間の目標",
+  "responsibilities": [
+    "注文確定 (カートの内容を 1 つの取引で確定する) の応答時間の目標を示す",
+    "処理フローの SLA の宣言と突き合わせる"
+  ],
+  "targets": [
+    "backend"
+  ],
+  "measure": {
+    "metric": "応答時間",
+    "operator": "<=",
+    "value": 2000,
+    "unit": "ms",
+    "percentile": "p95"
+  },
+  "processFlowId": "order-confirm"
+}

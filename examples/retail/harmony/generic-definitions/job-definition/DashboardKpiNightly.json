@@ -1,0 +1,25 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/job-definition.v3.schema.json",
+  "kind": "job-definition",
+  "name": "DashboardKpiNightly",
+  "purpose": "ダッシュボードの KPI を毎朝集計し直す",
+  "responsibilities": [
+    "毎朝 6 時 (日本時間) に KPI の集計を実行する",
+    "失敗したら、間隔を延ばしながら 3 回まで試す"
+  ],
+  "targets": [
+    "backend",
+    "runtime"
+  ],
+  "schedule": {
+    "kind": "cron",
+    "expression": "0 6 * * *",
+    "timezone": "Asia/Tokyo"
+  },
+  "retry": {
+    "maxAttempts": 3,
+    "backoff": "exponential",
+    "intervalSeconds": 60
+  },
+  "processFlowId": "dashboard-kpi-summary"
+}

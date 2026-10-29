@@ -17,6 +17,15 @@ description: "コードの地図: 用語・機能 → 実装のファイル。�
 | `ai-skills/` | AI の手順 (スキル)。MCP の Prompts としても出る |
 | `examples/` | サンプルのプロジェクト。近い業務の例を読む (`examples/PATTERNS.md`) |
 
+## 設計データの点検
+
+| 機能 | ファイル |
+|---|---|
+| 設計どうしの参照の整合 (x-ref-kind の宣言から) | `shared/src/analysis/integrity.ts` / `shared/src/analysis/refKinds.generated.ts` |
+| 状態遷移・初期データ・要件・ジョブの点検 | `shared/src/analysis/genericChecks.ts` |
+| 初期データの書き出し (INSERT 文 / JSON) / 状態遷移図 (Mermaid) | `shared/src/seedExport.ts` / `shared/src/diagrams.ts` |
+| 汎用定義の編集画面 (種類ごとの入力欄) | `frontend/src/components/generic-definition/KindSections.tsx` |
+
 ## MCP (AI の入口)
 
 | 機能 | ファイル |

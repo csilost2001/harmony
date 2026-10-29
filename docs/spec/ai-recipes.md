@@ -78,6 +78,16 @@ Prompt `review-flow`。指摘は `add_review_findings` (位置つきのコメン
 4. 設計が変わったら、再生成の前に `check_generation_drift` / `get_regeneration_diff`。変更の影響を受ける観点だけは `get_test_viewpoints` の `since`
 5. CI・コミット前: `npm run check:generation -- <ワークスペース> --coverage --min 80`
 
+## 8.5 状態遷移・初期データ・要件・ジョブを設計する
+
+汎用定義の `state-machine` `seed-data` `requirement` `job-definition` ([generic-definition-layer.md](generic-definition-layer.md) §4.2.1)。`list_designs` / `get_design` / `save_design` (kind=`genericDefinition`、`definitionKind` に種類) で読み書きする。
+
+1. 状態遷移: 状態を持つテーブルのカラムを確かめる (`get_table`)。`states` (最初を 1 つ・終わりを `final`) → `transitions` (契機・条件・遷移を起こす処理フローの id) の順に書く。`stateColumn` で、状態を入れるカラムを示す。コードの値 (`pending` など) を、状態の名前にそろえる
+2. 初期データ: `tableId` と `rows` (キーはカラムの id か物理名)。必須のカラム (NOT NULL で既定値なし) を欠かさない。主キーを重複させない。書き出しは `npm run export:seed`
+3. 非機能要件: `measure` (測るもの・比べ方・目標値・単位)。対象の処理フローには、SLA の宣言も書く (`check_design` が知らせる)
+4. ジョブ: `schedule` (cron は 5 つの欄) と、実行する `processFlowId`。失敗しうる処理は `retry` も
+5. `check_design` で、状態の行き止まり・たどり着けない状態・初期データの型の食い違いなどを 0 件にする
+
 ## 9. 詰まったとき
 
 資料・スキーマ・tool の説明で詰まったら、作業を止めずに `report_confusion` で短く残す (`topic` と、関係する `tool` / `doc`)。利用者が集計して、説明や資料の改善に使う。

@@ -12,7 +12,7 @@ category: ops
 
 | tool | 内容 |
 |---|---|
-| `designer__list_designs` / `get_design` / `save_design` / `delete_design` | `kind` = `sequence` (シーケンス図) / `view` (DB ビュー) / `viewDefinition` (ビュー定義) / `genericDefinition` (メッセージ・ドメイン型など 17 種)。汎用定義は `definitionKind` + `name`、ほかは `id` |
+| `designer__list_designs` / `get_design` / `save_design` / `delete_design` | `kind` = `sequence` (シーケンス図) / `view` (DB ビュー) / `viewDefinition` (ビュー定義) / `genericDefinition` (メッセージ・ドメイン型など 21 種)。汎用定義は `definitionKind` + `name`、ほかは `id` |
 | `designer__get_conventions` / `save_conventions` | 規約 (`conventions.json`: ロール・権限・上限値・正規表現・DB 規約・メッセージ)。保存は**全体の置き換え** (先に読み、直した全体を渡す) |
 | `designer__get_tech_stack` / `save_tech_stack` | 技術スタック (`harmony.json` の `techStack`。コード生成の指針)。保存は全体の置き換え |
 

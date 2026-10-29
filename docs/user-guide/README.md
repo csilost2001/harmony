@@ -6,6 +6,7 @@
 
 - [処理フロー編集ワークフロー](process-flow-workflow.md) — 上流 (概要) → 下流 (実装) までの詳細化をリモート AI と往復しながら進める方法
 - [AI マーカーと `/designer-work`](marker-workflow.md) — 画面に指示を書いて Claude Code に処理させる使い方
+- [状態遷移・初期データ・非機能要件・ジョブ](behavior-definitions.md) — 汎用定義の 4 種類の書き方と点検
 - [画面項目 ID の AI 自動命名 `/rename-screen-ids`](rename-screen-ids-workflow.md) — 自動採番 ID を業務名に一括リネームする
 - [マルチエディタ / Puck デザイナ](multi-editor-puck-guide.md) — 画面単位で GrapesJS と Puck を選択、cssFramework 混在、動的コンポーネント登録の使い方 (#806)
 - [`/generate-code` ワークフロー](generate-code-workflow.md) — 設計した処理フロー / 画面を業務アプリ project root にコード生成して Dev Container で開発する流れ

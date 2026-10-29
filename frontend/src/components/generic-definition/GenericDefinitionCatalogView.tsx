@@ -29,6 +29,10 @@ const KIND_ICONS: Record<GenericDefinitionKind, string> = {
   "message-area": "bi-chat-left-text",
   options: "bi-list-ul",
   global: "bi-globe2",
+  "state-machine": "bi-diagram-3",
+  "seed-data": "bi-database-add",
+  requirement: "bi-speedometer2",
+  "job-definition": "bi-clock-history",
 };
 
 const KIND_DESCRIPTIONS: Record<GenericDefinitionKind, string> = {
@@ -49,6 +53,10 @@ const KIND_DESCRIPTIONS: Record<GenericDefinitionKind, string> = {
   "message-area": "画面内のメッセージ表示エリアを定義します。参照: @messageArea.<名前>",
   options: "選択肢カタログ (セレクトボックス / ラジオなどの選択肢セット) を定義します。参照: @options.<名前>",
   global: "アプリケーション全体で共有する設定値を定義します。参照: @var.global.<キー>",
+  "state-machine": "状態と、状態の遷移 (契機・条件・遷移を起こす処理フロー) を定義します",
+  "seed-data": "テーブルに最初から入れておく行 (マスタ・初期値) を定義します",
+  requirement: "非機能要件 (性能・可用性) の目標値を、対象の処理フローと結びつけて定義します",
+  "job-definition": "定期・出来事を契機に動く処理 (実行の時刻・再実行の方針) を定義します",
 };
 
 export function GenericDefinitionCatalogView() {
@@ -82,7 +90,7 @@ export function GenericDefinitionCatalogView() {
     <div style={{ padding: "24px" }}>
       <h2 style={{ marginBottom: "8px", fontSize: "1.3rem" }}>汎用定義カタログ</h2>
       <p style={{ color: "var(--hm-fg-2)", marginBottom: "24px", fontSize: "0.9rem" }}>
-        Generic Definition Catalog — データ契約・ドメイン型・例外型など 17 種類の汎用設計定義を管理します。
+        Generic Definition Catalog — データ契約・ドメイン型・例外型・状態遷移・初期データなど 21 種類の汎用設計定義を管理します。
       </p>
       <div style={{
         display: "grid",

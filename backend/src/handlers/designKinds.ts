@@ -1,7 +1,7 @@
 /**
  * 画面・処理フロー・テーブル・業務フロー・帳票・ページレイアウト以外の設計を、AI が読み書きする MCP tool handler。
  *
- * - designer__list_designs / get_design / save_design / delete_design   シーケンス・ビュー・ビュー定義・汎用定義 (メッセージ・ドメイン型 など 17 種)
+ * - designer__list_designs / get_design / save_design / delete_design   シーケンス・ビュー・ビュー定義・汎用定義 (メッセージ・ドメイン型 など 21 種)
  * - designer__get_conventions / save_conventions                       規約 (conventions.json。ロール・権限・上限値・正規表現・DB 規約など)
  * - designer__import_ddl / import_openapi                             DDL (CREATE TABLE) からテーブルを、OpenAPI から処理フローの雛形を作る (既定は予行。apply: true で保存)
  * - designer__get_tech_stack / save_tech_stack                         技術スタック (harmony.json の techStack。コード生成の指針)

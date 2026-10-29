@@ -71,6 +71,7 @@ npm run kill           # 5173 / 5179 を握るプロセスを停止
 | 狭い画面 (タブレット幅 1024 / 768px) で崩れる画面の検出 (同上。指摘があれば終了コード 1) | `npm run ui:narrow [-- --width 1024,768]` |
 | 設計の要確認事項の検査 (終了コードで判定。`npm run check` に含まれる) | `npm run check:design -- examples/<project-id> [--strict] [--info]` |
 | テスト観点表の書き出し (画面入力の境界値・処理の分岐。ID つき。テストコード生成の入力) | `npm run export:tests -- examples/<project-id> --format json` |
+| 初期データ (汎用定義 seed-data) の書き出し (INSERT 文 / JSON) | `npm run export:seed -- examples/<project-id> [--format sql\|json]` |
 | 設計書 HTML の書き出し | `npm run export:doc -- examples/<project-id> --out .tmp/doc.html` |
 | 大きなプロジェクトでの性能 (画面 約 300 / 処理フロー 約 150 / テーブル 約 170。回帰には含めない) | `cd frontend && npx playwright test e2e/perf-large-project.spec.ts` (大きなワークスペースは `scripts/dev/make-large-workspace.mjs` が作る) |
 | 差分の行のカバレッジ (PR 本文に載せる) / E2E の遅い試験・flake の一覧 | `npm run coverage:changed` / `npm run e2e:report` ([quality-and-performance-tooling.md](docs/conventions/quality-and-performance-tooling.md)) |
@@ -129,7 +130,7 @@ AI Agent ──(http://localhost:5179/mcp)──┐
 | `/business-flow/list` `/business-flow/edit/:id` | 業務フロー (スイムレーン) 一覧 / 編集 |
 | `/report/list` `/report/edit/:id` | 帳票 一覧 / 編集 |
 | `/page-layout/list` `/page-layout/edit/:id` `/gadget/list` | ページレイアウト / ガジェット |
-| `/generic-definition[/:kind[/:name]]` | 汎用定義 (メッセージ・ドメイン型 等 17 種) |
+| `/generic-definition[/:kind[/:name]]` | 汎用定義 (メッセージ・ドメイン型・状態遷移・初期データ 等 21 種) |
 | `/conventions/catalog` `/extensions` `/project/tech-stack` | 規約 / 拡張 / 技術スタック |
 | `/workspace/*` | ワークスペースの一覧・選択 (top-level) |
 | `/ai-settings` | AI 設定 (top-level) |

@@ -40,6 +40,12 @@ import messageAreaSchema from "../../../schemas/v3/generic-definitions/message-a
 import optionsSchema from "../../../schemas/v3/generic-definitions/options.v3.schema.json";
 // #1310 — global kind
 import globalSchema from "../../../schemas/v3/generic-definitions/global.v3.schema.json";
+import commonSchema from "../../../schemas/v3/common.v3.schema.json";
+// #1499 — 状態遷移・初期データ・要件・ジョブ
+import stateMachineSchema from "../../../schemas/v3/generic-definitions/state-machine.v3.schema.json";
+import seedDataSchema from "../../../schemas/v3/generic-definitions/seed-data.v3.schema.json";
+import requirementSchema from "../../../schemas/v3/generic-definitions/requirement.v3.schema.json";
+import jobDefinitionSchema from "../../../schemas/v3/generic-definitions/job-definition.v3.schema.json";
 
 export interface GenericDefinitionIssue {
   kind: GenericDefinitionKind;
@@ -71,6 +77,11 @@ const KIND_SCHEMAS: Partial<Record<GenericDefinitionKind, object>> = {
   options: optionsSchema as object,
   // #1310 — global
   global: globalSchema as object,
+  // #1499
+  "state-machine": stateMachineSchema as object,
+  "seed-data": seedDataSchema as object,
+  requirement: requirementSchema as object,
+  "job-definition": jobDefinitionSchema as object,
 };
 
 type ValidateFn = ReturnType<InstanceType<typeof Ajv2020>["compile"]>;
@@ -83,7 +94,8 @@ function getValidators(): ValidatorMap {
 
   const ajv = buildHarmonyAjv();
 
-  // 親 schema を先に登録して $ref 解決できるようにする
+  // 親 schema を先に登録して $ref 解決できるようにする (親は common の EntityId / LocalId を参照する — #1499)
+  ajv.addSchema(commonSchema as object);
   ajv.addSchema(parentSchema as object);
 
   const validators = new Map<string, ValidateFn>();

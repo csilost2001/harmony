@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/generic-definitions/seed-data.v3.schema.json",
+  "title": "Seed Data (v3 generic-definition kind: seed-data)",
+  "description": "Generic Definition Catalog の seed-data kind 固有 schema (#1499)。テーブルに最初から入れておく行 (マスタ・初期値) を定義する。tableId と rows が必須。検査: カラムの有無・NOT NULL・主キーの重複・型 (check_design)。仕様: docs/spec/generic-definition-layer.md §4.2.1。",
+  "type": "object",
+  "allOf": [
+    { "$ref": "../generic-definition.v3.schema.json" },
+    { "required": ["tableId", "rows"] }
+  ],
+  "properties": {
+    "kind": { "const": "seed-data" }
+  }
+}

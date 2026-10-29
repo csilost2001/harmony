@@ -612,9 +612,9 @@
       "kind": "generic-definition",
       "uri": "harmony://schema/generic-definition",
       "title": "Generic Definition (v3 汎用設計定義 親 schema)",
-      "description": "Layer 2 Generic Definition Catalog の 17 kind 共通メタモデル (#1263 Phase X2 / RFC #1254 件 3.7 で 8 → 14 kind に拡張、#1303 で 14 → 17 kind に拡張、#1310 で 1…",
+      "description": "Layer 2 Generic Definition Catalog の 21 kind 共通メタモデル (#1499 で 17 → 21 kind。状態遷移・初期データ・要件・ジョブ) (#1263 Phase X2 / RFC #1254 件 3.7 で 8 → 14 ki…",
       "rootRef": "#/$defs/GenericDefinition",
-      "defCount": 7,
+      "defCount": 12,
       "defs": [
         {
           "name": "GenericDefinition",
@@ -628,9 +628,48 @@
           ]
         },
         {
+          "name": "GenericState",
+          "description": "",
+          "required": [
+            "name"
+          ]
+        },
+        {
+          "name": "GenericTransition",
+          "description": "",
+          "required": [
+            "from",
+            "to",
+            "trigger"
+          ]
+        },
+        {
+          "name": "GenericMeasure",
+          "description": "",
+          "required": [
+            "metric",
+            "operator",
+            "value"
+          ]
+        },
+        {
+          "name": "GenericSchedule",
+          "description": "",
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "name": "GenericRetry",
+          "description": "",
+          "required": [
+            "maxAttempts"
+          ]
+        },
+        {
           "name": "GenericDefinitionKind",
-          "description": "Generic Definition Catalog の 17 kind (#1254 件 3.7 / #1263 Phase X2 で 14 種 / #1303 で 14→17 種に拡張、#1310 で global 追加、#1436 で ui-fragment 廃止後 17…",
-          "enum": 17
+          "description": "Generic Definition Catalog の 21 kind (#1254 件 3.7 / #1263 Phase X2 で 14 種 / #1303 で 14→17 種に拡張、#1310 で global 追加、#1436 で ui-fragment 廃止後 17…",
+          "enum": 21
         },
         {
           "name": "GenericDefinitionName",
@@ -1992,6 +2031,14 @@
       "defs": []
     },
     {
+      "file": "schemas/v3/generic-definitions/job-definition.v3.schema.json",
+      "kind": "generic-definitions/job-definition",
+      "title": "Job Definition (v3 generic-definition kind: job-definition)",
+      "description": "Generic Definition Catalog の job-definition kind 固有 schema (#1499)。",
+      "defCount": 0,
+      "defs": []
+    },
+    {
       "file": "schemas/v3/generic-definitions/log-config.v3.schema.json",
       "kind": "generic-definitions/log-config",
       "title": "Log Config (v3 generic-definition kind: log-config)",
@@ -2032,10 +2079,34 @@
       "defs": []
     },
     {
+      "file": "schemas/v3/generic-definitions/requirement.v3.schema.json",
+      "kind": "generic-definitions/requirement",
+      "title": "Requirement (v3 generic-definition kind: requirement)",
+      "description": "Generic Definition Catalog の requirement kind 固有 schema (#1499)。",
+      "defCount": 0,
+      "defs": []
+    },
+    {
       "file": "schemas/v3/generic-definitions/runtime-policy.v3.schema.json",
       "kind": "generic-definitions/runtime-policy",
       "title": "Runtime Policy (v3 generic-definition kind: runtime-policy)",
       "description": "Generic Definition Catalog の runtime-policy kind 固有 schema。",
+      "defCount": 0,
+      "defs": []
+    },
+    {
+      "file": "schemas/v3/generic-definitions/seed-data.v3.schema.json",
+      "kind": "generic-definitions/seed-data",
+      "title": "Seed Data (v3 generic-definition kind: seed-data)",
+      "description": "Generic Definition Catalog の seed-data kind 固有 schema (#1499)。",
+      "defCount": 0,
+      "defs": []
+    },
+    {
+      "file": "schemas/v3/generic-definitions/state-machine.v3.schema.json",
+      "kind": "generic-definitions/state-machine",
+      "title": "State Machine (v3 generic-definition kind: state-machine)",
+      "description": "Generic Definition Catalog の state-machine kind 固有 schema (#1499)。",
       "defCount": 0,
       "defs": []
     },
