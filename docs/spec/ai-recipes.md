@@ -66,6 +66,8 @@ OpenAPI があるなら、`import_openapi` (予行 → `apply: true`) で HTTP �
 
 `find_all_markers` で未解決を読む → 対応する → `resolve_marker`。新しい質問は `add_marker`。
 
+html-qa (`/html-qa`) で聞いた回答を設計のマーカーにするときは、質問に `ref` (`screen:login` / `processFlow:<ID>#<stepId>` / `table:<ID>@$.columns[...]`) を付けて聞き、`node scripts/dev/html-qa-markers.mjs .tmp/html-qa/<topic>` の出力 (`add_marker` の引数の配列) を使う。登録の前に `find_all_markers` で本文 1 行目の `[html-qa <topic> vN <質問 id>]` が既にないか確かめ、二重に付けない。詳細は `ai-skills/html-qa/SKILL.md` の末尾。
+
 ## 7. レビューする
 
 Prompt `review-flow`。指摘は `add_review_findings` (位置つきのコメント)。

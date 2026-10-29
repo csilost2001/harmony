@@ -40,6 +40,7 @@ const steps = [
   ["資料の鮮度検査", "node", ["scripts/verify/docs-freshness.mjs"], root],
   ...(skipTests ? [] : [
     ["検査スクリプトの試験", "node", ["scripts/verify/test.mjs"], root],
+    ["html-qa の試験", "node", ["--test", "ai-skills/html-qa/scripts/", "scripts/dev/html-qa-markers.test.mjs"], root],
     ["frontend 単体テスト", "npx", ["vitest", "run", "--reporter=dot"], path.join(root, "frontend")],
     ["backend 単体テスト", "npx", ["vitest", "run", "--reporter=dot"], path.join(root, "backend")],
   ]),

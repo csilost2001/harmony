@@ -11,6 +11,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { pageUrls } from "./lib.mjs";
+import { buildIndex, versionsIn } from "./index-page.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ASSETS = path.join(HERE, "..", "assets");
@@ -26,6 +27,7 @@ const SPEC = {
   code: { req: ["code"], opt: ["lang", "caption"] },
   image: { req: ["src"], opt: ["caption", "alt"] },
   svg: { req: ["svg"], opt: ["caption"] },
+  mermaid: { req: ["code"], opt: ["caption"] },
   html: { req: ["html"], opt: [] },
   compare: { req: ["options"], opt: [] },
   steps: { req: ["items"], opt: [] },
@@ -33,12 +35,12 @@ const SPEC = {
   metrics: { req: ["items"], opt: [] },
   bars: { req: ["items"], opt: ["title", "unit", "max"] },
   details: { req: ["title"], opt: ["md", "blocks", "open"] },
-  choice: { req: [...QCOMMON.slice(0, 2), "options"], opt: ["md", "required", "allowOther"], q: true },
-  multi: { req: [...QCOMMON.slice(0, 2), "options"], opt: ["md", "required", "allowOther"], q: true },
-  input: { req: QCOMMON.slice(0, 2), opt: ["md", "required", "placeholder", "lines"], q: true },
-  scale: { req: QCOMMON.slice(0, 2), opt: ["md", "required", "min", "max", "step", "default", "unit", "minLabel", "maxLabel"], q: true },
-  rank: { req: [...QCOMMON.slice(0, 2), "items"], opt: ["md", "required"], q: true },
-  review: { req: [...QCOMMON.slice(0, 2), "items"], opt: ["md", "required"], q: true },
+  choice: { req: [...QCOMMON.slice(0, 2), "options"], opt: ["md", "required", "ref", "allowOther"], q: true },
+  multi: { req: [...QCOMMON.slice(0, 2), "options"], opt: ["md", "required", "ref", "allowOther"], q: true },
+  input: { req: QCOMMON.slice(0, 2), opt: ["md", "required", "ref", "placeholder", "lines"], q: true },
+  scale: { req: QCOMMON.slice(0, 2), opt: ["md", "required", "ref", "min", "max", "step", "default", "unit", "minLabel", "maxLabel"], q: true },
+  rank: { req: [...QCOMMON.slice(0, 2), "items"], opt: ["md", "required", "ref"], q: true },
+  review: { req: [...QCOMMON.slice(0, 2), "items"], opt: ["md", "required", "ref"], q: true },
 };
 const NOTE_KINDS = ["info", "tip", "warn", "danger", "ok"];
 const ID_RE = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
@@ -77,9 +79,11 @@ function validate(doc, file) {
         if (!ID_RE.test(b.id ?? "")) e(where, "id は英数字・_・- で指定してください (版をまたいで同じ質問には同じ id)");
         else if (qids.has(b.id)) e(where, `id "${b.id}" が ${qids.get(b.id)} と重複しています`);
         else qids.set(b.id, p);
+        if (b.ref != null && (typeof b.ref !== "string" || !b.ref.trim())) e(where, "ref は文字列にしてください (例: processFlow:order-entry#step-3)");
       }
       const arr = (k) => { if (b[k] != null && !Array.isArray(b[k])) { e(where, `${k} は配列にしてください`); return false; } return Array.isArray(b[k]); };
       switch (b.type) {
+        case "mermaid": if (typeof b.code !== "string") e(where, "code は文字列 (Mermaid の記法) にしてください"); break;
         case "note": if (b.kind && !NOTE_KINDS.includes(b.kind)) e(where, `kind は ${NOTE_KINDS.join(" / ")} のどれかです`); break;
         case "table": if (arr("rows")) b.rows.forEach((r, ri) => { if (!Array.isArray(r)) e(where, `rows[${ri}] は配列にしてください`); else if (b.columns && r.length !== b.columns.length) w(where, `rows[${ri}] の列数 ${r.length} が columns の ${b.columns.length} と違います`); }); break;
         case "choice": case "multi": case "rank": {
@@ -96,7 +100,7 @@ function validate(doc, file) {
           }
           break;
         }
-        case "review": if (arr("items")) { const seen = new Set(); b.items.forEach((it, ii) => { if (!ID_RE.test(it?.id ?? "")) e(where, `items[${ii}] に id が必要です`); else if (seen.has(it.id)) e(where, `items[${ii}] の id "${it.id}" が重複しています`); seen.add(it?.id); if (!it?.title && !it?.md) e(where, `items[${ii}] に title か md が必要です`); }); } break;
+        case "review": if (arr("items")) { const seen = new Set(); b.items.forEach((it, ii) => { if (!ID_RE.test(it?.id ?? "")) e(where, `items[${ii}] に id が必要です`); else if (seen.has(it.id)) e(where, `items[${ii}] の id "${it.id}" が重複しています`); seen.add(it?.id); if (!it?.title && !it?.md) e(where, `items[${ii}] に title か md が必要です`); if (it?.ref != null && typeof it.ref !== "string") e(where, `items[${ii}] の ref は文字列にしてください`); }); } break;
         case "compare": if (arr("options")) b.options.forEach((o, oi) => { if (!o?.title) e(where, `options[${oi}] に title が必要です`); }); break;
         case "steps": case "metrics": case "bars": arr("items"); break;
         case "kv": if (arr("items")) b.items.forEach((x, xi) => { if (!Array.isArray(x) || x.length !== 2) e(where, `items[${xi}] は ["項目", "値"] の形にしてください`); }); break;
@@ -147,8 +151,23 @@ ${body}
 `;
 }
 
-function versionsIn(dir) {
-  return fs.readdirSync(dir).map((f) => f.match(/^v(\d+)\.json$/)).filter(Boolean).map((m) => Number(m[1])).sort((a, b) => a - b);
+// 版どうしの違いを画面で出すための、各版の要約 (質問・選択肢・決まったこと・送った回答)
+function summarize(d, dir) {
+  const label = (o) => (typeof o === "string" ? o : o?.label ?? o?.value ?? "");
+  const questions = [];
+  for (const s of d.doc.sections) for (const b of s.blocks || []) {
+    if (!SPEC[b.type]?.q) continue;
+    questions.push({ id: b.id, type: b.type, q: b.q, opts: b.type === "review" ? b.items.map((i) => i.title || i.id) : (b.options || b.items || []).map(label) });
+  }
+  let answers = null;
+  try { answers = JSON.parse(fs.readFileSync(path.join(dir, `v${d.v}.answer.json`), "utf8")); } catch { /* 無い・壊れていれば null */ }
+  return { version: d.v, title: d.doc.title, decisions: (d.doc.decisions || []).map((x) => x.title), questions, answers };
+}
+
+// ページごとに、そのページの版に無い質問 (消えた質問になりうるもの) の回答だけを残す。回答の全文は HTML に入れない
+function historyFor(history, cur) {
+  const ids = new Set(cur.questions.map((x) => x.id));
+  return history.map((h) => ({ ...h, answers: h.version >= cur.version || !h.answers ? null : { questions: (h.answers.questions || []).filter((x) => x && !ids.has(x.id)).map((x) => ({ id: x.id, state: x.state, answer: x.answer })) } }));
 }
 
 function buildTopic(dir, css, js) {
@@ -169,10 +188,11 @@ function buildTopic(dir, css, js) {
   if (!good.length) return { ok: false, problems };
   const latest = good[good.length - 1].v;
   const meta = good.map((d) => ({ version: d.v, file: `v${d.v}.html`, title: d.doc.title }));
+  const history = good.map((d) => summarize(d, dir));
   const rel = (f) => path.relative(process.cwd(), f).split(path.sep).join("/");
   for (const d of docs) {
     if (d.errs.length) continue;
-    const metaFor = { versions: meta, latest, jsonPath: rel(d.file), indexHref: "../index.html" };
+    const metaFor = { versions: meta, latest, jsonPath: rel(d.file), indexHref: "../index.html", history: historyFor(history, history.find((x) => x.version === d.v)) };
     const body = `<script type="application/json" id="qa-doc">${jsonForScript(d.doc)}</script>
 <script type="application/json" id="qa-meta">${jsonForScript(metaFor)}</script>
 <noscript>この資料の表示には JavaScript が必要です。</noscript>
@@ -182,26 +202,6 @@ function buildTopic(dir, css, js) {
     if (d.v === latest) fs.writeFileSync(path.join(dir, "index.html"), html);
   }
   return { ok: problems.every((p) => !p.errs.length), problems, latest, dir };
-}
-
-function buildIndex(root, css) {
-  const rows = [];
-  for (const e of fs.readdirSync(root, { withFileTypes: true })) {
-    if (!e.isDirectory()) continue;
-    const dir = path.join(root, e.name);
-    const vs = versionsIn(dir);
-    if (!vs.length) continue;
-    const v = vs[vs.length - 1];
-    let title = e.name;
-    try { title = JSON.parse(fs.readFileSync(path.join(dir, `v${v}.json`), "utf8")).title || title; } catch { /* 壊れた JSON は名前だけ出す */ }
-    const mtime = fs.statSync(path.join(dir, `v${v}.json`)).mtime;
-    const answered = fs.existsSync(path.join(dir, `v${v}.answer.md`));
-    rows.push({ name: e.name, title, v, mtime, answered });
-  }
-  rows.sort((a, b) => b.mtime - a.mtime);
-  const list = rows.map((r) => `<a class="t" href="${encodeURIComponent(r.name)}/index.html"><span><b>${escHtml(r.title)}</b><br><span class="muted mono">${escHtml(r.name)}</span></span><span class="badge">v${r.v}${r.answered ? " · 回答済み" : ""}</span><span class="muted">${r.mtime.toLocaleString("ja-JP")}</span></a>`).join("\n");
-  const body = `<div class="topics"><h1>議題の一覧</h1><p class="muted">AI とのやりとりの資料 (新しい順)。各議題の index.html はいつも最新版です。</p>${list || '<p class="muted">まだありません。</p>'}</div>`;
-  fs.writeFileSync(path.join(root, "index.html"), page("議題の一覧", body, css));
 }
 
 function main() {
@@ -231,7 +231,7 @@ function main() {
     console.log(`  開く: ${u.local}`);
     if (u.lan) console.log(`  スマホ (家庭内 LAN): ${u.lan}`);
   }
-  for (const root of roots) buildIndex(root, css);
+  for (const root of roots) buildIndex(root);
   process.exit(ok ? 0 : 1);
 }
 

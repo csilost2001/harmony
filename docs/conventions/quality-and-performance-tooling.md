@@ -15,6 +15,7 @@
 | 秘密の混入の検査 | `scripts/verify/no-secrets.mjs` | git が管理するファイルに、API キー (AWS・GitHub・Anthropic・OpenAI・Slack・Google)・秘密鍵・JWT の形の文字列がないか。試験・検査自身は除く。見つけても全文は出さない |
 | コードの衛生の検査 | `scripts/verify/hygiene.mjs` | 予算で守る: 理由 (`-- 理由`) のない `eslint-disable` (45 件まで)・backend の `console.*` 直書き (48 件まで。ログは `serverLog` 経由)・1500 行を超える既存ファイル (いまの行数より増やさない)。`.only(` と、`TODO(#番号)` でない TODO / FIXME は 0 件。数を下げたら、予算も下げる (`--print` でいまの数) |
 | frontend lint | `scripts/verify/check.mjs` | ESLint の警告は 18 件まで (`--max-warnings`)。増やさない |
+| html-qa の試験 | `node --test ai-skills/html-qa/scripts/ scripts/dev/html-qa-markers.test.mjs` | html-qa スキルの build (形式の検査・版の違いの要約・議題一覧) と、回答を Harmony のマーカーにする変換の試験 (`npm run check` に含まれる) |
 | 検査スクリプトの試験 | `scripts/verify/test.mjs` | `check-design.mjs` ほか、検査スクリプト自身の試験 (4 秒)。以前は `npm run check` に入っておらず、仕様の変更に追従していない試験が見つからなかった |
 
 ## 手で回す道具
