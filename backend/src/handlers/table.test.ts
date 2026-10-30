@@ -105,6 +105,35 @@ describe("designer__add_table / update_table / remove_table は v3 の harmony.j
     await expect(text("designer__add_table", { physicalName: "Expenses", name: "経費" })).rejects.toThrow(/snake_case/);
   });
 
+  it("update_table に schema にない maturity (done) が来たら断り、harmony.json もテーブルのファイルも書かない", async () => {
+    const id = idOf(await text("designer__add_table", { physicalName: "expenses", name: "経費" }));
+    const beforeProject = await fs.readFile(path.join(ROOT, "harmony.json"), "utf-8");
+    const beforeTable = await fs.readFile(path.join(ROOT, "design", "tables", `${id}.json`), "utf-8");
+    await expect(text("designer__update_table", { tableId: id, definition: { id, physicalName: "expenses", name: "経費", maturity: "done", columns } }))
+      .rejects.toThrow(/スキーマに合いません.*maturity.*draft/);
+    await expect(text("designer__update_table", { tableId: id, definition: { id, physicalName: "expenses", name: "経費", category: 5, columns } }))
+      .rejects.toThrow(/スキーマに合いません/);
+    expect(await fs.readFile(path.join(ROOT, "harmony.json"), "utf-8")).toBe(beforeProject);
+    expect(await fs.readFile(path.join(ROOT, "design", "tables", `${id}.json`), "utf-8")).toBe(beforeTable);
+    expect((await validateHarmony()).ok).toBe(true);
+
+    // 正しい maturity は通る
+    await text("designer__update_table", { tableId: id, definition: { id, physicalName: "expenses", name: "経費", maturity: "committed", columns } });
+    const entries = ((await readProject(ROOT)) as { entities: { tables: Array<Record<string, unknown>> } }).entities.tables;
+    expect(entries[0]).toMatchObject({ id, maturity: "committed" });
+    expect((await validateHarmony()).ok).toBe(true);
+  });
+
+  it("add_table は、同じ physicalName のテーブルがすでにあれば断る (もう 1 つ作らない)", async () => {
+    const id = idOf(await text("designer__add_table", { physicalName: "expenses", name: "経費" }));
+    await expect(text("designer__add_table", { physicalName: "expenses", name: "経費 2" })).rejects.toThrow(/物理名 expenses のテーブルはすでにあります/);
+    await expect(text("designer__add_table", { physicalName: "expenses", name: "経費 2" })).rejects.toThrow(new RegExp(id));
+    expect(await fs.readdir(path.join(ROOT, "design", "tables"))).toEqual([`${id}.json`]);
+    expect(((await readProject(ROOT)) as { entities: { tables: unknown[] } }).entities.tables).toHaveLength(1);
+    // 別の物理名なら追加できる
+    await text("designer__add_table", { physicalName: "orders", name: "注文" });
+  });
+
   it("harmony.json が無いワークスペースでは、書く前に止まる (テーブルのファイルも作らない)", async () => {
     await fs.rm(path.join(ROOT, "harmony.json"));
     await expect(text("designer__add_table", { physicalName: "expenses", name: "経費" })).rejects.toThrow(/harmony\.json/);
@@ -183,7 +212,7 @@ describe("旧形式の項目 (最上位の tables / updatedAt) の修復", () =>
     return id;
   };
 
-  it("壊れた harmony.json は、画面で開けず、修復の案内が付く。MCP では開いて直せる状態と分かる", async () => {
+  it("壊れた harmony.json は、修復の案内が付く。画面でも MCP でも、開いて直せる状態と分かる", async () => {
     await breakWorkspace();
     expect((await validateHarmony()).ok).toBe(false);
     const inspect = await inspectWorkspacePath(ROOT);
@@ -226,5 +255,28 @@ describe("旧形式の項目 (最上位の tables / updatedAt) の修復", () =>
     expect(dry.removeKeys.sort()).toEqual(["tables", "updatedAt"]);
     expect(await call({ apply: true })).toMatchObject({ applied: true });
     expect((await validateHarmony()).ok).toBe(true);
+  });
+
+  it("一覧のテーブルの要約 (名前・物理名・カラム数) が古いままでも、repair_registry の予行で挙げ、apply でファイルに合わせる", async () => {
+    const id = idOf(await text("designer__add_table", { physicalName: "expenses", name: "経費" }));
+    // テーブルのファイルだけ直接書き換わった (一覧の要約は古いまま) 状態
+    const file = path.join(ROOT, "design", "tables", `${id}.json`);
+    const def = JSON.parse(await fs.readFile(file, "utf-8"));
+    await fs.writeFile(file, JSON.stringify({ ...def, name: "経費明細", physicalName: "expense_details", columns }, null, 2));
+    const project = await readProject(ROOT) as { entities: { tables: Array<Record<string, unknown>> } };
+    expect(project.entities.tables[0]).toMatchObject({ name: "経費", physicalName: "expenses", columnCount: 0 });
+    const before = await fs.readFile(path.join(ROOT, "harmony.json"), "utf-8");
+
+    const dry = await repairRegistry(ROOT, false);
+    expect(dry.applied).toBe(false);
+    expect(dry.refresh).toEqual([{ kind: "table", id, fields: ["name", "physicalName", "columnCount"] }]);
+    expect(await fs.readFile(path.join(ROOT, "harmony.json"), "utf-8")).toBe(before);
+
+    const done = await repairRegistry(ROOT, true);
+    expect(done.applied).toBe(true);
+    const after = await readProject(ROOT) as { entities: { tables: Array<Record<string, unknown>> } };
+    expect(after.entities.tables[0]).toMatchObject({ id, no: 1, name: "経費明細", physicalName: "expense_details", columnCount: 2 });
+    expect((await validateHarmony()).ok).toBe(true);
+    expect(await repairRegistry(ROOT, true)).toMatchObject({ applied: false, refresh: [] });
   });
 });

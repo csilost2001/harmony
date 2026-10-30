@@ -91,8 +91,9 @@ export function DesignIssuesPanel() {
     const add = list(r.add), remove = list(r.remove);
     const removeKeys = ((r.removeKeys as string[] | undefined) ?? []);
     const show = (xs: string[]) => (xs.length > 8 ? `${xs.slice(0, 8).join("、")} ほか ${xs.length - 8} 件` : xs.join("、"));
-    return add.length + remove.length + removeKeys.length === 0 ? null
-      : `プロジェクトの一覧 (harmony.json) を、ファイルに合わせて直します。\n\n一覧に足す (ファイルはあるが一覧に無い): ${add.length} 件${add.length ? `\n  ${show(add)}` : ""}\n一覧から外す (ファイルが無い): ${remove.length} 件${remove.length ? `\n  ${show(remove)}` : ""}${removeKeys.length ? `\n最上位から取り除く旧形式の項目 (v3 のスキーマに無い): ${removeKeys.join("、")}` : ""}`;
+    const refresh = ((r.refresh as Array<{ kind: string; id: string; fields: string[] }> | undefined) ?? []).map((x) => `${x.kind}:${x.id} (${x.fields.join("・")})`);
+    return add.length + remove.length + removeKeys.length + refresh.length === 0 ? null
+      : `プロジェクトの一覧 (harmony.json) を、ファイルに合わせて直します。\n\n一覧に足す (ファイルはあるが一覧に無い): ${add.length} 件${add.length ? `\n  ${show(add)}` : ""}\n一覧から外す (ファイルが無い): ${remove.length} 件${remove.length ? `\n  ${show(remove)}` : ""}${removeKeys.length ? `\n最上位から取り除く旧形式の項目 (v3 のスキーマに無い): ${removeKeys.join("、")}` : ""}${refresh.length ? `\n一覧の要約をテーブルのファイルに合わせて直す: ${refresh.length} 件\n  ${show(refresh)}` : ""}`;
   }, "一覧を直しました");
   const persistUuids = () => runMaintenance("workspace.persistUuids", (r) => {
     const n = (r.files as unknown[] | undefined)?.length ?? 0;

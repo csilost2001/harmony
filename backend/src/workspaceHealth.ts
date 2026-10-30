@@ -3,7 +3,7 @@
  *
  * - scanWorkspaceHealth   読めない (壊れている) ファイル・大きすぎるファイル・ファイル名と id の食い違い・
  *                         一覧 (harmony.json) にあるのにファイルが無い項目・uuid が未保存の設計を、要確認として返す (読むだけ)
- * - repairRegistry        一覧とファイルの食い違いを直す (一覧に載っていないファイルを足す / ファイルが無い項目を外す)。既定は予行
+ * - repairRegistry        一覧とファイルの食い違いを直す (一覧に載っていないファイルを足す / ファイルが無い項目を外す / 旧形式の項目を取り除く / テーブルの要約をファイルに合わせる)。既定は予行
  * - persistDerivedUuids   uuid が未保存の設計に、読み出しで補っている値を書いて固定する。既定は予行
  *
  * 仕様: docs/spec/workspace-health.md
@@ -11,7 +11,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import {
-  actionsDir, deriveStableUuid, entityDirOf, isLegacyGrapesScreen, listExistingEntityIds, listScreenIdsIncludingLegacy, projectSaltFor, readProject, resolveDataRoot,
+  actionsDir, deriveStableUuid, entityDirOf, isLegacyGrapesScreen, listExistingEntityIds, listScreenIdsIncludingLegacy, projectSaltFor, readEntityReadOnly, readProject, resolveDataRoot,
   writeJsonFile, writeProject, type TopLevelEntityKind,
 } from "./projectStorage.js";
 import { mergeUnregisteredEntities } from "./registryMerge.js";
@@ -268,7 +268,32 @@ export interface RegistryRepairPlan {
   remove: Array<{ kind: string; id: string }>;
   /** harmony.json の最上位から取り除く、旧形式の項目の名前 (v3 のスキーマに無い。#1568) */
   removeKeys: string[];
+  /** 一覧のテーブルの要約 (名前・物理名・カテゴリ・カラム数) が、テーブルのファイルと食い違っていて、ファイルに合わせて直す項目 */
+  refresh: Array<{ kind: "table"; id: string; fields: string[] }>;
   applied: boolean;
+}
+
+const PHYSICAL_NAME_RE = /^[a-z][a-z0-9_]*$/;
+
+/** 一覧のテーブルの要約を、テーブルのファイルの値に合わせた一覧と、直す項目。ファイルに値が無い・使えない値の項目には触れない */
+async function refreshTableSummaries(tables: unknown[], root: string): Promise<{ tables: unknown[]; refresh: RegistryRepairPlan["refresh"] }> {
+  const refresh: RegistryRepairPlan["refresh"] = [];
+  const out: unknown[] = [];
+  for (const e of tables) {
+    if (!isRecord(e) || typeof e.id !== "string") { out.push(e); continue; }
+    const file = await readEntityReadOnly("table", e.id, root).catch(() => null);
+    if (!isRecord(file)) { out.push(e); continue; }
+    const want: Record<string, unknown> = {};
+    if (typeof file.name === "string" && file.name) want.name = file.name;
+    if (typeof file.physicalName === "string" && PHYSICAL_NAME_RE.test(file.physicalName) && file.physicalName.length <= 63) want.physicalName = file.physicalName;
+    if (typeof file.category === "string" && file.category) want.category = file.category;
+    if (Array.isArray(file.columns)) want.columnCount = file.columns.length;
+    const fields = Object.keys(want).filter((k) => e[k] !== want[k]);
+    if (fields.length === 0) { out.push(e); continue; }
+    refresh.push({ kind: "table", id: e.id, fields });
+    out.push({ ...e, ...Object.fromEntries(fields.map((k) => [k, want[k]])) });
+  }
+  return { tables: out, refresh };
 }
 
 /** 一覧 (harmony.json) とファイルの食い違いを直す。apply が true のときだけ書く (予行が既定) */
@@ -294,9 +319,13 @@ export async function repairRegistry(root: string, apply: boolean): Promise<Regi
     });
     if (kept.length !== list.length) entities[c.key] = kept;
   }
-  const changed = add.length > 0 || remove.length > 0 || removeKeys.length > 0;
+  // 一覧に残るテーブルの要約を、テーブルのファイルに合わせる (名前・カラム数などが古いままにならないように)
+  const refreshed = await refreshTableSummaries(Array.isArray(entities.tables) ? entities.tables as unknown[] : [], root);
+  if (refreshed.refresh.length > 0) entities.tables = refreshed.tables;
+  const refresh = refreshed.refresh;
+  const changed = add.length > 0 || remove.length > 0 || removeKeys.length > 0 || refresh.length > 0;
   if (apply && changed) await writeProject({ ...next, entities }, root);
-  return { add, remove, removeKeys, applied: apply && changed };
+  return { add, remove, removeKeys, refresh, applied: apply && changed };
 }
 
 export interface UuidPersistResult { files: string[]; applied: boolean }

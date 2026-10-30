@@ -605,8 +605,8 @@ export const tools = [
   {
     name: "designer__repair_registry",
     description:
-      "プロジェクトの一覧 (harmony.json) とファイルの食い違いを直します: ファイルはあるが一覧に載っていない設計を一覧に足し、一覧にあるがファイルが無い項目を外し、harmony.json の最上位にある旧形式の項目 (tables / updatedAt など。v3 のスキーマに無く、画面がワークスペースを開けなくなる) を取り除きます。" +
-      "既定は予行 (書かずに、足す・外す設計だけを返す)。実行するには apply: true を付けます。",
+      "プロジェクトの一覧 (harmony.json) とファイルの食い違いを直します: ファイルはあるが一覧に載っていない設計を一覧に足し、一覧にあるがファイルが無い項目を外し、harmony.json の最上位にある旧形式の項目 (tables / updatedAt など。v3 のスキーマに無く、画面がワークスペースを開けなくなる) を取り除きます。一覧にあるテーブルの要約 (名前・物理名・カテゴリ・カラム数) が、テーブルのファイルと食い違っていれば、ファイルに合わせて直します。" +
+      "既定は予行 (書かずに、足す・外す・直す設計だけを返す)。実行するには apply: true を付けます。",
     inputSchema: {
       type: "object" as const,
       properties: { apply: { type: "boolean", description: "true で実際に書く (既定は予行)" } },
