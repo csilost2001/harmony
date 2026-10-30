@@ -41,9 +41,10 @@ RUN npm run build --workspace=@harmony/shared \
 FROM node:26-alpine AS runtime
 WORKDIR /app
 
-# runtime にも最新の npm を入れる (#1571)。同梱の npm の既知の脆弱性を image に残さないため。ARG は stage ごとに宣言が要る
-ARG NPM_VERSION=latest
-RUN npm install -g npm@${NPM_VERSION}
+# runtime では npm を使わない (起動は node だけ。backend も npm / npx を呼ばない) ので、同梱の npm を消す (#1571)。
+# 最新の npm を入れ直すと、古い npm の層の上に新しい npm と npm のキャッシュが重なって image が大きくなるうえ、
+# 使わない npm の脆弱性を image に残すことになる
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 ENV NODE_ENV=production
 ENV HARMONY_HOME=/home/node/.harmony
