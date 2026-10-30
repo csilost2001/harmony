@@ -50,6 +50,9 @@ export function nvmrcMajor(nvmrc) {
 
 const majorOf = (v) => parseVersion(v)[0];
 
+/** 同じメジャーの新しいパッチが出てから、失敗にせず知らせにとどめる日数 (上流の image が追いつくまで) */
+export const PATCH_GRACE_DAYS = 14;
+
 /**
  * 動かしている Node と npm が、そろっているかの判定 (副作用なし)。
  *   nodeVersion / npmVersion  いま動いている版 ("v26.13.0" / "12.2.1")
@@ -59,9 +62,11 @@ const majorOf = (v) => parseVersion(v)[0];
  *   latestNpm                 `npm view npm version` の結果。同上
  *   includeNodeEngines        false なら「Node が engines 未満」を出さない (planSetup が先に言うので、重複させないため)
  *   nvmrcAsProblem            true なら「Node のメジャーが .nvmrc と違う」を知らせでなく問題にする (npm run check:deps -- runtime 用)
+ *   now                       いまの時刻 (ミリ秒。試験用)。同じメジャーの新しいパッチが出てから PATCH_GRACE_DAYS 日までは、
+ *                             上流の image (typescript-node など) が追いついていないことがあるので、知らせにとどめる
  * 戻り値: { problems: 直すべきこと, notices: 知らせ }
  */
-export function runtimeFindings({ nodeVersion, npmVersion, nvmrc, pkg, releases, latestNpm, includeNodeEngines = true, nvmrcAsProblem = false }) {
+export function runtimeFindings({ nodeVersion, npmVersion, nvmrc, pkg, releases, latestNpm, includeNodeEngines = true, nvmrcAsProblem = false, now = Date.now() }) {
   const problems = [];
   const notices = [];
   const needNode = requiredEngine(pkg, "node");
@@ -82,10 +87,15 @@ export function runtimeFindings({ nodeVersion, npmVersion, nvmrc, pkg, releases,
     if (want !== null && newestLts !== null && newestLts > want) {
       problems.push(`新しい LTS のメジャー (Node ${newestLts}) が出ています (.nvmrc は ${want})。docs/setup/dev-containers.md の「Node のメジャーを上げる手順」に沿って上げてください`);
     }
-    const same = releases.map((r) => r.version).filter((v) => majorOf(v) === majorOf(nodeVersion));
-    const newest = same.reduce((hi, v) => (hi === null || !versionAtLeast(hi, v) ? v : hi), null);
+    const same = releases.filter((r) => majorOf(r.version) === majorOf(nodeVersion));
+    const newest = same.map((r) => r.version).reduce((hi, v) => (hi === null || !versionAtLeast(hi, v) ? v : hi), null);
     if (newest && !versionAtLeast(nodeVersion, newest)) {
-      problems.push(`動いている Node (${nodeVersion}) が、同じメジャーの最新 (${newest}) より古いです。ホストは nvm install ${majorOf(nodeVersion)} で入れ直し、Dev Containers は Rebuild Container (Without Cache) してください`);
+      // いまの版より新しいパッチのうち、いちばん早く出たものからの日数 (日付が無ければ猶予なし)
+      const firstNewer = same.filter((r) => !versionAtLeast(nodeVersion, r.version)).map((r) => Date.parse(r.date)).filter(Number.isFinite);
+      const days = firstNewer.length ? (now - Math.min(...firstNewer)) / 86400000 : Infinity;
+      const msg = `動いている Node (${nodeVersion}) が、同じメジャーの最新 (${newest}) より古いです。ホストは nvm install ${majorOf(nodeVersion)} で入れ直し、Dev Containers は Rebuild Container (Without Cache) してください`;
+      if (days <= PATCH_GRACE_DAYS) notices.push(`${msg} (新しいパッチが出て ${Math.floor(days)} 日。Dev Containers の元の image が追いつくまで、${PATCH_GRACE_DAYS} 日は知らせにとどめます)`);
+      else problems.push(msg);
     }
   }
   if (latestNpm && npmVersion && !versionAtLeast(npmVersion, latestNpm)) {

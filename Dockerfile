@@ -30,10 +30,12 @@ RUN npm ci
 COPY schemas ./schemas
 COPY frontend ./frontend
 COPY backend ./backend
+# prune は --ignore-scripts を付ける。npm 12 は prune のあと shared の prepare (npm run build = tsc) を走らせるが、
+# そのときには devDependencies の typescript が消えていて「tsc: not found」で落ちる (shared はすぐ上で build 済み。#1571)
 RUN npm run build --workspace=@harmony/shared \
     && npm run build --workspace=frontend \
     && npm run build --workspace=backend \
-    && npm prune --omit=dev
+    && npm prune --omit=dev --ignore-scripts
 
 # ─── stage 2: runtime ───────────────────────────────────────────────────────
 FROM node:26-alpine AS runtime

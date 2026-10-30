@@ -785,6 +785,13 @@ group("setup (Node と npm の版の判定 #1571)", () => {
   assert("lts/* の .nvmrc や .nvmrc なしは、メジャーの比較をしない", f({ nodeVersion: "v24.15.0", nvmrc: "lts/*", pkg: {} }).notices.length === 0 && f({ nodeVersion: "v24.15.0", nvmrc: undefined, pkg: {} }).notices.length === 0);
   assert("最新の LTS のメジャーが .nvmrc より新しければ問題 (LTS でない v27 は数えない)", (() => { const ok = f({ releases: rel }); const up = f({ releases: [...rel, { version: "v28.0.0", lts: "Next" }] }); return ok.problems.length === 0 && up.problems.length === 1 && up.problems[0].includes("Node のメジャーを上げる手順"); })());
   assert("同じメジャーの最新パッチより古ければ問題", (() => { const old = f({ nodeVersion: "v26.12.0", releases: rel }); return old.problems.length === 1 && old.problems[0].includes("v26.13.0") && f({ releases: rel }).problems.length === 0; })());
+  assert("新しいパッチが出て 14 日までは知らせ、過ぎたら問題 (上流の image が追いつくまでの猶予)", (() => {
+    const dated = [{ version: "v26.13.0", lts: "Lithium", date: "2026-10-28" }, { version: "v26.12.1", lts: "Lithium", date: "2026-10-21" }];
+    const soon = f({ nodeVersion: "v26.12.1", releases: dated, now: Date.parse("2026-10-30") });
+    const late = f({ nodeVersion: "v26.12.1", releases: dated, now: Date.parse("2026-11-12") });
+    const older = f({ nodeVersion: "v26.11.0", releases: [...dated, { version: "v26.11.0", lts: false, date: "2026-10-07" }], now: Date.parse("2026-10-30") });
+    return soon.problems.length === 0 && soon.notices.length === 1 && soon.notices[0].includes("2 日") && late.problems.length === 1 && older.problems.length === 0 && older.notices.length === 1;
+  })());
   assert("npm が最新より古ければ問題・同じか新しければ問題なし", f({ latestNpm: "12.3.0" }).problems.length === 1 && f({ latestNpm: "12.2.1" }).problems.length === 0 && f({ latestNpm: "12.0.0" }).problems.length === 0);
   assert("nvmrcAsProblem なら、.nvmrc との違いを問題にする (check:deps -- runtime)", (() => { const r = f({ nodeVersion: "v24.15.0", pkg: {}, nvmrcAsProblem: true }); return r.problems.length === 1 && r.notices.length === 0 && f({ nvmrcAsProblem: true }).problems.length === 0; })());
   assert("engines の判定 (Node と npm。npm が足りなければ失敗・engines.npm が無ければ見ない)", enginesCheck({ nodeVersion: "v26.13.0", npmVersion: "12.2.1", pkg }).ok && !enginesCheck({ nodeVersion: "v26.13.0", npmVersion: "10.8.2", pkg }).ok && !enginesCheck({ nodeVersion: "v20.20.2", npmVersion: "12.2.1", pkg }).ok && !enginesCheck({ nodeVersion: "v26.13.0", npmVersion: null, pkg }).ok && enginesCheck({ nodeVersion: "v26.13.0", npmVersion: null, pkg: { engines: { node: ">=26" } } }).ok && !enginesCheck({ nodeVersion: "v26.13.0", npmVersion: "12.2.1", pkg: {} }).ok && enginesCheck({ nodeVersion: "v26.13.0", npmVersion: "10.8.2", pkg }).lines.some((l) => l.includes("10.8.2")));

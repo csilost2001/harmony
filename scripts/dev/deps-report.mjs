@@ -9,7 +9,7 @@
  *   outdated  古い依存の一覧 (知らせ)
  *   engines   動かしている Node と npm が、package.json の engines を満たすか
  *   runtime   Node と npm が最新か (ネットワーク)。nodejs.org の一覧と npm view npm version を見て、
- *             新しい LTS のメジャーが出ている・同じメジャーの最新パッチより古い・npm が最新より古い・.nvmrc と違う、を指摘する (#1571)。
+ *             新しい LTS のメジャーが出ている・同じメジャーの最新パッチより古い (出てから 14 日までは知らせ)・npm が最新より古い・.nvmrc と違う、を指摘する (#1571)。
  *             取れなければ「読めません (ネットワーク)」と知らせるだけで、失敗にしない
  *
  * 使い方: npm run check:deps [-- audit license lock unused outdated engines runtime] [--json]   (指定なしは全部。失敗は終了コード 1)

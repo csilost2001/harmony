@@ -102,7 +102,7 @@ if ! command -v nvm >/dev/null 2>&1; then
   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
   source ~/.bashrc
 fi
-nvm install --lts            # いまの最新の LTS (リポジトリの .nvmrc と同じメジャー。2026-10 時点は 26)
+nvm install 26               # リポジトリの .nvmrc と同じ数字 (2026-10 時点は 26)。clone 後なら、リポジトリの中で引数なしの nvm install でも .nvmrc の版が入る
 nvm alias default 26         # 新しい端末でも、この版が選ばれるようにする (下の注を読んでから)
 nvm use default
 npm install -g npm@latest    # npm も最新に (古い npm だと package-lock.json の libc の欄が消える)
