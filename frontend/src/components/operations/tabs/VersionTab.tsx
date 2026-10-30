@@ -2,12 +2,13 @@
 import { useState } from "react";
 import { Section } from "../../analysis/ui";
 import { reportFailure } from "../../../utils/failureToast";
-import { opsApi, type UpdateCheck } from "../../../utils/opsApi";
+import { opsApi, type ScaffoldSummary, type UpdateCheck } from "../../../utils/opsApi";
 import { markVersionSeen } from "../../../utils/updateNotice";
 import { useLoad } from "../useLoad";
 
 export function VersionTab() {
   const v = useLoad(opsApi.version, false);
+  const sc = useLoad(opsApi.scaffoldStatus, false);
   const [update, setUpdate] = useState<UpdateCheck | null>(null);
   const [checking, setChecking] = useState(false);
   const d = v.data;
@@ -43,6 +44,7 @@ export function VersionTab() {
         </div>
         {update && <p className={update.status === "behind" ? "an-warn" : "an-hint"} role="status" data-testid="op-version-update">{update.message}</p>}
       </Section>
+      <ScaffoldSection s={sc.data} error={sc.error} />
       <Section title="リリースノート" testId="op-release-notes" hint="取り込まれた変更の一覧です (docs/release-notes.md。npm run release:notes で、git の履歴から作ります)。">
         {d && d.notes.length === 0 ? <p className="an-empty">リリースノートはまだありません。</p> : (
           <ul className="op-notes">{(d?.notes ?? []).map((n, i) => <li key={i}><span className="op-note-date">{n.date}</span> {n.title}{n.pr ? <small className="an-hint"> #{n.pr}</small> : null}</li>)}</ul>
@@ -50,5 +52,37 @@ export function VersionTab() {
         {d && d.notesTotal > d.notes.length && <p className="an-hint">新しい {d.notes.length} 件を表示 (全 {d.notesTotal} 件)。</p>}
       </Section>
     </div>
+  );
+}
+
+const SCAFFOLD_LABELS: Record<ScaffoldSummary["status"], string> = {
+  current: "最新です",
+  outdated: "雛形が新しくなっています",
+  "no-record": "雛形の記録がありません",
+  "not-applicable": "該当しません",
+};
+
+/** 開発コンテナの雛形 (generate-code の templates/devcontainer) の更新の状態。取り込みは AI に頼む (#1577) */
+function ScaffoldSection({ s, error }: { s: ScaffoldSummary | null; error: string | null }) {
+  const needsAction = s?.status === "outdated" || s?.status === "no-record";
+  return (
+    <Section title="開発コンテナの雛形" testId="op-scaffold" hint="コードを生成したときに写した、開発コンテナ (.devcontainer)・Dockerfile などの雛形が、Harmony の新しい雛形と食い違っていないかを見ます。">
+      {error ? <p className="an-alert" role="alert">{error}</p> : null}
+      {s && (
+        <>
+          <dl className="op-dl" data-testid="op-scaffold-info">
+            <dt>状態</dt><dd data-testid="op-scaffold-status">{SCAFFOLD_LABELS[s.status]}</dd>
+            {s.combo && <><dt>組合せ</dt><dd>{s.combo}</dd></>}
+            {s.recordedVersion && <><dt>記録した版</dt><dd><code>{s.recordedVersion}</code></dd></>}
+            {s.currentVersion && <><dt>いまの雛形の版</dt><dd><code>{s.currentVersion}</code></dd></>}
+          </dl>
+          {s.reason && s.status === "not-applicable" && <p className="an-hint" data-testid="op-scaffold-reason">{s.reason}</p>}
+          {needsAction && (
+            <p className="an-warn" role="note" data-testid="op-scaffold-ask"><i className="bi bi-info-circle" /> AI に「開発コンテナの雛形の更新を取り込んで」と頼んでください。AI が差分を見せるので、よければ OK と答えると取り込みます (取り込んだあとは Rebuild Container が要ります)。</p>
+          )}
+          {s.problems?.map((m) => <p key={m} className="an-alert" role="alert">{m}</p>)}
+        </>
+      )}
+    </Section>
   );
 }

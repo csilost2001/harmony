@@ -38,6 +38,7 @@ beforeEach(() => {
     "git.log": { commits: [] }, "git.branches": { branches: [] }, "notify.load": { webhooks: [], problems: [] }, "generation.status": { rows: [], problems: [] },
     "access.load": { access: { version: 1, users: [], policy: { requireApprovalForCommitted: false } }, problems: [], you: { name: "花子", role: null, enforced: false } },
     "app.version": { version: "1.2.3", commit: "abc1234", startedAt: "2026-10-01T00:00:00.000Z", notes: [{ date: "2026-10-01", title: "更新あり", pr: "9" }], notesTotal: 1 },
+    "scaffold.status": { status: "not-applicable", reason: "このワークスペースには、開発コンテナの雛形の記録がありません" },
     listAllTables: [], loadAllProcessFlows: [],
   };
   request.mockImplementation(async (method: string, params: unknown) => {
@@ -345,5 +346,37 @@ describe("生成の管理・版と更新", () => {
     await open("version");
     expect((await screen.findByTestId("op-version-info")).textContent).toContain("配布 image");
     expect(screen.queryByTestId("op-version-warn")).toBeNull();
+  });
+
+  it("開発コンテナの雛形: 該当しなければ理由だけ。古ければ状態・版・AI への頼み方を出す (#1577)", async () => {
+    await open("version");
+    expect((await screen.findByTestId("op-scaffold-status")).textContent).toBe("該当しません");
+    expect(screen.getByTestId("op-scaffold-reason").textContent).toContain("記録がありません");
+    expect(screen.queryByTestId("op-scaffold-ask")).toBeNull();
+  });
+
+  it("開発コンテナの雛形が新しくなっていれば、記録の版といまの版と、「AI に頼む」案内が出る (#1577)", async () => {
+    rpc["scaffold.status"] = () => ({ status: "outdated", combo: "spring-boot-thymeleaf", recordedVersion: "aaaaaaaaaaaa", currentVersion: "bbbbbbbbbbbb", outDir: "." });
+    await open("version");
+    expect((await screen.findByTestId("op-scaffold-status")).textContent).toBe("雛形が新しくなっています");
+    const info = screen.getByTestId("op-scaffold-info").textContent ?? "";
+    expect(info).toContain("spring-boot-thymeleaf");
+    expect(info).toContain("aaaaaaaaaaaa");
+    expect(info).toContain("bbbbbbbbbbbb");
+    expect(screen.getByTestId("op-scaffold-ask").textContent).toContain("開発コンテナの雛形の更新を取り込んで");
+  });
+
+  it("開発コンテナの雛形: 記録が無い (Harmony の image を使う) ときも案内が出る。最新なら案内は出ない (#1577)", async () => {
+    rpc["scaffold.status"] = () => ({ status: "no-record", combo: "nestjs-nextjs", currentVersion: "bbbbbbbbbbbb" });
+    await open("version");
+    expect((await screen.findByTestId("op-scaffold-status")).textContent).toBe("雛形の記録がありません");
+    expect(screen.getByTestId("op-scaffold-ask")).toBeTruthy();
+  });
+
+  it("開発コンテナの雛形が最新なら、案内は出ない (#1577)", async () => {
+    rpc["scaffold.status"] = () => ({ status: "current", combo: "nestjs-nextjs", recordedVersion: "bbbbbbbbbbbb", currentVersion: "bbbbbbbbbbbb" });
+    await open("version");
+    expect((await screen.findByTestId("op-scaffold-status")).textContent).toBe("最新です");
+    expect(screen.queryByTestId("op-scaffold-ask")).toBeNull();
   });
 });

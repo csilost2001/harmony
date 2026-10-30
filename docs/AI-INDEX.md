@@ -43,6 +43,7 @@ MCP につながっていれば、この文書は Resource `harmony://docs/ai-in
 | 設計を点検する | [design-document.md](spec/design-document.md) / [design-check.md](spec/design-check.md) | `check_design` (指摘に直し方 `hint` が付く)、影響・未使用・用語などは `analyze_design` ([design-analysis.md](spec/design-analysis.md)) |
 | 人からの指示・質問に答える | [ui-markers.md](spec/ui-markers.md) | `find_all_markers` → 対応したら `resolve_marker`、新しい質問は `add_marker` |
 | コードを生成する | [code-generation.md](spec/code-generation.md) | まず `get_generation_brief` (必要な情報が 1 文書に) → 手順 `generate-code` → 生成したら `record_generation`(テストのパスに test / spec)。再生成の前は `check_generation_drift` / `get_regeneration_diff`。テストの覆い方は `check_test_coverage`。CI は `npm run check:generation` |
+| 開発コンテナの雛形が古くないか見る・取り込む | [integration-ops.md](spec/integration-ops.md) §14 / [app-devcontainer-sidecar.md](setup/app-devcontainer-sidecar.md) | `check_design` の info「開発コンテナの雛形」か `get_project_context` の `scaffold` で知る → `get_scaffold_update` (差分の材料と手順 `guide`) → 利用者に差分を見せて OK を取って書く → `record_scaffold` |
 | テストを作る | [test-viewpoints.md](spec/test-viewpoints.md) / [process-flow-testing.md](spec/process-flow-testing.md) | `get_test_viewpoints` (ID つきの観点表。`since` で変更に絞る)、手順 `generate-tests` / `test-strategy`。テスト名に観点の ID を書く → `check_test_coverage` |
 | Markdown の設計書から取り込む | [conversion-guideline-for-ai.md](spec/conversion-guideline-for-ai.md) | 手順 `import-md` |
 | 外部の仕様 (OpenAPI など) へ書き出す | [integration-ops.md](spec/integration-ops.md) | `export_openapi` / `export_arazzo` / `export_spec` |

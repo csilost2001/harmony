@@ -33,7 +33,7 @@ const READ_ONLY_TOOLS: ReadonlySet<string> = new Set([
   "designer__list_business_flows", "designer__list_extension_packages", "designer__list_extensions", "designer__list_layout_components",
   "designer__list_markers", "designer__list_page_layouts", "designer__list_process_flows", "designer__list_reports",
   "designer__list_response_type_extensions", "designer__list_screens", "designer__list_tables", "designer__list_tabs", "designer__list_versions",
-  "designer__check_generation_drift", "designer__get_regeneration_diff", "designer__list_review_comments",
+  "designer__check_generation_drift", "designer__get_regeneration_diff", "designer__list_review_comments", "designer__get_scaffold_update",
   "designer__workspace_inspect", "designer__workspace_list", "designer__workspace_status",
   // この Harmony 自身の更新の確認 (GitHub への読み取りの問い合わせだけ。設計のデータは変えない)
   "designer__check_harmony_update",

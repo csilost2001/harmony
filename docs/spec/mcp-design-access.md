@@ -75,6 +75,9 @@ category: ops
 | `designer__workspace_status` / `designer__get_project_context` | 返り値の `harmony` (`version`・`commit`・`branch`・`dirty`・`builtAt`・`source`: `git` / `image`)。どのブランチ・commit から作られた Harmony かが分かる。ネットワークは使わない |
 | `designer__check_harmony_update` | この Harmony が GitHub の最新の main より古くないかを確かめる (`status`: `current` / `behind` / `unknown`、`behindBy` / `aheadBy`)。呼んだときだけ GitHub に読み取りで問い合わせる。ワークスペースが開いていなくても使える。仕様: [integration-ops.md](integration-ops.md) §14 |
 
+| `designer__get_scaffold_update` | 開発コンテナの雛形 (generate-code の `templates/devcontainer/<組合せ>/`) の更新の材料 (読み取りのみ)。`status`: `current` / `outdated` / `no-record` / `not-applicable`、記録の版 `recordedVersion` といまの版 `currentVersion`、`files[]` (`template`・`path`・`kind`: `file` / `section`・`state`: `unchanged` / `template-changed` / `new-in-template` / `removed-from-template`・`base` (写したとき。無ければ 2 方向)・`app` (いまのアプリのファイル)・`latest`・`appEdited`)、当て方の手順 `guide`。中身は変わったファイルだけ・1 ファイル 200KB まで (`truncated`)。ワークスペースが要る。仕様: [integration-ops.md](integration-ops.md) §14 |
+| `designer__record_scaffold` | 雛形を写した・更新を当てたあとに、記録 (`design/scaffold.json`) を「いまの雛形の版」で書き直す (`combo?` / `outDir?` / `skipped?`)。雛形の中身は backend が雛形から読んで記録する。`outDir` は安全な相対パス、`skipped` は雛形にあるパスだけ |
+
 ### 生成のスキルの付属ファイル (Resource)
 
 `generate-code` などの手順 (Prompts) の本文は、`ai-skills/<名前>/templates/**` や `golden-examples/**` を参照する。外の業務プロジェクトはリポジトリを持たないので、これらは MCP の Resource で読む (読み取り専用)。
@@ -120,4 +123,4 @@ category: ops
 
 ## 読み取り専用の tool
 
-`HARMONY_MCP_MODE=readonly` と、プロファイル `read` / `review` で使える。次は何も書かない (試験 `designAccess.test.ts` が、書く tool を断ることを確かめる): `list_designs` `get_design` `get_conventions` `get_tech_stack` `search_design` `list_steps` `get_step` `get_flow_story` `analyze_branches` `get_design_document` `validate_design` `get_changes_since` `compare_workspaces` `get_tool_guide` `get_generation_brief` `check_test_coverage` `walk_flow` `check_harmony_update`。書く tool は `save_design` `delete_design` `save_conventions` `save_tech_stack` `import_ddl` `import_openapi` `edit_steps`。
+`HARMONY_MCP_MODE=readonly` と、プロファイル `read` / `review` で使える。次は何も書かない (試験 `designAccess.test.ts` が、書く tool を断ることを確かめる): `list_designs` `get_design` `get_conventions` `get_tech_stack` `search_design` `list_steps` `get_step` `get_flow_story` `analyze_branches` `get_design_document` `validate_design` `get_changes_since` `compare_workspaces` `get_tool_guide` `get_generation_brief` `check_test_coverage` `walk_flow` `check_harmony_update` `get_scaffold_update`。書く tool は `save_design` `delete_design` `save_conventions` `save_tech_stack` `import_ddl` `import_openapi` `edit_steps`。

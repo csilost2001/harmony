@@ -189,6 +189,12 @@ describe("Git・生成・版", () => {
     expect(["current", "behind", "unknown"]).toContain((await okResult("app.checkUpdate")).status);
   });
 
+  it("scaffold.status は、雛形の状態の要約 (中身なし) を返す。該当しなければ not-applicable (#1577)", async () => {
+    const r = await okResult("scaffold.status");
+    expect(r.status).toBe("not-applicable");
+    expect(r).not.toHaveProperty("files");
+  });
+
   it("変更の記録の絞り込みの引数を受け取る", async () => {
     await okResult("approvals.transition", { kind: "table", id: "orders", to: "review" }, "花子");
     await flushAudit();

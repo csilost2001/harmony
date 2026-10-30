@@ -11,6 +11,7 @@ import { loadAccess, requireRole } from "../ops/policy.js";
 import { suggestRevision } from "../ops/revisionSuggest.js";
 import { addComment, emitNotify, generationStatus, listApprovals, regenerationDiff, resolveThread, transitionApproval } from "../ops/service.js";
 import { accessStore, commentsStore, notifyStore, templateStore } from "../ops/stores.js";
+import { scaffoldSummary } from "../ops/scaffold.js";
 import { checkForUpdate, readVersionInfo } from "../ops/versionInfo.js";
 import type { RpcContext, RpcHandlerMap } from "./types.js";
 
@@ -150,4 +151,6 @@ export const opsHandlers: RpcHandlerMap = {
   // ── 版の情報 ──
   "app.version": h(async () => readVersionInfo()),
   "app.checkUpdate": h(async () => checkForUpdate()),
+  // 開発コンテナの雛形の更新の状態 (読み取り。差分を取り込むのは AI が MCP tool で行う)
+  "scaffold.status": h(async (c) => scaffoldSummary(c.root())),
 };

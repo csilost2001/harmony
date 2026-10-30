@@ -762,7 +762,7 @@ describe("MCP の権限 (mcpAccess)", () => {
       "designer__generate_test_data", "designer__get_business_flow", "designer__get_changes_since", "designer__get_conventions", "designer__get_design",
       "designer__get_design_document", "designer__get_er_diagram", "designer__get_extension_package", "designer__get_flow", "designer__get_flow_story",
       "designer__get_generation_brief", "designer__get_page_layout", "designer__get_process_flow", "designer__get_project_context", "designer__get_regeneration_diff",
-      "designer__get_rename_context", "designer__get_report", "designer__get_response_type_extension", "designer__get_screen_layout", "designer__get_step",
+      "designer__get_rename_context", "designer__get_report", "designer__get_response_type_extension", "designer__get_scaffold_update", "designer__get_screen_layout", "designer__get_step",
       "designer__get_table", "designer__get_tech_stack", "designer__get_test_viewpoints", "designer__get_tool_guide", "designer__list_business_flows",
       "designer__list_designs", "designer__list_extension_packages", "designer__list_extensions", "designer__list_layout_components", "designer__list_markers",
       "designer__list_page_layouts", "designer__list_process_flows", "designer__list_reports", "designer__list_response_type_extensions", "designer__list_review_comments",

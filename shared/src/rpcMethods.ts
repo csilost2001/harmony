@@ -143,6 +143,7 @@ export const RPC_METHODS = [
   "saveTable",
   "saveView",
   "saveViewDefinition",
+  "scaffold.status",
   "searchDesign",
   "undoEntityRename",
   "undoReplaceReferences",

@@ -11,6 +11,7 @@ import { loadDesignInputFromRoot } from "./designInput.js";
 import { readProjectWithUnregistered } from "./registryMerge.js";
 import { listMarkerDocs } from "./markerStore.js";
 import { harmonySummary } from "./ops/versionInfo.js";
+import { scaffoldSummary } from "./ops/scaffold.js";
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
 
@@ -76,6 +77,8 @@ export async function buildProjectContext(root: string, opts: ProjectContextOpti
   return {
     // この Harmony 自身の版 (どの commit・ブランチから作られたか)。古い image のまま作業していないかを確かめる印。最新との差は designer__check_harmony_update
     harmony: await harmonySummary(),
+    // 開発コンテナの雛形の更新の状態 (status・組合せ・版だけ。差分は designer__get_scaffold_update)
+    scaffold: await scaffoldSummary(root).catch(() => null),
     // いま作業しているワークスペース。作業先は「最後に開いたワークスペース」で、画面で開き直すと変わる。書く前に確かめるための印
     workspace: { path: path.resolve(root), name: typeof meta.name === "string" && meta.name.trim() ? meta.name : path.basename(path.resolve(root)) },
     project: { id: meta.id ?? input.project.id, name: input.project.name, description: input.project.description, mode: meta.mode, maturity: meta.maturity },

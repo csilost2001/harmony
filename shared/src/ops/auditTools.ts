@@ -44,6 +44,7 @@ export const AI_TOOLS_NOT_ATTRIBUTED: Readonly<Record<string, string>> = {
   repair_registry: "一覧 (harmony.json) の修復 (設計の内容の変更ではない)", persist_uuids: "uuid の保存 (設計の内容の変更ではない)",
   save_all: "未保存の全タブの保存 (どの設計かを、記録から引けない)",
   record_generation: "生成の記録 (設計の内容の変更ではない)",
+  record_scaffold: "開発コンテナの雛形の記録 (設計の内容の変更ではない)",
   add_response_type_extension: "拡張 (設計ではなく、拡張の定義)", update_response_type_extension: "拡張 (設計ではなく、拡張の定義)", delete_response_type_extension: "拡張 (設計ではなく、拡張の定義)",
   add_step_extension: "拡張 (設計ではなく、拡張の定義)", add_field_type_extension: "拡張 (設計ではなく、拡張の定義)", add_trigger_extension: "拡張 (設計ではなく、拡張の定義)", add_db_operation_extension: "拡張 (設計ではなく、拡張の定義)", remove_extension: "拡張 (設計ではなく、拡張の定義)",
   solution_pack: "解決策パックの書き出し (設計は変えない)", solution_unpack: "解決策パックの取り込み (複数の設計にまたがる)",

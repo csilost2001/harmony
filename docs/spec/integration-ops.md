@@ -159,6 +159,12 @@ category: ops
   - **更新の確認 (配布 image)**: `GET https://api.github.com/repos/<repo>/compare/<commit>...main` (認証なし・読み取りだけ・10 秒で打ち切り・押したときだけ)。`repo` (`^[\w.-]+/[\w.-]+$`、`.` / `..` だけの部分は除く) と `commit` は形を検査してから URL に入れる。`identical` → 最新 / main が進んでいる (compare の `ahead_by` > 0) → `behind`「main より N commit 古い」(`behindBy`。分岐していれば main にない commit の数 `aheadBy` も添える) / image 側だけが進んでいる → `current`「main より先に進んでいます」/ 404 → 「記録した commit が GitHub にありません (push していないブランチから作った image など)」/ それ以外 → 「確かめられません (…)」。
   - **画面**: 配布 image なら「配布 image」・commit・作った日時・取得元を出し、**ブランチが main でない / コミットしていない変更つき**は ⚠ の注意文で出す (作った人が、古いブランチの image を使っていると気づけるように)。
   - **MCP**: `designer__workspace_status` と `designer__get_project_context` に `harmony` (`version`・`commit`・`branch`・`dirty`・`builtAt`・`source`。ネットワークは使わない)。読み取りの tool `designer__check_harmony_update` が、画面の「更新を確認する」と同じ確認をする (GitHub への問い合わせは、この tool を呼んだときだけ。ワークスペースが開いていなくても使える)。
+- **開発コンテナの雛形の更新** (#1577): generate-code が写す雛形 (`ai-skills/generate-code/templates/devcontainer/<組合せ>/`。Harmony 本体の image にも入っている) が新しくなったとき、アプリ側に知らせ、AI が当てる。実装: `backend/src/ops/scaffold.ts`。
+  - **雛形の版**: 組合せのフォルダの全ファイルを相対パス (`/` 区切り) の順に並べ、「パスと中身 (CRLF は LF にそろえる)」の SHA-256 の先頭 12 桁。人が版を上げ忘れない。組合せは、記録があれば記録、無ければ `harmony.json` の `techStack.backend.framework` (spring-boot / nestjs) × `techStack.frontend.library` (thymeleaf / react) で決める (generate-code の表と同じ 4 つ)。
+  - **対象と行き先**: 雛形のフォルダにあるファイルすべて。`.devcontainer/devcontainer.json`・`.devcontainer/compose.yml`・`.mcp.json`・`.tmp/.gitignore` はワークスペースのルート、`Dockerfile`・`docker-compose.yml` は出力先 (`outDir`、既定 `.`)、`README.snippet.md` は出力先の `README.md` の節 (`kind: "section"`)。
+  - **記録** `design/scaffold.json` (データフォルダ。git に載る。`generation.json` と同じ作法で、読み込みのたびに検証し、壊れた項目は「読み込み」の warning で知らせる): `{ combo, outDir, templateVersion, recordedAt, files: [{ template, path, kind, content?, skipped? }] }`。`content` は写したときの**雛形の**中身で、backend が雛形から読んで書く (AI に渡させない)。既存のため写さなかったファイルは `skipped` (中身なし = 2 方向)。設計の schema ではなく運用の記録。
+  - **知らせる**: `designer__check_design` の info (「開発コンテナの雛形」。error / warning ではないので ok には影響しない)・`designer__get_project_context` の `scaffold` (status・組合せ・版)・画面「版と更新」の節「開発コンテナの雛形」(状態・版・「AI に『開発コンテナの雛形の更新を取り込んで』と頼む」)。記録があり版が違えば「新しくなっています (記録 X → いま Y)」、記録が無くても、ルートの `.devcontainer/compose.yml` が Harmony の image (`ghcr.io/csilost2001/harmony`) を使っていれば「記録がありません」。どちらにも当てはまらないワークスペースには何も出さない。
+  - **当てる**: `designer__get_scaffold_update` が、ファイルごとの `state` と、変わったファイルの `base` / `app` / `latest` / `appEdited`・手順 `guide` を返す。記録のあるファイルは 3 方向 (base→latest が雛形の変更、base→app が利用者の手入れ)、記録の無い・飛ばしたファイルは 2 方向 (`appEdited: null` = 手入れかどうか不明)。AI は、利用者が手を入れた箇所 (Harmony の image の版・足した service・ポートなど) を残し、差分を利用者に見せて OK を取ってから書き、当てたら `designer__record_scaffold`、`.devcontainer/` を変えたら Rebuild Container を頼む。backend は書き換えない (読み取りのみ)。
 - **リリースノート**: `npm run release:notes` が、git の履歴 (first-parent の 1 コミット = 1 行) から `docs/release-notes.md` を作る。画面は、新しい 30 件を出す。
 - **初回セットアップ**: `npm run setup` が、Node の版・git・ポートの使用を診断し、足りないもの (npm install・`@harmony/shared` のビルド・`workspaces/`) をそろえて、起動のしかたを案内する。`-- --check` は診断だけ、`-- --sample retail` はサンプルの複製。
 - **資料の鮮度検査** (`npm run check:docs`。`npm run check` に含まれる): 資料の相対リンクの先・`npm run` の名前・AGENTS.md の Routing の表と画面の経路 (両方向)・UI 操作リファレンスの対象画面のファイル / ルート / スクリーンショット・CLAUDE.md のスキル表を、実物と突き合わせる。知らせるだけ (`-- --info`): UI 操作リファレンスのない画面・古くなったスクリーンショット (git の履歴で、画面のコードの最後の変更と比べる)・仕様書の索引にない仕様書。`npm run docs:shots` が、対応表のある画面のスクリーンショットを撮り直す。**限界**: 画面の文言 (ボタンの名前など) の食い違いは、検出しない。
@@ -167,10 +173,10 @@ category: ops
 
 | 種類 | 名前 |
 |---|---|
-| RPC (画面。`backend/src/wsHandlers/ops.ts`) | `documentTemplate.load` `documentTemplate.save` `revisions.suggest` `approvals.load` `approvals.transition` `reviewComments.load` `reviewComments.add` `reviewComments.resolve` `access.load` `access.save` `audit.list` `notify.load` `notify.save` `notify.test` `git.status` `git.diff` `git.log` `git.branches` `git.commit` `git.checkout` `git.init` `generation.status` `generation.diff` `app.version` `app.checkUpdate` |
+| RPC (画面。`backend/src/wsHandlers/ops.ts`) | `documentTemplate.load` `documentTemplate.save` `revisions.suggest` `approvals.load` `approvals.transition` `reviewComments.load` `reviewComments.add` `reviewComments.resolve` `access.load` `access.save` `audit.list` `notify.load` `notify.save` `notify.test` `git.status` `git.diff` `git.log` `git.branches` `git.commit` `git.checkout` `git.init` `generation.status` `generation.diff` `app.version` `app.checkUpdate` `scaffold.status` |
 | 通知 (broadcast) | `opsChanged` (承認・コメント・権限・体裁・生成の記録・通知先・Git の変更。AI の書き込みと、ファイルの外部更新も) |
-| MCP tool (書き込み。読み取り専用モードでは使えない) | `designer__record_generation` `designer__add_review_findings` |
-| MCP tool (読み取り) | `designer__check_generation_drift` `designer__get_regeneration_diff` `designer__list_review_comments` `designer__check_harmony_update` |
+| MCP tool (書き込み。読み取り専用モードでは使えない) | `designer__record_generation` `designer__add_review_findings` `designer__record_scaffold` |
+| MCP tool (読み取り) | `designer__check_generation_drift` `designer__get_regeneration_diff` `designer__list_review_comments` `designer__check_harmony_update` `designer__get_scaffold_update` |
 
 ## 16. 試験
 

@@ -2014,7 +2014,25 @@ ai-skills/generate-code/templates/devcontainer/
 5. **README.md 統合**:
    - `<出力先>/README.md` 既存 → 冒頭 (最初の `# ` 見出しの直後) に `README.snippet.md` 内容を挿入。ただし README.snippet の節 (`## 開発環境 (Dev Containers)` など) がすでに入っていれば足さない
    - `<出力先>/README.md` 無し → `README.snippet.md` をベースに `# <appName>\n\n` ヘッダを付けて新規 `README.md` 作成
-6. **最終レポート反映**: Step 5 の per-entity ファイル列挙とは別カテゴリで `### プロジェクト scaffold` セクションを追加、生成したファイルを列挙
+6. **雛形の記録 (#1577)**: コピーのあと `designer__record_scaffold` を呼ぶ。「写した雛形の版と中身」を `design/scaffold.json` に残す (雛形の中身は backend が雛形から読む。渡さない)。後で雛形が新しくなったとき、この記録が「3 方向の差分」の元になる。
+   - `combo`: ステップ 2 で選んだ組合せ (techStack から決まるときは省略できる)。`outDir`: 出力先をルート直下以外にしたときだけ (ワークスペースからの相対パス。既定 ".")
+   - `skipped`: ステップ 3 で飛ばした (既存のため書かなかった) ファイル、README の節を足さなかったときの `README.snippet.md`。雛形のパス (`Dockerfile`・`.devcontainer/compose.yml`・`.mcp.json` など) で渡す。飛ばしたファイルは中身を記録せず、後の更新で 2 方向 (いまの雛形とアプリ) の比較になる
+   - bulk モードでは、最初の scaffold 生成のとき 1 度だけ呼ぶ
+7. **最終レポート反映**: Step 5 の per-entity ファイル列挙とは別カテゴリで `### プロジェクト scaffold` セクションを追加、生成したファイルを列挙 (記録したこと・飛ばしたファイルも書く)
+
+### 雛形の更新の取り込み (#1577)
+
+Harmony の雛形が新しくなると、`designer__check_design` の info (section「開発コンテナの雛形」)・`designer__get_project_context` の `scaffold`・画面「連携と運用 → 版と更新」が知らせる。利用者に「開発コンテナの雛形の更新を取り込んで」と頼まれたら、次の順で行う (この手順の対象は、雛形が書くファイル全部: `.devcontainer/` の 2 つ・`.mcp.json`・`.tmp/.gitignore`・`Dockerfile`・`docker-compose.yml`・README の節)。
+
+1. `designer__get_scaffold_update` を呼ぶ。`status` が `outdated` (雛形が新しくなった) か `no-record` (記録が無い古いアプリ) でなければ、取り込むものは無い。`files[]` のうち `state` が `unchanged` でないものが対象 (`guide` に同じ手順が付く)
+2. ファイルごとに差分を作る:
+   - `base` がある (記録があり、飛ばしていない): **3 方向**。`base`→`latest` が雛形の変更、`base`→`app` が利用者の手入れ。雛形の変更を取り込み、手入れは残す
+   - `base` が無い (記録が無い・飛ばしたファイル): **2 方向**。`app` と `latest` の差を、利用者に 1 つずつ見せて選んでもらう (`appEdited` が `null` = 手入れかどうか不明)
+   - `state: "new-in-template"` は新しく足すファイル、`"removed-from-template"` は雛形から無くなったファイル (消すかどうかは利用者に聞く)。`kind: "section"` (README) は、`latest` の節だけを差し替え、README の他の部分は触らない
+   - **残すもの**: Harmony の `image:` の版の指定 (`compose.yml`)・利用者が足した service・ポート・環境変数・自分で書いた設定。`truncated: true` のファイルは中身が切れているので、そのファイルは自分で読み直してから比べる
+3. **書く前に、ファイルごとの差分を利用者に見せて OK を取る**。OK が無いファイルは書かない
+4. 書いたら `designer__record_scaffold` を呼ぶ。書かなかった・見送ったファイルは `skipped` に雛形のパスで渡す (省略すると前回の `skipped` のまま)。記録の版が最新になり、お知らせが消える
+5. `.devcontainer/` のファイルを変えたときは、利用者に VS Code の「Dev Containers: Rebuild Container」を頼む (作り直すまで効かない)
 
 ### 出力先の運用想定 (project-root model)
 

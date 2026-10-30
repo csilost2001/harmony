@@ -16,6 +16,7 @@ export interface GitCommitInfo { hash: string; author: string; at: string; subje
 export interface RegenDiff { path: string; sources: Array<{ kind: OpsEntityKind; id: string; state: "changed" | "deleted" | "no-snapshot"; changes: JsonChange[]; truncated: boolean }> }
 export interface VersionInfo { version: string; commit?: string; commitFull?: string; branch?: string; dirty?: boolean; source?: "git" | "image"; builtAt?: string; repo?: string; startedAt: string; notes: Array<{ date: string; title: string; pr?: string }>; notesTotal: number }
 export interface UpdateCheck { status: "current" | "behind" | "unknown"; message: string; local?: string; remote?: string; behindBy?: number; aheadBy?: number }
+export interface ScaffoldSummary { status: "current" | "outdated" | "no-record" | "not-applicable"; combo?: string; recordedVersion?: string; currentVersion?: string; outDir?: string; reason?: string; problems?: string[] }
 export interface RevisionSuggestion { since: string; items: Array<{ kind: OpsEntityKind; id: string; name: string; saves: number; lastAt: string }>; text: string; truncated: boolean }
 
 export const opsApi = {
@@ -44,4 +45,5 @@ export const opsApi = {
   generationDiff: (path?: string) => call<{ diffs: RegenDiff[] }>("generation.diff", path ? { path } : {}),
   version: () => call<VersionInfo>("app.version"),
   checkUpdate: () => call<UpdateCheck>("app.checkUpdate"),
+  scaffoldStatus: () => call<ScaffoldSummary>("scaffold.status"),
 };

@@ -1,5 +1,7 @@
 // ワークスペース管理の MCP tool の定義 (#671)。tools.ts が大きくなったので分けた (順序は tools.ts の同じ位置に展開する)。
 // 版の確認 (designer__check_harmony_update) もここ: この Harmony 自身の情報で、設計のデータとは別 (#1577)。
+import { scaffoldTools } from "./toolsScaffold.js";
+
 export const workspaceTools = [
   {
     name: "designer__workspace_list",
@@ -59,4 +61,6 @@ export const workspaceTools = [
       required: ["id"],
     },
   },
+  // 開発コンテナの雛形の更新 (record_scaffold / get_scaffold_update。定義は toolsScaffold.ts)
+  ...scaffoldTools,
 ];
