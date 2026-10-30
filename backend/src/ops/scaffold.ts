@@ -13,7 +13,7 @@ import path from "node:path";
 import { isIsoDateTime, isSafeRelPath, type Parsed } from "@harmony/shared";
 import type { SchemaIssue } from "../schemaIssues.js";
 import { memoizeBySignature } from "../dataSignature.js";
-import { findDocsRoot } from "../mcpKnowledge.js";
+import { findDocsRoot } from "../docsRoot.js";
 import { recordAudit } from "./audit.js";
 import { makeOpsStore } from "./opsFiles.js";
 
