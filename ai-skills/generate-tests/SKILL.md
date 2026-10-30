@@ -2071,6 +2071,8 @@ export default defineConfig({
 npx playwright test --config=<出力先>/playwright.config.ts --workers=1 2>&1 | tail -30
 ```
 
+開発コンテナ (generate-code の雛形) の Playwright MCP が入れるブラウザとは別に、`@playwright/test` の版のブラウザを `npx playwright install chromium` で入れる必要がある (版が違うと Chromium の rev が違い、2 つ入るのは正常。#1573)。
+
 実行環境が整っていない場合はスキップし、最終レポートに以下を記載:
 ```
 smoke 検証: スキップ (dev server 未起動 / playwright install 未実施)

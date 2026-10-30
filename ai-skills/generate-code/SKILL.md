@@ -1815,14 +1815,15 @@ Step 0 で `--all` / `--workspace <wsId>` が指定された場合、Step 1〜6 
 |---|---|---|---|
 | `.devcontainer/devcontainer.json` | 開発時 (Reopen in Container)。compose 形式 (`dockerComposeFile: compose.yml`、`service: dev`) | B チーム (開発者) | Yes (4 組合せ) |
 | `.devcontainer/compose.yml` | 開発コンテナ (`dev`) と Harmony (`harmony`、配布 image・ネットワーク共有) の 2 サービス (#1561)。Harmony の版は `image:` の既定値を書き換えて固定する (git で共有) | B チーム (開発者) | `dev` の image だけ Yes |
-| `.mcp.json` | dev の AI CLI から Harmony の MCP (`http://localhost:5179/mcp`) に接続する設定 | B チーム (開発者) | No |
+| `.mcp.json` | dev の AI CLI から Harmony の MCP (`http://localhost:5179/mcp`) と、ブラウザの自動操作の Playwright MCP (`playwright` / `playwright-headed`、#1573) に接続する設定 | B チーム (開発者) | No |
+| `.tmp/.gitignore` | Playwright MCP の出力先 `.tmp/playwright-mcp/` を git に入れない (`*` と `!.gitignore`、#1573) | B チーム (開発者) | No |
 | `Dockerfile` | 本番 image build | エンドユーザー (顧客本番) | Yes (java/node) |
 | `docker-compose.yml` | 本番 stack 起動 (app + DB) | エンドユーザー (顧客本番) | Yes |
 | `README.md` (scaffold セクション追記) | 開発者向け手順書 | B チーム | No (定型) |
 
 **Harmony の同居 (#1561)**: 4 組合せすべてで、開発コンテナ (`dev`) と Harmony (`harmony`) を compose で同居させる。`harmony` は `network_mode: service:dev` (dev の localhost:5179 で届く) で、プロジェクトのフォルダを dev と同じパス `/workspaces/app` に bind mount する。これでプロジェクトのルートがそのまま Harmony のワークスペース (`harmony.json` + `design/`、ソースは同じフォルダの中) になり、`designer__record_generation` / `designer__check_generation_drift` が今のまま使える。ファイルの持ち主は dev・harmony とも uid 1000 (`node` / `vscode`) で、いまはホストのユーザー ID が 1000 のとき (WSL2 の既定のユーザー、Docker Desktop など) を前提とする。それ以外の Linux は既知の制約。手順: [docs/setup/app-devcontainer-sidecar.md](../../docs/setup/app-devcontainer-sidecar.md)
 
-**Phase 1 では `Dockerfile.dev` を作らない** — dev container は MS 公式 base image + features + `postCreateCommand` 構成 (Harmony 本体 #847 / PR #1047 と同じ方針)。pre-build しない代わりに初回 5-10 分の features install を許容し、`Dockerfile.dev` のメンテナンスコストを払わない。
+**Phase 1 では `Dockerfile.dev` を作らない** — dev container は MS 公式 base image + features + `postCreateCommand` 構成 (Harmony 本体 #847 / PR #1047 と同じ方針)。pre-build しない代わりに初回 6-12 分 (features install + ブラウザ) を許容し、`Dockerfile.dev` のメンテナンスコストを払わない。
 
 ### 境界線テンプレ (container 内 vs 別コンテナ)
 
@@ -1858,6 +1859,14 @@ Step 0 で `--all` / `--workspace <wsId>` が指定された場合、Step 1〜6 
 - `${localEnv:HOME}/.agent-containers/${localWorkspaceFolderBasename}/.codex` → `/home/<user>/.codex` (OpenAI OAuth + sessions + history)
 - `${localEnv:HOME}/.agent-containers/${localWorkspaceFolderBasename}/.copilot` → `/home/<user>/.copilot` (Copilot CLI session-state + command-history-state.json + memory、#1114 で追加) ← **Copilot CLI 公式 default、`COPILOT_HOME` で上書き可**
 - `${localEnv:HOME}/.config/gh` → `/home/<user>/.config/gh` (GitHub CLI auth、Copilot CLI の認証元、`gh` 単体でも有用)
+
+**ブラウザの自動操作 (Playwright MCP、#1573)**: 4 組合せすべてに既定で入れる。AI が画面を開いて確かめる・E2E の確認に使う。
+- `.mcp.json`: `playwright` (headless。ふだん使う) と `playwright-headed` (人が「画面を見たい」と言ったときだけ)。どちらも `npx -y @playwright/mcp@latest --isolated --browser chromium --output-dir /workspaces/app/.tmp/playwright-mcp` (headless は `--headless` 付き)
+- `devcontainer.json`: `postCreateCommand` の末尾で `npx -y -p @playwright/mcp@latest playwright install --with-deps chromium` (依存ライブラリは初回だけ)。`postStartCommand` で起動のたびに `playwright install chromium` (最新の MCP に合うブラウザを入れ直す。入っていれば数秒、失敗しても起動は止めない)
+- `compose.yml`: `dev` に WSLg の X11 (`/tmp/.X11-unix`・`/mnt/wslg`・`DISPLAY=":0"`) を渡す。headed の窓を Windows のデスクトップに出すため (Harmony 本体の開発コンテナと同じ。Windows + WSL2 + Docker Desktop 前提)。macOS / Linux native ではこの 3 行を消す (消さないと起動しないおそれ)。`WAYLAND_DISPLAY` は設定しない
+- `.tmp/.gitignore`: スナップショット・スクリーンショットの出力先 `.tmp/playwright-mcp/` を git に入れない
+- generate-tests の E2E (`@playwright/test`) は別に `npx playwright install chromium` で自分の版のブラウザを入れる (MCP と版が違うと Chromium が 2 つ入る。そろえない)
+- 自動のブラウザも Harmony の「開いている画面」(画面のつながり) に数えられる。`designer__workspace_close` のような確認では考えに入れる
 
 `onCreateCommand` で chown (mount 先の所有権を user に揃える)、`postCreateCommand` で `~/.claude/.config.json` 空ファイル作成 (Claude wizard 抑制 workaround #1097)、`containerEnv` で `DISABLE_AUTOUPDATER=1` (rebuild ごとの自動更新を抑制)。
 
@@ -1913,7 +1922,7 @@ VSCode + Dev Containers 拡張があれば、`git clone` 後に `Reopen in Conta
 
 1. 前提: Docker Desktop + VSCode + Dev Containers 拡張 (`ms-vscode-remote.remote-containers`)
 2. `code .` → 右下のポップアップで「Reopen in Container」をクリック
-3. 初回は 5-10 分 (features install + 依存解決)
+3. 初回は 6-12 分 (features install + 依存解決 + ブラウザ (Chromium))
 4. ターミナルで起動:
    - spring-boot 系: `./mvnw spring-boot:run 2>/dev/null || mvn spring-boot:run` (Maven Wrapper 同梱 or feature 同梱 mvn いずれでも起動)
    - nestjs 系 (単一 package.json、english-learning-tailwind パターン): `npm run start:backend` + 別ターミナル `npm run start:frontend`
@@ -1925,6 +1934,10 @@ VSCode + Dev Containers 拡張があれば、`git clone` 後に `Reopen in Conta
 ## 設計ツール (Harmony)
 
 開発コンテナと同時に Harmony (設計ツール) が起動します。画面は VS Code のポート転送 `5179` (`http://localhost:5179/`)、AI CLI からは `.mcp.json` の `http://localhost:5179/mcp` で使います。初回はワークスペースを作る (`designer__workspace_open { path: "/workspaces/app", init: true, dataDir: "design" }`)。版は `.devcontainer/compose.yml` の `image:` の既定値を書き換えて固定する。詳細は Harmony の `docs/setup/app-devcontainer-sidecar.md`。
+
+## ブラウザの自動操作 (Playwright MCP)
+
+AI が画面を開いて確かめられます。`.mcp.json` の `playwright` (headless、ふだん使う) と `playwright-headed` (人が「画面を見たい」と言ったときだけ。Windows のデスクトップに窓が開く。Windows + WSL2 + Docker Desktop 前提で、macOS / Linux native は `.devcontainer/compose.yml` の WSLg の 3 行を消して headless だけ使う) があります。Harmony の画面 `http://localhost:5179` も業務アプリもそのまま開けます。ブラウザは起動のたびに入れ直します。「ブラウザが無い」と出たら `npx -y -p @playwright/mcp@latest playwright install chromium`。スナップショット・スクリーンショットは `.tmp/playwright-mcp/` (git に入りません)。E2E (`@playwright/test`) のブラウザは別に `npx playwright install chromium` で入れます。自動のブラウザも Harmony の「開いている画面」に数えられます。
 
 ## 本番デプロイ (Docker)
 
@@ -1943,6 +1956,7 @@ ai-skills/generate-code/templates/devcontainer/
     .devcontainer/devcontainer.json
     .devcontainer/compose.yml
     .mcp.json
+    .tmp/.gitignore
     Dockerfile
     docker-compose.yml
     README.snippet.md
@@ -1950,6 +1964,7 @@ ai-skills/generate-code/templates/devcontainer/
     .devcontainer/devcontainer.json
     .devcontainer/compose.yml
     .mcp.json
+    .tmp/.gitignore
     Dockerfile
     docker-compose.yml
     README.snippet.md
@@ -1957,6 +1972,7 @@ ai-skills/generate-code/templates/devcontainer/
     .devcontainer/devcontainer.json
     .devcontainer/compose.yml
     .mcp.json
+    .tmp/.gitignore
     Dockerfile
     docker-compose.yml
     README.snippet.md
@@ -1964,6 +1980,7 @@ ai-skills/generate-code/templates/devcontainer/
     .devcontainer/devcontainer.json
     .devcontainer/compose.yml
     .mcp.json
+    .tmp/.gitignore
     Dockerfile
     docker-compose.yml
     README.snippet.md
@@ -1984,13 +2001,14 @@ ai-skills/generate-code/templates/devcontainer/
    | `nestjs` | `react` | `templates/devcontainer/nestjs-nextjs/` |
 
 3. **既存 scaffold check (ファイルごとに判定する)**: 置き場所は 2 つ。ワークスペースのルート (`harmony.json` のあるフォルダ) と `<出力先>`。出力先をルート直下にしたときは同じ場所になる。
-   - `.devcontainer/` (devcontainer.json・compose.yml) と `.mcp.json` は、**常にワークスペースのルート**に置く。ルートに `.devcontainer/devcontainer.json` があれば `.devcontainer/` は作らない。ルートに `.mcp.json` があれば `.mcp.json` も作らない (`mcpServers.harmony` を足す案内だけ最終レポートに書く)。出力先を `backend/` などにしても、`backend/.devcontainer/` を入れ子で作らない
+   - `.devcontainer/` (devcontainer.json・compose.yml) と `.mcp.json` は、**常にワークスペースのルート**に置く。ルートに `.devcontainer/devcontainer.json` があれば `.devcontainer/` は作らない。ルートに `.mcp.json` があれば `.mcp.json` も作らない (`mcpServers.harmony` に加えて `playwright` / `playwright-headed` (雛形の `.mcp.json` の該当項目) を足す案内だけ最終レポートに書く)。ルートに `.devcontainer/` があって飛ばしたときは、雛形の `postCreateCommand` / `postStartCommand` の Playwright の行と `compose.yml` の WSLg の 3 行を足す案内も書く。`.tmp/.gitignore` もワークスペースのルートに置く (すでにあれば飛ばす)。出力先を `backend/` などにしても、`backend/.devcontainer/` を入れ子で作らない
    - `Dockerfile`・`docker-compose.yml` は**出力先**に置く。出力先にすでにある**ファイルだけ**を飛ばす (上書きしない)。無いほうは作る
    - 飛ばしたファイルは「既存のため飛ばした」と最終レポートに書く
 4. **ファイルコピー**: 選択したテンプレディレクトリ配下の以下を Read → Write で verbatim コピー (改変・補完なし、AI 解釈なし)。ステップ 3 で飛ばすと決めたものは書かない:
    - `.devcontainer/devcontainer.json` → `<ワークスペースのルート>/.devcontainer/devcontainer.json`
    - `.devcontainer/compose.yml` → `<ワークスペースのルート>/.devcontainer/compose.yml`
    - `.mcp.json` → `<ワークスペースのルート>/.mcp.json`
+   - `.tmp/.gitignore` → `<ワークスペースのルート>/.tmp/.gitignore` (すでにあれば飛ばす)
    - `Dockerfile` → `<出力先>/Dockerfile`
    - `docker-compose.yml` → `<出力先>/docker-compose.yml`
 5. **README.md 統合**:
@@ -2015,7 +2033,8 @@ frontend は Thymeleaf (同 project root の `src/main/resources/templates/`) or
 ├── .devcontainer/
 │   ├── devcontainer.json              ← VS Code Dev Container 設定 (compose 形式)
 │   └── compose.yml                    ← dev + harmony (設計ツール) の 2 サービス
-├── .mcp.json                           ← Harmony の MCP (http://localhost:5179/mcp)
+├── .mcp.json                           ← Harmony の MCP (http://localhost:5179/mcp) + Playwright MCP
+├── .tmp/.gitignore                     ← Playwright MCP の出力 (.tmp/playwright-mcp/) を git に入れない
 ├── Dockerfile                          ← backend container image 定義
 ├── docker-compose.yml                  ← backend + DB を起動する compose 定義
 ├── README.md                           ← project README + scaffold セクション
@@ -2052,6 +2071,7 @@ frontend は Thymeleaf (同 project root の `src/main/resources/templates/`) or
 │   ├── devcontainer.json
 │   └── compose.yml
 ├── .mcp.json
+├── .tmp/.gitignore
 ├── Dockerfile
 ├── docker-compose.yml
 ├── README.md
@@ -2099,7 +2119,7 @@ Harmony 利用者は **意味のある folder 名** (例: `retail-app/`、`inven
 
 ### 検証 (Step 6 拡張 / B-4)
 
-- `.devcontainer/devcontainer.json` が JSON valid (構文チェック)、`.mcp.json` も JSON valid
+- `.devcontainer/devcontainer.json` が JSON valid (構文チェック)、`.mcp.json` も JSON valid (`harmony`・`playwright`・`playwright-headed` の 3 項目を持つ)
 - `.devcontainer/compose.yml` が YAML valid (`docker compose -f .devcontainer/compose.yml config` が使えるときはそれで)
 - `docker compose config -f docker-compose.yml` が pass (CLI 利用可能時のみ)
 - B-4 retail dogfood で Reopen in Container 実機検証 (出力アプリの起動まで)
@@ -2188,6 +2208,7 @@ tsc が利用不可またはプロジェクト設定が不整合の場合はス�
 - `<ワークスペースのルート>/.devcontainer/devcontainer.json`
 - `<ワークスペースのルート>/.devcontainer/compose.yml`
 - `<ワークスペースのルート>/.mcp.json`
+- `<ワークスペースのルート>/.tmp/.gitignore`
 - `<出力先>/Dockerfile`
 - `<出力先>/docker-compose.yml`
 - `<出力先>/README.md` (新規 or scaffold セクション追記)
