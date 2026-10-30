@@ -72,6 +72,16 @@ describe("smoke の script が image の中を確かめる", () => {
     expect(smoke).toContain("HARMONY_SMOKE_EXPECT_COMMIT");
     expect(smoke).toContain("harmony.commit");
   });
+  it("host の node_modules に頼らない (require(\"ws\") を使わず、Node 組み込みの WebSocket を使う)。公開ポートが使われていれば docker run の前に断る", () => {
+    expect(smoke).not.toMatch(/require\(\s*["']ws["']\s*\)/);
+    expect(smoke).not.toMatch(/from\s+["']ws["']/);
+    expect(smoke).toContain("typeof WebSocket === \"undefined\"");
+    expect(smoke).toContain("new WebSocket(");
+    const portCheck = smoke.indexOf("net.createServer");
+    expect(portCheck).toBeGreaterThan(-1);
+    expect(portCheck).toBeLessThan(smoke.indexOf("run -d")); // 起動の前に確かめる
+    expect(smoke).toContain("HARMONY_SMOKE_PORT=5189");
+  });
   it("雛形の 4 組合せ × 7 ファイルが image にあることを確かめる (script の組合せとファイルが、コードの定義と同じ)", () => {
     const combos = /for combo in ([^;]+); do/.exec(smoke)?.[1].trim().split(/\s+/);
     expect(combos).toEqual([...SCAFFOLD_COMBOS]);

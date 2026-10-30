@@ -22,6 +22,17 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# 公開するポートが host で使われていると、docker run が exit 125 (ports are not available) で落ちるので、先に確かめる
+if ! HARMONY_SMOKE_PORT="${PORT}" node -e '
+const net = require("net");
+const srv = net.createServer();
+srv.once("error", () => process.exit(1));
+srv.listen(Number(process.env.HARMONY_SMOKE_PORT), "127.0.0.1", () => srv.close(() => process.exit(0)));
+'; then
+  echo "ポート ${PORT} は使われています。HARMONY_SMOKE_PORT=5189 のように別のポートを指定してください" >&2
+  exit 1
+fi
+
 cleanup
 "${ENGINE}" run -d \
   --name "${CONTAINER_NAME}" \
@@ -46,26 +57,25 @@ curl -fsS \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"harmony-smoke","version":"1"}}}' \
   "http://127.0.0.1:${PORT}/mcp" | grep -q 'harmony-mcp'
 
+# WebSocket の確認。host の node_modules に頼らないよう、Node 組み込みの WebSocket (Node 22 以降) を使う
 HARMONY_SMOKE_PORT="${PORT}" node -e '
-const WebSocket = require("ws");
+if (typeof WebSocket === "undefined") {
+  console.error("この Node (" + process.version + ") には組み込みの WebSocket がありません。Node 22 以降で実行してください");
+  process.exit(1);
+}
 const port = process.env.HARMONY_SMOKE_PORT;
-const ws = new WebSocket(`ws://127.0.0.1:${port}`, {
-  headers: {
-    Origin: `http://127.0.0.1:${port}`,
-    Host: `127.0.0.1:${port}`,
-  },
-});
+const ws = new WebSocket(`ws://127.0.0.1:${port}`);
 const timer = setTimeout(() => {
   console.error("WebSocket smoke timeout");
   process.exit(1);
 }, 3000);
-ws.once("open", () => {
+ws.addEventListener("open", () => {
   clearTimeout(timer);
   ws.close();
 });
-ws.once("error", (err) => {
+ws.addEventListener("error", (ev) => {
   clearTimeout(timer);
-  console.error(err.message);
+  console.error(ev.message || "WebSocket の接続に失敗しました");
   process.exit(1);
 });
 '
