@@ -11,7 +11,7 @@ import { addComment, generationStatus, listApprovals, recordGeneration, regenera
 import { AUDIT_MAX_BYTES, parseAuditLines, readAudit, recordAudit } from "./audit.js";
 import { isPrivateAddress, sendWebhook, dispatchNotify, type SendDeps } from "./notifySend.js";
 import { assertBranchName, assertGitPath, execOverrides, gitBranches, gitCheckout, gitCommit, gitDiff, gitInit, gitLog, gitStatus } from "./gitOps.js";
-import { branchName, checkForUpdate, describeFetchError, harmonySummary, memoizeUpdateCheck, parseReleaseNotes, readBuildInfo, readVersionInfo, type UpdateCheck } from "./versionInfo.js";
+import { branchName, checkForUpdate, describeFetchError, createUpdateCheckMemo, harmonySummary, parseReleaseNotes, readBuildInfo, readVersionInfo, resetHarmonySummaryCache, type UpdateCheck } from "./versionInfo.js";
 import { suggestRevision } from "./revisionSuggest.js";
 import { createdIdFromResultText, describeAiTool, describeRpc, isAiDryRun, isAiNoWrite } from "./auditMap.js";
 
@@ -569,13 +569,15 @@ describe("版の情報: 配布 image の build-info.json と、GitHub への更�
     expect(await harmonySummary()).toMatchObject({ version: expect.any(String) });
   });
   it("harmonySummary は 30 秒のあいだ同じ結果を覚え、30 秒後に読み直す (#1577 レビュー N10)", async () => {
-    const t0 = Date.now() + 10 ** 9; // 他の試験が入れた覚えより、十分あとの時刻
+    resetHarmonySummaryCache();
+    const t0 = Date.now();
     const first = await harmonySummary(t0);
     expect(await harmonySummary(t0 + 29_999)).toBe(first); // 同じ object = 覚えている (git を呼び直さない)
     const later = await harmonySummary(t0 + 30_001);
     expect(later).not.toBe(first); // 読み直した
     expect(later).toEqual(first); // 中身は同じ
     expect(await harmonySummary(t0 + 30_002)).toBe(later);
+    resetHarmonySummaryCache(); // 後の試験に、この試験の時刻の覚えを残さない
   });
   it("detached HEAD (git が HEAD と返す) はブランチ名とみなさない。build-info の branch が HEAD でも同じ (#1577 レビュー N1)", async () => {
     expect(branchName("HEAD\n")).toBeUndefined();
@@ -612,28 +614,60 @@ describe("版の情報: 配布 image の build-info.json と、GitHub への更�
     expect(describeFetchError(new Error("plain"))).toBe("plain"); // cause が無ければ message のまま
     expect(describeFetchError("x")).toBe("x");
   });
-  it("更新の確認の結果は 60 秒覚える。失敗 (unknown) は覚えない。同時の問い合わせは 1 回にまとめる (#1577 レビュー S4)", async () => {
+  it("更新の確認の結果は 60 秒覚える。失敗 (unknown) は覚えない。同時の問い合わせは 1 回にまとめる。鍵が違えば別 (#1577 レビュー S4)", async () => {
     let calls = 0, now = 1_000_000;
     let reply1: UpdateCheck = { status: "behind", message: "古い", behindBy: 3 };
-    const memo = memoizeUpdateCheck(async () => { calls++; return reply1; }, 60_000, () => now);
-    const [a, b] = await Promise.all([memo(), memo()]);
+    const memo = createUpdateCheckMemo(60_000, () => now);
+    const run = () => memo("k", async () => { calls++; return reply1; });
+    const [a, b] = await Promise.all([run(), run()]);
     expect(calls).toBe(1); // 同時
     expect(a).toBe(b);
     now += 59_999;
-    await memo();
+    await run();
     expect(calls).toBe(1); // 60 秒以内は覚えている
+    await memo("other", async () => { calls++; return reply1; });
+    expect(calls).toBe(2); // 鍵が違えば別
     now += 2;
-    await memo();
-    expect(calls).toBe(2); // 過ぎたら問い合わせる
+    await run();
+    expect(calls).toBe(3); // 過ぎたら問い合わせる
     reply1 = { status: "unknown", message: "失敗" };
     now += 60_001;
-    await memo();
-    expect(calls).toBe(3);
-    await memo();
-    expect(calls).toBe(4); // unknown は覚えない (すぐ再試行できる)
+    await run();
+    expect(calls).toBe(4);
+    await run();
+    expect(calls).toBe(5); // unknown は覚えない (すぐ再試行できる)
     reply1 = { status: "current", message: "最新" };
-    expect((await memo()).status).toBe("current");
-    expect(calls).toBe(5);
+    expect((await run()).status).toBe("current");
+    expect(calls).toBe(6);
+  });
+  it("覚えるのは配布 image の経路だけ。git の作業コピー (ls-remote) は毎回問い合わせ、git pull のあとの 2 回目は新しい結果になる (#1577 再レビュー R1)", async () => {
+    const memo = createUpdateCheckMemo(60_000, () => 1);
+    let head = SHA, lsRemote = 0;
+    const run = async (_c: string, args: string[]) => {
+      const k = args.join(" ");
+      if (k === "rev-parse --show-toplevel") return { stdout: proj, stderr: "", code: 0 };
+      if (k === "rev-parse HEAD") return { stdout: head, stderr: "", code: 0 };
+      if (k.startsWith("ls-remote")) { lsRemote++; return { stdout: `${"1".repeat(40)}\trefs/heads/main`, stderr: "", code: 0 }; }
+      if (k.startsWith("merge-base")) return { stdout: "", stderr: "", code: head === "1".repeat(40) ? 0 : 1 };
+      return { stdout: "", stderr: "", code: 0 };
+    };
+    const noFetch = async () => { throw new Error("GitHub は使わない"); };
+    expect(await checkForUpdate(run, proj, noFetch, memo)).toMatchObject({ status: "behind" });
+    head = "1".repeat(40); // git pull した
+    expect(await checkForUpdate(run, proj, noFetch, memo)).toMatchObject({ status: "current", message: "最新です" });
+    expect(lsRemote).toBe(2);
+  });
+  it("配布 image の経路は、覚え (memo) を渡すと GitHub への問い合わせが 1 回になり、渡さなければ毎回問い合わせる (#1577 再レビュー R1)", async () => {
+    await writeBuildInfo(BI);
+    let fetched = 0;
+    const f = async () => { fetched++; return { ok: true, status: 200, json: async () => ({ status: "identical" }) }; };
+    const memo = createUpdateCheckMemo(60_000, () => 1);
+    await checkForUpdate(noGit, proj, f, memo);
+    await checkForUpdate(noGit, proj, f, memo);
+    expect(fetched).toBe(1);
+    await checkForUpdate(noGit, proj, f);
+    await checkForUpdate(noGit, proj, f);
+    expect(fetched).toBe(3);
   });
 });
 

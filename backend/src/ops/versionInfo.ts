@@ -133,12 +133,12 @@ export function describeFetchError(e: unknown): string {
 }
 
 /** 本体の、最新の main との差 (利用者が「更新を確認」を押したときだけ)。git の作業コピーは origin へ ls-remote、配布 image は GitHub の API で問い合わせる (どちらも読み取りだけ) */
-export async function checkForUpdate(run: GitRunner = runGit, projectRoot = PROJECT_ROOT, fetchFn: FetchFn = (url, init) => fetch(url, init)): Promise<UpdateCheck> {
+export async function checkForUpdate(run: GitRunner = runGit, projectRoot = PROJECT_ROOT, fetchFn: FetchFn = (url, init) => fetch(url, init), memo?: UpdateCheckMemo): Promise<UpdateCheck> {
   try {
     const top = await run(projectRoot, ["rev-parse", "--show-toplevel"]).catch(() => ({ stdout: "", stderr: "", code: 1 }));
     if (top.code !== 0 || path.resolve(top.stdout.trim()) !== path.resolve(projectRoot)) {
       const bi = await readBuildInfo(projectRoot);
-      if (bi) return await checkImageUpdate(bi, fetchFn);
+      if (bi) return await (memo ? memo(`${bi.repo ?? ""}@${bi.commit}`, () => checkImageUpdate(bi, fetchFn)) : checkImageUpdate(bi, fetchFn));
       return { status: "unknown", message: "git の作業コピーではないため、更新の確認はできません (配布元をご確認ください)" };
     }
     const local = (await run(projectRoot, ["rev-parse", "HEAD"])).stdout.trim();
@@ -153,27 +153,36 @@ export async function checkForUpdate(run: GitRunner = runGit, projectRoot = PROJ
   } catch (e) { return { status: "unknown", message: e instanceof Error ? e.message : String(e) }; }
 }
 
+/** 更新の確認の結果の覚え。key (取得元と commit) ごとに、確かめられた結果 (current / behind) だけを ttl のあいだ覚える */
+export type UpdateCheckMemo = (key: string, check: () => Promise<UpdateCheck>) => Promise<UpdateCheck>;
+
 /**
  * 更新の確認の結果を、しばらく覚える (GitHub の認証なしの問い合わせは 1 時間に 60 回まで。AI や画面が続けて確認しても使い切らないように)。
- * 覚えるのは確かめられた結果 (current / behind) だけ。失敗 (unknown) はすぐ再試行できるよう覚えない。押したときだけ問い合わせる原則は変わらない
+ * 覚えるのは確かめられた結果 (current / behind) だけ。失敗 (unknown) はすぐ再試行できるよう覚えない。同時の問い合わせは 1 回にまとめる。
+ * 使うのは配布 image の経路 (GitHub の API) だけ。git の作業コピーの `ls-remote` には回数制限が無く、`git pull` の直後に古い結果を返さないよう、覚えない
  */
-export function memoizeUpdateCheck(check: () => Promise<UpdateCheck>, ttlMs = 60_000, now: () => number = Date.now): () => Promise<UpdateCheck> {
-  let last: { at: number; value: Promise<UpdateCheck> } | undefined;
-  return () => {
-    if (last && now() - last.at < ttlMs) return last.value;
+export function createUpdateCheckMemo(ttlMs = 60_000, now: () => number = Date.now): UpdateCheckMemo {
+  const last = new Map<string, { at: number; value: Promise<UpdateCheck> }>();
+  return (key, check) => {
+    const hit = last.get(key);
+    if (hit && now() - hit.at < ttlMs) return hit.value;
     const value = check();
     const mine = { at: now(), value };
-    last = mine;
-    void value.then((r) => { if (r.status === "unknown" && last === mine) last = undefined; }, () => { if (last === mine) last = undefined; });
+    last.set(key, mine);
+    void value.then((r) => { if (r.status === "unknown" && last.get(key) === mine) last.delete(key); }, () => { if (last.get(key) === mine) last.delete(key); });
     return value;
   };
 }
-/** 画面と MCP が使う、覚えつきの更新の確認 */
-export const checkForUpdateCached: () => Promise<UpdateCheck> = memoizeUpdateCheck(() => checkForUpdate());
+/** 画面と MCP が使う、配布 image の更新の確認の覚え */
+const imageCheckMemo = createUpdateCheckMemo();
+/** 画面と MCP が使う更新の確認 (配布 image の経路だけ 60 秒覚える。git の作業コピーは毎回問い合わせる) */
+export const checkForUpdateCached = (): Promise<UpdateCheck> => checkForUpdate(runGit, PROJECT_ROOT, (url, init) => fetch(url, init), imageCheckMemo);
 
 /** MCP (workspace_status / get_project_context) に載せる、この Harmony の要約。ネットワークは使わない。git を何度も呼ばないよう 30 秒だけ覚える */
 let summaryCache: { at: number; value: Promise<HarmonySummary> } | undefined;
 export interface HarmonySummary { version: string; commit?: string; branch?: string; dirty?: boolean; builtAt?: string; source?: "git" | "image" }
+/** 試験用: harmonySummary の覚えを捨てる */
+export function resetHarmonySummaryCache(): void { summaryCache = undefined; }
 export async function harmonySummary(now = Date.now()): Promise<HarmonySummary> {
   if (summaryCache && now - summaryCache.at < 30_000) return summaryCache.value;
   const value = readVersionInfo(runGit, PROJECT_ROOT, 0).then((v) => ({

@@ -41,7 +41,7 @@ export function VersionTab() {
         {d && notices.map((n) => <p key={n} className="an-warn" role="note" data-testid="op-version-warn"><i className="bi bi-exclamation-triangle" /> {n}</p>)}
         <div className="an-row">
           <button type="button" className="an-btn" disabled={checking} onClick={() => void check()} data-testid="op-version-check"><i className="bi bi-arrow-repeat" /> 更新を確認する</button>
-          <span className="an-hint">最新の main を問い合わせます (git の作業コピーは更新元 origin へ、配布 image は GitHub へ。読み取りだけ。押したときだけ行い、結果は 1 分ほど覚えます)。</span>
+          <span className="an-hint">最新の main を問い合わせます (git の作業コピーは更新元 origin へ、配布 image は GitHub へ。読み取りだけ。押したときだけ行います。配布 image は GitHub の問い合わせの回数制限があるので、結果を 1 分ほど覚えます)。</span>
         </div>
         {update && <p className={update.status === "behind" ? "an-warn" : "an-hint"} role="status" data-testid="op-version-update">{update.message}</p>}
       </Section>

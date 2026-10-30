@@ -22,6 +22,14 @@ describe("配布 image の配置 (Dockerfile ↔ コードが読む場所)", () 
     // ソース上でも同じ式 (backend/src/ops/*.ts の ../../..) がリポジトリのルートになる
     expect(path.resolve(REPO, "backend/src/ops", "../../..")).toBe(REPO);
   });
+  it("実装側が PROJECT_ROOT を `path.resolve(import.meta.dirname, \"../../..\")` で作っている (この式を変えると、image の配置の前提が崩れるので落ちる)", () => {
+    for (const rel of ["backend/src/ops/scaffold.ts", "backend/src/ops/versionInfo.ts"]) {
+      expect(read(rel), rel).toMatch(/const PROJECT_ROOT = path\.resolve\(import\.meta\.dirname, "\.\.\/\.\.\/\.\."\);/);
+    }
+    // 資料の置き場 (docsRoot.ts) は backend/src 直下にあり、`../..` で /app になる (backend/dist 直下も同じ)
+    expect(read("backend/src/docsRoot.ts")).toMatch(/path\.resolve\(here, "\.\.\/\.\."\)/);
+    expect(fs.existsSync(path.join(REPO, "backend/src/docsRoot.ts"))).toBe(true);
+  });
   it("雛形は COPY ai-skills で /app/ai-skills に入り、コードの既定の置き場と同じ相対パス", () => {
     expect(lines(runtime)).toContain("COPY ai-skills ./ai-skills");
     expect(path.relative(REPO, DEFAULT_TEMPLATES_ROOT)).toBe("ai-skills/generate-code/templates/devcontainer");

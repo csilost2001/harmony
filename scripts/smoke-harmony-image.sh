@@ -72,10 +72,14 @@ ws.once("error", (err) => {
 
 # 配布 image の中身の確認 (#1577)。
 # (1) /app/build-info.json の commit が、image の label (org.opencontainers.image.revision) と一致し、MCP の designer__workspace_status の harmony.commit と一致すること。
-#     HARMONY_SMOKE_EXPECT_COMMIT (build のときの完全な commit。省略時は、host の checkout の HEAD) があれば、それとも一致すること
+#     HARMONY_SMOKE_EXPECT_COMMIT (build のときの完全な commit) を渡したときだけ、それとも一致すること。渡さなければ host の checkout の HEAD とは照合しない
+#     (build のあとに host で commit した・pull した、別の image を確かめることがあるため。違うときは注意を出すだけ)
 #     (commit を記録していない image = git の作業コピーでなく作った image は、この確認を飛ばす)
 # (2) 開発コンテナの雛形 (generate-code の 4 組合せ × 7 ファイル) が /app/ai-skills の中にあること (designer__get_scaffold_update が読む)
-BUILD_INFO="$("${ENGINE}" exec "${CONTAINER_NAME}" cat /app/build-info.json)"
+BUILD_INFO="$("${ENGINE}" exec "${CONTAINER_NAME}" cat /app/build-info.json)" || {
+  echo "image に /app/build-info.json がありません (Dockerfile の build-info の書き込みを確認してください)" >&2
+  exit 1
+}
 IMAGE_COMMIT="$(printf '%s' "${BUILD_INFO}" | node -e 'let s="";process.stdin.on("data",(d)=>s+=d).on("end",()=>{try{process.stdout.write(String(JSON.parse(s).commit||""))}catch{}})')"
 if [ -n "${IMAGE_COMMIT}" ]; then
   LABEL_COMMIT="$("${ENGINE}" inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "${CONTAINER_NAME}")"
@@ -83,10 +87,16 @@ if [ -n "${IMAGE_COMMIT}" ]; then
     echo "image の label の revision (${LABEL_COMMIT}) が build-info.json の commit (${IMAGE_COMMIT}) と違います" >&2
     exit 1
   fi
-  EXPECT_COMMIT="${HARMONY_SMOKE_EXPECT_COMMIT:-$(git rev-parse HEAD 2>/dev/null || true)}"
-  if [ -n "${EXPECT_COMMIT}" ] && [ "${EXPECT_COMMIT}" != "${IMAGE_COMMIT}" ]; then
-    echo "build-info.json の commit (${IMAGE_COMMIT}) が、期待する commit (${EXPECT_COMMIT}) と違います。別の commit から作った image なら HARMONY_SMOKE_EXPECT_COMMIT を指定してください" >&2
-    exit 1
+  if [ -n "${HARMONY_SMOKE_EXPECT_COMMIT:-}" ]; then
+    if [ "${HARMONY_SMOKE_EXPECT_COMMIT}" != "${IMAGE_COMMIT}" ]; then
+      echo "build-info.json の commit (${IMAGE_COMMIT}) が、HARMONY_SMOKE_EXPECT_COMMIT (${HARMONY_SMOKE_EXPECT_COMMIT}) と違います" >&2
+      exit 1
+    fi
+  else
+    HOST_HEAD="$(git rev-parse HEAD 2>/dev/null || true)"
+    if [ -n "${HOST_HEAD}" ] && [ "${HOST_HEAD}" != "${IMAGE_COMMIT}" ]; then
+      echo "注意: image の commit (${IMAGE_COMMIT:0:7}) が、host の checkout の HEAD (${HOST_HEAD:0:7}) と違います。build のあとに commit した・別の image を確かめている場合は問題ありません。照合するなら HARMONY_SMOKE_EXPECT_COMMIT を指定してください" >&2
+    fi
   fi
   HARMONY_SMOKE_PORT="${PORT}" HARMONY_SMOKE_COMMIT="${IMAGE_COMMIT}" node -e '
 const port = process.env.HARMONY_SMOKE_PORT;

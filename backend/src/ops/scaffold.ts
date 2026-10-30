@@ -171,16 +171,17 @@ export async function scaffoldSummary(root: string, templatesRoot = defaultTempl
   return { ...r.summary, ...(r.problems.length ? { problems: r.problems } : {}) };
 }
 
+/** 状態の要約から、設計の要確認 (info)。理由の文でなく status / reasonCode で分ける */
+export function issuesOfSummary(s: ScaffoldSummary): SchemaIssue[] {
+  const section = "開発コンテナの雛形";
+  if (s.status === "outdated") return [{ severity: "info", section, message: `開発コンテナの雛形 (${s.combo}) が新しくなっています (記録 ${s.recordedVersion} → いま ${s.currentVersion})。designer__get_scaffold_update で差分を見て、利用者の OK で取り込めます` }];
+  if (s.status === "no-record") return [{ severity: "info", section, message: `開発コンテナの雛形の記録がありません (雛形 ${s.combo}、いまの版 ${s.currentVersion})。designer__get_scaffold_update で、いまの雛形と比べて取り込めます` }];
+  if (s.status === "not-applicable" && s.reasonCode === "tech-stack-undecided") return [{ severity: "info", section, message: `開発コンテナの雛形の記録がありません。${s.reason}` }];
+  return [];
+}
 /** 設計の要確認 (info) の中身 (毎回、雛形を読んで版を計算する) */
 async function computeScaffoldIssues(root: string, templatesRoot: string): Promise<SchemaIssue[]> {
-  const section = "開発コンテナの雛形";
-  try {
-    const s = await scaffoldSummary(root, templatesRoot);
-    if (s.status === "outdated") return [{ severity: "info", section, message: `開発コンテナの雛形 (${s.combo}) が新しくなっています (記録 ${s.recordedVersion} → いま ${s.currentVersion})。designer__get_scaffold_update で差分を見て、利用者の OK で取り込めます` }];
-    if (s.status === "no-record") return [{ severity: "info", section, message: `開発コンテナの雛形の記録がありません (雛形 ${s.combo}、いまの版 ${s.currentVersion})。designer__get_scaffold_update で、いまの雛形と比べて取り込めます` }];
-    if (s.status === "not-applicable" && s.reasonCode === "tech-stack-undecided") return [{ severity: "info", section, message: `開発コンテナの雛形の記録がありません。${s.reason}` }];
-  } catch { /* 点検は、雛形が読めなくても止めない */ }
-  return [];
+  try { return issuesOfSummary(await scaffoldSummary(root, templatesRoot)); } catch { return []; /* 点検は、雛形が読めなくても止めない */ }
 }
 /** 点検のたびに雛形 7 ファイルと compose を読んで SHA-256 を取らないよう、設計のデータとルートの compose.yml が変わらないあいだは前の結果を使う (雛形そのものは Harmony の更新まで変わらない) */
 const composeSignature = async (root: string): Promise<string> => { const st = await fs.stat(path.join(root, ".devcontainer/compose.yml")); return `${st.size}:${Math.round(st.mtimeMs)}`; };

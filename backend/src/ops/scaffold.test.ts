@@ -9,7 +9,7 @@ import { buildProjectContext } from "../projectContext.js";
 import { tools } from "../tools.js";
 import { isInProfile, PROFILES } from "../security/mcpProfiles.js";
 import { isReadOnlyTool } from "../security/mcpAccess.js";
-import { destinationOf, getScaffoldUpdate, loadTemplate, parseScaffold, recordScaffold, SCAFFOLD_COMBOS, scaffoldStore, scaffoldSummary, collectScaffoldIssues, templateVersionOf, DEFAULT_TEMPLATES_ROOT, HARMONY_IMAGE, MAX_SCAFFOLD_CONTENT, cutAtCharBoundary, defaultTemplatesRoot, usesHarmonyImage } from "./scaffold.js";
+import { destinationOf, getScaffoldUpdate, loadTemplate, parseScaffold, recordScaffold, SCAFFOLD_COMBOS, scaffoldStore, scaffoldSummary, collectScaffoldIssues, templateVersionOf, DEFAULT_TEMPLATES_ROOT, HARMONY_IMAGE, MAX_SCAFFOLD_CONTENT, cutAtCharBoundary, defaultTemplatesRoot, usesHarmonyImage, issuesOfSummary } from "./scaffold.js";
 import { classifyChangedPath } from "../externalChanges.js";
 import { scaffoldTools } from "../toolsScaffold.js";
 
@@ -433,13 +433,22 @@ describe("not-applicable の理由は reasonCode で分ける (レビュー N4)"
     await recordScaffold(ROOT, {}, "AI", TPL);
     expect(await scaffoldSummary(ROOT, path.join(TPL, "none"))).toMatchObject({ status: "not-applicable", reasonCode: "template-missing" });
   });
+  it("info は理由の文でなく reasonCode で決まる。文に techStack が入っていても種類が違えば出さず、文が変わっても種類が techStack 未決定なら出す", () => {
+    expect(issuesOfSummary({ status: "not-applicable", reasonCode: "template-missing", reason: "雛形が見つかりません。harmony.json の techStack を見直してください" })).toEqual([]);
+    expect(issuesOfSummary({ status: "not-applicable", reasonCode: "image-not-used", reason: "techStack とは関係ない理由" })).toEqual([]);
+    const out = issuesOfSummary({ status: "not-applicable", reasonCode: "tech-stack-undecided", reason: "文言が変わっても出る" });
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({ severity: "info", section: "開発コンテナの雛形" });
+    expect(out[0].message).toContain("文言が変わっても出る");
+    expect(issuesOfSummary({ status: "not-applicable", reason: "techStack" })).toEqual([]); // reasonCode が無ければ出さない
+  });
   it("info は reasonCode で出る (文を変えても黙らない)。techStack 未決定の案内は理由の文を添える", async () => {
     await seedWs(null);
     await write(path.join(ROOT, ".devcontainer/compose.yml"), COMPOSE_WITH_HARMONY);
     const out = await collectScaffoldIssues(ROOT, TPL);
     expect(out).toHaveLength(1);
     expect(out[0].message).toContain((await scaffoldSummary(ROOT, TPL)).reason!);
-    // 理由の種類が techStack 以外なら、文に "techStack" が入っていても出さない
+    // 記録があって雛形が見つからない (template-missing) 場合は出さない
     await seedWs();
     await recordScaffold(ROOT, {}, "AI", TPL);
     await fs.rm(path.join(ROOT, ".devcontainer/compose.yml"));

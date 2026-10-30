@@ -73,7 +73,7 @@ category: ops
 | tool | 内容 |
 |---|---|
 | `designer__workspace_status` / `designer__get_project_context` | 返り値の `harmony` (`version`・`commit`・`branch`・`dirty`・`builtAt`・`source`: `git` / `image`)。どのブランチ・commit から作られた Harmony かが分かる。ネットワークは使わない |
-| `designer__check_harmony_update` | この Harmony が GitHub の最新の main より古くないかを確かめる (`status`: `current` / `behind` / `unknown`、`behindBy` / `aheadBy`)。呼んだときだけ GitHub に読み取りで問い合わせる。ワークスペースが開いていなくても使える。仕様: [integration-ops.md](integration-ops.md) §14 |
+| `designer__check_harmony_update` | この Harmony が GitHub の最新の main より古くないかを確かめる (`status`: `current` / `behind` / `unknown`、`behindBy` / `aheadBy`)。呼んだときだけ GitHub に読み取りで問い合わせる。配布 image の結果は 60 秒覚える (GitHub の回数制限のため。git の作業コピーは毎回問い合わせる)。ワークスペースが開いていなくても使える。仕様: [integration-ops.md](integration-ops.md) §14 |
 
 ### 生成のスキルの付属ファイル (Resource)
 
@@ -90,7 +90,7 @@ category: ops
 
 | tool | 内容 |
 |---|---|
-| `designer__get_scaffold_update` | 開発コンテナの雛形 (generate-code の `templates/devcontainer/<組合せ>/`) の更新の材料 (**読み取りのみ**)。`status`: `current` / `outdated` / `no-record` / `not-applicable`、記録の版 `recordedVersion` といまの版 `currentVersion`、`files[]` (`template`・`path`・`kind`: `file` / `section`・`state`: `unchanged` / `template-changed` / `new-in-template` / `removed-from-template`・`base` (写したとき。無ければ 2 方向)・`app` (いまのアプリのファイル)・`latest`・`appEdited`)、当て方の手順 `guide`。中身は変わったファイルだけ・1 ファイル 200KB まで (`truncated`)。ワークスペースが要る。仕様: [integration-ops.md](integration-ops.md) §14 |
+| `designer__get_scaffold_update` | 開発コンテナの雛形 (generate-code の `templates/devcontainer/<組合せ>/`) の更新の材料 (**読み取りのみ**)。`status`: `current` / `outdated` / `no-record` / `not-applicable` (`not-applicable` には理由の文 `reason` と種類 `reasonCode`: `tech-stack-undecided` / `no-scaffold-record` / `template-missing` / `image-not-used`。`designer__get_project_context` の `scaffold` も同じ)、記録の版 `recordedVersion` といまの版 `currentVersion`、`files[]` (`template`・`path`・`kind`: `file` / `section`・`state`: `unchanged` / `template-changed` / `new-in-template` / `removed-from-template`・`base` (写したとき。無ければ 2 方向)・`app` (いまのアプリのファイル)・`latest`・`appEdited`)、当て方の手順 `guide`。中身は変わったファイルだけ・1 ファイル 200KB まで (`truncated`)。ワークスペースが要る。仕様: [integration-ops.md](integration-ops.md) §14 |
 | `designer__record_scaffold` | **書き込み**。雛形を写した・更新を当てたあとに、記録 (`design/scaffold.json`) を「いまの雛形の版」で書き直す (`combo?` / `outDir?` / `skipped?`)。雛形の中身は backend が雛形から読んで記録する。`outDir` は安全な相対パス、`skipped` は雛形にあるパスだけ。**当てなかったファイルは必ず `skipped` に渡す** (渡さないと、そのファイルの「写したときの中身」が最新の雛形に置き換わり、次の更新で手入れと雛形の変更を取り違える) |
 
 ## 机上の実行と、指摘の直し方
