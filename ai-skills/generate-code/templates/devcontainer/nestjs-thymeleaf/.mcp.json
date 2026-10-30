@@ -3,6 +3,16 @@
     "harmony": {
       "type": "http",
       "url": "http://localhost:5179/mcp"
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest", "--headless", "--isolated", "--browser", "chromium", "--output-dir", "/workspaces/app/.tmp/playwright-mcp"]
+    },
+    "playwright-headed": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest", "--isolated", "--browser", "chromium", "--output-dir", "/workspaces/app/.tmp/playwright-mcp"]
     }
   }
 }

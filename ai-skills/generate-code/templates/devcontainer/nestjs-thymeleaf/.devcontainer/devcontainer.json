@@ -27,7 +27,9 @@
 
   "onCreateCommand": "sudo chown -R node:node /home/node/.claude /home/node/.codex /home/node/.copilot /home/node/.config/gh",
 
-  "postCreateCommand": "([ -f package.json ] && npm install || true) && ([ -f prisma/schema.prisma ] && npx prisma generate || true) && npm install -g @openai/codex && ([ -f ~/.claude/.config.json ] || echo '{}' > ~/.claude/.config.json)",
+  "postCreateCommand": "([ -f package.json ] && npm install || true) && ([ -f prisma/schema.prisma ] && npx prisma generate || true) && npm install -g @openai/codex && ([ -f ~/.claude/.config.json ] || echo '{}' > ~/.claude/.config.json) && npx -y -p @playwright/mcp@latest playwright install --with-deps chromium",
+
+  "postStartCommand": "npx -y -p @playwright/mcp@latest playwright install chromium || echo 'Playwright のブラウザを入れられませんでした。ネットにつながってから npx -y -p @playwright/mcp@latest playwright install chromium を実行してください'",
 
   "customizations": {
     "vscode": {

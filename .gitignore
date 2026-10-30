@@ -32,6 +32,8 @@ screenshots/
 
 # 一時出力 (例: /review-pr /review-issue が書き出すレビュー結果は .tmp/review-cache/ 配下)
 .tmp/
+# generate-code の開発コンテナ雛形が持つ .tmp/.gitignore (Playwright MCP の出力先を業務アプリの git に入れない。#1573) は載せる
+!ai-skills/generate-code/templates/devcontainer/*/.tmp/
 
 # Codex CLI のプロジェクト固有設定 (ユーザー個人の sandbox 設定等、共有しない)
 .codex/
