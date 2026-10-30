@@ -5,6 +5,12 @@
 # - HARMONY_HOME は machine-local state (recent-workspaces.json 等)
 # - /data/workspaces はユーザー workspace の推奨 mount point
 
+# ─── リリースノート (#1577) ─────────────────────────────────────────────────
+# 既定は commit 済みのファイル (`docker build` だけで作ったとき)。scripts/build-harmony-image.sh は、作るときの git の履歴から作った
+# release-notes.md を `--build-context releasenotes=<dir>` で渡し、この段を差し替える (BuildKit は同名の build context で stage を差し替える)
+FROM scratch AS releasenotes
+COPY docs/release-notes.md /release-notes.md
+
 # ─── stage 1: build ─────────────────────────────────────────────────────────
 FROM node:26-alpine AS build
 WORKDIR /app
@@ -64,8 +70,8 @@ COPY schemas ./schemas
 COPY docs/spec ./docs/spec
 COPY docs/AI-INDEX.md docs/codemap.md docs/glossary.json ./docs/
 COPY docs/decisions ./docs/decisions
-# 画面「連携と運用 → 版と更新」のリリースノート (.dockerignore の docs 除外から戻している)
-COPY docs/release-notes.md ./docs/release-notes.md
+# 画面「連携と運用 → 版と更新」のリリースノート (上の releasenotes の段。build script が履歴から作り直したものに差し替わる)
+COPY --from=releasenotes /release-notes.md ./docs/release-notes.md
 COPY examples/PATTERNS.md ./examples/PATTERNS.md
 COPY ai-skills ./ai-skills
 

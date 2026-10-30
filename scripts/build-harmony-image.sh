@@ -60,7 +60,32 @@ else
   echo "注意: git の作業コピーではないため、image に commit を記録できません" >&2
 fi
 
+# リリースノート (画面「版と更新」が読む docs/release-notes.md) は、「その commit までの git の履歴」から決まる。
+# commit 済みのファイルは PR 自身の題名を含められず、いつも 1 つ遅れる。そこで image を作るときに履歴から作り直し、
+# 名前つき build context (releasenotes) で Dockerfile の `FROM scratch AS releasenotes` の段と差し替える。
+# 作れないとき (git が無い・notes.mjs の失敗・build context に非対応の engine) は渡さず、commit 済みのファイルで作る
+EXTRA_BUILD_ARGS=()
+NOTES_DIR=""
+cleanup_notes() { if [ -n "${NOTES_DIR}" ]; then rm -rf "${NOTES_DIR}"; fi; }
+trap cleanup_notes EXIT
+if [ -z "${BUILD_COMMIT}" ]; then
+  echo "注意: git の履歴が使えないため、リリースノートは commit 済みの docs/release-notes.md のまま image に入ります" >&2
+elif ! command -v node >/dev/null 2>&1; then
+  echo "注意: node が無いため、リリースノートは commit 済みの docs/release-notes.md のまま image に入ります" >&2
+elif ! "${ENGINE}" build --help 2>/dev/null | grep -q -- '--build-context'; then
+  echo "注意: ${ENGINE} が --build-context に対応していないため、リリースノートは commit 済みの docs/release-notes.md のまま image に入ります (${ENGINE} を新しくすると、作るときの履歴から作れます)" >&2
+else
+  NOTES_DIR="$(mktemp -d)"
+  if node scripts/release/notes.mjs --ref HEAD --stdout > "${NOTES_DIR}/release-notes.md" 2>"${NOTES_DIR}/notes.err" && [ -s "${NOTES_DIR}/release-notes.md" ]; then
+    EXTRA_BUILD_ARGS=(--build-context "releasenotes=${NOTES_DIR}")
+    echo "リリースノートを ${BUILD_COMMIT:0:7} までの履歴から作りました"
+  else
+    echo "注意: リリースノートを履歴から作れませんでした ($(head -c 200 "${NOTES_DIR}/notes.err" 2>/dev/null || true))。commit 済みの docs/release-notes.md のまま image に入ります" >&2
+  fi
+fi
+
 "${ENGINE}" build --pull \
+  ${EXTRA_BUILD_ARGS[@]+"${EXTRA_BUILD_ARGS[@]}"} \
   --build-arg NPM_VERSION="${NPM_VERSION}" \
   --build-arg HARMONY_BUILD_COMMIT="${BUILD_COMMIT}" \
   --build-arg HARMONY_BUILD_BRANCH="${BUILD_BRANCH}" \

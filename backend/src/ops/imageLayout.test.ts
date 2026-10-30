@@ -37,9 +37,38 @@ describe("配布 image の配置 (Dockerfile ↔ コードが読む場所)", () 
   it("build-info.json は /app/build-info.json に書く (readBuildInfo が読むプロジェクトのルート直下)", () => {
     expect(dockerfile).toContain("writeFileSync(\"/app/build-info.json\"");
     expect(dockerfile).toContain("org.opencontainers.image.revision");
-    expect(lines(runtime)).toContain("COPY docs/release-notes.md ./docs/release-notes.md");
+    // リリースノートは名前つきの段 (releasenotes) から写す。段の既定は commit 済みのファイル、build script が履歴から作ったものに差し替える
+    expect(lines(runtime)).toContain("COPY --from=releasenotes /release-notes.md ./docs/release-notes.md");
     // build-info.json を書くのは runtime の段 (build の段ではない)
     expect(runtime).toContain("/app/build-info.json");
+  });
+});
+
+describe("リリースノートは image を作るときの履歴から作る (#1577)", () => {
+  const script = read("scripts/build-harmony-image.sh");
+  it("Dockerfile に `FROM scratch AS releasenotes` の段があり、既定は commit 済みの docs/release-notes.md。runtime はそこから写す", () => {
+    const stage = dockerfile.slice(0, dockerfile.indexOf("AS build"));
+    expect(stage).toMatch(/^FROM scratch AS releasenotes$/m);
+    expect(lines(stage)).toContain("COPY docs/release-notes.md /release-notes.md");
+    expect(dockerfile.indexOf("AS releasenotes")).toBeLessThan(dockerfile.indexOf("AS runtime"));
+    expect(runtime).toMatch(/^COPY --from=releasenotes \/release-notes\.md \.\/docs\/release-notes\.md$/m);
+    expect(runtime).not.toMatch(/^COPY docs\/release-notes\.md/m);
+  });
+  it("build script が notes.mjs を呼び、`--build-context releasenotes=` で渡す (一時フォルダは終わったら消す。対応しない engine・git なし・失敗では渡さない)", () => {
+    expect(script).toContain("scripts/release/notes.mjs");
+    expect(script).toMatch(/--ref HEAD --stdout/);
+    expect(script).toMatch(/--build-context "releasenotes=\$\{NOTES_DIR\}"/);
+    expect(script).toMatch(/NOTES_DIR="\$\(mktemp -d\)"/);
+    expect(script).toMatch(/trap cleanup_notes EXIT/);
+    expect(script).toMatch(/build --help .*grep -q -- '--build-context'/);
+    expect(script).toContain("commit 済みの docs/release-notes.md のまま");
+    // 渡す引数は build の呼び出しに入っている
+    expect(script).toMatch(/"\$\{ENGINE\}" build --pull \\\n\s+\$\{EXTRA_BUILD_ARGS\[@\]\+/);
+  });
+  it("notes.mjs は --ref と --stdout を受け付ける", () => {
+    const notes = read("scripts/release/notes.mjs");
+    expect(notes).toContain('"--ref"');
+    expect(notes).toContain('"--stdout"');
   });
 });
 
