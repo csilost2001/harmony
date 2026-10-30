@@ -117,6 +117,8 @@ sudo apt install -y git gh
 > **default の数字は、リポジトリの `.nvmrc` のメジャーにそろえます** (`lts/*` にすると、次の LTS が出た日に `.nvmrc` とずれます)。ただし **default を変えると、この WSL2 の他のプロジェクトにも効きます**。変えたくなければ default はそのままにして、Harmony のフォルダでだけ `nvm use` (`.nvmrc` の版に切り替わる) を使ってください。
 >
 > **VS Code から開いた端末は、VS Code を起動したときの環境を引き継ぎます。** nvm の default や `.nvmrc` を変えたあとは、VS Code を開き直してください (開いたままだと、古い Node のままです)。
+>
+> **default を変えても、新しい端末で古い版のままのとき**は、`~/.profile` や `~/.bashrc` に、特定の版の bin を PATH に直接入れる行 (例: `export PATH="$HOME/.nvm/versions/node/v20.20.2/bin:$PATH"`。WSL2 での nvm の不具合を避けるために入れることがある) が残っていないか見てください。その行が nvm の default より先に効きます。行を消すか、版の数字を書かずに nvm の default の版を読む形に書き替えます (版を書いたままだと、default を変えるたびに直す必要があります)。確かめ方: `env -i HOME=$HOME bash -lic 'node -v'` が `.nvmrc` のメジャーになること
 
 **版の確かめ方** (リポジトリの中で):
 

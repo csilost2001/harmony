@@ -173,8 +173,7 @@ export async function handlePropose(req: IncomingMessage, res: ServerResponse): 
       child.kill();
     }, TIMEOUT_MS);
 
-    // @types/node 26 では Readable と NodeJS.ReadableStream の asyncIterator の型が噛み合わない (実体は同じ stream)。型だけ合わせる (#1571)
-    const rl = createInterface({ input: child.stdout as unknown as NodeJS.ReadableStream });
+    const rl = createInterface({ input: child.stdout });
     let inferringNotified = false;
 
     rl.on("line", (line) => {
