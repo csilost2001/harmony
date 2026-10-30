@@ -50,6 +50,8 @@ export interface RoutingGuardWorkspaceState {
   loading: boolean;
   lockdown: boolean;
   error: string | null;
+  /** 別の接続 (AI など) の「閉じる」の知らせで閉じた状態か。true なら開き直さず選択画面へ移る */
+  closedByBroadcast?: boolean;
 }
 
 /** guard 判定結果の action 型 (副作用は呼び出し側で適用) */
@@ -64,6 +66,8 @@ export type RoutingGuardAction =
  * - loading / lockdown / error="e2e bypass" → no-op
  *   (他の error 値は呼び出し側で別途扱う、本関数は AppShell の判定と一致させる)
  * - active===null:
+ *   - 別の接続の「閉じる」の知らせで閉じた (closedByBroadcast) → "/workspace/select" へ navigate
+ *     (開き直すと、最後に開いたワークスペースの既定が戻って閉じられなくなる)
  *   - wsId が undefined または recent に無い → "/workspace/select" へ navigate
  *   - wsId が recent にある → workspace.open(wsId) で復元
  * - active!==null && wsId が active.id と異なる:
@@ -84,6 +88,9 @@ export function evaluateRoutingGuard(
   if (state.error !== null) return { type: "none" };
 
   if (state.active === null) {
+    if (state.closedByBroadcast) {
+      return { type: "navigate", path: "/workspace/select" };
+    }
     if (wsId) {
       const recentEntry = state.workspaces.find((w) => w.id === wsId);
       if (recentEntry) {

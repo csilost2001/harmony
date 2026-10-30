@@ -97,6 +97,22 @@ describe("evaluateRoutingGuard (AppShellInner)", () => {
     expect(result).toEqual({ type: "openWorkspace", id: "ws-bbb" });
   });
 
+  it("別の接続の close の知らせで閉じた (closedByBroadcast) ときは、recent にある wsId でも開き直さず選択画面へ", () => {
+    const result = evaluateRoutingGuard(
+      { ...baseState, active: null, closedByBroadcast: true },
+      "ws-bbb",
+    );
+    expect(result).toEqual({ type: "navigate", path: "/workspace/select" });
+  });
+
+  it("closedByBroadcast が false (通常の初回・URL 直打ち) なら従来どおり openWorkspace", () => {
+    const result = evaluateRoutingGuard(
+      { ...baseState, active: null, closedByBroadcast: false },
+      "ws-bbb",
+    );
+    expect(result).toEqual({ type: "openWorkspace", id: "ws-bbb" });
+  });
+
   it("URL の wsId が active と同じとき何もしない", () => {
     const result = evaluateRoutingGuard(baseState, "ws-aaa");
     expect(result).toEqual({ type: "none" });
