@@ -637,7 +637,7 @@ group("export-design-doc (体裁・改訂履歴)", () => {
 // ─────────────────────────────────────────────────────────────
 const { brokenLinks, unknownNpmScripts, appRoutes, docRoutes, routeTableDrift, uiReferenceIssues, skillIssues, specIndexGaps, specFrontmatterIssues, aiIndexToolIssues, generatedIssues, jsonExampleIssues, codemapPathIssues, normRoute, runChecks } = await import("./docs-freshness.mjs");
 const { pickTargets, DOC_SHOT_NAMES } = await import("../dev/docs-shots.mjs");
-const { planSetup, versionAtLeast, requiredNode } = await import("../lib/setup.mjs");
+const { planSetup, versionAtLeast, requiredNode, requiredEngine, nvmrcMajor, runtimeFindings } = await import("../lib/setup.mjs");
 const { toNoteLine, renderNotes } = await import("../release/notes.mjs");
 
 function docsFixture() {
@@ -770,6 +770,23 @@ group("setup (初回セットアップの計画)", () => {
     const c = planSetup({ root: "/r", nodeVersion: "v20.1.0", pkg: {}, has: has([...base, "examples/retail/harmony.json", "workspaces/retail"]), sample: "retail" });
     return a.steps.some((s) => s.id === "copy-sample") && b.problems.length === 1 && c.steps.length === 0;
   })());
+});
+
+group("setup (Node と npm の版の判定 #1571)", () => {
+  const pkg = { engines: { node: ">=26", npm: ">=12" } };
+  const rel = [{ version: "v27.0.0", lts: false }, { version: "v26.13.0", lts: "Lithium" }, { version: "v26.12.0", lts: "Lithium" }, { version: "v24.15.0", lts: "Krypton" }];
+  const base = { nodeVersion: "v26.13.0", npmVersion: "12.2.1", nvmrc: "26\n", pkg };
+  const f = (o) => runtimeFindings({ ...base, ...o });
+  assert("engines の下限と .nvmrc のメジャーを読む", requiredEngine(pkg, "npm") === "12" && requiredEngine({}, "npm") === null && requiredEngine({ engines: { node: "^22.22.2 || >=26.0.0" } }, "node") === "22.22.2" && nvmrcMajor("v26.1.0\n") === 26 && nvmrcMajor("lts/*") === null && nvmrcMajor(undefined) === null);
+  assert("そろっていれば、問題も知らせもない (オフライン)", (() => { const r = f({}); return r.problems.length === 0 && r.notices.length === 0; })());
+  assert("Node が engines 未満なら問題。includeNodeEngines: false なら重ねない", f({ nodeVersion: "v20.20.2", nvmrc: "20" }).problems.length === 1 && f({ nodeVersion: "v20.20.2", nvmrc: "20", includeNodeEngines: false }).problems.length === 0);
+  assert("npm が engines 未満なら問題 (直し方と libc の理由を書く)", (() => { const p = f({ npmVersion: "10.8.2" }).problems; return p.length === 1 && p[0].includes("npm install -g npm@latest") && p[0].includes("libc"); })());
+  assert("Node のメジャーが .nvmrc と違うのは知らせだけ (問題にしない)。nvm use と VS Code を書く", (() => { const r = f({ nodeVersion: "v24.15.0", pkg: {} }); return r.problems.length === 0 && r.notices.length === 1 && r.notices[0].includes("nvm use") && r.notices[0].includes("VS Code"); })());
+  assert("lts/* の .nvmrc や .nvmrc なしは、メジャーの比較をしない", f({ nodeVersion: "v24.15.0", nvmrc: "lts/*", pkg: {} }).notices.length === 0 && f({ nodeVersion: "v24.15.0", nvmrc: undefined, pkg: {} }).notices.length === 0);
+  assert("最新の LTS のメジャーが .nvmrc より新しければ問題 (LTS でない v27 は数えない)", (() => { const ok = f({ releases: rel }); const up = f({ releases: [...rel, { version: "v28.0.0", lts: "Next" }] }); return ok.problems.length === 0 && up.problems.length === 1 && up.problems[0].includes("Node のメジャーを上げる手順"); })());
+  assert("同じメジャーの最新パッチより古ければ問題", (() => { const old = f({ nodeVersion: "v26.12.0", releases: rel }); return old.problems.length === 1 && old.problems[0].includes("v26.13.0") && f({ releases: rel }).problems.length === 0; })());
+  assert("npm が最新より古ければ問題・同じか新しければ問題なし", f({ latestNpm: "12.3.0" }).problems.length === 1 && f({ latestNpm: "12.2.1" }).problems.length === 0 && f({ latestNpm: "12.0.0" }).problems.length === 0);
+  assert("一覧が空・取れなかった (undefined) ときは、ネットワークの比較を飛ばす", f({ releases: [], latestNpm: undefined }).problems.length === 0 && f({ releases: undefined }).problems.length === 0);
 });
 
 group("release:notes (リリースノート)", () => {

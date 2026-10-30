@@ -9,7 +9,8 @@
     "backend"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=26",
+    "npm": ">=12"
   },
   "scripts": {
     "install:all": "npm install",
