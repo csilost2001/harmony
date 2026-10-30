@@ -13,7 +13,8 @@ ARG VITE_HARMONY_SAME_PORT=1
 ENV VITE_HARMONY_SAME_PORT=${VITE_HARMONY_SAME_PORT}
 
 COPY package.json package-lock.json ./
-# shared の prepare (tsc) が npm ci 中に走るので、shared はソースごと先にコピーする
+# shared の prepare (tsc) が npm ci の中で走るので、npm ci より前に shared をソースごとコピーする。
+# そのため shared のソースを変えると、npm ci の層が作り直しになる (ビルドが遅くなるが、挙動は正しい)
 COPY shared ./shared
 COPY frontend/package.json ./frontend/
 COPY backend/package.json ./backend/

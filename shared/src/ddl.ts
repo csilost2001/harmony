@@ -9,6 +9,9 @@
  *
  * 受け取る型は、DDL に要る項目だけの形 (Ddl*)。frontend の v3 の Table 型はそのまま渡せる。
  * 純粋関数のみで構成、副作用なし。
+ *
+ * 試験: この実装の直接の試験は、`frontend/src/utils/ddlGenerator.test.ts` が、再 export 経由で受け持っている
+ * (backend の `handlers/table.test.ts` の generate_ddl も経由で守る)。ここを変えたら、その試験を見る。
  */
 
 /** SQL ダイアレクト */
