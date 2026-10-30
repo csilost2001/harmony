@@ -97,7 +97,7 @@ workspace 一覧・選択画面は workspace-agnostic のため wsId を持た�
 
 ```ts
 type ConnectionContext = {
-  clientId: string;       // WS connection ID または MCP sessionId
+  clientId: string;       // WS connection ID (MCP は要求ごとに払い出す一時的な ID)
   activePath: string | null;
   lockdown: boolean;      // global flag のコピー (env DESIGNER_DATA_DIR 由来)
 };
@@ -109,9 +109,10 @@ type ConnectionContext = {
 
 | イベント | 処理 |
 |----------|------|
-| WS 接続時 | clientId 払い出し + context 作成。初期 `activePath` は `recent.lastActiveId` 由来 or null |
+| WS 接続時 | clientId 払い出し + context 作成。初期 `activePath` は「新しい接続の既定」(`_globalDefaultPath`、最後に開いたワークスペース) or null |
 | WS 切断時 | `Map` から remove |
-| MCP session | StreamableHttp の sessionId を clientId として同様に管理 |
+| MCP 要求 | MCP は stateless で、要求ごとに新しい clientId で接続を作り、終わったら切る (`sessionIdGenerator: undefined`)。作業先は、最後に開いたワークスペース (画面か MCP で開いたもの。`recent.lastActiveId`) で、起動時にも復元される。MCP の接続ごとに別のワークスペースを使い分けること (session 単位の隔離) は、いまはできない |
+| 最後に開いたワークスペース | 画面か MCP でワークスペースを開く / 閉じる / recent から外すと、`recent.lastActiveId` と「新しい接続の既定」(`_globalDefaultPath`) を同時に更新する (`markLastActive` / `removeRecentWorkspace`)。すでに開いている接続 (ブラウザのタブ) の `activePath` は変えない。lockdown では何もしない |
 | lockdown | env `DESIGNER_DATA_DIR` 設定時、全 context の `activePath` が env 値固定 |
 
 ### 5.3 公開 API の per-session 化
@@ -272,7 +273,7 @@ v1 の lockdown 仕様 ([workspace.md § 4](workspace.md)) と後方互換を保
 |--------|--------|---------|------------|
 | `requireActivePath` snapshot 規約の per-session 化漏れ → A workspace の操作が B に書込む | **致命** | R-2 | `projectStorage.ts` 全公開関数を audit、entry 時 `requireActivePath(clientId)` に置換、unit test で per-session 隔離検証 |
 | broadcast 誤配信で別 workspace タブが reload | 高 | R-2 | wsId 必須化 + unit test で wsId フィルタ検証、grep で旧 broadcast 全件改修確認 |
-| MCP agent session で workspace 切替が他 agent 巻き込み | 高 | R-2 | session 単位完全隔離 + test、`httpTransport.test.ts` 拡張 (2 MCP session で別 workspace open) |
+| MCP で workspace を切り替えると、他の AI の作業先も変わる | 中 | R-2 | MCP は stateless で、作業先は最後に開いたワークスペースに揃える (session 単位の隔離はしない)。`mcpServer.test.ts` で、別の接続でも同じ作業先になることを検証 |
 | URL `/w/:wsId/` 切替時に AppShell guard が無限ループ | 中 | R-4 | initial hydration はリロードしない既存ガード (`AppShell.tsx:114-149`) を per-session 化、e2e で navigate チェック |
 | draft path isolation | 低 | R-3 | per-workspace folder が物理 isolation 境界。migration 不要。workspace 隔離を unit test で確認 (#701) |
 | lockdown 時の per-session 動作 | 中 | R-2/R-4 | env `DESIGNER_DATA_DIR` 設定時 test ケース追加、全 session の activePath が env 値固定であることを assertion |
@@ -293,7 +294,7 @@ v1 の lockdown 仕様 ([workspace.md § 4](workspace.md)) と後方互換を保
 
 ### 11.2 integration (backend/src/httpTransport.test.ts 拡張)
 
-- 2 MCP session で別 workspace open → 各 session が独立した active workspace を持ち、相互干渉しないことを検証
+- MCP は stateless: ある接続で `designer__workspace_open` した後、新しい接続 (次の要求) でも同じワークスペースで動く。`designer__workspace_close` の後は未選択に戻る (`mcpServer.test.ts`)
 
 ### 11.3 e2e (Playwright)
 

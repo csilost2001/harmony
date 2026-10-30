@@ -22,10 +22,8 @@ import {
 import {
   listDisplayWorkspaces as listWorkspacesEntries,
   upsertWorkspace as upsertWorkspaceEntry,
-  removeWorkspace as removeWorkspaceEntry,
   findById as findWorkspaceById,
   findByPath as findWorkspaceByPath,
-  setLastActive as setLastActiveWorkspace,
   listWorkspaceRoots,
   upsertWorkspaceRoot,
   removeWorkspaceRoot,
@@ -34,6 +32,8 @@ import {
   discoverWorkspaceCandidates,
   inspectWorkspacePath,
   initializeWorkspace as initializeWorkspaceFolder,
+  markLastActive,
+  removeRecentWorkspace,
 } from "../workspaceInit.js";
 import { getHostInfo } from "../hostInfo.js";
 import { browseFs, BrowseFsError } from "../fsBrowse.js";
@@ -228,7 +228,7 @@ export const workspaceHandlers: RpcHandlerMap = {
       }
     } catch { /* fallback */ }
     const entry = await upsertWorkspaceEntry(resolved, name);
-    await setLastActiveWorkspace(entry.id);
+    await markLastActive(entry);
     respond({ active: { id: entry.id, path: entry.path, name: entry.name } });
     bridge.broadcast({ wsId: entry.path, event: "workspace.changed", data: {
       activeId: entry.id,
@@ -246,7 +246,7 @@ export const workspaceHandlers: RpcHandlerMap = {
       if (e instanceof WorkspaceLockdownError) { respondError(e.message); return; }
       throw e;
     }
-    await setLastActiveWorkspace(null);
+    await markLastActive(null);
     if (closingPath) {
       bridge.deleteEditSessionStoreForWorkspace(closingPath);
     }
@@ -260,7 +260,7 @@ export const workspaceHandlers: RpcHandlerMap = {
     if (isWorkspaceLockdown()) { respondError("lockdown モード中はワークスペースを除外できません"); return; }
     const { id } = (params ?? {}) as { id?: string };
     if (typeof id !== "string") { respondError("id は必須です"); return; }
-    const removed = await removeWorkspaceEntry(id);
+    const removed = await removeRecentWorkspace(id);
     respond({ removed });
   },
 };

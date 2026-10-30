@@ -123,7 +123,7 @@ workspace.open(path, init?)
 - `path` または `id` (recent エントリ) のいずれかを指定する (排他)
 - `init` 省略 / `false`: `inspectWorkspacePath` で `ready` 状態を確認してから active 化。`ready` でない場合は error を返す
 - `init=true`: 対象フォルダを作成し `harmony.json` + `<dataDir>/` 配下のサブディレクトリ群を初期化してから active 化 (lockdown 時は error)。`dataDir` のデフォルト値は `"harmony"`
-- 成功すると `recent` に `upsert` し `lastActiveId` を更新、`workspace.changed` を broadcast
+- 成功すると `recent` に `upsert` し `lastActiveId` を更新、`workspace.changed` を broadcast。あわせて「新しい接続の既定のワークスペース」も同じ場所に更新する (MCP は stateless で要求ごとに接続を作るため、続く MCP の要求もこのワークスペースで動く。閉じる / recent から外すときは既定も外す。[workspace-multi.md](workspace-multi.md) §5.2)
 
 **実装**: `backend/src/wsHandlers/workspace.ts` (`workspace.open`)
 

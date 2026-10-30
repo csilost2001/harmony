@@ -83,7 +83,7 @@ designer__workspace_open { "path": "/workspaces/app", "init": true, "dataDir": "
 - `HARMONY_WORKSPACES_DIR` (`/workspaces/app`): 画面でフォルダを選ぶときに、最初に見せる場所
 - `HARMONY_ALLOWED_BROWSE_ROOTS` (`/workspaces`): 画面で選べるフォルダの範囲
 
-ワークスペースは最初の 1 回だけ、画面 (ワークスペースの選択) か MCP の `designer__workspace_open` で `/workspaces/app` を開く。ワークスペースが選ばれていなくても、`designer__workspace_*` の tool は使える。開いたワークスペースは `harmony-state` の volume に記録され、次からは起動時に自動で開く (前回開いたワークスペースの `harmony.json` が残っているとき)。
+ワークスペースは最初の 1 回だけ、画面 (ワークスペースの選択) か MCP の `designer__workspace_open` で `/workspaces/app` を開く。ワークスペースが選ばれていなくても、`designer__workspace_*` の tool は使える。開いた直後から、MCP の続く要求にも効く (MCP は要求ごとに接続を作るが、新しい接続の作業先は「最後に開いたワークスペース」になる。画面で開いたワークスペースにも、MCP が付いていく)。開いたワークスペースは `harmony-state` の volume に記録され、次からは起動時に自動で開く (前回開いたワークスペースの `harmony.json` が残っているとき)。
 
 この同居の構成では `DESIGNER_DATA_DIR` は使わない。これは「固定モード」で、`harmony.json` が無いと起動せず、ワークスペースも切り替えられないので、最初の 1 回の `init` ができなくなる。
 

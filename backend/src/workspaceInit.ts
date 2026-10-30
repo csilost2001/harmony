@@ -29,6 +29,8 @@ import {
   readRecent,
   findById,
   findByPath,
+  setLastActive,
+  removeWorkspace,
   type WorkspaceEntry,
   type WorkspaceCandidate,
 } from "./recentStore.js";
@@ -378,6 +380,30 @@ export async function autoActivateOnStartup(): Promise<AutoActivateResult> {
     }
   }
   return { status: "none" };
+}
+
+/**
+ * 「最後に開いたワークスペース」を更新する (recent の lastActiveId と、新しい接続の既定 _globalDefaultPath を常に一致させる)。
+ *
+ * MCP の HTTP は stateless で、要求ごとに新しい clientId で接続する。接続ごとの activePath は次の要求に残らないため、
+ * 画面か MCP でワークスペースを開いたら既定も同じ場所へ寄せ、続く要求がそのワークスペースで動くようにする。
+ * 閉じたとき (entry = null) は既定も外す。すでに開いている接続の activePath は変えない (新しい接続の初期値だけが変わる)。
+ * lockdown 中は接続が lockdown のパスを使うので、何もしない。
+ */
+export async function markLastActive(entry: Pick<WorkspaceEntry, "id" | "path"> | null): Promise<void> {
+  if (isLockdown()) return;
+  await setLastActive(entry ? entry.id : null);
+  setGlobalDefaultPath(entry ? entry.path : null);
+}
+
+/**
+ * recent からワークスペースを外す。外したものが最後に開いたワークスペースだったときは、新しい接続の既定も外す。
+ */
+export async function removeRecentWorkspace(id: string): Promise<boolean> {
+  const wasLastActive = !isLockdown() && (await readRecent()).lastActiveId === id;
+  const removed = await removeWorkspace(id);
+  if (removed && wasLastActive) setGlobalDefaultPath(null);
+  return removed;
 }
 
 /** test-only */

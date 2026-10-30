@@ -15,7 +15,7 @@ import { isReadOnlyTool } from "./security/mcpAccess.js";
 import { PROFILE_NAMES, PROFILES, isInProfile, parseProfiles, profileRefusal, profilesFromRequest } from "./security/mcpProfiles.js";
 import { PROMPT_SKILLS, findDocsRoot, getPrompt, listPrompts, listResources, readResource, schemaDefClosure, splitSections } from "./mcpKnowledge.js";
 import { NEXT_STEPS, buildProjectContext } from "./projectContext.js";
-import { connect as wsConnect, disconnect as wsDisconnect, setActivePath } from "./workspaceState.js";
+import { connect as wsConnect, disconnect as wsDisconnect, setActivePath, setGlobalDefaultPath } from "./workspaceState.js";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const SESSION = `mcp-entry-test-${process.pid}`;
@@ -394,5 +394,44 @@ describe("ワークスペース未選択でも使える workspace の tool", () 
       await client.callTool({ name: "designer__workspace_close", arguments: {} });
       await expect(client.callTool({ name: "designer__list_tables", arguments: {} })).rejects.toThrow(/ワークスペースが選択されていません/);
     } finally { await close(); }
+  });
+
+  it("stateless の MCP: 別の新しい接続 (次の要求) でも、最後に開いたワークスペースが使われる。閉じると未選択に戻る", async () => {
+    const SESSION_A = `mcp-entry-test-unset-a-${process.pid}`;
+    const SESSION_B = `mcp-entry-test-unset-b-${process.pid}`;
+    const SESSION_C = `mcp-entry-test-unset-c-${process.pid}`;
+    const openAs = async (session: string) => {
+      wsConnect(session); // 要求ごとに新しい clientId で接続する、実際の経路と同じ
+      const server = createMcpServer(session, []);
+      const client = new Client({ name: "test", version: "0" });
+      const [a, b] = InMemoryTransport.createLinkedPair();
+      await Promise.all([server.connect(a), client.connect(b)]);
+      return { client, close: async () => { await client.close(); await server.close(); wsDisconnect(session); } };
+    };
+    try {
+      const dir = path.join(tmp, "proj-stateless");
+      const a = await openAs(SESSION_A);
+      try {
+        await a.client.callTool({ name: "designer__workspace_open", arguments: { path: dir, init: true } });
+      } finally { await a.close(); }
+
+      const b = await openAs(SESSION_B);
+      try {
+        const status = JSON.parse(textOf(await b.client.callTool({ name: "designer__workspace_status", arguments: {} })));
+        expect(status.active?.path).toBe(path.resolve(dir));
+        const tables = await b.client.callTool({ name: "designer__list_tables", arguments: {} });
+        expect((tables as { isError?: boolean }).isError).not.toBe(true);
+        await b.client.callTool({ name: "designer__workspace_close", arguments: {} });
+      } finally { await b.close(); }
+
+      const c = await openAs(SESSION_C);
+      try {
+        await expect(c.client.callTool({ name: "designer__list_tables", arguments: {} })).rejects.toThrow(/ワークスペースが選択されていません/);
+        const status = JSON.parse(textOf(await c.client.callTool({ name: "designer__workspace_status", arguments: {} })));
+        expect(status.active).toBeNull();
+      } finally { await c.close(); }
+    } finally {
+      setGlobalDefaultPath(null); // 他の試験に影響させない
+    }
   });
 });

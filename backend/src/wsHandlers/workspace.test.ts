@@ -7,6 +7,7 @@ import { upsertWorkspace, upsertWorkspaceRoot } from "../recentStore.js";
 import {
   initWorkspaceState,
   workspaceContextManager,
+  getGlobalDefaultPath,
   _resetForTest as resetWorkspaceState,
 } from "../workspaceState.js";
 import type { RpcContext } from "./types.js";
@@ -151,5 +152,59 @@ describe("workspace root RPC lockdown behavior", () => {
     });
     expect(readSpy).not.toHaveBeenCalled();
     readSpy.mockRestore();
+  });
+});
+
+describe("新しい接続の既定のワークスペースは、最後に開いたワークスペースに合わせる", () => {
+  function makeOpenContext(params: unknown): ReturnType<typeof makeContext> {
+    const made = makeContext(params);
+    made.ctx.bridge = { broadcast: () => {}, deleteEditSessionStoreForWorkspace: () => {} } as unknown as RpcContext["bridge"];
+    return made;
+  }
+
+  it("開く・閉じる・外すで、既定が最後に開いたワークスペースと一致する (すでに開いている接続の作業先は変えない)", async () => {
+    initWorkspaceState();
+    workspaceContextManager.connect("test-client");
+    const dirA = path.join(TMP_ROOT, "proj-a");
+    const dirB = path.join(TMP_ROOT, "proj-b");
+
+    const openA = makeOpenContext({ path: dirA, init: true });
+    await workspaceHandlers["workspace.open"](openA.ctx);
+    expect(openA.getError()).toBeNull();
+    const a = (openA.getResponse() as { active: { id: string; path: string } }).active;
+    expect(getGlobalDefaultPath()).toBe(path.resolve(a.path));
+
+    const openB = makeOpenContext({ path: dirB, init: true });
+    await workspaceHandlers["workspace.open"](openB.ctx);
+    const b = (openB.getResponse() as { active: { id: string; path: string } }).active;
+    expect(getGlobalDefaultPath()).toBe(path.resolve(b.path));
+
+    // 別のタブ (すでに開いている接続) の作業先は変わらない
+    workspaceContextManager.connect("other-tab");
+    expect(workspaceContextManager.getActivePath("other-tab")).toBe(path.resolve(b.path));
+    workspaceContextManager.setActivePath("other-tab", a.path);
+
+    // 最後に開いたワークスペースを recent から外すと、既定も外れる。接続の作業先は変えない
+    const removeB = makeContext({ id: b.id });
+    await workspaceHandlers["workspace.remove"](removeB.ctx);
+    expect(removeB.getResponse()).toEqual({ removed: true });
+    expect(getGlobalDefaultPath()).toBeNull();
+    expect(workspaceContextManager.getActivePath("other-tab")).toBe(path.resolve(a.path));
+
+    // 最後に開いたものではないワークスペースを外しても、既定はそのまま
+    const openA2 = makeOpenContext({ path: dirA });
+    await workspaceHandlers["workspace.open"](openA2.ctx);
+    expect(getGlobalDefaultPath()).toBe(path.resolve(a.path));
+    const openC = makeOpenContext({ path: path.join(TMP_ROOT, "proj-c"), init: true });
+    await workspaceHandlers["workspace.open"](openC.ctx);
+    const c = (openC.getResponse() as { active: { id: string; path: string } }).active;
+    const removeA = makeContext({ id: a.id });
+    await workspaceHandlers["workspace.remove"](removeA.ctx);
+    expect(getGlobalDefaultPath()).toBe(path.resolve(c.path));
+
+    // 閉じると既定も外れる
+    const close = makeOpenContext({});
+    await workspaceHandlers["workspace.close"](close.ctx);
+    expect(getGlobalDefaultPath()).toBeNull();
   });
 });

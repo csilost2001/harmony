@@ -27,12 +27,10 @@ import {
 import {
   listDisplayWorkspaces,
   upsertWorkspace,
-  removeWorkspace,
   findById,
   findByPath,
-  setLastActive,
 } from "../recentStore.js";
-import { inspectWorkspacePath, initializeWorkspace } from "../workspaceInit.js";
+import { inspectWorkspacePath, initializeWorkspace, markLastActive, removeRecentWorkspace } from "../workspaceInit.js";
 import { wsBridge } from "../wsBridge.js";
 import type { ToolHandler } from "../mcpHelpers.js";
 
@@ -150,7 +148,7 @@ export const handleWorkspaceTool: ToolHandler = async (name, args, _root, sessio
         }
       } catch { /* fallback to basename / init result */ }
       const entry = await upsertWorkspace(target, name);
-      await setLastActive(entry.id);
+      await markLastActive(entry);
       // workspace.open broadcast: 同 path を active にしている session のみ受信 (#703 R-5 A-2)
       wsBridge.broadcast({ wsId: entry.path, event: "workspace.changed", data: {
         activeId: entry.id,
@@ -180,7 +178,7 @@ export const handleWorkspaceTool: ToolHandler = async (name, args, _root, sessio
         }
         throw e;
       }
-      await setLastActive(null);
+      await markLastActive(null);
       // workspace.close broadcast: close 前の path を持つ session のみ受信 (#703 R-5 A-2)
       wsBridge.broadcast({ wsId: closingPath, event: "workspace.changed", data: {
         activeId: null,
@@ -198,7 +196,7 @@ export const handleWorkspaceTool: ToolHandler = async (name, args, _root, sessio
       if (typeof a.id !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "id は必須です");
       }
-      const removed = await removeWorkspace(a.id);
+      const removed = await removeRecentWorkspace(a.id);
       if (!removed) {
         return { content: [{ type: "text", text: `id ${a.id} のワークスペースは見つかりませんでした。` }] };
       }
