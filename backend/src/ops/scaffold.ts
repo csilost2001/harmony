@@ -12,12 +12,22 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { isIsoDateTime, isSafeRelPath, type Parsed } from "@harmony/shared";
 import type { SchemaIssue } from "../schemaIssues.js";
+import { memoizeBySignature } from "../dataSignature.js";
+import { findDocsRoot } from "../mcpKnowledge.js";
 import { recordAudit } from "./audit.js";
 import { makeOpsStore } from "./opsFiles.js";
 
 const PROJECT_ROOT = path.resolve(import.meta.dirname, "../../..");
-/** 雛形の置き場所 (Harmony 本体のルートから)。試験では差し替える */
-export const DEFAULT_TEMPLATES_ROOT = path.join(PROJECT_ROOT, "ai-skills/generate-code/templates/devcontainer");
+const TEMPLATES_REL = "ai-skills/generate-code/templates/devcontainer";
+/** Harmony 本体のルートにある雛形の置き場所 (固定) */
+export const DEFAULT_TEMPLATES_ROOT = path.join(PROJECT_ROOT, TEMPLATES_REL);
+/**
+ * 雛形の置き場所。資料の置き場 (`HARMONY_DOCS_DIR`。`harmony://skill/...` が読む場所) に従う。呼ぶたびに決める。
+ * 資料の置き場が見つからなければ本体のルート。試験では引数の `templatesRoot` で差し替える
+ */
+export function defaultTemplatesRoot(env: NodeJS.ProcessEnv = process.env): string {
+  return path.join(findDocsRoot(env) ?? PROJECT_ROOT, TEMPLATES_REL);
+}
 
 /** generate-code の表 (backend.framework × frontend.library → 雛形のフォルダ) と同じ 4 つ */
 export const SCAFFOLD_COMBOS = ["spring-boot-thymeleaf", "spring-boot-nextjs", "nestjs-thymeleaf", "nestjs-nextjs"] as const;
@@ -32,6 +42,8 @@ const MAX_FILES = 50;
 const VERSION_RE = /^[0-9a-f]{12}$/;
 /** ルートの `.devcontainer/compose.yml` が Harmony の配布 image を使っているかの目印 */
 export const HARMONY_IMAGE = "ghcr.io/csilost2001/harmony";
+/** `image:` の行 (環境変数の既定値 `${HARMONY_IMAGE:-…}` を含む) が配布 image を指しているか。コメント・別名の image (`harmony-xxx`) は除く */
+const HARMONY_IMAGE_LINE = new RegExp(`^\\s*image:\\s*["']?(?:\\$\\{[A-Za-z_][A-Za-z0-9_]*:?-)?${HARMONY_IMAGE.replace(/[.]/g, "\\.")}(?=[:@"'}\\s]|$)`, "m");
 
 export interface ScaffoldFileRecord { template: string; path: string; kind: ScaffoldKind; content?: string; skipped?: true }
 export interface ScaffoldRecord { version: 1; combo: ScaffoldCombo; outDir: string; templateVersion: string; recordedAt: string; files: ScaffoldFileRecord[] }
@@ -47,6 +59,7 @@ export function parseScaffold(raw: unknown): Parsed<ScaffoldRecord | null> {
   }
   const problems: string[] = [];
   const files: ScaffoldFileRecord[] = [];
+  if (raw.files.length > MAX_FILES) problems.push(`scaffold.json のファイルが ${MAX_FILES} 件を超えています。${MAX_FILES + 1} 件目以降 (${raw.files.length - MAX_FILES} 件) は読みません`);
   raw.files.slice(0, MAX_FILES).forEach((f, i) => {
     if (!isRecord(f) || !isSafeRelPath(f.template) || !isSafeRelPath(f.path) || (f.kind !== "file" && f.kind !== "section")
       || (f.content !== undefined && (typeof f.content !== "string" || f.content.length > MAX_RECORD_CONTENT))) {
@@ -96,7 +109,7 @@ export function templateVersionOf(files: ReadonlyArray<{ template: string; conte
 }
 
 /** 組合せの雛形を読む (無い・読めないときは null)。行き先 (path) は outDir を入れて決める */
-export async function loadTemplate(combo: ScaffoldCombo, outDir: string, templatesRoot = DEFAULT_TEMPLATES_ROOT): Promise<TemplateSet | null> {
+export async function loadTemplate(combo: ScaffoldCombo, outDir: string, templatesRoot = defaultTemplatesRoot()): Promise<TemplateSet | null> {
   const dir = path.join(templatesRoot, combo);
   try {
     const names = (await listFiles(dir)).sort();
@@ -122,13 +135,15 @@ export async function comboFromTechStack(root: string): Promise<ScaffoldCombo | 
 
 /** ルートの `.devcontainer/compose.yml` が Harmony の配布 image を使っているか (記録の無いアプリに知らせる条件) */
 export async function usesHarmonyImage(root: string): Promise<boolean> {
-  try { return (await fs.readFile(path.join(root, ".devcontainer/compose.yml"), "utf-8")).includes(HARMONY_IMAGE); } catch { return false; }
+  try { return HARMONY_IMAGE_LINE.test(await fs.readFile(path.join(root, ".devcontainer/compose.yml"), "utf-8")); } catch { return false; }
 }
 
 // ── 状態 ──────────────────────────────────────────────────────────────
 
 export type ScaffoldStatus = "current" | "outdated" | "no-record" | "not-applicable";
-export interface ScaffoldSummary { status: ScaffoldStatus; combo?: ScaffoldCombo; recordedVersion?: string; currentVersion?: string; outDir?: string; reason?: string }
+/** not-applicable の理由の種類 (文言でなく、これで分岐する) */
+export type ScaffoldReasonCode = "tech-stack-undecided" | "no-scaffold-record" | "template-missing" | "image-not-used";
+export interface ScaffoldSummary { status: ScaffoldStatus; combo?: ScaffoldCombo; recordedVersion?: string; currentVersion?: string; outDir?: string; reason?: string; reasonCode?: ScaffoldReasonCode }
 
 interface Resolved { summary: ScaffoldSummary; record: ScaffoldRecord | null; template: TemplateSet | null; problems: string[] }
 
@@ -138,32 +153,42 @@ async function resolve(root: string, templatesRoot: string): Promise<Resolved> {
   const outDir = record?.outDir ?? ".";
   if (!combo) {
     const harmony = await usesHarmonyImage(root);
-    return { summary: { status: "not-applicable", reason: harmony ? "組合せが決まりません。harmony.json の techStack (backend.framework と frontend.library) を決めてください" : "このワークスペースには、開発コンテナの雛形の記録がありません" }, record, template: null, problems };
+    return { summary: harmony
+      ? { status: "not-applicable", reasonCode: "tech-stack-undecided", reason: "組合せが決まりません。harmony.json の techStack (backend.framework と frontend.library) を決めてください" }
+      : { status: "not-applicable", reasonCode: "no-scaffold-record", reason: "このワークスペースには、開発コンテナの雛形の記録がありません" }, record, template: null, problems };
   }
   const template = await loadTemplate(combo, outDir, templatesRoot);
-  if (!template) return { summary: { status: "not-applicable", combo, reason: `雛形 (${combo}) が見つかりません。Harmony 本体が古いか、壊れている可能性があります` }, record, template: null, problems };
+  if (!template) return { summary: { status: "not-applicable", combo, reasonCode: "template-missing", reason: `雛形 (${combo}) が見つかりません。Harmony 本体が古いか、壊れている可能性があります` }, record, template: null, problems };
   const base = { combo, outDir, currentVersion: template.version };
   if (record) return { summary: { ...base, status: record.templateVersion === template.version ? "current" : "outdated", recordedVersion: record.templateVersion }, record, template, problems };
   if (await usesHarmonyImage(root)) return { summary: { ...base, status: "no-record" }, record, template, problems };
-  return { summary: { ...base, status: "not-applicable", reason: "このワークスペースには、開発コンテナの雛形の記録も、Harmony の image を使う .devcontainer/compose.yml もありません" }, record, template: null, problems };
+  return { summary: { ...base, status: "not-applicable", reasonCode: "image-not-used", reason: "このワークスペースには、開発コンテナの雛形の記録も、Harmony の image を使う .devcontainer/compose.yml もありません" }, record, template: null, problems };
 }
 
 /** 状態の要約 (中身は入れない)。designer__get_project_context と画面・点検が使う */
-export async function scaffoldSummary(root: string, templatesRoot = DEFAULT_TEMPLATES_ROOT): Promise<ScaffoldSummary & { problems?: string[] }> {
+export async function scaffoldSummary(root: string, templatesRoot = defaultTemplatesRoot()): Promise<ScaffoldSummary & { problems?: string[] }> {
   const r = await resolve(root, templatesRoot);
   return { ...r.summary, ...(r.problems.length ? { problems: r.problems } : {}) };
 }
 
-/** 設計の要確認 (info) に足す。該当しないワークスペースには何も出さない */
-export async function collectScaffoldIssues(root: string, templatesRoot = DEFAULT_TEMPLATES_ROOT): Promise<SchemaIssue[]> {
+/** 設計の要確認 (info) の中身 (毎回、雛形を読んで版を計算する) */
+async function computeScaffoldIssues(root: string, templatesRoot: string): Promise<SchemaIssue[]> {
   const section = "開発コンテナの雛形";
   try {
     const s = await scaffoldSummary(root, templatesRoot);
     if (s.status === "outdated") return [{ severity: "info", section, message: `開発コンテナの雛形 (${s.combo}) が新しくなっています (記録 ${s.recordedVersion} → いま ${s.currentVersion})。designer__get_scaffold_update で差分を見て、利用者の OK で取り込めます` }];
     if (s.status === "no-record") return [{ severity: "info", section, message: `開発コンテナの雛形の記録がありません (雛形 ${s.combo}、いまの版 ${s.currentVersion})。designer__get_scaffold_update で、いまの雛形と比べて取り込めます` }];
-    if (s.status === "not-applicable" && s.reason?.includes("techStack")) return [{ severity: "info", section, message: `開発コンテナの雛形の記録がありません。${s.reason}` }];
+    if (s.status === "not-applicable" && s.reasonCode === "tech-stack-undecided") return [{ severity: "info", section, message: `開発コンテナの雛形の記録がありません。${s.reason}` }];
   } catch { /* 点検は、雛形が読めなくても止めない */ }
   return [];
+}
+/** 点検のたびに雛形 7 ファイルと compose を読んで SHA-256 を取らないよう、設計のデータとルートの compose.yml が変わらないあいだは前の結果を使う (雛形そのものは Harmony の更新まで変わらない) */
+const composeSignature = async (root: string): Promise<string> => { const st = await fs.stat(path.join(root, ".devcontainer/compose.yml")); return `${st.size}:${Math.round(st.mtimeMs)}`; };
+const scaffoldIssuesMemo = memoizeBySignature((root: string) => computeScaffoldIssues(root, defaultTemplatesRoot()), composeSignature);
+
+/** 設計の要確認 (info) に足す。該当しないワークスペースには何も出さない。雛形の置き場を指定したとき (試験) は覚えない */
+export async function collectScaffoldIssues(root: string, templatesRoot?: string): Promise<SchemaIssue[]> {
+  return templatesRoot ? computeScaffoldIssues(root, templatesRoot) : scaffoldIssuesMemo(root);
 }
 
 // ── 記録 ──────────────────────────────────────────────────────────────
@@ -171,7 +196,7 @@ export async function collectScaffoldIssues(root: string, templatesRoot = DEFAUL
 export interface RecordScaffoldInput { combo?: unknown; outDir?: unknown; skipped?: unknown }
 
 /** いまの雛形の版で、記録を書き直す。写したあと (generate-code)・更新を当てたあと (AI) に呼ぶ */
-export async function recordScaffold(root: string, input: RecordScaffoldInput, actor = "AI", templatesRoot = DEFAULT_TEMPLATES_ROOT): Promise<{ combo: ScaffoldCombo; outDir: string; templateVersion: string; recorded: number; skipped: string[] }> {
+export async function recordScaffold(root: string, input: RecordScaffoldInput, actor = "AI", templatesRoot = defaultTemplatesRoot()): Promise<{ combo: ScaffoldCombo; outDir: string; templateVersion: string; recorded: number; skipped: string[] }> {
   const prev = (await scaffoldStore.read(root)).value;
   if (input.combo !== undefined && !isCombo(input.combo)) throw new Error(`combo は ${SCAFFOLD_COMBOS.join(" / ")} のどれかです`);
   const combo = (input.combo as ScaffoldCombo | undefined) ?? prev?.combo ?? await comboFromTechStack(root);
@@ -220,7 +245,7 @@ const GUIDE = [
   "3. base が無いファイル (記録が無い・飛ばしたファイル) は 2 方向で比べます: app と latest の差を、利用者に見せて 1 つずつ選んでもらいます。appEdited が null のとき、手入れかどうかは分かりません。",
   "4. 残すもの: Harmony の image の版 (compose.yml の image: の指定)・利用者が足した service・ポート・環境変数・自分で書いた設定。雛形が変えた箇所だけを足します。",
   "5. 書く前に、ファイルごとの差分を利用者に見せて OK を取ります。OK が無いファイルは書きません。kind が section の README は、snippet の節だけを差し替えます (README の他の部分は触りません)。",
-  "6. 当てたら designer__record_scaffold を呼びます (当てなかったファイルは skipped に渡す)。これで記録の版が最新になり、お知らせが消えます。",
+  "6. 当てたら designer__record_scaffold を呼びます。当てなかったファイル (利用者が見送った・既存のまま残した) は必ず skipped に渡してください。渡さないと、そのファイルの「写したときの中身」が最新の雛形に置き換わり、次の更新で利用者の手入れと雛形の変更を取り違えます。これで記録の版が最新になり、お知らせが消えます。",
   "7. .devcontainer/ のファイルを変えたときは、利用者に VS Code の「Dev Containers: Rebuild Container」を頼みます (変更は作り直すまで効きません)。",
 ];
 
@@ -234,13 +259,27 @@ async function readApp(root: string, rel: string): Promise<string | null> {
   } catch { return null; }
 }
 
+/** 上限のバイト数で切る。日本語などの途中で切らないよう、切り口は文字の境界に寄せる (UTF-8 の後続バイトの手前まで戻る) */
+export function cutAtCharBoundary(s: string, max: number): string {
+  const buf = Buffer.from(s);
+  if (buf.length <= max) return s;
+  let end = max;
+  while (end > 0 && (buf[end] & 0xc0) === 0x80) end--;
+  return buf.subarray(0, end).toString("utf-8");
+}
 const cut = (s: string | null | undefined): { v: string | null | undefined; truncated: boolean } =>
-  typeof s === "string" && Buffer.byteLength(s) > MAX_SCAFFOLD_CONTENT ? { v: Buffer.from(s).subarray(0, MAX_SCAFFOLD_CONTENT).toString("utf-8"), truncated: true } : { v: s, truncated: false };
+  typeof s === "string" && Buffer.byteLength(s) > MAX_SCAFFOLD_CONTENT ? { v: cutAtCharBoundary(s, MAX_SCAFFOLD_CONTENT), truncated: true } : { v: s, truncated: false };
 
 /** README の節は、README.md の中に snippet が (空白の違いを除いて) そのまま入っているかで見る */
 const sectionHas = (app: string, snippet: string): boolean => app.replace(/\s+/g, " ").includes(snippet.replace(/\s+/g, " ").trim());
 
-export async function getScaffoldUpdate(root: string, templatesRoot = DEFAULT_TEMPLATES_ROOT): Promise<ScaffoldUpdate> {
+/** README に、snippet の見出し (最初の空でない行) の行があるか。無ければ「節を足す」(new-in-template) */
+const hasSectionHeading = (app: string, snippet: string): boolean => {
+  const heading = snippet.split("\n").map((l) => l.trim()).find(Boolean);
+  return !heading || app.split("\n").some((l) => l.trim() === heading);
+};
+
+export async function getScaffoldUpdate(root: string, templatesRoot = defaultTemplatesRoot()): Promise<ScaffoldUpdate> {
   const r = await resolve(root, templatesRoot);
   const out: ScaffoldUpdate = { ...r.summary, ...(r.record ? { recordedAt: r.record.recordedAt } : {}), files: [], guide: r.summary.status === "not-applicable" ? [] : GUIDE, problems: r.problems };
   if (!r.template) return out;
@@ -273,7 +312,9 @@ export async function getScaffoldUpdate(root: string, templatesRoot = DEFAULT_TE
       // 記録が無いので、アプリといまの雛形の違いだけを見る (2 方向)
       const app = await readApp(root, f.path);
       const same = app !== null && (f.kind === "section" ? sectionHas(app, f.content) : app === f.content);
-      await push(f.template, f.path, f.kind, f.content, undefined, same ? "unchanged" : app === null ? "new-in-template" : "template-changed");
+      // アプリにファイルが無い・README に節が無い (足すだけ) は new-in-template、中身が違うのは template-changed
+      const missing = app === null || (f.kind === "section" && !hasSectionHeading(app, f.content));
+      await push(f.template, f.path, f.kind, f.content, undefined, same ? "unchanged" : missing ? "new-in-template" : "template-changed");
       continue;
     }
     const rec = recorded.get(f.template);

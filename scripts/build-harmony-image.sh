@@ -31,6 +31,10 @@ BUILD_REPO=""
 if command -v git >/dev/null 2>&1 && git rev-parse --show-toplevel >/dev/null 2>&1; then
   BUILD_COMMIT="$(git rev-parse HEAD 2>/dev/null || true)"
   BUILD_BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+  # detached HEAD は "HEAD" と返る。ブランチ名ではないので、空で渡す (画面は「ブランチを特定できません」と出す)
+  if [ "${BUILD_BRANCH}" = "HEAD" ]; then
+    BUILD_BRANCH=""
+  fi
   if [ -n "$(git status --porcelain --untracked-files=no 2>/dev/null || true)" ]; then
     BUILD_DIRTY="true"
   else
@@ -43,8 +47,10 @@ fi
 BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 if [ -n "${BUILD_COMMIT}" ]; then
-  echo "Building from commit ${BUILD_COMMIT:0:7} (ブランチ: ${BUILD_BRANCH})"
-  if [ "${BUILD_BRANCH}" != "main" ]; then
+  echo "Building from commit ${BUILD_COMMIT:0:7} (ブランチ: ${BUILD_BRANCH:-特定できません})"
+  if [ -z "${BUILD_BRANCH}" ]; then
+    echo "注意: ブランチを特定できません (detached HEAD)。画面の「版と更新」に注意が出ます" >&2
+  elif [ "${BUILD_BRANCH}" != "main" ]; then
     echo "注意: main ではなくブランチ '${BUILD_BRANCH}' から作ります。画面の「版と更新」に警告が出ます" >&2
   fi
   if [ "${BUILD_DIRTY}" = "true" ]; then

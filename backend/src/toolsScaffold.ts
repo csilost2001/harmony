@@ -4,7 +4,8 @@ export const scaffoldTools = [
     name: "designer__record_scaffold",
     description:
       "開発コンテナの雛形 (generate-code の templates/devcontainer/<組合せ>/) を写した・更新を当てたあとに、「いまの雛形の版」で記録 (design/scaffold.json) を書き直します。" +
-      "雛形の中身は backend が雛形から読んで記録します (渡す必要はありません)。写さなかった・当てなかったファイルは skipped に雛形のパスで渡します (省略は前回のまま、空配列で解除)。",
+      "雛形の中身は backend が雛形から読んで記録します (渡す必要はありません)。写さなかった・当てなかったファイルは**必ず** skipped に雛形のパスで渡します (省略は前回のまま、空配列で解除)。" +
+      "渡さなかったファイルは、記録の「写したときの中身」が最新の雛形に置き換わるので、当てていない変更が次の更新の差分から消えます (記録を書き直す操作です)。",
     inputSchema: {
       type: "object" as const,
       properties: {

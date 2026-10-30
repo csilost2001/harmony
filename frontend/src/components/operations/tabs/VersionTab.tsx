@@ -8,7 +8,7 @@ import { useLoad } from "../useLoad";
 
 export function VersionTab() {
   const v = useLoad(opsApi.version, false);
-  const sc = useLoad(opsApi.scaffoldStatus, false);
+  const sc = useLoad(opsApi.scaffoldStatus);
   const [update, setUpdate] = useState<UpdateCheck | null>(null);
   const [checking, setChecking] = useState(false);
   const d = v.data;
@@ -20,7 +20,8 @@ export function VersionTab() {
   // 配布 image が、main 以外のブランチや、コミットしていない変更から作られたものだと、利用者が気づけるように知らせる (#1577)
   const notices: string[] = [];
   if (d?.source === "image") {
-    if (d.branch && d.branch !== "main") notices.push(`この image は、main ではなくブランチ「${d.branch}」から作られています。最新の main の機能が入っていないことがあります。`);
+    if (!d.branch) notices.push("この image を作ったときのブランチを特定できません (HEAD が特定のブランチにない状態など)。main の commit かどうかは「更新を確認する」で確かめられます。");
+    else if (d.branch !== "main") notices.push(`この image は、main ではなくブランチ「${d.branch}」から作られています。最新の main の機能が入っていないことがあります。`);
     if (d.dirty) notices.push("この image は、コミットしていない変更がある状態で作られています。記録した commit と中身が一致しないことがあります。");
   }
   return (
@@ -30,7 +31,7 @@ export function VersionTab() {
         {d && (
           <dl className="op-dl" data-testid="op-version-info">
             <dt>版</dt><dd>{d.version}</dd>
-            {d.source === "image" && <><dt>配布</dt><dd data-testid="op-version-image">配布 image</dd></>}
+            {d.source === "image" && <><dt>種類</dt><dd data-testid="op-version-image">配布 image (git の作業コピーではありません)</dd></>}
             <dt>コミット</dt><dd>{d.commit ? <><code>{d.commit}</code>{d.dirty ? " (コミットしていない変更あり)" : ""}{d.branch ? ` / ブランチ ${d.branch}` : ""}</> : "(git の作業コピーではありません)"}</dd>
             {d.source === "image" && d.builtAt && <><dt>image を作った日時</dt><dd>{new Date(d.builtAt).toLocaleString("ja-JP")}</dd></>}
             {d.source === "image" && d.repo && <><dt>取得元</dt><dd>github.com/{d.repo}</dd></>}
@@ -40,7 +41,7 @@ export function VersionTab() {
         {d && notices.map((n) => <p key={n} className="an-warn" role="note" data-testid="op-version-warn"><i className="bi bi-exclamation-triangle" /> {n}</p>)}
         <div className="an-row">
           <button type="button" className="an-btn" disabled={checking} onClick={() => void check()} data-testid="op-version-check"><i className="bi bi-arrow-repeat" /> 更新を確認する</button>
-          <span className="an-hint">最新の main を問い合わせます (git の作業コピーは更新元 origin へ、配布 image は GitHub へ。読み取りだけ。押したときだけ行います)。</span>
+          <span className="an-hint">最新の main を問い合わせます (git の作業コピーは更新元 origin へ、配布 image は GitHub へ。読み取りだけ。押したときだけ行い、結果は 1 分ほど覚えます)。</span>
         </div>
         {update && <p className={update.status === "behind" ? "an-warn" : "an-hint"} role="status" data-testid="op-version-update">{update.message}</p>}
       </Section>

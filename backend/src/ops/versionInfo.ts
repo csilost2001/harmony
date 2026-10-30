@@ -29,6 +29,12 @@ const GITHUB_API = "https://api.github.com";
 
 const STARTED = new Date().toISOString();
 
+/** `git rev-parse --abbrev-ref HEAD` の答えをブランチ名にする。detached HEAD は `HEAD` と返るので、ブランチ名とは見ない */
+export function branchName(raw: string | undefined): string | undefined {
+  const b = raw?.trim();
+  return b && b !== "HEAD" ? b.slice(0, 200) : undefined;
+}
+
 /** `- 2026-10-14 タイトル (#123)` の行 */
 export function parseReleaseNotes(md: string): ReleaseNote[] {
   const out: ReleaseNote[] = [];
@@ -48,7 +54,7 @@ export async function readBuildInfo(projectRoot = PROJECT_ROOT): Promise<BuildIn
     if (typeof o.commit !== "string" || !FULL_SHA.test(o.commit)) return undefined;
     return {
       commit: o.commit,
-      ...(typeof o.branch === "string" && o.branch.trim() ? { branch: o.branch.trim().slice(0, 200) } : {}),
+      ...(typeof o.branch === "string" && branchName(o.branch) ? { branch: branchName(o.branch) } : {}),
       ...(typeof o.dirty === "boolean" ? { dirty: o.dirty } : {}),
       ...(typeof o.builtAt === "string" && !Number.isNaN(Date.parse(o.builtAt)) ? { builtAt: o.builtAt } : {}),
       ...(typeof o.repo === "string" && isGithubRepo(o.repo) ? { repo: o.repo } : {}),
@@ -65,7 +71,7 @@ export async function readVersionInfo(run: GitRunner = runGit, projectRoot = PRO
     const top = await run(projectRoot, ["rev-parse", "--show-toplevel"]);
     if (top.code === 0 && path.resolve(top.stdout.trim()) === path.resolve(projectRoot)) {
       commit = (await run(projectRoot, ["rev-parse", "--short", "HEAD"])).stdout.trim() || undefined;
-      branch = (await run(projectRoot, ["rev-parse", "--abbrev-ref", "HEAD"])).stdout.trim() || undefined;
+      branch = branchName((await run(projectRoot, ["rev-parse", "--abbrev-ref", "HEAD"])).stdout);
       dirty = (await run(projectRoot, ["status", "--porcelain", "--untracked-files=no"])).stdout.trim().length > 0;
       const full = (await run(projectRoot, ["rev-parse", "HEAD"])).stdout.trim();
       commitFull = FULL_SHA.test(full) ? full : undefined;
@@ -90,11 +96,12 @@ async function checkImageUpdate(bi: BuildInfo, fetchFn: FetchFn): Promise<Update
   if (!bi.repo) return { status: "unknown", message: "image に取得元 (GitHub の repo) の記録がないため、更新を確かめられません", local: short };
   if (!isGithubRepo(bi.repo) || !FULL_SHA.test(bi.commit)) return { status: "unknown", message: "image の記録 (取得元・commit) の形が正しくないため、更新を確かめられません", local: short };
   try {
-    const res = await fetchFn(`${GITHUB_API}/repos/${bi.repo}/compare/${bi.commit}...main`, {
+    const res = await fetchFn(`${GITHUB_API}/repos/${bi.repo}/compare/${bi.commit}...main?per_page=1`, {
       headers: { Accept: "application/vnd.github+json", "User-Agent": "harmony-update-check" },
       signal: AbortSignal.timeout(10_000),
     });
     if (res.status === 404) return { status: "unknown", message: "記録した commit が GitHub にありません (push していないブランチから作った image など)", local: short };
+    if (res.status === 403 || res.status === 429) return { status: "unknown", message: `確かめられません (GitHub の問い合わせの回数制限か、アクセスの制限です。HTTP ${res.status}。認証なしの問い合わせは 1 時間に 60 回までなので、しばらくしてからもう一度お試しください)`, local: short };
     if (!res.ok) return { status: "unknown", message: `確かめられません (GitHub が HTTP ${res.status} を返しました)`, local: short };
     const body = (await res.json()) as { status?: unknown; ahead_by?: unknown; behind_by?: unknown; merge_base_commit?: unknown };
     const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? Math.floor(v) : 0);
@@ -108,8 +115,21 @@ async function checkImageUpdate(bi: BuildInfo, fetchFn: FetchFn): Promise<Update
     if (aheadBy > 0) return { status: "current", message: `main より先に進んでいます (main にない commit が ${aheadBy} あります)`, local: short, behindBy: 0, aheadBy };
     return { status: "unknown", message: "確かめられません (GitHub の返答を読み取れませんでした)", local: short };
   } catch (e) {
-    return { status: "unknown", message: `確かめられません (${e instanceof Error ? e.message : String(e)})`, local: short };
+    return { status: "unknown", message: `確かめられません (${describeFetchError(e)})`, local: short };
   }
+}
+
+/** fetch の失敗の理由。Node の `fetch failed` だけでは原因が分からないので、`cause` の理由 (ENOTFOUND・証明書・プロキシなど) と、時間切れを添える */
+export function describeFetchError(e: unknown): string {
+  if (!(e instanceof Error)) return String(e);
+  if (e.name === "TimeoutError" || e.name === "AbortError") return "10 秒以内に GitHub から答えがありませんでした。ネットワーク・プロキシの設定をご確認ください";
+  const cause = (e as { cause?: unknown }).cause;
+  if (cause && typeof cause === "object") {
+    const c = cause as { code?: unknown; message?: unknown; hostname?: unknown };
+    const detail = [typeof c.code === "string" ? c.code : "", typeof c.hostname === "string" ? c.hostname : "", typeof c.message === "string" && c.message !== e.message ? c.message : ""].filter(Boolean).join(" ");
+    if (detail) return `${e.message}: ${detail}。ネットワーク・プロキシの設定をご確認ください`;
+  }
+  return e.message;
 }
 
 /** 本体の、最新の main との差 (利用者が「更新を確認」を押したときだけ)。git の作業コピーは origin へ ls-remote、配布 image は GitHub の API で問い合わせる (どちらも読み取りだけ) */
@@ -132,6 +152,24 @@ export async function checkForUpdate(run: GitRunner = runGit, projectRoot = PROJ
       : { status: "behind", message: "更新があります。`git pull` で取り込んでから、再起動してください", local: local.slice(0, 7), remote: sha.slice(0, 7) };
   } catch (e) { return { status: "unknown", message: e instanceof Error ? e.message : String(e) }; }
 }
+
+/**
+ * 更新の確認の結果を、しばらく覚える (GitHub の認証なしの問い合わせは 1 時間に 60 回まで。AI や画面が続けて確認しても使い切らないように)。
+ * 覚えるのは確かめられた結果 (current / behind) だけ。失敗 (unknown) はすぐ再試行できるよう覚えない。押したときだけ問い合わせる原則は変わらない
+ */
+export function memoizeUpdateCheck(check: () => Promise<UpdateCheck>, ttlMs = 60_000, now: () => number = Date.now): () => Promise<UpdateCheck> {
+  let last: { at: number; value: Promise<UpdateCheck> } | undefined;
+  return () => {
+    if (last && now() - last.at < ttlMs) return last.value;
+    const value = check();
+    const mine = { at: now(), value };
+    last = mine;
+    void value.then((r) => { if (r.status === "unknown" && last === mine) last = undefined; }, () => { if (last === mine) last = undefined; });
+    return value;
+  };
+}
+/** 画面と MCP が使う、覚えつきの更新の確認 */
+export const checkForUpdateCached: () => Promise<UpdateCheck> = memoizeUpdateCheck(() => checkForUpdate());
 
 /** MCP (workspace_status / get_project_context) に載せる、この Harmony の要約。ネットワークは使わない。git を何度も呼ばないよう 30 秒だけ覚える */
 let summaryCache: { at: number; value: Promise<HarmonySummary> } | undefined;

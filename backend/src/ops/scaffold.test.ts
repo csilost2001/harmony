@@ -9,7 +9,9 @@ import { buildProjectContext } from "../projectContext.js";
 import { tools } from "../tools.js";
 import { isInProfile, PROFILES } from "../security/mcpProfiles.js";
 import { isReadOnlyTool } from "../security/mcpAccess.js";
-import { destinationOf, getScaffoldUpdate, loadTemplate, parseScaffold, recordScaffold, SCAFFOLD_COMBOS, scaffoldStore, scaffoldSummary, collectScaffoldIssues, templateVersionOf, DEFAULT_TEMPLATES_ROOT, HARMONY_IMAGE, MAX_SCAFFOLD_CONTENT } from "./scaffold.js";
+import { destinationOf, getScaffoldUpdate, loadTemplate, parseScaffold, recordScaffold, SCAFFOLD_COMBOS, scaffoldStore, scaffoldSummary, collectScaffoldIssues, templateVersionOf, DEFAULT_TEMPLATES_ROOT, HARMONY_IMAGE, MAX_SCAFFOLD_CONTENT, cutAtCharBoundary, defaultTemplatesRoot, usesHarmonyImage } from "./scaffold.js";
+import { classifyChangedPath } from "../externalChanges.js";
+import { scaffoldTools } from "../toolsScaffold.js";
 
 let ROOT = "", TPL = "";
 const COMPOSE_WITH_HARMONY = `services:\n  harmony:\n    image: \${HARMONY_IMAGE:-${HARMONY_IMAGE}:local}\n`;
@@ -330,5 +332,183 @@ describe("MCP tool の handler (本体の雛形)", () => {
     expect(u).toMatchObject({ status: "current", combo: "spring-boot-thymeleaf", recordedVersion: r.templateVersion, currentVersion: r.templateVersion });
     expect(u.files.map((f: { template: string }) => f.template)).toContain("README.snippet.md");
     await expect(call("designer__record_scaffold", { outDir: "../x" })).rejects.toThrow(/outDir/);
+  });
+});
+
+// ── #1577 PR #1578 レビューの指摘への試験 ───────────────────────────────
+
+describe("雛形の置き場所は HARMONY_DOCS_DIR に従う (レビュー S1)", () => {
+  const REL = "ai-skills/generate-code/templates/devcontainer";
+  let DOCS = "";
+  beforeEach(async () => {
+    DOCS = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "docs-root-")));
+    await fs.mkdir(path.join(DOCS, "schemas/v3"), { recursive: true });
+    await fs.mkdir(path.join(DOCS, "docs/spec"), { recursive: true });
+  });
+  afterEach(async () => { await fs.rm(DOCS, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
+
+  it("HARMONY_DOCS_DIR があればその下、無ければ本体のルートの下", () => {
+    expect(defaultTemplatesRoot({ HARMONY_DOCS_DIR: DOCS })).toBe(path.join(DOCS, REL));
+    expect(defaultTemplatesRoot({})).toBe(DEFAULT_TEMPLATES_ROOT);
+  });
+  it("資料の置き場が不正なら、本体のルートに戻る (エラーにしない)", () => {
+    const err = console.error;
+    console.error = () => {};
+    try { expect(defaultTemplatesRoot({ HARMONY_DOCS_DIR: path.join(DOCS, "nothing") })).toBe(DEFAULT_TEMPLATES_ROOT); } finally { console.error = err; }
+  });
+  it("雛形の引数を渡さない呼び出し (画面・MCP と同じ) が、HARMONY_DOCS_DIR の雛形を読む", async () => {
+    const files = { "Dockerfile": "FROM docs-dir\n", ".mcp.json": "{}\n" };
+    for (const [rel, c] of Object.entries(files)) await write(path.join(DOCS, REL, "spring-boot-thymeleaf", rel), c);
+    await write(path.join(ROOT, ".devcontainer/compose.yml"), COMPOSE_WITH_HARMONY);
+    const saved = process.env.HARMONY_DOCS_DIR;
+    process.env.HARMONY_DOCS_DIR = DOCS;
+    try {
+      const s = await scaffoldSummary(ROOT);
+      expect(s).toMatchObject({ status: "no-record", combo: "spring-boot-thymeleaf" });
+      expect(s.currentVersion).toBe(templateVersionOf(Object.entries(files).map(([template, content]) => ({ template, content }))));
+      const u = await getScaffoldUpdate(ROOT);
+      expect(u.files.map((f) => f.template).sort()).toEqual([".mcp.json", "Dockerfile"]);
+    } finally {
+      if (saved === undefined) delete process.env.HARMONY_DOCS_DIR; else process.env.HARMONY_DOCS_DIR = saved;
+    }
+  });
+});
+
+describe("外部の変更の通知 (レビュー S3)", () => {
+  it("scaffold.json の変更 (git pull・手編集) は opsChanged で画面へ知らせる", () => {
+    expect(classifyChangedPath("scaffold.json")).toEqual({ event: "opsChanged", data: {} });
+    expect(classifyChangedPath("scaffold.txt")).toBeNull();
+  });
+});
+
+describe("切り口は文字の境界 (レビュー N2)", () => {
+  it("UTF-8 の途中で切らず、U+FFFD を入れない", () => {
+    expect(cutAtCharBoundary("ああい", 4)).toBe("あ"); // 4 バイトは「あ」(3) + 「あ」の途中
+    expect(cutAtCharBoundary("ああい", 6)).toBe("ああ");
+    expect(cutAtCharBoundary("ああい", 100)).toBe("ああい");
+    expect(cutAtCharBoundary("a😀b", 3)).toBe("a"); // 絵文字 (4 バイト) の途中
+    expect(cutAtCharBoundary("abc", 2)).toBe("ab");
+  });
+  it("get_scaffold_update が日本語の長いファイルを切っても、壊れた文字が入らない", async () => {
+    await write(path.join(ROOT, "Dockerfile"), "あ".repeat(100_000)); // 300KB
+    await recordScaffold(ROOT, {}, "AI", TPL);
+    await seedTemplate({ ...BASE_FILES, Dockerfile: "FROM y\n" });
+    const d = (await getScaffoldUpdate(ROOT, TPL)).files.find((f) => f.template === "Dockerfile")!;
+    expect(d.truncated).toBe(true);
+    expect(d.app).not.toContain("\uFFFD");
+    expect(Buffer.byteLength(d.app as string)).toBeLessThanOrEqual(MAX_SCAFFOLD_CONTENT);
+    expect(Buffer.byteLength(d.app as string)).toBeGreaterThan(MAX_SCAFFOLD_CONTENT - 3);
+  });
+});
+
+describe("Harmony の image を使っているかは image: の行で見る (レビュー N3)", () => {
+  const uses = async (compose: string) => { await write(path.join(ROOT, ".devcontainer/compose.yml"), compose); return usesHarmonyImage(ROOT); };
+  it("image: の行 (環境変数の既定値・引用符・版の固定を含む) は当たる", async () => {
+    expect(await uses(COMPOSE_WITH_HARMONY)).toBe(true);
+    expect(await uses(`services:\n  harmony:\n    image: ${HARMONY_IMAGE}:1.0\n`)).toBe(true);
+    expect(await uses(`services:\n  harmony:\n    image: "${HARMONY_IMAGE}:1.0"\n`)).toBe(true);
+    expect(await uses(`services:\n  harmony:\n    image: ${HARMONY_IMAGE}\n`)).toBe(true);
+    expect(await uses(`services:\n  harmony:\n    image: \${HARMONY_IMAGE}\n`)).toBe(false); // 既定値なし = image の名前は分からない
+  });
+  it("コメント・別の image・別の項目での言及には当たらない", async () => {
+    expect(await uses(`# ${HARMONY_IMAGE} を使う予定\nservices:\n  app:\n    image: node:26\n`)).toBe(false);
+    expect(await uses(`services:\n  harmony:\n    image: ${HARMONY_IMAGE}-dev:1.0\n`)).toBe(false);
+    expect(await uses(`services:\n  harmony:\n    image: ${HARMONY_IMAGE}x:1.0\n`)).toBe(false);
+    expect(await uses(`services:\n  app:\n    image: node:26\n    environment:\n      NOTE: ${HARMONY_IMAGE}\n`)).toBe(false);
+    expect(await uses(`services:\n  app:\n    image: node:26 # ${HARMONY_IMAGE}\n`)).toBe(false);
+  });
+  it("compose.yml が無ければ false", async () => {
+    expect(await usesHarmonyImage(ROOT)).toBe(false);
+  });
+});
+
+describe("not-applicable の理由は reasonCode で分ける (レビュー N4)", () => {
+  it("理由の文を使わず、種類で返す", async () => {
+    expect(await scaffoldSummary(ROOT, TPL)).toMatchObject({ status: "not-applicable", reasonCode: "image-not-used" });
+    await seedWs(null);
+    expect(await scaffoldSummary(ROOT, TPL)).toMatchObject({ status: "not-applicable", reasonCode: "no-scaffold-record" });
+    await write(path.join(ROOT, ".devcontainer/compose.yml"), COMPOSE_WITH_HARMONY);
+    expect(await scaffoldSummary(ROOT, TPL)).toMatchObject({ status: "not-applicable", reasonCode: "tech-stack-undecided" });
+    await seedWs();
+    await recordScaffold(ROOT, {}, "AI", TPL);
+    expect(await scaffoldSummary(ROOT, path.join(TPL, "none"))).toMatchObject({ status: "not-applicable", reasonCode: "template-missing" });
+  });
+  it("info は reasonCode で出る (文を変えても黙らない)。techStack 未決定の案内は理由の文を添える", async () => {
+    await seedWs(null);
+    await write(path.join(ROOT, ".devcontainer/compose.yml"), COMPOSE_WITH_HARMONY);
+    const out = await collectScaffoldIssues(ROOT, TPL);
+    expect(out).toHaveLength(1);
+    expect(out[0].message).toContain((await scaffoldSummary(ROOT, TPL)).reason!);
+    // 理由の種類が techStack 以外なら、文に "techStack" が入っていても出さない
+    await seedWs();
+    await recordScaffold(ROOT, {}, "AI", TPL);
+    await fs.rm(path.join(ROOT, ".devcontainer/compose.yml"));
+    expect(await collectScaffoldIssues(ROOT, path.join(TPL, "none"))).toEqual([]);
+  });
+});
+
+describe("記録のファイルが多すぎるときは知らせる (レビュー N5)", () => {
+  const rec = (n: number) => ({
+    combo: "spring-boot-thymeleaf", outDir: ".", templateVersion: "0123456789ab", recordedAt: "2026-10-31T00:00:00.000Z",
+    files: Array.from({ length: n }, (_, i) => ({ template: `f${i}`, path: `f${i}`, kind: "file", content: "x" })),
+  });
+  it("50 件までは何も言わず、超えた分は件数つきの problem で知らせる", () => {
+    expect(parseScaffold(rec(50)).problems).toEqual([]);
+    const over = parseScaffold(rec(53));
+    expect(over.value?.files).toHaveLength(50);
+    expect(over.problems).toHaveLength(1);
+    expect(over.problems[0]).toMatch(/50 件を超え.*3 件.*読みません/);
+  });
+});
+
+describe("記録なしで README に節が無いときは、節を足す (レビュー N6)", () => {
+  const readme = async (u: ReturnType<typeof getScaffoldUpdate>) => (await u).files.find((f) => f.template === "README.snippet.md")!;
+  it("README はあるが節が無い → new-in-template", async () => {
+    await write(path.join(ROOT, ".devcontainer/compose.yml"), COMPOSE_WITH_HARMONY);
+    await write(path.join(ROOT, "README.md"), "# app\n\n## 別の節\n中身\n");
+    expect(await readme(getScaffoldUpdate(ROOT, TPL))).toMatchObject({ state: "new-in-template", kind: "section" });
+  });
+  it("README に見出しがあって中身が違う → template-changed。同じ → unchanged。README が無い → new-in-template", async () => {
+    await write(path.join(ROOT, ".devcontainer/compose.yml"), COMPOSE_WITH_HARMONY);
+    await write(path.join(ROOT, "README.md"), "# app\n\n## 開発環境\n古い手順\n");
+    expect(await readme(getScaffoldUpdate(ROOT, TPL))).toMatchObject({ state: "template-changed" });
+    await write(path.join(ROOT, "README.md"), "# app\n\n## 開発環境\n手順\n");
+    expect(await readme(getScaffoldUpdate(ROOT, TPL))).toMatchObject({ state: "unchanged" });
+    await fs.rm(path.join(ROOT, "README.md"));
+    expect(await readme(getScaffoldUpdate(ROOT, TPL))).toMatchObject({ state: "new-in-template" });
+  });
+});
+
+describe("当てなかったファイルは skipped に渡すと、案内に強く書く (レビュー N7)", () => {
+  it("tool の説明・guide・SKILL.md が「必ず skipped」と、渡さないとどうなるかを言う", async () => {
+    const rec = scaffoldTools.find((t) => t.name === "designer__record_scaffold")!;
+    expect(rec.description).toMatch(/必ず.*skipped/);
+    expect(rec.description).toContain("置き換わる");
+    await write(path.join(ROOT, ".devcontainer/compose.yml"), COMPOSE_WITH_HARMONY);
+    const guide = (await getScaffoldUpdate(ROOT, TPL)).guide.join("\n");
+    expect(guide).toMatch(/必ず skipped/);
+    expect(guide).toContain("置き換わ");
+    const skill = await fs.readFile(path.join(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../.."), "ai-skills/generate-code/SKILL.md"), "utf-8");
+    expect(skill).toMatch(/必ず\*\* `skipped`/);
+  });
+});
+
+describe("設計の要確認 (info) は覚える (レビュー N8)", () => {
+  it("設計のデータ・ルートの compose.yml が変わらないあいだは同じ結果を返し、変わったら読み直す", async () => {
+    const a = await collectScaffoldIssues(ROOT);
+    expect(await collectScaffoldIssues(ROOT)).toBe(a); // 同じ配列 = 覚えている
+    await write(path.join(ROOT, ".devcontainer/compose.yml"), COMPOSE_WITH_HARMONY);
+    const b = await collectScaffoldIssues(ROOT);
+    expect(b).not.toBe(a);
+    expect(b).toHaveLength(1); // 記録なし + Harmony の image → info
+    expect(await collectScaffoldIssues(ROOT)).toBe(b);
+    await recordScaffold(ROOT, {}, "AI", TPL); // 記録 (設計のデータ) が変わった。本体の雛形ではなく TPL で記録したので、本体の雛形とは版が違う
+    const c = await collectScaffoldIssues(ROOT);
+    expect(c).not.toBe(b);
+    expect(c[0]?.message ?? "").toContain("新しくなっています");
+  });
+  it("雛形の置き場を指定したときは覚えない (試験で雛形を差し替えられる)", async () => {
+    const a = await collectScaffoldIssues(ROOT, TPL);
+    expect(await collectScaffoldIssues(ROOT, TPL)).not.toBe(a);
   });
 });

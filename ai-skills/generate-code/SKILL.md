@@ -2031,7 +2031,7 @@ Harmony の雛形が新しくなると、`designer__check_design` の info (sect
    - `state: "new-in-template"` は新しく足すファイル、`"removed-from-template"` は雛形から無くなったファイル (消すかどうかは利用者に聞く)。`kind: "section"` (README) は、`latest` の節だけを差し替え、README の他の部分は触らない
    - **残すもの**: Harmony の `image:` の版の指定 (`compose.yml`)・利用者が足した service・ポート・環境変数・自分で書いた設定。`truncated: true` のファイルは中身が切れているので、そのファイルは自分で読み直してから比べる
 3. **書く前に、ファイルごとの差分を利用者に見せて OK を取る**。OK が無いファイルは書かない
-4. 書いたら `designer__record_scaffold` を呼ぶ。書かなかった・見送ったファイルは `skipped` に雛形のパスで渡す (省略すると前回の `skipped` のまま)。記録の版が最新になり、お知らせが消える
+4. 書いたら `designer__record_scaffold` を呼ぶ。書かなかった・見送ったファイルは**必ず** `skipped` に雛形のパスで渡す (省略すると前回の `skipped` のまま。渡さないと、そのファイルの記録が最新の雛形に置き換わり、次の更新で手入れと雛形の変更を取り違える)。記録の版が最新になり、お知らせが消える
 5. `.devcontainer/` のファイルを変えたときは、利用者に VS Code の「Dev Containers: Rebuild Container」を頼む (作り直すまで効かない)
 
 ### 出力先の運用想定 (project-root model)

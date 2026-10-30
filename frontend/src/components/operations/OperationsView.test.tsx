@@ -379,4 +379,41 @@ describe("生成の管理・版と更新", () => {
     expect((await screen.findByTestId("op-scaffold-status")).textContent).toBe("最新です");
     expect(screen.queryByTestId("op-scaffold-ask")).toBeNull();
   });
+
+  // ── #1577 PR #1578 レビューの指摘への試験 ──
+  it("AI が雛形を当てて記録を書き直すと (opsChanged)、版と更新を開いたままでも、雛形の状態を読み直してお知らせが消える (S2)", async () => {
+    let status: Record<string, unknown> = { status: "outdated", combo: "spring-boot-thymeleaf", recordedVersion: "aaaaaaaaaaaa", currentVersion: "bbbbbbbbbbbb", outDir: "." };
+    rpc["scaffold.status"] = () => status;
+    await open("version");
+    expect((await screen.findByTestId("op-scaffold-status")).textContent).toBe("雛形が新しくなっています");
+    expect(screen.getByTestId("op-scaffold-ask")).toBeTruthy();
+    const before = calls("scaffold.status").length;
+    status = { status: "current", combo: "spring-boot-thymeleaf", recordedVersion: "bbbbbbbbbbbb", currentVersion: "bbbbbbbbbbbb", outDir: "." };
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try { for (const cb of listeners.get("opsChanged") ?? []) cb(); await vi.advanceTimersByTimeAsync(500); } finally { vi.useRealTimers(); }
+    await waitFor(() => expect(calls("scaffold.status").length).toBeGreaterThan(before));
+    await waitFor(() => expect(screen.getByTestId("op-scaffold-status").textContent).toBe("最新です"));
+    expect(screen.queryByTestId("op-scaffold-ask")).toBeNull();
+  });
+
+  it("配布 image の行は「種類 / 配布 image (git の作業コピーではありません)」と読める (N9)", async () => {
+    rpc["app.version"] = () => ({ version: "1.2.3", commit: "0123456", branch: "main", dirty: false, source: "image", builtAt: "2026-10-30T11:23:00.000Z", repo: "csilost2001/harmony", startedAt: "2026-10-31T00:00:00.000Z", notes: [], notesTotal: 0 });
+    await open("version");
+    const row = (await screen.findByTestId("op-version-image")).textContent;
+    expect(row).toBe("配布 image (git の作業コピーではありません)");
+    const dts = Array.from(screen.getByTestId("op-version-info").querySelectorAll("dt")).map((e) => e.textContent);
+    expect(dts).toContain("種類");
+    expect(dts).not.toContain("配布");
+  });
+
+  it("配布 image のブランチが分からない (detached HEAD) ときは、「ブランチを特定できません」の注意を出し、「ブランチ HEAD」とは出さない (N1)", async () => {
+    rpc["app.version"] = () => ({ version: "1.2.3", commit: "0123456", dirty: false, source: "image", builtAt: "2026-10-30T11:23:00.000Z", repo: "csilost2001/harmony", startedAt: "2026-10-31T00:00:00.000Z", notes: [], notesTotal: 0 });
+    await open("version");
+    const info = (await screen.findByTestId("op-version-info")).textContent ?? "";
+    expect(info).not.toContain("ブランチ HEAD");
+    const warns = screen.getAllByTestId("op-version-warn").map((e) => e.textContent ?? "");
+    expect(warns).toHaveLength(1);
+    expect(warns[0]).toContain("ブランチを特定できません");
+    expect(warns[0]).not.toContain("「HEAD」");
+  });
 });

@@ -70,4 +70,54 @@ ws.once("error", (err) => {
 });
 '
 
+# 配布 image の中身の確認 (#1577)。
+# (1) /app/build-info.json の commit が、image の label (org.opencontainers.image.revision) と一致し、MCP の designer__workspace_status の harmony.commit と一致すること。
+#     HARMONY_SMOKE_EXPECT_COMMIT (build のときの完全な commit。省略時は、host の checkout の HEAD) があれば、それとも一致すること
+#     (commit を記録していない image = git の作業コピーでなく作った image は、この確認を飛ばす)
+# (2) 開発コンテナの雛形 (generate-code の 4 組合せ × 7 ファイル) が /app/ai-skills の中にあること (designer__get_scaffold_update が読む)
+BUILD_INFO="$("${ENGINE}" exec "${CONTAINER_NAME}" cat /app/build-info.json)"
+IMAGE_COMMIT="$(printf '%s' "${BUILD_INFO}" | node -e 'let s="";process.stdin.on("data",(d)=>s+=d).on("end",()=>{try{process.stdout.write(String(JSON.parse(s).commit||""))}catch{}})')"
+if [ -n "${IMAGE_COMMIT}" ]; then
+  LABEL_COMMIT="$("${ENGINE}" inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "${CONTAINER_NAME}")"
+  if [ "${LABEL_COMMIT}" != "${IMAGE_COMMIT}" ]; then
+    echo "image の label の revision (${LABEL_COMMIT}) が build-info.json の commit (${IMAGE_COMMIT}) と違います" >&2
+    exit 1
+  fi
+  EXPECT_COMMIT="${HARMONY_SMOKE_EXPECT_COMMIT:-$(git rev-parse HEAD 2>/dev/null || true)}"
+  if [ -n "${EXPECT_COMMIT}" ] && [ "${EXPECT_COMMIT}" != "${IMAGE_COMMIT}" ]; then
+    echo "build-info.json の commit (${IMAGE_COMMIT}) が、期待する commit (${EXPECT_COMMIT}) と違います。別の commit から作った image なら HARMONY_SMOKE_EXPECT_COMMIT を指定してください" >&2
+    exit 1
+  fi
+  HARMONY_SMOKE_PORT="${PORT}" HARMONY_SMOKE_COMMIT="${IMAGE_COMMIT}" node -e '
+const port = process.env.HARMONY_SMOKE_PORT;
+const want = process.env.HARMONY_SMOKE_COMMIT.slice(0, 7);
+fetch(`http://127.0.0.1:${port}/mcp`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json", Accept: "application/json, text/event-stream" },
+  body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "designer__workspace_status", arguments: {} } }),
+}).then(async (res) => {
+  const text = await res.text();
+  // JSON の返答か、SSE (data: 行) のどちらでも読む
+  const data = text.trim().startsWith("{") ? text : text.split("\n").filter((l) => l.startsWith("data:")).map((l) => l.slice(5).trim()).join("");
+  const status = JSON.parse(JSON.parse(data).result.content[0].text);
+  if (!status.harmony || status.harmony.commit !== want || status.harmony.source !== "image") {
+    console.error(`workspace_status の harmony が build の commit (${want}・source image) と一致しません: ${JSON.stringify(status.harmony)}`);
+    process.exit(1);
+  }
+}).catch((err) => { console.error(`workspace_status の確認に失敗しました: ${err.message}`); process.exit(1); });
+'
+else
+  echo "注意: build-info.json に commit がない image です (git の作業コピーでなく作った)。commit の一致の確認を飛ばします" >&2
+fi
+
+TEMPLATES="/app/ai-skills/generate-code/templates/devcontainer"
+for combo in spring-boot-thymeleaf spring-boot-nextjs nestjs-thymeleaf nestjs-nextjs; do
+  for f in .devcontainer/compose.yml .devcontainer/devcontainer.json .mcp.json .tmp/.gitignore Dockerfile README.snippet.md docker-compose.yml; do
+    if ! "${ENGINE}" exec "${CONTAINER_NAME}" test -f "${TEMPLATES}/${combo}/${f}"; then
+      echo "image に開発コンテナの雛形がありません: ${TEMPLATES}/${combo}/${f} (.dockerignore や COPY ai-skills を確認してください)" >&2
+      exit 1
+    fi
+  done
+done
+
 echo "Smoke passed for ${IMAGE} on port ${PORT}"

@@ -11,7 +11,7 @@ import { addComment, generationStatus, listApprovals, recordGeneration, regenera
 import { AUDIT_MAX_BYTES, parseAuditLines, readAudit, recordAudit } from "./audit.js";
 import { isPrivateAddress, sendWebhook, dispatchNotify, type SendDeps } from "./notifySend.js";
 import { assertBranchName, assertGitPath, execOverrides, gitBranches, gitCheckout, gitCommit, gitDiff, gitInit, gitLog, gitStatus } from "./gitOps.js";
-import { checkForUpdate, harmonySummary, parseReleaseNotes, readBuildInfo, readVersionInfo } from "./versionInfo.js";
+import { branchName, checkForUpdate, describeFetchError, harmonySummary, memoizeUpdateCheck, parseReleaseNotes, readBuildInfo, readVersionInfo, type UpdateCheck } from "./versionInfo.js";
 import { suggestRevision } from "./revisionSuggest.js";
 import { createdIdFromResultText, describeAiTool, describeRpc, isAiDryRun, isAiNoWrite } from "./auditMap.js";
 
@@ -513,7 +513,7 @@ describe("版の情報: 配布 image の build-info.json と、GitHub への更�
   it("GitHub の compare に、repo と commit を入れて問い合わせる (認証なし・User-Agent つき・時間切れの signal つき)", async () => {
     let seen: { url: string; init?: { headers?: Record<string, string>; signal?: AbortSignal } } | undefined;
     await check(async (url, init) => { seen = { url, init }; return { ok: true, status: 200, json: async () => ({ status: "identical" }) }; });
-    expect(seen?.url).toBe(`https://api.github.com/repos/csilost2001/harmony/compare/${SHA}...main`);
+    expect(seen?.url).toBe(`https://api.github.com/repos/csilost2001/harmony/compare/${SHA}...main?per_page=1`); // 返答を小さくするため per_page=1 (使うのは status / ahead_by / behind_by だけ)
     expect(seen?.init?.headers?.["User-Agent"]).toBeTruthy();
     expect(seen?.init?.headers?.Authorization).toBeUndefined();
     expect(seen?.init?.signal).toBeInstanceOf(AbortSignal);
@@ -567,6 +567,73 @@ describe("版の情報: 配布 image の build-info.json と、GitHub への更�
   });
   it("harmonySummary は、版・commit・branch・dirty・source を返す (ネットワークなし)", async () => {
     expect(await harmonySummary()).toMatchObject({ version: expect.any(String) });
+  });
+  it("harmonySummary は 30 秒のあいだ同じ結果を覚え、30 秒後に読み直す (#1577 レビュー N10)", async () => {
+    const t0 = Date.now() + 10 ** 9; // 他の試験が入れた覚えより、十分あとの時刻
+    const first = await harmonySummary(t0);
+    expect(await harmonySummary(t0 + 29_999)).toBe(first); // 同じ object = 覚えている (git を呼び直さない)
+    const later = await harmonySummary(t0 + 30_001);
+    expect(later).not.toBe(first); // 読み直した
+    expect(later).toEqual(first); // 中身は同じ
+    expect(await harmonySummary(t0 + 30_002)).toBe(later);
+  });
+  it("detached HEAD (git が HEAD と返す) はブランチ名とみなさない。build-info の branch が HEAD でも同じ (#1577 レビュー N1)", async () => {
+    expect(branchName("HEAD\n")).toBeUndefined();
+    expect(branchName(" main \n")).toBe("main");
+    expect(branchName("")).toBeUndefined();
+    const detached = async (_c: string, args: string[]) => {
+      const out: Record<string, string> = { "rev-parse --show-toplevel": proj, "rev-parse --short HEAD": "abc1234", "rev-parse HEAD": SHA, "rev-parse --abbrev-ref HEAD": "HEAD", "status --porcelain --untracked-files=no": "" };
+      return { stdout: out[args.join(" ")] ?? "", stderr: "", code: 0 };
+    };
+    expect(await readVersionInfo(detached, proj)).not.toHaveProperty("branch");
+    await writeBuildInfo({ commit: SHA, branch: "HEAD" });
+    const img = await readVersionInfo(noGit, proj);
+    expect(img).toMatchObject({ source: "image", commit: "0123456" });
+    expect(img).not.toHaveProperty("branch");
+  });
+  it("403 / 429 は回数制限の案内 (しばらくしてから)。HTTP 番号も添える (#1577 レビュー S4)", async () => {
+    for (const status of [403, 429]) {
+      const r = await check(reply(status));
+      expect(r.status).toBe("unknown");
+      expect(r.message).toContain("回数制限");
+      expect(r.message).toContain(`HTTP ${status}`);
+      expect(r.message).toContain("しばらくして");
+    }
+    expect((await check(reply(500))).message).not.toContain("回数制限"); // ほかの失敗は回数制限と言わない
+  });
+  it("ネットワークの失敗は cause の理由 (ENOTFOUND など) と、時間切れの案内を添える (#1577 レビュー S4)", async () => {
+    const withCause = Object.assign(new TypeError("fetch failed"), { cause: Object.assign(new Error("getaddrinfo ENOTFOUND api.github.com"), { code: "ENOTFOUND", hostname: "api.github.com" }) });
+    const r = await check(async () => { throw withCause; });
+    expect(r.message).toContain("fetch failed");
+    expect(r.message).toContain("ENOTFOUND");
+    expect(r.message).toContain("api.github.com");
+    expect(r.message).toContain("プロキシ");
+    expect(describeFetchError(Object.assign(new Error("The operation was aborted due to timeout"), { name: "TimeoutError" }))).toContain("10 秒");
+    expect(describeFetchError(new Error("plain"))).toBe("plain"); // cause が無ければ message のまま
+    expect(describeFetchError("x")).toBe("x");
+  });
+  it("更新の確認の結果は 60 秒覚える。失敗 (unknown) は覚えない。同時の問い合わせは 1 回にまとめる (#1577 レビュー S4)", async () => {
+    let calls = 0, now = 1_000_000;
+    let reply1: UpdateCheck = { status: "behind", message: "古い", behindBy: 3 };
+    const memo = memoizeUpdateCheck(async () => { calls++; return reply1; }, 60_000, () => now);
+    const [a, b] = await Promise.all([memo(), memo()]);
+    expect(calls).toBe(1); // 同時
+    expect(a).toBe(b);
+    now += 59_999;
+    await memo();
+    expect(calls).toBe(1); // 60 秒以内は覚えている
+    now += 2;
+    await memo();
+    expect(calls).toBe(2); // 過ぎたら問い合わせる
+    reply1 = { status: "unknown", message: "失敗" };
+    now += 60_001;
+    await memo();
+    expect(calls).toBe(3);
+    await memo();
+    expect(calls).toBe(4); // unknown は覚えない (すぐ再試行できる)
+    reply1 = { status: "current", message: "最新" };
+    expect((await memo()).status).toBe("current");
+    expect(calls).toBe(5);
   });
 });
 

@@ -139,8 +139,8 @@ export function classifyChangedPath(relPath: string): ChangeEvent | null {
   if (segs.length === 1) {
     if (file === "layout-components.json") return { event: "layoutComponentsChanged", data: {} };
     if (file === "design-check.json") return { event: "designCheckChanged", data: {} };
-    // 運用の記録 (承認・コメント・権限・体裁・生成の記録)。git で取り込んだ・手で書き換えた変更を、画面に知らせる
-    if (["approvals.json", "review-comments.json", "access.json", "document-template.json", "generation.json"].includes(file)) return { event: "opsChanged", data: {} };
+    // 運用の記録 (承認・コメント・権限・体裁・生成・雛形の記録)。git で取り込んだ・手で書き換えた変更を、画面に知らせる
+    if (["approvals.json", "review-comments.json", "access.json", "document-template.json", "generation.json", "scaffold.json"].includes(file)) return { event: "opsChanged", data: {} };
     return null;
   }
   const hit = DIR_EVENTS.find((d) => d.dir === segs[0]);

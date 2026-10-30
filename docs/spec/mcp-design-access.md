@@ -75,9 +75,6 @@ category: ops
 | `designer__workspace_status` / `designer__get_project_context` | 返り値の `harmony` (`version`・`commit`・`branch`・`dirty`・`builtAt`・`source`: `git` / `image`)。どのブランチ・commit から作られた Harmony かが分かる。ネットワークは使わない |
 | `designer__check_harmony_update` | この Harmony が GitHub の最新の main より古くないかを確かめる (`status`: `current` / `behind` / `unknown`、`behindBy` / `aheadBy`)。呼んだときだけ GitHub に読み取りで問い合わせる。ワークスペースが開いていなくても使える。仕様: [integration-ops.md](integration-ops.md) §14 |
 
-| `designer__get_scaffold_update` | 開発コンテナの雛形 (generate-code の `templates/devcontainer/<組合せ>/`) の更新の材料 (読み取りのみ)。`status`: `current` / `outdated` / `no-record` / `not-applicable`、記録の版 `recordedVersion` といまの版 `currentVersion`、`files[]` (`template`・`path`・`kind`: `file` / `section`・`state`: `unchanged` / `template-changed` / `new-in-template` / `removed-from-template`・`base` (写したとき。無ければ 2 方向)・`app` (いまのアプリのファイル)・`latest`・`appEdited`)、当て方の手順 `guide`。中身は変わったファイルだけ・1 ファイル 200KB まで (`truncated`)。ワークスペースが要る。仕様: [integration-ops.md](integration-ops.md) §14 |
-| `designer__record_scaffold` | 雛形を写した・更新を当てたあとに、記録 (`design/scaffold.json`) を「いまの雛形の版」で書き直す (`combo?` / `outDir?` / `skipped?`)。雛形の中身は backend が雛形から読んで記録する。`outDir` は安全な相対パス、`skipped` は雛形にあるパスだけ |
-
 ### 生成のスキルの付属ファイル (Resource)
 
 `generate-code` などの手順 (Prompts) の本文は、`ai-skills/<名前>/templates/**` や `golden-examples/**` を参照する。外の業務プロジェクトはリポジトリを持たないので、これらは MCP の Resource で読む (読み取り専用)。
@@ -88,6 +85,13 @@ category: ops
 | `harmony://skill/<名前>/<パス>` | 1 ファイル。パスは複数の階層 (例 `harmony://skill/generate-code/templates/devcontainer/nestjs-nextjs/.devcontainer/compose.yml`)。上の一覧にあるパスだけ読める |
 
 `<名前>` は Prompts として出すスキル (`create-flow` `review-flow` `generate-code` `generate-tests` `import-md` `rename-screen-ids` `test-strategy`) だけ。Prompt の本文の冒頭にも、この読み方を書いてある (付属ファイルのあるスキル、いまは `generate-code` と `generate-tests` だけ)。守りは [server-security.md](server-security.md) の「AI が読む資料と手順」。Prompts を出さない AI クライアント (VS Code の Claude Code 拡張など) では、Resource `harmony://skill/<名前>/SKILL.md` を読めば同じ手順になる (Prompt は SKILL.md の本文と同じ)。外の業務プロジェクトで Harmony を同居させる構成は [app-devcontainer-sidecar.md](../setup/app-devcontainer-sidecar.md)。
+
+## 開発コンテナの雛形 (generate-code が写した雛形の更新)
+
+| tool | 内容 |
+|---|---|
+| `designer__get_scaffold_update` | 開発コンテナの雛形 (generate-code の `templates/devcontainer/<組合せ>/`) の更新の材料 (**読み取りのみ**)。`status`: `current` / `outdated` / `no-record` / `not-applicable`、記録の版 `recordedVersion` といまの版 `currentVersion`、`files[]` (`template`・`path`・`kind`: `file` / `section`・`state`: `unchanged` / `template-changed` / `new-in-template` / `removed-from-template`・`base` (写したとき。無ければ 2 方向)・`app` (いまのアプリのファイル)・`latest`・`appEdited`)、当て方の手順 `guide`。中身は変わったファイルだけ・1 ファイル 200KB まで (`truncated`)。ワークスペースが要る。仕様: [integration-ops.md](integration-ops.md) §14 |
+| `designer__record_scaffold` | **書き込み**。雛形を写した・更新を当てたあとに、記録 (`design/scaffold.json`) を「いまの雛形の版」で書き直す (`combo?` / `outDir?` / `skipped?`)。雛形の中身は backend が雛形から読んで記録する。`outDir` は安全な相対パス、`skipped` は雛形にあるパスだけ。**当てなかったファイルは必ず `skipped` に渡す** (渡さないと、そのファイルの「写したときの中身」が最新の雛形に置き換わり、次の更新で手入れと雛形の変更を取り違える) |
 
 ## 机上の実行と、指摘の直し方
 
