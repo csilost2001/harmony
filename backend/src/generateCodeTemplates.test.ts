@@ -113,9 +113,9 @@ describe("4 組合せの Playwright MCP の設定が同じ", () => {
     // REPO が git 管理下であることを前提にする
     for (const c of COMBOS) {
       const rel = path.posix.join("ai-skills/generate-code/templates/devcontainer", c, ".tmp/.gitignore");
-      const r = spawnSync("git", ["check-ignore", "-q", rel], { cwd: REPO });
+      const r = spawnSync("git", ["check-ignore", "-q", "--no-index", rel], { cwd: REPO });
       expect(r.error).toBeUndefined();
-      // 0 = 無視される、1 = 無視されない
+      // 追跡済みのファイルは --no-index が無いと常に「無視されない」になるので付ける。0 = 無視される、1 = 無視されない
       expect(r.status, `${rel} が無視されている`).toBe(1);
     }
   });

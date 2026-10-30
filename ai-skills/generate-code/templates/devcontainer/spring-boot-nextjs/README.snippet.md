@@ -46,7 +46,7 @@ AI が画面を開いて、見た目や動きを確かめられます (E2E の�
 | `playwright-headed` | 人が「画面を見たい」と言ったときだけ。Windows のデスクトップにブラウザの窓が開く |
 
 - **開ける画面**: Harmony の画面 `http://localhost:5179` も、業務アプリ (http://localhost:3000 (Next.js) や Backend API の http://localhost:8080) も、そのまま開ける (どれも開発コンテナの `localhost`)
-- **`playwright-headed` の前提**: Windows + WSL2 + Docker Desktop。窓を出すために `.devcontainer/compose.yml` が WSLg の X11 (`/tmp/.X11-unix`・`/mnt/wslg`・`DISPLAY`) を渡している。プロジェクトのフォルダを WSL の中に置き、WSL から開く (Windows 側のフォルダから開くと窓が出ない)。macOS / Linux native では `compose.yml` の `dev` の volumes の 2 行と、`environment:` と `DISPLAY` の 2 行を消す (Docker Desktop for Mac など共有されていないパスを渡せない環境では、消さないとコンテナが起動しない。Linux native ではホストに空のフォルダができるだけ)。headed は使えず、`playwright` だけ使う
+- **`playwright-headed` の前提**: Windows + WSL2 + Docker Desktop。窓を出すために `.devcontainer/compose.yml` が WSLg の X11 (`/tmp/.X11-unix`・`/mnt/wslg`・`DISPLAY`) を渡している。プロジェクトのフォルダを WSL の中に置き、WSL から開く (Windows 側のフォルダから開くと窓が出ない)。macOS / Linux native では `compose.yml` の `dev` の WSLg の 4 行 (volumes の `/tmp/.X11-unix` と `/mnt/wslg` の 2 行、`environment:` と `DISPLAY` の 2 行) を消す (Docker Desktop for Mac など共有されていないパスを渡せない環境では、消さないと起動しないおそれがある。Linux native ではホストに空のフォルダができるだけ)。headed は使えず、`playwright` だけ使う
 - **Wayland の mount エラー**が出たら、VS Code の user settings に `dev.containers.mountWaylandSocket=false` を入れる
 - **版とブラウザ**: Playwright MCP は `@latest`。コンテナを起動するたびに、その MCP に合う Chromium を入れ直す (入っていれば数秒。ネットが無くて失敗しても、起動は止まらない)。それでも「ブラウザが無い」と出たら `npx -y -p @playwright/mcp@latest playwright install chromium`
 - **保存先**: スナップショット・スクリーンショットは `.tmp/playwright-mcp/` に出る。`.tmp/.gitignore` があるので git には入らない (VS Code のエクスプローラーでは開ける)。ファイル名を指定して保存させるときは、`.tmp/playwright-mcp/` の下を指定する (名前だけだと MCP を起動した場所 (Claude Code ならふつうはプロジェクトのルート) に出て git に入る)
