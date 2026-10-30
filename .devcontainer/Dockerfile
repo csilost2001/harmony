@@ -20,7 +20,7 @@
 # `/publish-dev-image <version>` AI skill は **host bash で実行** すること
 # (#1122 で container 内 docker CLI 廃止、ai-skills/publish-dev-image/SKILL.md)
 
-FROM ghcr.io/csilost2001/harmony-devcontainer-base:0.3
+FROM ghcr.io/csilost2001/harmony-devcontainer-base:0.4
 
 USER root
 
@@ -33,6 +33,11 @@ USER root
 RUN apt-get update \
   && apt-get install -y --no-install-recommends ripgrep \
   && rm -rf /var/lib/apt/lists/*
+
+# npm を最新にそろえる (#1571)。base image 同梱の npm が古いと、package-lock.json の libc の欄が
+# 消えるなど、端末ごとに lock が書き換わる。ただし Docker の cache が効くと、古い npm のまま残る。
+# `npm run check:deps -- runtime` で npm が古いと出たら、Dev Containers: Rebuild Without Cache を使う。
+RUN npm install -g npm@latest
 
 # @openai/codex (頻繁更新ツール、本 overlay 層に閉じ込め)
 RUN npm install -g @openai/codex@0.130.0

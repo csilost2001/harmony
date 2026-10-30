@@ -15,6 +15,13 @@ if ! "${ENGINE}" info >/dev/null 2>&1; then
   exit 1
 fi
 
-"${ENGINE}" build -t "${IMAGE}" .
+# npm の最新の版を build-arg で渡す。新版が出たときだけ npm の層が作り直される (取れなければ latest)。--pull で node のパッチも取る (#1571)
+NPM_VERSION="latest"
+if command -v npm >/dev/null 2>&1; then
+  NPM_VERSION="$(npm view npm version 2>/dev/null || true)"
+  NPM_VERSION="${NPM_VERSION:-latest}"
+fi
+
+"${ENGINE}" build --pull --build-arg NPM_VERSION="${NPM_VERSION}" -t "${IMAGE}" .
 
 echo "Built ${IMAGE} with ${ENGINE}"

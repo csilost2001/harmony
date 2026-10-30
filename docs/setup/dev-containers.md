@@ -157,7 +157,7 @@ container 内ターミナルで:
 
 ```bash
 # Node / npm / git / gh が container 内に存在することを確認
-node --version    # v20.x.x
+node --version    # v26.x.x (.nvmrc のメジャー)
 npm --version
 gh --version
 
@@ -409,14 +409,17 @@ host と container は **別 OAuth credential で独立**動作。それぞれ�
 
 ### バージョン更新
 
-- **Claude Code**: Phase 5 (#1120) 以降は base image inline (`.devcontainer/base/Dockerfile` の `npm install -g @anthropic-ai/claude-code`) で install。base image bump 時に最新版が pull される。`DISABLE_AUTOUPDATER: "1"` を入れているので **container 起動後の自動更新は止まる**。特定版に pin したい場合は base/Dockerfile の RUN 行を `npm install -g @anthropic-ai/claude-code@X.Y.Z` に変えて publish-dev-image で新版を push。
+- **Claude Code**: Phase 5 (#1120) 以降は base image inline (`.devcontainer/base/Dockerfile` の `npm install -g @anthropic-ai/claude-code`) で install。base image bump 時に最新版が pull される。`DISABLE_AUTOUPDATER: "1"` を入れているので **container 起動後の自動更新は止まる**。特定版に pin したい場合は base/Dockerfile の RUN 行を `npm install -g --allow-scripts=@anthropic-ai/claude-code @anthropic-ai/claude-code@X.Y.Z` に変えて (`--allow-scripts` は npm 12 が止める postinstall を許すために必須。外すと native binary が入らない) publish-dev-image で新版を push。
 - **Codex**: overlay Dockerfile (`.devcontainer/Dockerfile:28`) の `RUN npm install -g @openai/codex@<version>` を編集し、VSCode から `Dev Containers: Rebuild Container` を実行して反映。container 内で `npm install -g` を個別実行する必要はない (rebuild した時点で overlay 層から再 install される)。
+
+- **Node と npm**: Node は base image の `FROM` のタグ (`typescript-node:26-trixie`) で決まる。npm は base と overlay の両方で最新にする。base (と配布 image の build の段) は `ARG NPM_VERSION` で版を受け取り、`publish-dev-image.sh`・`build-base.sh`・`scripts/build-harmony-image.sh` が `--pull --build-arg NPM_VERSION=$(npm view npm version)` を付けて build する (npm の新版が出たときだけ npm の層が作り直され、`--pull` で Node のパッチも最新になる。ホストに npm が無い・`npm view` が失敗したときは `latest`)。overlay は VS Code が build するので `npm install -g npm@latest` のままで、Docker の cache が効くと古い npm のまま残ることがある。`npm run check:deps -- runtime` で「古い」と出たら `Dev Containers: Rebuild Without Cache` を実行する。配布 image の実行の段は npm を使わないので、npm を消してある (使わない npm の脆弱性を残さず、image も小さくするため)。端末の Node と npm が合っているかは `npm run setup -- --check` でも見られる。なお、Node のパッチは元の image (`typescript-node:26-trixie`) が出るまで数日遅れることがある (2026-10-30 時点で Node は v26.13.0、image は v26.12.1)。そのため `check:deps -- runtime` は、新しいパッチが出てから 14 日までは「知らせ」にとどめ、過ぎたら失敗にする。
+- **npm 12 は、依存の install スクリプトを既定で止める**: `npm install` の最後に `install scripts blocked` の警告が出る。どれを許すかは `package.json` の `allowScripts` に残してある (ルートは `esbuild`・`fsevents` (macOS だけで使う。実行ファイルは同梱)、`docs-site` は `esbuild`・`sharp` を拒否。どれも platform 別の実行ファイルを optionalDependencies で取るので、スクリプトなしで動く)。依存を足して警告が出たら、`npm install-scripts ls` で止まったものを見て、動くのに要るものだけ `npm install-scripts approve <pkg>`、要らないものは `npm install-scripts deny <pkg>` を実行する (`allowScripts` は手で書かず、npm に書かせる)。base image の `claude-code` だけは native binary を置く postinstall が要るので、`.devcontainer/base/Dockerfile` で `--allow-scripts` をつけて入れている。
 
 ## 仕組み解説: devcontainer.json の構造 (#1118 Phase 1+2 以降)
 
 ```
 ghcr.io/csilost2001/harmony-devcontainer-base:<version>  ← Phase 2 で確立した base
-  ├── mcr.microsoft.com/devcontainers/typescript-node:20-trixie
+  ├── mcr.microsoft.com/devcontainers/typescript-node:26-trixie  (Node は最新の LTS。npm は npm@latest で最新に: #1571)
   ├── Playwright + Chromium + apt deps (稀更新、~285 MiB)
   └── #1120 Phase 5: github-cli / claude-code / copilot-cli を inline
       (元 features、~80-110 MiB 増)
@@ -424,6 +427,7 @@ ghcr.io/csilost2001/harmony-devcontainer-base:<version>  ← Phase 2 で確立�
                   ↓ FROM
 .devcontainer/Dockerfile (overlay)
   ├── ripgrep (rg) — apt、codex 行の上に置き cache 安定 (#1416)
+  ├── npm@latest — npm を最新にそろえる (#1571)
   └── @openai/codex@<version> (頻繁更新、月単位)
                   ↓
 container 起動 → onCreate → postCreate (npm install + .config.json)
@@ -470,7 +474,7 @@ base image (`ghcr.io/csilost2001/harmony-devcontainer-base:<version>`) を更新
 
 ### 更新手順 (毎回)
 
-1. `.devcontainer/base/Dockerfile` を編集 (Playwright version 更新等)
+1. `.devcontainer/base/Dockerfile` を編集 (Playwright version 更新等。`playwright@<版>` は `package-lock.json` の `playwright-core` の版と必ず一致させる。ずれると `npm run check:docs` が失敗する)
 2. WSL2 ターミナルで publish:
    ```bash
    bash .devcontainer/scripts/publish-dev-image.sh <new-version>
@@ -515,10 +519,10 @@ bash .devcontainer/scripts/build-base.sh
 | 症状 | 原因 / 対処 |
 |---|---|
 | `Reopen in Container` ポップアップが出ない | `.devcontainer/devcontainer.json` がリポジトリ root にあるか確認。`Ctrl+Shift+P` → `Dev Containers: Reopen in Container` を手動実行 |
-| 初回 build が完了しない / network エラー | Docker Desktop が起動しているか / インターネット接続 / 社内 proxy 設定。`docker pull mcr.microsoft.com/devcontainers/typescript-node:20` を WSL2 シェルで先に試す |
+| 初回 build が完了しない / network エラー | Docker Desktop が起動しているか / インターネット接続 / 社内 proxy 設定。`docker pull mcr.microsoft.com/devcontainers/typescript-node:26` を WSL2 シェルで先に試す |
 | `invalid mount config ... /run/user/1000/wayland-0` で container start に失敗 | WSLg の Wayland socket が broken symlink になっている状態で、Dev Containers 拡張が Wayland socket を自動 bind mount すると発生する。この自動 mount は VS Code user setting 側の挙動なので、VS Code user settings に `"dev.containers.mountWaylandSocket": false` を追加してから `Dev Containers: Rebuild Container` を実行する。Harmony の devcontainer は `WAYLAND_DISPLAY` / `XDG_RUNTIME_DIR` を設定せず、headed browser は X11 fallback (`DISPLAY=:0`) に寄せている |
 | `postCreateCommand` で `npm install` が失敗 | bind mount された `node_modules` (WSL2 native で install したもの) が container と互換性なく失敗するケースあり。一度 WSL2 側で `rm -rf node_modules frontend/node_modules backend/node_modules shared/node_modules` してから rebuild container |
-| Playwright browsers が見つからない / install が必要 | Phase 5 (#1118 / #1120) 以降 Playwright chromium は **base image (ghcr) に同梱済**。`postCreateCommand` での `playwright install` は廃止。base image の build (`/publish-dev-image`) で `npx playwright install` が走るため、container 起動後は `~/.cache/ms-playwright/` に既に存在する。version mismatch で再 install したい場合のみ container 内で `npx playwright install chromium` を手動実行 |
+| Playwright browsers が見つからない / install が必要 | Phase 5 (#1118 / #1120) 以降 Playwright chromium は **base image (ghcr) に同梱済**。`postCreateCommand` での `playwright install` は廃止。base image の build (`/publish-dev-image`) で `npx playwright install` が走るため、container 起動後は `~/.cache/ms-playwright/` に既に存在する。version mismatch (E2E が `Executable doesn't exist ... chromium_headless_shell-NNNN` で落ちる) は、base の Dockerfile の `playwright@<版>` が `package-lock.json` の `playwright-core` の版と違うときに起きる。この食い違いは `npm run check:docs` が検出する。直すには Dockerfile の版を lock にそろえて base image を出し直す。急ぎなら container 内で `npx playwright install chromium` を手動実行 |
 | Vite HMR がブラウザに反映されない | bind mount + inotify の問題。`frontend/vite.config.ts` の watch options に `{ usePolling: true, interval: 100 }` を追加。または container 内で `export CHOKIDAR_USEPOLLING=1` |
 | port 5173 / 5179 が forward されない | VSCode 下部の `PORTS` パネルで forward 状態を確認。`portsAttributes` で auto-forward 設定済 |
 | `~/.gitconfig` / `~/.ssh/` が container 内で使えない | `~/.gitconfig` は #1417 で **意図的に bind mount しない** (起動失敗回避)。git identity は repo local config (`git config user.email/.name`) か container 内 `git config --global` で設定 (本書「初回起動時に必要な手作業」item 5 参照)。どうしても host の `~/.gitconfig` を共有したい場合のみ `devcontainer.json` の `mounts` に明示追加。`~/.ssh/` も同様に必要なら `mounts` 追加 |
@@ -553,6 +557,22 @@ Dev Containers の image を CI でも使うと、ローカル / CI 完全一致
 `/generate-code` skill が出力する**業務アプリ**には、同じ思想 (pre-build しない、MS 公式 base image + features 構成) で `.devcontainer/devcontainer.json` + `Dockerfile` + `docker-compose.yml` を同梱する (#1048)。techStack 4 組合せ (spring-boot × thymeleaf / nextjs、nestjs × thymeleaf / nextjs) のテンプレが `ai-skills/generate-code/templates/devcontainer/` 配下に配置されており、`/generate-code` 実行時に techStack を判定して該当テンプレをコピー出力する。詳細は [`SKILL.md` Step 5.5](../../ai-skills/generate-code/SKILL.md) を参照。
 
 **`<出力先>` の運用想定**: `/generate-code <id> <出力先>` の `<出力先>` は **業務アプリ project root** を指す (project-root model)。Harmony 利用者は意味のある folder 名 (例: `~/projects/retail-app/`) を独立した project root として作り、それを `<出力先>` に指定して VS Code / Dev Container で開く。`examples/<id>/generated/<techStack>/` は Harmony 同梱サンプル / dogfood 参照物であり、常用の project root として開く運用は想定しない (`${localWorkspaceFolderBasename}` が `generated` で衝突するため)。詳細は [`SKILL.md` Step 5.5](../../ai-skills/generate-code/SKILL.md) の「出力先の運用想定 (project-root model)」を参照。設定駆動 (`harmony.json` の `outputDir` 等) は [#1116](https://github.com/csilost2001/harmony/issues/1116) で検討中。
+
+### Node のメジャーを上げる手順
+
+Harmony は Node と npm を **常に最新の LTS** にそろえる (#1571)。新しい LTS は毎年 10 月ごろに Active LTS になる。`npm run check:deps -- runtime` が「新しい LTS のメジャーが出ています」と知らせたら、次を **まとめて** 変える (どれか 1 つでも残ると、端末ごとに Node の版が違い、`package-lock.json` が書き換わる元になる)。
+
+| 変える所 | 内容 |
+|---|---|
+| `.nvmrc` | メジャーの数字 1 行 (例: `26` → `28`) |
+| `package.json` の `engines` | `node` / `npm` の下限。そのあと、新しい Node + npm で `npm install` して `package-lock.json` を作り直す (lock を消して全部を解決し直さない。2 回目の `npm install` で差分が出ないことを確かめる)。`docs-site/package-lock.json` も同じ |
+| `.devcontainer/base/Dockerfile` | `FROM ...typescript-node:<新>-trixie`。続けて上の「更新手順」で `publish-dev-image` に新しい版 (例: 0.5) を出す |
+| `.devcontainer/Dockerfile` (overlay) | `FROM ...harmony-devcontainer-base:<新しい版>`。**ghcr への公開が先** (公開前に merge すると、利用者の Dev Containers が build できない) |
+| `Dockerfile` (配布用) | build / runtime 両方の `node:<新>-alpine` |
+| `ai-skills/generate-code/templates/devcontainer/` の 4 組 | compose の `typescript-node:<新>`、各 `Dockerfile` の `node:<新>-alpine`、spring の 2 組は `devcontainer.json` の `features/node:1` の `version`。あわせて `ai-skills/generate-code/SKILL.md` の表と構成の説明 |
+| 資料 | この文書・`wsl2-native.md`・`distribution-roadmap.md`・`frontend/README.md`・`docs-site/README.md` の Node の記述 |
+
+そのあと `npm run check`・回帰 E2E・配布 image の smoke (`bash scripts/smoke-harmony-compose.sh local`) を通す。ホストの nvm も `nvm install <新>` と `nvm alias default <新>` で上げ、VS Code を開き直す ([`wsl2-native.md`](./wsl2-native.md))。
 
 ## 関連ドキュメント
 

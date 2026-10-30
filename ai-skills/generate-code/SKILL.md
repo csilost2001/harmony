@@ -1221,6 +1221,12 @@ public class ProductSearchController {
 
 **重要**: `package.json` に `"overrides": { "postcss": "^8.5.x" }` を**必ず**含めること (transient postcss の advisories を解消する唯一の方法)。これが無いと next 内部の古い postcss が pickup されて `npm audit` で moderate 警告が残る。
 
+**npm 12 以降は、依存の install スクリプトが既定で止まる** (雛形の Dockerfile は `npm install -g npm@latest` で npm 12 を使うので、生成したアプリの `npm ci` も同じ)。生成した `package.json` に `allowScripts` を入れて、どれを許すかを決めて残す。手で書かず、npm に書かせる。
+
+1. `npm install` のあと `npm install-scripts ls` で、止まったものを見る (止まったものは `npm install` の末尾にも警告で出る)
+2. 動くのに要るものは `npm install-scripts approve <pkg>` (`allowScripts` に `"<pkg>@<版>": true` が入る)。要らないものは `npm install-scripts deny <pkg>` (`false` が入り、警告が消える)
+3. 要るかどうかは、止めたまま動かして決める。確かめた例 (npm 12.2.1 / Node 26): `prisma`・`@prisma/client`・`@prisma/engines` (6.19) は止まっても `prisma generate`・`prisma db push`・クエリが動くので `deny`。`bcrypt` 6 も止まったまま動くが、`bcrypt` 5 は止まると読み込みで失敗する (`bcrypt_lib.node` が無い) ので `approve`
+
 **App Router async API 注記**: Next.js 15 では `cookies()` / `headers()` / `params` / `searchParams` が **Promise 返却** に変更。Page / Layout / Route Handler で:
 
 ```typescript
@@ -1698,8 +1704,8 @@ ai-skills/generate-code/templates/
   devcontainer/                  — プロジェクト scaffold (#1048、Step 5.5 で参照)
     spring-boot-thymeleaf/       — JDK 21 + Maven + Node features 構成 (#1050 で 17→21)
     spring-boot-nextjs/          — 同上 + Next.js dev server forward
-    nestjs-thymeleaf/            — Node 20 + github-cli のみの最小構成 (稀組合せ)
-    nestjs-nextjs/               — Node 20 構成 + Next.js dev server forward (単一 package.json、#1050 で再構成)
+    nestjs-thymeleaf/            — Node 26 + github-cli のみの最小構成 (稀組合せ)
+    nestjs-nextjs/               — Node 26 構成 + Next.js dev server forward (単一 package.json、#1050 で再構成)
 ```
 
 ## Step 5: コード生成 + 出力先への書き出し
@@ -1833,8 +1839,8 @@ Step 0 で `--all` / `--workspace <wsId>` が指定された場合、Step 1〜6 
 |---|---|---|---|---|
 | spring-boot × thymeleaf | `mcr.microsoft.com/devcontainers/java:1-21-bookworm` | `java:1` (version 21, installMaven true)、`node:1`、`github-cli:1` | `claude-code:1.0`、`copilot-cli:1.1.2` + postCreateCommand で `codex` npm 同梱 | postgres:15 |
 | spring-boot × nextjs | 同上 | 同上 (Next.js dev server に Node 必須) | 同上 | 同上 |
-| nestjs × thymeleaf | `mcr.microsoft.com/devcontainers/typescript-node:20` | `github-cli:1` のみ (NestJS が SSR するため Maven 不要、最小構成) | 同上 | SQLite (Prisma file:./prisma/dev.db、Postgres section はコメントアウトで保持) |
-| nestjs × nextjs | `mcr.microsoft.com/devcontainers/typescript-node:20` | `github-cli:1` | 同上 | 同上 |
+| nestjs × thymeleaf | `mcr.microsoft.com/devcontainers/typescript-node:26` | `github-cli:1` のみ (NestJS が SSR するため Maven 不要、最小構成) | 同上 | SQLite (Prisma file:./prisma/dev.db、Postgres section はコメントアウトで保持) |
+| nestjs × nextjs | `mcr.microsoft.com/devcontainers/typescript-node:26` | `github-cli:1` | 同上 | 同上 |
 
 > nestjs × thymeleaf 組合せは稀。当面は最小テンプレ提供で、需要が顕在化したら拡充。
 

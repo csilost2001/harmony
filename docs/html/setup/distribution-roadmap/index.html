@@ -7,7 +7,7 @@
 🔍 検索
 </button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
 🌓
-</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> セットアップ </div> <ul class="space-y-0.5"> <li> <a href="../../setup/dev-containers/" class="sidebar-link"> Dev Containers (推奨) </a> </li><li> <a href="../../setup/compose-runtime/" class="sidebar-link"> Compose runtime </a> </li><li> <a href="../../setup/wsl2-native/" class="sidebar-link"> WSL2 native (代替) </a> </li><li> <a href="../../setup/distribution-roadmap/" class="sidebar-link active"> Docker image 配布 </a> </li><li> <a href="../../setup/customer-project-agents-template/" class="sidebar-link"> Customer AGENTS template </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="harmony-配布形態ロードマップ--docker-image-配布">Harmony 配布形態ロードマップ — Docker image 配布</h1>
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> セットアップ </div> <ul class="space-y-0.5"> <li> <a href="../../setup/dev-containers/" class="sidebar-link"> Dev Containers (推奨) </a> </li><li> <a href="../../setup/compose-runtime/" class="sidebar-link"> Compose runtime </a> </li><li> <a href="../../setup/app-devcontainer-sidecar/" class="sidebar-link"> 業務アプリに Harmony を同居 </a> </li><li> <a href="../../setup/wsl2-native/" class="sidebar-link"> WSL2 native (代替) </a> </li><li> <a href="../../setup/distribution-roadmap/" class="sidebar-link active"> Docker image 配布 </a> </li><li> <a href="../../setup/customer-project-agents-template/" class="sidebar-link"> Customer AGENTS template </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="harmony-配布形態ロードマップ--docker-image-配布">Harmony 配布形態ロードマップ — Docker image 配布</h1>
 <p>Harmony 本体 (frontend + backend) を Docker image として配布し、利用者が <code>git clone</code> せずに <code>docker compose up</code> だけで起動できるようにする方針。</p>
 <blockquote>
 <p>✅ <strong>現在の採用方針は 1-container 構成です</strong> (#1472)。</p>
@@ -307,7 +307,7 @@
 </blockquote>
 <p><code>frontend/Dockerfile</code> を新規作成。multi-stage ビルドで配布用 image をスリムに:</p>
 <pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="dockerfile"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># Stage 1: ビルド</span></span>
-<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">FROM</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> node:20-alpine </span><span style="color:#D73A49;--shiki-dark:#F47067">AS</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> builder</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">FROM</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> node:26-alpine </span><span style="color:#D73A49;--shiki-dark:#F47067">AS</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> builder</span></span>
 <span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">WORKDIR</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> /app</span></span>
 <span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">COPY</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> package*.json ./</span></span>
 <span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">RUN</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> npm ci</span></span>
@@ -315,7 +315,7 @@
 <span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">RUN</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> npm run build</span></span>
 <span class="line"></span>
 <span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># Stage 2: 配布</span></span>
-<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">FROM</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> node:20-alpine</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">FROM</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> node:26-alpine</span></span>
 <span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">WORKDIR</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> /app</span></span>
 <span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">RUN</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> npm install -g serve</span></span>
 <span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">COPY</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> --from=builder /app/dist ./dist</span></span>
@@ -334,7 +334,7 @@
 <p>⚠️ <strong>再検討対象</strong>: 1-container 案では本 Dockerfile を <strong>backend + frontend 統合 Dockerfile</strong> に書き直す。stage 1 で frontend を build、stage 2 で backend に dist/ をコピーして <code>express.static()</code> で配信する構成。</p>
 </blockquote>
 <p><code>backend/Dockerfile</code>:</p>
-<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="dockerfile"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">FROM</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> node:20-alpine</span></span>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="dockerfile"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">FROM</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> node:26-alpine</span></span>
 <span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">WORKDIR</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> /app</span></span>
 <span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">COPY</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> package*.json ./</span></span>
 <span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">RUN</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> npm ci --omit=dev</span></span>
@@ -395,7 +395,7 @@
 <p>通常メンテナは Dev Containers で開発するが、Docker compose でも開発できる状態を用意したい場合のみ:</p>
 <pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="yaml"><code><span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">services</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
 <span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">  frontend</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
-<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    image</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">node:20-alpine</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    image</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">node:26-alpine</span></span>
 <span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    working_dir</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">/app</span></span>
 <span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    command</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">sh -c "npm install &#x26;&#x26; npm run dev -- --host 0.0.0.0"</span></span>
 <span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    ports</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"5173:5173"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">]</span></span>
@@ -406,7 +406,7 @@
 <span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">      VITE_HOST</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">0.0.0.0</span></span>
 <span class="line"></span>
 <span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">  backend</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
-<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    image</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">node:20-alpine</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    image</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">node:26-alpine</span></span>
 <span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    working_dir</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">/app</span></span>
 <span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    command</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">sh -c "npm install &#x26;&#x26; npm run dev"</span></span>
 <span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    ports</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"5179:5179"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">]</span></span>

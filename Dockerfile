@@ -6,8 +6,14 @@
 # - /data/workspaces はユーザー workspace の推奨 mount point
 
 # ─── stage 1: build ─────────────────────────────────────────────────────────
-FROM node:20-alpine AS build
+FROM node:26-alpine AS build
 WORKDIR /app
+
+# npm を最新にそろえる (#1571)。package-lock.json を書いた npm と同じ系統で npm ci を走らせる。
+# NPM_VERSION は scripts/build-harmony-image.sh が `npm view npm version` の結果を渡す。npm の新版が出たときだけこの層が作り直される
+# (渡さなければ latest のままで、Docker の cache が効くと古い npm が残る。そのときは docker build --pull --no-cache)
+ARG NPM_VERSION=latest
+RUN npm install -g npm@${NPM_VERSION}
 
 ARG VITE_HARMONY_SAME_PORT=1
 ENV VITE_HARMONY_SAME_PORT=${VITE_HARMONY_SAME_PORT}
@@ -24,14 +30,21 @@ RUN npm ci
 COPY schemas ./schemas
 COPY frontend ./frontend
 COPY backend ./backend
+# prune は --ignore-scripts を付ける。npm 12 は prune のあと shared の prepare (npm run build = tsc) を走らせるが、
+# そのときには devDependencies の typescript が消えていて「tsc: not found」で落ちる (shared はすぐ上で build 済み。#1571)
 RUN npm run build --workspace=@harmony/shared \
     && npm run build --workspace=frontend \
     && npm run build --workspace=backend \
-    && npm prune --omit=dev
+    && npm prune --omit=dev --ignore-scripts
 
 # ─── stage 2: runtime ───────────────────────────────────────────────────────
-FROM node:20-alpine AS runtime
+FROM node:26-alpine AS runtime
 WORKDIR /app
+
+# runtime では npm を使わない (起動は node だけ。backend も npm / npx を呼ばない) ので、同梱の npm を消す (#1571)。
+# 最新の npm を入れ直すと、古い npm の層の上に新しい npm と npm のキャッシュが重なって image が大きくなるうえ、
+# 使わない npm の脆弱性を image に残すことになる
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 ENV NODE_ENV=production
 ENV HARMONY_HOME=/home/node/.harmony

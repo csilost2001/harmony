@@ -218,7 +218,7 @@ Harmony 本体の利用者 (= 業務アプリ設計者、AGENTS.md の (2)) の�
 
 ```dockerfile
 # Stage 1: ビルド
-FROM node:20-alpine AS builder
+FROM node:26-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
@@ -226,7 +226,7 @@ COPY . .
 RUN npm run build
 
 # Stage 2: 配布
-FROM node:20-alpine
+FROM node:26-alpine
 WORKDIR /app
 RUN npm install -g serve
 COPY --from=builder /app/dist ./dist
@@ -250,7 +250,7 @@ CMD ["serve", "-s", "dist", "-l", "5173"]
 `backend/Dockerfile`:
 
 ```dockerfile
-FROM node:20-alpine
+FROM node:26-alpine
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev
@@ -320,7 +320,7 @@ services:
 ```yaml
 services:
   frontend:
-    image: node:20-alpine
+    image: node:26-alpine
     working_dir: /app
     command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
     ports: ["5173:5173"]
@@ -331,7 +331,7 @@ services:
       VITE_HOST: 0.0.0.0
 
   backend:
-    image: node:20-alpine
+    image: node:26-alpine
     working_dir: /app
     command: sh -c "npm install && npm run dev"
     ports: ["5179:5179"]

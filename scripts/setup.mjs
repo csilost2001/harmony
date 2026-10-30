@@ -2,7 +2,8 @@
 /**
  * setup — 初回のセットアップを、1 つのコマンドで。
  *   npm run setup                 診断して、足りないものをそろえる (npm install・共有パッケージのビルド・workspaces/ の作成)
- *   npm run setup -- --check      診断だけ (何も変えない。足りなければ終了コード 1)
+ *   npm run setup -- --check      診断だけ (何も変えない。足りなければ終了コード 1)。Node と npm の版も見る
+ *                                 (engines・.nvmrc との食い違い。ネットワークは使わない。最新の版との比較は npm run check:deps -- runtime)
  *   npm run setup -- --sample retail   サンプルを workspaces/retail に複製する (そのまま開いて試せる)
  *   npm run setup -- --skip-install    npm install を飛ばす
  * 終わると、起動のしかたを案内する。Dev Containers を使う場合は、docs/setup/dev-containers.md の手順 (このコマンドは中でも使える)。
@@ -12,7 +13,7 @@ import net from "node:net";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { fileExists, planSetup } from "./lib/setup.mjs";
+import { fileExists, planSetup, runtimeFindings } from "./lib/setup.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -20,6 +21,11 @@ const flag = (k) => args.includes(k);
 const val = (k) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : undefined; };
 const checkOnly = flag("--check");
 const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+
+const npmV = spawnSync("npm", ["-v"], { encoding: "utf8", shell: process.platform === "win32" });
+const npmVersion = npmV.status === 0 ? npmV.stdout.trim() : null;
+const nvmrcPath = path.join(root, ".nvmrc");
+const nvmrc = fs.existsSync(nvmrcPath) ? fs.readFileSync(nvmrcPath, "utf8") : undefined;
 
 const run = (cmd, a, cwd = root) => {
   console.log(`  $ ${cmd} ${a.join(" ")}`);
@@ -30,10 +36,15 @@ const portBusy = (port) => new Promise((resolve) => { const s = net.connect({ po
 console.log("Harnize Harmony のセットアップ\n");
 const git = spawnSync("git", ["--version"], { encoding: "utf8" });
 console.log(`  Node.js ${process.version}`);
+console.log(`  npm     ${npmVersion ?? "(見つかりません)"}`);
 console.log(`  git     ${git.status === 0 ? git.stdout.trim().replace(/^git version /, "") : "(見つかりません。なくても動きますが、「連携と運用」の Git は使えません)"}`);
 
 const plan = planSetup({ root, nodeVersion: process.version, pkg, has: fileExists(root), sample: val("--sample"), skipInstall: flag("--skip-install") });
+// Node が engines 未満という指摘は planSetup が先に出すので、ここでは重ねない
+const rt = runtimeFindings({ nodeVersion: process.version, npmVersion, nvmrc, pkg, includeNodeEngines: false });
+plan.problems.push(...rt.problems);
 for (const p of plan.problems) console.error(`\n✗ ${p}`);
+for (const n of rt.notices) console.log(`\n・${n}`);
 const busy = [];
 for (const [port, name] of [[5179, "backend"], [5173, "frontend"]]) if (await portBusy(port)) busy.push(`${port} (${name})`);
 if (busy.length) console.log(`\n・ポート ${busy.join("・")} は、すでに使われています (起動済みなら、そのまま使えます。止めるには npm run kill)`);

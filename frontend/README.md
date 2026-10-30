@@ -50,7 +50,7 @@ node docs/sample-project/seed.mjs
 
 ## 動作環境
 
-- Node.js 20 以上 (setup docs `docs/setup/wsl2-native.md` / `docs/setup/dev-containers.md` も Node 20 前提)
+- Node.js 26 以上・npm 12 以上 (最新の LTS にそろえる。リポジトリ直下の `.nvmrc` と `package.json` の `engines`。手順は `docs/setup/wsl2-native.md` / `docs/setup/dev-containers.md`)
 - モダンブラウザ（Chrome / Edge 推奨）
 - PC 向け（スマートフォン非対応）
 

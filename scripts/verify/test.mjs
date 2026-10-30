@@ -15,7 +15,7 @@ import { dirname, resolve } from "node:path";
 import { countOutlineNone } from "./no-new-outline-none.mjs";
 import { scanText } from "./no-secrets.mjs";
 import { measure as measureHygiene } from "./hygiene.mjs";
-import { licenseOk } from "../dev/deps-report.mjs";
+import { licenseOk, latestLts } from "../dev/deps-report.mjs";
 import {
   parseArgs,
   extractFailedTests,
@@ -635,9 +635,9 @@ group("export-design-doc (体裁・改訂履歴)", () => {
 // ─────────────────────────────────────────────────────────────
 // docs-freshness.mjs (資料の鮮度検査)
 // ─────────────────────────────────────────────────────────────
-const { brokenLinks, unknownNpmScripts, appRoutes, docRoutes, routeTableDrift, uiReferenceIssues, skillIssues, specIndexGaps, specFrontmatterIssues, aiIndexToolIssues, generatedIssues, jsonExampleIssues, codemapPathIssues, normRoute, runChecks } = await import("./docs-freshness.mjs");
+const { brokenLinks, unknownNpmScripts, appRoutes, docRoutes, routeTableDrift, uiReferenceIssues, skillIssues, specIndexGaps, playwrightDrift, specFrontmatterIssues, aiIndexToolIssues, generatedIssues, jsonExampleIssues, codemapPathIssues, normRoute, runChecks } = await import("./docs-freshness.mjs");
 const { pickTargets, DOC_SHOT_NAMES } = await import("../dev/docs-shots.mjs");
-const { planSetup, versionAtLeast, requiredNode } = await import("../lib/setup.mjs");
+const { planSetup, versionAtLeast, requiredNode, requiredEngine, nvmrcMajor, runtimeFindings, enginesCheck } = await import("../lib/setup.mjs");
 const { toNoteLine, renderNotes } = await import("../release/notes.mjs");
 
 function docsFixture() {
@@ -756,20 +756,54 @@ group("docs-shots (スクリーンショットの撮り直しの対象)", () => 
 group("setup (初回セットアップの計画)", () => {
   const has = (set) => (rel) => set.includes(rel);
   assert("版の比較", versionAtLeast("v22.1.0", "20") && versionAtLeast("20.0.0", "20") && !versionAtLeast("18.19.0", "20") && versionAtLeast("v20.10", "20.9.5"));
-  assert("engines が無ければ Node 20", requiredNode({}) === "20" && requiredNode({ engines: { node: ">=22.1" } }) === "22.1");
-  const none = planSetup({ root: "/r", nodeVersion: "v20.1.0", pkg: {}, has: has([]) });
+  assert("engines が無ければ Node 26 (#1571 で 20 から変更)", requiredNode({}) === "26" && requiredNode({ engines: { node: ">=22.1" } }) === "22.1");
+  const none = planSetup({ root: "/r", nodeVersion: "v26.1.0", pkg: {}, has: has([]) });
   assert("何もなければ、install → shared のビルド → workspaces/ の作成", none.steps.map((s) => s.id).join() === "install,build-shared,mkdir-workspaces" && none.problems.length === 0);
-  const done = planSetup({ root: "/r", nodeVersion: "v20.1.0", pkg: {}, has: has(["node_modules", "shared/dist/index.js", "workspaces"]) });
+  const done = planSetup({ root: "/r", nodeVersion: "v26.1.0", pkg: {}, has: has(["node_modules", "shared/dist/index.js", "workspaces"]) });
   assert("そろっていれば、何もしない", done.steps.length === 0 && done.problems.length === 0);
-  assert("Node が古ければ問題にする", planSetup({ root: "/r", nodeVersion: "v18.0.0", pkg: {}, has: has(["node_modules", "shared/dist/index.js", "workspaces"]) }).problems[0].includes("20 以上"));
-  assert("--skip-install で node_modules が無ければ問題にする (install はしない)", (() => { const p = planSetup({ root: "/r", nodeVersion: "v20.1.0", pkg: {}, has: has(["shared/dist/index.js", "workspaces"]), skipInstall: true }); return !p.steps.some((s) => s.id === "install") && p.problems.length === 1; })());
+  assert("Node が古ければ問題にする", planSetup({ root: "/r", nodeVersion: "v20.20.2", pkg: {}, has: has(["node_modules", "shared/dist/index.js", "workspaces"]) }).problems[0].includes("26 以上"));
+  assert("--skip-install で node_modules が無ければ問題にする (install はしない)", (() => { const p = planSetup({ root: "/r", nodeVersion: "v26.1.0", pkg: {}, has: has(["shared/dist/index.js", "workspaces"]), skipInstall: true }); return !p.steps.some((s) => s.id === "install") && p.problems.length === 1; })());
   assert("サンプルは、examples/ にあれば複製する・なければ問題・複製済みなら何もしない", (() => {
     const base = ["node_modules", "shared/dist/index.js", "workspaces"];
-    const a = planSetup({ root: "/r", nodeVersion: "v20.1.0", pkg: {}, has: has([...base, "examples/retail/harmony.json"]), sample: "retail" });
-    const b = planSetup({ root: "/r", nodeVersion: "v20.1.0", pkg: {}, has: has(base), sample: "retail" });
-    const c = planSetup({ root: "/r", nodeVersion: "v20.1.0", pkg: {}, has: has([...base, "examples/retail/harmony.json", "workspaces/retail"]), sample: "retail" });
+    const a = planSetup({ root: "/r", nodeVersion: "v26.1.0", pkg: {}, has: has([...base, "examples/retail/harmony.json"]), sample: "retail" });
+    const b = planSetup({ root: "/r", nodeVersion: "v26.1.0", pkg: {}, has: has(base), sample: "retail" });
+    const c = planSetup({ root: "/r", nodeVersion: "v26.1.0", pkg: {}, has: has([...base, "examples/retail/harmony.json", "workspaces/retail"]), sample: "retail" });
     return a.steps.some((s) => s.id === "copy-sample") && b.problems.length === 1 && c.steps.length === 0;
   })());
+});
+
+group("setup (Node と npm の版の判定 #1571)", () => {
+  const pkg = { engines: { node: ">=26", npm: ">=12" } };
+  const rel = [{ version: "v27.0.0", lts: false }, { version: "v26.13.0", lts: "Lithium" }, { version: "v26.12.0", lts: "Lithium" }, { version: "v24.15.0", lts: "Krypton" }];
+  const base = { nodeVersion: "v26.13.0", npmVersion: "12.2.1", nvmrc: "26\n", pkg };
+  const f = (o) => runtimeFindings({ ...base, ...o });
+  assert("engines の下限と .nvmrc のメジャーを読む", requiredEngine(pkg, "npm") === "12" && requiredEngine({}, "npm") === null && requiredEngine({ engines: { node: "^22.22.2 || >=26.0.0" } }, "node") === "22.22.2" && nvmrcMajor("v26.1.0\n") === 26 && nvmrcMajor("lts/*") === null && nvmrcMajor(undefined) === null);
+  assert("そろっていれば、問題も知らせもない (オフライン)", (() => { const r = f({}); return r.problems.length === 0 && r.notices.length === 0; })());
+  assert("Node が engines 未満なら問題。includeNodeEngines: false なら重ねない", f({ nodeVersion: "v20.20.2", nvmrc: "20" }).problems.length === 1 && f({ nodeVersion: "v20.20.2", nvmrc: "20", includeNodeEngines: false }).problems.length === 0);
+  assert("npm が engines 未満なら問題 (直し方と libc の理由を書く)", (() => { const p = f({ npmVersion: "10.8.2" }).problems; return p.length === 1 && p[0].includes("npm install -g npm@latest") && p[0].includes("libc"); })());
+  assert("Node のメジャーが .nvmrc と違うのは知らせだけ (問題にしない)。nvm use と VS Code を書く", (() => { const r = f({ nodeVersion: "v24.15.0", pkg: {} }); return r.problems.length === 0 && r.notices.length === 1 && r.notices[0].includes("nvm use") && r.notices[0].includes("VS Code"); })());
+  assert("lts/* の .nvmrc や .nvmrc なしは、メジャーの比較をしない", f({ nodeVersion: "v24.15.0", nvmrc: "lts/*", pkg: {} }).notices.length === 0 && f({ nodeVersion: "v24.15.0", nvmrc: undefined, pkg: {} }).notices.length === 0);
+  assert("最新の LTS のメジャーが .nvmrc より新しければ問題 (LTS でない v27 は数えない)", (() => { const ok = f({ releases: rel }); const up = f({ releases: [...rel, { version: "v28.0.0", lts: "Next" }] }); return ok.problems.length === 0 && up.problems.length === 1 && up.problems[0].includes("Node のメジャーを上げる手順"); })());
+  assert("同じメジャーの最新パッチより古ければ問題", (() => { const old = f({ nodeVersion: "v26.12.0", releases: rel }); return old.problems.length === 1 && old.problems[0].includes("v26.13.0") && f({ releases: rel }).problems.length === 0; })());
+  assert("新しいパッチが出て 14 日までは知らせ、過ぎたら問題 (上流の image が追いつくまでの猶予)", (() => {
+    const dated = [{ version: "v26.13.0", lts: "Lithium", date: "2026-10-28" }, { version: "v26.12.1", lts: "Lithium", date: "2026-10-21" }];
+    const soon = f({ nodeVersion: "v26.12.1", releases: dated, now: Date.parse("2026-10-30") });
+    const late = f({ nodeVersion: "v26.12.1", releases: dated, now: Date.parse("2026-11-12") });
+    const older = f({ nodeVersion: "v26.11.0", releases: [...dated, { version: "v26.11.0", lts: false, date: "2026-10-07" }], now: Date.parse("2026-10-30") });
+    return soon.problems.length === 0 && soon.notices.length === 1 && soon.notices[0].includes("2 日") && late.problems.length === 1 && older.problems.length === 0 && older.notices.length === 1;
+  })());
+  assert("npm が最新より古ければ問題・同じか新しければ問題なし", f({ latestNpm: "12.3.0" }).problems.length === 1 && f({ latestNpm: "12.2.1" }).problems.length === 0 && f({ latestNpm: "12.0.0" }).problems.length === 0);
+  assert("nvmrcAsProblem なら、.nvmrc との違いを問題にする (check:deps -- runtime)", (() => { const r = f({ nodeVersion: "v24.15.0", pkg: {}, nvmrcAsProblem: true }); return r.problems.length === 1 && r.notices.length === 0 && f({ nvmrcAsProblem: true }).problems.length === 0; })());
+  assert("engines の判定 (Node と npm。npm が足りなければ失敗・engines.npm が無ければ見ない)", enginesCheck({ nodeVersion: "v26.13.0", npmVersion: "12.2.1", pkg }).ok && !enginesCheck({ nodeVersion: "v26.13.0", npmVersion: "10.8.2", pkg }).ok && !enginesCheck({ nodeVersion: "v20.20.2", npmVersion: "12.2.1", pkg }).ok && !enginesCheck({ nodeVersion: "v26.13.0", npmVersion: null, pkg }).ok && enginesCheck({ nodeVersion: "v26.13.0", npmVersion: null, pkg: { engines: { node: ">=26" } } }).ok && !enginesCheck({ nodeVersion: "v26.13.0", npmVersion: "12.2.1", pkg: {} }).ok && enginesCheck({ nodeVersion: "v26.13.0", npmVersion: "10.8.2", pkg }).lines.some((l) => l.includes("10.8.2")));
+  assert("最新の LTS の表示は、LTS のうち版がいちばん大きいもの (一覧の並びに依らない)", latestLts([{ version: "v24.15.0", lts: "Krypton" }, { version: "v26.13.0", lts: "Lithium" }, { version: "v27.0.0", lts: false }, { version: "v26.12.0", lts: "Lithium" }]) === "v26.13.0 (Lithium)" && latestLts([{ version: "v27.0.0", lts: false }]).includes("見つかりません"));
+  assert("一覧が空・取れなかった (undefined) ときは、ネットワークの比較を飛ばす", f({ releases: [], latestNpm: undefined }).problems.length === 0 && f({ releases: undefined }).problems.length === 0);
+});
+
+group("開発コンテナの Playwright の版 (#1571)", () => {
+  const lock = { packages: { "node_modules/playwright-core": { version: "1.60.0" } } };
+  assert("Dockerfile と lock の版が同じなら問題なし", playwrightDrift("RUN npx -y playwright@1.60.0 install --with-deps chromium \\\n  && chown", lock) === null);
+  assert("違えば、両方の版と直し方を書く", (() => { const m = playwrightDrift("RUN npx -y playwright@1.59.1 install --with-deps chromium", lock); return m.includes("1.59.1") && m.includes("1.60.0") && m.includes("出し直"); })());
+  assert("版が読めない (Dockerfile に無い・lock に無い) ときは何も言わない", playwrightDrift("FROM x", lock) === null && playwrightDrift("playwright@1.59.1 install", {}) === null);
 });
 
 group("release:notes (リリースノート)", () => {

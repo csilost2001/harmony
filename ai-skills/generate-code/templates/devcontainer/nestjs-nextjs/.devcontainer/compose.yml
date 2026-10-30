@@ -9,7 +9,7 @@
 # そのまま使える。フォルダ名を /workspaces/app から変えない (compose は VS Code のフォルダ名を読めないため固定)。
 services:
   dev:
-    image: mcr.microsoft.com/devcontainers/typescript-node:20
+    image: mcr.microsoft.com/devcontainers/typescript-node:26
     init: true
     command: sleep infinity
     volumes:

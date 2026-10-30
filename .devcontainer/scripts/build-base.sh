@@ -27,5 +27,11 @@ if ! command -v docker >/dev/null 2>&1; then
 fi
 
 echo "[harmony-devcontainer] base image ($TAG) を build (cache hit 時は秒で完了)..."
-docker build -t "$TAG" "$BASE_DIR"
+# publish-dev-image.sh と同じく、npm の最新の版を build-arg で渡し、--pull で node のパッチも取る (#1571)
+NPM_VERSION="latest"
+if command -v npm >/dev/null 2>&1; then
+  NPM_VERSION="$(npm view npm version 2>/dev/null || true)"
+  NPM_VERSION="${NPM_VERSION:-latest}"
+fi
+docker build --pull --build-arg NPM_VERSION="${NPM_VERSION}" -t "$TAG" "$BASE_DIR"
 echo "[harmony-devcontainer] base image build 完了: $TAG"

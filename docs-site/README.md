@@ -4,8 +4,8 @@ Harmony の仕様書・プレゼン (`docs/spec/*.md` / `docs/user-guide/*.md` /
 
 ## 前提
 
-- Node.js **20.3.0+** または **22+** (Astro 5.x 要件、Astro 6 は Node 22+ 必須なため本プロジェクトでは 5 系を採用)
-- npm 9.6.5+
+- Node.js **20.3.0+** または **22+** (Astro 5.x の要件)。本プロジェクトは最新の LTS (Node 26 以上・npm 12 以上。リポジトリ直下の `.nvmrc` と `package.json` の `engines`) で動かす
+- Astro 6 は Node 22+ 必須。5 系を採用したのは Node 20 環境だったときの判断で、いまも 5 系を使い続けている
 
 ## セットアップ (初回のみ)
 
