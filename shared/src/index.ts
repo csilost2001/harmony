@@ -103,3 +103,22 @@ export * from "./flowWords.js";
 export * from "./flowDecision.js";
 export * as flowWalkthrough from "./flowWalkthrough.js";
 export type { WalkState, WalkPrompt, WalkLogEntry } from "./flowWalkthrough.js";
+export {
+  type SqlDialect,
+  type DdlColumn,
+  type DdlIndex,
+  type DdlConstraint,
+  type DdlDefault,
+  type DdlTrigger,
+  type DdlTable,
+  SQL_DIALECTS,
+  quoteIdentifier,
+  escapeSqlString,
+  sanitizeDefaultValue,
+  resolveColumnPhysical,
+  generateDdl,
+  mapDataType,
+  indexToDdl,
+  constraintToDdl,
+  autoIncrementType,
+} from "./ddl.js";
