@@ -1221,6 +1221,12 @@ public class ProductSearchController {
 
 **重要**: `package.json` に `"overrides": { "postcss": "^8.5.x" }` を**必ず**含めること (transient postcss の advisories を解消する唯一の方法)。これが無いと next 内部の古い postcss が pickup されて `npm audit` で moderate 警告が残る。
 
+**npm 12 以降は、依存の install スクリプトが既定で止まる** (雛形の Dockerfile は `npm install -g npm@latest` で npm 12 を使うので、生成したアプリの `npm ci` も同じ)。生成した `package.json` に `allowScripts` を入れて、どれを許すかを決めて残す。手で書かず、npm に書かせる。
+
+1. `npm install` のあと `npm install-scripts ls` で、止まったものを見る (止まったものは `npm install` の末尾にも警告で出る)
+2. 動くのに要るものは `npm install-scripts approve <pkg>` (`allowScripts` に `"<pkg>@<版>": true` が入る)。要らないものは `npm install-scripts deny <pkg>` (`false` が入り、警告が消える)
+3. 要るかどうかは、止めたまま動かして決める。確かめた例 (npm 12.2.1 / Node 26): `prisma`・`@prisma/client`・`@prisma/engines` (6.19) は止まっても `prisma generate`・`prisma db push`・クエリが動くので `deny`。`bcrypt` 6 も止まったまま動くが、`bcrypt` 5 は止まると読み込みで失敗する (`bcrypt_lib.node` が無い) ので `approve`
+
 **App Router async API 注記**: Next.js 15 では `cookies()` / `headers()` / `params` / `searchParams` が **Promise 返却** に変更。Page / Layout / Route Handler で:
 
 ```typescript

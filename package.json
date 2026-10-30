@@ -59,5 +59,8 @@
     "ajv-formats": "^3.0.1",
     "concurrently": "^9.0.0",
     "typescript": "~5.5.0"
+  },
+  "allowScripts": {
+    "esbuild": false
   }
 }

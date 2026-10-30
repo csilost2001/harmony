@@ -420,6 +420,9 @@ Phase 4 以前は公式 feature <code>ghcr.io/anthropics/devcontainer-features/c
 <li>
 <p><strong>Node と npm</strong>: Node は base image の <code>FROM</code> のタグ (<code>typescript-node:26-trixie</code>) で決まる。npm は base と overlay の両方で <code>npm install -g npm@latest</code> する。ただし Docker の cache が効くと、古い npm のまま残ることがある。<code>npm run check:deps -- runtime</code> で「古い」と出たら <code>Dev Containers: Rebuild Without Cache</code> を実行する。端末の Node と npm が合っているかは <code>npm run setup -- --check</code> でも見られる。</p>
 </li>
+<li>
+<p><strong>npm 12 は、依存の install スクリプトを既定で止める</strong>: <code>npm install</code> の最後に <code>install scripts blocked</code> の警告が出る。どれを許すかは <code>package.json</code> の <code>allowScripts</code> に残してある (ルートは <code>esbuild</code>、<code>docs-site</code> は <code>esbuild</code>・<code>sharp</code> を拒否。どれも platform 別の実行ファイルを optionalDependencies で取るので、スクリプトなしで動く)。依存を足して警告が出たら、<code>npm install-scripts ls</code> で止まったものを見て、動くのに要るものだけ <code>npm install-scripts approve &#x3C;pkg></code>、要らないものは <code>npm install-scripts deny &#x3C;pkg></code> を実行する (<code>allowScripts</code> は手で書かず、npm に書かせる)。base image の <code>claude-code</code> だけは native binary を置く postinstall が要るので、<code>.devcontainer/base/Dockerfile</code> で <code>--allow-scripts</code> をつけて入れている。</p>
+</li>
 </ul>
 <h2 id="仕組み解説-devcontainerjson-の構造-1118-phase-12-以降">仕組み解説: devcontainer.json の構造 (#1118 Phase 1+2 以降)</h2>
 <pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>ghcr.io/csilost2001/harmony-devcontainer-base:&#x3C;version>  ← Phase 2 で確立した base</span></span>

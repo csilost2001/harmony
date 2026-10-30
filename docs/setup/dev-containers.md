@@ -413,6 +413,7 @@ host と container は **別 OAuth credential で独立**動作。それぞれ�
 - **Codex**: overlay Dockerfile (`.devcontainer/Dockerfile:28`) の `RUN npm install -g @openai/codex@<version>` を編集し、VSCode から `Dev Containers: Rebuild Container` を実行して反映。container 内で `npm install -g` を個別実行する必要はない (rebuild した時点で overlay 層から再 install される)。
 
 - **Node と npm**: Node は base image の `FROM` のタグ (`typescript-node:26-trixie`) で決まる。npm は base と overlay の両方で `npm install -g npm@latest` する。ただし Docker の cache が効くと、古い npm のまま残ることがある。`npm run check:deps -- runtime` で「古い」と出たら `Dev Containers: Rebuild Without Cache` を実行する。端末の Node と npm が合っているかは `npm run setup -- --check` でも見られる。
+- **npm 12 は、依存の install スクリプトを既定で止める**: `npm install` の最後に `install scripts blocked` の警告が出る。どれを許すかは `package.json` の `allowScripts` に残してある (ルートは `esbuild`、`docs-site` は `esbuild`・`sharp` を拒否。どれも platform 別の実行ファイルを optionalDependencies で取るので、スクリプトなしで動く)。依存を足して警告が出たら、`npm install-scripts ls` で止まったものを見て、動くのに要るものだけ `npm install-scripts approve <pkg>`、要らないものは `npm install-scripts deny <pkg>` を実行する (`allowScripts` は手で書かず、npm に書かせる)。base image の `claude-code` だけは native binary を置く postinstall が要るので、`.devcontainer/base/Dockerfile` で `--allow-scripts` をつけて入れている。
 
 ## 仕組み解説: devcontainer.json の構造 (#1118 Phase 1+2 以降)
 

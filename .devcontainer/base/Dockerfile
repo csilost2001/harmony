@@ -69,7 +69,10 @@ RUN install -m 0755 -d /etc/apt/keyrings \
 #    npm は同梱の版が古いことがあるので、claude-code の前に最新へそろえる (#1571)。
 #    package-lock.json の libc の欄が、古い npm で消えるのを防ぐ。
 RUN npm install -g npm@latest
-RUN npm install -g @anthropic-ai/claude-code
+#    npm 12 は依存の install スクリプトを既定で止める。claude-code は postinstall (install.cjs) で
+#    native binary を置くので、止まると `claude --version` が「native binary not installed」で動かない。
+#    そのため、このパッケージだけ --allow-scripts で許す (#1571)。
+RUN npm install -g --allow-scripts=@anthropic-ai/claude-code @anthropic-ai/claude-code
 
 # 3. copilot-cli (GitHub release tarball — 元 feature install.sh の install_using_github() と同等)
 #    auto-update flag (/etc/devcontainer-copilot-cli/auto-update) は再現しない。
