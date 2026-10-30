@@ -7,10 +7,13 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { buildHarmonyAjv } from "@harmony/shared";
-import { handleTableTool } from "./table.js";
+import { handleTableTool, assertHarmonyStillValid } from "./table.js";
 import { handleDesignTool } from "./design.js";
 import { handleExportTool } from "./export.js";
 import { readProject } from "../projectStorage.js";
+import { projectHandlers } from "../wsHandlers/project.js";
+import { versionHandlers } from "../wsHandlers/versions.js";
+import type { RpcContext } from "../wsHandlers/types.js";
 import { inspectWorkspacePath } from "../workspaceInit.js";
 import { repairRegistry, scanWorkspaceHealth } from "../workspaceHealth.js";
 
@@ -134,6 +137,33 @@ describe("designer__add_table / update_table / remove_table は v3 の harmony.j
     await text("designer__add_table", { physicalName: "orders", name: "注文" });
   });
 
+  it("update_table で physicalName を別のテーブルと同じ値に変えるのは断る。自分自身と同じ値や、別の値への変更は通る", async () => {
+    const a = idOf(await text("designer__add_table", { physicalName: "orders", name: "注文" }));
+    const b = idOf(await text("designer__add_table", { physicalName: "customers", name: "顧客" }));
+    const beforeProject = await fs.readFile(path.join(ROOT, "harmony.json"), "utf-8");
+    const beforeTable = await fs.readFile(path.join(ROOT, "design", "tables", `${b}.json`), "utf-8");
+    await expect(text("designer__update_table", { tableId: b, definition: { id: b, physicalName: "orders", name: "顧客", columns } }))
+      .rejects.toThrow(new RegExp(`物理名 orders のテーブルはすでにあります.*${a}`));
+    expect(await fs.readFile(path.join(ROOT, "harmony.json"), "utf-8")).toBe(beforeProject);
+    expect(await fs.readFile(path.join(ROOT, "design", "tables", `${b}.json`), "utf-8")).toBe(beforeTable);
+    // 自分自身と同じ値は可
+    await text("designer__update_table", { tableId: b, definition: { id: b, physicalName: "customers", name: "顧客 2", columns } });
+    // 別の (空いている) 値への変更も可
+    await text("designer__update_table", { tableId: b, definition: { id: b, physicalName: "clients", name: "顧客 2", columns } });
+    const entries = ((await readProject(ROOT)) as { entities: { tables: Array<Record<string, unknown>> } }).entities.tables;
+    expect(entries.find((e) => e.id === b)).toMatchObject({ physicalName: "clients", name: "顧客 2" });
+    expect((await validateHarmony()).ok).toBe(true);
+  });
+
+  it("書く前の検査は、もとから同じ場所・同じ種類の違反があっても、別の値の違反 (params が違うもの) は新しい違反として断る", async () => {
+    const base = JSON.parse(await fs.readFile(path.join(ROOT, "harmony.json"), "utf-8")) as Record<string, unknown>;
+    const before = { ...base, legacyA: 1 };
+    // もとからある違反だけが残るなら通る
+    await expect(assertHarmonyStillValid(before, { ...before })).resolves.toBeUndefined();
+    // 同じ最上位の additionalProperties 違反でも、別の項目 (legacyB) は新しい違反
+    await expect(assertHarmonyStillValid(before, { ...before, legacyB: 2 })).rejects.toThrow(/スキーマに合いません/);
+  });
+
   it("harmony.json が無いワークスペースでは、書く前に止まる (テーブルのファイルも作らない)", async () => {
     await fs.rm(path.join(ROOT, "harmony.json"));
     await expect(text("designer__add_table", { physicalName: "expenses", name: "経費" })).rejects.toThrow(/harmony\.json/);
@@ -242,6 +272,25 @@ describe("旧形式の項目 (最上位の tables / updatedAt) の修復", () =>
     expect(v.ok, JSON.stringify(v.errors)).toBe(true);
     expect((await inspectWorkspacePath(ROOT)).status).toBe("ready");
     expect(await repairRegistry(ROOT, true)).toMatchObject({ applied: false, removeKeys: [] });
+  });
+
+  it("旧形式の項目だけが原因のワークスペースでも、ダッシュボードの「設計の要確認」パネルの読み込みはエラーにならず、registry-legacy-keys を返す", async () => {
+    await breakWorkspace();
+    const call = async (handlers: Record<string, (c: RpcContext) => unknown>, method: string) => {
+      let response: unknown, error: string | null = null;
+      const ctx = { params: {}, clientId: "c1", root: () => ROOT, wsId: () => "ws1", respond: (r: unknown) => { response = r; }, respondError: (m: string) => { error = m; }, bridge: { broadcast: () => {} } } as unknown as RpcContext;
+      await handlers[method](ctx);
+      return { response: response as Record<string, any>, error: error as string | null };
+    };
+    // パネルが呼ぶ 2 つの読み込み (設計の入力と、ファイルの健全性)
+    const input = await call(projectHandlers, "loadDesignInput");
+    expect(input.error).toBeNull();
+    expect(input.response.input).toBeTruthy();
+    const health = await call(versionHandlers, "workspace.getHealth");
+    expect(health.error).toBeNull();
+    const hit = (health.response.issues as Array<{ code: string; maintenance?: boolean; message: string }>).find((i) => i.code === "registry-legacy-keys");
+    expect(hit?.maintenance).toBe(true);
+    expect(hit?.message).toContain("updatedAt");
   });
 
   it("designer__repair_registry (MCP) でも同じく、予行 → apply で直る", async () => {

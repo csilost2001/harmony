@@ -18,6 +18,7 @@ import {
   LockdownError as WorkspaceLockdownError,
   LOCKDOWN_WORKSPACE_ID,
   workspaceContextManager,
+  getGlobalDefaultPath,
 } from "../workspaceState.js";
 import {
   listDisplayWorkspaces as listWorkspacesEntries,
@@ -173,6 +174,7 @@ export const workspaceHandlers: RpcHandlerMap = {
     };
     // restore: 画面の再読込・再接続・URL の同期で、いま見ているワークスペースへ接続の作業先をそろえるだけの open。
     // 利用者が選んだ・AI が開いたのではないので、最後に開いたワークスペース (= 新しい接続の既定 = AI の作業先) は変えない。
+    // (既定が空のときだけは埋める)
     const restoreOnly = restore === true;
     if (typeof targetPath !== "string" && typeof id !== "string") {
       respondError("path または id のいずれかが必要です");
@@ -233,7 +235,9 @@ export const workspaceHandlers: RpcHandlerMap = {
       }
     } catch { /* fallback */ }
     const entry = await upsertWorkspaceEntry(resolved, name);
-    if (!restoreOnly) await markLastActive(entry);
+    // 復元の open は既定を動かさない。ただし既定がまだ空のときは、取り違える相手がいないので埋める
+    // (画面で見ているワークスペースがあるのに、AI の作業先が無い状態を避ける)
+    if (!restoreOnly || getGlobalDefaultPath() === null) await markLastActive(entry);
     respond({ active: { id: entry.id, path: entry.path, name: entry.name } });
     bridge.broadcast({ wsId: entry.path, event: "workspace.changed", data: {
       activeId: entry.id,

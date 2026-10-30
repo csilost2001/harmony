@@ -113,7 +113,7 @@ type ConnectionContext = {
 | WS 切断時 | `Map` から remove |
 | MCP 要求 | MCP は stateless で、要求ごとに新しい clientId で接続を作り、終わったら切る (`sessionIdGenerator: undefined`)。作業先 = **最後に明示的に開いたワークスペース** (画面の選択・一覧・切り替え、または MCP の `designer__workspace_open`。`recent.lastActiveId`)。起動時にも復元される。1 要求の中では作業先は一貫する (要求ごとに接続して `activePath` を持つ)。MCP の接続ごとに別のワークスペースを使い分けること (session 単位の隔離) は、いまはできない。AI は、書く前に `designer__get_project_context` (結果の `workspace`) か `designer__workspace_status` で作業先を確かめる (MCP の `instructions` にも書く) |
 | 最後に開いたワークスペース | 画面か MCP でワークスペースを**明示的に開く**と、`recent.lastActiveId` と「新しい接続の既定」(`_globalDefaultPath`) を同時に更新する (`markLastActive`)。recent から外したものが最後に開いたものだったときも既定を外す (`removeRecentWorkspace`)。**閉じる**ときは、閉じるワークスペースが最後に開いたものと同じときだけ、既定を外す (`clearLastActiveIfSame`。別のタブが別のワークスペースを開いているなら、既定はそのまま)。MCP の close は、その要求の作業先が無ければ何もしない (「開いているワークスペースはありません」)。すでに開いている接続 (ブラウザのタブ) の `activePath` は変えない。lockdown では何もしない |
-| 画面の復元の open | ブラウザタブの再読込・WebSocket の再接続・URL の同期で、画面が送る `workspace.open` には `restore: true` が付く。そのタブの接続の `activePath` だけを決め、最後に開いたワークスペース (= AI の作業先) は変えない。古いタブが再接続しただけで、AI の書き込み先が動かないようにするため |
+| 画面の復元の open | ブラウザタブの再読込・WebSocket の再接続・URL の同期で、画面が送る `workspace.open` には `restore: true` が付く。そのタブの接続の `activePath` だけを決め、最後に開いたワークスペース (= AI の作業先) は変えない。古いタブが再接続しただけで、AI の書き込み先が動かないようにするため。ただし最後に開いたワークスペースが空のときだけは、取り違える相手がいないので、復元したワークスペースで埋める (画面で見ているのに AI の作業先が無い、を避ける) |
 | lockdown | env `DESIGNER_DATA_DIR` 設定時、全 context の `activePath` が env 値固定 |
 
 ### 5.3 公開 API の per-session 化

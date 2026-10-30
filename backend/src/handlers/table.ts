@@ -40,14 +40,15 @@ async function readProjectForWrite(root: string): Promise<Record<string, unknown
 
 interface SchemaError { instancePath?: string; keyword?: string; message?: string; params?: Record<string, unknown> }
 
-const errorKey = (e: SchemaError): string => `${e.instancePath ?? ""}|${e.keyword ?? ""}|${e.message ?? ""}`;
+// params も照合に含める: 同じ場所・同じ種類でも、別の値の違反 (例: 別の enum の値) を「もとからある」と見逃さないため
+const errorKey = (e: SchemaError): string => `${e.instancePath ?? ""}|${e.keyword ?? ""}|${e.message ?? ""}|${JSON.stringify(e.params ?? {})}`;
 
 /**
  * 書く前の harmony.json (before) と、書こうとしている harmony.json (after) を harmony.v3 スキーマで検証する。
  * 書こうとしたことで新しく増えた違反があれば、何も書かずにエラーにする (画面がワークスペースを開けなくなるのを防ぐ。#1568)。
  * もとから違反していた所 (旧形式の項目など) は、ここでは止めない: それは designer__repair_registry で直す。
  */
-async function assertHarmonyStillValid(before: Record<string, unknown>, after: Record<string, unknown>): Promise<void> {
+export async function assertHarmonyStillValid(before: Record<string, unknown>, after: Record<string, unknown>): Promise<void> {
   const validate = await getHarmonyValidator();
   validate(before);
   const known = new Set(((Array.isArray(validate.errors) ? validate.errors : []) as SchemaError[]).map(errorKey));
@@ -62,6 +63,15 @@ async function assertHarmonyStillValid(before: Record<string, unknown>, after: R
     ErrorCode.InvalidParams,
     `harmony.json の entities.tables に書く値が harmony.v3 スキーマに合いません。何も書きませんでした: ${detail}。maturity は draft / provisional / committed のいずれか、category は文字列にしてください`,
   );
+}
+
+/** 同じ物理名の (自分以外の) テーブルがすでにあれば断る。一覧に載っていないファイルも見る */
+async function assertPhysicalNameFree(root: string, physicalName: string, selfId?: string): Promise<void> {
+  const existing = tableEntries((await readProjectWithUnregistered(root)).project as Record<string, unknown>)
+    .find((t) => t.physicalName === physicalName && t.id !== selfId);
+  if (existing) {
+    throw new McpError(ErrorCode.InvalidParams, `物理名 ${physicalName} のテーブルはすでにあります（ID: ${String(existing.id)}、${String(existing.name)}）。別の物理名にするか、designer__update_table で直してください`);
+  }
 }
 
 /** entities.tables[] (v3 の TableEntry) を差し替えて、meta.updatedAt も更新する */
@@ -135,10 +145,7 @@ export const handleTableTool: ToolHandler = async (name, args, root) => {
       }
       const project = await readProjectForWrite(root);
       // 同じ物理名のテーブルがすでにあれば、断る (一覧に載っていないファイルも見る)
-      const existing = tableEntries((await readProjectWithUnregistered(root)).project as Record<string, unknown>).find((t) => t.physicalName === a.physicalName);
-      if (existing) {
-        throw new McpError(ErrorCode.InvalidParams, `物理名 ${a.physicalName} のテーブルはすでにあります（ID: ${String(existing.id)}、${String(existing.name)}）。別の物理名にするか、designer__update_table で直してください`);
-      }
+      await assertPhysicalNameFree(root, a.physicalName);
       // #1294 I-2: id は kebab-case EntityId (RFC #1284)、uuid は別途 randomUUID で採番
       // 暫定採番形式 (I-5 で UI 創成ダイアログから人間入力 / AI 提案に置き換え)
       const id = `table-${randomUUID().slice(0, 8)}`;
@@ -176,6 +183,10 @@ export const handleTableTool: ToolHandler = async (name, args, root) => {
       assertEntityIdMcp(a.tableId, "tableId");
       const project = await readProjectForWrite(root);
       const def = a.definition as Record<string, unknown>;
+      // physicalName を別のテーブルと同じ値に変えるのは、add_table と同じく断る (自分自身と同じ値は可)
+      if (typeof def.physicalName === "string" && def.physicalName) {
+        await assertPhysicalNameFree(root, def.physicalName, a.tableId);
+      }
       const now = new Date().toISOString();
       def.updatedAt = now;
       // harmony.json の entities.tables[] (v3) を更新 (並び順 no は維持)。スキーマに合うと確かめてから書く

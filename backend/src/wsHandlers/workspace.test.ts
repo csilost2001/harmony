@@ -238,6 +238,38 @@ describe("新しい接続の既定のワークスペースは、最後に開い�
     expect((await readRecent()).lastActiveId).toBe(a.id);
   });
 
+  it("復元の open は、既定 (最後に開いたワークスペース) が空のときだけ既定を埋める。既定があるときは変えない", async () => {
+    initWorkspaceState();
+    workspaceContextManager.connect("test-client");
+    const openA = makeOpenContext({ path: path.join(TMP_ROOT, "proj-a"), init: true });
+    await workspaceHandlers["workspace.open"](openA.ctx);
+    const a = (openA.getResponse() as { active: { id: string; path: string } }).active;
+    const openB = makeOpenContext({ path: path.join(TMP_ROOT, "proj-b"), init: true });
+    await workspaceHandlers["workspace.open"](openB.ctx);
+    const b = (openB.getResponse() as { active: { id: string; path: string } }).active;
+
+    // B を閉じて既定を空にする。別のタブは A を見ている
+    const close = makeOpenContext({});
+    await workspaceHandlers["workspace.close"](close.ctx);
+    expect(getGlobalDefaultPath()).toBeNull();
+
+    workspaceContextManager.connect("old-tab");
+    const restoreA = makeOpenContext({ id: a.id, restore: true });
+    restoreA.ctx.clientId = "old-tab";
+    await workspaceHandlers["workspace.open"](restoreA.ctx);
+    expect(restoreA.getError()).toBeNull();
+    expect(getGlobalDefaultPath()).toBe(path.resolve(a.path));
+    expect((await readRecent()).lastActiveId).toBe(a.id);
+
+    // 既定があるあとの復元は、変えない
+    const restoreB = makeOpenContext({ id: b.id, restore: true });
+    restoreB.ctx.clientId = "old-tab";
+    await workspaceHandlers["workspace.open"](restoreB.ctx);
+    expect(workspaceContextManager.getActivePath("old-tab")).toBe(path.resolve(b.path));
+    expect(getGlobalDefaultPath()).toBe(path.resolve(a.path));
+    expect((await readRecent()).lastActiveId).toBe(a.id);
+  });
+
   it("workspace.close は、閉じるのが既定 (最後に開いたワークスペース) と同じときだけ、既定を外す", async () => {
     initWorkspaceState();
     workspaceContextManager.connect("test-client");
