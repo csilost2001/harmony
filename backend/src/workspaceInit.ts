@@ -20,15 +20,19 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
+import { LEGACY_PROJECT_KEYS } from "./workspaceHealth.js";
 import { buildHarmonyAjv } from "@harmony/shared";
 import {
   isLockdown,
   setGlobalDefaultPath,
+  getGlobalDefaultPath,
 } from "./workspaceState.js";
 import {
   readRecent,
   findById,
   findByPath,
+  setLastActive,
+  removeWorkspace,
   type WorkspaceEntry,
   type WorkspaceCandidate,
 } from "./recentStore.js";
@@ -39,14 +43,15 @@ export type WorkspaceInspectResult =
   | { status: "ready"; path: string; name: string | null }
   | { status: "needsInit"; path: string }
   | { status: "notFound"; path: string }
-  | { status: "invalid"; path: string; reason: string };
+  /** repairable: 原因が、最上位の旧形式の項目 (tables / updatedAt など) だけで、designer__repair_registry で取り除いて直せる */
+  | { status: "invalid"; path: string; reason: string; repairable?: true };
 
 const HARMONY_SCHEMA_REF = "../schemas/v3/harmony.v3.schema.json";
 const SCHEMAS_DIR = path.resolve(import.meta.dirname, "../../schemas");
 
 let _validateHarmonyCache: ((data: unknown) => boolean) & { errors?: unknown } | null = null;
 
-async function getHarmonyValidator(): Promise<((data: unknown) => boolean) & { errors?: unknown }> {
+export async function getHarmonyValidator(): Promise<((data: unknown) => boolean) & { errors?: unknown }> {
   if (_validateHarmonyCache) return _validateHarmonyCache;
   // 共通設定 (strict: false / allErrors / discriminator: true / addFormats) は buildHarmonyAjv で集約 (#1188)
   // schemas/v3/*.schema.json は JSON Schema draft 2020-12 を使用 (Ajv2020 が必要)
@@ -128,8 +133,13 @@ export async function inspectWorkspacePath(folderPath: string): Promise<Workspac
   // AJV 検証
   const validate = await getHarmonyValidator();
   if (!validate(harmonyResult.data)) {
-    const reason = `harmony.v3.schema.json 検証エラー: ${JSON.stringify(validate.errors)}`;
-    return { status: "invalid", path: abs, reason };
+    const errors = Array.isArray(validate.errors) ? validate.errors as Array<{ keyword?: string; instancePath?: string; params?: { additionalProperty?: string } }> : [];
+    // 旧形式の tool が最上位に足した項目 (tables / updatedAt など) だけが原因なら、直せることを添える (#1568)
+    const repairable = errors.length > 0 && errors.every((e) =>
+      e.keyword === "additionalProperties" && (e.instancePath ?? "") === "" && (LEGACY_PROJECT_KEYS as readonly string[]).includes(e.params?.additionalProperty ?? ""));
+    const reason = `harmony.v3.schema.json 検証エラー: ${JSON.stringify(validate.errors)}`
+      + (repairable ? " / 旧形式の項目が最上位にあるのが原因です。designer__repair_registry (予行を見てから apply: true) で取り除けます" : "");
+    return repairable ? { status: "invalid", path: abs, reason, repairable: true } : { status: "invalid", path: abs, reason };
   }
   return { status: "ready", path: abs, name: extractName(harmonyResult.data, path.basename(abs)) };
 }
@@ -378,6 +388,41 @@ export async function autoActivateOnStartup(): Promise<AutoActivateResult> {
     }
   }
   return { status: "none" };
+}
+
+/**
+ * 「最後に開いたワークスペース」を更新する (recent の lastActiveId と、新しい接続の既定 _globalDefaultPath を常に一致させる)。
+ *
+ * MCP の HTTP は stateless で、要求ごとに新しい clientId で接続する。接続ごとの activePath は次の要求に残らないため、
+ * 画面か MCP でワークスペースを開いたら既定も同じ場所へ寄せ、続く要求がそのワークスペースで動くようにする。
+ * 閉じたとき (entry = null) は既定も外す。すでに開いている接続の activePath は変えない (新しい接続の初期値だけが変わる)。
+ * lockdown 中は接続が lockdown のパスを使うので、何もしない。
+ */
+export async function markLastActive(entry: Pick<WorkspaceEntry, "id" | "path"> | null): Promise<void> {
+  if (isLockdown()) return;
+  await setLastActive(entry ? entry.id : null);
+  setGlobalDefaultPath(entry ? entry.path : null);
+}
+
+/**
+ * 閉じたワークスペース (closingPath) が、最後に開いたワークスペース (= 新しい接続の既定) と同じときだけ、既定を外す。
+ * 別の接続 (別のタブ・別の AI) が別のワークスペースを開いているときに、その既定まで消さないため。
+ * 閉じるものが無い (closingPath = null) ときは何もしない。
+ */
+export async function clearLastActiveIfSame(closingPath: string | null): Promise<void> {
+  if (isLockdown() || !closingPath) return;
+  if (getGlobalDefaultPath() !== path.resolve(closingPath)) return;
+  await markLastActive(null);
+}
+
+/**
+ * recent からワークスペースを外す。外したものが最後に開いたワークスペースだったときは、新しい接続の既定も外す。
+ */
+export async function removeRecentWorkspace(id: string): Promise<boolean> {
+  const wasLastActive = !isLockdown() && (await readRecent()).lastActiveId === id;
+  const removed = await removeWorkspace(id);
+  if (removed && wasLastActive) setGlobalDefaultPath(null);
+  return removed;
 }
 
 /** test-only */

@@ -4,10 +4,13 @@ import os from "node:os";
 import path from "node:path";
 import { McpError } from "@modelcontextprotocol/sdk/types.js";
 import { handleWorkspaceTool } from "./workspace.js";
-import { upsertWorkspaceRoot } from "../recentStore.js";
+import { upsertWorkspaceRoot, upsertWorkspace, readRecent } from "../recentStore.js";
+import { initializeWorkspace, markLastActive } from "../workspaceInit.js";
+import { wsBridge } from "../wsBridge.js";
 import {
   initWorkspaceState,
   workspaceContextManager,
+  getGlobalDefaultPath,
   _resetForTest as resetWorkspaceState,
 } from "../workspaceState.js";
 
@@ -90,5 +93,46 @@ describe("designer workspace tools lockdown behavior", () => {
       handleWorkspaceTool("designer__workspace_open", { id: root.id }, TMP_ROOT, SESSION_ID),
     ).rejects.toBeInstanceOf(McpError);
     expect(readSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("designer__workspace_close", () => {
+  it("作業先が無い (未選択) ときは何もしない: 知らせも配らず、最後に開いたワークスペースの記録も消さない", async () => {
+    initWorkspaceState();
+    workspaceContextManager.connect(SESSION_ID);
+    const opened = await initializeWorkspace(path.join(TMP_ROOT, "proj-last"));
+    const entry = await upsertWorkspace(opened.path, "Last");
+    await markLastActive(entry);
+    // 作業先を持たない接続 (既定は別の経路で消えた状態を模す)
+    workspaceContextManager.clearActive(SESSION_ID);
+    const broadcast = vi.spyOn(wsBridge, "broadcast").mockImplementation(() => {});
+
+    const res = await handleWorkspaceTool("designer__workspace_close", {}, "", SESSION_ID);
+    expect((res as { content: Array<{ text: string }> }).content[0].text).toContain("開いているワークスペースはありません");
+    expect(broadcast).not.toHaveBeenCalled();
+    expect(getGlobalDefaultPath()).toBe(path.resolve(opened.path));
+    expect((await readRecent()).lastActiveId).toBe(entry.id);
+  });
+
+  it("閉じるのが既定と違うときは、既定はそのまま。同じときだけ既定を外す", async () => {
+    initWorkspaceState();
+    const a = await initializeWorkspace(path.join(TMP_ROOT, "proj-a"));
+    const b = await initializeWorkspace(path.join(TMP_ROOT, "proj-b"));
+    const entryA = await upsertWorkspace(a.path, "A");
+    const entryB = await upsertWorkspace(b.path, "B");
+    await markLastActive(entryB); // 既定は B
+    vi.spyOn(wsBridge, "broadcast").mockImplementation(() => {});
+
+    workspaceContextManager.connect(SESSION_ID);
+    workspaceContextManager.setActivePath(SESSION_ID, a.path);
+    await handleWorkspaceTool("designer__workspace_close", {}, "", SESSION_ID);
+    expect(getGlobalDefaultPath()).toBe(path.resolve(b.path));
+    expect((await readRecent()).lastActiveId).toBe(entryB.id);
+    void entryA;
+
+    workspaceContextManager.setActivePath(SESSION_ID, b.path);
+    await handleWorkspaceTool("designer__workspace_close", {}, "", SESSION_ID);
+    expect(getGlobalDefaultPath()).toBeNull();
+    expect((await readRecent()).lastActiveId).toBeNull();
   });
 });

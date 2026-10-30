@@ -26,6 +26,16 @@ docker compose up db
 
 詳細: [`.devcontainer/devcontainer.json`](.devcontainer/devcontainer.json)
 
+## 設計ツール (Harmony)
+
+開発コンテナと同時に Harmony (設計ツール) が起動します (`.devcontainer/compose.yml` の `harmony` サービス。開発コンテナとネットワークを共有)。
+
+- **画面**: VS Code のポート転送 `5179` (「Harmony (設計)」) から開く → `http://localhost:5179/`
+- **AI CLI から**: プロジェクトのルートの `.mcp.json` が `http://localhost:5179/mcp` につないでいる。つないだら最初に `designer__get_project_context`
+- **初回のワークスペース**: プロジェクトのルート (`/workspaces/app`) を Harmony のワークスペースにする。AI に「`designer__workspace_open { path: "/workspaces/app", init: true, dataDir: "design" }` で開いて」と頼むか、画面の「ワークスペース」から `/workspaces/app` を選んで作る。設計は `design/`、生成したソースは同じフォルダに入る (`harmony.json` も同じフォルダ)
+- **Harmony の版**: `.devcontainer/compose.yml` の `image:` の既定値 (`ghcr.io/csilost2001/harmony:local`) を公開済みの版に書き換えて固定し、`Dev Containers: Rebuild Container` で上げる。このファイルは git で共有されるので、チームで同じ版になる。一時的に変えるだけならホストの環境変数 `HARMONY_IMAGE` を使う (VS Code をターミナルから `code .` で開いたときに効く。GUI から起動すると環境変数を引き継がないことがある)
+- この構成は、ホストのユーザー ID が 1000 のとき (WSL2 の既定のユーザー、Docker Desktop など) を前提にしている。それ以外の Linux は既知の制約。詳細: Harmony の `docs/setup/app-devcontainer-sidecar.md`
+
 ## AI CLI 利用 (任意)
 
 container 内に 3 つの AI CLI が install されています。**開発者が持っているサブスクの CLI だけ login** してください (全部入れる必要はなし)。

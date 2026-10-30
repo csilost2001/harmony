@@ -144,6 +144,7 @@ export const navigation: Record<string, NavGroup[]> = {
       items: [
         { id: 'dev-containers', title: 'Dev Containers (推奨)' },
         { id: 'compose-runtime', title: 'Compose runtime' },
+        { id: 'app-devcontainer-sidecar', title: '業務アプリに Harmony を同居' },
         { id: 'wsl2-native', title: 'WSL2 native (代替)' },
         { id: 'distribution-roadmap', title: 'Docker image 配布' },
         { id: 'customer-project-agents-template', title: 'Customer AGENTS template' },

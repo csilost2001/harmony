@@ -11,13 +11,21 @@
  * DDL 生成ヘルパーは handlers/ddl.ts に分離。
  */
 import {
-  readProject,
   readTable,
   readErLayout,
 } from "../projectStorage.js";
+import { readProjectWithUnregistered } from "../registryMerge.js";
 import { mcpTableToSpecEntry } from "../specExport.js";
-import { generateDdl } from "./ddl.js";
+import { generateDdlForSpec } from "./ddl.js";
 import { assertEntityIdMcp, type ToolHandler } from "../mcpHelpers.js";
+
+/** 一覧 (harmony.json の entities.tables。v3) にあるテーブルの id と名前。一覧に載っていないファイルも足す */
+async function listTableMetas(root: string): Promise<Array<{ id: string; name: string }>> {
+  const { project } = await readProjectWithUnregistered(root);
+  const entities = project && typeof project === "object" ? (project as { entities?: { tables?: unknown } }).entities : undefined;
+  const tables = Array.isArray(entities?.tables) ? entities.tables as Array<{ id: string; name: string }> : [];
+  return tables.filter((t) => t && typeof t.id === "string");
+}
 
 export const handleExportTool: ToolHandler = async (name, args, root) => {
   const a = args ?? {};
@@ -30,15 +38,23 @@ export const handleExportTool: ToolHandler = async (name, args, root) => {
       if (typeof a.tableId === "string") {
         assertEntityIdMcp(a.tableId, "tableId");
       }
-      const project = (await readProject(root) ?? {}) as Record<string, unknown>;
-      const tableMetas = ((project.tables ?? []) as Array<{ id: string; name: string }>);
-      const tableIds = typeof a.tableId === "string" ? [a.tableId] : tableMetas.map((t) => t.id);
+      const tableMetas = await listTableMetas(root);
+      // 外部キーの参照先 (物理名) を引くため、対象が 1 つでも全テーブルを読む
+      const allTables: Array<Record<string, unknown>> = [];
+      for (const tm of tableMetas) {
+        const td = await readTable(tm.id, root) as Record<string, unknown> | null;
+        if (td) allTables.push({ id: tm.id, ...td });
+      }
+      const targets = typeof a.tableId === "string" ? allTables.filter((t) => t.id === a.tableId) : allTables;
+      // 目録 (harmony.json) に無くファイルだけあるテーブルも、tableId 指定なら読む (従来どおり)
+      if (typeof a.tableId === "string" && targets.length === 0) {
+        const td = await readTable(a.tableId, root) as Record<string, unknown> | null;
+        if (td) targets.push(td);
+      }
 
       const ddlParts: string[] = [];
-      for (const tid of tableIds) {
-        const td = await readTable(tid, root) as Record<string, unknown> | null;
-        if (!td) continue;
-        ddlParts.push(generateDdl(td, dialect));
+      for (const td of targets) {
+        ddlParts.push(generateDdlForSpec(td, dialect, allTables));
       }
       if (ddlParts.length === 0) {
         return { content: [{ type: "text", text: "DDL生成対象のテーブルが見つかりません。" }] };
@@ -47,8 +63,10 @@ export const handleExportTool: ToolHandler = async (name, args, root) => {
     }
 
     case "designer__export_spec": {
-      const specProject = (await readProject(root) ?? {}) as Record<string, unknown>;
-      const specTableMetas = ((specProject.tables ?? []) as Array<{ id: string }>);
+      // harmony.json は v3 (名前は meta.name、画面は entities.screens、遷移は entities.screenTransitions)
+      const { project: rawSpecProject } = await readProjectWithUnregistered(root);
+      const specProject = (rawSpecProject ?? {}) as { meta?: { name?: string }; entities?: { screens?: Array<Record<string, unknown>>; screenTransitions?: Array<Record<string, unknown>> } };
+      const specTableMetas = await listTableMetas(root);
       const specTables: Array<Record<string, unknown>> = [];
       for (const tm of specTableMetas) {
         const td = await readTable(tm.id, root);
@@ -58,18 +76,18 @@ export const handleExportTool: ToolHandler = async (name, args, root) => {
 
       // Build spec
       const spec: Record<string, unknown> = {
-        projectName: specProject.name,
+        projectName: specProject.meta?.name,
         generatedAt: new Date().toISOString(),
         tables: specTables.map((t) => mcpTableToSpecEntry(t)),
         relations: [] as Array<Record<string, unknown>>,
-        screens: ((specProject.screens ?? []) as Array<Record<string, unknown>>).map((s) => ({
-          name: s.name, type: s.type, path: s.path, description: s.description, hasDesign: s.hasDesign,
+        screens: (specProject.entities?.screens ?? []).map((s) => ({
+          name: s.name, type: s.kind, path: s.path, description: s.description, hasDesign: s.hasDesign,
         })),
-        transitions: ((specProject.edges ?? []) as Array<Record<string, unknown>>).map((e) => {
-          const screens = (specProject.screens ?? []) as Array<Record<string, unknown>>;
-          const src = screens.find((s) => s.id === e.source);
-          const tgt = screens.find((s) => s.id === e.target);
-          return { from: src?.name ?? e.source, to: tgt?.name ?? e.target, label: e.label, trigger: e.trigger };
+        transitions: (specProject.entities?.screenTransitions ?? []).map((e) => {
+          const screens = specProject.entities?.screens ?? [];
+          const src = screens.find((s) => s.id === e.sourceScreenId);
+          const tgt = screens.find((s) => s.id === e.targetScreenId);
+          return { from: src?.name ?? e.sourceScreenId, to: tgt?.name ?? e.targetScreenId, label: e.label, trigger: e.trigger };
         }),
       };
 
@@ -105,8 +123,7 @@ export const handleExportTool: ToolHandler = async (name, args, root) => {
 
     case "designer__get_er_diagram":
     case "designer__generate_er_mermaid": {
-      const project = (await readProject(root) ?? {}) as Record<string, unknown>;
-      const tableMetas = ((project.tables ?? []) as Array<{ id: string; name: string }>);
+      const tableMetas = await listTableMetas(root);
       const allTables: Array<Record<string, unknown>> = [];
       for (const tm of tableMetas) {
         const td = await readTable(tm.id, root);

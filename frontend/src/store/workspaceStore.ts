@@ -39,6 +39,12 @@ export interface WorkspaceState {
   lockdownPath: string | null;
   loading: boolean;
   error: string | null;
+  /**
+   * 別の接続 (AI など) の「ワークスペースを閉じる」の知らせで、いま閉じた状態か。
+   * true の間は、URL に残っている ID で勝手に開き直さず、選択画面へ移る。
+   * 利用者が開き直す (openWorkspace / initAndOpen) か、ワークスペースが有効になると false に戻る。
+   */
+  closedByBroadcast?: boolean;
 }
 
 export interface WorkspaceInspectResult {
@@ -87,6 +93,7 @@ let _state: WorkspaceState = {
   lockdownPath: null,
   loading: _initialLoading,
   error: _isE2eBypass ? "e2e bypass" : null,
+  closedByBroadcast: false,
 };
 
 const _listeners = new Set<Listener>();
@@ -144,6 +151,7 @@ export function __resetStateForTest(): void {
     lockdownPath: null,
     loading: true,
     error: null,
+    closedByBroadcast: false,
   };
   _broadcastUnsubscribe = null;
   _listeners.clear();
@@ -186,6 +194,7 @@ async function _doLoadWorkspaces(): Promise<void> {
       lockdownPath: result.lockdownPath ?? null,
       loading: false,
       error: null,
+      closedByBroadcast: result.active ? false : _state.closedByBroadcast,
     });
   } catch (e) {
     uiWarn("workspace", "loadWorkspaces failed", { error: e instanceof Error ? e.message : String(e) });
@@ -288,7 +297,7 @@ export function __resetHostInfoCacheForTest(): void {
 
 export async function openWorkspace(pathOrId: string, useId = false): Promise<string> {
   return _tracked(async () => {
-    _setState({ loading: true, error: null });
+    _setState({ loading: true, error: null, closedByBroadcast: false });
     try {
       const params = useId ? { id: pathOrId } : { path: pathOrId };
       await mcpBridge.request("workspace.open", params);
@@ -310,7 +319,7 @@ export async function openWorkspace(pathOrId: string, useId = false): Promise<st
 
 export async function initAndOpen(path: string): Promise<void> {
   return _tracked(async () => {
-    _setState({ loading: true, error: null });
+    _setState({ loading: true, error: null, closedByBroadcast: false });
     try {
       await mcpBridge.request("workspace.open", { path, init: true });
       await loadWorkspaces();
@@ -391,11 +400,19 @@ export function subscribeWorkspaceChanges(): () => void {
     // B: payload だけで state を完成させる。loadWorkspaces() は呼ばない。
     // recent list の更新は次の明示的 loadWorkspaces() (ListView mount 等) まで遅延 — 許容範囲。
     if (ev.activeId === null || ev.path === null) {
-      _setState({ active: null, lockdown: ev.lockdown ?? false });
+      // 開いていたワークスペースが別の接続で閉じられた場合は、ルーティングの見張りが
+      // URL の ID で開き直さないよう印を付ける (開き直すと「最後に開いたもの」が戻ってしまう)。
+      const closedWhileOpen = currentActive !== null && !(ev.lockdown ?? false);
+      _setState({
+        active: null,
+        lockdown: ev.lockdown ?? false,
+        closedByBroadcast: closedWhileOpen ? true : _state.closedByBroadcast,
+      });
     } else {
       _setState({
         active: { id: ev.activeId, path: ev.path, name: ev.name },
         lockdown: ev.lockdown ?? false,
+        closedByBroadcast: false,
       });
     }
   });

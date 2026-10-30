@@ -144,4 +144,57 @@ describe("workspaceStore subscribeWorkspaceChanges per-session フィルタ (#70
     // active が null になる
     expect(getState().active).toBeNull();
   });
+
+  it("開いている最中の close broadcast は closedByBroadcast が true になり、再び有効になると false に戻る", async () => {
+    (mcpBridge.request as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      workspaces: [{ id: "ws-A", path: "/workspace/A", name: "WS-A", lastOpenedAt: null }],
+      lastActiveId: "ws-A",
+      active: { id: "ws-A", path: "/workspace/A", name: "WS-A" },
+      lockdown: false,
+      lockdownPath: null,
+    });
+    await storeModule.loadWorkspaces();
+    expect(getState().closedByBroadcast).toBe(false);
+
+    subscribeWorkspaceChanges();
+    emitBroadcast({ activeId: null, path: null, name: null, lockdown: false });
+    expect(getState().active).toBeNull();
+    expect(getState().closedByBroadcast).toBe(true);
+
+    // 別の接続が開いた知らせ → 解除
+    emitBroadcast({ activeId: "ws-A", path: "/workspace/A", name: "WS-A", lockdown: false });
+    expect(getState().closedByBroadcast).toBe(false);
+  });
+
+  it("利用者が openWorkspace すると closedByBroadcast は false に戻る", async () => {
+    (mcpBridge.request as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      workspaces: [{ id: "ws-A", path: "/workspace/A", name: "WS-A", lastOpenedAt: null }],
+      lastActiveId: "ws-A",
+      active: { id: "ws-A", path: "/workspace/A", name: "WS-A" },
+      lockdown: false,
+      lockdownPath: null,
+    });
+    await storeModule.loadWorkspaces();
+    subscribeWorkspaceChanges();
+    emitBroadcast({ activeId: null, path: null, name: null, lockdown: false });
+    expect(getState().closedByBroadcast).toBe(true);
+
+    (mcpBridge.request as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({}) // workspace.open
+      .mockResolvedValueOnce({
+        workspaces: [{ id: "ws-A", path: "/workspace/A", name: "WS-A", lastOpenedAt: null }],
+        lastActiveId: "ws-A",
+        active: { id: "ws-A", path: "/workspace/A", name: "WS-A" },
+        lockdown: false,
+        lockdownPath: null,
+      });
+    await storeModule.openWorkspace("ws-A", true);
+    expect(getState().closedByBroadcast).toBe(false);
+  });
+
+  it("まだ開いていない状態 (active=null) の close broadcast では closedByBroadcast を立てない", () => {
+    subscribeWorkspaceChanges();
+    emitBroadcast({ activeId: null, path: null, name: null, lockdown: false });
+    expect(getState().closedByBroadcast).toBe(false);
+  });
 });

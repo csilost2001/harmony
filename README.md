@@ -103,7 +103,7 @@ codex login      # ChatGPT Plus 利用時
 
 WSL2 native セットアップも引き続きサポート対象です: [`docs/setup/wsl2-native.md`](docs/setup/wsl2-native.md)
 
-Docker / Podman Compose で Harmony を「使うだけ」の場合は [`docs/setup/compose-runtime.md`](docs/setup/compose-runtime.md) を参照してください。Docker image 配布方針と maintainer 向け build / smoke 手順は [`docs/setup/distribution-roadmap.md`](docs/setup/distribution-roadmap.md) を参照してください。通常の本体開発は引き続き Dev Containers が推奨です。
+Docker / Podman Compose で Harmony を「使うだけ」の場合は [`docs/setup/compose-runtime.md`](docs/setup/compose-runtime.md) を参照してください。Docker image 配布方針と maintainer 向け build / smoke 手順は [`docs/setup/distribution-roadmap.md`](docs/setup/distribution-roadmap.md) を参照してください。通常の本体開発は引き続き Dev Containers が推奨です。外の業務アプリの開発コンテナに Harmony を同居させて、MCP で設計・生成する構成は [`docs/setup/app-devcontainer-sidecar.md`](docs/setup/app-devcontainer-sidecar.md) を参照してください。
 
 ---
 

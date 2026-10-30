@@ -68,6 +68,17 @@ category: ops
 | `designer__get_generation_brief` | コードを生成する前に集める情報を 1 つの文書にまとめる (処理フロー / 画面)。詳細は [code-generation.md](code-generation.md) §9.5 |
 | `designer__check_test_coverage` | 生成したテストが、テスト観点表のどれだけを覆うか |
 
+### 生成のスキルの付属ファイル (Resource)
+
+`generate-code` などの手順 (Prompts) の本文は、`ai-skills/<名前>/templates/**` や `golden-examples/**` を参照する。外の業務プロジェクトはリポジトリを持たないので、これらは MCP の Resource で読む (読み取り専用)。
+
+| Resource | 内容 |
+|---|---|
+| `harmony://skill/<名前>/files` | スキルのフォルダにある通常のファイルの一覧 (JSON: `{ skill, files: [{ path, size, uri }], note }`)。`path` は `/` 区切り |
+| `harmony://skill/<名前>/<パス>` | 1 ファイル。パスは複数の階層 (例 `harmony://skill/generate-code/templates/devcontainer/nestjs-nextjs/.devcontainer/compose.yml`)。上の一覧にあるパスだけ読める |
+
+`<名前>` は Prompts として出すスキル (`create-flow` `review-flow` `generate-code` `generate-tests` `import-md` `rename-screen-ids` `test-strategy`) だけ。Prompt の本文の冒頭にも、この読み方を書いてある (付属ファイルのあるスキル、いまは `generate-code` と `generate-tests` だけ)。守りは [server-security.md](server-security.md) の「AI が読む資料と手順」。Prompts を出さない AI クライアント (VS Code の Claude Code 拡張など) では、Resource `harmony://skill/<名前>/SKILL.md` を読めば同じ手順になる (Prompt は SKILL.md の本文と同じ)。外の業務プロジェクトで Harmony を同居させる構成は [app-devcontainer-sidecar.md](../setup/app-devcontainer-sidecar.md)。
+
 ## 机上の実行と、指摘の直し方
 
 | tool | 内容 |

@@ -3,11 +3,11 @@
  * 配置: <ワークスペース>/.harmony-progress/history.json (自分の .gitignore を持つので、利用者の git には載らない)。
  * 記録するのは、設計の分析の「進捗」を開いたとき・ダッシュボードのパネルを表示したとき (その日の分を、最新の件数で置き換える)。
  */
-import fs from "node:fs/promises";
 import path from "node:path";
 import type { ProgressSnapshot, ProgressSummary } from "@harmony/shared";
 import { snapshotOf } from "@harmony/shared";
 import { writeJSON, readJSON, withFileLock } from "./storageCore.js";
+import { ensureWorkDir } from "./workDirs.js";
 
 export const PROGRESS_DIR = ".harmony-progress";
 /** 残す日数 (これより古い記録は捨てる) */
@@ -53,8 +53,7 @@ export async function recordProgress(root: string, summary: ProgressSummary, now
     if (same && JSON.stringify(same.byKind) === JSON.stringify(snap.byKind)) return history;
     const next = [...history.filter((h) => h.date !== snap.date), snap].sort((a, b) => a.date.localeCompare(b.date)).slice(-PROGRESS_KEEP);
     try {
-      await fs.mkdir(path.dirname(file), { recursive: true });
-      await fs.writeFile(path.join(path.dirname(file), ".gitignore"), "*\n", { flag: "wx" }).catch(() => undefined);
+      await ensureWorkDir(path.dirname(file));
       await writeJSON(file, { version: 1, snapshots: next });
     } catch { /* 記録できなくても、進捗の表示は続ける (読み取り専用の場所など) */ return history; }
     return next;

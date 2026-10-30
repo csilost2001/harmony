@@ -13,14 +13,19 @@ Harmony (設計)                          業務アプリ (実装)
 ─────────────────                       ─────────────────────────
 ProcessFlow / Screen / Table   ─────▶   ~/projects/<業務名>/
 PageLayout / Convention                  ├── src/
-(workspace 内 JSON)                      ├── .devcontainer/
+(workspace 内 JSON)                      ├── .devcontainer/ (dev + Harmony)
+                                         ├── .mcp.json
                                          ├── Dockerfile
                                          └── docker-compose.yml
 ```
 
 ## project-root model とは
 
-`<出力先>` は **業務アプリの project root を直接指す** 設計です。生成ファイルは canonical layout (Maven / Next.js 標準) で project root 直下に配置され、`.devcontainer/` / `Dockerfile` / `docker-compose.yml` / `README.md` も同じ project root に同居します。
+`<出力先>` は **業務アプリの project root を直接指す** 設計です。生成ファイルは canonical layout (Maven / Next.js 標準) で project root 直下に配置され、`.devcontainer/` / `.mcp.json` / `Dockerfile` / `docker-compose.yml` / `README.md` も同じ project root に同居します。
+
+`.devcontainer/` は **開発コンテナ (dev) と Harmony (設計ツール) を一緒に起動する構成** (compose 形式) です。Reopen in Container すると、設計の画面 (VS Code のポート転送 5179) と、AI CLI から使う MCP (`.mcp.json` の `http://localhost:5179/mcp`) も使えます。project root がそのまま Harmony のワークスペース (`harmony.json` + `design/`) になるので、設計とソースを 1 つの git で扱えます。手順: [app-devcontainer-sidecar.md](../setup/app-devcontainer-sidecar.md)
+
+`backend/` `frontend/` などのフォルダに分けて生成したいときは、`<出力先>` にそのフォルダを渡します。その場合も `.devcontainer/` と `.mcp.json` はプロジェクトのルートに置かれ、`backend/.devcontainer/` のような入れ子にはなりません。本番用の `Dockerfile` / `docker-compose.yml` と README の設計ツールの節は、渡したフォルダに作られます。すでにあるファイルだけは飛ばし、上書きしません。
 
 つまり生成後にやることは:
 
@@ -36,7 +41,9 @@ code ~/projects/retail-app/      # project root を VS Code で開く
 ```
 ~/projects/retail-app/                  ← 業務アプリ project root
 ├── .devcontainer/
-│   └── devcontainer.json
+│   ├── devcontainer.json
+│   └── compose.yml                     ← dev + harmony (設計ツール)
+├── .mcp.json                           ← Harmony の MCP
 ├── Dockerfile
 ├── docker-compose.yml
 ├── README.md
@@ -60,7 +67,8 @@ code ~/projects/retail-app/      # project root を VS Code で開く
 
 ```
 ~/projects/inventory-admin/             ← 業務アプリ project root
-├── .devcontainer/
+├── .devcontainer/                      ← devcontainer.json / compose.yml
+├── .mcp.json
 ├── Dockerfile
 ├── docker-compose.yml
 ├── README.md
@@ -142,7 +150,7 @@ code ~/projects/retail-app/      # project root を VS Code で開く
 
 `/generate-code` は同じ `<出力先>` への再実行で生成ファイルを上書きします。生成後に手で加えた修正は `git diff` で確認 → 必要に応じてマージしてください。設計駆動でやり直したい変更は Harmony designer 側で行い、再生成するのが原則です。
 
-scaffold (`.devcontainer/` / `Dockerfile` / `docker-compose.yml` / `README.md`) は既存があれば上書きせずスキップされます (#1048)。
+scaffold (`.devcontainer/` / `.mcp.json` / `Dockerfile` / `docker-compose.yml` / `README.md`) は既存があれば上書きせずスキップされます (#1048)。
 
 ### 4. 日本語値を `application.properties` に直書きしない (Spring Boot 系のみ)
 

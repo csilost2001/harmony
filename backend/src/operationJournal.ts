@@ -13,6 +13,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import os from "node:os";
 import { logWarn } from "./serverLog.js";
+import { ensureWorkDir } from "./workDirs.js";
 
 export const JOURNAL_DIR = ".harmony-journal";
 
@@ -49,8 +50,7 @@ export function planFromAbsolute(root: string, label: string, restore: Array<{ a
 /** 記録を書く。戻り値の commit を、操作が終わったとき (成功・失敗を問わず、元に戻し終えたとき) に呼ぶ */
 export async function openJournal(root: string, plan: JournalPlan): Promise<() => Promise<void>> {
   const dir = path.join(root, JOURNAL_DIR);
-  await fs.mkdir(dir, { recursive: true });
-  await fs.writeFile(path.join(dir, ".gitignore"), "*\n", { flag: "wx" }).catch(() => undefined);
+  await ensureWorkDir(dir);
   const file = path.join(dir, `${Date.now()}-${crypto.randomUUID()}.json`);
   const tmp = `${file}.tmp`;
   await fs.writeFile(tmp, JSON.stringify({ ...plan, instanceId: INSTANCE_ID, pid: process.pid, host: os.hostname() }), "utf-8");

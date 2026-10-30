@@ -82,6 +82,8 @@ Draft and history artifacts are not Git-tracked:
 | Draft history metadata | `<workspaceRoot>/.edit-sessions-history/<resourceType>/<resourceId>/<historyId>.json` |
 | Draft history design payload | `<workspaceRoot>/.edit-sessions-history/<resourceType>/<resourceId>/<historyId>/payload.design.json` + `payload.components.html` |
 
+> `.edit-sessions/` と `.edit-sessions-history/` は、作るときに自分の `.gitignore` (`*`) を置く。ワークスペースのルートが業務アプリの git と同じ場所でも、作業用のファイルが commit されない (#1569)。
+
 These paths are intentionally workspace-local cache/state. They must remain
 outside Git-managed canonical samples unless explicitly exported.
 

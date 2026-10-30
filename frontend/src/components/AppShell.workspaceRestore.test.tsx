@@ -132,11 +132,68 @@ describe("AppShell workspace initial restore", () => {
     bridgeMock.statusCallbacks.forEach((cb) => cb("connected"));
 
     await waitFor(() => {
-      expect(bridgeMock.request).toHaveBeenCalledWith("workspace.open", { id: "ws-aaa" });
+      expect(bridgeMock.request).toHaveBeenCalledWith("workspace.open", { id: "ws-aaa", restore: true });
     });
     await waitFor(() => {
       expect(screen.getByTestId("workspace-select")).toBeInTheDocument();
     });
     expect(screen.queryByText("ワークスペースを開いています...")).not.toBeInTheDocument();
+  });
+});
+
+describe("AppShell routing guard restore", () => {
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    bridgeMock.statusCallbacks.length = 0;
+    bridgeMock.broadcastCallbacks.length = 0;
+    const workspaceStore = await import("../store/workspaceStore");
+    workspaceStore.__resetStateForTest();
+    workspaceStore.__resetLoadChainForTest();
+    // 画面は ws-bbb の URL、backend の作業先は ws-aaa。open が成功したら ws-bbb に変わる
+    let activeId = "ws-aaa";
+    const workspaces = [
+      { id: "ws-aaa", path: "/data/ws-aaa", name: "WS A", lastOpenedAt: null },
+      { id: "ws-bbb", path: "/data/ws-bbb", name: "WS B", lastOpenedAt: null },
+    ];
+    bridgeMock.request.mockImplementation(async (method: string, params?: { id?: string }) => {
+      if (method === "workspace.list") {
+        const a = workspaces.find((w) => w.id === activeId)!;
+        return {
+          workspaces,
+          lastActiveId: "ws-aaa",
+          active: { id: a.id, path: a.path, name: a.name },
+          lockdown: false,
+          lockdownPath: null,
+        };
+      }
+      if (method === "workspace.open") {
+        activeId = params?.id ?? activeId;
+        return { active: { id: activeId } };
+      }
+      return {};
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("URL のワークスペースが active と異なるときの同期 (ルーティングの見張り) の workspace.open も restore: true で呼ぶ", async () => {
+    const { AppShell } = await import("./AppShell");
+    render(
+      <MemoryRouter initialEntries={["/w/ws-bbb/screen/list"]}>
+        <AppShell />
+      </MemoryRouter>,
+    );
+
+    bridgeMock.statusCallbacks.forEach((cb) => cb("connected"));
+
+    await waitFor(() => {
+      expect(bridgeMock.request).toHaveBeenCalledWith("workspace.open", { id: "ws-bbb", restore: true });
+    });
+    // restore なしの open (最後に開いたワークスペースを動かす呼び方) は一度も出ない
+    const opens = bridgeMock.request.mock.calls.filter((c) => c[0] === "workspace.open");
+    expect(opens.every((c) => (c[1] as { restore?: boolean }).restore === true)).toBe(true);
   });
 });

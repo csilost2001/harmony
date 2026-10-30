@@ -43,7 +43,7 @@ export function DesignIssuesPanel() {
         // 保守の案内 (一覧の食い違い・uuid 未保存)。取れなくても、要確認の表示は続ける
         const health = await mcpBridge.request("workspace.getHealth").then((r) => (r as { issues?: Array<{ code?: string }> }).issues ?? []).catch(() => []);
         if (!cancelled) {
-          setMaintenance({ registry: health.some((i) => i.code === "registry-missing-file" || i.code === "registry-unregistered"), uuid: health.some((i) => i.code === "uuid-unsaved") });
+          setMaintenance({ registry: health.some((i) => i.code === "registry-missing-file" || i.code === "registry-unregistered" || i.code === "registry-legacy-keys"), uuid: health.some((i) => i.code === "uuid-unsaved") });
           setIssues(doc.issues); setSkipped(sk); setSuppressed(doc.suppression?.suppressed.length ?? 0); setError(null);
           setEmpty(input.screens.length + input.flows.length + input.tables.length + (input.businessFlows?.length ?? 0) + (input.reports?.length ?? 0) === 0);
         }
@@ -89,9 +89,11 @@ export function DesignIssuesPanel() {
   const repairRegistry = () => runMaintenance("workspace.repairRegistry", (r) => {
     const list = (v: unknown) => ((v as Array<{ kind: string; id: string }> | undefined) ?? []).map((x) => `${x.kind}:${x.id}`);
     const add = list(r.add), remove = list(r.remove);
+    const removeKeys = ((r.removeKeys as string[] | undefined) ?? []);
     const show = (xs: string[]) => (xs.length > 8 ? `${xs.slice(0, 8).join("、")} ほか ${xs.length - 8} 件` : xs.join("、"));
-    return add.length + remove.length === 0 ? null
-      : `プロジェクトの一覧 (harmony.json) を、ファイルに合わせて直します。\n\n一覧に足す (ファイルはあるが一覧に無い): ${add.length} 件${add.length ? `\n  ${show(add)}` : ""}\n一覧から外す (ファイルが無い): ${remove.length} 件${remove.length ? `\n  ${show(remove)}` : ""}`;
+    const refresh = ((r.refresh as Array<{ kind: string; id: string; fields: string[] }> | undefined) ?? []).map((x) => `${x.kind}:${x.id} (${x.fields.join("・")})`);
+    return add.length + remove.length + removeKeys.length + refresh.length === 0 ? null
+      : `プロジェクトの一覧 (harmony.json) を、ファイルに合わせて直します。\n\n一覧に足す (ファイルはあるが一覧に無い): ${add.length} 件${add.length ? `\n  ${show(add)}` : ""}\n一覧から外す (ファイルが無い): ${remove.length} 件${remove.length ? `\n  ${show(remove)}` : ""}${removeKeys.length ? `\n最上位から取り除く旧形式の項目 (v3 のスキーマに無い): ${removeKeys.join("、")}` : ""}${refresh.length ? `\n一覧の要約をテーブルのファイルに合わせて直す: ${refresh.length} 件\n  ${show(refresh)}` : ""}`;
   }, "一覧を直しました");
   const persistUuids = () => runMaintenance("workspace.persistUuids", (r) => {
     const n = (r.files as unknown[] | undefined)?.length ?? 0;

@@ -18,14 +18,13 @@ import {
   LockdownError as WorkspaceLockdownError,
   LOCKDOWN_WORKSPACE_ID,
   workspaceContextManager,
+  getGlobalDefaultPath,
 } from "../workspaceState.js";
 import {
   listDisplayWorkspaces as listWorkspacesEntries,
   upsertWorkspace as upsertWorkspaceEntry,
-  removeWorkspace as removeWorkspaceEntry,
   findById as findWorkspaceById,
   findByPath as findWorkspaceByPath,
-  setLastActive as setLastActiveWorkspace,
   listWorkspaceRoots,
   upsertWorkspaceRoot,
   removeWorkspaceRoot,
@@ -34,6 +33,9 @@ import {
   discoverWorkspaceCandidates,
   inspectWorkspacePath,
   initializeWorkspace as initializeWorkspaceFolder,
+  markLastActive,
+  clearLastActiveIfSame,
+  removeRecentWorkspace,
 } from "../workspaceInit.js";
 import { getHostInfo } from "../hostInfo.js";
 import { browseFs, BrowseFsError } from "../fsBrowse.js";
@@ -167,9 +169,13 @@ export const workspaceHandlers: RpcHandlerMap = {
       respondError("DESIGNER_DATA_DIR で固定モード中のため、ワークスペースを切り替えできません");
       return;
     }
-    const { path: targetPath, id, init, dataDir: initDataDir } = (params ?? {}) as {
-      path?: string; id?: string; init?: boolean; dataDir?: string
+    const { path: targetPath, id, init, dataDir: initDataDir, restore } = (params ?? {}) as {
+      path?: string; id?: string; init?: boolean; dataDir?: string; restore?: boolean
     };
+    // restore: 画面の再読込・再接続・URL の同期で、いま見ているワークスペースへ接続の作業先をそろえるだけの open。
+    // 利用者が選んだ・AI が開いたのではないので、最後に開いたワークスペース (= 新しい接続の既定 = AI の作業先) は変えない。
+    // (既定が空のときだけは埋める)
+    const restoreOnly = restore === true;
     if (typeof targetPath !== "string" && typeof id !== "string") {
       respondError("path または id のいずれかが必要です");
       return;
@@ -199,7 +205,8 @@ export const workspaceHandlers: RpcHandlerMap = {
       }
     } else {
       const inspect = await inspectWorkspacePath(resolved);
-      if (inspect.status !== "ready") {
+      // 旧形式の項目だけが原因の harmony.json は、開いてダッシュボードの修復で直せるようにする (#1568)
+      if (inspect.status !== "ready" && !(inspect.status === "invalid" && inspect.repairable)) {
         respondError(
           inspect.status === "notFound"
             ? `フォルダが見つかりません: ${resolved}`
@@ -228,7 +235,9 @@ export const workspaceHandlers: RpcHandlerMap = {
       }
     } catch { /* fallback */ }
     const entry = await upsertWorkspaceEntry(resolved, name);
-    await setLastActiveWorkspace(entry.id);
+    // 復元の open は既定を動かさない。ただし既定がまだ空のときは、取り違える相手がいないので埋める
+    // (画面で見ているワークスペースがあるのに、AI の作業先が無い状態を避ける)
+    if (!restoreOnly || getGlobalDefaultPath() === null) await markLastActive(entry);
     respond({ active: { id: entry.id, path: entry.path, name: entry.name } });
     bridge.broadcast({ wsId: entry.path, event: "workspace.changed", data: {
       activeId: entry.id,
@@ -246,7 +255,8 @@ export const workspaceHandlers: RpcHandlerMap = {
       if (e instanceof WorkspaceLockdownError) { respondError(e.message); return; }
       throw e;
     }
-    await setLastActiveWorkspace(null);
+    // 最後に開いたワークスペース (既定) を外すのは、閉じるのがそれと同じときだけ。別のタブが別のワークスペースを開いているなら、既定はそのまま
+    await clearLastActiveIfSame(closingPath);
     if (closingPath) {
       bridge.deleteEditSessionStoreForWorkspace(closingPath);
     }
@@ -260,7 +270,7 @@ export const workspaceHandlers: RpcHandlerMap = {
     if (isWorkspaceLockdown()) { respondError("lockdown モード中はワークスペースを除外できません"); return; }
     const { id } = (params ?? {}) as { id?: string };
     if (typeof id !== "string") { respondError("id は必須です"); return; }
-    const removed = await removeWorkspaceEntry(id);
+    const removed = await removeRecentWorkspace(id);
     respond({ removed });
   },
 };

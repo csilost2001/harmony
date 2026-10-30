@@ -15,7 +15,7 @@ import { isReadOnlyTool } from "./security/mcpAccess.js";
 import { PROFILE_NAMES, PROFILES, isInProfile, parseProfiles, profileRefusal, profilesFromRequest } from "./security/mcpProfiles.js";
 import { PROMPT_SKILLS, findDocsRoot, getPrompt, listPrompts, listResources, readResource, schemaDefClosure, splitSections } from "./mcpKnowledge.js";
 import { NEXT_STEPS, buildProjectContext } from "./projectContext.js";
-import { connect as wsConnect, disconnect as wsDisconnect, setActivePath } from "./workspaceState.js";
+import { connect as wsConnect, disconnect as wsDisconnect, setActivePath, setGlobalDefaultPath } from "./workspaceState.js";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const SESSION = `mcp-entry-test-${process.pid}`;
@@ -337,8 +337,107 @@ describe("get_project_context: 壊れた設計があっても落ちない (draft
     } finally { await fs.rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); }
   });
 
+  it("作業先のワークスペース (path と name) が入る。AI が書く前に確かめられる", async () => {
+    const ctx = await buildProjectContext(path.join(REPO, "examples/retail")) as { workspace: { path: string; name: string } };
+    expect(ctx.workspace.path).toBe(path.join(REPO, "examples/retail"));
+    expect(ctx.workspace.name.length).toBeGreaterThan(0);
+  });
+
   it("limit が数でないときは既定 (NaN にならない)", async () => {
     const ctx = await buildProjectContext(path.join(REPO, "examples/retail"), { limit: Number.NaN }) as { designs: { flows: { shown: number; total: number } } };
     expect(ctx.designs.flows.shown).toBe(Math.min(ctx.designs.flows.total, 60));
+  });
+});
+
+describe("ワークスペース未選択でも使える workspace の tool", () => {
+  const FRESH = `mcp-entry-test-unset-${process.pid}`;
+  let tmp: string;
+  let prevRecent: string | undefined;
+
+  beforeAll(async () => {
+    tmp = await fs.mkdtemp(path.join(os.tmpdir(), "harmony-mcp-unset-"));
+    prevRecent = process.env.DESIGNER_RECENT_FILE; // 最近使った一覧を、本物の HOME に書かない
+    process.env.DESIGNER_RECENT_FILE = path.join(tmp, "recent-workspaces.json");
+    wsConnect(FRESH);
+  });
+  afterAll(async () => {
+    wsDisconnect(FRESH);
+    if (prevRecent === undefined) delete process.env.DESIGNER_RECENT_FILE; else process.env.DESIGNER_RECENT_FILE = prevRecent;
+    await fs.rm(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+  });
+
+  async function openFresh() {
+    const server = createMcpServer(FRESH, []);
+    const client = new Client({ name: "test", version: "0" });
+    const [a, b] = InMemoryTransport.createLinkedPair();
+    await Promise.all([server.connect(a), client.connect(b)]);
+    return { client, close: async () => { await client.close(); await server.close(); } };
+  }
+  const textOf = (r: unknown) => ((r as { content: Array<{ text: string }> }).content[0]?.text ?? "");
+
+  it("未選択でも workspace_status / workspace_list は断られず、init: true で開ける。開いたあとはワークスペースが必要な tool も使える", async () => {
+    const { client, close } = await openFresh();
+    try {
+      // ワークスペースが必要な tool は、従来どおり断られる
+      await expect(client.callTool({ name: "designer__list_tables", arguments: {} })).rejects.toThrow(/ワークスペースが選択されていません/);
+
+      const status = JSON.parse(textOf(await client.callTool({ name: "designer__workspace_status", arguments: {} })));
+      expect(status.active).toBeNull();
+      const list = JSON.parse(textOf(await client.callTool({ name: "designer__workspace_list", arguments: {} })));
+      expect(list.active).toBeNull();
+      expect(Array.isArray(list.workspaces)).toBe(true);
+
+      const dir = path.join(tmp, "proj");
+      const opened = await client.callTool({ name: "designer__workspace_open", arguments: { path: dir, init: true } });
+      expect(textOf(opened)).toContain("を開きました");
+      await expect(fs.stat(path.join(dir, "harmony.json"))).resolves.toBeTruthy();
+
+      const after = JSON.parse(textOf(await client.callTool({ name: "designer__workspace_status", arguments: {} })));
+      expect(after.active?.path).toBeTruthy();
+      const tablesRes = await client.callTool({ name: "designer__list_tables", arguments: {} });
+      expect((tablesRes as { isError?: boolean }).isError).not.toBe(true);
+
+      await client.callTool({ name: "designer__workspace_close", arguments: {} });
+      await expect(client.callTool({ name: "designer__list_tables", arguments: {} })).rejects.toThrow(/ワークスペースが選択されていません/);
+    } finally { await close(); }
+  });
+
+  it("stateless の MCP: 別の新しい接続 (次の要求) でも、最後に開いたワークスペースが使われる。閉じると未選択に戻る", async () => {
+    const SESSION_A = `mcp-entry-test-unset-a-${process.pid}`;
+    const SESSION_B = `mcp-entry-test-unset-b-${process.pid}`;
+    const SESSION_C = `mcp-entry-test-unset-c-${process.pid}`;
+    const openAs = async (session: string) => {
+      wsConnect(session); // 要求ごとに新しい clientId で接続する、実際の経路と同じ
+      const server = createMcpServer(session, []);
+      const client = new Client({ name: "test", version: "0" });
+      const [a, b] = InMemoryTransport.createLinkedPair();
+      await Promise.all([server.connect(a), client.connect(b)]);
+      return { client, close: async () => { await client.close(); await server.close(); wsDisconnect(session); } };
+    };
+    try {
+      const dir = path.join(tmp, "proj-stateless");
+      const a = await openAs(SESSION_A);
+      try {
+        await a.client.callTool({ name: "designer__workspace_open", arguments: { path: dir, init: true } });
+      } finally { await a.close(); }
+
+      const b = await openAs(SESSION_B);
+      try {
+        const status = JSON.parse(textOf(await b.client.callTool({ name: "designer__workspace_status", arguments: {} })));
+        expect(status.active?.path).toBe(path.resolve(dir));
+        const tables = await b.client.callTool({ name: "designer__list_tables", arguments: {} });
+        expect((tables as { isError?: boolean }).isError).not.toBe(true);
+        await b.client.callTool({ name: "designer__workspace_close", arguments: {} });
+      } finally { await b.close(); }
+
+      const c = await openAs(SESSION_C);
+      try {
+        await expect(c.client.callTool({ name: "designer__list_tables", arguments: {} })).rejects.toThrow(/ワークスペースが選択されていません/);
+        const status = JSON.parse(textOf(await c.client.callTool({ name: "designer__workspace_status", arguments: {} })));
+        expect(status.active).toBeNull();
+      } finally { await c.close(); }
+    } finally {
+      setGlobalDefaultPath(null); // 他の試験に影響させない
+    }
   });
 });

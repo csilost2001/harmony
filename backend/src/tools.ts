@@ -605,8 +605,8 @@ export const tools = [
   {
     name: "designer__repair_registry",
     description:
-      "プロジェクトの一覧 (harmony.json) とファイルの食い違いを直します: ファイルはあるが一覧に載っていない設計を一覧に足し、一覧にあるがファイルが無い項目を外します。" +
-      "既定は予行 (書かずに、足す・外す設計だけを返す)。実行するには apply: true を付けます。",
+      "プロジェクトの一覧 (harmony.json) とファイルの食い違いを直します: ファイルはあるが一覧に載っていない設計を一覧に足し、一覧にあるがファイルが無い項目を外し、harmony.json の最上位にある旧形式の項目 (tables / updatedAt など。v3 のスキーマに無く、画面がワークスペースを開けなくなる) を取り除きます。一覧にあるテーブルの要約 (名前・物理名・カテゴリ・カラム数) が、テーブルのファイルと食い違っていれば、ファイルに合わせて直します。" +
+      "既定は予行 (書かずに、足す・外す・直す設計だけを返す)。実行するには apply: true を付けます。",
     inputSchema: {
       type: "object" as const,
       properties: { apply: { type: "boolean", description: "true で実際に書く (既定は予行)" } },
@@ -848,7 +848,7 @@ export const tools = [
   {
     name: "designer__list_tables",
     description:
-      "プロジェクトに定義されたテーブル設計書の一覧を取得します。各テーブルのID・テーブル名・論理名・カテゴリ・カラム数を返します。",
+      "プロジェクトに定義されたテーブル設計書の一覧を取得します。各テーブルのID・物理名・表示名 (論理名)・カテゴリ・カラム数を返します。",
     inputSchema: {
       type: "object" as const,
       properties: {},
@@ -873,17 +873,17 @@ export const tools = [
   {
     name: "designer__add_table",
     description:
-      "新しいテーブル定義を追加します。",
+      "新しいテーブル定義を追加します (カラムは空。あとから designer__update_table で足す)。physicalName (物理名) と name (表示名。論理名はここに書く) が必須です。",
     inputSchema: {
       type: "object" as const,
       properties: {
+        physicalName: {
+          type: "string",
+          description: "物理名 (DB のテーブル名)。英小文字で始まる snake_case、63 文字まで。例: customers",
+        },
         name: {
           type: "string",
-          description: "テーブル名（snake_case、例: customers）",
-        },
-        logicalName: {
-          type: "string",
-          description: "論理名（例: 顧客マスタ）",
+          description: "表示名 (論理名。例: 顧客マスタ)",
         },
         description: {
           type: "string",
@@ -894,7 +894,7 @@ export const tools = [
           description: "カテゴリ（マスタ, トランザクション 等）。省略可。",
         },
       },
-      required: ["name", "logicalName"],
+      required: ["physicalName", "name"],
     },
   },
   {
@@ -1017,7 +1017,7 @@ export const tools = [
   {
     name: "designer__generate_ddl",
     description:
-      "指定テーブルのDDL（CREATE TABLE文）を生成します。SQLダイアレクトを指定できます。",
+      "指定テーブルのDDL（CREATE TABLE文）を生成します。テーブル名・カラム名・索引・外部キーは物理名（physicalName）で出します（name は表示名）。SQLダイアレクトを指定できます。",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -1027,7 +1027,7 @@ export const tools = [
         },
         dialect: {
           type: "string",
-          enum: ["mysql", "postgresql", "oracle", "sqlite", "standard"],
+          enum: ["mysql", "postgresql", "oracle", "sqlserver", "sqlite", "standard"],
           description: "SQLダイアレクト。省略時は standard",
         },
       },

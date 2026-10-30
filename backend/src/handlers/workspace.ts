@@ -27,12 +27,10 @@ import {
 import {
   listDisplayWorkspaces,
   upsertWorkspace,
-  removeWorkspace,
   findById,
   findByPath,
-  setLastActive,
 } from "../recentStore.js";
-import { inspectWorkspacePath, initializeWorkspace } from "../workspaceInit.js";
+import { inspectWorkspacePath, initializeWorkspace, markLastActive, clearLastActiveIfSame, removeRecentWorkspace } from "../workspaceInit.js";
 import { wsBridge } from "../wsBridge.js";
 import type { ToolHandler } from "../mcpHelpers.js";
 
@@ -117,12 +115,15 @@ export const handleWorkspaceTool: ToolHandler = async (name, args, _root, sessio
         }
       } else {
         const inspect = await inspectWorkspacePath(target);
-        if (inspect.status !== "ready") {
+        // 旧形式の項目だけが原因の harmony.json は、開いて designer__repair_registry で直せるようにする (#1568)
+        if (inspect.status !== "ready" && !(inspect.status === "invalid" && inspect.repairable)) {
           throw new McpError(
             ErrorCode.InvalidParams,
             inspect.status === "notFound"
               ? `フォルダが見つかりません: ${target}`
-              : `ワークスペースが初期化されていません (harmony.json なし): ${target}。init=true で初期化してください。`,
+              : inspect.status === "invalid"
+                ? `ワークスペースの harmony.json が不正です: ${inspect.reason}`
+                : `ワークスペースが初期化されていません (harmony.json なし): ${target}。init=true で初期化してください。`,
           );
         }
       }
@@ -150,7 +151,7 @@ export const handleWorkspaceTool: ToolHandler = async (name, args, _root, sessio
         }
       } catch { /* fallback to basename / init result */ }
       const entry = await upsertWorkspace(target, name);
-      await setLastActive(entry.id);
+      await markLastActive(entry);
       // workspace.open broadcast: 同 path を active にしている session のみ受信 (#703 R-5 A-2)
       wsBridge.broadcast({ wsId: entry.path, event: "workspace.changed", data: {
         activeId: entry.id,
@@ -172,6 +173,10 @@ export const handleWorkspaceTool: ToolHandler = async (name, args, _root, sessio
     case "designer__workspace_close": {
       // close 前に現在の path をキャプチャ (close 後は getActivePath が null になるため)
       const closingPath = workspaceContextManager.getActivePath(sessionId);
+      // 作業先が無い (未選択) ときは何もしない。全タブへ「閉じた」を配ったり、最後に開いたワークスペースの記録を消したりしない
+      if (!closingPath) {
+        return { content: [{ type: "text", text: "開いているワークスペースはありません。" }] };
+      }
       try {
         clearActive(sessionId);
       } catch (e) {
@@ -180,7 +185,8 @@ export const handleWorkspaceTool: ToolHandler = async (name, args, _root, sessio
         }
         throw e;
       }
-      await setLastActive(null);
+      // 最後に開いたワークスペース (既定) を外すのは、閉じるのがそれと同じときだけ
+      await clearLastActiveIfSame(closingPath);
       // workspace.close broadcast: close 前の path を持つ session のみ受信 (#703 R-5 A-2)
       wsBridge.broadcast({ wsId: closingPath, event: "workspace.changed", data: {
         activeId: null,
@@ -198,7 +204,7 @@ export const handleWorkspaceTool: ToolHandler = async (name, args, _root, sessio
       if (typeof a.id !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "id は必須です");
       }
-      const removed = await removeWorkspace(a.id);
+      const removed = await removeRecentWorkspace(a.id);
       if (!removed) {
         return { content: [{ type: "text", text: `id ${a.id} のワークスペースは見つかりませんでした。` }] };
       }

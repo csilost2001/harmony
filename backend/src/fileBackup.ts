@@ -12,6 +12,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { logWarn } from "./serverLog.js";
+import { writeOwnGitignore } from "./workDirs.js";
 
 export const BACKUP_DIR = ".harmony-backups";
 /** 1 ファイルあたりに残す世代数 */
@@ -82,7 +83,7 @@ export async function backupBeforeOverwrite(filePath: string, nextText: string):
       if (latest === prev) return;
     }
     await fs.mkdir(dir, { recursive: true });
-    await fs.writeFile(path.join(wsRoot, BACKUP_DIR, ".gitignore"), "*\n", { flag: "wx" }).catch(() => undefined);
+    await writeOwnGitignore(path.join(wsRoot, BACKUP_DIR));
     await fs.writeFile(path.join(dir, `${newVersionId()}.json`), prev, "utf-8");
     const all = await listVersionFiles(dir);
     for (const id of all.slice(0, Math.max(0, all.length - BACKUP_KEEP))) {

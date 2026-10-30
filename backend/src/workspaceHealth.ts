@@ -3,7 +3,7 @@
  *
  * - scanWorkspaceHealth   読めない (壊れている) ファイル・大きすぎるファイル・ファイル名と id の食い違い・
  *                         一覧 (harmony.json) にあるのにファイルが無い項目・uuid が未保存の設計を、要確認として返す (読むだけ)
- * - repairRegistry        一覧とファイルの食い違いを直す (一覧に載っていないファイルを足す / ファイルが無い項目を外す)。既定は予行
+ * - repairRegistry        一覧とファイルの食い違いを直す (一覧に載っていないファイルを足す / ファイルが無い項目を外す / 旧形式の項目を取り除く / テーブルの要約をファイルに合わせる)。既定は予行
  * - persistDerivedUuids   uuid が未保存の設計に、読み出しで補っている値を書いて固定する。既定は予行
  *
  * 仕様: docs/spec/workspace-health.md
@@ -11,7 +11,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import {
-  actionsDir, deriveStableUuid, entityDirOf, isLegacyGrapesScreen, listExistingEntityIds, listScreenIdsIncludingLegacy, projectSaltFor, readProject, resolveDataRoot,
+  actionsDir, deriveStableUuid, entityDirOf, isLegacyGrapesScreen, listExistingEntityIds, listScreenIdsIncludingLegacy, projectSaltFor, readEntityReadOnly, readProject, resolveDataRoot,
   writeJsonFile, writeProject, type TopLevelEntityKind,
 } from "./projectStorage.js";
 import { mergeUnregisteredEntities } from "./registryMerge.js";
@@ -21,7 +21,7 @@ import { createFileMemo } from "./fileMemo.js";
 /** これを超える JSON は、読み込みを避けて「大きすぎる」として知らせる */
 export const MAX_JSON_BYTES = 20 * 1024 * 1024;
 
-export type HealthCode = "unreadable-file" | "unreadable-json" | "too-large" | "not-object" | "id-mismatch" | "registry-missing-file" | "registry-unregistered" | "uuid-unsaved";
+export type HealthCode = "unreadable-file" | "unreadable-json" | "too-large" | "not-object" | "id-mismatch" | "registry-missing-file" | "registry-unregistered" | "registry-legacy-keys" | "uuid-unsaved";
 
 export interface HealthIssue {
   /** 画面の出し分け (保守ボタンなど) に使う種類。文言を変えても動くよう、文言では判定しない */
@@ -35,6 +35,23 @@ export interface HealthIssue {
 }
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
+
+/**
+ * harmony.json の最上位にあってはいけない、旧形式の項目。v3 の harmony.json は、最上位に使える項目が決まっている
+ * (schemas/v3/harmony.v3.schema.json)。旧形式の tool が `tables` / `updatedAt` などを足すと、画面がワークスペースを開けなくなる (#1568)。
+ * 一覧は entities.<種類>、更新時刻は meta.updatedAt が正しい置き場。ここに挙げた名前だけを「取り除く候補」にする
+ * (綴りの違いなど、ほかの未知の項目は、利用者の書いたものかもしれないので勝手に消さない)。
+ */
+export const LEGACY_PROJECT_KEYS = ["tables", "screens", "processFlows", "edges", "updatedAt"] as const;
+
+/** v3 の harmony.json の最上位に使える項目 (スキーマの properties と同じ) */
+const V3_PROJECT_KEYS = new Set(["$schema", "schemaVersion", "dataDir", "meta", "extensionsApplied", "entities", "authoring", "techStack"]);
+
+/** harmony.json の最上位にある、旧形式の項目の名前 (v3 で使える項目は含めない) */
+export function findLegacyProjectKeys(project: unknown): string[] {
+  if (!isRecord(project)) return [];
+  return LEGACY_PROJECT_KEYS.filter((k) => !V3_PROJECT_KEYS.has(k) && k in project);
+}
 
 const KINDS: Array<{ kind: TopLevelEntityKind; label: string }> = [
   { kind: "screen", label: "画面" }, { kind: "table", label: "テーブル" }, { kind: "processFlow", label: "処理フロー" },
@@ -223,6 +240,11 @@ async function computeScan(root: string): Promise<HealthIssue[]> {
       }
     }
   }
+  // 最上位の旧形式の項目 (v3 のスキーマに無い。画面がワークスペースを開けなくなる)
+  const legacyKeys = findLegacyProjectKeys(project);
+  if (legacyKeys.length > 0) {
+    issues.push({ code: "registry-legacy-keys", severity: "warning", maintenance: true, section: "一覧", message: `harmony.json の最上位に、v3 のスキーマに無い旧形式の項目があります (${legacyKeys.join("、")})。画面でワークスペースを開けなくなります。取り除くには「一覧の食い違いを直す」(AI: designer__repair_registry。予行を見てから apply: true) を使ってください` });
+  }
   // ファイルはあるが、一覧に載っていない設計 (読み出しでは一覧に足して扱っている。一覧へ書くのは「一覧の食い違いを直す」)
   if (isRecord(project)) {
     const { unregistered } = await mergeUnregisteredEntities(project, root).catch(() => ({ unregistered: [] as Array<{ kind: string; id: string }> }));
@@ -244,7 +266,34 @@ export interface RegistryRepairPlan {
   add: Array<{ kind: string; id: string }>;
   /** 一覧から外す (一覧にあるが、ファイルが無い) */
   remove: Array<{ kind: string; id: string }>;
+  /** harmony.json の最上位から取り除く、旧形式の項目の名前 (v3 のスキーマに無い。#1568) */
+  removeKeys: string[];
+  /** 一覧のテーブルの要約 (名前・物理名・カテゴリ・カラム数) が、テーブルのファイルと食い違っていて、ファイルに合わせて直す項目 */
+  refresh: Array<{ kind: "table"; id: string; fields: string[] }>;
   applied: boolean;
+}
+
+const PHYSICAL_NAME_RE = /^[a-z][a-z0-9_]*$/;
+
+/** 一覧のテーブルの要約を、テーブルのファイルの値に合わせた一覧と、直す項目。ファイルに値が無い・使えない値の項目には触れない */
+async function refreshTableSummaries(tables: unknown[], root: string): Promise<{ tables: unknown[]; refresh: RegistryRepairPlan["refresh"] }> {
+  const refresh: RegistryRepairPlan["refresh"] = [];
+  const out: unknown[] = [];
+  for (const e of tables) {
+    if (!isRecord(e) || typeof e.id !== "string") { out.push(e); continue; }
+    const file = await readEntityReadOnly("table", e.id, root).catch(() => null);
+    if (!isRecord(file)) { out.push(e); continue; }
+    const want: Record<string, unknown> = {};
+    if (typeof file.name === "string" && file.name) want.name = file.name;
+    if (typeof file.physicalName === "string" && PHYSICAL_NAME_RE.test(file.physicalName) && file.physicalName.length <= 63) want.physicalName = file.physicalName;
+    if (typeof file.category === "string" && file.category) want.category = file.category;
+    if (Array.isArray(file.columns)) want.columnCount = file.columns.length;
+    const fields = Object.keys(want).filter((k) => e[k] !== want[k]);
+    if (fields.length === 0) { out.push(e); continue; }
+    refresh.push({ kind: "table", id: e.id, fields });
+    out.push({ ...e, ...Object.fromEntries(fields.map((k) => [k, want[k]])) });
+  }
+  return { tables: out, refresh };
 }
 
 /** 一覧 (harmony.json) とファイルの食い違いを直す。apply が true のときだけ書く (予行が既定) */
@@ -253,7 +302,10 @@ export async function repairRegistry(root: string, apply: boolean): Promise<Regi
   if (!isRecord(project)) throw new Error("harmony.json を読めません");
   const merged = await mergeUnregisteredEntities(project, root);
   const add = merged.unregistered.map((u) => ({ kind: u.kind, id: u.id }));
-  const next = isRecord(merged.project) ? merged.project : project;
+  const mergedProject = isRecord(merged.project) ? merged.project : project;
+  const removeKeys = findLegacyProjectKeys(mergedProject);
+  const next: Record<string, unknown> = { ...mergedProject };
+  for (const k of removeKeys) delete next[k];
   const entities: Record<string, unknown> = isRecord(next.entities) ? { ...next.entities } : {};
   const remove: Array<{ kind: string; id: string }> = [];
   for (const c of [{ key: "screens", kind: "screen" }, { key: "tables", kind: "table" }, { key: "processFlows", kind: "processFlow" }] as const) {
@@ -267,8 +319,13 @@ export async function repairRegistry(root: string, apply: boolean): Promise<Regi
     });
     if (kept.length !== list.length) entities[c.key] = kept;
   }
-  if (apply && (add.length || remove.length)) await writeProject({ ...next, entities }, root);
-  return { add, remove, applied: apply && (add.length > 0 || remove.length > 0) };
+  // 一覧に残るテーブルの要約を、テーブルのファイルに合わせる (名前・カラム数などが古いままにならないように)
+  const refreshed = await refreshTableSummaries(Array.isArray(entities.tables) ? entities.tables as unknown[] : [], root);
+  if (refreshed.refresh.length > 0) entities.tables = refreshed.tables;
+  const refresh = refreshed.refresh;
+  const changed = add.length > 0 || remove.length > 0 || removeKeys.length > 0 || refresh.length > 0;
+  if (apply && changed) await writeProject({ ...next, entities }, root);
+  return { add, remove, removeKeys, refresh, applied: apply && changed };
 }
 
 export interface UuidPersistResult { files: string[]; applied: boolean }
