@@ -521,3 +521,150 @@ describe("設計の要確認 (info) は覚える (レビュー N8)", () => {
     expect(await collectScaffoldIssues(ROOT, TPL)).not.toBe(a);
   });
 });
+
+// ── tax-app の実機確認の提案: README の節の切り出しと、人に見せる差分 ──────────
+
+describe("人に見せる差分 (diff / templateDiff / appChanges)", () => {
+  const byT = (u: Awaited<ReturnType<typeof getScaffoldUpdate>>) => Object.fromEntries(u.files.map((f) => [f.template, f]));
+  it("3 方向: diff は アプリ → 新しい雛形、templateDiff は 写したとき → 新しい雛形、appChanges は 写したとき → アプリ", async () => {
+    await write(path.join(ROOT, "Dockerfile"), "FROM x\nUSER mine\n");
+    await recordScaffold(ROOT, {}, "AI", TPL);
+    await seedTemplate({ ...BASE_FILES, Dockerfile: "FROM y\n" });
+    const f = byT(await getScaffoldUpdate(ROOT, TPL))["Dockerfile"];
+    const head = "--- a/Dockerfile\n+++ b/Dockerfile\n";
+    expect(f.templateDiff).toBe(`${head}@@ -1,1 +1,1 @@\n-FROM x\n+FROM y\n`);
+    expect(f.appChanges).toBe(`${head}@@ -1,2 +1,2 @@\n FROM x\n+USER mine\n`.replace("@@ -1,2 +1,2 @@", "@@ -1,1 +1,2 @@"));
+    expect(f.diff).toBe(`${head}@@ -1,2 +1,1 @@\n-FROM x\n-USER mine\n+FROM y\n`);
+    expect(f.diffTooLarge).toBeUndefined();
+    expect(f.diffTruncated).toBeUndefined();
+  });
+  it("2 方向 (base が無い): diff だけ。templateDiff / appChanges は付かない。アプリにファイルが無ければ、全部が追加の差分", async () => {
+    await write(path.join(ROOT, "Dockerfile"), "FROM own\n");
+    await recordScaffold(ROOT, { skipped: ["Dockerfile"] }, "AI", TPL);
+    await seedTemplate({ ...BASE_FILES, ".mcp.json": '{"a":1}\n', "docker-compose.yml": "services: {}\n" });
+    const f = byT(await getScaffoldUpdate(ROOT, TPL));
+    expect(f["Dockerfile"].diff).toBe("--- a/Dockerfile\n+++ b/Dockerfile\n@@ -1,1 +1,1 @@\n-FROM own\n+FROM x\n");
+    expect(f["Dockerfile"].templateDiff).toBeUndefined();
+    expect(f["Dockerfile"].appChanges).toBeUndefined();
+    expect(f["docker-compose.yml"]).toMatchObject({ state: "new-in-template", diff: "--- a/docker-compose.yml\n+++ b/docker-compose.yml\n@@ -0,0 +1,1 @@\n+services: {}\n" });
+  });
+  it("アプリにファイルが無い (base あり) と appChanges は付かない。雛形から無くなったファイルの diff は全部削除", async () => {
+    await write(path.join(ROOT, ".mcp.json"), "{}\n");
+    await recordScaffold(ROOT, {}, "AI", TPL);
+    const { ".mcp.json": _gone, ...rest } = BASE_FILES; void _gone;
+    await seedTemplate({ ...rest, Dockerfile: "FROM y\n" });
+    const f = byT(await getScaffoldUpdate(ROOT, TPL));
+    expect(f["Dockerfile"].appChanges).toBeUndefined(); // アプリに Dockerfile が無い
+    expect(f["Dockerfile"].templateDiff).toContain("+FROM y");
+    expect(f[".mcp.json"]).toMatchObject({ state: "removed-from-template", diff: "--- a/.mcp.json\n+++ b/.mcp.json\n@@ -1,1 +0,0 @@\n-{}\n" });
+  });
+  it("unchanged のファイルには差分を付けない。CRLF のアプリのファイルは LF にそろえて比べる", async () => {
+    await write(path.join(ROOT, "Dockerfile"), "FROM x\r\n");
+    await recordScaffold(ROOT, {}, "AI", TPL);
+    await seedTemplate({ ...BASE_FILES, ".mcp.json": '{"a":1}\n' });
+    const f = byT(await getScaffoldUpdate(ROOT, TPL));
+    expect(f["Dockerfile"].state).toBe("unchanged");
+    expect(f["Dockerfile"].diff).toBeUndefined();
+    await seedTemplate({ ...BASE_FILES, Dockerfile: "FROM x\nRUN a\n" });
+    const g = byT(await getScaffoldUpdate(ROOT, TPL))["Dockerfile"];
+    expect(g.diff).toBe("--- a/Dockerfile\n+++ b/Dockerfile\n@@ -1,1 +1,2 @@\n FROM x\n+RUN a\n");
+    expect(g.appChanges).toBe(""); // 手入れは無い (CRLF の違いは差にしない)
+  });
+  it("片方が 3000 行を超えるファイルは、差分を作らず diffTooLarge。ほかのファイルには影響しない", async () => {
+    const big = Array.from({ length: 3001 }, (_, i) => `l${i}`).join("\n") + "\n";
+    await write(path.join(ROOT, "Dockerfile"), big);
+    await recordScaffold(ROOT, { skipped: ["Dockerfile"] }, "AI", TPL);
+    await seedTemplate({ ...BASE_FILES, Dockerfile: "FROM y\n", ".mcp.json": '{"a":1}\n' });
+    const f = byT(await getScaffoldUpdate(ROOT, TPL));
+    expect(f["Dockerfile"]).toMatchObject({ state: "template-changed", diffTooLarge: true });
+    expect(f["Dockerfile"].diff).toBeUndefined();
+    expect(f["Dockerfile"].app).toBe(big); // 中身は返す (自分で比べられる)
+    expect(f[".mcp.json"].diff).toContain("+{\"a\":1}");
+    expect(f[".mcp.json"].diffTooLarge).toBeUndefined();
+  });
+  it("差分が 200KB を超えるときは、行の境界で切り、diffTruncated で知らせる", async () => {
+    const lines = (p: string) => Array.from({ length: 2900 }, (_, i) => `${p}${i} ${"x".repeat(100)}`).join("\n") + "\n";
+    await write(path.join(ROOT, "Dockerfile"), lines("a"));
+    await recordScaffold(ROOT, { skipped: ["Dockerfile"] }, "AI", TPL);
+    await seedTemplate({ ...BASE_FILES, Dockerfile: lines("b") });
+    const f = byT(await getScaffoldUpdate(ROOT, TPL))["Dockerfile"];
+    expect(f.diffTruncated).toBe(true);
+    expect(Buffer.byteLength(f.diff!)).toBeLessThanOrEqual(MAX_SCAFFOLD_CONTENT);
+    expect(f.diff!.endsWith("\n")).toBe(true);
+    expect(f.diffTooLarge).toBeUndefined();
+  });
+});
+
+describe("README の節 (appSection / sectionHeading / appSectionRange)", () => {
+  const readme = async (u: ReturnType<typeof getScaffoldUpdate>) => (await u).files.find((f) => f.template === "README.snippet.md")!;
+  const README = "# app\n\n## 開発環境\n手順\n追記した行\n\n## 本番\n本番の手順\n";
+  it("節だけを切り出して返し、差分と appEdited は節で見る (他の節の違いは出ない)", async () => {
+    await write(path.join(ROOT, "README.md"), README);
+    await recordScaffold(ROOT, {}, "AI", TPL);
+    await seedTemplate({ ...BASE_FILES, "README.snippet.md": "## 開発環境\n新しい手順\n" });
+    const f = await readme(getScaffoldUpdate(ROOT, TPL));
+    expect(f).toMatchObject({ kind: "section", path: "README.md", state: "template-changed", sectionHeading: "## 開発環境", appSectionRange: { startLine: 3, endLine: 5 } });
+    expect(f.appSection).toBe("## 開発環境\n手順\n追記した行");
+    expect(f.app).toBe(README); // README 全体は今までどおり
+    expect(f.appEdited).toBe(false); // base の節の本文は入っている (追記は手入れとみなさない: 従来どおり)
+    expect(f.diff).toBe("--- a/README.md\n+++ b/README.md\n@@ -1,3 +1,2 @@\n ## 開発環境\n-手順\n-追記した行\n+新しい手順\n");
+    expect(f.templateDiff).toBe("--- a/README.md\n+++ b/README.md\n@@ -1,2 +1,2 @@\n ## 開発環境\n-手順\n+新しい手順\n");
+    expect(f.appChanges).toBe("--- a/README.md\n+++ b/README.md\n@@ -1,2 +1,3 @@\n ## 開発環境\n 手順\n+追記した行\n");
+  });
+  it("節の本文を書き換えた (base が入っていない) ら appEdited は true。節の外の変更は無関係", async () => {
+    await write(path.join(ROOT, "README.md"), "# app\n\n## 開発環境\n書き換えた手順\n\n## 本番\n手順\n"); // base の本文 (「手順」) は別の節にだけある
+    await recordScaffold(ROOT, {}, "AI", TPL);
+    await seedTemplate({ ...BASE_FILES, "README.snippet.md": "## 開発環境\n新しい手順\n" });
+    const f = await readme(getScaffoldUpdate(ROOT, TPL));
+    expect(f.appEdited).toBe(true);
+  });
+  it("README に節が無ければ appSection は null (diff は全部追加)。README が無くても null", async () => {
+    await write(path.join(ROOT, ".devcontainer/compose.yml"), COMPOSE_WITH_HARMONY);
+    await write(path.join(ROOT, "README.md"), "# app\n\n## 別の節\n中身\n");
+    const f = await readme(getScaffoldUpdate(ROOT, TPL));
+    expect(f).toMatchObject({ state: "new-in-template", appSection: null, appSectionRange: null, sectionHeading: "## 開発環境" });
+    expect(f.diff).toBe("--- a/README.md\n+++ b/README.md\n@@ -0,0 +1,2 @@\n+## 開発環境\n+手順\n");
+    await fs.rm(path.join(ROOT, "README.md"));
+    const g = await readme(getScaffoldUpdate(ROOT, TPL));
+    expect(g).toMatchObject({ state: "new-in-template", app: null, appSection: null, appSectionRange: null });
+  });
+  it("見出しが複数ある README・README の終わりまで続く節・出力先 (outDir) の README", async () => {
+    await write(path.join(ROOT, "backend/README.md"), "# a\n## 開発環境\n手順\n### 小見出し\n中\n# 上のレベル\n外\n");
+    await recordScaffold(ROOT, { outDir: "backend" }, "AI", TPL);
+    await seedTemplate({ ...BASE_FILES, "README.snippet.md": "## 開発環境\n新しい手順\n" });
+    const f = await readme(getScaffoldUpdate(ROOT, TPL));
+    expect(f).toMatchObject({ path: "backend/README.md", appSection: "## 開発環境\n手順\n### 小見出し\n中", appSectionRange: { startLine: 2, endLine: 5 } });
+    await write(path.join(ROOT, "backend/README.md"), "# a\n## 開発環境\n手順\n最後まで\n");
+    expect((await readme(getScaffoldUpdate(ROOT, TPL))).appSectionRange).toEqual({ startLine: 2, endLine: 4 });
+  });
+  it("記録なし (2 方向): 節が同じなら unchanged、README の他の部分が違っても影響しない。違えば template-changed", async () => {
+    await write(path.join(ROOT, ".devcontainer/compose.yml"), COMPOSE_WITH_HARMONY);
+    await write(path.join(ROOT, "README.md"), "# 全然違う README\n\n## 開発環境\n手順\n\n## 本番\n別\n");
+    expect(await readme(getScaffoldUpdate(ROOT, TPL))).toMatchObject({ state: "unchanged" });
+    await write(path.join(ROOT, "README.md"), "# a\n## 開発環境\n古い手順\n");
+    const f = await readme(getScaffoldUpdate(ROOT, TPL));
+    expect(f).toMatchObject({ state: "template-changed", appEdited: null });
+    expect(f.diff).toBe("--- a/README.md\n+++ b/README.md\n@@ -1,2 +1,2 @@\n ## 開発環境\n-古い手順\n+手順\n");
+  });
+  it("見出しの無い snippet は、これまでどおり README 全体で見る (appSection は null)", async () => {
+    await write(path.join(ROOT, "README.md"), "# app\n手順だけ\n");
+    await seedTemplate({ ...BASE_FILES, "README.snippet.md": "手順だけ\n" });
+    await recordScaffold(ROOT, {}, "AI", TPL);
+    await seedTemplate({ ...BASE_FILES, "README.snippet.md": "新しい手順だけ\n" });
+    const f = await readme(getScaffoldUpdate(ROOT, TPL));
+    expect(f).toMatchObject({ state: "template-changed", appEdited: false, appSection: null });
+  });
+});
+
+describe("guide と案内が diff / appSection を言う", () => {
+  it("guide・SKILL.md・仕様書に、diff を見せる・appSection の範囲だけ差し替える、が書いてある", async () => {
+    await write(path.join(ROOT, ".devcontainer/compose.yml"), COMPOSE_WITH_HARMONY);
+    const guide = (await getScaffoldUpdate(ROOT, TPL)).guide.join("\n");
+    expect(guide).toMatch(/自分で差分を作らず/);
+    expect(guide).toMatch(/appSection.*範囲だけ/);
+    const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
+    for (const [f, re] of [["ai-skills/generate-code/SKILL.md", /自分で差分を作らず/], ["docs/spec/mcp-design-access.md", /appSection/], ["docs/spec/integration-ops.md", /templateDiff/]] as const) {
+      expect(await fs.readFile(path.join(repo, f), "utf-8"), f).toMatch(re);
+    }
+  });
+});

@@ -2025,10 +2025,10 @@ ai-skills/generate-code/templates/devcontainer/
 Harmony の雛形が新しくなると、`designer__check_design` の info (section「開発コンテナの雛形」)・`designer__get_project_context` の `scaffold`・画面「連携と運用 → 版と更新」が知らせる。利用者に「開発コンテナの雛形の更新を取り込んで」と頼まれたら、次の順で行う (この手順の対象は、雛形が書くファイル全部: `.devcontainer/` の 2 つ・`.mcp.json`・`.tmp/.gitignore`・`Dockerfile`・`docker-compose.yml`・README の節)。
 
 1. `designer__get_scaffold_update` を呼ぶ。`status` が `outdated` (雛形が新しくなった) か `no-record` (記録が無い古いアプリ) でなければ、取り込むものは無い。`files[]` のうち `state` が `unchanged` でないものが対象 (`guide` に同じ手順が付く)
-2. ファイルごとに差分を作る:
+2. ファイルごとの差分は、`files[]` の **`diff` (いまのアプリ → 新しい雛形)**・`base` があるときは **`templateDiff` (雛形の変更)** と **`appChanges` (利用者の手入れ)** にある (unified diff)。**自分で差分を作らず、これを利用者に見せる** (`diffTooLarge: true` のファイルだけ、`app` と `latest` を自分で比べる。`diffTruncated` は差分が切れているので同じく自分で読み直す)。比べ方は次のとおり:
    - `base` がある (記録があり、飛ばしていない): **3 方向**。`base`→`latest` が雛形の変更、`base`→`app` が利用者の手入れ。雛形の変更を取り込み、手入れは残す
    - `base` が無い (記録が無い・飛ばしたファイル): **2 方向**。`app` と `latest` の差を、利用者に 1 つずつ見せて選んでもらう (`appEdited` が `null` = 手入れかどうか不明)
-   - `state: "new-in-template"` は新しく足すファイル、`"removed-from-template"` は雛形から無くなったファイル (消すかどうかは利用者に聞く)。`kind: "section"` (README) は、`latest` の節だけを差し替え、README の他の部分は触らない
+   - `state: "new-in-template"` は新しく足すファイル、`"removed-from-template"` は雛形から無くなったファイル (消すかどうかは利用者に聞く)。`kind: "section"` (README) は、`appSection` (README から切り出した節。`appSectionRange` の行) の範囲だけを `latest` の節で差し替え、README の他の部分は触らない (`appSection` が null なら README に節が無いので、`latest` の節を足す)
    - **残すもの**: Harmony の `image:` の版の指定 (`compose.yml`)・利用者が足した service・ポート・環境変数・自分で書いた設定。`truncated: true` のファイルは中身が切れているので、そのファイルは自分で読み直してから比べる
 3. **書く前に、ファイルごとの差分を利用者に見せて OK を取る**。OK が無いファイルは書かない
 4. 書いたら `designer__record_scaffold` を呼ぶ。書かなかった・見送ったファイルは**必ず** `skipped` に雛形のパスで渡す (省略すると前回の `skipped` のまま。渡さないと、そのファイルの記録が最新の雛形に置き換わり、次の更新で手入れと雛形の変更を取り違える)。記録の版が最新になり、お知らせが消える

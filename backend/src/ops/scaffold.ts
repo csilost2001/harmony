@@ -15,6 +15,7 @@ import type { SchemaIssue } from "../schemaIssues.js";
 import { memoizeBySignature } from "../dataSignature.js";
 import { findDocsRoot } from "../docsRoot.js";
 import { recordAudit } from "./audit.js";
+import { cutLines, extractSection, snippetHeading, unifiedDiff, type SectionSlice } from "./lineDiff.js";
 import { makeOpsStore } from "./opsFiles.js";
 
 const PROJECT_ROOT = path.resolve(import.meta.dirname, "../../..");
@@ -231,6 +232,22 @@ export interface ScaffoldFileView {
   base?: string;
   /** いまのアプリのファイル (README の節は README.md 全体)。無ければ null。変わったファイルだけ */
   app?: string | null;
+  /** README の節 (kind が section のときだけ): README から切り出した、いまの節 (snippet の最初の見出しから、同じか上のレベルの次の見出しの前まで。README の終わりまで続くこともある)。README に節が無ければ null。差し替えるのはこの範囲だけ */
+  appSection?: string | null;
+  /** README の節の見出しの行 (README にある行。節が無ければ雛形の見出し) */
+  sectionHeading?: string | null;
+  /** README の中の節の位置 (1 始まり、両端を含む行番号)。節が無ければ null */
+  appSectionRange?: { startLine: number; endLine: number } | null;
+  /** 人に見せる差分 (unified diff): いまのアプリ (節なら appSection) → 新しい雛形。同じなら空文字。変わったファイルだけ。自分で差分を作らず、これを見せる */
+  diff?: string;
+  /** 雛形の変更 (写したとき base → 新しい雛形)。base があるときだけ */
+  templateDiff?: string;
+  /** 利用者の手入れ (写したとき base → いまのアプリ・節なら appSection)。base があり、アプリにファイルがあるときだけ */
+  appChanges?: string;
+  /** 行数が多すぎて (どちらかが 3000 行を超える)、差分を作らなかったものがある。そのファイルは app / latest / base を自分で比べる */
+  diffTooLarge?: true;
+  /** 差分が 200KB を超えたので、行の境界で切った */
+  diffTruncated?: true;
   /** いまの雛形の中身。雛形から無くなったファイルは null。変わったファイルだけ */
   latest?: string | null;
   /** 利用者が手を入れたか。写したときの中身 (base) と違えば true。base が無い (2 方向) ときは、いまの雛形と違えば true ではなく null (不明) */
@@ -241,11 +258,11 @@ export interface ScaffoldFileView {
 export interface ScaffoldUpdate extends ScaffoldSummary { recordedAt?: string; files: ScaffoldFileView[]; guide: string[]; problems: string[] }
 
 const GUIDE = [
-  "1. files のうち state が unchanged でないものが、当てる対象です。latest が新しい雛形、app がいまのアプリのファイル、base が写したときの雛形です。",
+  "1. files のうち state が unchanged でないものが、当てる対象です。latest が新しい雛形、app がいまのアプリのファイル、base が写したときの雛形です。人に見せる差分は diff (いまのアプリ → 新しい雛形)、base があれば templateDiff (雛形の変更)・appChanges (利用者の手入れ) が unified diff で付きます。自分で差分を作らず、これを見せてください (diffTooLarge のファイルだけ自分で比べます)。",
   "2. base があるファイルは 3 方向で比べます: base→latest が雛形の変更、base→app が利用者の手入れ。雛形の変更を取り込み、利用者が手を入れた箇所は残します。",
   "3. base が無いファイル (記録が無い・飛ばしたファイル) は 2 方向で比べます: app と latest の差を、利用者に見せて 1 つずつ選んでもらいます。appEdited が null のとき、手入れかどうかは分かりません。",
   "4. 残すもの: Harmony の image の版 (compose.yml の image: の指定)・利用者が足した service・ポート・環境変数・自分で書いた設定。雛形が変えた箇所だけを足します。",
-  "5. 書く前に、ファイルごとの差分を利用者に見せて OK を取ります。OK が無いファイルは書きません。kind が section の README は、snippet の節だけを差し替えます (README の他の部分は触りません)。",
+  "5. 書く前に、ファイルごとの差分を利用者に見せて OK を取ります。OK が無いファイルは書きません。kind が section の README は、appSection (README から切り出した節。appSectionRange の行) の範囲だけを latest の節で差し替えます (README の他の部分は触りません)。appSection が null なら README に節が無いので、latest の節を README に足します。",
   "6. 当てたら designer__record_scaffold を呼びます。当てなかったファイル (利用者が見送った・既存のまま残した) は必ず skipped に渡してください。渡さないと、そのファイルの「写したときの中身」が最新の雛形に置き換わり、次の更新で利用者の手入れと雛形の変更を取り違えます。これで記録の版が最新になり、お知らせが消えます。",
   "7. .devcontainer/ のファイルを変えたときは、利用者に VS Code の「Dev Containers: Rebuild Container」を頼みます (変更は作り直すまで効きません)。",
 ];
@@ -274,6 +291,35 @@ const cut = (s: string | null | undefined): { v: string | null | undefined; trun
 /** README の節は、README.md の中に snippet が (空白の違いを除いて) そのまま入っているかで見る */
 const sectionHas = (app: string, snippet: string): boolean => app.replace(/\s+/g, " ").includes(snippet.replace(/\s+/g, " ").trim());
 
+/** README から節を切り出す。見出しは、いまの雛形 (latest) の見出しで探し、無ければ写したとき (base) の見出し (見出しの文を変えた雛形でも見つける) */
+const findSection = (readme: string, latest: string | null | undefined, base: string | undefined): SectionSlice | null =>
+  (latest ? extractSection(readme, latest) : null) ?? (base ? extractSection(readme, base) : null);
+
+/** 節の比べるときは、末尾の空行・空白を除いて 1 つの改行で終える (節は README の中で後ろに空行が続くため) */
+const eolNorm = (s: string): string => { const t = s.replace(/\s+$/, ""); return t ? `${t}\n` : ""; };
+
+/** 人に見せる差分を view に足す。節は appPart (切り出した節) と、末尾をそろえた雛形・base で比べる */
+function addDiffs(view: ScaffoldFileView, p: string, kind: ScaffoldKind, latest: string | null, base: string | undefined, appPart: string | null, fileExists: boolean): void {
+  const n = (v: string | null | undefined): string => (v == null ? "" : kind === "section" ? eolNorm(v) : v);
+  let tooLarge = false, truncated = false;
+  const make = (a: string, b: string): string | undefined => {
+    const d = unifiedDiff(a, b, p);
+    if (d.tooLarge) { tooLarge = true; return undefined; }
+    const c = cutLines(d.diff, MAX_SCAFFOLD_CONTENT);
+    if (c.truncated) truncated = true;
+    return c.text;
+  };
+  const diff = make(n(appPart), n(latest));
+  if (diff !== undefined) view.diff = diff;
+  if (base !== undefined) {
+    const t = make(n(base), n(latest));
+    if (t !== undefined) view.templateDiff = t;
+    if (fileExists) { const c = make(n(base), n(appPart)); if (c !== undefined) view.appChanges = c; }
+  }
+  if (tooLarge) view.diffTooLarge = true;
+  if (truncated) view.diffTruncated = true;
+}
+
 /** README に、snippet の見出し (最初の空でない行) の行があるか。無ければ「節を足す」(new-in-template) */
 const hasSectionHeading = (app: string, snippet: string): boolean => {
   const heading = snippet.split("\n").map((l) => l.trim()).find(Boolean);
@@ -292,10 +338,13 @@ export async function getScaffoldUpdate(root: string, templatesRoot = defaultTem
   const push = async (template: string, p: string, kind: ScaffoldKind, latest: string | null, rec: ScaffoldFileRecord | undefined, state: ScaffoldFileState) => {
     const app = await readApp(root, p);
     const base = rec && !rec.skipped && typeof rec.content === "string" ? lf(rec.content) : undefined;
+    // README の節は、README 全体でなく、切り出した節で比べる (節の見出しが無い snippet は、README 全体で見る)
+    const sec = kind === "section" && app !== null ? findSection(app, latest, base) : null;
+    const appPart = kind === "section" ? (sec ? sec.text : null) : app;
     const edited = (): boolean | null => {
       if (app === null) return base !== undefined ? false : null; // アプリに無い: 手入れではない
       if (base === undefined) return null;
-      return kind === "section" ? !sectionHas(app, base) : app !== base;
+      return kind === "section" ? !sectionHas(sec ? sec.text : app, base) : app !== base;
     };
     const view: ScaffoldFileView = { template, path: p, kind, state, appEdited: edited() };
     if (state !== "unchanged") {
@@ -304,6 +353,12 @@ export async function getScaffoldUpdate(root: string, templatesRoot = defaultTem
       view.app = a.v ?? null;
       view.latest = l.v ?? null;
       if (b.truncated || a.truncated || l.truncated) view.truncated = true;
+      if (kind === "section") {
+        view.appSection = sec ? sec.text : null;
+        view.sectionHeading = sec ? sec.heading : (snippetHeading(latest ?? base ?? "")?.line ?? null);
+        view.appSectionRange = sec ? { startLine: sec.startLine, endLine: sec.endLine } : null;
+      }
+      addDiffs(view, p, kind, latest, base, appPart, app !== null);
     }
     views.push(view);
   };
@@ -312,7 +367,8 @@ export async function getScaffoldUpdate(root: string, templatesRoot = defaultTem
     if (noRecord) {
       // 記録が無いので、アプリといまの雛形の違いだけを見る (2 方向)
       const app = await readApp(root, f.path);
-      const same = app !== null && (f.kind === "section" ? sectionHas(app, f.content) : app === f.content);
+      const secNow = f.kind === "section" && app !== null ? findSection(app, f.content, undefined) : null;
+      const same = app !== null && (f.kind === "section" ? sectionHas(secNow ? secNow.text : app, f.content) : app === f.content);
       // アプリにファイルが無い・README に節が無い (足すだけ) は new-in-template、中身が違うのは template-changed
       const missing = app === null || (f.kind === "section" && !hasSectionHeading(app, f.content));
       await push(f.template, f.path, f.kind, f.content, undefined, same ? "unchanged" : missing ? "new-in-template" : "template-changed");
