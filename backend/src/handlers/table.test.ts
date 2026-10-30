@@ -117,6 +117,57 @@ describe("designer__add_table / update_table / remove_table は v3 の harmony.j
     const res = await handleExportTool("designer__generate_ddl", {}, ROOT, "s") as { content: Array<{ text: string }> };
     expect(res.content[0].text).toContain("CREATE TABLE"); // 見つかれば DDL が出る (一覧が最上位の tables だった頃は「対象が見つかりません」だった)
   });
+
+  it("generate_ddl は、テーブル名・カラム名・主キー・索引・外部キー参照を表示名でなく物理名 (physicalName) で出す", async () => {
+    const parent = idOf(await text("designer__add_table", { physicalName: "customers", name: "顧客" }));
+    const child = idOf(await text("designer__add_table", { physicalName: "orders", name: "注文" }));
+    await text("designer__update_table", { tableId: parent, definition: {
+      id: parent, physicalName: "customers", name: "顧客",
+      columns: [{ id: "cust-id", physicalName: "customer_id", name: "顧客番号", dataType: "INTEGER", notNull: true, primaryKey: true }],
+    } });
+    await text("designer__update_table", { tableId: child, definition: {
+      id: child, physicalName: "orders", name: "注文",
+      columns: [
+        { id: "ord-id", physicalName: "order_id", name: "注文番号", dataType: "INTEGER", notNull: true, primaryKey: true },
+        { id: "ord-cust", physicalName: "customer_id", name: "顧客", dataType: "INTEGER" },
+      ],
+      indexes: [{ id: "idx-cust", physicalName: "idx_orders_customer", columns: [{ columnId: "ord-cust" }] }],
+      constraints: [{ kind: "foreignKey", id: "fk-cust", physicalName: "fk_orders_customer", columnIds: ["ord-cust"], referencedTableId: parent, referencedColumnIds: ["cust-id"] }],
+    } });
+
+    const res = await handleExportTool("designer__generate_ddl", {}, ROOT, "s") as { content: Array<{ text: string }> };
+    const ddl = res.content[0].text;
+    expect(ddl).toContain('CREATE TABLE "orders"');
+    expect(ddl).toContain('"order_id" INTEGER NOT NULL');
+    expect(ddl).toContain('PRIMARY KEY ("order_id")');
+    expect(ddl).toContain('CREATE INDEX "idx_orders_customer" ON "orders" ("customer_id")');
+    // 外部キーの参照先は、tableId でなく参照先テーブル・カラムの物理名
+    expect(ddl).toMatch(/FOREIGN KEY \("customer_id"\) REFERENCES "customers"\("customer_id"\)/);
+    // 表示名は DDL の識別子に出ない (コメントには使う)
+    for (const shown of ["経費", "注文番号"]) expect(ddl).not.toContain(`"${shown}"`);
+    expect(ddl).not.toContain('CREATE TABLE "注文"');
+    expect(ddl).not.toContain(parent);
+
+    // tableId 指定でも、外部キーの参照先の物理名は引ける
+    const one = await handleExportTool("designer__generate_ddl", { tableId: child, dialect: "mysql" }, ROOT, "s") as { content: Array<{ text: string }> };
+    expect(one.content[0].text).toContain("CREATE TABLE `orders`");
+    expect(one.content[0].text).toContain("REFERENCES `customers`(`customer_id`)");
+    expect(one.content[0].text).not.toContain("CREATE TABLE `customers`");
+  });
+
+  it("generate_ddl は、物理名が未設定のテーブル・カラムがあっても止まらず、足りない場所を書いたコメントを出す", async () => {
+    const id = idOf(await text("designer__add_table", { physicalName: "expenses", name: "経費" }));
+    await text("designer__update_table", { tableId: id, definition: {
+      id, physicalName: "expenses", name: "経費",
+      columns: [{ id: "c1", name: "金額", dataType: "INTEGER" }],
+    } });
+    const ok = idOf(await text("designer__add_table", { physicalName: "customers", name: "顧客" }));
+    await text("designer__update_table", { tableId: ok, definition: { id: ok, physicalName: "customers", name: "顧客", columns } });
+    const res = await handleExportTool("designer__generate_ddl", {}, ROOT, "s") as { content: Array<{ text: string }> };
+    const ddl = res.content[0].text;
+    expect(ddl).toContain("-- テーブル expenses: 物理名 (physicalName) が未設定のため DDL を出せません (カラム「金額」の physicalName)");
+    expect(ddl).toContain('CREATE TABLE "customers"');
+  });
 });
 
 describe("旧形式の項目 (最上位の tables / updatedAt) の修復", () => {

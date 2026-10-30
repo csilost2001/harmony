@@ -1017,7 +1017,7 @@ export const tools = [
   {
     name: "designer__generate_ddl",
     description:
-      "指定テーブルのDDL（CREATE TABLE文）を生成します。SQLダイアレクトを指定できます。",
+      "指定テーブルのDDL（CREATE TABLE文）を生成します。テーブル名・カラム名・索引・外部キーは物理名（physicalName）で出します（name は表示名）。SQLダイアレクトを指定できます。",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -1027,7 +1027,7 @@ export const tools = [
         },
         dialect: {
           type: "string",
-          enum: ["mysql", "postgresql", "oracle", "sqlite", "standard"],
+          enum: ["mysql", "postgresql", "oracle", "sqlserver", "sqlite", "standard"],
           description: "SQLダイアレクト。省略時は standard",
         },
       },

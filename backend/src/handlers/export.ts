@@ -16,7 +16,7 @@ import {
 } from "../projectStorage.js";
 import { readProjectWithUnregistered } from "../registryMerge.js";
 import { mcpTableToSpecEntry } from "../specExport.js";
-import { generateDdl } from "./ddl.js";
+import { generateDdlForSpec } from "./ddl.js";
 import { assertEntityIdMcp, type ToolHandler } from "../mcpHelpers.js";
 
 /** 一覧 (harmony.json の entities.tables。v3) にあるテーブルの id と名前。一覧に載っていないファイルも足す */
@@ -39,13 +39,22 @@ export const handleExportTool: ToolHandler = async (name, args, root) => {
         assertEntityIdMcp(a.tableId, "tableId");
       }
       const tableMetas = await listTableMetas(root);
-      const tableIds = typeof a.tableId === "string" ? [a.tableId] : tableMetas.map((t) => t.id);
+      // 外部キーの参照先 (物理名) を引くため、対象が 1 つでも全テーブルを読む
+      const allTables: Array<Record<string, unknown>> = [];
+      for (const tm of tableMetas) {
+        const td = await readTable(tm.id, root) as Record<string, unknown> | null;
+        if (td) allTables.push({ id: tm.id, ...td });
+      }
+      const targets = typeof a.tableId === "string" ? allTables.filter((t) => t.id === a.tableId) : allTables;
+      // 目録 (harmony.json) に無くファイルだけあるテーブルも、tableId 指定なら読む (従来どおり)
+      if (typeof a.tableId === "string" && targets.length === 0) {
+        const td = await readTable(a.tableId, root) as Record<string, unknown> | null;
+        if (td) targets.push(td);
+      }
 
       const ddlParts: string[] = [];
-      for (const tid of tableIds) {
-        const td = await readTable(tid, root) as Record<string, unknown> | null;
-        if (!td) continue;
-        ddlParts.push(generateDdl(td, dialect));
+      for (const td of targets) {
+        ddlParts.push(generateDdlForSpec(td, dialect, allTables));
       }
       if (ddlParts.length === 0) {
         return { content: [{ type: "text", text: "DDL生成対象のテーブルが見つかりません。" }] };
