@@ -200,6 +200,8 @@ describe("実リポジトリの generate-code", () => {
       await expect(client.readResource({ uri: "harmony://skill/generate-code/../issues/SKILL.md" })).rejects.toThrow();
     } finally { await client.close(); await server.close(); }
     expect(SERVER_INSTRUCTIONS).toContain("harmony://skill/");
+    // 作業先は最後に開いたワークスペース。書く前に確かめる
+    expect(SERVER_INSTRUCTIONS).toMatch(/最後に開いたワークスペース[\s\S]*designer__get_project_context[\s\S]*designer__workspace_status/);
     const p = getPrompt("generate-code", undefined, REPO).messages[0].content.text;
     expect(p).toContain("harmony://skill/generate-code/<スキルのフォルダからの相対パス>");
     expect(p).toContain("harmony://skill/generate-code/files");

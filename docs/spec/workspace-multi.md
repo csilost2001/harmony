@@ -20,7 +20,7 @@ PR #676 (workspace v1) では「1 サーバ = 1 active workspace」を原則と�
 具体的な変化点:
 - v1 では「1 サーバ = 1 active」が原則
 - #683 で localStorage 依存がほぼ消え、サーバ側 draft 管理導入
-- 本仕様 (v2) で per-session active state + URL への wsId 埋め込みを導入し、ブラウザタブ単位で独立した active workspace を持てるようにする
+- 本仕様 (v2) で per-session active state + URL への wsId 埋め込みを導入し、ブラウザタブ単位で独立した active workspace を持てるようにする (MCP は stateless で要求ごとの一時的な接続になるため、タブのような独立はなく、作業先は「最後に明示的に開いたワークスペース」に揃える。§ 5.2)
 
 ---
 
@@ -30,8 +30,8 @@ v1 用語定義は [workspace.md § 1](workspace.md) を参照。本書は差分
 
 | 用語 | 説明 |
 |------|------|
-| connection / clientId | WS 接続 1 本 (= ブラウザタブ 1 つ) または MCP セッション 1 つ。`wsBridge` が払い出す文字列 ID |
-| per-session active workspace | connection ごとに独立して持つ active workspace。v1 の global active に代わる |
+| connection / clientId | WS 接続 1 本 (= ブラウザタブ 1 つ) または MCP の 1 要求。`wsBridge` が払い出す文字列 ID。MCP は stateless なので、要求ごとに新しい ID で接続し、終わったら切る |
+| per-session active workspace | connection ごとに持つ active workspace。v1 の global active に代わる。ブラウザタブは互いに独立。MCP の要求は、接続時の初期値 (最後に開いたワークスペース) を引き継ぐだけで、要求をまたいで独立した作業先は持てない |
 | wsId | recent エントリの `workspace.id` (UUID)。URL に埋め込まれ、broadcast の宛先絞り込みキーになる |
 | ConnectionContext | `{ clientId, activePath, lockdown }` の 3 フィールドを持つ per-session state オブジェクト |
 | WorkspaceContextManager | `Map<clientId, ConnectionContext>` を管理する backend クラス |
@@ -111,8 +111,9 @@ type ConnectionContext = {
 |----------|------|
 | WS 接続時 | clientId 払い出し + context 作成。初期 `activePath` は「新しい接続の既定」(`_globalDefaultPath`、最後に開いたワークスペース) or null |
 | WS 切断時 | `Map` から remove |
-| MCP 要求 | MCP は stateless で、要求ごとに新しい clientId で接続を作り、終わったら切る (`sessionIdGenerator: undefined`)。作業先は、最後に開いたワークスペース (画面か MCP で開いたもの。`recent.lastActiveId`) で、起動時にも復元される。MCP の接続ごとに別のワークスペースを使い分けること (session 単位の隔離) は、いまはできない |
-| 最後に開いたワークスペース | 画面か MCP でワークスペースを開く / 閉じる / recent から外すと、`recent.lastActiveId` と「新しい接続の既定」(`_globalDefaultPath`) を同時に更新する (`markLastActive` / `removeRecentWorkspace`)。すでに開いている接続 (ブラウザのタブ) の `activePath` は変えない。lockdown では何もしない |
+| MCP 要求 | MCP は stateless で、要求ごとに新しい clientId で接続を作り、終わったら切る (`sessionIdGenerator: undefined`)。作業先 = **最後に明示的に開いたワークスペース** (画面の選択・一覧・切り替え、または MCP の `designer__workspace_open`。`recent.lastActiveId`)。起動時にも復元される。1 要求の中では作業先は一貫する (要求ごとに接続して `activePath` を持つ)。MCP の接続ごとに別のワークスペースを使い分けること (session 単位の隔離) は、いまはできない。AI は、書く前に `designer__get_project_context` (結果の `workspace`) か `designer__workspace_status` で作業先を確かめる (MCP の `instructions` にも書く) |
+| 最後に開いたワークスペース | 画面か MCP でワークスペースを**明示的に開く**と、`recent.lastActiveId` と「新しい接続の既定」(`_globalDefaultPath`) を同時に更新する (`markLastActive`)。recent から外したものが最後に開いたものだったときも既定を外す (`removeRecentWorkspace`)。**閉じる**ときは、閉じるワークスペースが最後に開いたものと同じときだけ、既定を外す (`clearLastActiveIfSame`。別のタブが別のワークスペースを開いているなら、既定はそのまま)。MCP の close は、その要求の作業先が無ければ何もしない (「開いているワークスペースはありません」)。すでに開いている接続 (ブラウザのタブ) の `activePath` は変えない。lockdown では何もしない |
+| 画面の復元の open | ブラウザタブの再読込・WebSocket の再接続・URL の同期で、画面が送る `workspace.open` には `restore: true` が付く。そのタブの接続の `activePath` だけを決め、最後に開いたワークスペース (= AI の作業先) は変えない。古いタブが再接続しただけで、AI の書き込み先が動かないようにするため |
 | lockdown | env `DESIGNER_DATA_DIR` 設定時、全 context の `activePath` が env 値固定 |
 
 ### 5.3 公開 API の per-session 化
@@ -230,7 +231,7 @@ env `DESIGNER_DATA_DIR` 設定時、active workspace は env 値固定 (`<env_pa
 
 ### 7.5 onBehalfOfSession (#683 D-7) との関係
 
-owner clientId と actor clientId が異なる場合でも、active workspace は actor (= MCP session) の context で解決される。draft path の隔離も actor の active workspace 単位。
+owner clientId と actor clientId が異なる場合でも、active workspace は actor の context で解決される。MCP の actor は、その要求のための一時的な clientId で、初期の作業先は「最後に明示的に開いたワークスペース」(§ 5.2)。draft path の隔離も actor の active workspace 単位。
 
 実装対象 PR: R-3 (#701) — spec 修正のみ (実装は #683 PR-2 で導入済み)
 
@@ -273,7 +274,7 @@ v1 の lockdown 仕様 ([workspace.md § 4](workspace.md)) と後方互換を保
 |--------|--------|---------|------------|
 | `requireActivePath` snapshot 規約の per-session 化漏れ → A workspace の操作が B に書込む | **致命** | R-2 | `projectStorage.ts` 全公開関数を audit、entry 時 `requireActivePath(clientId)` に置換、unit test で per-session 隔離検証 |
 | broadcast 誤配信で別 workspace タブが reload | 高 | R-2 | wsId 必須化 + unit test で wsId フィルタ検証、grep で旧 broadcast 全件改修確認 |
-| MCP で workspace を切り替えると、他の AI の作業先も変わる | 中 | R-2 | MCP は stateless で、作業先は最後に開いたワークスペースに揃える (session 単位の隔離はしない)。`mcpServer.test.ts` で、別の接続でも同じ作業先になることを検証 |
+| MCP で workspace を切り替えると、他の AI の作業先も変わる。画面で別のワークスペースを開き直したときも変わる | 中 | R-2 | MCP は stateless で、作業先は最後に**明示的に**開いたワークスペースに揃える (session 単位の隔離はしない)。画面の復元の open (`restore: true`) と、別のタブ・AI が別のワークスペースを閉じる操作は、作業先を動かさない (`wsHandlers/workspace.test.ts` で検証)。残るのは、利用者が画面で別のワークスペースを開き直す・別の AI が `workspace_open` するときで、AI は書く前に `get_project_context` の `workspace` か `workspace_status` で確かめられる (`instructions` にも明記)。AI が作業先を固定する手段 (接続の URL の `?workspace=` など) は設計者の判断待ち |
 | URL `/w/:wsId/` 切替時に AppShell guard が無限ループ | 中 | R-4 | initial hydration はリロードしない既存ガード (`AppShell.tsx:114-149`) を per-session 化、e2e で navigate チェック |
 | draft path isolation | 低 | R-3 | per-workspace folder が物理 isolation 境界。migration 不要。workspace 隔離を unit test で確認 (#701) |
 | lockdown 時の per-session 動作 | 中 | R-2/R-4 | env `DESIGNER_DATA_DIR` 設定時 test ケース追加、全 session の activePath が env 値固定であることを assertion |

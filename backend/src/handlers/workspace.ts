@@ -30,7 +30,7 @@ import {
   findById,
   findByPath,
 } from "../recentStore.js";
-import { inspectWorkspacePath, initializeWorkspace, markLastActive, removeRecentWorkspace } from "../workspaceInit.js";
+import { inspectWorkspacePath, initializeWorkspace, markLastActive, clearLastActiveIfSame, removeRecentWorkspace } from "../workspaceInit.js";
 import { wsBridge } from "../wsBridge.js";
 import type { ToolHandler } from "../mcpHelpers.js";
 
@@ -173,6 +173,10 @@ export const handleWorkspaceTool: ToolHandler = async (name, args, _root, sessio
     case "designer__workspace_close": {
       // close 前に現在の path をキャプチャ (close 後は getActivePath が null になるため)
       const closingPath = workspaceContextManager.getActivePath(sessionId);
+      // 作業先が無い (未選択) ときは何もしない。全タブへ「閉じた」を配ったり、最後に開いたワークスペースの記録を消したりしない
+      if (!closingPath) {
+        return { content: [{ type: "text", text: "開いているワークスペースはありません。" }] };
+      }
       try {
         clearActive(sessionId);
       } catch (e) {
@@ -181,7 +185,8 @@ export const handleWorkspaceTool: ToolHandler = async (name, args, _root, sessio
         }
         throw e;
       }
-      await markLastActive(null);
+      // 最後に開いたワークスペース (既定) を外すのは、閉じるのがそれと同じときだけ
+      await clearLastActiveIfSame(closingPath);
       // workspace.close broadcast: close 前の path を持つ session のみ受信 (#703 R-5 A-2)
       wsBridge.broadcast({ wsId: closingPath, event: "workspace.changed", data: {
         activeId: null,

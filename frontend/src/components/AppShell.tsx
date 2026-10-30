@@ -494,7 +494,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     ) {
       const activeId = workspaceState.active.id;
       __recoveryPendingWsId = activeId;
-      mcpBridge.request("workspace.open", { id: activeId })
+      mcpBridge.request("workspace.open", { id: activeId, restore: true })
         .then(() => {
           __initialRestoreDoneWsIds.add(wsId);
           return loadWorkspaces();
@@ -518,7 +518,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
         return;
       }
       __recoveryPendingWsId = action.id;
-      mcpBridge.request("workspace.open", { id: action.id })
+      mcpBridge.request("workspace.open", { id: action.id, restore: true })
         // backend の workspace.changed broadcast は requester を除外する (wsBridge.ts excludeClientId)。
         // 自セッション側は broadcast を受けないため、明示的に loadWorkspaces で state.active を更新する。
         // (#956 reload 復元 race の真因対応)

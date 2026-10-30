@@ -19,6 +19,7 @@ import { buildProjectContext } from "./projectContext.js";
 export const SERVER_INSTRUCTIONS = [
   "Harmony は、日本の Web システム開発の設計書 (画面・処理フロー・テーブル・規約) を扱う設計ツールです。設計の原本は JSON で、JSON Schema (schemas/v3) が正本です。",
   "最初に designer__get_project_context を 1 回呼ぶと、設計の全体 (件数・名前・規約・未解決のマーカー) をつかめます。",
+  "作業先のワークスペースは、最後に開いたワークスペースです (画面で別のワークスペースを開き直すと変わります)。書き込む前に designer__get_project_context か designer__workspace_status で、作業先を確かめてください。",
   "資料は Resources にあります: harmony://docs/ai-index (やりたいこと → 読む資料・使う tool)、harmony://spec/index (仕様書の索引)、harmony://schema/<種類> (JSON Schema)。",
   "設計を作る・直したあとは designer__check_design を呼び、error / warning を 0 件にしてから報告してください。schema の変更は設計者の判断です (AI は変えない)。",
   "処理フローの作成・レビューなどの手順は Prompts (create-flow / review-flow ほか) にあります。Prompts を使えない・出ない AI クライアントでは、Resource harmony://skill/<名前>/SKILL.md を読めば同じ手順になります。",

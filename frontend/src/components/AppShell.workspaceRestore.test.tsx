@@ -132,7 +132,7 @@ describe("AppShell workspace initial restore", () => {
     bridgeMock.statusCallbacks.forEach((cb) => cb("connected"));
 
     await waitFor(() => {
-      expect(bridgeMock.request).toHaveBeenCalledWith("workspace.open", { id: "ws-aaa" });
+      expect(bridgeMock.request).toHaveBeenCalledWith("workspace.open", { id: "ws-aaa", restore: true });
     });
     await waitFor(() => {
       expect(screen.getByTestId("workspace-select")).toBeInTheDocument();

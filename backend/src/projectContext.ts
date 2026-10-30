@@ -4,6 +4,7 @@
  * 種類ごとの一覧 tool を何度も呼ばずに済むよう、設計の名前・件数・規約・未解決のマーカー・次に使う tool を 1 つにまとめる。
  * 中身 (工程・カラムの詳細) は載せない: それぞれの get_* tool で読む。一覧は limit 件まで (既定 60)。
  */
+import path from "node:path";
 import { walkAllSteps, type DocFlow } from "@harmony/shared";
 import { listMarkers } from "@harmony/shared";
 import { loadDesignInputFromRoot } from "./designInput.js";
@@ -72,6 +73,8 @@ export async function buildProjectContext(root: string, opts: ProjectContextOpti
   };
 
   return {
+    // いま作業しているワークスペース。作業先は「最後に開いたワークスペース」で、画面で開き直すと変わる。書く前に確かめるための印
+    workspace: { path: path.resolve(root), name: typeof meta.name === "string" && meta.name.trim() ? meta.name : path.basename(path.resolve(root)) },
     project: { id: meta.id ?? input.project.id, name: input.project.name, description: input.project.description, mode: meta.mode, maturity: meta.maturity },
     techStack: project.techStack ?? null,
     counts,

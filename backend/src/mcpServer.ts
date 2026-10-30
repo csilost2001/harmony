@@ -129,6 +129,14 @@ export function createMcpServer(sessionId: string, profiles: readonly string[] =
       if (name.startsWith("designer__workspace_")) {
         const res = await handleWorkspaceTool(name, argRecord, "", sessionId);
         if (res !== null && res !== undefined) {
+          // 開いたワークスペースで、前回、複数ファイルの操作の途中で止まっていれば元へ戻す (下の通常の経路と同じ)
+          if (name === "designer__workspace_open" && !(res as { isError?: boolean }).isError) {
+            const opened = workspaceContextManager.getActivePath(sessionId);
+            if (opened) await ensureRecovered(opened);
+          }
+          // 監査の記録と opsChanged は、ここでは出さない: ワークスペースの切り替え・一覧・状態は設計の変更ではなく、
+          // 下の経路の記録は「作業先のワークスペースの設計への書き込み」を残すためのもの (切り替え前の作業先に記録されてしまう)。
+          // 切り替え自体は workspace.changed の broadcast で画面へ知らせる。
           const failed = !!(res as { isError?: boolean }).isError;
           logInfo("mcp", "tool", { tool: name.slice(0, 80), ok: !failed, ms: Date.now() - startedAt, ...(failed ? { error: errorSummary((res as { content?: Array<{ text?: unknown }> }).content?.[0]?.text) } : {}) });
           return res;

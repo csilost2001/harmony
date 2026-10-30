@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { workspaceHandlers } from "./workspace.js";
-import { upsertWorkspace, upsertWorkspaceRoot } from "../recentStore.js";
+import { upsertWorkspace, upsertWorkspaceRoot, readRecent } from "../recentStore.js";
 import {
   initWorkspaceState,
   workspaceContextManager,
@@ -206,5 +206,85 @@ describe("新しい接続の既定のワークスペースは、最後に開い�
     const close = makeOpenContext({});
     await workspaceHandlers["workspace.close"](close.ctx);
     expect(getGlobalDefaultPath()).toBeNull();
+  });
+
+  it("復元の open (restore: true) は、接続の作業先だけ決めて、最後に開いたワークスペース (AI の作業先) を変えない。明示的な open は変える", async () => {
+    initWorkspaceState();
+    workspaceContextManager.connect("test-client");
+    const openA = makeOpenContext({ path: path.join(TMP_ROOT, "proj-a"), init: true });
+    await workspaceHandlers["workspace.open"](openA.ctx);
+    const a = (openA.getResponse() as { active: { id: string; path: string } }).active;
+    const openB = makeOpenContext({ path: path.join(TMP_ROOT, "proj-b"), init: true });
+    await workspaceHandlers["workspace.open"](openB.ctx);
+    const b = (openB.getResponse() as { active: { id: string; path: string } }).active;
+    expect(getGlobalDefaultPath()).toBe(path.resolve(b.path));
+    const lastActiveBefore = (await readRecent()).lastActiveId;
+
+    // 古いタブが A を復元しても、既定 (B) は動かない。そのタブの作業先は A になる
+    workspaceContextManager.connect("old-tab");
+    const restore = makeOpenContext({ id: a.id, restore: true });
+    restore.ctx.clientId = "old-tab";
+    await workspaceHandlers["workspace.open"](restore.ctx);
+    expect(restore.getError()).toBeNull();
+    expect(workspaceContextManager.getActivePath("old-tab")).toBe(path.resolve(a.path));
+    expect(getGlobalDefaultPath()).toBe(path.resolve(b.path));
+    expect((await readRecent()).lastActiveId).toBe(lastActiveBefore);
+
+    // 利用者が明示的に開いたときは、既定も動く
+    const explicit = makeOpenContext({ id: a.id });
+    explicit.ctx.clientId = "old-tab";
+    await workspaceHandlers["workspace.open"](explicit.ctx);
+    expect(getGlobalDefaultPath()).toBe(path.resolve(a.path));
+    expect((await readRecent()).lastActiveId).toBe(a.id);
+  });
+
+  it("workspace.close は、閉じるのが既定 (最後に開いたワークスペース) と同じときだけ、既定を外す", async () => {
+    initWorkspaceState();
+    workspaceContextManager.connect("test-client");
+    const openA = makeOpenContext({ path: path.join(TMP_ROOT, "proj-a"), init: true });
+    await workspaceHandlers["workspace.open"](openA.ctx);
+    const a = (openA.getResponse() as { active: { id: string; path: string } }).active;
+    const openB = makeOpenContext({ path: path.join(TMP_ROOT, "proj-b"), init: true });
+    await workspaceHandlers["workspace.open"](openB.ctx);
+    const b = (openB.getResponse() as { active: { id: string; path: string } }).active;
+
+    // 別のタブが A を開いている。そのタブが閉じても、既定 (B) は残る
+    workspaceContextManager.connect("tab-a");
+    workspaceContextManager.setActivePath("tab-a", a.path);
+    const closeA = makeOpenContext({});
+    closeA.ctx.clientId = "tab-a";
+    await workspaceHandlers["workspace.close"](closeA.ctx);
+    expect(getGlobalDefaultPath()).toBe(path.resolve(b.path));
+    expect((await readRecent()).lastActiveId).toBe(b.id);
+
+    // 既定と同じ B を閉じたら、既定も外れる
+    const closeB = makeOpenContext({});
+    await workspaceHandlers["workspace.close"](closeB.ctx);
+    expect(getGlobalDefaultPath()).toBeNull();
+    expect((await readRecent()).lastActiveId).toBeNull();
+  });
+
+  it("旧形式の項目だけが原因の harmony.json も、画面の workspace.open で開ける (ダッシュボードの修復で直す)。ほかの不正は断る", async () => {
+    initWorkspaceState();
+    workspaceContextManager.connect("test-client");
+    const dir = path.join(TMP_ROOT, "proj-legacy");
+    const init = makeOpenContext({ path: dir, init: true });
+    await workspaceHandlers["workspace.open"](init.ctx);
+    const file = path.join(dir, "harmony.json");
+    const json = JSON.parse(await fs.readFile(file, "utf8")) as Record<string, unknown>;
+    await fs.writeFile(file, JSON.stringify({ ...json, tables: [], updatedAt: "2026-01-01T00:00:00Z" }));
+    workspaceContextManager.clearActive("test-client");
+
+    const open = makeOpenContext({ path: dir });
+    await workspaceHandlers["workspace.open"](open.ctx);
+    expect(open.getError()).toBeNull();
+    expect(workspaceContextManager.getActivePath("test-client")).toBe(path.resolve(dir));
+
+    // 旧形式でない不正 (未知の項目) は、これまでどおり断る
+    await fs.writeFile(file, JSON.stringify({ ...json, unknownKey: 1 }));
+    workspaceContextManager.clearActive("test-client");
+    const bad = makeOpenContext({ path: dir });
+    await workspaceHandlers["workspace.open"](bad.ctx);
+    expect(bad.getError()).toMatch(/不正/);
   });
 });

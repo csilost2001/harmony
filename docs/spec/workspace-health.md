@@ -25,7 +25,7 @@ category: ops
 
 | 操作 | 画面 | AI (MCP) |
 |---|---|---|
-| 一覧とファイルの食い違いを直す (載っていないファイルを一覧に足す / ファイルが無い項目を外す / harmony.json の最上位にある旧形式の項目 `tables` `screens` `processFlows` `edges` `updatedAt` を取り除く。v3 のスキーマに無く、画面がワークスペースを開けなくなるため。#1568) | ダッシュボードの要確認パネル「一覧の食い違いを直す」(予行の件数を確認してから実行) | `designer__repair_registry` (`apply: true` で実行) |
+| 一覧とファイルの食い違いを直す (載っていないファイルを一覧に足す / ファイルが無い項目を外す / harmony.json の最上位にある旧形式の項目 `tables` `screens` `processFlows` `edges` `updatedAt` を取り除く / 一覧のテーブルの要約 (名前・物理名・カテゴリ・カラム数) をテーブルのファイルに合わせる。v3 のスキーマに無い項目は、画面がワークスペースを開けなくなるため。#1568) | ダッシュボードの要確認パネル「一覧の食い違いを直す」(予行の件数を確認してから実行)。旧形式の項目だけが原因の harmony.json は、画面の `workspace.open` でも MCP の `designer__workspace_open` でも開ける (開いたあとに、このボタンで直す) | `designer__repair_registry` (`apply: true` で実行) |
 | 未保存の uuid を、読み出しで補っている値で固定する (値は変わらない) | 同「uuid を固定する」 | `designer__persist_uuids` (`apply: true` で実行) |
 
 ダッシュボードの要確認パネルには、種類 (画面・処理フロー・テーブル・業務フロー・帳票・その他) ごとの件数 (0 件もあわせて) が出る。

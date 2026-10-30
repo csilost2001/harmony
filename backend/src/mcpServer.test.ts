@@ -337,6 +337,12 @@ describe("get_project_context: 壊れた設計があっても落ちない (draft
     } finally { await fs.rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); }
   });
 
+  it("作業先のワークスペース (path と name) が入る。AI が書く前に確かめられる", async () => {
+    const ctx = await buildProjectContext(path.join(REPO, "examples/retail")) as { workspace: { path: string; name: string } };
+    expect(ctx.workspace.path).toBe(path.join(REPO, "examples/retail"));
+    expect(ctx.workspace.name.length).toBeGreaterThan(0);
+  });
+
   it("limit が数でないときは既定 (NaN にならない)", async () => {
     const ctx = await buildProjectContext(path.join(REPO, "examples/retail"), { limit: Number.NaN }) as { designs: { flows: { shown: number; total: number } } };
     expect(ctx.designs.flows.shown).toBe(Math.min(ctx.designs.flows.total, 60));

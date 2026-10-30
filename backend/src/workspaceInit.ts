@@ -25,6 +25,7 @@ import { buildHarmonyAjv } from "@harmony/shared";
 import {
   isLockdown,
   setGlobalDefaultPath,
+  getGlobalDefaultPath,
 } from "./workspaceState.js";
 import {
   readRecent,
@@ -50,7 +51,7 @@ const SCHEMAS_DIR = path.resolve(import.meta.dirname, "../../schemas");
 
 let _validateHarmonyCache: ((data: unknown) => boolean) & { errors?: unknown } | null = null;
 
-async function getHarmonyValidator(): Promise<((data: unknown) => boolean) & { errors?: unknown }> {
+export async function getHarmonyValidator(): Promise<((data: unknown) => boolean) & { errors?: unknown }> {
   if (_validateHarmonyCache) return _validateHarmonyCache;
   // 共通設定 (strict: false / allErrors / discriminator: true / addFormats) は buildHarmonyAjv で集約 (#1188)
   // schemas/v3/*.schema.json は JSON Schema draft 2020-12 を使用 (Ajv2020 が必要)
@@ -401,6 +402,17 @@ export async function markLastActive(entry: Pick<WorkspaceEntry, "id" | "path"> 
   if (isLockdown()) return;
   await setLastActive(entry ? entry.id : null);
   setGlobalDefaultPath(entry ? entry.path : null);
+}
+
+/**
+ * 閉じたワークスペース (closingPath) が、最後に開いたワークスペース (= 新しい接続の既定) と同じときだけ、既定を外す。
+ * 別の接続 (別のタブ・別の AI) が別のワークスペースを開いているときに、その既定まで消さないため。
+ * 閉じるものが無い (closingPath = null) ときは何もしない。
+ */
+export async function clearLastActiveIfSame(closingPath: string | null): Promise<void> {
+  if (isLockdown() || !closingPath) return;
+  if (getGlobalDefaultPath() !== path.resolve(closingPath)) return;
+  await markLastActive(null);
 }
 
 /**
