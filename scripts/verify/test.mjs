@@ -189,6 +189,26 @@ group("isStrictModeViolation", () => {
     "resolved to N elements fallback",
     isStrictModeViolation("Locator resolved to 2 elements: foo, bar"),
   );
+  assert(
+    "resolved to 1 element (単数) は strict-mode ではない",
+    isStrictModeViolation("locator resolved to 1 element") === false,
+  );
+  assert(
+    "toHaveCount の失敗 (14 × locator resolved to 1 element) は strict-mode ではない (#1576 business-flow.spec.ts:230)",
+    isStrictModeViolation(
+      [
+        "Error: expect(locator).toHaveCount(expected) failed",
+        "Locator:  getByTestId('bf-dirty')",
+        "Expected: 0",
+        "Received: 1",
+        "Call log:",
+        '  - Expect "toHaveCount" with timeout 5000ms',
+        "  - waiting for getByTestId('bf-dirty')",
+        "    14 × locator resolved to 1 element",
+        '       - unexpected value "1"',
+      ].join("\n"),
+    ) === false,
+  );
   assert("regular timeout not strict-mode", isStrictModeViolation("Test timeout of 30000ms exceeded") === false);
   assert("null / undefined safe", isStrictModeViolation(null) === false && isStrictModeViolation(undefined) === false);
   assert("empty string safe", isStrictModeViolation("") === false);

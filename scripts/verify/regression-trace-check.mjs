@@ -471,7 +471,9 @@ export function runIsolationLoop(spec, dir, runProc, verbose) {
  *
  * 検出パターン (Playwright の error message から抽出):
  * - "strict mode violation"   (canonical message)
- * - "resolved to N elements"  (英語 fallback)
+ * - "resolved to N elements"  (英語 fallback。N が 2 以上のときだけ。strict-mode は locator が
+ *                              2 件以上に当たったときだけ起きる。"resolved to 1 element" は
+ *                              toHaveCount 等の通常の失敗の経過にも出るので除く)
  * - "strict mode"             (緩めの match、誤検出より見逃し回避を優先)
  *
  * @param {string|null|undefined} errorMessage
@@ -483,7 +485,10 @@ export function isStrictModeViolation(errorMessage) {
   if (lc.includes("strict mode violation")) return true;
   if (lc.includes("strict mode")) return true;
   // Playwright の strict-mode error の構造化 message が変わった場合の fallback
-  if (/resolved to \d+ elements?/i.test(errorMessage)) return true;
+  // N が 1 (単数) の場合は strict-mode にならないので除く (#1576 の toHaveCount 失敗の誤判定)
+  for (const m of errorMessage.matchAll(/resolved to (\d+) elements?/gi)) {
+    if (Number(m[1]) >= 2) return true;
+  }
   return false;
 }
 

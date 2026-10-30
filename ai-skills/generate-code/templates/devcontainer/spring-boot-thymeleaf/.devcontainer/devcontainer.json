@@ -30,7 +30,9 @@
 
   "onCreateCommand": "sudo chown -R vscode:vscode /home/vscode/.claude /home/vscode/.codex /home/vscode/.copilot /home/vscode/.config/gh",
 
-  "postCreateCommand": "(./mvnw -B dependency:resolve 2>/dev/null || mvn -B dependency:resolve || true) && npm install -g @openai/codex && ([ -f ~/.claude/.config.json ] || echo '{}' > ~/.claude/.config.json)",
+  "postCreateCommand": "(./mvnw -B dependency:resolve 2>/dev/null || mvn -B dependency:resolve || true) && npm install -g @openai/codex && ([ -f ~/.claude/.config.json ] || echo '{}' > ~/.claude/.config.json) && (npx -y -p @playwright/mcp@latest playwright install --with-deps chromium || echo 'Playwright のブラウザを入れられませんでした。ネットにつながってから npx -y -p @playwright/mcp@latest playwright install --with-deps chromium を実行してください')",
+
+  "postStartCommand": "npx -y -p @playwright/mcp@latest playwright install chromium || echo 'Playwright のブラウザを入れられませんでした。ネットにつながってから npx -y -p @playwright/mcp@latest playwright install chromium を実行してください'",
 
   "customizations": {
     "vscode": {

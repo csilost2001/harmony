@@ -14,7 +14,8 @@ Harmony 本体を開発する人は [dev-containers.md](./dev-containers.md)、H
   harmony.json                 ← ワークスペースの設定 (dataDir: "design")
   design/                      ← 設計データ
   (アプリのソース)             ← /generate-code が作る。既定はルート直下。backend/ などに分けることもできる
-  .mcp.json                    ← http://localhost:5179/mcp
+  .mcp.json                    ← Harmony (http://localhost:5179/mcp) と Playwright MCP (ブラウザの自動操作)
+  .tmp/.gitignore              ← Playwright MCP の出力 (.tmp/playwright-mcp/) を git に入れない
   .devcontainer/
     devcontainer.json          ← compose 形式。dev と harmony を起動
     compose.yml                ← dev / harmony の 2 サービス (Harmony の版もここで決める)
@@ -39,7 +40,7 @@ Harmony 本体を開発する人は [dev-containers.md](./dev-containers.md)、H
 雛形は `ai-skills/generate-code/templates/devcontainer/<組合せ>/` にある。組合せは `nestjs-nextjs` / `nestjs-thymeleaf` / `spring-boot-nextjs` / `spring-boot-thymeleaf` の 4 つ。どれにも同じ Harmony の構成が入っている。取り出し方は 3 つ。
 
 1. **`/generate-code` に任せる** (Harmony につながってから): ワークスペースのルートに `.devcontainer/` がまだ無ければ、`/generate-code` が技術スタックに合う雛形を置く (すでにあるファイルは飛ばす。本番用の `Dockerfile` などは、`.devcontainer/` があっても出力先に作られる) ([generate-code-workflow.md](../user-guide/generate-code-workflow.md))
-2. **Harmony の repo から取る** (初めての 1 回はこれ): 上のフォルダの `.devcontainer/` と `.mcp.json` を、業務プロジェクトのルートにコピーする (隠しフォルダ `.devcontainer/` も忘れずに)
+2. **Harmony の repo から取る** (初めての 1 回はこれ): 上のフォルダの `.devcontainer/`・`.mcp.json`・`.tmp/.gitignore` を、業務プロジェクトのルートにコピーする (隠しフォルダ `.devcontainer/` と `.tmp/` も忘れずに)
 3. **MCP の Resource で読む** (Harmony につながってから。リポジトリを持たない場合): `harmony://skill/generate-code/files` で一覧を見て、`harmony://skill/generate-code/templates/devcontainer/<組合せ>/.devcontainer/compose.yml` のように 1 ファイルずつ読んで書き出す。AI に頼めばよい
 
 
@@ -142,6 +143,27 @@ SELinux が有効なホスト (Fedora など) では、フォルダの共有 (`v
 
 雛形には DB を入れていない (業務アプリによって違うため)。PostgreSQL を同居させるなら、`compose.yml` に `db` サービスを足し、`devcontainer.json` の `runServices` に `"db"` を足す。アプリからは `db:5432` で届く。Harmony は DB に触れない。
 
+## ブラウザの自動操作 (Playwright MCP)
+
+AI が画面を開いて見た目や動きを確かめる (E2E の確認にも使う) ために、雛形の 4 組合せすべてに Playwright MCP を入れている (#1573)。
+
+| MCP の名前 | 使いどころ |
+|---|---|
+| `playwright` | ふだんはこちら。画面なしのブラウザ (headless) |
+| `playwright-headed` | 人が「画面を見たい」と言ったときだけ。Windows のデスクトップにブラウザの窓が開く |
+
+どちらも `.mcp.json` に `npx -y @playwright/mcp@latest --isolated --browser chromium --output-dir /workspaces/app/.tmp/playwright-mcp` で書いてある (`playwright` は `--headless` 付き)。開発コンテナの `localhost` で動くので、Harmony の画面 `http://localhost:5179` も業務アプリ (`http://localhost:3000` など) もそのまま開ける。
+
+- **入るもの**: `devcontainer.json` の `postCreateCommand` の末尾で `(npx -y -p @playwright/mcp@latest playwright install --with-deps chromium || echo '入れられなかった旨の案内')` (依存ライブラリは `sudo apt` で入る。初回だけ。Chromium の分で初回が 1〜2 分・数百 MB 延びる。ネットが無いなどで失敗しても、`|| echo` があるので postCreate 全体は失敗せず、コンテナの作成は止まらない)。`postStartCommand` で、起動のたびに `playwright install chromium` で最新の MCP に合うブラウザを入れ直す (入っていれば数秒。ネットが無いなどで失敗しても、コンテナの起動は止めない)
+- **版**: `@latest`。MCP の版が上がるとブラウザの版も変わるので、起動のたびに入れ直している。それでも「ブラウザが無い」と出たら `npx -y -p @playwright/mcp@latest playwright install chromium`
+- **headed の前提**: Windows + WSL2 + Docker Desktop。`compose.yml` の `dev` に、WSLg の X11 (`/tmp/.X11-unix`・`/mnt/wslg` の volumes と `DISPLAY: ":0"`) を渡している (Harmony 本体の開発コンテナと同じ)。プロジェクトのフォルダは WSL の中に置き、WSL から開く (Windows 側のフォルダから開くと窓が出ない)。**macOS / Linux native では、WSLg の 4 行 (volumes の `/tmp/.X11-unix` と `/mnt/wslg` の 2 行、`environment:` と `DISPLAY` の 2 行) を消す** (`environment:` のキー行だけ残すと値の無い mapping になるので、`DISPLAY` の行と一緒に消す)。消さないと、Docker Desktop for Mac など共有されていないパスを渡せない環境ではコンテナが起動しないおそれがある (実機では未確認。確認項目 9)。Linux native ではホストに空のフォルダができるだけ。そのときは headed は使えず、`playwright` だけ使う。`WAYLAND_DISPLAY` は設定しない。Dev Containers 拡張の Wayland socket の mount エラーが出る環境では、VS Code の user settings に `dev.containers.mountWaylandSocket=false` を入れる
+- **保存先**: スナップショット・スクリーンショットは `.tmp/playwright-mcp/`。雛形の `.tmp/.gitignore` (`*` と `!.gitignore`) があるので git に入らない。VS Code のエクスプローラーでは開ける。ただし `browser_take_screenshot` などでファイル名を指定すると、`--output-dir` ではなく起動した場所 (プロジェクトのルート) からの相対パスで保存される (実機で確認)。名前を指定するときは `.tmp/playwright-mcp/` の下を指定する
+- **E2E (`@playwright/test`) とは別のブラウザ**: generate-tests の E2E は、自分の版のブラウザを `npx playwright install chromium` で入れる。MCP と `@playwright/test` で Chromium の版 (rev) が違うと、2 つ入る。そろえない (正常)
+
+### 自動のブラウザも「開いている画面」に数えられる
+
+Harmony の画面を Playwright のブラウザで開くと、それも Harmony の WebSocket 接続 (wsConnections。画面のつながり) の 1 つに数えられる。人の画面と区別はつかない。そのため、`designer__workspace_close` のように「開いている画面」に影響する操作を AI が確かめるときは、自動のブラウザが開いたままの画面もあることを考えに入れる (確かめ終わったら `browser_close` で閉じる)。
+
 ## 実機での確認項目
 
 雛形を変えたときは、実機 (ホストの Docker) で次を通す。
@@ -154,3 +176,8 @@ SELinux が有効なホスト (Fedora など) では、フォルダの共有 (`v
 6. `compose.yml` の `image:` の既定値を書き換えると、Rebuild Container で実際に image が切り替わる (ホストの環境変数 `HARMONY_IMAGE` でも切り替わる)
 7. `Dev Containers: Rebuild Container` で dev だけが作り直されたとき、またはホスト側で dev だけを再起動したあとも、dev から harmony (`localhost:5179`) に届く (`network_mode: service:dev` が古いネットワークを握ったままにならない)
 8. 設計が空の状態 (ルートに `package.json` が無い) から `Reopen in Container` しても、`postCreateCommand` が最後まで走る (Codex CLI が入る)
+9. Playwright MCP: `playwright` (headless) で `http://localhost:5179/` が開けてスナップショットが取れる。`playwright-headed` で Windows のデスクトップに窓が開く (Windows + WSL2 + Docker Desktop)。`.tmp/playwright-mcp/` にスナップショットが出ても、`git status` に現れない。コンテナを再起動しても、`postStartCommand` が短時間で終わる
+   - 雛形が実際に使う image の上で確かめる: `typescript-node:26` (nestjs 系) と java (`java:1-21-bookworm` + Node 26。spring-boot 系) の両方で、`postCreateCommand` の `playwright install --with-deps chromium` と `postStartCommand` の導入が終了コード 0 で終わり、Chromium が置かれる (java の image で sudo の apt が通ることを含む)
+   - ネットを切った状態で `Reopen in Container` しても、`postCreateCommand` が最後まで走り、ブラウザの導入に失敗した案内が出る
+   - `playwright-headed` で Windows のデスクトップに窓が開く (Windows + WSL2 + Docker Desktop、フォルダは WSL の中)
+   - macOS (Docker Desktop for Mac) で、`compose.yml` の WSLg の 4 行を消すと起動し、消さないと起動しない (いまは推定)
