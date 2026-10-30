@@ -12,6 +12,7 @@
  */
 
 import { logWarn } from "./serverLog.js";
+import { ensureWorkDir } from "./workDirs.js";
 import fs from "fs/promises";
 import path from "path";
 import { randomBytes } from "node:crypto";
@@ -200,7 +201,7 @@ function cloneEditSession(session: EditSession): EditSession {
  */
 async function writeEditSessionToFs(workspaceRoot: string, session: EditSession): Promise<void> {
   const dir = editSessionsDir(workspaceRoot);
-  await fs.mkdir(dir, { recursive: true });
+  await ensureWorkDir(dir); // 自分の .gitignore を置く (業務アプリの git に載せない)
 
   const filePath = editSessionFilePath(workspaceRoot, session.id);
   const rand = randomBytes(4).toString("hex");

@@ -90,6 +90,14 @@ describe("create", () => {
   });
 });
 
+describe("作業用のフォルダ (#1569)", () => {
+  it("永続化すると .edit-sessions に自分の .gitignore (*) ができ、業務アプリの git に載らない", async () => {
+    const session = store.create("session-A", "table", "tbl-gi", "@alice");
+    await store.save(session.id, "session-A");
+    expect(await fs.readFile(path.join(tmpDir, ".edit-sessions", ".gitignore"), "utf-8")).toBe("*\n");
+  });
+});
+
 // ── 2. attachAsView → 既存 EditSession に View で join ───────────────────────
 
 describe("attachAsView", () => {

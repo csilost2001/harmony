@@ -11,6 +11,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { Parsed } from "@harmony/shared";
 import { resolveDataRoot, withFileLock, writeJSON } from "../storageCore.js";
+import { ensureWorkDir } from "../workDirs.js";
 
 export const OPS_DIR = ".harmony-ops";
 
@@ -31,10 +32,8 @@ export interface OpsStore<T> {
 
 async function ensureHiddenDir(root: string): Promise<string> {
   const dir = path.join(root, OPS_DIR);
-  await fs.mkdir(dir, { recursive: true });
-  // 秘密 (通知先の URL など) や個人の記録を、利用者の git に載せない
-  const ig = path.join(dir, ".gitignore");
-  await fs.access(ig).catch(() => fs.writeFile(ig, "*\n", "utf-8"));
+  // 秘密 (通知先の URL など) や個人の記録を、利用者の git に載せない (中に .gitignore を置く)
+  await ensureWorkDir(dir);
   return dir;
 }
 

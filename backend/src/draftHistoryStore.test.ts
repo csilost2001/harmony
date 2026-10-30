@@ -75,6 +75,19 @@ describe("saveSnapshot", () => {
     expect(entry.snapshot).toEqual({ id: "pf-1", actions: [] });
   });
 
+  it("履歴を残すと .edit-sessions-history に自分の .gitignore (*) ができる (#1569)", async () => {
+    await store.saveSnapshot({
+      resourceType: "table",
+      resourceId: "tbl-gi",
+      editSessionId: "es-test-gi",
+      ownerSessionId: "session-B",
+      ownerLabel: "@bob",
+      reason: "save",
+      snapshot: { id: "tbl-gi" },
+    });
+    expect(await fs.readFile(path.join(tmpDir, ".edit-sessions-history", ".gitignore"), "utf-8")).toBe("*\n");
+  });
+
   it("FS にファイルが作成される", async () => {
     const entry = await store.saveSnapshot({
       resourceType: "table",

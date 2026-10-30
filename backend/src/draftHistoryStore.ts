@@ -13,6 +13,7 @@
 import fs from "fs/promises";
 import path from "path";
 import { assertPathContained, assertHistoryId } from "./security/idValidator.js";
+import { writeOwnGitignore } from "./workDirs.js";
 import { DRAFT_HISTORY_RETENTION_DAYS } from "@harmony/shared";
 
 // ── 公開型定義 ────────────────────────────────────────────────────────────────
@@ -119,6 +120,7 @@ export class DraftHistoryStore {
 
     const dir = historyDir(this.workspaceRoot, resourceType, resourceId);
     await fs.mkdir(dir, { recursive: true });
+    await writeOwnGitignore(path.join(this.workspaceRoot, HISTORY_DIR)); // 業務アプリの git に載せない
     const filePath = historyFilePath(this.workspaceRoot, resourceType, resourceId, historyId);
 
     await fs.writeFile(filePath, JSON.stringify(entry, null, 2), "utf-8");

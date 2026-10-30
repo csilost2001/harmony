@@ -109,7 +109,7 @@ AI Agent ──(http://localhost:5179/mcp)──┐
 
 - active workspace の `harmony.json` の `dataDir` 配下に `screens/` `process-flows/` `tables/` 等の JSON を保存する
 - 編集中の作業コピーはサーバ側 `data/.drafts/<wsId>/` に置き、ロックで排他する: [docs/spec/edit-session-draft.md](docs/spec/edit-session-draft.md)
-- 上書きされる前の設計ファイルは `<ワークスペース>/.harmony-backups/` に世代で残る (`.harmony-journal/` は複数ファイル操作の復旧用)。どちらも自分の `.gitignore` を持つ。backend の外での書き換えはファイル監視で検知して画面へ知らせる
+- 上書きされる前の設計ファイルは `<ワークスペース>/.harmony-backups/` に世代で残る (`.harmony-journal/` は複数ファイル操作の復旧用)。編集中の作業の控え (`.edit-sessions/`) と編集の履歴 (`.edit-sessions-history/`) もワークスペースの中に置く。これらはすべて自分の `.gitignore` を持つ (業務アプリの git に載らない。作り方は `backend/src/workDirs.ts` にそろえてある)。backend の外での書き換えはファイル監視で検知して画面へ知らせる
 - 設計途中でも保存でき、schema 違反は UI で警告表示する (draft-state): [docs/spec/draft-state-policy.md](docs/spec/draft-state-policy.md)
 - ワークスペース: [docs/spec/workspace.md](docs/spec/workspace.md) / 同時並行編集: [docs/spec/workspace-multi.md](docs/spec/workspace-multi.md)
 
