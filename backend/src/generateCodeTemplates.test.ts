@@ -4,6 +4,7 @@
  */
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
+import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -11,6 +12,9 @@ const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const TEMPLATES = path.join(REPO, "ai-skills/generate-code/templates/devcontainer");
 const COMBOS = ["nestjs-nextjs", "nestjs-thymeleaf", "spring-boot-nextjs", "spring-boot-thymeleaf"] as const;
 const OUTPUT_DIR = "/workspaces/app/.tmp/playwright-mcp";
+const COMMON_ARGS = ["-y", "@playwright/mcp@latest"];
+const TAIL_ARGS = ["--isolated", "--browser", "chromium", "--output-dir", OUTPUT_DIR];
+const INSTALL_WITH_DEPS = "npx -y -p @playwright/mcp@latest playwright install --with-deps chromium";
 
 interface McpServer {
   type: string;
@@ -27,7 +31,6 @@ const devcontainer = (combo: string) =>
     postCreateCommand: string;
     postStartCommand: string;
   };
-const argsAfter = (args: string[], flag: string) => args[args.indexOf(flag) + 1];
 
 describe.each(COMBOS)("雛形 %s の Playwright MCP (#1573)", (combo) => {
   it(".mcp.json は harmony・playwright・playwright-headed の 3 項目を持つ", () => {
@@ -36,32 +39,26 @@ describe.each(COMBOS)("雛形 %s の Playwright MCP (#1573)", (combo) => {
     expect(servers.harmony).toEqual({ type: "http", url: "http://localhost:5179/mcp" });
   });
 
-  it("playwright は headless・隔離・chromium で、出力先を .tmp/playwright-mcp にする", () => {
+  it("playwright は headless・隔離・chromium で、出力先を .tmp/playwright-mcp にする (args は配列ごと完全一致)", () => {
     const p = mcpServers(combo).playwright;
     expect(p.type).toBe("stdio");
     expect(p.command).toBe("npx");
-    expect(p.args).toContain("-y");
-    expect(p.args).toContain("@playwright/mcp@latest");
-    expect(p.args).toContain("--headless");
-    expect(p.args).toContain("--isolated");
-    expect(argsAfter(p.args!, "--browser")).toBe("chromium");
-    expect(argsAfter(p.args!, "--output-dir")).toBe(OUTPUT_DIR);
+    expect(p.args).toEqual([...COMMON_ARGS, "--headless", ...TAIL_ARGS]);
   });
 
-  it("playwright-headed は --headless を持たず、それ以外は playwright と同じ", () => {
-    const servers = mcpServers(combo);
-    const h = servers["playwright-headed"];
+  it("playwright-headed は --headless だけ持たず、それ以外は playwright と同じ (args は配列ごと完全一致)", () => {
+    const h = mcpServers(combo)["playwright-headed"];
     expect(h.type).toBe("stdio");
     expect(h.command).toBe("npx");
-    expect(h.args).not.toContain("--headless");
-    expect(h.args).toEqual(servers.playwright.args!.filter((a) => a !== "--headless"));
-    expect(h.args).toContain("@playwright/mcp@latest");
-    expect(argsAfter(h.args!, "--output-dir")).toBe(OUTPUT_DIR);
+    expect(h.args).toEqual([...COMMON_ARGS, ...TAIL_ARGS]);
   });
 
-  it("postCreateCommand の末尾で依存ライブラリつきの chromium を入れ、postStartCommand で入れ直す", () => {
+  it("postCreateCommand の末尾で依存ライブラリつきの chromium を入れ (失敗しても止めない)、postStartCommand で入れ直す", () => {
     const d = devcontainer(combo);
-    expect(d.postCreateCommand.endsWith("&& npx -y -p @playwright/mcp@latest playwright install --with-deps chromium")).toBe(true);
+    // 末尾の (…|| echo '…') で包む。入れられなくても postCreate 全体は失敗しない
+    expect(d.postCreateCommand).toContain(`&& (${INSTALL_WITH_DEPS} || echo '`);
+    expect(d.postCreateCommand.endsWith("')")).toBe(true);
+    expect(d.postCreateCommand.slice(d.postCreateCommand.lastIndexOf("|| echo '") + 9, -2)).not.toContain("'");
     // 既存の並び (Codex CLI の導入 → Claude の設定ファイル) は変えない
     expect(d.postCreateCommand.indexOf("npm install -g @openai/codex")).toBeGreaterThan(-1);
     expect(d.postCreateCommand.indexOf("npm install -g @openai/codex")).toBeLessThan(d.postCreateCommand.indexOf("playwright install"));
@@ -101,23 +98,25 @@ describe("4 組合せの Playwright MCP の設定が同じ", () => {
     for (const c of COMBOS.slice(1)) expect(read(c, ".mcp.json")).toBe(first);
   });
 
-  it("playwright と playwright-headed の項目は 4 組合せで同一", () => {
-    const base = mcpServers(COMBOS[0]);
-    for (const c of COMBOS.slice(1)) {
-      const s = mcpServers(c);
-      expect(s.playwright).toEqual(base.playwright);
-      expect(s["playwright-headed"]).toEqual(base["playwright-headed"]);
-    }
-  });
-
   it("Playwright の導入コマンドは 4 組合せで同一", () => {
     const base = devcontainer(COMBOS[0]);
+    const tail = (cmd: string) => cmd.slice(cmd.indexOf("&& (npx -y -p @playwright"));
+    expect(tail(base.postCreateCommand)).toContain(INSTALL_WITH_DEPS);
     for (const c of COMBOS.slice(1)) {
       const d = devcontainer(c);
       expect(d.postStartCommand).toBe(base.postStartCommand);
-      expect(d.postCreateCommand.slice(d.postCreateCommand.indexOf("&& npx -y -p @playwright"))).toBe(
-        base.postCreateCommand.slice(base.postCreateCommand.indexOf("&& npx -y -p @playwright")),
-      );
+      expect(tail(d.postCreateCommand)).toBe(tail(base.postCreateCommand));
+    }
+  });
+
+  it(".tmp/.gitignore の例外が効く (ルートの .gitignore に無視されない)", () => {
+    // REPO が git 管理下であることを前提にする
+    for (const c of COMBOS) {
+      const rel = path.posix.join("ai-skills/generate-code/templates/devcontainer", c, ".tmp/.gitignore");
+      const r = spawnSync("git", ["check-ignore", "-q", rel], { cwd: REPO });
+      expect(r.error).toBeUndefined();
+      // 0 = 無視される、1 = 無視されない
+      expect(r.status, `${rel} が無視されている`).toBe(1);
     }
   });
 });

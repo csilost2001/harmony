@@ -14,10 +14,11 @@ services:
     command: sleep infinity
     volumes:
       - ..:/workspaces/app:cached
-      # ここから 3 行は、ブラウザの自動操作 (Playwright MCP の playwright-headed) の窓を Windows のデスクトップに出すため。
+      # 下の volumes の 2 行と、その下の environment: と DISPLAY の 2 行は、ブラウザの自動操作 (Playwright MCP の playwright-headed) の窓を Windows のデスクトップに出すため。
       # Windows + WSL2 + Docker Desktop 前提 (WSLg の X11。Harmony 本体の開発コンテナと同じ)。
-      # macOS / Linux native では /tmp/.X11-unix と /mnt/wslg が無く、コンテナが起動しないおそれがあるので、この 3 行 (volumes の 2 行と DISPLAY) を消す。
-      # headless の playwright は、この 3 行が無くても動く。WAYLAND_DISPLAY は設定しない。
+      # macOS / Linux native ではこの 4 行 (volumes の 2 行と、environment: と DISPLAY の 2 行) を消す。environment: のキー行だけ残すと値の無い mapping になるので、必ず DISPLAY の行と一緒に消す。
+      # 消す理由: 共有されていないパスを渡せない環境 (Docker Desktop for Mac など) ではコンテナが起動しない。Linux native では、ホストに空の /mnt/wslg ができるだけ。
+      # headless の playwright は、この 4 行が無くても動く。WAYLAND_DISPLAY は設定しない。
       # Dev Containers 拡張の Wayland socket の mount エラーが出る環境では、VS Code の user settings に dev.containers.mountWaylandSocket=false を入れる。
       - /tmp/.X11-unix:/tmp/.X11-unix
       - /mnt/wslg:/mnt/wslg
