@@ -115,12 +115,15 @@ export const handleWorkspaceTool: ToolHandler = async (name, args, _root, sessio
         }
       } else {
         const inspect = await inspectWorkspacePath(target);
-        if (inspect.status !== "ready") {
+        // 旧形式の項目だけが原因の harmony.json は、開いて designer__repair_registry で直せるようにする (#1568)
+        if (inspect.status !== "ready" && !(inspect.status === "invalid" && inspect.repairable)) {
           throw new McpError(
             ErrorCode.InvalidParams,
             inspect.status === "notFound"
               ? `フォルダが見つかりません: ${target}`
-              : `ワークスペースが初期化されていません (harmony.json なし): ${target}。init=true で初期化してください。`,
+              : inspect.status === "invalid"
+                ? `ワークスペースの harmony.json が不正です: ${inspect.reason}`
+                : `ワークスペースが初期化されていません (harmony.json なし): ${target}。init=true で初期化してください。`,
           );
         }
       }

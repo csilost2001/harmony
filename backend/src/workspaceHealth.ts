@@ -21,7 +21,7 @@ import { createFileMemo } from "./fileMemo.js";
 /** これを超える JSON は、読み込みを避けて「大きすぎる」として知らせる */
 export const MAX_JSON_BYTES = 20 * 1024 * 1024;
 
-export type HealthCode = "unreadable-file" | "unreadable-json" | "too-large" | "not-object" | "id-mismatch" | "registry-missing-file" | "registry-unregistered" | "uuid-unsaved";
+export type HealthCode = "unreadable-file" | "unreadable-json" | "too-large" | "not-object" | "id-mismatch" | "registry-missing-file" | "registry-unregistered" | "registry-legacy-keys" | "uuid-unsaved";
 
 export interface HealthIssue {
   /** 画面の出し分け (保守ボタンなど) に使う種類。文言を変えても動くよう、文言では判定しない */
@@ -35,6 +35,23 @@ export interface HealthIssue {
 }
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
+
+/**
+ * harmony.json の最上位にあってはいけない、旧形式の項目。v3 の harmony.json は、最上位に使える項目が決まっている
+ * (schemas/v3/harmony.v3.schema.json)。旧形式の tool が `tables` / `updatedAt` などを足すと、画面がワークスペースを開けなくなる (#1568)。
+ * 一覧は entities.<種類>、更新時刻は meta.updatedAt が正しい置き場。ここに挙げた名前だけを「取り除く候補」にする
+ * (綴りの違いなど、ほかの未知の項目は、利用者の書いたものかもしれないので勝手に消さない)。
+ */
+export const LEGACY_PROJECT_KEYS = ["tables", "screens", "processFlows", "edges", "updatedAt"] as const;
+
+/** v3 の harmony.json の最上位に使える項目 (スキーマの properties と同じ) */
+const V3_PROJECT_KEYS = new Set(["$schema", "schemaVersion", "dataDir", "meta", "extensionsApplied", "entities", "authoring", "techStack"]);
+
+/** harmony.json の最上位にある、旧形式の項目の名前 (v3 で使える項目は含めない) */
+export function findLegacyProjectKeys(project: unknown): string[] {
+  if (!isRecord(project)) return [];
+  return LEGACY_PROJECT_KEYS.filter((k) => !V3_PROJECT_KEYS.has(k) && k in project);
+}
 
 const KINDS: Array<{ kind: TopLevelEntityKind; label: string }> = [
   { kind: "screen", label: "画面" }, { kind: "table", label: "テーブル" }, { kind: "processFlow", label: "処理フロー" },
@@ -223,6 +240,11 @@ async function computeScan(root: string): Promise<HealthIssue[]> {
       }
     }
   }
+  // 最上位の旧形式の項目 (v3 のスキーマに無い。画面がワークスペースを開けなくなる)
+  const legacyKeys = findLegacyProjectKeys(project);
+  if (legacyKeys.length > 0) {
+    issues.push({ code: "registry-legacy-keys", severity: "warning", maintenance: true, section: "一覧", message: `harmony.json の最上位に、v3 のスキーマに無い旧形式の項目があります (${legacyKeys.join("、")})。画面でワークスペースを開けなくなります。取り除くには「一覧の食い違いを直す」(AI: designer__repair_registry。予行を見てから apply: true) を使ってください` });
+  }
   // ファイルはあるが、一覧に載っていない設計 (読み出しでは一覧に足して扱っている。一覧へ書くのは「一覧の食い違いを直す」)
   if (isRecord(project)) {
     const { unregistered } = await mergeUnregisteredEntities(project, root).catch(() => ({ unregistered: [] as Array<{ kind: string; id: string }> }));
@@ -244,6 +266,8 @@ export interface RegistryRepairPlan {
   add: Array<{ kind: string; id: string }>;
   /** 一覧から外す (一覧にあるが、ファイルが無い) */
   remove: Array<{ kind: string; id: string }>;
+  /** harmony.json の最上位から取り除く、旧形式の項目の名前 (v3 のスキーマに無い。#1568) */
+  removeKeys: string[];
   applied: boolean;
 }
 
@@ -253,7 +277,10 @@ export async function repairRegistry(root: string, apply: boolean): Promise<Regi
   if (!isRecord(project)) throw new Error("harmony.json を読めません");
   const merged = await mergeUnregisteredEntities(project, root);
   const add = merged.unregistered.map((u) => ({ kind: u.kind, id: u.id }));
-  const next = isRecord(merged.project) ? merged.project : project;
+  const mergedProject = isRecord(merged.project) ? merged.project : project;
+  const removeKeys = findLegacyProjectKeys(mergedProject);
+  const next: Record<string, unknown> = { ...mergedProject };
+  for (const k of removeKeys) delete next[k];
   const entities: Record<string, unknown> = isRecord(next.entities) ? { ...next.entities } : {};
   const remove: Array<{ kind: string; id: string }> = [];
   for (const c of [{ key: "screens", kind: "screen" }, { key: "tables", kind: "table" }, { key: "processFlows", kind: "processFlow" }] as const) {
@@ -267,8 +294,9 @@ export async function repairRegistry(root: string, apply: boolean): Promise<Regi
     });
     if (kept.length !== list.length) entities[c.key] = kept;
   }
-  if (apply && (add.length || remove.length)) await writeProject({ ...next, entities }, root);
-  return { add, remove, applied: apply && (add.length > 0 || remove.length > 0) };
+  const changed = add.length > 0 || remove.length > 0 || removeKeys.length > 0;
+  if (apply && changed) await writeProject({ ...next, entities }, root);
+  return { add, remove, removeKeys, applied: apply && changed };
 }
 
 export interface UuidPersistResult { files: string[]; applied: boolean }

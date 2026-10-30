@@ -560,7 +560,7 @@ describe("AI の記録の対象と備考 (続編 第 9 弾 レビュー M1')", (
   it("引数の id が対象。ページレイアウトも。新しく作る tool は、結果の文の id。改名は、新しい id と、備考に種類", () => {
     expect(describeAiTool("designer__update_table", { tableId: "orders" }, "")).toEqual({ target: "orders" });
     expect(describeAiTool("designer__update_page_layout", { pageLayoutId: "pl1" }, "")).toEqual({ target: "pl1" });
-    expect(describeAiTool("designer__add_table", { name: "orders", logicalName: "注文" }, "テーブル「注文」(orders) を追加しました（ID: table-ab12cd34）")).toEqual({ target: "table-ab12cd34" });
+    expect(describeAiTool("designer__add_table", { physicalName: "orders", name: "注文" }, "テーブル「注文」(orders) を追加しました（ID: table-ab12cd34）")).toEqual({ target: "table-ab12cd34" });
     expect(describeAiTool("designer__rename_entity", { entityType: "table", oldId: "a", newId: "b", apply: true }, "")).toEqual({ target: "b", detail: "table" });
     expect(describeAiTool("designer__restore_version", { resourceType: "report", id: "r1", versionId: "x" }, "")).toEqual({ target: "r1", detail: "report" });
   });

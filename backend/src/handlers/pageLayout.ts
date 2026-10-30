@@ -23,6 +23,12 @@ import {
 } from "../projectStorage.js";
 import { assertEntityIdMcp, type ToolHandler } from "../mcpHelpers.js";
 
+/** harmony.json の更新時刻は meta.updatedAt (v3 は最上位に updatedAt を持てない。#1568) */
+function touchProjectMeta(project: Record<string, unknown>, at: string): void {
+  const meta = project.meta;
+  if (meta && typeof meta === "object" && !Array.isArray(meta)) (meta as Record<string, unknown>).updatedAt = at;
+}
+
 export const handlePageLayoutTool: ToolHandler = async (name, args, root) => {
   const a = args ?? {};
 
@@ -84,7 +90,7 @@ export const handlePageLayoutTool: ToolHandler = async (name, args, root) => {
       });
       entities.pageLayouts = pageLayouts;
       project.entities = entities;
-      project.updatedAt = now;
+      touchProjectMeta(project, now);
       await writeProject(project, root);
       return { content: [{ type: "text", text: `PageLayout 「${a.name}」を追加しました（ID: ${id}）` }] };
     }
@@ -125,7 +131,7 @@ export const handlePageLayoutTool: ToolHandler = async (name, args, root) => {
       if (idx >= 0) pageLayouts[idx] = meta; else pageLayouts.push(meta);
       entities.pageLayouts = pageLayouts;
       project.entities = entities;
-      project.updatedAt = def.updatedAt as string;
+      touchProjectMeta(project, def.updatedAt as string);
       await writeProject(project, root);
       return { content: [{ type: "text", text: `PageLayout ${a.pageLayoutId} を更新しました。` }] };
     }
@@ -142,7 +148,7 @@ export const handlePageLayoutTool: ToolHandler = async (name, args, root) => {
       const pageLayouts = ((entities.pageLayouts ?? []) as Array<Record<string, unknown>>).filter((p) => p.id !== a.pageLayoutId);
       entities.pageLayouts = pageLayouts;
       project.entities = entities;
-      project.updatedAt = new Date().toISOString();
+      touchProjectMeta(project, new Date().toISOString());
       await writeProject(project, root);
       return { content: [{ type: "text", text: `PageLayout ${a.pageLayoutId} を削除しました。` }] };
     }

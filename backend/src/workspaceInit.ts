@@ -20,6 +20,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
+import { LEGACY_PROJECT_KEYS } from "./workspaceHealth.js";
 import { buildHarmonyAjv } from "@harmony/shared";
 import {
   isLockdown,
@@ -41,7 +42,8 @@ export type WorkspaceInspectResult =
   | { status: "ready"; path: string; name: string | null }
   | { status: "needsInit"; path: string }
   | { status: "notFound"; path: string }
-  | { status: "invalid"; path: string; reason: string };
+  /** repairable: 原因が、最上位の旧形式の項目 (tables / updatedAt など) だけで、designer__repair_registry で取り除いて直せる */
+  | { status: "invalid"; path: string; reason: string; repairable?: true };
 
 const HARMONY_SCHEMA_REF = "../schemas/v3/harmony.v3.schema.json";
 const SCHEMAS_DIR = path.resolve(import.meta.dirname, "../../schemas");
@@ -130,8 +132,13 @@ export async function inspectWorkspacePath(folderPath: string): Promise<Workspac
   // AJV 検証
   const validate = await getHarmonyValidator();
   if (!validate(harmonyResult.data)) {
-    const reason = `harmony.v3.schema.json 検証エラー: ${JSON.stringify(validate.errors)}`;
-    return { status: "invalid", path: abs, reason };
+    const errors = Array.isArray(validate.errors) ? validate.errors as Array<{ keyword?: string; instancePath?: string; params?: { additionalProperty?: string } }> : [];
+    // 旧形式の tool が最上位に足した項目 (tables / updatedAt など) だけが原因なら、直せることを添える (#1568)
+    const repairable = errors.length > 0 && errors.every((e) =>
+      e.keyword === "additionalProperties" && (e.instancePath ?? "") === "" && (LEGACY_PROJECT_KEYS as readonly string[]).includes(e.params?.additionalProperty ?? ""));
+    const reason = `harmony.v3.schema.json 検証エラー: ${JSON.stringify(validate.errors)}`
+      + (repairable ? " / 旧形式の項目が最上位にあるのが原因です。designer__repair_registry (予行を見てから apply: true) で取り除けます" : "");
+    return repairable ? { status: "invalid", path: abs, reason, repairable: true } : { status: "invalid", path: abs, reason };
   }
   return { status: "ready", path: abs, name: extractName(harmonyResult.data, path.basename(abs)) };
 }
