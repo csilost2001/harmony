@@ -154,7 +154,11 @@ category: ops
 
 ## 14. 版・リリースノート・初回セットアップ・資料の鮮度
 
-- **版** (連携と運用 → 版と更新): ルートの `package.json` の version・git のコミット (短縮 SHA)・ブランチ・コミットしていない変更の有無・サーバの起動時刻。「更新を確認する」は、押したときだけ、更新元 (origin) の最新の main を読み取りで問い合わせる (`git ls-remote`)。**更新の案内**: 前回このブラウザで見た版・コミットと違えば、通知で知らせる (初回は知らせない。localStorage)。
+- **版** (連携と運用 → 版と更新): ルートの `package.json` の version・git のコミット (短縮 SHA)・ブランチ・コミットしていない変更の有無・サーバの起動時刻。「更新を確認する」は、押したときだけ、最新の main を読み取りで問い合わせる。git の作業コピーは更新元 (origin) へ `git ls-remote`。**更新の案内**: 前回このブラウザで見た版・コミットと違えば、通知で知らせる (初回は知らせない。localStorage)。
+- **配布 image の版の記録** (#1577): 配布 image は git の作業コピーではない (`.git` を持たない)。`scripts/build-harmony-image.sh` が、作った時点の commit (完全な SHA)・ブランチ・コミットしていない変更の有無・作った日時 (UTC)・取得元 (`origin` の URL から GitHub の `owner/repo`。GitHub でなければ空) を build-arg で渡し、Dockerfile が OCI の label (`org.opencontainers.image.revision` / `created` / `source`) と `/app/build-info.json` (`{ commit, branch, dirty, builtAt, repo }`。空の項目は書かない) に残す。backend は、git の作業コピーでないとき `build-info.json` を読み (commit が 40 桁の 16 進でなければ全体を無視。ほかの項目も形が合うものだけ使う)、`VersionInfo` に `source: "git" | "image"`・`commitFull`・`builtAt`・`repo` を足す。
+  - **更新の確認 (配布 image)**: `GET https://api.github.com/repos/<repo>/compare/<commit>...main` (認証なし・読み取りだけ・10 秒で打ち切り・押したときだけ)。`repo` (`^[\w.-]+/[\w.-]+$`、`.` / `..` だけの部分は除く) と `commit` は形を検査してから URL に入れる。`identical` → 最新 / main が進んでいる (compare の `ahead_by` > 0) → `behind`「main より N commit 古い」(`behindBy`。分岐していれば main にない commit の数 `aheadBy` も添える) / image 側だけが進んでいる → `current`「main より先に進んでいます」/ 404 → 「記録した commit が GitHub にありません (push していないブランチから作った image など)」/ それ以外 → 「確かめられません (…)」。
+  - **画面**: 配布 image なら「配布 image」・commit・作った日時・取得元を出し、**ブランチが main でない / コミットしていない変更つき**は ⚠ の注意文で出す (作った人が、古いブランチの image を使っていると気づけるように)。
+  - **MCP**: `designer__workspace_status` と `designer__get_project_context` に `harmony` (`version`・`commit`・`branch`・`dirty`・`builtAt`・`source`。ネットワークは使わない)。読み取りの tool `designer__check_harmony_update` が、画面の「更新を確認する」と同じ確認をする (GitHub への問い合わせは、この tool を呼んだときだけ。ワークスペースが開いていなくても使える)。
 - **リリースノート**: `npm run release:notes` が、git の履歴 (first-parent の 1 コミット = 1 行) から `docs/release-notes.md` を作る。画面は、新しい 30 件を出す。
 - **初回セットアップ**: `npm run setup` が、Node の版・git・ポートの使用を診断し、足りないもの (npm install・`@harmony/shared` のビルド・`workspaces/`) をそろえて、起動のしかたを案内する。`-- --check` は診断だけ、`-- --sample retail` はサンプルの複製。
 - **資料の鮮度検査** (`npm run check:docs`。`npm run check` に含まれる): 資料の相対リンクの先・`npm run` の名前・AGENTS.md の Routing の表と画面の経路 (両方向)・UI 操作リファレンスの対象画面のファイル / ルート / スクリーンショット・CLAUDE.md のスキル表を、実物と突き合わせる。知らせるだけ (`-- --info`): UI 操作リファレンスのない画面・古くなったスクリーンショット (git の履歴で、画面のコードの最後の変更と比べる)・仕様書の索引にない仕様書。`npm run docs:shots` が、対応表のある画面のスクリーンショットを撮り直す。**限界**: 画面の文言 (ボタンの名前など) の食い違いは、検出しない。
@@ -166,7 +170,7 @@ category: ops
 | RPC (画面。`backend/src/wsHandlers/ops.ts`) | `documentTemplate.load` `documentTemplate.save` `revisions.suggest` `approvals.load` `approvals.transition` `reviewComments.load` `reviewComments.add` `reviewComments.resolve` `access.load` `access.save` `audit.list` `notify.load` `notify.save` `notify.test` `git.status` `git.diff` `git.log` `git.branches` `git.commit` `git.checkout` `git.init` `generation.status` `generation.diff` `app.version` `app.checkUpdate` |
 | 通知 (broadcast) | `opsChanged` (承認・コメント・権限・体裁・生成の記録・通知先・Git の変更。AI の書き込みと、ファイルの外部更新も) |
 | MCP tool (書き込み。読み取り専用モードでは使えない) | `designer__record_generation` `designer__add_review_findings` |
-| MCP tool (読み取り) | `designer__check_generation_drift` `designer__get_regeneration_diff` `designer__list_review_comments` |
+| MCP tool (読み取り) | `designer__check_generation_drift` `designer__get_regeneration_diff` `designer__list_review_comments` `designer__check_harmony_update` |
 
 ## 16. 試験
 

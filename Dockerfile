@@ -64,8 +64,24 @@ COPY schemas ./schemas
 COPY docs/spec ./docs/spec
 COPY docs/AI-INDEX.md docs/codemap.md docs/glossary.json ./docs/
 COPY docs/decisions ./docs/decisions
+# 画面「連携と運用 → 版と更新」のリリースノート (.dockerignore の docs 除外から戻している)
+COPY docs/release-notes.md ./docs/release-notes.md
 COPY examples/PATTERNS.md ./examples/PATTERNS.md
 COPY ai-skills ./ai-skills
+
+# 版の記録 (#1577): どの commit から作った image かを、OCI の label と /app/build-info.json に残す。
+# 値は scripts/build-harmony-image.sh が渡す (渡さなければ空。空の項目は書かない)。変わりやすいので、cache を壊さないよう層の後ろの方に置く。
+# 画面「連携と運用 → 版と更新」・designer__workspace_status・designer__check_harmony_update が build-info.json を読む
+ARG HARMONY_BUILD_COMMIT=""
+ARG HARMONY_BUILD_BRANCH=""
+ARG HARMONY_BUILD_DIRTY=""
+ARG HARMONY_BUILD_TIME=""
+ARG HARMONY_BUILD_REPO=""
+LABEL org.opencontainers.image.revision="${HARMONY_BUILD_COMMIT}" \
+      org.opencontainers.image.created="${HARMONY_BUILD_TIME}" \
+      org.opencontainers.image.source="${HARMONY_BUILD_REPO:+https://github.com/}${HARMONY_BUILD_REPO}"
+RUN BUILD_COMMIT="${HARMONY_BUILD_COMMIT}" BUILD_BRANCH="${HARMONY_BUILD_BRANCH}" BUILD_DIRTY="${HARMONY_BUILD_DIRTY}" BUILD_TIME="${HARMONY_BUILD_TIME}" BUILD_REPO="${HARMONY_BUILD_REPO}" \
+    node -e 'const e=process.env,o={};if(e.BUILD_COMMIT)o.commit=e.BUILD_COMMIT;if(e.BUILD_BRANCH)o.branch=e.BUILD_BRANCH;if(e.BUILD_DIRTY)o.dirty=e.BUILD_DIRTY==="true";if(e.BUILD_TIME)o.builtAt=e.BUILD_TIME;if(e.BUILD_REPO)o.repo=e.BUILD_REPO;require("fs").writeFileSync("/app/build-info.json",JSON.stringify(o,null,2)+"\n")'
 
 # Docker は named volume 初期化時に image 内ディレクトリの owner/mode を引き継ぐ。
 # VOLUME 宣言前に node 所有へ揃え、runtime 書き込みを EACCES にしない。

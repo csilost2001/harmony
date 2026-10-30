@@ -320,5 +320,30 @@ describe("生成の管理・版と更新", () => {
     fireEvent.click(screen.getByTestId("op-version-check"));
     expect((await screen.findByTestId("op-version-update")).textContent).toBe("更新があります");
     expect(localStorage.getItem("harmony.seenVersion")).toBe("1.2.3+abc1234"); // この画面で版を見たので、更新の案内は出さない
+    expect(screen.queryByTestId("op-version-image")).toBeNull(); // git の作業コピーなので、配布 image の表示は出さない
+    expect(screen.queryByTestId("op-version-warn")).toBeNull();
+  });
+
+  it("配布 image は、commit・作った日時・取得元を出し、main 以外のブランチ・未コミットの変更つきなら注意を出す。更新の確認に N commit が出る (#1577)", async () => {
+    rpc["app.version"] = () => ({ version: "1.2.3", commit: "0123456", commitFull: "0123456789abcdef0123456789abcdef01234567", branch: "feat/issue-1561-x", dirty: true, source: "image", builtAt: "2026-10-30T11:23:00.000Z", repo: "csilost2001/harmony", startedAt: "2026-10-31T00:00:00.000Z", notes: [], notesTotal: 0 });
+    rpc["app.checkUpdate"] = () => ({ status: "behind", message: "この image は main より 12 commit 古いです。image を作り直してください", behindBy: 12, aheadBy: 0 });
+    await open("version");
+    const info = (await screen.findByTestId("op-version-info")).textContent ?? "";
+    expect(info).toContain("配布 image");
+    expect(info).toContain("0123456");
+    expect(info).toContain("github.com/csilost2001/harmony");
+    const warns = screen.getAllByTestId("op-version-warn").map((e) => e.textContent ?? "");
+    expect(warns).toHaveLength(2);
+    expect(warns[0]).toContain("feat/issue-1561-x");
+    expect(warns[1]).toContain("コミットしていない変更");
+    fireEvent.click(screen.getByTestId("op-version-check"));
+    expect((await screen.findByTestId("op-version-update")).textContent).toContain("main より 12 commit 古い");
+  });
+
+  it("配布 image が main の commit 済みから作られていれば、注意は出ない (#1577)", async () => {
+    rpc["app.version"] = () => ({ version: "1.2.3", commit: "0123456", branch: "main", dirty: false, source: "image", builtAt: "2026-10-30T11:23:00.000Z", repo: "csilost2001/harmony", startedAt: "2026-10-31T00:00:00.000Z", notes: [], notesTotal: 0 });
+    await open("version");
+    expect((await screen.findByTestId("op-version-info")).textContent).toContain("配布 image");
+    expect(screen.queryByTestId("op-version-warn")).toBeNull();
   });
 });

@@ -756,7 +756,7 @@ describe("MCP の権限 (mcpAccess)", () => {
   it("readonly で残る tool の一覧 (新しい tool が読み取り扱いになるときは、中身を確かめてここを更新する)", () => {
     const listed = filterTools(tools, { HARMONY_MCP_MODE: "readonly" }).map((t) => t.name).sort();
     expect(listed).toEqual([
-      "designer__analyze_branches", "designer__analyze_design", "designer__check_design", "designer__check_generation_drift", "designer__check_screen_item_refs",
+      "designer__analyze_branches", "designer__analyze_design", "designer__check_design", "designer__check_generation_drift", "designer__check_harmony_update", "designer__check_screen_item_refs",
       "designer__check_test_coverage", "designer__close_tab", "designer__compare_workspaces", "designer__export_arazzo", "designer__export_openapi",
       "designer__export_spec", "designer__find_all_markers", "designer__find_references", "designer__generate_ddl", "designer__generate_er_mermaid",
       "designer__generate_test_data", "designer__get_business_flow", "designer__get_changes_since", "designer__get_conventions", "designer__get_design",

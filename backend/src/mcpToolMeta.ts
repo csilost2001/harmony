@@ -12,7 +12,8 @@ export interface ToolAnnotations {
   readOnlyHint: boolean;
   destructiveHint?: boolean;
   idempotentHint?: boolean;
-  openWorldHint: false;
+  /** 外部 (GitHub など) へ問い合わせる tool は true */
+  openWorldHint: boolean;
 }
 
 const bare = (name: string) => name.replace(/^designer__/, "");
@@ -28,6 +29,7 @@ const IDEMPOTENT = /^(save_[a-z_]+|update_[a-z_]+|set_[a-z_]+|delete_[a-z_]+|rem
 const UI_STATE_TOOLS = new Set(["designer__open_tab", "designer__close_tab", "designer__switch_tab", "designer__navigate_screen", "designer__workspace_open", "designer__workspace_close"]);
 
 export function toolAnnotations(name: string): ToolAnnotations {
+  if (name === "designer__check_harmony_update") return { readOnlyHint: true, openWorldHint: true };
   if (isReadOnlyTool(name) && !UI_STATE_TOOLS.has(name)) return { readOnlyHint: true, openWorldHint: false };
   const n = bare(name);
   if (UI_STATE_TOOLS.has(name)) {

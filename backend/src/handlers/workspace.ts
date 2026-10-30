@@ -32,6 +32,7 @@ import {
 } from "../recentStore.js";
 import { inspectWorkspacePath, initializeWorkspace, markLastActive, clearLastActiveIfSame, removeRecentWorkspace } from "../workspaceInit.js";
 import { wsBridge } from "../wsBridge.js";
+import { harmonySummary } from "../ops/versionInfo.js";
 import type { ToolHandler } from "../mcpHelpers.js";
 
 export const handleWorkspaceTool: ToolHandler = async (name, args, _root, sessionId) => {
@@ -70,6 +71,8 @@ export const handleWorkspaceTool: ToolHandler = async (name, args, _root, sessio
         active: activePath ? { path: activePath, name: activeName } : null,
         lockdown,
         lockdownPath: getLockdownPath(),
+        // この Harmony 自身の版 (どの commit・ブランチから作られたか)。ネットワークは使わない。最新との差は designer__check_harmony_update
+        harmony: await harmonySummary(),
       };
       return { content: [{ type: "text", text: JSON.stringify(payload, null, 2) }] };
     }

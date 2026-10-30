@@ -32,6 +32,17 @@ Podman で build する場合:
 CONTAINER_ENGINE=podman bash scripts/build-harmony-image.sh local
 ```
 
+### image に残る版の記録 (#1577)
+
+build script は、作った時点の commit (完全な SHA)・ブランチ・コミットしていない変更の有無・作った日時 (UTC)・取得元 (`origin` が GitHub のときの `owner/repo`) を build-arg で渡し、image に次の 2 つで残す。git の作業コピーでないとき (git が無い・`.git` が無い) は空で渡し、image は作れるが記録は残らない。
+
+- OCI の label: `org.opencontainers.image.revision` / `created` / `source` (`docker inspect <image>` で読める)
+- `/app/build-info.json`: `{ "commit", "branch", "dirty", "builtAt", "repo" }` (空の項目は書かない)
+
+作る前に、「main ではなくブランチ X から作る」「コミットしていない変更がある」ときは注意を表示する。作った image を起動すると、画面「連携と運用 → 版と更新」に、配布 image・commit・作った日時・取得元が出る。main 以外のブランチ・コミットしていない変更から作った image は ⚠ の注意が出る。「更新を確認する」を押すと、記録した commit を GitHub の main と比べて「main より N commit 古い」を表示する (GitHub への読み取りの問い合わせだけ。認証なし)。AI (MCP) からは `designer__workspace_status` の `harmony` と `designer__check_harmony_update`。仕様: [integration-ops.md](../spec/integration-ops.md) §14。
+
+**注意**: 記録されるのは commit だけで、コミットしていない変更の中身は残らない。配布用の image は、変更をコミットした `main` (または PR のブランチ) から作る。
+
 ## 起動
 
 local default のまま起動する:

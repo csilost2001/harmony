@@ -68,6 +68,13 @@ category: ops
 | `designer__get_generation_brief` | コードを生成する前に集める情報を 1 つの文書にまとめる (処理フロー / 画面)。詳細は [code-generation.md](code-generation.md) §9.5 |
 | `designer__check_test_coverage` | 生成したテストが、テスト観点表のどれだけを覆うか |
 
+## この Harmony の版 (読み取り専用)
+
+| tool | 内容 |
+|---|---|
+| `designer__workspace_status` / `designer__get_project_context` | 返り値の `harmony` (`version`・`commit`・`branch`・`dirty`・`builtAt`・`source`: `git` / `image`)。どのブランチ・commit から作られた Harmony かが分かる。ネットワークは使わない |
+| `designer__check_harmony_update` | この Harmony が GitHub の最新の main より古くないかを確かめる (`status`: `current` / `behind` / `unknown`、`behindBy` / `aheadBy`)。呼んだときだけ GitHub に読み取りで問い合わせる。ワークスペースが開いていなくても使える。仕様: [integration-ops.md](integration-ops.md) §14 |
+
 ### 生成のスキルの付属ファイル (Resource)
 
 `generate-code` などの手順 (Prompts) の本文は、`ai-skills/<名前>/templates/**` や `golden-examples/**` を参照する。外の業務プロジェクトはリポジトリを持たないので、これらは MCP の Resource で読む (読み取り専用)。
@@ -113,4 +120,4 @@ category: ops
 
 ## 読み取り専用の tool
 
-`HARMONY_MCP_MODE=readonly` と、プロファイル `read` / `review` で使える。次は何も書かない (試験 `designAccess.test.ts` が、書く tool を断ることを確かめる): `list_designs` `get_design` `get_conventions` `get_tech_stack` `search_design` `list_steps` `get_step` `get_flow_story` `analyze_branches` `get_design_document` `validate_design` `get_changes_since` `compare_workspaces` `get_tool_guide` `get_generation_brief` `check_test_coverage` `walk_flow`。書く tool は `save_design` `delete_design` `save_conventions` `save_tech_stack` `import_ddl` `import_openapi` `edit_steps`。
+`HARMONY_MCP_MODE=readonly` と、プロファイル `read` / `review` で使える。次は何も書かない (試験 `designAccess.test.ts` が、書く tool を断ることを確かめる): `list_designs` `get_design` `get_conventions` `get_tech_stack` `search_design` `list_steps` `get_step` `get_flow_story` `analyze_branches` `get_design_document` `validate_design` `get_changes_since` `compare_workspaces` `get_tool_guide` `get_generation_brief` `check_test_coverage` `walk_flow` `check_harmony_update`。書く tool は `save_design` `delete_design` `save_conventions` `save_tech_stack` `import_ddl` `import_openapi` `edit_steps`。

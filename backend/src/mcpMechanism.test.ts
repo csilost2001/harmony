@@ -56,7 +56,7 @@ describe("tool の注釈", () => {
     for (const t of list) {
       expect(t.annotations, t.name).toBeDefined();
       expect(t.annotations!.readOnlyHint, t.name).toBe(isReadOnlyTool(t.name) && !UI_STATE.includes(t.name));
-      expect(t.annotations!.openWorldHint).toBe(false);
+      expect(t.annotations!.openWorldHint, t.name).toBe(t.name === "designer__check_harmony_update"); // GitHub へ問い合わせる tool だけ true
       if (t.annotations!.readOnlyHint) expect(t.annotations!.destructiveHint, t.name).toBeUndefined();
     }
   });

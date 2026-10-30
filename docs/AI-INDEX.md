@@ -11,7 +11,7 @@ MCP につながっていれば、この文書は Resource `harmony://docs/ai-in
 ## 最初にやること
 
 1. ワークスペースが開かれているか確かめる (`designer__workspace_status`)。開かれていなければ `designer__workspace_list` → `designer__workspace_open`
-2. `designer__get_project_context` を 1 回呼ぶ。設計の件数・名前・規約・**未解決のマーカー (人から AI への指示・質問)** が分かる
+2. `designer__get_project_context` を 1 回呼ぶ。設計の件数・名前・規約・**未解決のマーカー (人から AI への指示・質問)** が分かる。`harmony` に、この Harmony の版・commit・ブランチ (ブランチ名が main でない、`dirty: true` の image は古い・未コミットの可能性がある)。最新の main との差は `designer__check_harmony_update` (呼んだときだけ GitHub に問い合わせる)
 3. 設計を作る・直したら、完了を報告する前に `designer__check_design` を呼び、error / warning を 0 件にする。要確認を黙らせるのは人 (画面か `design-check.json`)。AI は黙らせない
 
 ## 守ること
