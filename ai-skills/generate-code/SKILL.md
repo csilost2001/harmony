@@ -1698,8 +1698,8 @@ ai-skills/generate-code/templates/
   devcontainer/                  — プロジェクト scaffold (#1048、Step 5.5 で参照)
     spring-boot-thymeleaf/       — JDK 21 + Maven + Node features 構成 (#1050 で 17→21)
     spring-boot-nextjs/          — 同上 + Next.js dev server forward
-    nestjs-thymeleaf/            — Node 20 + github-cli のみの最小構成 (稀組合せ)
-    nestjs-nextjs/               — Node 20 構成 + Next.js dev server forward (単一 package.json、#1050 で再構成)
+    nestjs-thymeleaf/            — Node 26 + github-cli のみの最小構成 (稀組合せ)
+    nestjs-nextjs/               — Node 26 構成 + Next.js dev server forward (単一 package.json、#1050 で再構成)
 ```
 
 ## Step 5: コード生成 + 出力先への書き出し
@@ -1833,8 +1833,8 @@ Step 0 で `--all` / `--workspace <wsId>` が指定された場合、Step 1〜6 
 |---|---|---|---|---|
 | spring-boot × thymeleaf | `mcr.microsoft.com/devcontainers/java:1-21-bookworm` | `java:1` (version 21, installMaven true)、`node:1`、`github-cli:1` | `claude-code:1.0`、`copilot-cli:1.1.2` + postCreateCommand で `codex` npm 同梱 | postgres:15 |
 | spring-boot × nextjs | 同上 | 同上 (Next.js dev server に Node 必須) | 同上 | 同上 |
-| nestjs × thymeleaf | `mcr.microsoft.com/devcontainers/typescript-node:20` | `github-cli:1` のみ (NestJS が SSR するため Maven 不要、最小構成) | 同上 | SQLite (Prisma file:./prisma/dev.db、Postgres section はコメントアウトで保持) |
-| nestjs × nextjs | `mcr.microsoft.com/devcontainers/typescript-node:20` | `github-cli:1` | 同上 | 同上 |
+| nestjs × thymeleaf | `mcr.microsoft.com/devcontainers/typescript-node:26` | `github-cli:1` のみ (NestJS が SSR するため Maven 不要、最小構成) | 同上 | SQLite (Prisma file:./prisma/dev.db、Postgres section はコメントアウトで保持) |
+| nestjs × nextjs | `mcr.microsoft.com/devcontainers/typescript-node:26` | `github-cli:1` | 同上 | 同上 |
 
 > nestjs × thymeleaf 組合せは稀。当面は最小テンプレ提供で、需要が顕在化したら拡充。
 

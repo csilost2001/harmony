@@ -24,7 +24,7 @@
 #   bash .devcontainer/scripts/publish-dev-image.sh <new-version>
 # 詳細手順: docs/setup/dev-containers.md「Maintainer: base image の更新と publish」
 
-FROM mcr.microsoft.com/devcontainers/typescript-node:20-trixie
+FROM mcr.microsoft.com/devcontainers/typescript-node:26-trixie
 
 ENV PLAYWRIGHT_BROWSERS_PATH=/home/node/.cache/ms-playwright
 
@@ -65,7 +65,10 @@ RUN install -m 0755 -d /etc/apt/keyrings \
   && rm -rf /var/lib/apt/lists/*
 
 # 2. claude-code (npm global — 元 feature install.sh の install_claude_code() と同等)
-#    Node は base image (typescript-node:20-trixie) に同梱済のため install skip。
+#    Node は base image (typescript-node:26-trixie) に同梱済のため install skip。
+#    npm は同梱の版が古いことがあるので、claude-code の前に最新へそろえる (#1571)。
+#    package-lock.json の libc の欄が、古い npm で消えるのを防ぐ。
+RUN npm install -g npm@latest
 RUN npm install -g @anthropic-ai/claude-code
 
 # 3. copilot-cli (GitHub release tarball — 元 feature install.sh の install_using_github() と同等)

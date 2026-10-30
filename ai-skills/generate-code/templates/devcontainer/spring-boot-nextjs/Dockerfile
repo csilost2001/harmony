@@ -1,4 +1,6 @@
-FROM node:20-alpine AS frontend-builder
+FROM node:26-alpine AS frontend-builder
+# npm を最新にそろえる (Harmony の package-lock.json と同じ系統。古い npm だと lock の libc の欄が消える)
+RUN npm install -g npm@latest
 WORKDIR /build/frontend
 COPY frontend/package*.json ./
 RUN npm ci

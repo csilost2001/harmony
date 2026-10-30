@@ -6,8 +6,11 @@
 # - /data/workspaces はユーザー workspace の推奨 mount point
 
 # ─── stage 1: build ─────────────────────────────────────────────────────────
-FROM node:20-alpine AS build
+FROM node:26-alpine AS build
 WORKDIR /app
+
+# npm を最新にそろえる (#1571)。package-lock.json を書いた npm と同じ系統で npm ci を走らせる
+RUN npm install -g npm@latest
 
 ARG VITE_HARMONY_SAME_PORT=1
 ENV VITE_HARMONY_SAME_PORT=${VITE_HARMONY_SAME_PORT}
@@ -30,8 +33,11 @@ RUN npm run build --workspace=@harmony/shared \
     && npm prune --omit=dev
 
 # ─── stage 2: runtime ───────────────────────────────────────────────────────
-FROM node:20-alpine AS runtime
+FROM node:26-alpine AS runtime
 WORKDIR /app
+
+# runtime にも最新の npm を入れる (#1571)。同梱の npm の既知の脆弱性を image に残さないため
+RUN npm install -g npm@latest
 
 ENV NODE_ENV=production
 ENV HARMONY_HOME=/home/node/.harmony
