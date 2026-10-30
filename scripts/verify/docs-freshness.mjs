@@ -13,6 +13,8 @@
  *   8. 正本から自動で作る資料 (スキーマの索引・工程の種類・self-check ルール・用語集・サンプルのパターン) が、正本とずれている (直し方: node scripts/docs/generated.mjs --write)
  *   9. 資料の中の、印 (`<!-- schema: … -->`) つきの JSON の例が、スキーマに合わない (scripts/docs/json-examples.mjs)
  *  10. docs/codemap.md と、主要ディレクトリの README に書いた `パス` が、実在しない
+ *  11. 開発コンテナの base の Dockerfile の `playwright@<版>` が、package-lock.json の playwright-core の版と違う
+ *      (違うと、コンテナの E2E がブラウザ (chromium) の版違いで全部落ちる。直し方: Dockerfile の版を lock にそろえて、base image を出し直す)
  * 知らせるだけのもの (--info で表示。--strict で失敗):
  *   - UI 操作リファレンスのない画面 / 仕様書の索引 (docs/spec/README.md) にない仕様書 / ai-skills/ にあるが CLAUDE.md の表にないスキル
  *   - スクリーンショットが、画面のコードの最後の変更より古いもの (git の履歴で比べる)
@@ -269,6 +271,21 @@ export function codemapPathIssues(base) {
   return [...new Map(out.map((o) => [`${o.file}|${o.message}`, o])).values()];
 }
 
+/** 11. base image の Playwright の版と、lock の playwright-core の版。ずれていれば説明の文を、そろっていれば null を返す */
+export function playwrightDrift(dockerfileText, lock) {
+  const m = /playwright@(\d+\.\d+\.\d+)\s+install/.exec(dockerfileText ?? "");
+  const locked = lock?.packages?.["node_modules/playwright-core"]?.version;
+  if (!m || !locked || m[1] === locked) return null;
+  return `base image の Playwright (${m[1]}) が、package-lock.json の playwright-core (${locked}) と違います。ブラウザの版が合わず、コンテナの E2E が動きません (Dockerfile の版を ${locked} にして、base image を出し直してください)`;
+}
+export function playwrightDriftIssues(base) {
+  const df = path.join(base, ".devcontainer/base/Dockerfile");
+  const lockPath = path.join(base, "package-lock.json");
+  if (!fs.existsSync(df) || !fs.existsSync(lockPath)) return [];
+  const msg = playwrightDrift(fs.readFileSync(df, "utf8"), JSON.parse(fs.readFileSync(lockPath, "utf8")));
+  return msg ? [{ file: ".devcontainer/base/Dockerfile", message: msg }] : [];
+}
+
 export function runChecks(base = root) {
   const errors = [], infos = [];
   const files = listDocs(base);
@@ -302,6 +319,7 @@ export function runChecks(base = root) {
   for (const g of generatedIssues(base)) errors.push({ kind: "自動生成の資料", ...g });
   for (const j of jsonExampleIssues(base)) errors.push({ kind: "JSON の例", ...j });
   for (const c of codemapPathIssues(base)) errors.push({ kind: "コードの地図", ...c });
+  for (const p of playwrightDriftIssues(base)) errors.push({ kind: "開発コンテナ", ...p });
   return { errors, infos, docCount: files.length };
 }
 

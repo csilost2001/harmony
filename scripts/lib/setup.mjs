@@ -10,10 +10,10 @@ export function versionAtLeast(actual, min) {
   return true;
 }
 
-/** 必要な Node の版 (package.json の engines。無ければ 20) */
+/** 必要な Node の版 (package.json の engines。無ければ 26。.nvmrc と engines を置いた今は、この既定はほぼ使われない) */
 export function requiredNode(pkg) {
   const m = /(\d+(?:\.\d+){0,2})/.exec(pkg?.engines?.node ?? "");
-  return m ? m[1] : "20";
+  return m ? m[1] : "26";
 }
 
 /** やることの計画: 何がそろっていて、何をするか */
@@ -58,9 +58,10 @@ const majorOf = (v) => parseVersion(v)[0];
  *   releases                  https://nodejs.org/dist/index.json の配列 ({ version, lts, npm })。ネットワークを使わない検査では省略
  *   latestNpm                 `npm view npm version` の結果。同上
  *   includeNodeEngines        false なら「Node が engines 未満」を出さない (planSetup が先に言うので、重複させないため)
+ *   nvmrcAsProblem            true なら「Node のメジャーが .nvmrc と違う」を知らせでなく問題にする (npm run check:deps -- runtime 用)
  * 戻り値: { problems: 直すべきこと, notices: 知らせ }
  */
-export function runtimeFindings({ nodeVersion, npmVersion, nvmrc, pkg, releases, latestNpm, includeNodeEngines = true }) {
+export function runtimeFindings({ nodeVersion, npmVersion, nvmrc, pkg, releases, latestNpm, includeNodeEngines = true, nvmrcAsProblem = false }) {
   const problems = [];
   const notices = [];
   const needNode = requiredEngine(pkg, "node");
@@ -73,7 +74,7 @@ export function runtimeFindings({ nodeVersion, npmVersion, nvmrc, pkg, releases,
   }
   const want = nvmrcMajor(nvmrc);
   if (want !== null && majorOf(nodeVersion) !== want) {
-    notices.push(`動いている Node (${nodeVersion}) が、.nvmrc (${want}) と違います。nvm use で合わせてください。VS Code から開いた端末は VS Code を起動したときの環境を引き継ぐので、直らなければ VS Code を開き直してください`);
+    (nvmrcAsProblem ? problems : notices).push(`動いている Node (${nodeVersion}) が、.nvmrc (${want}) と違います。nvm use で合わせてください。VS Code から開いた端末は VS Code を起動したときの環境を引き継ぐので、直らなければ VS Code を開き直してください`);
   }
   if (Array.isArray(releases) && releases.length > 0) {
     const lts = releases.filter((r) => r.lts).map((r) => majorOf(r.version));
@@ -91,4 +92,15 @@ export function runtimeFindings({ nodeVersion, npmVersion, nvmrc, pkg, releases,
     problems.push(`npm (${npmVersion}) が最新 (${latestNpm}) より古いです。npm install -g npm@latest で上げてください (Dev Containers は Rebuild Without Cache)`);
   }
   return { problems, notices };
+}
+
+/** package.json の engines (node / npm) を、動かしている版が満たすか。npm run check:deps の engines 項目が使う。{ ok, lines } */
+export function enginesCheck({ nodeVersion, npmVersion, pkg }) {
+  const needNode = requiredEngine(pkg, "node");
+  const needNpm = requiredEngine(pkg, "npm");
+  const lines = [needNode ? `engines.node = ${pkg.engines.node}、動かしている Node = ${String(nodeVersion).replace(/^v/, "")}` : "package.json に engines.node がありません"];
+  if (needNpm) lines.push(`engines.npm = ${pkg.engines.npm}、動かしている npm = ${npmVersion ?? "(読めません)"}`);
+  const nodeOk = !!needNode && versionAtLeast(nodeVersion, needNode);
+  const npmOk = !needNpm || (!!npmVersion && versionAtLeast(npmVersion, needNpm));
+  return { ok: nodeOk && npmOk, lines };
 }

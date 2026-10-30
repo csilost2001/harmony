@@ -86,7 +86,7 @@
 <span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">  source</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ~/.bashrc</span></span>
 <span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">fi</span></span>
 <span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">nvm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> install</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> --lts</span><span style="color:#6A737D;--shiki-dark:#768390">            # いまの最新の LTS (リポジトリの .nvmrc と同じメジャー。2026-10 時点は 26)</span></span>
-<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">nvm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> alias</span><span style="color:#032F62;--shiki-dark:#96D0FF"> default</span><span style="color:#032F62;--shiki-dark:#96D0FF"> lts/</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">*</span><span style="color:#6A737D;--shiki-dark:#768390">      # 新しい端末でも、この版が選ばれるようにする</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">nvm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> alias</span><span style="color:#032F62;--shiki-dark:#96D0FF"> default</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> 26</span><span style="color:#6A737D;--shiki-dark:#768390">         # 新しい端末でも、この版が選ばれるようにする (下の注を読んでから)</span></span>
 <span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">nvm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> use</span><span style="color:#032F62;--shiki-dark:#96D0FF"> default</span></span>
 <span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> install</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -g</span><span style="color:#032F62;--shiki-dark:#96D0FF"> npm@latest</span><span style="color:#6A737D;--shiki-dark:#768390">    # npm も最新に (古い npm だと package-lock.json の libc の欄が消える)</span></span>
 <span class="line"></span>
@@ -95,6 +95,7 @@
 <span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">sudo</span><span style="color:#032F62;--shiki-dark:#96D0FF"> apt</span><span style="color:#032F62;--shiki-dark:#96D0FF"> install</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -y</span><span style="color:#032F62;--shiki-dark:#96D0FF"> git</span><span style="color:#032F62;--shiki-dark:#96D0FF"> gh</span></span></code></pre>
 <blockquote>
 <p><strong>Node と npm はいつも最新の LTS にそろえます。</strong> 端末ごとに Node や npm の版が違うと、<code>package-lock.json</code> が書き換わったり、動きが変わったりします。リポジトリのルートに <code>.nvmrc</code> があり、<code>nvm use</code> でその版に切り替わります。</p>
+<p><strong>default の数字は、リポジトリの <code>.nvmrc</code> のメジャーにそろえます</strong> (<code>lts/*</code> にすると、次の LTS が出た日に <code>.nvmrc</code> とずれます)。ただし <strong>default を変えると、この WSL2 の他のプロジェクトにも効きます</strong>。変えたくなければ default はそのままにして、Harmony のフォルダでだけ <code>nvm use</code> (<code>.nvmrc</code> の版に切り替わる) を使ってください。</p>
 <p><strong>VS Code から開いた端末は、VS Code を起動したときの環境を引き継ぎます。</strong> nvm の default や <code>.nvmrc</code> を変えたあとは、VS Code を開き直してください (開いたままだと、古い Node のままです)。</p>
 </blockquote>
 <p><strong>版の確かめ方</strong> (リポジトリの中で):</p>

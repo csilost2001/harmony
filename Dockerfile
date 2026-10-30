@@ -9,8 +9,11 @@
 FROM node:26-alpine AS build
 WORKDIR /app
 
-# npm を最新にそろえる (#1571)。package-lock.json を書いた npm と同じ系統で npm ci を走らせる
-RUN npm install -g npm@latest
+# npm を最新にそろえる (#1571)。package-lock.json を書いた npm と同じ系統で npm ci を走らせる。
+# NPM_VERSION は scripts/build-harmony-image.sh が `npm view npm version` の結果を渡す。npm の新版が出たときだけこの層が作り直される
+# (渡さなければ latest のままで、Docker の cache が効くと古い npm が残る。そのときは docker build --pull --no-cache)
+ARG NPM_VERSION=latest
+RUN npm install -g npm@${NPM_VERSION}
 
 ARG VITE_HARMONY_SAME_PORT=1
 ENV VITE_HARMONY_SAME_PORT=${VITE_HARMONY_SAME_PORT}
@@ -36,8 +39,9 @@ RUN npm run build --workspace=@harmony/shared \
 FROM node:26-alpine AS runtime
 WORKDIR /app
 
-# runtime にも最新の npm を入れる (#1571)。同梱の npm の既知の脆弱性を image に残さないため
-RUN npm install -g npm@latest
+# runtime にも最新の npm を入れる (#1571)。同梱の npm の既知の脆弱性を image に残さないため。ARG は stage ごとに宣言が要る
+ARG NPM_VERSION=latest
+RUN npm install -g npm@${NPM_VERSION}
 
 ENV NODE_ENV=production
 ENV HARMONY_HOME=/home/node/.harmony

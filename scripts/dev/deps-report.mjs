@@ -18,7 +18,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { runtimeFindings } from "../lib/setup.mjs";
+import { enginesCheck, runtimeFindings, versionAtLeast } from "../lib/setup.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const args = process.argv.slice(2);
@@ -42,9 +42,11 @@ function npmVersionNow() {
 }
 
 /** nodejs.org の一覧から、最新の LTS の版 ("v26.13.0 (Lithium)") */
-function latestLts(releases) {
-  const l = releases.find((r) => r.lts);
-  return l ? `${l.version} (${l.lts})` : "(見つかりません)";
+export function latestLts(releases) {
+  const lts = releases.filter((r) => r.lts);
+  if (lts.length === 0) return "(見つかりません)";
+  const l = lts.reduce((hi, r) => (versionAtLeast(hi.version, r.version) ? hi : r));
+  return `${l.version} (${l.lts})`;
 }
 
 /** license の文字を SPDX の部品に割る ("(MIT OR Apache-2.0)" など。OR は、どれか 1 つが許可なら可) */
@@ -114,15 +116,8 @@ async function main() {
 
   if (all("engines")) {
     const pj = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
-    const have = Number(process.versions.node.split(".")[0]);
-    const mNode = /^>=\s*(\d+)/.exec(pj.engines?.node ?? "");
-    const mNpm = /^>=\s*(\d+)/.exec(pj.engines?.npm ?? "");
-    const npmVersion = npmVersionNow();
-    const npmOk = !mNpm || (npmVersion !== null && Number(npmVersion.split(".")[0]) >= Number(mNpm[1]));
-    add("engines", !!mNode && have >= Number(mNode[1]) && npmOk, [
-      pj.engines?.node ? `engines.node = ${pj.engines.node}、動かしている Node = ${process.versions.node}` : "package.json に engines.node がありません",
-      ...(pj.engines?.npm ? [`engines.npm = ${pj.engines.npm}、動かしている npm = ${npmVersion ?? "(読めません)"}`] : []),
-    ]);
+    const r = enginesCheck({ nodeVersion: process.version, npmVersion: npmVersionNow(), pkg: pj });
+    add("engines", r.ok, r.lines);
   }
 
   if (all("runtime")) {
@@ -138,7 +133,7 @@ async function main() {
     } catch { releases = undefined; }
     const v = run("npm", ["view", "npm", "version"], { timeout: 30000, shell: process.platform === "win32" });
     const latestNpm = v.status === 0 && /^\d+\.\d+\.\d+/.test(v.stdout.trim()) ? v.stdout.trim() : undefined;
-    const f = runtimeFindings({ nodeVersion: process.version, npmVersion, nvmrc, pkg: pj, releases, latestNpm });
+    const f = runtimeFindings({ nodeVersion: process.version, npmVersion, nvmrc, pkg: pj, releases, latestNpm, nvmrcAsProblem: true });
     add("runtime", f.problems.length === 0, [
       `動かしている Node = ${process.version}、npm = ${npmVersion ?? "(読めません)"}、.nvmrc = ${nvmrc?.trim() ?? "(なし)"}`,
       releases ? `Node の最新の LTS: ${latestLts(releases)}` : "Node の最新の版を読めません (ネットワーク)。LTS とパッチの比較は飛ばしました",

@@ -157,7 +157,7 @@ container 内ターミナルで:
 
 ```bash
 # Node / npm / git / gh が container 内に存在することを確認
-node --version    # v20.x.x
+node --version    # v26.x.x (.nvmrc のメジャー)
 npm --version
 gh --version
 
@@ -409,11 +409,11 @@ host と container は **別 OAuth credential で独立**動作。それぞれ�
 
 ### バージョン更新
 
-- **Claude Code**: Phase 5 (#1120) 以降は base image inline (`.devcontainer/base/Dockerfile` の `npm install -g @anthropic-ai/claude-code`) で install。base image bump 時に最新版が pull される。`DISABLE_AUTOUPDATER: "1"` を入れているので **container 起動後の自動更新は止まる**。特定版に pin したい場合は base/Dockerfile の RUN 行を `npm install -g @anthropic-ai/claude-code@X.Y.Z` に変えて publish-dev-image で新版を push。
+- **Claude Code**: Phase 5 (#1120) 以降は base image inline (`.devcontainer/base/Dockerfile` の `npm install -g @anthropic-ai/claude-code`) で install。base image bump 時に最新版が pull される。`DISABLE_AUTOUPDATER: "1"` を入れているので **container 起動後の自動更新は止まる**。特定版に pin したい場合は base/Dockerfile の RUN 行を `npm install -g --allow-scripts=@anthropic-ai/claude-code @anthropic-ai/claude-code@X.Y.Z` に変えて (`--allow-scripts` は npm 12 が止める postinstall を許すために必須。外すと native binary が入らない) publish-dev-image で新版を push。
 - **Codex**: overlay Dockerfile (`.devcontainer/Dockerfile:28`) の `RUN npm install -g @openai/codex@<version>` を編集し、VSCode から `Dev Containers: Rebuild Container` を実行して反映。container 内で `npm install -g` を個別実行する必要はない (rebuild した時点で overlay 層から再 install される)。
 
 - **Node と npm**: Node は base image の `FROM` のタグ (`typescript-node:26-trixie`) で決まる。npm は base と overlay の両方で `npm install -g npm@latest` する。ただし Docker の cache が効くと、古い npm のまま残ることがある。`npm run check:deps -- runtime` で「古い」と出たら `Dev Containers: Rebuild Without Cache` を実行する。端末の Node と npm が合っているかは `npm run setup -- --check` でも見られる。
-- **npm 12 は、依存の install スクリプトを既定で止める**: `npm install` の最後に `install scripts blocked` の警告が出る。どれを許すかは `package.json` の `allowScripts` に残してある (ルートは `esbuild`、`docs-site` は `esbuild`・`sharp` を拒否。どれも platform 別の実行ファイルを optionalDependencies で取るので、スクリプトなしで動く)。依存を足して警告が出たら、`npm install-scripts ls` で止まったものを見て、動くのに要るものだけ `npm install-scripts approve <pkg>`、要らないものは `npm install-scripts deny <pkg>` を実行する (`allowScripts` は手で書かず、npm に書かせる)。base image の `claude-code` だけは native binary を置く postinstall が要るので、`.devcontainer/base/Dockerfile` で `--allow-scripts` をつけて入れている。
+- **npm 12 は、依存の install スクリプトを既定で止める**: `npm install` の最後に `install scripts blocked` の警告が出る。どれを許すかは `package.json` の `allowScripts` に残してある (ルートは `esbuild`・`fsevents` (macOS だけで使う。実行ファイルは同梱)、`docs-site` は `esbuild`・`sharp` を拒否。どれも platform 別の実行ファイルを optionalDependencies で取るので、スクリプトなしで動く)。依存を足して警告が出たら、`npm install-scripts ls` で止まったものを見て、動くのに要るものだけ `npm install-scripts approve <pkg>`、要らないものは `npm install-scripts deny <pkg>` を実行する (`allowScripts` は手で書かず、npm に書かせる)。base image の `claude-code` だけは native binary を置く postinstall が要るので、`.devcontainer/base/Dockerfile` で `--allow-scripts` をつけて入れている。
 
 ## 仕組み解説: devcontainer.json の構造 (#1118 Phase 1+2 以降)
 
@@ -474,7 +474,7 @@ base image (`ghcr.io/csilost2001/harmony-devcontainer-base:<version>`) を更新
 
 ### 更新手順 (毎回)
 
-1. `.devcontainer/base/Dockerfile` を編集 (Playwright version 更新等)
+1. `.devcontainer/base/Dockerfile` を編集 (Playwright version 更新等。`playwright@<版>` は `package-lock.json` の `playwright-core` の版と必ず一致させる。ずれると `npm run check:docs` が失敗する)
 2. WSL2 ターミナルで publish:
    ```bash
    bash .devcontainer/scripts/publish-dev-image.sh <new-version>
@@ -522,7 +522,7 @@ bash .devcontainer/scripts/build-base.sh
 | 初回 build が完了しない / network エラー | Docker Desktop が起動しているか / インターネット接続 / 社内 proxy 設定。`docker pull mcr.microsoft.com/devcontainers/typescript-node:26` を WSL2 シェルで先に試す |
 | `invalid mount config ... /run/user/1000/wayland-0` で container start に失敗 | WSLg の Wayland socket が broken symlink になっている状態で、Dev Containers 拡張が Wayland socket を自動 bind mount すると発生する。この自動 mount は VS Code user setting 側の挙動なので、VS Code user settings に `"dev.containers.mountWaylandSocket": false` を追加してから `Dev Containers: Rebuild Container` を実行する。Harmony の devcontainer は `WAYLAND_DISPLAY` / `XDG_RUNTIME_DIR` を設定せず、headed browser は X11 fallback (`DISPLAY=:0`) に寄せている |
 | `postCreateCommand` で `npm install` が失敗 | bind mount された `node_modules` (WSL2 native で install したもの) が container と互換性なく失敗するケースあり。一度 WSL2 側で `rm -rf node_modules frontend/node_modules backend/node_modules shared/node_modules` してから rebuild container |
-| Playwright browsers が見つからない / install が必要 | Phase 5 (#1118 / #1120) 以降 Playwright chromium は **base image (ghcr) に同梱済**。`postCreateCommand` での `playwright install` は廃止。base image の build (`/publish-dev-image`) で `npx playwright install` が走るため、container 起動後は `~/.cache/ms-playwright/` に既に存在する。version mismatch で再 install したい場合のみ container 内で `npx playwright install chromium` を手動実行 |
+| Playwright browsers が見つからない / install が必要 | Phase 5 (#1118 / #1120) 以降 Playwright chromium は **base image (ghcr) に同梱済**。`postCreateCommand` での `playwright install` は廃止。base image の build (`/publish-dev-image`) で `npx playwright install` が走るため、container 起動後は `~/.cache/ms-playwright/` に既に存在する。version mismatch (E2E が `Executable doesn't exist ... chromium_headless_shell-NNNN` で落ちる) は、base の Dockerfile の `playwright@<版>` が `package-lock.json` の `playwright-core` の版と違うときに起きる。この食い違いは `npm run check:docs` が検出する。直すには Dockerfile の版を lock にそろえて base image を出し直す。急ぎなら container 内で `npx playwright install chromium` を手動実行 |
 | Vite HMR がブラウザに反映されない | bind mount + inotify の問題。`frontend/vite.config.ts` の watch options に `{ usePolling: true, interval: 100 }` を追加。または container 内で `export CHOKIDAR_USEPOLLING=1` |
 | port 5173 / 5179 が forward されない | VSCode 下部の `PORTS` パネルで forward 状態を確認。`portsAttributes` で auto-forward 設定済 |
 | `~/.gitconfig` / `~/.ssh/` が container 内で使えない | `~/.gitconfig` は #1417 で **意図的に bind mount しない** (起動失敗回避)。git identity は repo local config (`git config user.email/.name`) か container 内 `git config --global` で設定 (本書「初回起動時に必要な手作業」item 5 参照)。どうしても host の `~/.gitconfig` を共有したい場合のみ `devcontainer.json` の `mounts` に明示追加。`~/.ssh/` も同様に必要なら `mounts` 追加 |

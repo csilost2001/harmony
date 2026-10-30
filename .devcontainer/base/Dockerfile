@@ -8,7 +8,7 @@
 #   - chown -R で /home/node/.cache を node 所有に統一 (Copilot 等の他 tool 用)
 #
 # 更新タイミング (稀、年に数回程度):
-#   - Playwright major/minor 更新 (frontend/package.json の version と同期)
+#   - Playwright major/minor 更新 (package-lock.json の playwright-core の版と一致させる。ずれは npm run check:docs が検出する)
 #   - claude-code / copilot-cli の重大 version 更新 (auto-update を廃止したため、
 #     版上げは base image bump 経由で行う)
 #   - Node major 更新 (FROM タグの数字変更時)
@@ -34,7 +34,7 @@ USER root
 # + Chromium binary (~285 MiB) を 1 layer に焼く。chown は親 ~/.cache 全体に
 # 効かせる (root 実行で作られた親 dir を node 所有に戻す。Copilot CLI の
 # ~/.cache/copilot 等も書けるようにするため)。
-RUN npx -y playwright@1.59.1 install --with-deps chromium \
+RUN npx -y playwright@1.60.0 install --with-deps chromium \
   && chown -R node:node /home/node/.cache
 
 # ============================================================================
@@ -68,7 +68,9 @@ RUN install -m 0755 -d /etc/apt/keyrings \
 #    Node は base image (typescript-node:26-trixie) に同梱済のため install skip。
 #    npm は同梱の版が古いことがあるので、claude-code の前に最新へそろえる (#1571)。
 #    package-lock.json の libc の欄が、古い npm で消えるのを防ぐ。
-RUN npm install -g npm@latest
+#    NPM_VERSION は publish-dev-image.sh が `npm view npm version` の結果を渡す (新版が出たときだけ、この層が作り直される)。
+ARG NPM_VERSION=latest
+RUN npm install -g npm@${NPM_VERSION}
 #    npm 12 は依存の install スクリプトを既定で止める。claude-code は postinstall (install.cjs) で
 #    native binary を置くので、止まると `claude --version` が「native binary not installed」で動かない。
 #    そのため、このパッケージだけ --allow-scripts で許す (#1571)。

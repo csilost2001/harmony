@@ -103,7 +103,7 @@ if ! command -v nvm >/dev/null 2>&1; then
   source ~/.bashrc
 fi
 nvm install --lts            # いまの最新の LTS (リポジトリの .nvmrc と同じメジャー。2026-10 時点は 26)
-nvm alias default lts/*      # 新しい端末でも、この版が選ばれるようにする
+nvm alias default 26         # 新しい端末でも、この版が選ばれるようにする (下の注を読んでから)
 nvm use default
 npm install -g npm@latest    # npm も最新に (古い npm だと package-lock.json の libc の欄が消える)
 
@@ -113,6 +113,8 @@ sudo apt install -y git gh
 ```
 
 > **Node と npm はいつも最新の LTS にそろえます。** 端末ごとに Node や npm の版が違うと、`package-lock.json` が書き換わったり、動きが変わったりします。リポジトリのルートに `.nvmrc` があり、`nvm use` でその版に切り替わります。
+>
+> **default の数字は、リポジトリの `.nvmrc` のメジャーにそろえます** (`lts/*` にすると、次の LTS が出た日に `.nvmrc` とずれます)。ただし **default を変えると、この WSL2 の他のプロジェクトにも効きます**。変えたくなければ default はそのままにして、Harmony のフォルダでだけ `nvm use` (`.nvmrc` の版に切り替わる) を使ってください。
 >
 > **VS Code から開いた端末は、VS Code を起動したときの環境を引き継ぎます。** nvm の default や `.nvmrc` を変えたあとは、VS Code を開き直してください (開いたままだと、古い Node のままです)。
 

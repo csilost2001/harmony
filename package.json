@@ -61,6 +61,7 @@
     "typescript": "~5.5.0"
   },
   "allowScripts": {
-    "esbuild": false
+    "esbuild": false,
+    "fsevents": false
   }
 }
