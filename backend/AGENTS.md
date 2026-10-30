@@ -58,6 +58,8 @@ npm run build      # shared rebuild → Compile to dist/
 | `HARMONY_MCP_PROFILE` | AI に見せる MCP tool の絞り込み (`flow` / `table` / `screen` / `doc` / `maint` / `review` / `read`、カンマで複数)。接続の URL の `?profile=` が優先。権限の設定ではない | unset (すべて) |
 | `HARMONY_MCP_DETAIL` | `brief` で、tools/list の説明を最初の 1 文にし引数の説明を省く (約 4 割減。詳細は `designer__get_tool_guide`)。接続の URL の `?detail=brief` が優先 | unset (full) |
 | `HARMONY_DOCS_DIR` | MCP の Resources / Prompts が資料 (`docs/spec`・`schemas/v3`・`ai-skills`) を探す場所 | リポジトリの根 |
+| `HARMONY_WORKSPACES_DIR` | 画面でフォルダを選ぶとき、最初に見せる場所 (ワークスペースを自動で開く設定ではない) | `HARMONY_HOME` の 1 つ上、なければホーム |
+| `HARMONY_ALLOWED_BROWSE_ROOTS` | 画面で選べるフォルダの範囲 (Linux / macOS はコロン、Windows はセミコロン区切り) | ホームのみ |
 | `HARMONY_MAX_WS_PAYLOAD_BYTES` / `HARMONY_MAX_HTTP_BODY_BYTES` / `HARMONY_MAX_WS_REQUESTS_PER_10S` | WebSocket 1 メッセージ / HTTP 本文 / 1 接続の 10 秒あたりの要求数の上限 | 32 MiB / 8 MiB / 3000 |
 
 ### バグ報告フロー

@@ -342,3 +342,57 @@ describe("get_project_context: 壊れた設計があっても落ちない (draft
     expect(ctx.designs.flows.shown).toBe(Math.min(ctx.designs.flows.total, 60));
   });
 });
+
+describe("ワークスペース未選択でも使える workspace の tool", () => {
+  const FRESH = `mcp-entry-test-unset-${process.pid}`;
+  let tmp: string;
+  let prevRecent: string | undefined;
+
+  beforeAll(async () => {
+    tmp = await fs.mkdtemp(path.join(os.tmpdir(), "harmony-mcp-unset-"));
+    prevRecent = process.env.DESIGNER_RECENT_FILE; // 最近使った一覧を、本物の HOME に書かない
+    process.env.DESIGNER_RECENT_FILE = path.join(tmp, "recent-workspaces.json");
+    wsConnect(FRESH);
+  });
+  afterAll(async () => {
+    wsDisconnect(FRESH);
+    if (prevRecent === undefined) delete process.env.DESIGNER_RECENT_FILE; else process.env.DESIGNER_RECENT_FILE = prevRecent;
+    await fs.rm(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+  });
+
+  async function openFresh() {
+    const server = createMcpServer(FRESH, []);
+    const client = new Client({ name: "test", version: "0" });
+    const [a, b] = InMemoryTransport.createLinkedPair();
+    await Promise.all([server.connect(a), client.connect(b)]);
+    return { client, close: async () => { await client.close(); await server.close(); } };
+  }
+  const textOf = (r: unknown) => ((r as { content: Array<{ text: string }> }).content[0]?.text ?? "");
+
+  it("未選択でも workspace_status / workspace_list は断られず、init: true で開ける。開いたあとはワークスペースが必要な tool も使える", async () => {
+    const { client, close } = await openFresh();
+    try {
+      // ワークスペースが必要な tool は、従来どおり断られる
+      await expect(client.callTool({ name: "designer__list_tables", arguments: {} })).rejects.toThrow(/ワークスペースが選択されていません/);
+
+      const status = JSON.parse(textOf(await client.callTool({ name: "designer__workspace_status", arguments: {} })));
+      expect(status.active).toBeNull();
+      const list = JSON.parse(textOf(await client.callTool({ name: "designer__workspace_list", arguments: {} })));
+      expect(list.active).toBeNull();
+      expect(Array.isArray(list.workspaces)).toBe(true);
+
+      const dir = path.join(tmp, "proj");
+      const opened = await client.callTool({ name: "designer__workspace_open", arguments: { path: dir, init: true } });
+      expect(textOf(opened)).toContain("を開きました");
+      await expect(fs.stat(path.join(dir, "harmony.json"))).resolves.toBeTruthy();
+
+      const after = JSON.parse(textOf(await client.callTool({ name: "designer__workspace_status", arguments: {} })));
+      expect(after.active?.path).toBeTruthy();
+      const tablesRes = await client.callTool({ name: "designer__list_tables", arguments: {} });
+      expect((tablesRes as { isError?: boolean }).isError).not.toBe(true);
+
+      await client.callTool({ name: "designer__workspace_close", arguments: {} });
+      await expect(client.callTool({ name: "designer__list_tables", arguments: {} })).rejects.toThrow(/ワークスペースが選択されていません/);
+    } finally { await close(); }
+  });
+});

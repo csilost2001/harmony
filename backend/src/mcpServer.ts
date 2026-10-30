@@ -124,6 +124,16 @@ export function createMcpServer(sessionId: string, profiles: readonly string[] =
         logInfo("mcp", "tool", { tool: name, ok: true, ms: Date.now() - startedAt });
         return res;
       }
+      // ワークスペースの管理 tool (一覧・状態・開く・調べる・閉じる・外す) は、ワークスペースが選ばれていなくても使える
+      // (未選択の状態から開くための tool なので、下の「ワークスペースのパスを先に求める」処理の前で返す)
+      if (name.startsWith("designer__workspace_")) {
+        const res = await handleWorkspaceTool(name, argRecord, "", sessionId);
+        if (res !== null && res !== undefined) {
+          const failed = !!(res as { isError?: boolean }).isError;
+          logInfo("mcp", "tool", { tool: name.slice(0, 80), ok: !failed, ms: Date.now() - startedAt, ...(failed ? { error: errorSummary((res as { content?: Array<{ text?: unknown }> }).content?.[0]?.text) } : {}) });
+          return res;
+        }
+      }
       // 各 handler は該当しなければ null を返し、次の handler に委譲される。
       // 並び順は元 index.ts の switch 文と一致 (機能領域順、editSession は最後)。
       // #700 R-2: root と sessionId を pass-through する。

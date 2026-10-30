@@ -22,9 +22,12 @@ services:
     network_mode: service:dev
     environment:
       NODE_ENV: production
-      # プロジェクトのフォルダ全体を Harmony のワークスペースとして開く
+      # 画面でフォルダを選ぶときの、最初に見せる場所 (ワークスペースを自動で開く設定ではない)
       HARMONY_WORKSPACES_DIR: /workspaces/app
+      # 画面で選べるフォルダの範囲
       HARMONY_ALLOWED_BROWSE_ROOTS: /workspaces
+      # ワークスペースは最初の 1 回だけ、画面 (ワークスペースの選択) か MCP の designer__workspace_open で /workspaces/app を開く。
+      # 開いたワークスペースは下の harmony-state に記録され、次からは起動時に自動で開く。
     volumes:
       - ..:/workspaces/app
       - harmony-state:/home/node/.harmony

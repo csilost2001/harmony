@@ -76,6 +76,21 @@ designer__workspace_open { "path": "/workspaces/app", "init": true, "dataDir": "
 
 できあがるもの: `/workspaces/app/harmony.json` と `/workspaces/app/design/`。以降は設計を MCP の tool か画面で直し、`/generate-code` (MCP の Prompt `generate-code`) で生成する。ソースは既定ではプロジェクトのルート直下に出る。`backend/` `frontend/` などに分けたいときは、`/generate-code` の出力先にそのフォルダを渡す (そのときも `.devcontainer/` と `.mcp.json` はルートのまま、入れ子にはならない。本番用の `Dockerfile` / `docker-compose.yml` と README の設計ツールの節は、その出力先のフォルダに作られる。すでにあるファイルだけは飛ばして、上書きしない)。生成したら `designer__record_generation`、再生成の前は `designer__check_generation_drift` と `designer__get_regeneration_diff`。作業の流れは [customer-project-agents-template.md](./customer-project-agents-template.md) の AGENTS.md に書いてある。
 
+### 環境変数と、ワークスペースが開く時機
+
+`compose.yml` の `harmony` サービスには、次の 2 つの環境変数がある。どちらもワークスペースを自動で開く設定ではない。
+
+- `HARMONY_WORKSPACES_DIR` (`/workspaces/app`): 画面でフォルダを選ぶときに、最初に見せる場所
+- `HARMONY_ALLOWED_BROWSE_ROOTS` (`/workspaces`): 画面で選べるフォルダの範囲
+
+ワークスペースは最初の 1 回だけ、画面 (ワークスペースの選択) か MCP の `designer__workspace_open` で `/workspaces/app` を開く。ワークスペースが選ばれていなくても、`designer__workspace_*` の tool は使える。開いたワークスペースは `harmony-state` の volume に記録され、次からは起動時に自動で開く (前回開いたワークスペースの `harmony.json` が残っているとき)。
+
+この同居の構成では `DESIGNER_DATA_DIR` は使わない。これは「固定モード」で、`harmony.json` が無いと起動せず、ワークスペースも切り替えられないので、最初の 1 回の `init` ができなくなる。
+
+### Prompts を出さない AI クライアント
+
+VS Code の Claude Code 拡張のように、MCP の Prompts を出さない AI クライアントでは、Resource `harmony://skill/<名前>/SKILL.md` (例: `harmony://skill/generate-code/SKILL.md`) を読めば同じ手順になる (Prompt の本文は SKILL.md の本文と同じ)。
+
 ## Harmony の版
 
 `harmony` サービスの image は、`.devcontainer/compose.yml` の `image:` で決まる (`${HARMONY_IMAGE:-ghcr.io/csilost2001/harmony:local}`。既定は `:local`)。
@@ -130,7 +145,7 @@ SELinux が有効なホスト (Fedora など) では、フォルダの共有 (`v
 雛形を変えたときは、実機 (ホストの Docker) で次を通す。
 
 1. `Reopen in Container` で dev と harmony が起動し、ブラウザで Harmony の画面が開ける
-2. dev の Claude Code が `http://localhost:5179/mcp` に接続でき、Resources・Prompts が読める (スキルの付属ファイル `harmony://skill/generate-code/...` を含む)
+2. dev の Claude Code が `http://localhost:5179/mcp` に接続でき、Resources が読める。Prompts が出る、または `harmony://skill/<名前>/SKILL.md` を Resource で読める (スキルの付属ファイル `harmony://skill/generate-code/...` を含む)
 3. 画面・テーブル・処理フローを 1 つずつ作り、`generate-code` でプロジェクトのルート直下に生成して記録する
 4. 設計を直すと「再生成が必要」、生成物を手で直すと「生成物が変わった」と検出される
 5. 画面で保存した設計ファイルが、dev 側の git で差分として見える (持ち主・権限の問題がない)
