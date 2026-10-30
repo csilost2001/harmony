@@ -10,7 +10,7 @@
 </button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> 規約カタログ </div> <ul class="space-y-0.5"> <li> <a href="../../conventions/expressions/" class="sidebar-link"> 式言語規約 (@conv/@env/@secret) </a> </li><li> <a href="../../conventions/product-scope/" class="sidebar-link"> プロダクトスコープ </a> </li><li> <a href="../../conventions/validation-rules/" class="sidebar-link"> バリデーション規約 </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="documentation-html-サイトと-ai-ブラウザ確認">Documentation HTML サイトと AI ブラウザ確認</h1>
 <p>AGENTS.md から移設した詳細版 (2026-10-08)。</p>
 <h3 id="documentation-html-サイト-docs-site">Documentation HTML サイト (docs-site/)</h3>
-<p>仕様書 / プレゼン HTML 化サイト (Astro 5 + Tailwind v4 + pagefind + rehype-mermaid)。詳細は <a href="../../conventions/docs-site/readme/"><code>docs-site/README.md</code></a> 参照。メタ ISSUE: <a href="https://github.com/csilost2001/harmony/issues/1124">#1124</a> (Phase A-E 完了済)。</p>
+<p>仕様書 / プレゼン HTML 化サイト (Astro 5 + Tailwind v4 + pagefind + rehype-mermaid)。詳細は <a href="https://github.com/csilost2001/harmony/blob/main/docs-site/README.md"><code>docs-site/README.md</code></a> 参照。メタ ISSUE: <a href="https://github.com/csilost2001/harmony/issues/1124">#1124</a> (Phase A-E 完了済)。</p>
 <h4 id="出力構成">出力構成</h4>
 <ul>
 <li><strong>Source of truth (canonical)</strong>: <code>docs/spec/*.md</code> / <code>docs/user-guide/*.md</code> / <code>docs/conventions/*.md</code> / <code>docs/setup/*.md</code> (Markdown が一次成果物)</li>
@@ -168,7 +168,7 @@
 <li><strong><code>docs/html/</code> 配下の手編集は禁止</strong> (build artifact、次回 build で上書きされる)</li>
 <li><code>_astro/*.{css,js}</code> の hash 名は内容変化で変わる (commit diff 増加要因、想定済)</li>
 <li>pagefind index (<code>docs/html/pagefind/</code>) も build 毎に再生成 (<code>.pf_index</code> / <code>.pf_fragment</code> の hash 変動)</li>
-<li><strong>Astro 5 系を採用</strong> (Astro 6 は Node 22+ 必須、本プロジェクト Node 20 環境のため不適合)</li>
+<li><strong>Astro 5 系を採用</strong> (Astro 6 は Node 22+ 必須。採用した当時は本プロジェクトが Node 20 環境で不適合だった。いまの Node は 26 だが、Astro は 5 系のまま使い続けている)</li>
 <li>mermaid 図は build-time SVG 生成 (Playwright chromium 経由、client JS 不要)</li>
 <li>内部 <code>*.md</code> link は rehype plugin で自動的に Astro route (<code>/&#x3C;area>/&#x3C;slug>/</code>) に変換、4 area 外 link は GitHub blob URL に fallback</li>
 </ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>

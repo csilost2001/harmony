@@ -116,7 +116,7 @@ AI セッション内で `docs/html/` を実機 browser で smoke test する手
 - **`docs/html/` 配下の手編集は禁止** (build artifact、次回 build で上書きされる)
 - `_astro/*.{css,js}` の hash 名は内容変化で変わる (commit diff 増加要因、想定済)
 - pagefind index (`docs/html/pagefind/`) も build 毎に再生成 (`.pf_index` / `.pf_fragment` の hash 変動)
-- **Astro 5 系を採用** (Astro 6 は Node 22+ 必須、本プロジェクト Node 20 環境のため不適合)
+- **Astro 5 系を採用** (Astro 6 は Node 22+ 必須。採用した当時は本プロジェクトが Node 20 環境で不適合だった。いまの Node は 26 だが、Astro は 5 系のまま使い続けている)
 - mermaid 図は build-time SVG 生成 (Playwright chromium 経由、client JS 不要)
 - 内部 `*.md` link は rehype plugin で自動的に Astro route (`/<area>/<slug>/`) に変換、4 area 外 link は GitHub blob URL に fallback
 

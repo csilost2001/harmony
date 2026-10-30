@@ -44,7 +44,7 @@ Windows
 WSL2 (Ubuntu)
 ├── /home/<user>/projects/harmony/   ← 新しい作業ディレクトリ
 ├── /home/<user>/.claude/            ← Claude Code 設定 (新規 or 移行)
-└── nvm + Node.js 20
+└── nvm + Node.js (最新の LTS)
 
 Windows
 ├── C:\projects\html-designer\        ← 退役 (削除しない、参照専用)
@@ -97,17 +97,30 @@ echo "gh:      $(gh --version 2>/dev/null | head -1 || echo 'NOT INSTALLED')"
 **未インストール対応**:
 
 ```bash
-# nvm + Node 20
+# nvm + Node (最新の LTS)
 if ! command -v nvm >/dev/null 2>&1; then
   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
   source ~/.bashrc
 fi
-nvm install 20
-nvm alias default 20
+nvm install --lts            # いまの最新の LTS (リポジトリの .nvmrc と同じメジャー。2026-10 時点は 26)
+nvm alias default lts/*      # 新しい端末でも、この版が選ばれるようにする
+nvm use default
+npm install -g npm@latest    # npm も最新に (古い npm だと package-lock.json の libc の欄が消える)
 
 # git / gh
 sudo apt update
 sudo apt install -y git gh
+```
+
+> **Node と npm はいつも最新の LTS にそろえます。** 端末ごとに Node や npm の版が違うと、`package-lock.json` が書き換わったり、動きが変わったりします。リポジトリのルートに `.nvmrc` があり、`nvm use` でその版に切り替わります。
+>
+> **VS Code から開いた端末は、VS Code を起動したときの環境を引き継ぎます。** nvm の default や `.nvmrc` を変えたあとは、VS Code を開き直してください (開いたままだと、古い Node のままです)。
+
+**版の確かめ方** (リポジトリの中で):
+
+```bash
+npm run setup -- --check          # Node・npm が package.json の engines と .nvmrc に合うか (ネットワーク不要)
+npm run check:deps -- runtime     # 最新の LTS・最新の npm より古くないか (ネットワークを使う)
 ```
 
 **git 初期設定**:
@@ -139,7 +152,7 @@ gh auth login           # CLI 経由でも認証
 ```
 
 #### 成功確認
-- [ ] `node --version` が `v20.x.x` を返す
+- [ ] `node --version` が、`.nvmrc` のメジャー (`v26.x.x`) 以上を返す。`npm --version` が `12.x.x` 以上
 - [ ] `git --version`, `gh --version` が表示される
 - [ ] `ssh -T git@github.com` で `Hi <username>!` が表示される
 - [ ] `gh auth status` で `Logged in to github.com` 表示
@@ -178,8 +191,10 @@ git branch -a | head -20
 ```bash
 cd ~/projects/harmony
 
-# .nvmrc があれば使用
-[ -f .nvmrc ] && nvm use
+# .nvmrc (最新の LTS のメジャー) の版に切り替える。足りなければ nvm install も
+nvm install   # .nvmrc の版が無ければ入れる (あれば何もしない)
+nvm use
+node -v && npm -v   # Node は .nvmrc のメジャー・npm は 12 以上であること。違えば npm install -g npm@latest
 
 # root で 1 回実行 — npm workspaces (shared / frontend / backend) を一括解決
 # shared/package.json の `prepare` hook で shared/dist/ を build

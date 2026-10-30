@@ -27,7 +27,8 @@ export async function isMcpRunning(): Promise<boolean> {
  *   - reqId による response 多重化 (同時 in-flight に対応)
  *   - `closeBrowserSession` で afterAll cleanup
  *
- * `WebSocket` は Node 22+ で global だが、 Node 20 では未定義のため `ws` パッケージを使う。
+ * Node 22+ では `WebSocket` が global にあるが (Node 26 も同じ)、 ブラウザ互換の API (addEventListener 型) なので、
+ * 本ヘルパーが使う `ws` パッケージの API (`on("message")`・`readyState`・`WebSocketImpl.OPEN`) とは違う。そのまま `ws` を使い続ける。
  */
 
 let _ws: WebSocketImpl | null = null;
