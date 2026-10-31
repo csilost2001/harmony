@@ -474,6 +474,7 @@ export class WsBridge extends EventEmitter {
         return;
       }
       const health = this.getHealth();
+      const buildId = getServerBuildId();
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({
         status: "ok",
@@ -482,7 +483,7 @@ export class WsBridge extends EventEmitter {
         lastWsMessageAt: health.lastWsMessageAt,
         wsConnections: health.wsConnections,
         uptimeMs: health.uptimeMs,
-        ...(getServerBuildId() ? { buildId: getServerBuildId() } : {}),
+        ...(buildId ? { buildId } : {}),
       }));
       return;
     }

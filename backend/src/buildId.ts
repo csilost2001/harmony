@@ -18,11 +18,10 @@ export function readServerBuildId(staticDir: string | undefined): string | undef
   }
 }
 
-let cached: { dir: string | undefined; id: string | undefined } | null = null;
-
-/** 起動中の環境 (HARMONY_STATIC_DIR) の版。同じ dir の間は読み直さない (dist は起動中に変わらない前提) */
+/**
+ * 起動中の環境 (HARMONY_STATIC_DIR) の版。呼ぶたびに読む (数十バイトの同期読み)。
+ * dist を作り直した手動運用でも、静的配信 (リクエストごとにファイルを読む) と同じく新しい ID に追従する。
+ */
 export function getServerBuildId(): string | undefined {
-  const dir = process.env.HARMONY_STATIC_DIR;
-  if (!cached || cached.dir !== dir) cached = { dir, id: readServerBuildId(dir) };
-  return cached.id;
+  return readServerBuildId(process.env.HARMONY_STATIC_DIR);
 }

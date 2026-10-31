@@ -287,7 +287,8 @@ export function AppShell() {
   return (
     <>
       {guardTripped !== null && <RedirectGuardBanner summary={guardTripped} />}
-      {staleBuild && <StaleBuildBanner />}
+      {/* 遷移の停止の知らせ (同じ位置・再読み込みを案内) が出ている間は、重ねて出さない */}
+      {staleBuild && guardTripped === null && <StaleBuildBanner />}
     <Suspense fallback={<ViewLoading />}>
     <Routes>
       {/* /w/:wsId 配下の全ルートを **nested Routes** で宣言。
