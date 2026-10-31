@@ -1,6 +1,6 @@
 # 技術スタック選定
 
-> **実画面で確認した日**: 2026-10-31 (E2E の実画面 `frontend/e2e/tech-stack-view.spec.ts` と、画面の見た目を目で確かめた) — **確認した範囲**: 「バックエンド」の言語・フレームワーク・ORM の選び方と、言語と組合せの制約・右の「現在の選択」・保存と読み直し・ORM の見た目 (ライト)。以前の記述の「各カテゴリの dropdown」「推奨組合せ」「Ctrl+S」「persistence / migration」「AI / 開発支援」は実画面に無く、誤りだったので削除した。**確認していない範囲**: ほかのカテゴリの細かい選び方・ダークテーマの見た目・プリセットの全 7 件の中身
+> **実画面で確認した日**: 2026-10-31 (E2E の実画面 `frontend/e2e/tech-stack-view.spec.ts` と、画面の見た目を目で確かめた) — **確認した範囲**: 「バックエンド」の言語・フレームワーク・ORM の選び方と、言語と組合せの制約・右の「現在の選択」・保存と読み直し・ORM の見た目 (ライト)。以前の記述の「各カテゴリの dropdown」「推奨組合せ」「Ctrl+S」「persistence / migration」「AI / 開発支援」は実画面に無く、誤りだったので削除した。**確認していない範囲**: ほかのカテゴリの細かい選び方・プリセットの全 7 件の中身。ORM の欄は、ライト・ダークの両方で見た目を確かめた (ダークでも「推奨」の印と選択枠が読める。`npm run ui:audit` も両テーマ 0 件)
 
 > **対象画面**: `TechStackView` (`frontend/src/components/project/TechStackView.tsx`)
 > **ルート**: `/w/:wsId/project/tech-stack`
@@ -31,6 +31,12 @@
 | 言語 | Java / Kotlin / TypeScript / Python / Go | 未設定の表示は Java |
 | フレームワーク | Spring Boot / NestJS / Express / FastAPI / Gin | 言語との組合せに制約がある (例: Java に Gin は選べない → 右に「制約違反」が出て、保存できない) |
 | ORM | **Prisma (推奨)** / TypeORM | **言語が TypeScript のときだけ選べる**。コード生成の対象は NestJS (Express を選んでいるときは、その旨の注意が出る)。ほかの言語 (未設定の Java 扱いを含む) のあいだは選べず、どちらも選択済みに見えない。「ORM は、言語が TypeScript のときだけ選べます (対象外)。」と出る。未設定は Prisma として扱う。AI や手編集で `language: java` のまま `orm` が書かれていると、「ORM の指定が残っています」と「ORM の指定を外す」ボタンが出て、右に制約違反も出る。言語を TypeScript 以外に変えると ORM の指定は自動で外れ、「ORM の指定 (…) を外しました」と注記が出る (TypeScript に戻すと消える)。TypeScript のプリセット (TypeScript フルスタック / 軽量) は ORM が Prisma |
+
+TypeScript のとき (上) と、TypeScript 以外に変えて ORM の指定が外れたとき (下):
+
+![ORM の欄 (TypeScript)](../../ui-screenshots/ui-reference/tech-stack/02-backend-orm.png)
+
+![ORM の欄 (TypeScript 以外。どれも選べず、外れた注記が出る)](../../ui-screenshots/ui-reference/tech-stack/03-backend-orm-disabled.png)
 
 右の「現在の選択」には `ORM: typeorm` のように出る。TypeScript で ORM が未設定のときは `ORM: prisma (既定)`。
 
