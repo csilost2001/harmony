@@ -13,7 +13,7 @@ import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { readProject } from "../projectStorage.js";
 import { wsBridge } from "../wsBridge.js";
 import {
-  addScreenToFiles, updateScreenInFiles, removeScreenFromFiles, isValidScreenKind, SCREEN_KINDS,
+  addScreenToFiles, updateScreenInFiles, removeScreenFromFiles, assertScreenKind, assertScreenIdFree,
 } from "../screenFlowFiles.js";
 import { assertEntityIdMcp, type ToolHandler } from "../mcpHelpers.js";
 
@@ -76,9 +76,7 @@ export const handleScreenTool: ToolHandler = async (name, args, root) => {
       if (typeof a.name !== "string" || !a.name.trim()) {
         throw new McpError(ErrorCode.InvalidParams, "name は必須です");
       }
-      if (a.type !== undefined && !isValidScreenKind(a.type)) {
-        throw new McpError(ErrorCode.InvalidParams, `type は ${SCREEN_KINDS.join(" / ")} のいずれか (または 名前空間:種別) にしてください: ${JSON.stringify(a.type)}`);
-      }
+      assertScreenKind(a.type);
       if (a.purpose !== undefined && a.purpose !== "page" && a.purpose !== "gadget") {
         throw new McpError(ErrorCode.InvalidParams, `purpose は page / gadget のいずれかにしてください: ${JSON.stringify(a.purpose)}`);
       }
@@ -96,6 +94,8 @@ export const handleScreenTool: ToolHandler = async (name, args, root) => {
       }
       const purpose = a.purpose === "gadget" ? "gadget" : "page";
       const reqId = typeof a.id === "string" && a.id !== "" ? a.id : undefined;
+      // 重複 ID は、ブラウザの有無によらず先に断る (ブラウザの addScreen は検査せず、既存の画面の中身を上書きするため)
+      if (reqId) await assertScreenIdFree(root, reqId);
       // ブラウザが無いときは、ブラウザと同じ結果になるようにファイルへ直接書く (#1591)
       const result = !wsBridge.hasActiveBrowser()
         ? await addScreenToFiles(root, { id: reqId, name: a.name, kind: typeof a.type === "string" ? a.type : undefined, path: typeof a.path === "string" ? a.path : undefined, position, purpose })
@@ -136,10 +136,8 @@ export const handleScreenTool: ToolHandler = async (name, args, root) => {
         assertEntityIdMcp(normalizedPageLayoutId, "pageLayoutId");
       }
       // ブラウザが無いときは、ファイルへ直接書く (#1591)
+      assertScreenKind(a.type); // ブラウザの有無によらず検査する
       if (!wsBridge.hasActiveBrowser()) {
-        if (a.type !== undefined && !isValidScreenKind(a.type)) {
-          throw new McpError(ErrorCode.InvalidParams, `type は ${SCREEN_KINDS.join(" / ")} のいずれか (または 名前空間:種別) にしてください: ${JSON.stringify(a.type)}`);
-        }
         await updateScreenInFiles(root, a.screenId, {
           name: typeof a.name === "string" ? a.name : undefined,
           kind: typeof a.type === "string" ? a.type : undefined,

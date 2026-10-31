@@ -157,6 +157,39 @@ describe("designer__add_screen: ブラウザがあるときは、これまでど
   });
 });
 
+describe("ブラウザ有無によらない検査 (#1591 レビュー)", () => {
+  it("ブラウザ有りでも、すでにある ID の add_screen は断り、ブラウザへ送らない (既存画面の中身を上書きしない)", async () => {
+    await addScreen({ name: "既存", id: "exists-screen" }); // ブラウザ無しで作る
+    vi.mocked(wsBridge.hasActiveBrowser).mockReturnValue(true);
+    const send = vi.spyOn(wsBridge, "sendCommand").mockResolvedValue({ screenId: "x" });
+    await expect(addScreen({ name: "上書き", id: "exists-screen" })).rejects.toThrow(/すでにあります/);
+    expect(send).not.toHaveBeenCalled();
+    // 索引に無い実体のファイルだけの ID も断る
+    await fs.writeFile(path.join(ROOT, "design", "screens", "ghost.json"), JSON.stringify({ id: "ghost" }));
+    await expect(addScreen({ name: "B", id: "ghost" })).rejects.toThrow(/すでにあります/);
+    // ファイルに無い ID は通す (ブラウザ側の未保存の画面は backend から見えない)
+    send.mockResolvedValue({ screenId: "new-one" });
+    expect(await addScreen({ name: "新規", id: "new-one" })).toContain("new-one");
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it("拡張の画面種別は schema (^[a-z][a-z0-9_-]*:[a-z][a-zA-Z0-9]*$) と同じ: retail:storeFront / my_ns:thing は通り、retail:store-front は断る", async () => {
+    expect(await addScreen({ name: "A", type: "retail:storeFront", id: "ext-a" })).toContain("ext-a");
+    expect(await addScreen({ name: "B", type: "my_ns:thing", id: "ext-b" })).toContain("ext-b");
+    await expect(addScreen({ name: "C", type: "retail:store-front" })).rejects.toThrow(/type は/);
+    expect((await validateHarmony()).ok).toBe(true);
+  });
+
+  it("update_screen の type は、ブラウザ有りでも検査する (不正なら送らない)", async () => {
+    vi.mocked(wsBridge.hasActiveBrowser).mockReturnValue(true);
+    const send = vi.spyOn(wsBridge, "sendCommand").mockResolvedValue({ success: true });
+    await expect(call(handleScreenTool, "designer__update_screen", { screenId: "a", type: "nonsense" })).rejects.toThrow(/type は/);
+    expect(send).not.toHaveBeenCalled();
+    await call(handleScreenTool, "designer__update_screen", { screenId: "a", type: "list" });
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("画面の更新・削除・遷移: ブラウザが無いとき、ファイルに直接書く", () => {
   it("update_screen は索引と実体をそろえて直す。指定しない項目 (pageLayoutId) は触らない", async () => {
     const id = idOf(await addScreen({ name: "旧名", type: "list", path: "/a" }));
@@ -204,7 +237,12 @@ describe("画面の更新・削除・遷移: ブラウザが無いとき、フ�
 
   it("save_screen / save_all は、ブラウザが無ければ未保存の編集は無いと答える (エラーにしない)", async () => {
     expect(await call(handleTabTool, "designer__save_all")).toContain("未保存の編集はありません");
-    expect(await call(handleTabTool, "designer__save_screen", { screenId: "x" })).toContain("未保存の編集はありません");
+    const id = idOf(await addScreen({ name: "A" }));
+    const msg = await call(handleTabTool, "designer__save_screen", { screenId: id });
+    expect(msg).toContain("未保存の編集はありません");
+    expect(msg).toContain("editSession__save");
+    // 存在しない画面は成功にしない
+    await expect(call(handleTabTool, "designer__save_screen", { screenId: "no-such" })).rejects.toThrow(/その画面はありません/);
   });
 });
 

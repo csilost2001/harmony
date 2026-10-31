@@ -96,6 +96,7 @@ cp .env.example .env
 |---|---|---|
 | `HARMONY_IMAGE` | `ghcr.io/csilost2001/harmony:local` | 起動する image。local default は事前 build 必須 |
 | `HARMONY_PORT` | `5179` | host 側公開 port |
+| `HARMONY_UI_URL` | `http://localhost:${HARMONY_PORT}` | 「ブラウザで開いてください」と MCP のエラーに添える URL。通常は変えない (`HARMONY_PORT` に追従する)。別のホスト名で開く場合だけ指定 |
 | `HARMONY_WORKSPACES` | `./workspaces` | host 側 workspace directory |
 | `HARMONY_WORKSPACES_MOUNT_OPTIONS` | empty | Podman + SELinux 用 mount option |
 

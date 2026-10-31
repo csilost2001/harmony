@@ -12,10 +12,12 @@
  */
 import { randomUUID } from "node:crypto";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import fs from "node:fs/promises";
 import {
   readProject, writeProject, readScreenEntity, writeScreenEntity, deleteScreen as deleteScreenFile,
   readScreenFlowPositions, writeScreenFlowPositions, listExistingEntityIds,
 } from "./projectStorage.js";
+import { harmonyFile, resolveDataRoot, screenFlowPositionsFile, withFileLock } from "./storageCore.js";
 import { assertHarmonyStillValid } from "./handlers/table.js";
 
 type Rec = Record<string, unknown>;
@@ -40,9 +42,39 @@ const SCREEN_HINT = "kind は画面種別、purpose は page / gadget、trigger 
 
 /** 画面種別: 標準の種別、または拡張の `名前空間:種別` */
 export const SCREEN_KINDS = ["login", "dashboard", "list", "detail", "form", "search", "confirm", "complete", "error", "modal", "wizard", "other"] as const;
-const EXTENSION_KIND_RE = /^[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$/;
+/** schemas/v3/screen.v3.schema.json の ScreenKind (拡張参照) と同じ */
+const EXTENSION_KIND_RE = /^[a-z][a-z0-9_-]*:[a-z][a-zA-Z0-9]*$/;
 export function isValidScreenKind(v: unknown): v is string {
   return typeof v === "string" && ((SCREEN_KINDS as readonly string[]).includes(v) || EXTENSION_KIND_RE.test(v));
+}
+/** 画面種別の検査 (画面の追加・更新で、ブラウザの有無によらず使う) */
+export function assertScreenKind(v: unknown): void {
+  if (v !== undefined && !isValidScreenKind(v)) {
+    throw new McpError(ErrorCode.InvalidParams, `type は ${SCREEN_KINDS.join(" / ")} のいずれか (または 名前空間:種別。例: retail:storeFront) にしてください: ${JSON.stringify(v)}`);
+  }
+}
+
+/**
+ * 同じワークスペースの harmony.json を読んで書く操作は、1 本ずつ行う。
+ * MCP の呼び出しは並列に来るので、直列にしないと、読んだ時点の索引へ書き戻して、先の更新を黙って消す (#1591)。
+ */
+const locked = <T>(root: string, run: () => Promise<T>): Promise<T> => withFileLock(harmonyFile(root), run);
+
+/** その ID の画面がすでにあれば断る (一覧の索引と、索引に無い実体のファイルの両方を見る)。ブラウザの有無によらず使う */
+export async function assertScreenIdFree(root: string, id: string): Promise<void> {
+  const project = await readProject(root);
+  const entities = isRecord(project) && isRecord(project.entities) ? project.entities : {};
+  const inIndex = arrayOf(entities, "screens").some((s) => s.id === id);
+  if (inIndex || (await listExistingEntityIds("screen", root)).includes(id)) {
+    throw new McpError(ErrorCode.InvalidParams, `画面 ID「${id}」はすでにあります。別の id にするか、省略して自動で決めてください`);
+  }
+}
+
+/** 画面があるか (索引か実体のファイル) */
+export async function screenExists(root: string, id: string): Promise<boolean> {
+  const project = await readProject(root);
+  const entities = isRecord(project) && isRecord(project.entities) ? project.entities : {};
+  return arrayOf(entities, "screens").some((s) => s.id === id) || (await listExistingEntityIds("screen", root)).includes(id);
 }
 
 async function readProjectForWrite(root: string): Promise<Rec> {
@@ -123,49 +155,50 @@ export interface AddScreenFileInput {
 
 /** ブラウザ無しで画面を足す。画面の実体・フロー図の位置・一覧の索引を書く */
 export async function addScreenToFiles(root: string, input: AddScreenFileInput): Promise<{ screenId: string; position: { x: number; y: number } }> {
-  const project = await readProjectForWrite(root);
-  const next = structuredClone(project);
-  const entities = entitiesOf(next);
-  const screens = arrayOf(entities, "screens");
+  return locked(root, async () => {
+    const project = await readProjectForWrite(root);
+    const next = structuredClone(project);
+    const entities = entitiesOf(next);
+    const screens = arrayOf(entities, "screens");
 
-  // 重複 ID は断る (索引に無い実体のファイルも見る)
-  const taken = new Set<string>([...screens.map((s) => String(s.id)), ...await listExistingEntityIds("screen", root)]);
-  let id = input.id;
-  if (id) {
-    if (taken.has(id)) {
-      throw new McpError(ErrorCode.InvalidParams, `画面 ID「${id}」はすでにあります。別の id にするか、省略して自動で決めてください`);
+    // 重複 ID は断る (索引に無い実体のファイルも見る)
+    const taken = new Set<string>([...screens.map((s) => String(s.id)), ...await listExistingEntityIds("screen", root)]);
+    let id = input.id;
+    if (id) await assertScreenIdFree(root, id);
+    else do { id = `scr-${randomUUID().slice(0, 8)}`; } while (taken.has(id));
+
+    const now = new Date().toISOString();
+    const kind = input.kind ?? "other";
+    const screenPath = input.path ?? "";
+    const prevPositions = await readScreenFlowPositions(root); // 失敗したときに戻す
+    const positionsDoc = await readPositions(root);
+    const positions = positionsDoc.positions as Rec;
+    const position = input.position ?? findFreePosition(occupiedRects(entities, positions));
+
+    screens.push({ id, no: screens.length + 1, name: input.name, kind, purpose: input.purpose, path: screenPath, hasDesign: false, updatedAt: now });
+    entities.screens = renumber(screens);
+    // 先に検査する (何も書かずに断るため)
+    if (isRecord(next.meta)) next.meta.updatedAt = now;
+    await assertHarmonyStillValid(project, next, SCREEN_WHERE, SCREEN_HINT);
+
+    // 画面の実体: 画面名の見出しだけを置いた業務部品レイアウト (ブラウザの buildDefaultScreen と同じ)
+    await writeScreenEntity(id, {
+      id, uuid: randomUUID(), name: input.name, createdAt: now, updatedAt: now, kind, path: screenPath, items: [],
+      layout: { version: 1, nodes: [{ id: "pageTitle", type: "heading", props: { text: input.name, level: 1 } }] },
+    }, root);
+    try {
+      positions[id] = { x: position.x, y: position.y, width: NODE_W, height: NODE_H };
+      await writeScreenFlowPositions({ ...positionsDoc, positions, updatedAt: now }, root);
+      await writeProject(next, root);
+    } catch (e) {
+      // 失敗した所より前に書いたもの (実体・位置) を、全て戻す
+      await deleteScreenFile(id, root).catch(() => undefined);
+      if (prevPositions === null) await fs.rm(screenFlowPositionsFile(await resolveDataRoot(root)), { force: true }).catch(() => undefined);
+      else await writeScreenFlowPositions(prevPositions, root).catch(() => undefined);
+      throw e;
     }
-  } else {
-    do { id = `scr-${randomUUID().slice(0, 8)}`; } while (taken.has(id));
-  }
-
-  const now = new Date().toISOString();
-  const kind = input.kind ?? "other";
-  const screenPath = input.path ?? "";
-  const positionsDoc = await readPositions(root);
-  const positions = positionsDoc.positions as Rec;
-  const position = input.position ?? findFreePosition(occupiedRects(entities, positions));
-
-  screens.push({ id, no: screens.length + 1, name: input.name, kind, purpose: input.purpose, path: screenPath, hasDesign: false, updatedAt: now });
-  entities.screens = renumber(screens);
-  // 先に検査する (何も書かずに断るため)
-  if (isRecord(next.meta)) next.meta.updatedAt = now;
-  await assertHarmonyStillValid(project, next, SCREEN_WHERE, SCREEN_HINT);
-
-  // 画面の実体: 画面名の見出しだけを置いた業務部品レイアウト (ブラウザの buildDefaultScreen と同じ)
-  await writeScreenEntity(id, {
-    id, uuid: randomUUID(), name: input.name, createdAt: now, updatedAt: now, kind, path: screenPath, items: [],
-    layout: { version: 1, nodes: [{ id: "pageTitle", type: "heading", props: { text: input.name, level: 1 } }] },
-  }, root);
-  try {
-    positions[id] = { x: position.x, y: position.y, width: NODE_W, height: NODE_H };
-    await writeScreenFlowPositions({ ...positionsDoc, positions, updatedAt: now }, root);
-    await writeProject(next, root);
-  } catch (e) {
-    await deleteScreenFile(id, root).catch(() => undefined); // 索引に載らない実体を残さない
-    throw e;
-  }
-  return { screenId: id, position };
+    return { screenId: id, position };
+  });
 }
 
 export interface UpdateScreenFilePatch {
@@ -180,106 +213,114 @@ export interface UpdateScreenFilePatch {
 
 /** ブラウザ無しで画面のメタを直す。索引と画面の実体の両方を揃える */
 export async function updateScreenInFiles(root: string, screenId: string, patch: UpdateScreenFilePatch): Promise<void> {
-  const project = await readProjectForWrite(root);
-  const next = structuredClone(project);
-  const screens = arrayOf(entitiesOf(next), "screens");
-  const entry = screens.find((s) => s.id === screenId);
-  if (!entry) throw new McpError(ErrorCode.InvalidParams, `画面が見つかりません: ${screenId}`);
-  const now = new Date().toISOString();
+  return locked(root, async () => {
+    const project = await readProjectForWrite(root);
+    const next = structuredClone(project);
+    const screens = arrayOf(entitiesOf(next), "screens");
+    const entry = screens.find((s) => s.id === screenId);
+    if (!entry) throw new McpError(ErrorCode.InvalidParams, `画面が見つかりません: ${screenId}`);
+    const now = new Date().toISOString();
 
-  if (patch.name !== undefined) entry.name = patch.name;
-  if (patch.kind !== undefined) entry.kind = patch.kind;
-  if (patch.path !== undefined) entry.path = patch.path;
-  if (patch.purpose !== undefined) entry.purpose = patch.purpose;
-  if (patch.pageLayoutId === null) delete entry.pageLayoutId;
-  else if (patch.pageLayoutId !== undefined) entry.pageLayoutId = patch.pageLayoutId;
-  entry.updatedAt = now;
-  entitiesOf(next).screens = screens;
-  if (isRecord(next.meta)) next.meta.updatedAt = now;
-  await assertHarmonyStillValid(project, next, SCREEN_WHERE, SCREEN_HINT);
+    if (patch.name !== undefined) entry.name = patch.name;
+    if (patch.kind !== undefined) entry.kind = patch.kind;
+    if (patch.path !== undefined) entry.path = patch.path;
+    if (patch.purpose !== undefined) entry.purpose = patch.purpose;
+    if (patch.pageLayoutId === null) delete entry.pageLayoutId;
+    else if (patch.pageLayoutId !== undefined) entry.pageLayoutId = patch.pageLayoutId;
+    entry.updatedAt = now;
+    entitiesOf(next).screens = screens;
+    if (isRecord(next.meta)) next.meta.updatedAt = now;
+    await assertHarmonyStillValid(project, next, SCREEN_WHERE, SCREEN_HINT);
 
-  const entity = await readScreenEntity(screenId, root);
-  if (isRecord(entity)) {
-    const e: Rec = { ...entity };
-    if (patch.name !== undefined) e.name = patch.name;
-    if (patch.kind !== undefined) e.kind = patch.kind;
-    if (patch.path !== undefined) e.path = patch.path;
-    if (patch.description !== undefined) e.description = patch.description;
-    await writeScreenEntity(screenId, e, root);
-  }
-  await writeProject(next, root);
+    const entity = await readScreenEntity(screenId, root);
+    if (isRecord(entity)) {
+      const e: Rec = { ...entity };
+      if (patch.name !== undefined) e.name = patch.name;
+      if (patch.kind !== undefined) e.kind = patch.kind;
+      if (patch.path !== undefined) e.path = patch.path;
+      if (patch.description !== undefined) e.description = patch.description;
+      await writeScreenEntity(screenId, e, root);
+    }
+    await writeProject(next, root);
+  });
 }
 
 /** ブラウザ無しで画面を消す。つながる遷移・画面の実体・フロー図の位置も消す */
 export async function removeScreenFromFiles(root: string, screenId: string): Promise<void> {
-  const project = await readProjectForWrite(root);
-  const next = structuredClone(project);
-  const entities = entitiesOf(next);
-  const screens = arrayOf(entities, "screens");
-  if (!screens.some((s) => s.id === screenId)) throw new McpError(ErrorCode.InvalidParams, `画面が見つかりません: ${screenId}`);
-  const now = new Date().toISOString();
-  entities.screens = renumber(screens.filter((s) => s.id !== screenId));
-  const transitions = arrayOf(entities, "screenTransitions");
-  const removedEdgeIds = transitions.filter((e) => e.sourceScreenId === screenId || e.targetScreenId === screenId).map((e) => String(e.id));
-  if (Array.isArray(entities.screenTransitions)) {
-    entities.screenTransitions = transitions.filter((e) => e.sourceScreenId !== screenId && e.targetScreenId !== screenId);
-  }
-  if (isRecord(next.meta)) next.meta.updatedAt = now;
-  await assertHarmonyStillValid(project, next, SCREEN_WHERE, SCREEN_HINT);
+  return locked(root, async () => {
+    const project = await readProjectForWrite(root);
+    const next = structuredClone(project);
+    const entities = entitiesOf(next);
+    const screens = arrayOf(entities, "screens");
+    if (!screens.some((s) => s.id === screenId)) throw new McpError(ErrorCode.InvalidParams, `画面が見つかりません: ${screenId}`);
+    const now = new Date().toISOString();
+    entities.screens = renumber(screens.filter((s) => s.id !== screenId));
+    const transitions = arrayOf(entities, "screenTransitions");
+    const removedEdgeIds = transitions.filter((e) => e.sourceScreenId === screenId || e.targetScreenId === screenId).map((e) => String(e.id));
+    if (Array.isArray(entities.screenTransitions)) {
+      entities.screenTransitions = transitions.filter((e) => e.sourceScreenId !== screenId && e.targetScreenId !== screenId);
+    }
+    if (isRecord(next.meta)) next.meta.updatedAt = now;
+    await assertHarmonyStillValid(project, next, SCREEN_WHERE, SCREEN_HINT);
 
-  await writeProject(next, root); // 索引から先に外す
-  await deleteScreenFile(screenId, root);
-  const raw = await readScreenFlowPositions(root);
-  if (isRecord(raw)) {
-    const positions = isRecord(raw.positions) ? { ...raw.positions } : {};
-    const trans = isRecord(raw.transitions) ? { ...raw.transitions } : {};
-    const hadPos = screenId in positions;
-    delete positions[screenId];
-    let hadTrans = false;
-    for (const id of removedEdgeIds) if (id in trans) { delete trans[id]; hadTrans = true; }
-    if (hadPos || hadTrans) await writeScreenFlowPositions({ ...raw, positions, transitions: trans, updatedAt: now }, root);
-  }
+    await writeProject(next, root); // 索引から先に外す
+    await deleteScreenFile(screenId, root);
+    const raw = await readScreenFlowPositions(root);
+    if (isRecord(raw)) {
+      const positions = isRecord(raw.positions) ? { ...raw.positions } : {};
+      const trans = isRecord(raw.transitions) ? { ...raw.transitions } : {};
+      const hadPos = screenId in positions;
+      delete positions[screenId];
+      let hadTrans = false;
+      for (const id of removedEdgeIds) if (id in trans) { delete trans[id]; hadTrans = true; }
+      if (hadPos || hadTrans) await writeScreenFlowPositions({ ...raw, positions, transitions: trans, updatedAt: now }, root);
+    }
+  });
 }
 
 /** ブラウザ無しで画面の遷移を足す。id は `tr-NN` の連番 (ブラウザと同じ) */
 export async function addEdgeToFiles(root: string, input: { source: string; target: string; label: string; trigger?: string }): Promise<{ edgeId: string }> {
-  const project = await readProjectForWrite(root);
-  const next = structuredClone(project);
-  const entities = entitiesOf(next);
-  const screenIds = new Set(arrayOf(entities, "screens").map((s) => String(s.id)));
-  for (const [label, id] of [["source", input.source], ["target", input.target]] as const) {
-    if (!screenIds.has(id)) throw new McpError(ErrorCode.InvalidParams, `${label} の画面が見つかりません: ${id} (designer__list_screens で確かめてください)`);
-  }
-  const transitions = arrayOf(entities, "screenTransitions");
-  const used = new Set(transitions.map((e) => String(e.id)));
-  let n = 1;
-  while (used.has(`tr-${String(n).padStart(2, "0")}`)) n++;
-  const edgeId = `tr-${String(n).padStart(2, "0")}`;
-  transitions.push({
-    id: edgeId, sourceScreenId: input.source, targetScreenId: input.target,
-    ...(input.label ? { label: input.label } : {}), trigger: input.trigger ?? "click",
+  return locked(root, async () => {
+    const project = await readProjectForWrite(root);
+    const next = structuredClone(project);
+    const entities = entitiesOf(next);
+    const screenIds = new Set(arrayOf(entities, "screens").map((s) => String(s.id)));
+    for (const [label, id] of [["source", input.source], ["target", input.target]] as const) {
+      if (!screenIds.has(id)) throw new McpError(ErrorCode.InvalidParams, `${label} の画面が見つかりません: ${id} (designer__list_screens で確かめてください)`);
+    }
+    const transitions = arrayOf(entities, "screenTransitions");
+    const used = new Set(transitions.map((e) => String(e.id)));
+    let n = 1;
+    while (used.has(`tr-${String(n).padStart(2, "0")}`)) n++;
+    const edgeId = `tr-${String(n).padStart(2, "0")}`;
+    transitions.push({
+      id: edgeId, sourceScreenId: input.source, targetScreenId: input.target,
+      ...(input.label ? { label: input.label } : {}), trigger: input.trigger ?? "click",
+    });
+    entities.screenTransitions = transitions;
+    await commitProject(project, next, root, new Date().toISOString());
+    return { edgeId };
   });
-  entities.screenTransitions = transitions;
-  await commitProject(project, next, root, new Date().toISOString());
-  return { edgeId };
 }
 
 /** ブラウザ無しで画面の遷移を消す */
 export async function removeEdgeFromFiles(root: string, edgeId: string): Promise<void> {
-  const project = await readProjectForWrite(root);
-  const next = structuredClone(project);
-  const entities = entitiesOf(next);
-  const transitions = arrayOf(entities, "screenTransitions");
-  if (!transitions.some((e) => e.id === edgeId)) throw new McpError(ErrorCode.InvalidParams, `エッジが見つかりません: ${edgeId}`);
-  entities.screenTransitions = transitions.filter((e) => e.id !== edgeId);
-  const now = new Date().toISOString();
-  await commitProject(project, next, root, now);
-  const raw = await readScreenFlowPositions(root);
-  if (isRecord(raw) && isRecord(raw.transitions) && edgeId in raw.transitions) {
-    const trans = { ...raw.transitions };
-    delete trans[edgeId];
-    await writeScreenFlowPositions({ ...raw, transitions: trans, updatedAt: now }, root);
-  }
+  return locked(root, async () => {
+    const project = await readProjectForWrite(root);
+    const next = structuredClone(project);
+    const entities = entitiesOf(next);
+    const transitions = arrayOf(entities, "screenTransitions");
+    if (!transitions.some((e) => e.id === edgeId)) throw new McpError(ErrorCode.InvalidParams, `エッジが見つかりません: ${edgeId}`);
+    entities.screenTransitions = transitions.filter((e) => e.id !== edgeId);
+    const now = new Date().toISOString();
+    await commitProject(project, next, root, now);
+    const raw = await readScreenFlowPositions(root);
+    if (isRecord(raw) && isRecord(raw.transitions) && edgeId in raw.transitions) {
+      const trans = { ...raw.transitions };
+      delete trans[edgeId];
+      await writeScreenFlowPositions({ ...raw, transitions: trans, updatedAt: now }, root);
+    }
+  });
 }
 
 export interface FlowSnapshot {

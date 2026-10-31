@@ -14,8 +14,9 @@
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { wsBridge } from "../wsBridge.js";
 import { assertEntityIdMcp, type ToolHandler } from "../mcpHelpers.js";
+import { screenExists } from "../screenFlowFiles.js";
 
-export const handleTabTool: ToolHandler = async (name, args) => {
+export const handleTabTool: ToolHandler = async (name, args, root) => {
   const a = args ?? {};
 
   switch (name) {
@@ -80,7 +81,10 @@ export const handleTabTool: ToolHandler = async (name, args) => {
       assertEntityIdMcp(a.screenId, "screenId");
       // ブラウザが無ければ、未保存の編集を持つ所がない: MCP の書き込みは、その場でファイルに保存されている (#1591)
       if (!wsBridge.hasActiveBrowser()) {
-        return { content: [{ type: "text", text: `ブラウザが開かれていないため、画面 ${a.screenId} に未保存の編集はありません (MCP の書き込みはその場でファイルに保存されています)。` }] };
+        if (!(await screenExists(root, a.screenId))) {
+          throw new McpError(ErrorCode.InvalidParams, `その画面はありません: ${a.screenId} (designer__list_screens で確かめてください)`);
+        }
+        return { content: [{ type: "text", text: `ブラウザが開かれていないため、画面 ${a.screenId} に未保存の編集はありません (MCP の書き込みはその場でファイルに保存されています)。サーバ側の編集セッションの作業コピーは、editSession__save で確定してください。` }] };
       }
       await wsBridge.sendCommand("saveScreen", { screenId: a.screenId });
       return { content: [{ type: "text", text: `画面 ${a.screenId} を保存しました。` }] };
@@ -88,7 +92,7 @@ export const handleTabTool: ToolHandler = async (name, args) => {
 
     case "designer__save_all": {
       if (!wsBridge.hasActiveBrowser()) {
-        return { content: [{ type: "text", text: "ブラウザが開かれていないため、未保存の編集はありません (MCP の書き込みはその場でファイルに保存されています)。" }] };
+        return { content: [{ type: "text", text: "ブラウザが開かれていないため、未保存の編集はありません (MCP の書き込みはその場でファイルに保存されています)。サーバ側の編集セッションの作業コピーは、editSession__save で確定してください。" }] };
       }
       const result = await wsBridge.sendCommand("saveAll") as {
         saved: number;
