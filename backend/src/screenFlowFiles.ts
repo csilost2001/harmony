@@ -17,7 +17,7 @@ import {
   readProject, writeProject, readScreenEntity, writeScreenEntity, deleteScreen as deleteScreenFile,
   readScreenFlowPositions, writeScreenFlowPositions, listExistingEntityIds,
 } from "./projectStorage.js";
-import { harmonyFile, resolveDataRoot, screenFlowPositionsFile, withFileLock } from "./storageCore.js";
+import { resolveDataRoot, screenFlowPositionsFile, withProjectLock } from "./storageCore.js";
 import { assertHarmonyStillValid } from "./handlers/table.js";
 
 type Rec = Record<string, unknown>;
@@ -58,16 +58,42 @@ export function assertScreenKind(v: unknown): void {
  * 同じワークスペースの harmony.json を読んで書く操作は、1 本ずつ行う。
  * MCP の呼び出しは並列に来るので、直列にしないと、読んだ時点の索引へ書き戻して、先の更新を黙って消す (#1591)。
  */
-const locked = <T>(root: string, run: () => Promise<T>): Promise<T> => withFileLock(harmonyFile(root), run);
+const locked = withProjectLock;
 
-/** その ID の画面がすでにあれば断る (一覧の索引と、索引に無い実体のファイルの両方を見る)。ブラウザの有無によらず使う */
-export async function assertScreenIdFree(root: string, id: string): Promise<void> {
-  const project = await readProject(root);
-  const entities = isRecord(project) && isRecord(project.entities) ? project.entities : {};
-  const inIndex = arrayOf(entities, "screens").some((s) => s.id === id);
-  if (inIndex || (await listExistingEntityIds("screen", root)).includes(id)) {
+/**
+ * その ID の画面がすでにあれば断る (一覧の索引と、索引に無い実体のファイルの両方を見る)。
+ * mode "strict" (既定): harmony.json が無い・旧形式で読めないときも、ワークスペースを開く案内つきで断る。
+ * mode "ifReadable": 読めるときだけ検査する (ブラウザ有りの経路。ブラウザが持つ画面は、harmony.json の状態によらず通す)。
+ */
+export async function assertScreenIdFree(root: string, id: string, mode: "strict" | "ifReadable" = "strict"): Promise<void> {
+  let inIndex: boolean;
+  let existing: string[];
+  try {
+    const project = await readProject(root);
+    if (!isRecord(project)) throw new Error("harmony.json が見つかりません");
+    const entities = isRecord(project.entities) ? project.entities : {};
+    inIndex = arrayOf(entities, "screens").some((s) => s.id === id);
+    existing = await listExistingEntityIds("screen", root);
+  } catch (e) {
+    if (mode === "ifReadable") return;
+    throw new McpError(ErrorCode.InvalidRequest, `harmony.json を読めません (${e instanceof Error ? e.message : String(e)})。ワークスペースを開いてからやり直してください (designer__workspace_open)`);
+  }
+  if (inIndex || existing.includes(id)) {
     throw new McpError(ErrorCode.InvalidParams, `画面 ID「${id}」はすでにあります。別の id にするか、省略して自動で決めてください`);
   }
+}
+
+/** 実体のファイルの ID の一覧。読めない (旧形式など) ときは、ワークスペースを開く案内つきで断る */
+async function existingScreenIdsOrExplain(root: string): Promise<string[]> {
+  try { return await listExistingEntityIds("screen", root); }
+  catch (e) {
+    throw new McpError(ErrorCode.InvalidRequest, `harmony.json を読めません (${e instanceof Error ? e.message : String(e)})。ワークスペースを開いてからやり直してください (designer__workspace_open)`);
+  }
+}
+
+/** ブラウザ有りの add_screen 用: 重複 ID の検査だけを、鍵の中で行う (ブラウザへの送信は鍵の外。応答待ちで他の書き込みを止めないため) */
+export function assertScreenIdFreeLocked(root: string, id: string): Promise<void> {
+  return locked(root, () => assertScreenIdFree(root, id, "ifReadable"));
 }
 
 /** 画面があるか (索引か実体のファイル) */
@@ -162,10 +188,12 @@ export async function addScreenToFiles(root: string, input: AddScreenFileInput):
     const screens = arrayOf(entities, "screens");
 
     // 重複 ID は断る (索引に無い実体のファイルも見る)
-    const taken = new Set<string>([...screens.map((s) => String(s.id)), ...await listExistingEntityIds("screen", root)]);
     let id = input.id;
     if (id) await assertScreenIdFree(root, id);
-    else do { id = `scr-${randomUUID().slice(0, 8)}`; } while (taken.has(id));
+    else {
+      const taken = new Set<string>([...screens.map((s) => String(s.id)), ...await existingScreenIdsOrExplain(root)]);
+      do { id = `scr-${randomUUID().slice(0, 8)}`; } while (taken.has(id));
+    }
 
     const now = new Date().toISOString();
     const kind = input.kind ?? "other";
@@ -191,10 +219,16 @@ export async function addScreenToFiles(root: string, input: AddScreenFileInput):
       await writeScreenFlowPositions({ ...positionsDoc, positions, updatedAt: now }, root);
       await writeProject(next, root);
     } catch (e) {
-      // 失敗した所より前に書いたもの (実体・位置) を、全て戻す
-      await deleteScreenFile(id, root).catch(() => undefined);
-      if (prevPositions === null) await fs.rm(screenFlowPositionsFile(await resolveDataRoot(root)), { force: true }).catch(() => undefined);
-      else await writeScreenFlowPositions(prevPositions, root).catch(() => undefined);
+      // 失敗した所より前に書いたもの (実体・位置) を、全て戻す。戻せなかったものは、元のエラーに添えて知らせる
+      const leftovers: string[] = [];
+      await deleteScreenFile(id, root).catch(() => leftovers.push(`screens/${id}.json`));
+      try {
+        if (prevPositions === null) await fs.rm(screenFlowPositionsFile(await resolveDataRoot(root)), { force: true });
+        else await writeScreenFlowPositions(prevPositions, root);
+      } catch { leftovers.push("screen-flow-positions.json"); }
+      if (leftovers.length > 0) {
+        throw new Error(`${e instanceof Error ? e.message : String(e)}。巻き戻しにも失敗しました (残っているファイル: ${leftovers.join(", ")})`, { cause: e });
+      }
       throw e;
     }
     return { screenId: id, position };

@@ -180,6 +180,25 @@ describe("ブラウザ有無によらない検査 (#1591 レビュー)", () => {
     expect((await validateHarmony()).ok).toBe(true);
   });
 
+  it("id つきの add_screen: harmony.json が無い・旧形式のとき、ブラウザ無しは「ワークスペースを開いてください」の案内で断る", async () => {
+    await fs.rm(path.join(ROOT, "harmony.json"));
+    await expect(addScreen({ name: "A", id: "some-id" })).rejects.toThrow(/ワークスペースを開いてからやり直してください/);
+    // 旧形式 (dataDir なし)
+    await fs.writeFile(path.join(ROOT, "harmony.json"), JSON.stringify({ screens: [] }));
+    await expect(addScreen({ name: "A", id: "some-id" })).rejects.toThrow(/ワークスペースを開いてからやり直してください/);
+    await expect(addScreen({ name: "A" })).rejects.toThrow(/ワークスペースを開いてからやり直してください/);
+  });
+
+  it("id つきの add_screen: ブラウザ有りは、harmony.json の状態で断らない (読めるときだけ重複を検査する)", async () => {
+    vi.mocked(wsBridge.hasActiveBrowser).mockReturnValue(true);
+    const send = vi.spyOn(wsBridge, "sendCommand").mockResolvedValue({ screenId: "some-id" });
+    await fs.writeFile(path.join(ROOT, "harmony.json"), JSON.stringify({ screens: [] })); // 旧形式
+    expect(await addScreen({ name: "A", id: "some-id" })).toContain("some-id");
+    await fs.rm(path.join(ROOT, "harmony.json"));
+    expect(await addScreen({ name: "A", id: "some-id" })).toContain("some-id");
+    expect(send).toHaveBeenCalledTimes(2);
+  });
+
   it("update_screen の type は、ブラウザ有りでも検査する (不正なら送らない)", async () => {
     vi.mocked(wsBridge.hasActiveBrowser).mockReturnValue(true);
     const send = vi.spyOn(wsBridge, "sendCommand").mockResolvedValue({ success: true });

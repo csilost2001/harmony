@@ -13,7 +13,7 @@ import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { readProject } from "../projectStorage.js";
 import { wsBridge } from "../wsBridge.js";
 import {
-  addScreenToFiles, updateScreenInFiles, removeScreenFromFiles, assertScreenKind, assertScreenIdFree,
+  addScreenToFiles, updateScreenInFiles, removeScreenFromFiles, assertScreenKind, assertScreenIdFree, assertScreenIdFreeLocked,
 } from "../screenFlowFiles.js";
 import { assertEntityIdMcp, type ToolHandler } from "../mcpHelpers.js";
 
@@ -94,8 +94,13 @@ export const handleScreenTool: ToolHandler = async (name, args, root) => {
       }
       const purpose = a.purpose === "gadget" ? "gadget" : "page";
       const reqId = typeof a.id === "string" && a.id !== "" ? a.id : undefined;
-      // 重複 ID は、ブラウザの有無によらず先に断る (ブラウザの addScreen は検査せず、既存の画面の中身を上書きするため)
-      if (reqId) await assertScreenIdFree(root, reqId);
+      // 重複 ID は、ブラウザの有無によらず先に断る (ブラウザの addScreen は検査せず、既存の画面の中身を上書きするため)。
+      // ブラウザ有り: 検査だけ鍵の中、ブラウザへの送信は鍵の外 (応答待ちで他の書き込みを止めない)。同じ ID の同時 2 件は、
+      // どちらもブラウザへ送られうるので完全には防げない (ブラウザ側の未保存の画面は backend から見えない)。ブラウザ無しは addScreenToFiles が鍵の中で再検査する
+      if (reqId) {
+        if (wsBridge.hasActiveBrowser()) await assertScreenIdFreeLocked(root, reqId);
+        else await assertScreenIdFree(root, reqId);
+      }
       // ブラウザが無いときは、ブラウザと同じ結果になるようにファイルへ直接書く (#1591)
       const result = !wsBridge.hasActiveBrowser()
         ? await addScreenToFiles(root, { id: reqId, name: a.name, kind: typeof a.type === "string" ? a.type : undefined, path: typeof a.path === "string" ? a.path : undefined, position, purpose })

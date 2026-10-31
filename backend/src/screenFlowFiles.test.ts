@@ -6,11 +6,20 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 
-const hoisted = vi.hoisted(() => ({ failWriteProject: false }));
+const hoisted = vi.hoisted(() => ({ failWriteProject: false, failDeleteScreen: false, failPositionsRestore: false, positionsWrites: 0 }));
 vi.mock("./projectStorage.js", async (orig) => {
   const actual = await orig<typeof import("./projectStorage.js")>();
   return {
     ...actual,
+    deleteScreen: (async (...args: Parameters<typeof actual.deleteScreen>) => {
+      if (hoisted.failDeleteScreen) throw new Error("削除失敗 (試験)");
+      return actual.deleteScreen(...args);
+    }) as typeof actual.deleteScreen,
+    writeScreenFlowPositions: (async (...args: Parameters<typeof actual.writeScreenFlowPositions>) => {
+      hoisted.positionsWrites++;
+      if (hoisted.failPositionsRestore && hoisted.positionsWrites >= 2) throw new Error("位置の書き込み失敗 (試験)");
+      return actual.writeScreenFlowPositions(...args);
+    }) as typeof actual.writeScreenFlowPositions,
     writeProject: (async (...args: Parameters<typeof actual.writeProject>) => {
       if (hoisted.failWriteProject) throw new Error("書き込み失敗 (試験)");
       return actual.writeProject(...args);
@@ -20,11 +29,17 @@ vi.mock("./projectStorage.js", async (orig) => {
 
 import { addScreenToFiles, addEdgeToFiles, removeScreenFromFiles, removeEdgeFromFiles, updateScreenInFiles } from "./screenFlowFiles.js";
 import { readProject, readScreenFlowPositions } from "./projectStorage.js";
+import { handleScreenTool } from "./handlers/screen.js";
+import { handleTableTool } from "./handlers/table.js";
+import { handleProcessFlowTool } from "./handlers/processFlow.js";
+import { handlePageLayoutTool } from "./handlers/pageLayout.js";
+import { wsBridge } from "./wsBridge.js";
 
 const ts = "2026-01-01T00:00:00.000Z";
 let ROOT = "";
 beforeEach(async () => {
-  hoisted.failWriteProject = false;
+  hoisted.failWriteProject = false; hoisted.failDeleteScreen = false; hoisted.failPositionsRestore = false; hoisted.positionsWrites = 0;
+  vi.spyOn(wsBridge, "hasActiveBrowser").mockReturnValue(false);
   ROOT = path.join(os.tmpdir(), `screenflow-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`);
   await fs.mkdir(path.join(ROOT, "design", "screens"), { recursive: true });
   await fs.writeFile(path.join(ROOT, "harmony.json"), JSON.stringify({
@@ -33,7 +48,7 @@ beforeEach(async () => {
     entities: {},
   }));
 });
-afterEach(async () => { await fs.rm(ROOT, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
+afterEach(async () => { vi.restoreAllMocks(); await fs.rm(ROOT, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
 
 type Rect = { x: number; y: number; width: number; height: number };
 const overlap = (a: Rect, b: Rect) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
@@ -118,5 +133,53 @@ describe("途中で失敗したら、書いたものを全て戻す", () => {
     hoisted.failWriteProject = false;
     const r = await add("再", "will-fail");
     expect(r.screenId).toBe("will-fail");
+  });
+});
+
+describe("harmony.json を読んで書く他の tool とも、1 本ずつ処理される (画面と他の設計が重なっても消えない)", () => {
+  type H = (name: string, args: Record<string, unknown>, root: string, sessionId: string) => Promise<unknown>;
+  const run = (h: H, name: string, args: Record<string, unknown>) => h(name, args, ROOT, "s");
+  const entities = async () => ((await readProject(ROOT)) as { entities: Record<string, unknown[]> }).entities;
+
+  it("add_table ×4 だけでも 4 件残る (従来の取りこぼしの解消)", async () => {
+    await Promise.all([1, 2, 3, 4].map((i) => run(handleTableTool, "designer__add_table", { physicalName: `t_${i}`, name: `表${i}` })));
+    expect((await entities()).tables).toHaveLength(4);
+  });
+
+  it("add_screen ×4 と add_table ×4 を同時に呼んで、8 件とも残る", async () => {
+    await Promise.all([
+      ...[1, 2, 3, 4].map((i) => run(handleScreenTool, "designer__add_screen", { name: `画面${i}` })),
+      ...[1, 2, 3, 4].map((i) => run(handleTableTool, "designer__add_table", { physicalName: `t_${i}`, name: `表${i}` })),
+    ]);
+    const e = await entities();
+    expect(e.screens).toHaveLength(4);
+    expect(e.tables).toHaveLength(4);
+    expect(Object.keys(await posOf())).toHaveLength(4);
+  });
+
+  it("画面・テーブル・処理フロー・ページレイアウトの追加が混ざっても、全部残る", async () => {
+    await Promise.all([
+      ...[1, 2, 3].map((i) => run(handleScreenTool, "designer__add_screen", { name: `画面${i}` })),
+      ...[1, 2, 3].map((i) => run(handleTableTool, "designer__add_table", { physicalName: `t_${i}`, name: `表${i}` })),
+      ...[1, 2, 3].map((i) => run(handleProcessFlowTool, "designer__add_process_flow", { name: `流れ${i}`, flowType: "screen" })),
+      ...[1, 2, 3].map((i) => run(handlePageLayoutTool, "designer__add_page_layout", { name: `レイアウト${i}` })),
+    ]);
+    const e = await entities();
+    expect([e.screens, e.tables, e.processFlows, e.pageLayouts].map((l) => l?.length)).toEqual([3, 3, 3, 3]);
+  });
+});
+
+describe("巻き戻しに失敗したときは、元のエラーに、残っているファイルを添える", () => {
+  it("実体を消せない: 元のエラー + 残っている screens/<id>.json", async () => {
+    hoisted.failWriteProject = true;
+    hoisted.failDeleteScreen = true;
+    await expect(add("失敗", "left-over")).rejects.toThrow(/書き込み失敗 \(試験\)。巻き戻しにも失敗しました \(残っているファイル: screens\/left-over\.json\)/);
+  });
+
+  it("位置を戻せない: 残っているファイルに screen-flow-positions.json", async () => {
+    await add("先", "first"); // 位置ファイルを先に作る (これが 1 回目の書き込み)
+    hoisted.failWriteProject = true;
+    hoisted.failPositionsRestore = true;
+    await expect(add("失敗", "left-2")).rejects.toThrow(/巻き戻しにも失敗しました \(残っているファイル: screen-flow-positions\.json\)/);
   });
 });

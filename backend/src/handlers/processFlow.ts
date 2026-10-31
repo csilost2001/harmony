@@ -42,6 +42,7 @@ import {
 } from "../processFlowEdits.js";
 import { assertEntityIdMcp, assertLocalIdMcp, saveAndBroadcast, type ToolHandler } from "../mcpHelpers.js";
 import { wsBridge } from "../wsBridge.js";
+import { withProjectLock } from "../storageCore.js";
 import { assertEntityId, assertPathContained } from "../security/idValidator.js";
 
 type ResponseTypeEntry = {
@@ -414,21 +415,25 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       await writeProcessFlow(pfId, pfDef, root);
 
       // harmony.json entities.processFlows[] の upsert (#1141 F-4)
-      const pfProject = (await readProject(root) ?? {}) as Record<string, unknown>;
-      upsertProcessFlowEntry(pfProject, {
-        id: pfId,
-        name: a.name,
-        flowType: a.flowType,
-        screenId: typeof a.screenId === "string" ? a.screenId : undefined,
-        actionCount: 0,
-        updatedAt: pfNow,
-        maturity: "draft",
+      const pfName: string = a.name;
+      const pfFlowType: string = a.flowType;
+      await withProjectLock(root, async () => {
+        const pfProject = (await readProject(root) ?? {}) as Record<string, unknown>;
+        upsertProcessFlowEntry(pfProject, {
+          id: pfId,
+          name: pfName,
+          flowType: pfFlowType,
+          screenId: typeof a.screenId === "string" ? a.screenId : undefined,
+          actionCount: 0,
+          updatedAt: pfNow,
+          maturity: "draft",
+        });
+        // meta.updatedAt も更新 (v3 root は meta 配下)
+        const projMeta = isRecord(pfProject.meta) ? pfProject.meta : {};
+        projMeta.updatedAt = pfNow;
+        pfProject.meta = projMeta;
+        await writeProject(pfProject, root);
       });
-      // meta.updatedAt も更新 (v3 root は meta 配下)
-      const projMeta = isRecord(pfProject.meta) ? pfProject.meta : {};
-      projMeta.updatedAt = pfNow;
-      pfProject.meta = projMeta;
-      await writeProject(pfProject, root);
       return { content: [{ type: "text", text: `処理フロー「${a.name}」(${a.flowType}) を追加しました（ID: ${pfId}）` }] };
     }
 
@@ -457,26 +462,29 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       pfDef.meta = pfMeta;
       await writeProcessFlow(a.processFlowId, pfDef, root);
 
-      const pfProject = (await readProject(root) ?? {}) as Record<string, unknown>;
-      const actions = Array.isArray(pfDef.actions) ? pfDef.actions : [];
-      const name = (pfMeta.name as string | undefined) ?? (pfDef.name as string | undefined) ?? "(no-name)";
-      // #1263 Phase X1: meta.flowType (旧 meta.kind) / legacy: type
-      const flowType = (pfMeta.flowType as string | undefined) ?? (pfDef.type as string | undefined) ?? "other";
-      const screenId = (pfMeta.screenId as string | undefined) ?? (pfDef.screenId as string | undefined);
-      const maturity = (pfMeta.maturity as string | undefined) ?? (pfDef.maturity as string | undefined);
-      upsertProcessFlowEntry(pfProject, {
-        id: a.processFlowId,
-        name,
-        flowType,
-        screenId,
-        actionCount: actions.length,
-        updatedAt: pfNow,
-        maturity,
+      const updId: string = a.processFlowId;
+      await withProjectLock(root, async () => {
+        const pfProject = (await readProject(root) ?? {}) as Record<string, unknown>;
+        const actions = Array.isArray(pfDef.actions) ? pfDef.actions : [];
+        const name = (pfMeta.name as string | undefined) ?? (pfDef.name as string | undefined) ?? "(no-name)";
+        // #1263 Phase X1: meta.flowType (旧 meta.kind) / legacy: type
+        const flowType = (pfMeta.flowType as string | undefined) ?? (pfDef.type as string | undefined) ?? "other";
+        const screenId = (pfMeta.screenId as string | undefined) ?? (pfDef.screenId as string | undefined);
+        const maturity = (pfMeta.maturity as string | undefined) ?? (pfDef.maturity as string | undefined);
+        upsertProcessFlowEntry(pfProject, {
+          id: updId,
+          name,
+          flowType,
+          screenId,
+          actionCount: actions.length,
+          updatedAt: pfNow,
+          maturity,
+        });
+        const projMeta = isRecord(pfProject.meta) ? pfProject.meta : {};
+        projMeta.updatedAt = pfNow;
+        pfProject.meta = projMeta;
+        await writeProject(pfProject, root);
       });
-      const projMeta = isRecord(pfProject.meta) ? pfProject.meta : {};
-      projMeta.updatedAt = pfNow;
-      pfProject.meta = projMeta;
-      await writeProject(pfProject, root);
       return { content: [{ type: "text", text: `処理フロー ${a.processFlowId} を更新しました。` }] };
     }
 
@@ -487,12 +495,15 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       // S-002 + #1294 I-2: ID validation (RFC #1284 移行期間 compat = EntityId | UUID v4)
       assertEntityIdMcp(a.processFlowId, "processFlowId");
       await deleteProcessFlowFile(a.processFlowId, root);
-      const pfProject = (await readProject(root) ?? {}) as Record<string, unknown>;
-      removeProcessFlowEntry(pfProject, a.processFlowId);
-      const projMeta = isRecord(pfProject.meta) ? pfProject.meta : {};
-      projMeta.updatedAt = new Date().toISOString();
-      pfProject.meta = projMeta;
-      await writeProject(pfProject, root);
+      const delId: string = a.processFlowId;
+      await withProjectLock(root, async () => {
+        const pfProject = (await readProject(root) ?? {}) as Record<string, unknown>;
+        removeProcessFlowEntry(pfProject, delId);
+        const projMeta = isRecord(pfProject.meta) ? pfProject.meta : {};
+        projMeta.updatedAt = new Date().toISOString();
+        pfProject.meta = projMeta;
+        await writeProject(pfProject, root);
+      });
       return { content: [{ type: "text", text: `処理フロー ${a.processFlowId} を削除しました。` }] };
     }
 

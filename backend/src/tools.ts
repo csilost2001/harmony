@@ -1135,7 +1135,7 @@ export const tools = [
   {
     name: "designer__save_screen",
     description:
-      "指定した画面の変更をファイルに永続化します。ブラウザのキャッシュをサーバーのファイルに書き込みます。ブラウザが無ければ未保存の編集は無いと答えます。",
+      "指定した画面の変更をファイルに永続化します。ブラウザのキャッシュをサーバーのファイルに書き込みます。ブラウザが無ければ未保存の編集は無いと答えます (編集セッションの作業コピーは editSession__save)。",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -1150,7 +1150,7 @@ export const tools = [
   {
     name: "designer__save_all",
     description:
-      "未保存の変更がある全タブをまとめてファイルに永続化します。ブラウザが無ければ未保存の編集は無いと答えます。",
+      "未保存の変更がある全タブをまとめてファイルに永続化します。ブラウザが無ければ未保存の編集は無いと答えます (編集セッションの作業コピーは editSession__save)。",
     inputSchema: {
       type: "object" as const,
       properties: {},
