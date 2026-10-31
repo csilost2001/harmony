@@ -1,5 +1,7 @@
 # golden-examples/posts-create-e2e
 
+> **ORM の前提**: この golden の DB 検証・seed は **Prisma (`techStack.backend.orm` が `prisma` または省略のとき、既定)** の書き方。`orm: typeorm` のときは `ai-skills/generate-tests/SKILL.md` の「DB 検証の ORM 別の書き方」で `DataSource` / `Repository` に読み替える (1 つのテストに 2 つの ORM を混ぜない)。
+
 > **golden 種別**: 本 golden は `${PLACEHOLDER}` 抽象スタイル — skill が任意の ProcessFlow に対して生成する **テンプレート参照** を意図。実 EntityId (kebab-case canonical、RFC #1284 / #1332 形式) 入りの golden は `golden-examples/diary-ai-tag-suggest/` (実 sample からの生成見本) を参照。不変識別子 `meta.uuid` が必要なケースは spec コメント末尾に補助情報として併記する形式を取る。
 
 ProcessFlow `post-create-flow` (投稿作成) を題材にした

@@ -3,6 +3,8 @@
 `/generate-tests` スキルが生成するテストファイル (`<flowName>.e2e-spec.ts`) の
 構造規約とコードテンプレートを定義する。
 
+> **ORM について**: 本ファイルの DB 検証・seed・cleanup の例 (`prisma.…` / `PrismaClient`) は **Prisma の書き方 (`techStack.backend.orm` が `prisma` または省略のとき、既定)**。`orm: typeorm` のときは、`ai-skills/generate-tests/SKILL.md` の「DB 検証の ORM 別の書き方」の準備・対応表で `DataSource` / `Repository` に読み替える。1 つのテストファイルに 2 つの ORM を混ぜない。DB 接続の `file:` の補いは `techStack.database.type=sqlite` のときだけ。
+
 ## 1. ファイル先頭 header (D-1 / D-4 anchor)
 
 ```typescript
