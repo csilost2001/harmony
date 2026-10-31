@@ -399,9 +399,20 @@ CREATE TRIGGER t BEFORE UPDATE ON shipments FOR EACH ROW EXECUTE FUNCTION f();`;
     await page.getByTestId("op-tab-version").click();
     await expect(page.getByTestId("op-version-info")).toContainText("版", { timeout: 15000 });
     await expect(page.getByTestId("op-version-info")).toContainText(/\d+\.\d+\.\d+/);
-    // リリースノートは新しい 30 件だけ出す (versionInfo の limit)。docs/release-notes.md が増えると特定の項目は範囲外になるので、
-    // 特定の見出しではなく「日付つきの項目が 1 件以上ある」ことを確かめる
-    await expect(page.getByTestId("op-release-notes").locator(".op-note-date").first()).toHaveText(/^\d{4}-\d{2}-\d{2}$/);
+    // リリースノートは docs/release-notes.md の新しい 30 件 (versionInfo の limit)。特定の項目は件数が増えると範囲外になるので、
+    // 特定の見出しに頼らず、ファイルから期待を作る: 表示の件数 = min(30, 全件数)、先頭は最新の 1 行、30 件を超えるなら「全 N 件」の案内
+    const releaseNotes = (await fs.readFile(path.resolve(process.cwd(), "../docs/release-notes.md"), "utf-8"))
+      .split("\n")
+      .map((l) => /^- (\d{4}-\d{2}-\d{2}) (.+?)(?: \(#(\d+)\))?\s*$/.exec(l))
+      .filter((m): m is RegExpExecArray => m !== null)
+      .map((m) => ({ date: m[1], title: m[2], pr: m[3] }));
+    expect(releaseNotes.length).toBeGreaterThan(0);
+    const items = page.getByTestId("op-release-notes").locator(".op-notes li");
+    await expect(items).toHaveCount(Math.min(30, releaseNotes.length));
+    await expect(items.first().locator(".op-note-date")).toHaveText(releaseNotes[0].date);
+    await expect(items.first()).toContainText(releaseNotes[0].title);
+    if (releaseNotes[0].pr) await expect(items.first()).toContainText(`#${releaseNotes[0].pr}`);
+    if (releaseNotes.length > 30) await expect(page.getByTestId("op-release-notes")).toContainText(`全 ${releaseNotes.length} 件`);
     // 見た版を、別の値にして開き直す → 更新の案内
     await page.evaluate(() => localStorage.setItem("harmony.seenVersion", "0.0.1+old"));
     await ws.gotoActive(page, "/");
