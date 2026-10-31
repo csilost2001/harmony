@@ -132,7 +132,12 @@ describe.each(COMBOS)("雛形 %s の DB ごとのブロック (#1560)", (combo) 
           expect(prod).toContain("image: mysql:8");
         }
         if (db === "sqlite") {
-          expect(prod).toContain(orm === "prisma" ? "file:./dev.db" : "file:./data/dev.db");
+          // 本番用: DB のファイルは data/ (ボリューム app-data)。ボリュームは schema.prisma のある prisma/ に載せない (古い schema が見えて db push が使うため)
+          expect(prod).toContain(orm === "prisma" ? "file:../data/dev.db" : "file:./data/dev.db");
+          expect(prod).toContain("app-data:/app/data");
+          expect(prod).not.toMatch(/prisma-data|:\/app\/prisma/);
+          // 開発用: Prisma は prisma/dev.db (schema.prisma 相対の ./dev.db)、TypeORM は data/dev.db
+          expect(dev).toContain(orm === "prisma" ? "file:./dev.db" : "file:./data/dev.db");
         }
         if (db === "sqlserver" || db === "oracle") {
           // DB サービスの雛形が無い: 接続先は利用者が決める (SKILL.md「DB と ORM の読み方」)。値の無いキーは残さない
@@ -144,7 +149,7 @@ describe.each(COMBOS)("雛形 %s の DB ごとのブロック (#1560)", (combo) 
       });
 
       it("2 つの ORM が混ざらない (compose.yml・Dockerfile・README)", () => {
-        const other = orm === "prisma" ? /typeorm|DB_SYNCHRONIZE|app-data|data\/dev\.db/i : /prisma/i;
+        const other = orm === "prisma" ? /typeorm|DB_SYNCHRONIZE/i : /prisma/i;
         for (const f of files) {
           const out = prune(f, read(combo, f), ctx);
           expect(other.test(out), `${f} に ${orm === "prisma" ? "TypeORM" : "Prisma"} の記述が残っている`).toBe(false);

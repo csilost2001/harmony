@@ -8,7 +8,9 @@ services:
     environment:
       # @db sqlite
       # @orm prisma
-      DATABASE_URL: ${DATABASE_URL:-file:./dev.db}
+      # Prisma の sqlite の相対パスは schema.prisma のあるフォルダ (prisma/) から。DB のファイルは schema.prisma と別のフォルダ (data/) に置く
+      # (ボリュームを prisma/ に載せると、イメージの schema.prisma が古いボリュームに隠れて、db push が古い schema を使うため)
+      DATABASE_URL: ${DATABASE_URL:-file:../data/dev.db}
       # @end-orm
       # @orm typeorm
       DATABASE_URL: ${DATABASE_URL:-file:./data/dev.db}
@@ -35,12 +37,8 @@ services:
     # @end-db
     # @db sqlite
     volumes:
-      # @orm prisma
-      - prisma-data:/app/prisma
-      # @end-orm
-      # @orm typeorm
+      # DB のファイル (data/dev.db) だけを残す (ORM が違っても同じ場所)
       - app-data:/app/data
-      # @end-orm
     # @end-db
 
   # @db postgresql
@@ -77,12 +75,7 @@ services:
 
 volumes:
   # @db sqlite
-  # @orm prisma
-  prisma-data:
-  # @end-orm
-  # @orm typeorm
   app-data:
-  # @end-orm
   # @end-db
   # @db postgresql,mysql
   db-data:

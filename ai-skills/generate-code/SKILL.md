@@ -296,7 +296,7 @@ NestJS の出力は、**ORM** と **DB の種類** の 2 つを `harmony.json` �
 **sqlite のときの Prisma の注意** (実機で確認した。詳細は `PRISMA_SCHEMA.md`):
 
 - `BIGINT` の列は `BigInt` ではなく **`Int`** にする (`BigInt` の主キーは SQLite で自動採番されない)。Service の ID も `number` で書く
-- `DATABASE_URL` の相対パスは `schema.prisma` のあるフォルダ (`prisma/`) からの相対。`file:./dev.db` と書く (`file:./prisma/dev.db` だと `prisma/prisma/dev.db` になる)
+- `DATABASE_URL` の相対パスは `schema.prisma` のあるフォルダ (`prisma/`) からの相対。dev は `file:./dev.db` と書く (`file:./prisma/dev.db` だと `prisma/prisma/dev.db` になる)。本番用の `docker-compose.yml` は DB のファイルを schema.prisma と別のフォルダに置き、`file:../data/dev.db` (= `data/dev.db`。TypeORM と同じ場所) にする。名前付きボリュームを `prisma/` に載せると、イメージの `schema.prisma` が古いボリュームに隠れて、起動時の `db push` が古い schema を使うため。`prisma db push` は `data/` が無くても作る (実機で確認)
 
 DB の種類が `oracle` のとき、Prisma は対応していないので生成を止めて利用者に知らせる (`orm: typeorm` に変えれば生成できる)。`sqlserver` と `oracle` は、開発コンテナの雛形に DB サービスが無い (下の「DB ごとのブロック」の対象外) ので、`@db` ブロックは全部消え、`DATABASE_URL` (接続先) も compose.yml に書かれない。値が無くなった `environment:` / `volumes:` のキーは、規則 6 で行ごと消えるので、compose.yml は YAML として妥当なまま残る。そのときは、接続先 (`DATABASE_URL`) と DB のコンテナを利用者が決めて足す旨を最終レポートに書く。
 
@@ -2095,6 +2095,7 @@ NestJS 系の雛形は、DB の種類 (postgresql / mysql / sqlite) と ORM (pri
    - `.tmp/.gitignore` → `<ワークスペースのルート>/.tmp/.gitignore` (すでにあれば飛ばす)
    - `Dockerfile` → `<出力先>/Dockerfile`
    - `docker-compose.yml` → `<出力先>/docker-compose.yml`
+   - `.gitignore` への追記 (NestJS 系で `techStack.database.type` が `sqlite` のときだけ。雛形のファイルではなく、書き足す): `<出力先>/.gitignore` に、DB のファイルを git に入れないための行を足す (ファイルが無ければ作る。すでにある行は足さない)。`orm: prisma` は `prisma/dev.db*` と `data/`、`orm: typeorm` は `data/`。postgresql / mysql のときは足さない。足した旨を最終レポートに書く
 5. **README.md 統合**:
    - `<出力先>/README.md` 既存 → 冒頭 (最初の `# ` 見出しの直後) に `README.snippet.md` 内容を挿入。ただし README.snippet の節 (`## 開発環境 (Dev Containers)` など) がすでに入っていれば足さない
    - `<出力先>/README.md` 無し → `README.snippet.md` をベースに `# <appName>\n\n` ヘッダを付けて新規 `README.md` 作成
