@@ -33,7 +33,7 @@ export const handleTabTool: ToolHandler = async (name, args) => {
       await wsBridge.sendCommand("openTab", {
         screenId: a.screenId,
         tableId: a.tableId,
-      }) as { success: boolean };
+      }, "タブはブラウザの画面の状態です") as { success: boolean };
       const target = a.screenId ? `画面 ${a.screenId}` : `テーブル ${a.tableId}`;
       return { content: [{ type: "text", text: `${target} をタブで開きました。` }] };
     }
@@ -42,12 +42,12 @@ export const handleTabTool: ToolHandler = async (name, args) => {
       if (typeof a.tabId !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "tabId は必須です");
       }
-      await wsBridge.sendCommand("closeTab", { tabId: a.tabId, force: a.force ?? false });
+      await wsBridge.sendCommand("closeTab", { tabId: a.tabId, force: a.force ?? false }, "タブはブラウザの画面の状態です");
       return { content: [{ type: "text", text: `タブ ${a.tabId} を閉じました。` }] };
     }
 
     case "designer__list_tabs": {
-      const result = await wsBridge.sendCommand("listTabs") as {
+      const result = await wsBridge.sendCommand("listTabs", undefined, "タブはブラウザの画面の状態です") as {
         tabs: Array<{ id: string; type: string; label: string; isDirty: boolean; isPinned: boolean; isActive: boolean }>;
         activeTabId: string;
       };
@@ -68,7 +68,7 @@ export const handleTabTool: ToolHandler = async (name, args) => {
       if (typeof a.tabId !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "tabId は必須です");
       }
-      await wsBridge.sendCommand("switchTab", { tabId: a.tabId });
+      await wsBridge.sendCommand("switchTab", { tabId: a.tabId }, "タブはブラウザの画面の状態です");
       return { content: [{ type: "text", text: `タブ ${a.tabId} に切り替えました。` }] };
     }
 
@@ -78,11 +78,18 @@ export const handleTabTool: ToolHandler = async (name, args) => {
       }
       // #1332 Codex 9 巡目 M2: screenId は top-level EntityId。
       assertEntityIdMcp(a.screenId, "screenId");
+      // ブラウザが無ければ、未保存の編集を持つ所がない: MCP の書き込みは、その場でファイルに保存されている (#1591)
+      if (!wsBridge.hasActiveBrowser()) {
+        return { content: [{ type: "text", text: `ブラウザが開かれていないため、画面 ${a.screenId} に未保存の編集はありません (MCP の書き込みはその場でファイルに保存されています)。` }] };
+      }
       await wsBridge.sendCommand("saveScreen", { screenId: a.screenId });
       return { content: [{ type: "text", text: `画面 ${a.screenId} を保存しました。` }] };
     }
 
     case "designer__save_all": {
+      if (!wsBridge.hasActiveBrowser()) {
+        return { content: [{ type: "text", text: "ブラウザが開かれていないため、未保存の編集はありません (MCP の書き込みはその場でファイルに保存されています)。" }] };
+      }
       const result = await wsBridge.sendCommand("saveAll") as {
         saved: number;
         total: number;

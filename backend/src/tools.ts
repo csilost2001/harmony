@@ -29,12 +29,12 @@ export const tools = [
   {
     name: "designer__add_screen",
     description:
-      "フロー図に新しい画面ノードを追加します。追加後、ブラウザのフロー図に即時反映されます。" +
-      " 新しい画面は、画面名の見出しだけを置いた業務部品レイアウト (layout) を持ちます。" +
-      " 画面の中身は designer__set_screen_layout で設定してください。",
+      "フロー図に新しい画面ノードを追加します。ブラウザが開いていれば即時反映され、開いていなくてもファイルに直接書きます (フロー図の位置は、既存の画面と重ならない所へ自動配置)。" +
+      " 新しい画面は、画面名の見出しだけを置いた業務部品レイアウト (layout) を持ちます。画面の中身は designer__set_screen_layout で設定してください。",
     inputSchema: {
       type: "object" as const,
       properties: {
+        id: { type: "string", description: "画面 ID (kebab-case の英単語。例: customer-list)。省略時は scr-<8桁> を採番。すでにある ID は断る。" },
         name: {
           type: "string",
           description: "画面名（例: 顧客一覧）",

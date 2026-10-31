@@ -48,7 +48,12 @@ const errorKey = (e: SchemaError): string => `${e.instancePath ?? ""}|${e.keywor
  * 書こうとしたことで新しく増えた違反があれば、何も書かずにエラーにする (画面がワークスペースを開けなくなるのを防ぐ。#1568)。
  * もとから違反していた所 (旧形式の項目など) は、ここでは止めない: それは designer__repair_registry で直す。
  */
-export async function assertHarmonyStillValid(before: Record<string, unknown>, after: Record<string, unknown>): Promise<void> {
+export async function assertHarmonyStillValid(
+  before: Record<string, unknown>,
+  after: Record<string, unknown>,
+  where = "entities.tables",
+  hint = "maturity は draft / provisional / committed のいずれか、category は文字列にしてください",
+): Promise<void> {
   const validate = await getHarmonyValidator();
   validate(before);
   const known = new Set(((Array.isArray(validate.errors) ? validate.errors : []) as SchemaError[]).map(errorKey));
@@ -61,7 +66,7 @@ export async function assertHarmonyStillValid(before: Record<string, unknown>, a
   }).join("; ");
   throw new McpError(
     ErrorCode.InvalidParams,
-    `harmony.json の entities.tables に書く値が harmony.v3 スキーマに合いません。何も書きませんでした: ${detail}。maturity は draft / provisional / committed のいずれか、category は文字列にしてください`,
+    `harmony.json の ${where} に書く値が harmony.v3 スキーマに合いません。何も書きませんでした: ${detail}。${hint}`,
   );
 }
 
