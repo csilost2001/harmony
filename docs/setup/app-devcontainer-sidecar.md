@@ -117,7 +117,7 @@ bash scripts/build-harmony-image.sh local
 
 これで `ghcr.io/csilost2001/harmony:local` ができる。`compose.yml` の既定のままなら、この image が使われる。**ビルドしていないと、起動時に `pull access denied` で止まる** (ghcr から取ろうとして失敗している。先に `bash scripts/build-harmony-image.sh local` を実行する)。**Dev Container の中では Docker が使えない**ので、ビルドはホスト側のターミナルで行う。Podman なら `CONTAINER_ENGINE=podman bash scripts/build-harmony-image.sh local` ([compose-runtime.md](./compose-runtime.md))。
 
-> **版を上げたら、開いている Harmony の画面 (ブラウザのタブ・VS Code の簡易ブラウザ) をすべて再読み込みする。** 作り直す前から開いていたタブは古い画面のまま動き続け、ワークスペースの扱いが新しい版と食い違うことがある (例: AI がワークスペースを閉じたとき、古いタブが開き直して、AI の作業先が戻る)。
+> **版を上げたら、開いている Harmony の画面 (ブラウザのタブ・VS Code の簡易ブラウザ) をすべて再読み込みする。** 作り直す前から開いていたタブは古い画面のまま動き続け、ワークスペースの扱いが新しい版と食い違うことがある (例: AI がワークスペースを閉じたとき、古いタブが開き直して、AI の作業先が戻る)。画面は接続のたびにサーバの版と比べ、古いと気づくと上部に「Harmony が更新されました。再読み込みしてください」と出して、ワークスペースの開き直しを止める。その知らせが出たタブは再読み込みする ([版の食い違いの検知](../spec/server-security.md))。ただし、この仕組みが入る前の版の画面は知らせられないので、その一度は手で全タブを再読み込みする。
 
 ## 雛形の更新を取り込む
 

@@ -79,6 +79,7 @@ import { getAuthToken, isUnauthorizedClose, setAuthToken, wsUrlWithToken } from 
 import { invalidateAllInflight, isReadOnlyRpc } from "../utils/sharedInflight";
 import { getUserName } from "../utils/userIdentity";
 import { saveStatus } from "../store/saveStatus";
+import { handleServerBuildId } from "../utils/buildVersion";
 
 export type McpStatus = "disconnected" | "connecting" | "connected" | "failed";
 export type ThemeIdLike = "standard" | "card" | "compact" | "dark";
@@ -489,6 +490,12 @@ class McpBridgeImpl {
           handler.resolve(res.result);
         }
       }
+      return;
+    }
+
+    // ── register への返事: サーバの画面の版 (古い画面の検知。#1572) ──
+    if (msg.type === "registered") {
+      handleServerBuildId(msg.buildId);
       return;
     }
 
