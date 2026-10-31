@@ -268,8 +268,32 @@ ProcessFlow JSON 内の文字列値 (sql / payload / filter / expression / condi
 | techStack.backend | 参照テンプレート |
 |---|---|
 | java + spring-boot | `ai-skills/generate-code/templates/backend/java-spring-boot/` |
-| typescript + nestjs | `ai-skills/generate-code/templates/backend/typescript-nestjs/` |
+| typescript + nestjs | `ai-skills/generate-code/templates/backend/typescript-nestjs/` (DB 層は `techStack.backend.orm` で分ける。下の「DB と ORM の読み方」) |
 | その他 | 「未対応の techStack 組合せです (本スキルは java/spring-boot と typescript/nestjs のみカバー)。別 ISSUE で対応予定。」と報告して中止 |
+
+### DB と ORM の読み方 (TypeScript NestJS。`techStack.backend.orm` / `techStack.database`)
+
+NestJS の出力は、**ORM** と **DB の種類** の 2 つを `harmony.json` の techStack から読んで決める。読む場所はここ 1 か所に決める (他の節・雛形は、ここを参照する)。
+
+| 決めるもの | 読む場所 | 省略時 | 使う先 |
+|---|---|---|---|
+| ORM | `techStack.backend.orm` (`prisma` / `typeorm`) | **`prisma`** (推奨・既定) | 生成ファイル (下の表)・Service の dbAccess / transactionScope・generate-tests の DB 検証・scaffold の `@orm` ブロック |
+| DB の種類 | `techStack.database.type` (`postgresql` / `mysql` / `sqlite` / `sqlserver` / `oracle`) | schema の既定値の **`postgresql`** | Prisma の `datasource.provider`・TypeORM の `type`・scaffold の `@db` ブロック (compose.yml の DB サービス / `DATABASE_URL` / README の DB の初期化) |
+| model / Entity 名 | `tables[].physicalName` | - | snake_case の語を PascalCase にし、最後の語を単数形にする (`posts` → `Post`)。generate-tests も同じ規則 |
+
+`orm` は `language: typescript` のときだけ意味がある (`java` / `spring-boot` では読まない)。
+
+**2 つの ORM を 1 つの生成物の中で混ぜない。**
+
+| | `orm: prisma` (既定・省略時) | `orm: typeorm` |
+|---|---|---|
+| 雛形 | `PRISMA_SCHEMA.md` + `SERVICE.md` の Prisma の節 | `ENTITY.md` + `SERVICE.md` の TypeORM の節 |
+| 出す | `prisma/schema.prisma`、`src/prisma/prisma.service.ts`、`src/prisma/prisma.module.ts`、依存 `@prisma/client` と `prisma` | `entity/*.entity.ts`、`src/database/typeorm.config.ts`、依存 `typeorm` と `@nestjs/typeorm` と DB ドライバ (`pg` / `mysql2` / `better-sqlite3`) |
+| **一切出さない** | `typeorm`、`@nestjs/typeorm`、`*.entity.ts`、`DataSource`、`Repository`、`TypeOrmModule` | `prisma/`、`@prisma/client`、`prisma` の依存、`PrismaService`、`PrismaModule` |
+| Service が受け取る | `PrismaService` | `DataSource` と `Repository<Entity>` |
+| 表の作り方 (dev) | `npx prisma db push` | アプリ起動時の `synchronize` (`DB_SYNCHRONIZE=true`) |
+
+DB の種類が `oracle` のとき、Prisma は対応していないので生成を止めて利用者に知らせる (`orm: typeorm` に変えれば生成できる)。`sqlserver` と `oracle` は、開発コンテナの雛形に DB サービスが無い (下の「DB ごとのブロック」の対象外) ので、`@db` ブロックは全部消え、compose.yml の `volumes:` の欄が空になる。そのときは `docker-compose.yml` の `volumes:` 行と `DATABASE_URL` を利用者に確認して手で整える旨を最終レポートに書く。
 
 ### step kind ごとのコード生成ルール (§8 — ProcessFlow → backend mapping)
 
@@ -277,12 +301,12 @@ ProcessFlow JSON 内の文字列値 (sql / payload / filter / expression / condi
 
 | step.kind | Java Spring Boot 生成 | TypeScript NestJS 生成 |
 |---|---|---|
-| `dbAccess` (SELECT) | `repository.findBy...()` または `@Query native` | `repository.findOne()` または `dataSource.query()` |
-| `dbAccess` (INSERT) | `repository.save(entity)` | `manager.save(entity)` |
-| `dbAccess` (UPDATE) | `@Modifying @Query` | `manager.update()` |
-| `dbAccess` (DELETE) | `@Modifying @Query` | `manager.delete()` |
+| `dbAccess` (SELECT) | `repository.findBy...()` または `@Query native` | Prisma (既定): `prisma.<model>.findUnique()` / `findMany()`、生 SQL は `prisma.$queryRaw`。`orm: typeorm`: `repository.findOneBy()` / `find()`、生 SQL は `dataSource.query()` |
+| `dbAccess` (INSERT) | `repository.save(entity)` | Prisma: `prisma.<model>.create()`。`orm: typeorm`: `repository.save()` |
+| `dbAccess` (UPDATE) | `@Modifying @Query` | Prisma: `prisma.<model>.update()`。`orm: typeorm`: `repository.update()` |
+| `dbAccess` (DELETE) | `@Modifying @Query` | Prisma: `prisma.<model>.delete()`。`orm: typeorm`: `repository.delete()` |
 | `dbAccess` (拡張 op) | `// TODO: {{step.operation}} — 拡張操作。extensions/ 定義参照` | 同左 |
-| `transactionScope` | `@Transactional` メソッド + isolation / timeout / rollbackOn を適用 (`@Transactional` は private/同クラス self-call では AOP proxy を bypass するため別 `@Service` Bean か `TransactionTemplate` 利用に注意)。`steps[]` 内全 step を 1 TX で wrap | `prisma.$transaction(async (tx) => { ... })` または `dataSource.transaction('READ COMMITTED', async manager => { ... })` で `steps[]` 内全 step を 1 TX で wrap。詳細は `templates/backend/typescript-nestjs/SERVICE.md` の「transactionScope mapping」セクション参照 (#875 / #1221 で旧 txBoundary 廃止し本パターンに一本化) |
+| `transactionScope` | `@Transactional` メソッド + isolation / timeout / rollbackOn を適用 (`@Transactional` は private/同クラス self-call では AOP proxy を bypass するため別 `@Service` Bean か `TransactionTemplate` 利用に注意)。`steps[]` 内全 step を 1 TX で wrap | `steps[]` 内全 step を 1 TX で wrap。**`techStack.backend.orm` で分ける**: Prisma (既定・省略時) は `prisma.$transaction(async (tx) => { ... })`、`orm: typeorm` は `dataSource.transaction(async (manager) => { ... })`。2 つを同じ生成物に混ぜない。詳細は `templates/backend/typescript-nestjs/SERVICE.md` の「transactionScope mapping」セクションの ORM ごとの節を参照 (#875 / #1221 で旧 txBoundary 廃止し本パターンに一本化) |
 | `compute` | ローカル変数計算 (stream / reduce / mapToLong 等) | ローカル変数計算 (reduce / map 等) |
 | `branch` | `if (...) { ... } else { ... }` + 例外 throw | 同左 + `throw new HttpException(...)` |
 | `loop` (collection) | `for (Type item : collection) { ... }` | `for (const item of collection) { ... }` |
@@ -959,7 +983,15 @@ Spring Boot 出力には **必ず** Maven Wrapper を verbatim コピー同梱�
   <processFlowName>.module.ts            (Module definition)
   dto/<actionName>-request.dto.ts        (inputs[] → DTO)
   dto/<actionName>-response.dto.ts       (outputs[] → DTO)
+
+  # DB 層 (techStack.backend.orm で分ける。下の「DB と ORM の読み方」。1 つの生成物で混ぜない):
+  #   orm: prisma (既定・省略時) — プロジェクトに 1 セット。PRISMA_SCHEMA.md
+  prisma/schema.prisma                   (lineage の tables → model。provider は techStack.database.type)
+  src/prisma/prisma.service.ts           (PrismaClient を継承した @Injectable)
+  src/prisma/prisma.module.ts            (@Global の Module。AppModule で 1 回 import)
+  #   orm: typeorm — ENTITY.md。prisma/ と src/prisma/ は出さない
   entity/<tableName>.entity.ts           (lineage.writes → TypeORM Entity)
+  src/database/typeorm.config.ts         (TypeOrmModule.forRoot の設定。AppModule で 1 回 import)
 
   # AI flow 含有時のみ (Phase 2-C、最初の AI flow 検出時に 1 セット生成):
   src/ai/ai-runtime.service.ts
@@ -1225,7 +1257,7 @@ public class ProductSearchController {
 
 1. `npm install` のあと `npm install-scripts ls` で、止まったものを見る (止まったものは `npm install` の末尾にも警告で出る)
 2. 動くのに要るものは `npm install-scripts approve <pkg>` (`allowScripts` に `"<pkg>@<版>": true` が入る)。要らないものは `npm install-scripts deny <pkg>` (`false` が入り、警告が消える)
-3. 要るかどうかは、止めたまま動かして決める。確かめた例 (npm 12.2.1 / Node 26): `prisma`・`@prisma/client`・`@prisma/engines` (6.19) は止まっても `prisma generate`・`prisma db push`・クエリが動くので `deny`。`bcrypt` 6 も止まったまま動くが、`bcrypt` 5 は止まると読み込みで失敗する (`bcrypt_lib.node` が無い) ので `approve`
+3. 要るかどうかは、止めたまま動かして決める。確かめた例 (npm 12.2.1 / Node 26): `prisma`・`@prisma/client`・`@prisma/engines` (6.19) は止まっても `prisma generate`・`prisma db push`・クエリが動くので `deny`。`bcrypt` 6 も止まったまま動くが、`bcrypt` 5 は止まると読み込みで失敗する (`bcrypt_lib.node` が無い) ので `approve`。`orm: typeorm` で `database.type=sqlite` のときの `better-sqlite3` はネイティブのビルドが要るので、同じく止めたまま動かして確かめ、動かなければ `approve`。Prisma は `prisma` を `devDependencies` ではなく `dependencies` に入れる (本番イメージの `npm ci --omit=dev` の後で `prisma db push` / `prisma generate` を使うため)
 
 **App Router async API 注記**: Next.js 15 では `cookies()` / `headers()` / `params` / `searchParams` が **Promise 返却** に変更。Page / Layout / Route Handler で:
 
@@ -1689,9 +1721,10 @@ ai-skills/generate-code/templates/
     maven-wrapper/  — Apache Maven Wrapper 3.3.2 canonical files (#1050、Spring Boot 出力時に verbatim コピー)
       mvnw / mvnw.cmd / .mvn/wrapper/maven-wrapper.properties / README.md
   backend/typescript-nestjs/
-    SERVICE.md    — Service クラス生成ルール
+    SERVICE.md    — Service クラス生成ルール (dbAccess / transactionScope は ORM ごとの節)
     CONTROLLER.md — Controller + DTO 生成ルール
-    ENTITY.md     — TypeORM Entity + Module 生成ルール
+    PRISMA_SCHEMA.md — Prisma schema.prisma + PrismaService 生成ルール (orm: prisma、省略時の既定)
+    ENTITY.md     — TypeORM Entity + Module + 接続設定の生成ルール (orm: typeorm のときだけ)
     AI_SERVICE.md — AI runtime service 生成ルール (Phase 2-C、aiCall/aiAgent 含有時)
   frontend/thymeleaf-bootstrap/
     PAGE.md       — Thymeleaf HTML テンプレート生成ルール (kind 別パターン + Layout Decorate モード)
@@ -1717,7 +1750,7 @@ ai-skills/generate-code/templates/
 | ProcessFlow / Screen 値 | ファイル名 |
 |---|---|
 | `meta.name: "注文確定"` | `OrderConfirmService.java` / `order-confirm.service.ts` |
-| `tables[].physicalName: "orders"` | `Order.java` / `orders.entity.ts` / `V1__create_orders.sql` |
+| `tables[].physicalName: "orders"` | `Order.java` / `orders.entity.ts` (orm: typeorm のとき) / Prisma の `model Order` + `@@map("orders")` (orm: prisma のとき) / `V1__create_orders.sql` |
 | `screen.path: "/products/search"` | `templates/products/search.html` / `app/products/search/page.tsx` |
 
 ### 出力ディレクトリ規約 (§10)
@@ -1840,7 +1873,7 @@ Step 0 で `--all` / `--workspace <wsId>` が指定された場合、Step 1〜6 
 |---|---|---|---|---|
 | spring-boot × thymeleaf | `mcr.microsoft.com/devcontainers/java:1-21-bookworm` | `java:1` (version 21, installMaven true)、`node:1`、`github-cli:1` | `claude-code:1.0`、`copilot-cli:1.1.2` + postCreateCommand で `codex` npm 同梱 | postgres:15 |
 | spring-boot × nextjs | 同上 | 同上 (Next.js dev server に Node 必須) | 同上 | 同上 |
-| nestjs × thymeleaf | `mcr.microsoft.com/devcontainers/typescript-node:26` | `github-cli:1` のみ (NestJS が SSR するため Maven 不要、最小構成) | 同上 | SQLite (Prisma file:./prisma/dev.db、Postgres section はコメントアウトで保持) |
+| nestjs × thymeleaf | `mcr.microsoft.com/devcontainers/typescript-node:26` | `github-cli:1` のみ (NestJS が SSR するため Maven 不要、最小構成) | 同上 | `techStack.database.type` に従う (postgresql: `postgres:15` / mysql: `mysql:8` / sqlite: DB サービスなし)。下の「DB ごとのブロック」 |
 | nestjs × nextjs | `mcr.microsoft.com/devcontainers/typescript-node:26` | `github-cli:1` | 同上 | 同上 |
 
 > nestjs × thymeleaf 組合せは稀。当面は最小テンプレ提供で、需要が顕在化したら拡充。
@@ -1863,7 +1896,7 @@ Step 0 で `--all` / `--workspace <wsId>` が指定された場合、Step 1〜6 
 **ブラウザの自動操作 (Playwright MCP、#1573)**: 4 組合せすべてに既定で入れる。AI が画面を開いて確かめる・E2E の確認に使う。
 - `.mcp.json`: `playwright` (headless。ふだん使う) と `playwright-headed` (人が「画面を見たい」と言ったときだけ)。どちらも `npx -y @playwright/mcp@latest --isolated --browser chromium --output-dir /workspaces/app/.tmp/playwright-mcp` (headless は `--headless` 付き)
 - `devcontainer.json`: `postCreateCommand` の末尾で `(npx -y -p @playwright/mcp@latest playwright install --with-deps chromium || echo '<入れられなかった旨の案内>')` (依存ライブラリは初回だけ。失敗しても `|| echo` で postCreate 全体を止めない)。`postStartCommand` で起動のたびに `(playwright install chromium >/dev/null 2>&1 || echo '<案内>')` (最新の MCP に合うブラウザを入れ直す。入っていれば数秒で出力なし、失敗したときだけ案内を出す。起動は止めない。postStart の出力を捨てるのは、Playwright が依存を入れていないプロジェクトで毎回出す英語の WARNING 枠が、失敗に見えるため (#1579)。postCreate は apt の進み具合が見えるよう出力を残すので、**初回の postCreate のログだけ**にその WARNING が 1 回出る。無視してよい (ブラウザは入っている) と README にも書く)
-- `compose.yml`: `dev` に WSLg の X11 (`/tmp/.X11-unix`・`/mnt/wslg`・`DISPLAY=":0"`) を渡す。headed の窓を Windows のデスクトップに出すため (Harmony 本体の開発コンテナと同じ。Windows + WSL2 + Docker Desktop 前提)。プロジェクトのフォルダは WSL の中に置いて WSL から開く (Windows 側から開くと窓が出ない)。macOS / Linux native では 4 行 (volumes の `/tmp/.X11-unix` と `/mnt/wslg` の 2 行、`environment:` と `DISPLAY` の 2 行) を消す (Docker Desktop for Mac など共有されていないパスでは、消さないと起動しないおそれがある。Linux native では空のフォルダができるだけ)。`WAYLAND_DISPLAY` は設定しない
+- `compose.yml`: `dev` に WSLg の X11 (`/tmp/.X11-unix`・`/mnt/wslg`・`DISPLAY=":0"`) を渡す。headed の窓を Windows のデスクトップに出すため (Harmony 本体の開発コンテナと同じ。Windows + WSL2 + Docker Desktop 前提)。プロジェクトのフォルダは WSL の中に置いて WSL から開く (Windows 側から開くと窓が出ない)。macOS / Linux native では 4 行 (volumes の `/tmp/.X11-unix` と `/mnt/wslg` の 2 行、`environment:` と `DISPLAY` の 2 行) を消す (Docker Desktop for Mac など共有されていないパスでは、消さないと起動しないおそれがある。Linux native では空のフォルダができるだけ。NestJS の雛形は `environment:` に `DATABASE_URL` などが続くことがあるので、そのときは `environment:` の行を残して `DISPLAY` の行だけ消す)。`WAYLAND_DISPLAY` は設定しない
 - `.tmp/.gitignore`: スナップショット・スクリーンショットの出力先 `.tmp/playwright-mcp/` を git に入れない
 - generate-tests の E2E (`@playwright/test`) は別に `npx playwright install chromium` で自分の版のブラウザを入れる (MCP と版が違うと Chromium が 2 つ入る。そろえない)
 - 自動のブラウザも Harmony の「開いている画面」(画面のつながり) に数えられる。`designer__workspace_close` のような確認では考えに入れる
@@ -1877,7 +1910,7 @@ Step 0 で `--all` / `--workspace <wsId>` が指定された場合、Step 1〜6 
 | techStack | postCreateCommand |
 |---|---|
 | spring-boot 系 | `./mvnw -B dependency:resolve 2>/dev/null \|\| mvn -B dependency:resolve \|\| true` (mvnw 優先 + Java feature 同梱 mvn fallback。Spring Boot 出力には #1050 で mvnw 同梱されるが旧出力との互換のため fallback 残置) |
-| nestjs 系 | `([ -f package.json ] && npm install \|\| true) && ([ -f prisma/schema.prisma ] && npx prisma generate \|\| true)` (root 単一 package.json 構造、#1050 で確認。設計だけでまだ生成前でも止まらず、Prisma のスキーマがなければ prisma を取りに行かない) |
+| nestjs 系 | `([ -f package.json ] && npm install \|\| true) && ([ -f prisma/schema.prisma ] && npx prisma generate \|\| true)` (root 単一 package.json 構造、#1050 で確認。設計だけでまだ生成前でも止まらず、Prisma のスキーマがなければ prisma を取りに行かない)。この行は ORM で書き換えない: `orm: typeorm` では `prisma/schema.prisma` が無いので何もしない (`prisma` を取りに行かない)。devcontainer.json の拡張 `Prisma.prisma` も、`orm: typeorm` では使われないだけで害はない |
 
 ### forwardPorts (default)
 
@@ -1887,7 +1920,7 @@ Step 0 で `--all` / `--workspace <wsId>` が指定された場合、Step 1〜6 
 |---|---|
 | spring-boot × thymeleaf | `8080`, `5432` (Postgres aspirational) |
 | spring-boot × nextjs | `8080` (Spring app), `3000` (Next.js dev), `5432` |
-| nestjs × thymeleaf | `3000` (NestJS が SSR、Postgres は SQLite default のため forward なし) |
+| nestjs × thymeleaf | `3000` (NestJS が SSR。DB は開発コンテナの中のサービスなので forward しない) |
 | nestjs × nextjs | `3001` (NestJS API), `3000` (Next.js dev、english-learning-tailwind 実構造、#1050) |
 
 ### docker-compose.yml (本番用、最小構成)
@@ -1911,6 +1944,8 @@ volumes:
   db-data:
 ```
 
+上は Spring Boot 系 (PostgreSQL 固定) の形。NestJS 系の `docker-compose.yml` は、雛形の「DB ごとのブロック」を `techStack.database.type` と `techStack.backend.orm` で選んで作る (上の例のようには固定しない)。
+
 ### README.md セクション (生成アプリ用、scaffold 一部)
 
 `<出力先>/README.md` に以下のセクションを必ず含める (既存 README が無ければ新規作成、あれば「## 開発環境」「## 本番デプロイ」の 2 セクションを冒頭に追記):
@@ -1927,6 +1962,7 @@ VSCode + Dev Containers 拡張があれば、`git clone` 後に `Reopen in Conta
    - spring-boot 系: `./mvnw spring-boot:run 2>/dev/null || mvn spring-boot:run` (Maven Wrapper 同梱 or feature 同梱 mvn いずれでも起動)
    - nestjs 系 (単一 package.json、english-learning-tailwind パターン): `npm run start:backend` + 別ターミナル `npm run start:frontend`
    - nestjs 系 (NestJS 単独 thymeleaf): `npm run start:dev`
+   - nestjs 系の DB の初期化 (表づくり): 雛形の `README.snippet.md` の「DB 初期化」(ORM と `techStack.database.type` で変わる。Prisma は `npx prisma db push`、TypeORM は起動時の `synchronize`) をそのまま使う
 5. ブラウザで http://localhost:<port> (port は `.devcontainer/devcontainer.json` の forwardPorts 参照)
 
 詳細: [`.devcontainer/devcontainer.json`](.devcontainer/devcontainer.json)
@@ -1988,9 +2024,39 @@ ai-skills/generate-code/templates/devcontainer/
 
 各テンプレは **静的ファイル** (placeholder は最小、必要なら `__APP_NAME__` 程度)。AI は組合せ判定後にコピーするのみで、AI 生成のブレ (memory: 決定的変換は TS script に集約) を防ぐ。**テンプレート自身が golden output を兼ねる** — 出力 scaffold ファイルはテンプレ verbatim のため、別途 `golden-examples/` への複製は行わない (二重メンテ回避)。
 
+**例外: NestJS 系 (`nestjs-thymeleaf` / `nestjs-nextjs`) は「DB ごとのブロック」だけ消して写す。** 次の節を参照。
+
+#### DB ごとのブロック (NestJS 系の雛形。`techStack.database.type` と `techStack.backend.orm` で選ぶ)
+
+NestJS 系の雛形は、DB の種類 (postgresql / mysql / sqlite) と ORM (prisma / typeorm) で変わる箇所 (compose.yml の DB サービス、`DATABASE_URL`、README の「DB の初期化」、Dockerfile の Prisma の行) を、**ブロックとして雛形の中に全部入れてある**。写すときは、techStack に合うブロックを残し、合わないブロックを**中身ごと消す**。書き足し・書き換えはしない。
+
+| ファイル | マーカーの書き方 |
+|---|---|
+| `docker-compose.yml`・`.devcontainer/compose.yml`・`Dockerfile` | `# @db <種別>[,<種別>]` ... `# @end-db`、`# @orm <名前>` ... `# @end-orm` |
+| `README.snippet.md` | `<!-- @db <種別>[,<種別>] -->` ... `<!-- @end-db -->`、`<!-- @orm <名前> -->` ... `<!-- @end-orm -->` |
+
+規則 (機械的に適用する。迷う余地を残さない):
+
+1. 種別は `techStack.database.type` (省略時 `postgresql`)、名前は `techStack.backend.orm` (省略時 `prisma`) と比べる。`@db` の種別はカンマ区切りで複数書ける (`postgresql,mysql`)
+2. **一致するブロック**は、マーカー行 (開始行と終了行) だけ消して、中身を残す
+3. **一致しないブロック**は、マーカー行と中身をまとめて消す
+4. ブロックは入れ子になる (`@orm` の中に `@db`、またはその逆)。外側が一致しなければ、内側ごと消える
+5. マーカーの行以外は、一切変えない。インデントも空行もそのまま
+6. マーカーを全部処理したあと、`@db` `@orm` `@end-db` `@end-orm` のマーカー行が 1 行も残っていないこと、`docker compose -f <ファイル> config` が使えるときは通ることを確かめる
+
+この規則で写すと、2 つの ORM は混ざらない (`orm: typeorm` の `docker-compose.yml` / `Dockerfile` / README に `prisma` は出ない。`orm: prisma` に `typeorm` / `DB_SYNCHRONIZE` は出ない)。`devcontainer.json` と `.mcp.json` はブロックを持たない (そのまま写す)。
+
+**この方式を選んだ理由** (DB ごとに雛形のフォルダを分けない / `__DB__` のような差し替え文字にしない):
+
+- `designer__record_scaffold` / `designer__get_scaffold_update` と、雛形の版 (組合せのフォルダの全ファイルの SHA-256) は、組合せ (`nestjs-nextjs` など 4 つ) ごとのフォルダを単位にしている。DB ごとにフォルダを分けると、組合せが 4 → 10 に増え、backend の組合せの一覧 (`SCAFFOLD_COMBOS`)・記録の形・点検・試験を変えることになる。ブロック方式なら backend は 1 行も変えず、雛形の版は今のまま「フォルダの中身のハッシュ」で決まる
+- 差し替え文字は、複数行 (`depends_on` / `volumes` / DB サービス丸ごと) を AI が組み立てることになり、書き方がぶれる。ブロックは「消すだけ」なので、結果が一意に決まる
+- 雛形そのもの (全ブロックが入った状態) は、そのままでは 1 つの YAML として有効でない (キーが重なる)。写した結果 (ブロックを消したあと) が有効であることを、`backend/src/generateCodeTemplates.test.ts` が組合せ × DB × ORM の全部で確かめている
+
+**雛形の記録と更新** (`designer__record_scaffold` / `designer__get_scaffold_update`): 記録には雛形の中身 (ブロック入り) が残り、アプリのファイルはブロックを消した後の形になる。そのため、`designer__get_scaffold_update` の 3 方向の差分では、ブロックを消した部分が「利用者の手入れ」に見える。これは雛形の規則による差で、手入れではない。更新を取り込むときは、新しい雛形にも**同じ規則**でブロックを消してから、アプリのファイルと比べる。`techStack.database` や `techStack.backend.orm` を変えたときの取り込みも同じ手順で (新しい techStack で消したあとのファイルを、いまのアプリのファイルに当てる)。
+
 ### 実行手順
 
-1. **techStack 判定**: `harmony.json` (または旧 `project.json` の legacy 環境) の `techStack.backend.framework` と `techStack.frontend.library` を Read で取得
+1. **techStack 判定**: `harmony.json` (または旧 `project.json` の legacy 環境) の `techStack.backend.framework` と `techStack.frontend.library` を Read で取得。NestJS 系 (`nestjs`) では、あわせて `techStack.database.type` と `techStack.backend.orm` も取得する (読み方は「DB と ORM の読み方」)
 2. **テンプレ選択**:
 
    | backend.framework | frontend.library | 選択テンプレ |
@@ -2004,7 +2070,7 @@ ai-skills/generate-code/templates/devcontainer/
    - `.devcontainer/` (devcontainer.json・compose.yml) と `.mcp.json` は、**常にワークスペースのルート**に置く。ルートに `.devcontainer/devcontainer.json` があれば `.devcontainer/` は作らない。ルートに `.mcp.json` があれば `.mcp.json` も作らない (`mcpServers.harmony` に加えて `playwright` / `playwright-headed` (雛形の `.mcp.json` の該当項目) を足す案内だけ最終レポートに書く)。ルートに `.devcontainer/` があって飛ばしたときは、雛形の `postCreateCommand` / `postStartCommand` の Playwright の行と `compose.yml` の WSLg の 4 行 (volumes の 2 行、`environment:` と `DISPLAY` の 2 行) を足す案内も書く。`.tmp/.gitignore` もワークスペースのルートに置く (すでにあれば飛ばす)。出力先を `backend/` などにしても、`backend/.devcontainer/` を入れ子で作らない
    - `Dockerfile`・`docker-compose.yml` は**出力先**に置く。出力先にすでにある**ファイルだけ**を飛ばす (上書きしない)。無いほうは作る
    - 飛ばしたファイルは「既存のため飛ばした」と最終レポートに書く
-4. **ファイルコピー**: 選択したテンプレディレクトリ配下の以下を Read → Write で verbatim コピー (改変・補完なし、AI 解釈なし)。ステップ 3 で飛ばすと決めたものは書かない:
+4. **ファイルコピー**: 選択したテンプレディレクトリ配下の以下を Read → Write で verbatim コピー (改変・補完なし、AI 解釈なし)。ただし NestJS 系は、上の「DB ごとのブロック」の規則で、合わないブロックを消してから書く (`.mcp.json`・`devcontainer.json`・`.tmp/.gitignore` はブロックを持たないのでそのまま)。ステップ 3 で飛ばすと決めたものは書かない:
    - `.devcontainer/devcontainer.json` → `<ワークスペースのルート>/.devcontainer/devcontainer.json`
    - `.devcontainer/compose.yml` → `<ワークスペースのルート>/.devcontainer/compose.yml`
    - `.mcp.json` → `<ワークスペースのルート>/.mcp.json`
@@ -2024,7 +2090,7 @@ ai-skills/generate-code/templates/devcontainer/
 
 Harmony の雛形が新しくなると、`designer__check_design` の info (section「開発コンテナの雛形」)・`designer__get_project_context` の `scaffold`・画面「連携と運用 → 版と更新」が知らせる。利用者に「開発コンテナの雛形の更新を取り込んで」と頼まれたら、次の順で行う (この手順の対象は、雛形が書くファイル全部: `.devcontainer/` の 2 つ・`.mcp.json`・`.tmp/.gitignore`・`Dockerfile`・`docker-compose.yml`・README の節)。
 
-1. `designer__get_scaffold_update` を呼ぶ。`status` が `outdated` (雛形が新しくなった) か `no-record` (記録が無い古いアプリ) でなければ、取り込むものは無い。`files[]` のうち `state` が `unchanged` でないものが対象 (`guide` に同じ手順が付く)
+1. NestJS 系は、先に「DB ごとのブロック」の規則で、新しい雛形(`latest`)のブロックを、いまの `techStack.database.type` / `techStack.backend.orm` で消した形にそろえてから読む (ブロックを消した差は手入れではない)。`designer__get_scaffold_update` を呼ぶ。`status` が `outdated` (雛形が新しくなった) か `no-record` (記録が無い古いアプリ) でなければ、取り込むものは無い。`files[]` のうち `state` が `unchanged` でないものが対象 (`guide` に同じ手順が付く)
 2. ファイルごとの差分は、`files[]` の **`diff` (いまのアプリ → 新しい雛形)**・`base` があるときは **`templateDiff` (雛形の変更)** と **`appChanges` (利用者の手入れ)** にある (unified diff)。**自分で差分を作らず、これを利用者に見せる** (`diffTooLarge: true` のファイルだけ、`app` と `latest` を自分で比べる。`diffTruncated` は差分が切れているので同じく自分で読み直す)。比べ方は次のとおり:
    - `base` がある (記録があり、飛ばしていない): **3 方向**。`base`→`latest` が雛形の変更、`base`→`app` が利用者の手入れ。雛形の変更を取り込み、手入れは残す
    - `base` が無い (記録が無い・飛ばしたファイル): **2 方向**。`app` と `latest` の差を、利用者に 1 つずつ見せて選んでもらう (`appEdited` が `null` = 手入れかどうか不明)
@@ -2081,7 +2147,7 @@ frontend は Thymeleaf (同 project root の `src/main/resources/templates/`) or
 
 #### canonical layout: NestJS backend + Next.js frontend (typescript)
 
-業務 Service / Controller / Module / DTO / Entity は **project root 直下** (NestJS は src/ 強制ではなく、生成物は flat 配置)。`src/ai/` と `src/auth/` のみ src/ 配下に scaffold (`/generate-code` 生成ファイル一覧の規約、L915-927 参照):
+業務 Service / Controller / Module / DTO / Entity は **project root 直下** (NestJS は src/ 強制ではなく、生成物は flat 配置)。`src/prisma/` (orm: prisma) または `src/database/` (orm: typeorm)・`src/ai/`・`src/auth/` のみ src/ 配下に scaffold (`/generate-code` 生成ファイル一覧の規約、L915-927 参照):
 
 ```
 <出力先>/                              ← 業務アプリ project root (例: ~/projects/inventory-admin/)
@@ -2104,9 +2170,13 @@ frontend は Thymeleaf (同 project root の `src/main/resources/templates/`) or
 ├── dto/                                ← Request / Response DTO (root 直下、inputs[] / outputs[] → DTO)
 │   ├── <actionName>-request.dto.ts
 │   └── <actionName>-response.dto.ts
-├── entity/                             ← TypeORM Entity (root 直下、lineage.writes → Entity)
-│   └── <tableName>.entity.ts
-├── src/                                ← AI / auth scaffold のみ (Phase 2-C)
+├── prisma/                             ← orm: prisma (既定・省略時) のときだけ。orm: typeorm では作らない
+│   └── schema.prisma                   ← lineage の tables → model (provider は techStack.database.type)
+├── entity/                             ← orm: typeorm のときだけ。orm: prisma では作らない
+│   └── <tableName>.entity.ts           ← TypeORM Entity (root 直下、lineage.writes → Entity)
+├── src/                                ← DB 層 / AI / auth scaffold のみ (Phase 2-C)
+│   ├── prisma/                         ← orm: prisma のときだけ (prisma.service.ts / prisma.module.ts)
+│   ├── database/                       ← orm: typeorm のときだけ (typeorm.config.ts)
 │   ├── ai/                             ← AI step あり時のみ (#§ AI step kind 検出時)
 │   │   ├── ai-runtime.service.ts
 │   │   ├── ai.module.ts
@@ -2245,7 +2315,7 @@ tsc が利用不可またはプロジェクト設定が不整合の場合はス�
 ### 注意事項
 - 生成コードは雛形です。実際のプロジェクト構成に合わせてパッケージ名/ファイル配置を調整してください
 - ゴールデン出力: `ai-skills/generate-code/golden-examples/` を参照
-- DB クエリのバインド変数は ProcessFlow SQL の `@varName` → JPA `:varName` / TypeORM `$N` に変換が必要
+- DB クエリのバインド変数は ProcessFlow SQL の `@varName` → JPA `:varName` / Prisma (`orm` 省略時を含む) の `$queryRaw` タグ付きテンプレートの `${varName}` / TypeORM (`orm: typeorm`) の `dataSource.query()` の `$N` (postgresql) または `?` (mysql / sqlite) に変換が必要
 ```
 
 ## 制約 (必守)

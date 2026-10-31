@@ -1,3 +1,6 @@
+# このファイルは /generate-code が techStack (database.type / backend.orm) に合わせて組み立てる。
+# `# @db <種別>` / `# @orm <名前>` から `# @end-db` / `# @end-orm` までは、techStack に合うブロックだけ残す
+# (規則: ai-skills/generate-code/SKILL.md「DB と ORM の読み方」)。
 services:
   app:
     build: .
@@ -5,27 +8,84 @@ services:
       - "${BACKEND_PORT:-3001}:3001"
       - "${FRONTEND_PORT:-3000}:3000"
     environment:
+      # @db sqlite
+      # @orm prisma
       DATABASE_URL: ${DATABASE_URL:-file:./prisma/dev.db}
+      # @end-orm
+      # @orm typeorm
+      DATABASE_URL: ${DATABASE_URL:-file:./data/dev.db}
+      # @end-orm
+      # @end-db
+      # @db postgresql
+      DATABASE_URL: ${DATABASE_URL:-postgresql://app:app@db:5432/app}
+      # @end-db
+      # @db mysql
+      DATABASE_URL: ${DATABASE_URL:-mysql://app:app@db:3306/app}
+      # @end-db
+      # @orm typeorm
+      # 初回の表づくり (TypeORM の synchronize)。運用が始まったらマイグレーションに切り替えて消す
+      DB_SYNCHRONIZE: "true"
+      # @end-orm
+    # @orm prisma
+    # 表づくり (prisma db push) をしてから起動する。prisma は dependencies に入れておく (本番の npm ci --omit=dev でも使うため)
+    command: ["sh", "-c", "npx prisma db push --skip-generate && node dist/main"]
+    # @end-orm
+    # @db postgresql,mysql
+    depends_on:
+      db:
+        condition: service_healthy
+    # @end-db
+    # @db sqlite
     volumes:
+      # @orm prisma
       - prisma-data:/app/prisma
+      # @end-orm
+      # @orm typeorm
+      - app-data:/app/data
+      # @end-orm
+    # @end-db
 
-  # 本番で Postgres に切り替える場合は以下を有効化し、DATABASE_URL を
-  # postgres://app:app@db:5432/app に書き換える。Prisma schema の provider も
-  # "postgresql" に変更すること。
-  # db:
-  #   image: postgres:15
-  #   environment:
-  #     POSTGRES_DB: app
-  #     POSTGRES_USER: app
-  #     POSTGRES_PASSWORD: app
-  #   volumes:
-  #     - db-data:/var/lib/postgresql/data
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "pg_isready -U app -d app"]
-  #     interval: 5s
-  #     timeout: 5s
-  #     retries: 10
+  # @db postgresql
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: app
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  # @end-db
+  # @db mysql
+  db:
+    image: mysql:8
+    environment:
+      MYSQL_DATABASE: app
+      MYSQL_USER: app
+      MYSQL_PASSWORD: app
+      MYSQL_ROOT_PASSWORD: app
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uapp -papp"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  # @end-db
 
 volumes:
+  # @db sqlite
+  # @orm prisma
   prisma-data:
-  # db-data:
+  # @end-orm
+  # @orm typeorm
+  app-data:
+  # @end-orm
+  # @end-db
+  # @db postgresql,mysql
+  db-data:
+  # @end-db

@@ -6,8 +6,15 @@ WORKDIR /build
 COPY package*.json ./
 RUN npm ci
 COPY . .
+# @orm prisma
 RUN mkdir -p public .next prisma
+# @end-orm
+# @orm typeorm
+RUN mkdir -p public .next data
+# @end-orm
+# @orm prisma
 RUN npx prisma generate 2>/dev/null || true
+# @end-orm
 RUN npm run build
 RUN npx next build 2>/dev/null || true
 
@@ -18,6 +25,13 @@ RUN npm ci --omit=dev
 COPY --from=builder /build/dist ./dist
 COPY --from=builder /build/.next ./.next
 COPY --from=builder /build/public ./public
+# @orm prisma
 COPY --from=builder /build/prisma ./prisma
+# 本番の node_modules には Prisma Client が無いので、ここで作る (prisma は dependencies に入れておく)
+RUN npx prisma generate
+# @end-orm
+# @orm typeorm
+RUN mkdir -p data
+# @end-orm
 EXPOSE 3001
 CMD ["node", "dist/main"]

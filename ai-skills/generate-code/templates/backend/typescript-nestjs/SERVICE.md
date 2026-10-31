@@ -44,7 +44,7 @@ ProcessFlow の `actions[]` 全体を 1 つの `@Injectable` Service クラス�
 | `INSERT` | `await this.prisma.<model>.create({ data: { ... } })` (複数行は `createMany`) |
 | `UPDATE` | `await this.prisma.<model>.update({ where: { id }, data: { ... } })` (条件で複数行は `updateMany`) |
 | `DELETE` | `await this.prisma.<model>.delete({ where: { id } })` (複数行は `deleteMany`) |
-| 生 SQL が要るとき (`sql` が JOIN / 集計など) | `await this.prisma.$queryRaw\`SELECT ... WHERE id = ${id}\`` (バインドは `${}` で渡す。`$queryRawUnsafe` に文字列連結しない) |
+| 生 SQL が要るとき (`sql` が JOIN / 集計など) | ``await this.prisma.$queryRaw`SELECT ... WHERE id = ${id}` `` (バインドは `${}` で渡す。`$queryRawUnsafe` に文字列連結しない) |
 
 `<model>` は Prisma client のプロパティ名 (`PRISMA_SCHEMA.md` の規則。`posts` → `post`)。transactionScope の中では `this.prisma` ではなく `tx` を使う。
 
