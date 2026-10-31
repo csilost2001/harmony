@@ -48,6 +48,32 @@ ProcessFlow の `actions[]` 全体を 1 つの `@Injectable` Service クラス�
 
 `<model>` は Prisma client のプロパティ名 (`PRISMA_SCHEMA.md` の規則。`posts` → `post`)。transactionScope の中では `this.prisma` ではなく `tx` を使う。
 
+#### BigInt の列の扱い (Prisma。`techStack.database.type` が `postgresql` / `mysql` のとき)
+
+`BIGINT` の列は schema.prisma で `BigInt` になり (`PRISMA_SCHEMA.md` の型表)、Prisma は **JS の `bigint`** で返す。Service の変数・戻り値の型に `number` と書くと `tsc` が `Type 'bigint' is not assignable to type 'number'` で落ち、`nest build` (Docker の build) が通らない (実機で確認)。設計の型 `BIGINT` は変えず、**Service の中は `bigint`、API の境界 (レスポンス・入力) で変換する**。`sqlite` は `Int` にするので `number` のままでよく、この節は読まない。
+
+| 場面 | 書き方 | 例 |
+|---|---|---|
+| Prisma から読んだ id を持つ変数・戻り値・引数 | 型は `bigint`。`number` と書かない | `let newPostId: bigint;` / `let tagId: bigint \| null = null;` / `existing?.id ?? null` |
+| `create` の `data` / `where` / `update` の値 | `bigint` を渡す。number から作るときは `BigInt(x)`、リテラルは `1n` (`tsconfig` の `target` が ES2020 未満なら `BigInt(1)`) | `where: { id: BigInt(dto.postId) }` / `data: { user_id: BigInt(sessionUserId) }` |
+| 比較 | `bigint` 同士で `===`。`bigint` と `number` を `===` しない (常に false。`tsc` も警告する) | `row.user_id !== BigInt(sessionUserId)` |
+| 数値演算 | `bigint` と `number` を混ぜない (`tsc` のエラー / 実行時の `TypeError`)。足すなら `id + 1n` | `nextId = row.id + 1n` |
+| レスポンスに出す (JSON) | `bigint` を `JSON.stringify` すると例外 (`Do not know how to serialize a BigInt`) になるので、**返す直前**に変換する。**id が `Number.MAX_SAFE_INTEGER` (約 9×10^15) を超えることが無い**なら `Number(x)`、超えうる列 (スノーフレーク ID など) は `String(x)` にして DTO の型も `string` にする。迷ったら `String` | `return { postId: Number(newPostId) };` / `tagId: Number(t.id)` |
+| 入力 (パスの `:id`・クエリ・ヘッダの user id・DTO) | 型は `number` / `string` で受け、Prisma に渡す所で `BigInt(...)` にする。**`BigInt('abc')` / `BigInt(NaN)` / `BigInt(1.5)` は例外 (500 になる) ので、先に検証して 400 にする** (Controller の `ParseIntPipe` / `Number.isSafeInteger` / DTO の `@IsInt()`) | `@Param('id', ParseIntPipe) id: number` → `BigInt(id)` |
+| 生 SQL (`$queryRaw` / `$executeRaw`) | bind 変数には `bigint` を渡す。結果の `BIGINT` 列と、postgresql の `COUNT(*)` / `SUM()` は `bigint` で返る | `` tx.$executeRaw`... WHERE post_id = ${created.id}` `` / `Number(rows[0].c)` |
+| 件数 `prisma.<model>.count()` | `number` (`bigint` ではない)。`bigint` の id と混ぜて計算・比較しない | `const n: number = await this.prisma.post.count();` |
+| `in: [...]` の配列 | 要素は `bigint` だけ (または `number` だけ)。混ぜると型エラー | `where: { id: { in: ids.map(BigInt) } }` |
+| `groupBy` / `aggregate` の `_sum` / `_max` (BigInt 列) | `bigint \| null` で返る。`Number()` に通す | `Number(g._sum.user_id ?? 0n)` |
+
+同じ型の落とし穴は BigInt 以外にもある (どの `provider` でも同じなので、sqlite でも守る):
+
+| 列の型 | Prisma が返す型 | 書き方 |
+|---|---|---|
+| `DECIMAL` (`Decimal`) | `Prisma.Decimal` (`number` ではない) | 計算は `.plus()` / `.times()` など `Decimal` のメソッド。`number` が要るときは `.toNumber()`、JSON には精度を保てる `.toString()` (`JSON.stringify` はそのまま文字列になる)。書き込みは `number` / `string` / `Decimal` のどれでも渡せる。`aggregate` の `_sum` も `Decimal \| null` |
+| `JSON` (`Json`) | `Prisma.JsonValue` (`Record<string, unknown>` ではない) | 読んだ値は `as Record<string, unknown>` などで型を絞る。書き込みは `as Prisma.InputJsonValue`。`null` を書くなら `Prisma.JsonNull` (`null` は渡せない) |
+| `DATE` / `TIME` / `TIMESTAMP` (`DateTime`) | `Date` | 書き込みも `Date` (文字列は ISO 8601 形式なら可)。JSON にすると ISO 文字列になる |
+| `BOOLEAN` | `boolean` | 変換なし |
+
 ### TypeORM (`orm: typeorm` のときだけ)
 
 | `operation` | 生成するコード |

@@ -353,8 +353,25 @@ TypeORM では、アプリの DataSource に `synchronize` を効かせて表を
 | 条件で消す | `await prisma.post.deleteMany({ where: { id } })` | `await dataSource.getRepository(Post).delete({ id })` (ID の配列 `delete([a, b])` も可。**空配列 `[]` は `Empty criteria` で落ちる**ので、空かもしれないときは `if (ids.length > 0)` で囲む) |
 | 全部消す | `await prisma.post.deleteMany({})` | `await dataSource.getRepository(Post).createQueryBuilder().delete().execute()` (`delete({})` は空条件でエラーになる) |
 | フィールド | `row.user_id` | `row.userId` |
-| 大きい整数 (BIGINT) | `BigInt` で返る → `Number(row.id)` (`sqlite` は `Int` なので `number` で返る。generate-code の `PRISMA_SCHEMA.md`) | 文字列で返る → `Number(row.id)` |
+| 大きい整数 (BIGINT) | `postgresql` / `mysql` は **`bigint`** で返る (`sqlite` は `Int` なので `number`)。書き方は下の「Prisma の BigInt の id」 | `postgresql` は文字列で返る → `Number(row.id)` (下の TypeORM の節・generate-code の `ENTITY.md`) |
 | 接続を閉じる | `await prisma.$disconnect()` | (`app.close()` が閉じる) |
+
+### Prisma の BigInt の id (`orm: prisma` かつ `techStack.database.type` が `postgresql` / `mysql`)
+
+`BIGINT` の列は `BigInt` で、Prisma は JS の **`bigint`** で返す (generate-code の `PRISMA_SCHEMA.md` / `SERVICE.md`「BigInt の列の扱い」)。`sqlite` は `Int` なので `number` のまま。**テストコードも `bigint` と `number` を混ぜない** (混ぜると `ts-jest` が `tsc` と同じ型エラーで落ちる)。HTTP の境界 (リクエスト・レスポンスの JSON) は `number` で、DB を直接触る所は `bigint`。
+
+| 場面 | 書き方 |
+|---|---|
+| seed で作った行の id を持つ変数 | `let userId: bigint;` / `const createdPostIds: bigint[] = [];`。`userId = user.id;` (`Number()` を通さない) |
+| レスポンスの id で DB を検証 | `await prisma.post.findUnique({ where: { id: BigInt(res.body.postId) } })` (`res.body.postId` は `number`)。cleanup 用の配列にも `BigInt(res.body.postId)` を入れる |
+| 値の比較 | `expect(row!.user_id).toBe(userId)` (`bigint` 同士)。リテラルは `expect(row!.id).toBe(1n)`。number と比べるなら `expect(Number(row!.id)).toBe(res.body.postId)`。`toBe` に `bigint` と `number` を混ぜると常に失敗する |
+| リクエストに id を入れる (JSON ボディ・パス・ヘッダ) | `{ id: Number(tag.id) }` / `` `/api/posts/${String(id)}` `` / `.set('x-session-user-id', String(userId))`。JSON ボディに `bigint` を入れると `JSON.stringify` が例外になる |
+| 1 行 seed の `data` / 複数条件の `where` | `bigint` を渡す (`post_id: p.id`)。リテラルは `1n`。`{ in: [a, b] }` の要素は `bigint` だけにそろえる |
+| 件数 (`count`) | `number`。`expect(await prisma.photo.count({ where: { post_id: id } })).toBe(2)` (`2n` にしない) |
+| 生 SQL (`$queryRaw`) の結果 | `COUNT(*)` や `BIGINT` 列は `bigint` で返る → `Number(rows[0].c)` で比べる |
+| 存在しない id を指定するテスト | `del(999999999)` のように `number` / 文字列でよい (HTTP の境界)。DB 側に渡すなら `999999999n` |
+
+TypeORM の `bigint` 列は `postgresql` で**文字列**になる (上の対応表・generate-code の `ENTITY.md`)。Prisma の `bigint` とは別なので、この節の書き方を TypeORM に持ち込まない。
 
 ### seed / truncate の helper (`helpers/db.ts`、P4 の Playwright シナリオ)
 

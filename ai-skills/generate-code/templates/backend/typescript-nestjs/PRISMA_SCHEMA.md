@@ -56,8 +56,8 @@ generate-tests (`ai-skills/generate-tests/SKILL.md` Step 6) が同じ規則で `
 | `TEXT` | `String` | `@db.Text` | mysql は `@db.Text` を付けないと VARCHAR(191) になる |
 | `INTEGER` | `Int` | | |
 | `SMALLINT` | `Int` | `@db.SmallInt` | |
-| `BIGINT` | `BigInt` (`sqlite` は **`Int`**) | | `BigInt` は JS の `bigint` で、JSON にできないので返すときは `Number()` か文字列に変換する。**sqlite で `BIGINT` の主キー (`autoincrement`) を `BigInt` にすると、自動採番されず `Null constraint violation on the fields: (id)` で INSERT が失敗する** (実機で確認)。SQLite の INTEGER は 64 bit なので、sqlite のときは `BIGINT` 列 (主キー・外部キー) をすべて `Int` にする。このときは Service も `bigint` ではなく `number` で書く |
-| `DECIMAL(p,s)` | `Decimal` | `@db.Decimal(p, s)` | `Prisma.Decimal` で返る |
+| `BIGINT` | `BigInt` (`sqlite` は **`Int`**) | | `provider` ごとに Service の型が変わる。**`postgresql` / `mysql` は `BigInt` で、Prisma は JS の `bigint` で返す** (`number` ではない)。Service・テストでの扱い (変数・戻り値は `bigint`、返す直前に `Number()`、入力は `BigInt()`) は `SERVICE.md` の「BigInt の列の扱い (postgresql / mysql)」。**sqlite は `BigInt` の主キー (`autoincrement`) だと自動採番されず `Null constraint violation on the fields: (id)` で INSERT が失敗する** (実機で確認)。SQLite の INTEGER は 64 bit なので、sqlite のときは `BIGINT` 列 (主キー・外部キー) をすべて `Int` にし、Service も `bigint` ではなく `number` で書く |
+| `DECIMAL(p,s)` | `Decimal` | `@db.Decimal(p, s)` | `Prisma.Decimal` で返る (**`number` ではない**。どの `provider` でも同じ。`SERVICE.md` の「BigInt の列の扱い」の末尾の表) |
 | `FLOAT` | `Float` | | |
 | `BOOLEAN` | `Boolean` | | |
 | `DATE` | `DateTime` | `@db.Date` | |

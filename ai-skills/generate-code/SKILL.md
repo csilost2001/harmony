@@ -280,6 +280,7 @@ NestJS の出力は、**ORM** と **DB の種類** の 2 つを `harmony.json` �
 | ORM | `techStack.backend.orm` (`prisma` / `typeorm`) | **`prisma`** (推奨・既定) | 生成ファイル (下の表)・Service の dbAccess / transactionScope・generate-tests の DB 検証・scaffold の `@orm` ブロック |
 | DB の種類 | `techStack.database.type` (`postgresql` / `mysql` / `sqlite` / `sqlserver` / `oracle`) | schema の既定値の **`postgresql`** | Prisma の `datasource.provider`・TypeORM の `type`・scaffold の `@db` ブロック (compose.yml の DB サービス / `DATABASE_URL` / README の DB の初期化) |
 | model / Entity 名 | `tables[].physicalName` | - | snake_case の語を PascalCase にし、最後の語を単数形にする (`posts` → `Post`)。generate-tests も同じ規則 |
+| `BIGINT` 列の型 (Prisma) | `techStack.database.type` | `postgresql` | `sqlite` は `Int` / `number`。`postgresql` / `mysql` は `BigInt` / `bigint` (Service の中は `bigint`、API の境界で `Number()` / `BigInt()`)。下の「postgresql / mysql のときの Prisma の注意」 |
 
 `orm` は `language: typescript` のときだけ意味がある (`java` / `spring-boot` では読まない)。
 
@@ -295,8 +296,14 @@ NestJS の出力は、**ORM** と **DB の種類** の 2 つを `harmony.json` �
 
 **sqlite のときの Prisma の注意** (実機で確認した。詳細は `PRISMA_SCHEMA.md`):
 
-- `BIGINT` の列は `BigInt` ではなく **`Int`** にする (`BigInt` の主キーは SQLite で自動採番されない)。Service の ID も `number` で書く
+- `BIGINT` の列は `BigInt` ではなく **`Int`** にする (`BigInt` の主キーは SQLite で自動採番されない)。Service の ID も `number` で書く (`postgresql` / `mysql` は逆で、下の「postgresql / mysql のときの Prisma の注意」)
 - `DATABASE_URL` の相対パスは `schema.prisma` のあるフォルダ (`prisma/`) からの相対。dev は `file:./dev.db` と書く (`file:./prisma/dev.db` だと `prisma/prisma/dev.db` になる)。本番用の `docker-compose.yml` は DB のファイルを schema.prisma と別のフォルダに置き、`file:../data/dev.db` (= `data/dev.db`。TypeORM と同じ場所) にする。名前付きボリュームを `prisma/` に載せると、イメージの `schema.prisma` が古いボリュームに隠れて、起動時の `db push` が古い schema を使うため。`prisma db push` は `data/` が無くても作る (実機で確認)
+
+**postgresql / mysql のときの Prisma の注意** (実機で確認した。詳細は `SERVICE.md` の「BigInt の列の扱い」):
+
+- `BIGINT` の列は `BigInt` にする (設計の型を `Int` に狭めない)。Prisma は `BigInt` を JS の **`bigint`** で返すので、Service の中では id の変数・戻り値・引数を **`bigint`** で書く。`let newPostId: number` と決め打ちすると `tsc` が `Type 'bigint' is not assignable to type 'number'` で落ち、`nest build` (Docker の build) が通らない
+- 変換は **API の境界**で行う: レスポンスに出す直前に `Number(x)` (id が `Number.MAX_SAFE_INTEGER` を超えうる列は `String(x)`)、パスの `:id`・クエリ・ヘッダの user id・DTO は `number` / `string` で受けて Prisma に渡す所で `BigInt(...)` (`BigInt('abc')` は例外なので先に 400 で検証)
+- `Decimal` は `Prisma.Decimal`、`Json` は `Prisma.JsonValue` で返り、`number` / `Record` ではない (これは sqlite でも同じ)
 
 DB の種類が `oracle` のとき、Prisma は対応していないので生成を止めて利用者に知らせる (`orm: typeorm` に変えれば生成できる)。`sqlserver` と `oracle` は、開発コンテナの雛形に DB サービスが無い (下の「DB ごとのブロック」の対象外) ので、`@db` ブロックは全部消え、`DATABASE_URL` (接続先) も compose.yml に書かれない。値が無くなった `environment:` / `volumes:` のキーは、規則 6 で行ごと消えるので、compose.yml は YAML として妥当なまま残る。そのときは、接続先 (`DATABASE_URL`) と DB のコンテナを利用者が決めて足す旨を最終レポートに書く。
 

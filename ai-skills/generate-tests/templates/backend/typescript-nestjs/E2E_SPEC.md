@@ -272,7 +272,7 @@ async function loginAs${HelperName}(app: INestApplication): Promise<string> {
 
 - `PrismaClient` のコンストラクタで `datasources.db.url` を明示しないと
   環境変数 `DATABASE_URL` の相対パスが解決されない場合がある (Spike L-6)
-- BigInt 型の ID を Prisma が返す場合は `Number(id)` に変換してから比較する
+- BigInt 型の ID を Prisma が返す場合 (`postgresql` / `mysql`) は、`bigint` の変数のまま `bigint` と比べるか、`Number(id)` に変換して `number` と比べる。`bigint` と `number` を混ぜない。レスポンスの id で DB を検証するときは `BigInt(res.body.postId)`、リクエストに入れるときは `Number(id)` / `String(id)`。詳細は `ai-skills/generate-tests/SKILL.md` の「Prisma の BigInt の id」(`${testRecordId}` のような変数も `postgresql` / `mysql` では `bigint` で持つ)
 - `afterEach` の cleanup は子テーブル (FK 参照先) → 親テーブルの順で実行する
 - `beforeEach` の seed データには `Date.now()` suffix を付けて slug/name の UNIQUE 衝突を避ける
 - `ValidationPipe({ transform: true })` が設定されていないと DTO 変換が効かず
