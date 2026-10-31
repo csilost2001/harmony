@@ -50,6 +50,16 @@ export function validateTechStackConstraints(
     }
   }
 
+  // 制約 3: backend.orm は TypeScript のときだけ指定できる (language が明示されているとき)
+  const orm = techStack.backend?.orm;
+  if (orm !== undefined && lang !== undefined && lang !== "typescript") {
+    violations.push({
+      field: "backend.orm",
+      message: `ORM "${orm}" は言語 "${lang}" では使えません。ORM の指定は TypeScript (nestjs / express) のときだけ有効です。言語を "typescript" にするか、ORM の指定を外してください。`,
+      severity: "error",
+    });
+  }
+
   const frontendLib = techStack.frontend?.library;
 
   // 制約 4: frontend.library: vue → frontend.framework は nuxt | vite | none のみ
