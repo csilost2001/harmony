@@ -62,8 +62,35 @@ describe.each(COMBOS)("雛形 %s の Playwright MCP (#1573)", (combo) => {
     // 既存の並び (Codex CLI の導入 → Claude の設定ファイル) は変えない
     expect(d.postCreateCommand.indexOf("npm install -g @openai/codex")).toBeGreaterThan(-1);
     expect(d.postCreateCommand.indexOf("npm install -g @openai/codex")).toBeLessThan(d.postCreateCommand.indexOf("playwright install"));
-    expect(d.postStartCommand.startsWith("npx -y -p @playwright/mcp@latest playwright install chromium || echo ")).toBe(true);
+    expect(d.postStartCommand.startsWith("(npx -y -p @playwright/mcp@latest playwright install chromium >/dev/null 2>&1 || echo ")).toBe(true); // 起動のたびの出力は捨て、失敗のときだけ案内 (#1579)
     expect(d.postStartCommand).not.toContain("--with-deps");
+  });
+
+  it("postStartCommand は playwright install の出力を捨て、失敗のときだけ案内を出す。postCreateCommand は出力を捨てない (#1579)", () => {
+    const d = devcontainer(combo);
+    const INSTALL = "npx -y -p @playwright/mcp@latest playwright install chromium";
+    // (cmd >/dev/null 2>&1 || echo '…'): 括弧でくくり、|| が失敗だけに効く
+    expect(d.postStartCommand).toMatch(/^\(npx -y -p @playwright\/mcp@latest playwright install chromium >\/dev\/null 2>&1 \|\| echo '[^']+'\)$/);
+    // postCreate は apt の進み具合が見えるよう、出力を捨てない (>/dev/null も 2>&1 も playwright install の前後に無い)
+    const pc = d.postCreateCommand.slice(d.postCreateCommand.indexOf("&& (npx -y -p @playwright"));
+    expect(pc).not.toContain("/dev/null");
+    expect(pc).not.toContain("2>&1");
+    // 実際に sh で、導入コマンドを成功 / 失敗するダミーに置き換えて動かす
+    const run = (dummy: string) => spawnSync("sh", ["-c", d.postStartCommand.replace(INSTALL, `{ ${dummy}; }`)], { encoding: "utf8" });
+    const ok = run("echo 'WARNING: npx playwright install without first installing' >&2; echo more; true");
+    expect(ok.status).toBe(0);
+    expect(ok.stdout + ok.stderr).toBe(""); // 成功なら WARNING も含めて何も出ない
+    const ng = run("echo 'WARNING' >&2; false");
+    expect(ng.status).toBe(0); // 失敗でも起動は止めない
+    expect(ng.stdout).toContain("Playwright のブラウザを入れられませんでした");
+    expect(ng.stdout).toContain(INSTALL); // 案内に、手で入れるコマンドが入っている
+    expect(ng.stdout + ng.stderr).not.toContain("WARNING"); // 失敗のときも、捨てた出力は出さない
+    expect(ng.stdout.trim().split("\n")).toHaveLength(1);
+  });
+  it("README の Playwright の節に、初回の postCreate の WARNING は無視してよい旨がある (#1579)", () => {
+    const readme = read(combo, "README.snippet.md");
+    expect(readme).toContain("npx playwright install without first installing your project's dependencies");
+    expect(readme).toContain("無視してよい");
   });
 
   it("compose.yml の dev に WSLg の X11 の volumes 2 行と DISPLAY を渡す", () => {

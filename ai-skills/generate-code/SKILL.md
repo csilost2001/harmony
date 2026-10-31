@@ -1862,7 +1862,7 @@ Step 0 で `--all` / `--workspace <wsId>` が指定された場合、Step 1〜6 
 
 **ブラウザの自動操作 (Playwright MCP、#1573)**: 4 組合せすべてに既定で入れる。AI が画面を開いて確かめる・E2E の確認に使う。
 - `.mcp.json`: `playwright` (headless。ふだん使う) と `playwright-headed` (人が「画面を見たい」と言ったときだけ)。どちらも `npx -y @playwright/mcp@latest --isolated --browser chromium --output-dir /workspaces/app/.tmp/playwright-mcp` (headless は `--headless` 付き)
-- `devcontainer.json`: `postCreateCommand` の末尾で `(npx -y -p @playwright/mcp@latest playwright install --with-deps chromium || echo '<入れられなかった旨の案内>')` (依存ライブラリは初回だけ。失敗しても `|| echo` で postCreate 全体を止めない)。`postStartCommand` で起動のたびに `playwright install chromium` (最新の MCP に合うブラウザを入れ直す。入っていれば数秒、失敗しても起動は止めない)
+- `devcontainer.json`: `postCreateCommand` の末尾で `(npx -y -p @playwright/mcp@latest playwright install --with-deps chromium || echo '<入れられなかった旨の案内>')` (依存ライブラリは初回だけ。失敗しても `|| echo` で postCreate 全体を止めない)。`postStartCommand` で起動のたびに `(playwright install chromium >/dev/null 2>&1 || echo '<案内>')` (最新の MCP に合うブラウザを入れ直す。入っていれば数秒で出力なし、失敗したときだけ案内を出す。起動は止めない。postStart の出力を捨てるのは、Playwright が依存を入れていないプロジェクトで毎回出す英語の WARNING 枠が、失敗に見えるため (#1579)。postCreate は apt の進み具合が見えるよう出力を残すので、**初回の postCreate のログだけ**にその WARNING が 1 回出る。無視してよい (ブラウザは入っている) と README にも書く)
 - `compose.yml`: `dev` に WSLg の X11 (`/tmp/.X11-unix`・`/mnt/wslg`・`DISPLAY=":0"`) を渡す。headed の窓を Windows のデスクトップに出すため (Harmony 本体の開発コンテナと同じ。Windows + WSL2 + Docker Desktop 前提)。プロジェクトのフォルダは WSL の中に置いて WSL から開く (Windows 側から開くと窓が出ない)。macOS / Linux native では 4 行 (volumes の `/tmp/.X11-unix` と `/mnt/wslg` の 2 行、`environment:` と `DISPLAY` の 2 行) を消す (Docker Desktop for Mac など共有されていないパスでは、消さないと起動しないおそれがある。Linux native では空のフォルダができるだけ)。`WAYLAND_DISPLAY` は設定しない
 - `.tmp/.gitignore`: スナップショット・スクリーンショットの出力先 `.tmp/playwright-mcp/` を git に入れない
 - generate-tests の E2E (`@playwright/test`) は別に `npx playwright install chromium` で自分の版のブラウザを入れる (MCP と版が違うと Chromium が 2 つ入る。そろえない)
@@ -1937,7 +1937,7 @@ VSCode + Dev Containers 拡張があれば、`git clone` 後に `Reopen in Conta
 
 ## ブラウザの自動操作 (Playwright MCP)
 
-AI が画面を開いて確かめられます。`.mcp.json` の `playwright` (headless、ふだん使う) と `playwright-headed` (人が「画面を見たい」と言ったときだけ。Windows のデスクトップに窓が開く。Windows + WSL2 + Docker Desktop 前提で、フォルダは WSL の中に置いて WSL から開く。macOS / Linux native は `.devcontainer/compose.yml` の WSLg の 4 行 (volumes の 2 行、`environment:` と `DISPLAY` の 2 行) を消して headless だけ使う) があります。Harmony の画面 `http://localhost:5179` も業務アプリもそのまま開けます。ブラウザは起動のたびに入れ直します。「ブラウザが無い」と出たら `npx -y -p @playwright/mcp@latest playwright install chromium`。スナップショット・スクリーンショットは `.tmp/playwright-mcp/` (git に入りません)。E2E (`@playwright/test`) のブラウザは別に `npx playwright install chromium` で入れます。自動のブラウザも Harmony の「開いている画面」に数えられます。
+AI が画面を開いて確かめられます。`.mcp.json` の `playwright` (headless、ふだん使う) と `playwright-headed` (人が「画面を見たい」と言ったときだけ。Windows のデスクトップに窓が開く。Windows + WSL2 + Docker Desktop 前提で、フォルダは WSL の中に置いて WSL から開く。macOS / Linux native は `.devcontainer/compose.yml` の WSLg の 4 行 (volumes の 2 行、`environment:` と `DISPLAY` の 2 行) を消して headless だけ使う) があります。Harmony の画面 `http://localhost:5179` も業務アプリもそのまま開けます。ブラウザは起動のたびに入れ直します（出力は出さず、失敗したときだけ案内が出ます）。初回の postCreate のログに出る WARNING (`npx playwright install without first installing your project's dependencies`) は無視してよい (ブラウザは入っている)。「ブラウザが無い」と出たら `npx -y -p @playwright/mcp@latest playwright install chromium`。スナップショット・スクリーンショットは `.tmp/playwright-mcp/` (git に入りません)。E2E (`@playwright/test`) のブラウザは別に `npx playwright install chromium` で入れます。自動のブラウザも Harmony の「開いている画面」に数えられます。
 
 ## 本番デプロイ (Docker)
 
