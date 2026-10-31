@@ -99,6 +99,9 @@ test.describe("技術スタック選定画面 (#826)", { tag: ["@regression"] },
     // 言語が Java のあいだは、ORM は選べず注意が出る
     await expect(page.locator('input[name="backend-orm"][value="prisma"]')).toBeDisabled();
     await expect(page.getByTestId("backend-orm-note")).toBeVisible();
+    // 選べないあいだは、どちらも選択済みに見えない (Prisma 選択中と誤解させない)
+    await expect(page.locator('input[name="backend-orm"][value="prisma"]')).not.toBeChecked();
+    await expect(page.locator('input[name="backend-orm"][value="typeorm"]')).not.toBeChecked();
     // TypeScript にすると選べる。未設定は Prisma 扱いで「推奨」が出る
     await page.locator('input[name="backend-language"][value="typescript"]').click();
     await page.locator('input[name="backend-framework"][value="nestjs"]').click();
@@ -119,5 +122,7 @@ test.describe("技術スタック選定画面 (#826)", { tag: ["@regression"] },
     await page.locator('input[name="backend-framework"][value="spring-boot"]').click();
     await expect(page.getByText("制約違反", { exact: true })).toHaveCount(0);
     await expect(page.getByText("ORM: typeorm")).toHaveCount(0);
+    // 言語を変えて外れたことが分かる
+    await expect(page.getByTestId("backend-orm-dropped")).toContainText("typeorm");
   });
 });

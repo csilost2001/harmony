@@ -5,7 +5,7 @@
  * 保存系の deep interaction は e2e (project/*) に委譲。
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { fireEvent, render, waitFor } from "@testing-library/react";
 
 const loadRawProjectMock = vi.fn();
@@ -21,6 +21,8 @@ vi.mock("../../utils/techStackConstraints", () => ({
 }));
 
 const { TechStackView } = await import("./TechStackView");
+const constraints = await import("../../utils/techStackConstraints");
+const realConstraints = await vi.importActual<typeof import("../../utils/techStackConstraints")>("../../utils/techStackConstraints");
 
 describe("TechStackView", () => {
   beforeEach(() => {
@@ -96,6 +98,9 @@ describe("プリセット", () => {
 
 describe("ORM の選択 (#1560)", () => {
   beforeEach(() => { saveTechStackMock.mockReset(); });
+  // 制約の判定は上でモックしている。判定そのものが絡む試験だけ、本物に差し替える
+  const useRealConstraints = () => vi.mocked(constraints.validateTechStackConstraints).mockImplementation(realConstraints.validateTechStackConstraints);
+  afterEach(() => { vi.mocked(constraints.validateTechStackConstraints).mockImplementation(() => []); });
   async function openBackend(techStack: unknown) {
     loadRawProjectMock.mockResolvedValue({ techStack });
     const utils = render(<TechStackView />);
@@ -129,6 +134,55 @@ describe("ORM の選択 (#1560)", () => {
   it("言語が未設定 (既定は Java) のときも ORM は選べない", async () => {
     const { container } = await openBackend({});
     expect(orm(container, "prisma").disabled).toBe(true);
+  });
+
+  it("選べないあいだ (Java・言語未設定) は、どの ORM も選択済みに見えない。「推奨」の印と、対象外の注意は残る (#1560 レビュー S8)", async () => {
+    for (const ts of [{}, { backend: { language: "java", framework: "spring-boot" } }]) {
+      const { container, findByTestId, unmount } = await openBackend(ts);
+      expect(orm(container, "prisma").checked).toBe(false);
+      expect(orm(container, "typeorm").checked).toBe(false);
+      expect((await findByTestId("radio-badge-prisma")).textContent).toBe("推奨");
+      expect((await findByTestId("backend-orm-note")).textContent).toContain("対象外");
+      expect(container.querySelector('[data-testid="backend-orm-leftover"]')).toBeNull();
+      unmount();
+    }
+  });
+
+  it("language: java のまま orm の指定が残っている (制約違反) と、「ORM の指定を外す」で外せて、違反が消える", async () => {
+    useRealConstraints();
+    const { container, findByTestId, queryByText } = await openBackend({ backend: { language: "java", framework: "spring-boot", orm: "prisma" } });
+    expect(orm(container, "prisma").checked).toBe(false);
+    expect((await findByTestId("backend-orm-leftover")).textContent).toContain("prisma");
+    expect(queryByText(/ORM "prisma" は言語 "java" では使えません/)).toBeTruthy();
+    fireEvent.click(await findByTestId("backend-orm-clear"));
+    await waitFor(() => expect(container.querySelector('[data-testid="backend-orm-leftover"]')).toBeNull());
+    expect(queryByText(/ORM "prisma" は言語 "java" では使えません/)).toBeNull();
+  });
+
+  it("language が未指定で orm だけ指定されていても、同じく違反と「外す」操作が出る (制約の判定は未指定を java として扱う)", async () => {
+    useRealConstraints();
+    const { findByTestId, queryByText } = await openBackend({ backend: { orm: "typeorm" } });
+    expect(await findByTestId("backend-orm-clear")).toBeTruthy();
+    expect(queryByText(/ORM "typeorm" は言語 "java" \(未指定のときの既定\) では使えません/)).toBeTruthy();
+  });
+
+  it("言語を変えて ORM の指定が外れたら、外れたことを知らせる。TypeScript に戻すと知らせは消える", async () => {
+    const { container, findByTestId, queryByTestId } = await openBackend({ backend: { language: "typescript", framework: "nestjs", orm: "typeorm" } });
+    expect(queryByTestId("backend-orm-dropped")).toBeNull();
+    fireEvent.click(container.querySelector('input[name="backend-language"][value="java"]') as HTMLInputElement);
+    expect((await findByTestId("backend-orm-dropped")).textContent).toContain("typeorm");
+    fireEvent.click(container.querySelector('input[name="backend-language"][value="typescript"]') as HTMLInputElement);
+    await waitFor(() => expect(queryByTestId("backend-orm-dropped")).toBeNull());
+    expect(orm(container, "prisma").checked).toBe(true); // 外れたので未設定 = Prisma 扱い
+  });
+
+  it("説明は「コード生成は NestJS が対象」。Express を選んでいるときだけ、NestJS だけが対象と注意する", async () => {
+    const nest = await openBackend({ backend: { language: "typescript", framework: "nestjs" } });
+    expect(nest.container.textContent).toContain("コード生成の対象は NestJS");
+    expect(nest.queryByTestId("backend-orm-express-note")).toBeNull();
+    nest.unmount();
+    const ex = await openBackend({ backend: { language: "typescript", framework: "express" } });
+    expect((await ex.findByTestId("backend-orm-express-note")).textContent).toContain("NestJS だけ");
   });
 
   it("TypeScript のプリセットを選ぶと、ORM は prisma で保存される", async () => {

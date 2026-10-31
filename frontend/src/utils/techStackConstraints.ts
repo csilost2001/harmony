@@ -50,12 +50,13 @@ export function validateTechStackConstraints(
     }
   }
 
-  // 制約 3: backend.orm は TypeScript のときだけ指定できる (language が明示されているとき)
+  // 制約 3: backend.orm は TypeScript のときだけ指定できる。language が未指定なら schema の既定の java として扱う (画面の表示と同じ)
   const orm = techStack.backend?.orm;
-  if (orm !== undefined && lang !== undefined && lang !== "typescript") {
+  const effectiveLang = lang ?? "java";
+  if (orm !== undefined && effectiveLang !== "typescript") {
     violations.push({
       field: "backend.orm",
-      message: `ORM "${orm}" は言語 "${lang}" では使えません。ORM の指定は TypeScript (nestjs / express) のときだけ有効です。言語を "typescript" にするか、ORM の指定を外してください。`,
+      message: `ORM "${orm}" は言語 "${effectiveLang}"${lang === undefined ? " (未指定のときの既定)" : ""} では使えません。ORM の指定は TypeScript (nestjs / express) のときだけ有効です。言語を "typescript" にするか、ORM の指定を外してください。`,
       severity: "error",
     });
   }

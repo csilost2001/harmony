@@ -148,6 +148,12 @@ function BackendPanel({
 }) {
   // 言語の表示上の既定は java。TypeScript 以外では ORM は選べない
   const ormDisabled = (value.language ?? "java") !== "typescript";
+  // 言語を変えて ORM の指定が外れたとき、外れたことを知らせる (TypeScript に戻す、または選び直すまで)
+  const [droppedOrm, setDroppedOrm] = useState<TechStackBackend["orm"] | null>(null);
+  const clearOrm = () => {
+    const { orm: _orm, ...rest } = value;
+    onChange(rest);
+  };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
       <div>
@@ -162,8 +168,10 @@ function BackendPanel({
             // ORM は TypeScript のときだけ意味を持つ。TypeScript 以外に変えたら、ORM の指定は外す
             if (language !== "typescript" && value.orm !== undefined) {
               const { orm: _orm, ...rest } = value;
+              setDroppedOrm(value.orm);
               onChange({ ...rest, language });
             } else {
+              if (language === "typescript") setDroppedOrm(null);
               onChange({ ...value, language });
             }
           }}
@@ -199,18 +207,39 @@ function BackendPanel({
         </h3>
         <RadioGroup
           name="backend-orm"
-          value={value.orm ?? "prisma"}
+          // 選べないあいだは、どれも選択済みに見せない (Prisma が選ばれているように見えると、Java のプロジェクトに Prisma と誤解する)
+          value={ormDisabled ? undefined : (value.orm ?? "prisma")}
           disabled={ormDisabled}
           onChange={(v) => onChange({ ...value, orm: v as TechStackBackend["orm"] })}
           options={[
-            { value: "prisma",  label: "Prisma",  badge: "推奨", description: "TypeScript (NestJS / Express)。未設定のときも Prisma として扱う" },
-            { value: "typeorm", label: "TypeORM", description: "TypeScript (NestJS / Express)" },
+            { value: "prisma",  label: "Prisma",  badge: "推奨", description: "TypeScript。コード生成の対象は NestJS。未設定のときも Prisma として扱う" },
+            { value: "typeorm", label: "TypeORM", description: "TypeScript。コード生成の対象は NestJS" },
           ]}
         />
         {ormDisabled && (
           <div data-testid="backend-orm-note" style={{ fontSize: 12, color: "var(--hm-fg-muted)", marginTop: 8 }}>
             <i className="bi bi-info-circle" style={{ marginRight: 4 }} />
-            ORM は、言語が TypeScript のときだけ選べます。
+            ORM は、言語が TypeScript のときだけ選べます (対象外)。
+          </div>
+        )}
+        {ormDisabled && value.orm !== undefined && (
+          <div data-testid="backend-orm-leftover" style={{ fontSize: 12, marginTop: 8, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ color: "var(--hm-fg-2)" }}>ORM の指定 ({value.orm}) が残っています。この言語では使えません。</span>
+            <button type="button" data-testid="backend-orm-clear" className="btn btn-sm btn-outline-secondary" onClick={clearOrm}>
+              ORM の指定を外す
+            </button>
+          </div>
+        )}
+        {ormDisabled && droppedOrm !== null && value.orm === undefined && (
+          <div data-testid="backend-orm-dropped" role="status" style={{ fontSize: 12, color: "var(--hm-fg-2)", marginTop: 8 }}>
+            <i className="bi bi-info-circle" style={{ marginRight: 4 }} />
+            言語を変えたので、ORM の指定 ({droppedOrm}) を外しました。TypeScript に戻したときは、もう一度選んでください。
+          </div>
+        )}
+        {!ormDisabled && value.framework === "express" && (
+          <div data-testid="backend-orm-express-note" style={{ fontSize: 12, color: "var(--hm-fg-muted)", marginTop: 8 }}>
+            <i className="bi bi-info-circle" style={{ marginRight: 4 }} />
+            Express では ORM を指定できますが、コード生成が対応しているのは NestJS だけです。
           </div>
         )}
       </div>

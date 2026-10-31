@@ -189,9 +189,15 @@ describe("validateTechStackConstraints", () => {
       expect(result[0].message).toContain("typescript");
     });
 
-    it("language が未指定なら orm だけでは違反にしない / orm 未指定なら違反にしない", () => {
-      expect(validateTechStackConstraints({ backend: { orm: "typeorm" } })).toHaveLength(0);
+    // 仕様変更に伴う追従 (#1560 レビュー S9): language が未指定のときは schema の既定 (java) として扱う。画面も未指定を Java として ORM を選べなくしている
+    it("language が未指定のときは既定の java として扱い、orm の指定は違反になる / orm 未指定なら違反にしない", () => {
+      const result = validateTechStackConstraints({ backend: { orm: "typeorm" } });
+      expect(result).toHaveLength(1);
+      expect(result[0].field).toBe("backend.orm");
+      expect(result[0].message).toContain("java");
+      expect(result[0].message).toContain("未指定");
       expect(validateTechStackConstraints({ backend: { language: "go", framework: "gin" } })).toHaveLength(0);
+      expect(validateTechStackConstraints({ backend: {} })).toHaveLength(0);
     });
   });
 
