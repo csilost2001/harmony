@@ -100,6 +100,11 @@ describe(`${HTTP_ROUTE_METHOD} ${HTTP_ROUTE_PATH} (${ACTION_NAME} E2E)`, () => {
 
   // アプリ起動は全テスト共通 (beforeAll)
   beforeAll(async () => {
+    // DATABASE_URL (sqlite): アプリの PrismaService も schema.prisma の env("DATABASE_URL") を読む。
+    // 検証用 PrismaClient にだけ url を渡すと、アプリ側が "Environment variable not found" で起動に失敗する。
+    // そのため AppModule を compile する前に、環境変数そのものに入れる (Spike L-6: 絶対パス)
+    process.env.DATABASE_URL ??= `file:${require('path').resolve(__dirname, '../prisma/dev.db')}`;
+
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -114,13 +119,10 @@ describe(`${HTTP_ROUTE_METHOD} ${HTTP_ROUTE_PATH} (${ACTION_NAME} E2E)`, () => {
     );
     await app.init();
 
-    // テスト専用 Prisma client (同一 DB ファイルを参照)
+    // テスト専用 Prisma client (同一 DB ファイルを参照。上で環境変数に入れた DATABASE_URL を使う)
     // __dirname は test/ なので ../prisma/dev.db で apps/api/prisma/dev.db を指す
-    // Spike L-6: DATABASE_URL は絶対パス対応が必要
-    const dbPath = process.env.DATABASE_URL
-      || `file:${require('path').resolve(__dirname, '../prisma/dev.db')}`;
     prisma = new PrismaClient({
-      datasources: { db: { url: dbPath } },
+      datasources: { db: { url: process.env.DATABASE_URL } },
     });
 
     // ${ADMIN_ROLE} user の JWT 取得
