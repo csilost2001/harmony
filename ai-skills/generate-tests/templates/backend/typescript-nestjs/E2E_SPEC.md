@@ -3,6 +3,8 @@
 `/generate-tests` スキルが生成するテストファイル (`<flowName>.e2e-spec.ts`) の
 構造規約とコードテンプレートを定義する。
 
+> **ORM について**: 本ファイルの DB 検証・seed・cleanup の例 (`prisma.…` / `PrismaClient`) は **Prisma の書き方 (`techStack.backend.orm` が `prisma` または省略のとき、既定)**。`orm: typeorm` のときは、`ai-skills/generate-tests/SKILL.md` の「DB 検証の ORM 別の書き方」の準備・対応表で `DataSource` / `Repository` に読み替える。1 つのテストファイルに 2 つの ORM を混ぜない。DB 接続の `file:` の補いは `techStack.database.type=sqlite` のときだけ。
+
 ## 1. ファイル先頭 header (D-1 / D-4 anchor)
 
 ```typescript
@@ -72,6 +74,11 @@ import { PrismaClient } from '@prisma/client';
 
 ```typescript
 beforeAll(async () => {
+  // DATABASE_URL (sqlite のとき): アプリの PrismaService も schema.prisma の env("DATABASE_URL") を読む。
+  // 検証用の PrismaClient にだけ url を渡すと、アプリ側が "Environment variable not found" で起動に失敗する。
+  // そのため AppModule を compile する前に、環境変数そのものに入れる (Spike L-6: 絶対パス)
+  process.env.DATABASE_URL ??= `file:${require('path').resolve(__dirname, '../prisma/dev.db')}`;
+
   // NestJS TestingModule の作成と起動
   const moduleFixture: TestingModule = await Test.createTestingModule({
     imports: [AppModule],
@@ -89,12 +96,9 @@ beforeAll(async () => {
   );
   await app.init();
 
-  // テスト専用 Prisma client (Spike L-6: DATABASE_URL は絶対パス対応)
-  // DATABASE_URL env が設定されていれば優先、なければ相対パスを resolve して絶対パス化
-  const dbPath = process.env.DATABASE_URL
-    || `file:${require('path').resolve(__dirname, '../prisma/dev.db')}`;
+  // 検証用 Prisma client (アプリと同じ DB。上で環境変数に入れた DATABASE_URL を使う)
   prisma = new PrismaClient({
-    datasources: { db: { url: dbPath } },
+    datasources: { db: { url: process.env.DATABASE_URL } },
   });
 
   // JWT 取得 (httpRoute.auth="required" の場合)
@@ -268,7 +272,7 @@ async function loginAs${HelperName}(app: INestApplication): Promise<string> {
 
 - `PrismaClient` のコンストラクタで `datasources.db.url` を明示しないと
   環境変数 `DATABASE_URL` の相対パスが解決されない場合がある (Spike L-6)
-- BigInt 型の ID を Prisma が返す場合は `Number(id)` に変換してから比較する
+- BigInt 型の ID を Prisma が返す場合 (`postgresql` / `mysql`) は、`bigint` の変数のまま `bigint` と比べるか、`Number(id)` に変換して `number` と比べる。`bigint` と `number` を混ぜない。レスポンスの id で DB を検証するときは `BigInt(res.body.postId)`、リクエストに入れるときは `Number(id)` / `String(id)`。詳細は `ai-skills/generate-tests/SKILL.md` の「Prisma の BigInt の id」(`${testRecordId}` のような変数も `postgresql` / `mysql` では `bigint` で持つ)
 - `afterEach` の cleanup は子テーブル (FK 参照先) → 親テーブルの順で実行する
 - `beforeEach` の seed データには `Date.now()` suffix を付けて slug/name の UNIQUE 衝突を避ける
 - `ValidationPipe({ transform: true })` が設定されていないと DTO 変換が効かず

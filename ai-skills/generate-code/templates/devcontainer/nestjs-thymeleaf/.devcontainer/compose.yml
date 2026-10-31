@@ -1,3 +1,7 @@
+# このファイルは /generate-code が techStack (database.type / backend.orm) に合わせて組み立てる。
+# `# @db <種別>` / `# @orm <名前>` から `# @end-db` / `# @end-orm` までは、techStack に合うブロックだけ残す
+# (規則: ai-skills/generate-code/SKILL.md「DB と ORM の読み方」)。
+#
 # 開発コンテナ (dev) と Harmony (harmony) を同居させる構成。
 #
 # - dev     : AI CLI・ビルド・テストを動かす。プロジェクトのフォルダを /workspaces/app に置く
@@ -17,6 +21,7 @@ services:
       # 下の WSLg の 4 行 (volumes の /tmp/.X11-unix と /mnt/wslg の 2 行、その下の environment: と DISPLAY の 2 行) は、ブラウザの自動操作 (Playwright MCP の playwright-headed) の窓を Windows のデスクトップに出すため。
       # Windows + WSL2 + Docker Desktop 前提 (WSLg の X11。Harmony 本体の開発コンテナと同じ)。
       # macOS / Linux native ではこの 4 行 (volumes の /tmp/.X11-unix と /mnt/wslg の 2 行、environment: と DISPLAY の 2 行) を消す。environment: のキー行だけ残すと値の無い mapping になるので、必ず DISPLAY の行と一緒に消す。
+      # ただし NestJS の雛形は、environment: に DATABASE_URL など他の変数も続く (DB の種類による)。そのときは environment: のキー行を残し、DISPLAY の行だけ消す。
       # 消す理由: 共有されていないパスを渡せない環境 (Docker Desktop for Mac など) ではコンテナが起動しないおそれがある。Linux native では、ホストに空の /mnt/wslg ができるだけ。
       # headless の playwright は、この 4 行が無くても動く。WAYLAND_DISPLAY は設定しない。
       # Dev Containers 拡張の Wayland socket の mount エラーが出る環境では、VS Code の user settings に dev.containers.mountWaylandSocket=false を入れる。
@@ -24,6 +29,63 @@ services:
       - /mnt/wslg:/mnt/wslg
     environment:
       DISPLAY: ":0"
+      # @db postgresql
+      DATABASE_URL: postgresql://app:app@db:5432/app
+      # @end-db
+      # @db mysql
+      DATABASE_URL: mysql://app:app@db:3306/app
+      # @end-db
+      # @db sqlite
+      # @orm prisma
+      DATABASE_URL: file:./dev.db
+      # @end-orm
+      # @orm typeorm
+      DATABASE_URL: file:./data/dev.db
+      # @end-orm
+      # @end-db
+      # @orm typeorm
+      # 開発中は起動時に表を作る (TypeORM の synchronize)
+      DB_SYNCHRONIZE: "true"
+      # @end-orm
+    # @db postgresql,mysql
+    depends_on:
+      db:
+        condition: service_healthy
+    # @end-db
+
+  # @db postgresql
+  # 開発用の DB。dev から `db:5432` で届く。開発コンテナ内に docker CLI は無いので、DB はここで一緒に起動する
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: app
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  # @end-db
+  # @db mysql
+  # 開発用の DB。dev から `db:3306` で届く。開発コンテナ内に docker CLI は無いので、DB はここで一緒に起動する
+  db:
+    image: mysql:8
+    environment:
+      MYSQL_DATABASE: app
+      MYSQL_USER: app
+      MYSQL_PASSWORD: app
+      MYSQL_ROOT_PASSWORD: app
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uapp -papp"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  # @end-db
 
   harmony:
     # Harmony の版は、この行の既定値 (:local の部分) を公開済みの版 (例: ghcr.io/csilost2001/harmony:1.0) に書き換えて固定する。
@@ -44,3 +106,6 @@ services:
 
 volumes:
   harmony-state:
+  # @db postgresql,mysql
+  db-data:
+  # @end-db

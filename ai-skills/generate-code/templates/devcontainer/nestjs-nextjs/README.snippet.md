@@ -6,11 +6,34 @@ VSCode + Dev Containers 拡張があれば、`git clone` 後に `Reopen in Conta
 
 1. 前提: Docker Desktop + VSCode + Dev Containers 拡張 (`ms-vscode-remote.remote-containers`)
 2. `code .` → 右下のポップアップで「Reopen in Container」をクリック
+<!-- @orm prisma -->
 3. 初回は 6-12 分 (features install + npm install + prisma generate + ブラウザ (Chromium))
+<!-- @end-orm -->
+<!-- @orm typeorm -->
+3. 初回は 6-12 分 (features install + npm install + ブラウザ (Chromium))。ORM は TypeORM。Entity から実行時に表を作るので、コード生成の手順は要らない
+<!-- @end-orm -->
+<!-- @orm prisma -->
+<!-- @db sqlite -->
 4. DB 初期化 (Prisma + SQLite、dev 用):
    ```bash
-   DATABASE_URL=file:./prisma/dev.db npx prisma db push
+   DATABASE_URL=file:./dev.db npx prisma db push
    ```
+<!-- @end-db -->
+<!-- @db postgresql,mysql -->
+4. DB 初期化 (Prisma、dev 用)。DB は開発コンテナと一緒に `db` サービス (`.devcontainer/compose.yml`) として起動していて、`DATABASE_URL` も開発コンテナに設定済み:
+   ```bash
+   npx prisma db push
+   ```
+<!-- @end-db -->
+<!-- @end-orm -->
+<!-- @orm typeorm -->
+<!-- @db sqlite -->
+4. DB 初期化 (TypeORM + SQLite、dev 用): コマンドは要らない。バックエンドの起動時に、表が無ければ作る (`DB_SYNCHRONIZE=true`。DB のファイルは `data/dev.db`)
+<!-- @end-db -->
+<!-- @db postgresql,mysql -->
+4. DB 初期化 (TypeORM、dev 用): コマンドは要らない。DB は開発コンテナと一緒に `db` サービス (`.devcontainer/compose.yml`) として起動していて、`DATABASE_URL` も開発コンテナに設定済み。バックエンドの起動時に、表が無ければ作る (`DB_SYNCHRONIZE=true`)
+<!-- @end-db -->
+<!-- @end-orm -->
 5. ターミナル 2 つで起動:
    ```bash
    # ターミナル 1: Backend (NestJS、port 3001)
@@ -21,7 +44,20 @@ VSCode + Dev Containers 拡張があれば、`git clone` 後に `Reopen in Conta
    ```
 6. ブラウザで http://localhost:3000 (Next.js)、Backend API は http://localhost:3001
 
-**DB**: dev のデフォルトは SQLite (`file:./prisma/dev.db`、Prisma 経由)。Dev Container 内に docker CLI は入っていないため、Postgres を試す場合は **ホスト側ターミナル**で `docker compose up` (ただし production 用、Prisma schema を `postgresql` に変える必要あり)。
+<!-- @db sqlite -->
+<!-- @orm prisma -->
+**DB**: SQLite (Prisma 経由。dev は `file:./dev.db` = `prisma/dev.db`、`docker compose up` は `file:../data/dev.db` = `data/dev.db` で `app-data` ボリュームに残る。どちらも `DATABASE_URL` の相対パスは `prisma/schema.prisma` のあるフォルダから)。DB のファイルは git に入れない (`/generate-code` が `.gitignore` に `prisma/dev.db*` と `data/` を足す)。PostgreSQL / MySQL に変えるときは、`techStack.database` を変えて `/generate-code` をやり直し、雛形の更新として取り込む。
+<!-- @end-orm -->
+<!-- @orm typeorm -->
+**DB**: SQLite (`file:./data/dev.db`、TypeORM 経由。`docker compose up` のときは `app-data` ボリュームに残る)。DB のファイルは git に入れない (`/generate-code` が `.gitignore` に `data/` を足す)。PostgreSQL / MySQL に変えるときは、`techStack.database` を変えて `/generate-code` をやり直し、雛形の更新として取り込む。
+<!-- @end-orm -->
+<!-- @end-db -->
+<!-- @db postgresql -->
+**DB**: PostgreSQL 15。dev は `.devcontainer/compose.yml` の `db` サービス (`postgresql://app:app@db:5432/app`)、`docker compose up --build` は `docker-compose.yml` の `db` サービス (healthcheck が通ってから `app` が起動)。ORM は `techStack.backend.orm` に従う。
+<!-- @end-db -->
+<!-- @db mysql -->
+**DB**: MySQL 8。dev は `.devcontainer/compose.yml` の `db` サービス (`mysql://app:app@db:3306/app`)、`docker compose up --build` は `docker-compose.yml` の `db` サービス (healthcheck が通ってから `app` が起動)。ORM は `techStack.backend.orm` に従う。
+<!-- @end-db -->
 
 詳細: [`.devcontainer/devcontainer.json`](.devcontainer/devcontainer.json)
 
@@ -45,7 +81,7 @@ AI が画面を開いて、見た目や動きを確かめられます (E2E の�
 | `playwright-headed` | 人が「画面を見たい」と言ったときだけ。Windows のデスクトップにブラウザの窓が開く |
 
 - **開ける画面**: Harmony の画面 `http://localhost:5179` も、業務アプリ (http://localhost:3000 (Next.js) や Backend API の http://localhost:3001) も、そのまま開ける (どれも開発コンテナの `localhost`)
-- **`playwright-headed` の前提**: Windows + WSL2 + Docker Desktop。窓を出すために `.devcontainer/compose.yml` が WSLg の X11 (`/tmp/.X11-unix`・`/mnt/wslg`・`DISPLAY`) を渡している。プロジェクトのフォルダを WSL の中に置き、WSL から開く (Windows 側のフォルダから開くと窓が出ない)。macOS / Linux native では `compose.yml` の `dev` の WSLg の 4 行 (volumes の `/tmp/.X11-unix` と `/mnt/wslg` の 2 行、`environment:` と `DISPLAY` の 2 行) を消す (Docker Desktop for Mac など共有されていないパスを渡せない環境では、消さないと起動しないおそれがある。Linux native ではホストに空のフォルダができるだけ)。headed は使えず、`playwright` だけ使う
+- **`playwright-headed` の前提**: Windows + WSL2 + Docker Desktop。窓を出すために `.devcontainer/compose.yml` が WSLg の X11 (`/tmp/.X11-unix`・`/mnt/wslg`・`DISPLAY`) を渡している。プロジェクトのフォルダを WSL の中に置き、WSL から開く (Windows 側のフォルダから開くと窓が出ない)。macOS / Linux native では `compose.yml` の `dev` の WSLg の 4 行 (volumes の `/tmp/.X11-unix` と `/mnt/wslg` の 2 行、`environment:` と `DISPLAY` の 2 行) を消す (Docker Desktop for Mac など共有されていないパスを渡せない環境では、消さないと起動しないおそれがある。Linux native ではホストに空のフォルダができるだけ) (この雛形は `environment:` に `DATABASE_URL` などが続くことがある。そのときは `environment:` の行を残し、`DISPLAY` の行だけ消す)。headed は使えず、`playwright` だけ使う
 - **Wayland の mount エラー**が出たら、VS Code の user settings に `dev.containers.mountWaylandSocket=false` を入れる
 - **版とブラウザ**: Playwright MCP は `@latest`。コンテナを起動するたびに、その MCP に合う Chromium を入れ直す (入っていれば数秒で、出力は出さない。ネットが無くて失敗したときだけ、案内を 1 行出す。起動は止まらない)。初回の postCreate のログに出る WARNING (`npx playwright install without first installing your project's dependencies`) は無視してよい (ブラウザは入っている)。それでも「ブラウザが無い」と出たら `npx -y -p @playwright/mcp@latest playwright install chromium`
 - **保存先**: スナップショット・スクリーンショットは `.tmp/playwright-mcp/` に出る。`.tmp/.gitignore` があるので git には入らない (VS Code のエクスプローラーでは開ける)。ファイル名を指定して保存させるときは、`.tmp/playwright-mcp/` の下を指定する (名前だけだと MCP を起動した場所 (Claude Code ならふつうはプロジェクトのルート) に出て git に入る)
@@ -77,4 +113,17 @@ WSL2 host 側 `~/.claude/` (WSL2 native claude 用) には触りません — `~
 docker compose up --build
 ```
 
-`Dockerfile` は本番用 multi-stage build (NestJS + Next.js)、dev は `.devcontainer/` を参照。production 時に Postgres へ切り替える場合は `docker-compose.yml` のコメントアウト行を有効化し、Prisma schema の provider を変更すること。
+`Dockerfile` は本番用 multi-stage build (NestJS + Next.js)、dev は `.devcontainer/` を参照。
+
+<!-- @db sqlite -->
+本番の DB を PostgreSQL / MySQL に切り替えるときは、`techStack.database` を変えて `/generate-code` をやり直す (`docker-compose.yml` に `db` サービスが入る。`DATABASE_URL` と ORM 側の設定も合わせて変わる)。
+<!-- @end-db -->
+<!-- @db postgresql,mysql -->
+`docker-compose.yml` は `db` サービス (healthcheck つき) と `app` を起動する。`DATABASE_URL` は環境変数で上書きできる (既定は compose の中の `db` を指す)。
+<!-- @end-db -->
+<!-- @orm prisma -->
+`app` の起動時に `prisma db push` で表を作る。`prisma` は `dependencies` に入れておくこと (本番イメージの `npm ci --omit=dev` でも使うため)。
+<!-- @end-orm -->
+<!-- @orm typeorm -->
+`DB_SYNCHRONIZE=true` で、`app` の起動時に表を作る (初回の表づくりのため。運用が始まったらマイグレーションに切り替えて外す)。
+<!-- @end-orm -->

@@ -26,7 +26,7 @@ disable-model-invocation: true
 
   設計判断 (D-1〜D-7、#870 で確定):
     D-1: 各 it() に "Spec: ProcessFlow/Screen <id> <step-id|item-id>" コメントでトレース anchor
-    D-2: tableId → Prisma model 名の解決は harmony/tables/<id>.json の physicalName を参照
+    D-2: tableId → Prisma model 名 (orm: typeorm では Entity 名。同じ規則) の解決は harmony/tables/<id>.json の physicalName を参照
     D-3: transactionScope step 配下に故意失敗 TX rollback テストを生成 (#1221 で txBoundary 廃止、transactionScope に一本化)
     D-4: section コメント anchor ベースで spec 由来 section のみ overwrite、人手 assertion section は保護
     D-5: runIf 条件分岐は true / false 両方のテストを生成 (Screen の showIf も同様)
@@ -34,7 +34,7 @@ disable-model-invocation: true
            NestJS backend → jest (@nestjs/testing + supertest)
            React/Next frontend → vitest + @testing-library/react
            E2E → Playwright (P4 以降)
-    D-7: SQLite では --runInBand 必須 (backend のみ)、Postgres/MySQL なら並列可
+    D-7: SQLite では --runInBand 必須 (backend のみ)、Postgres/MySQL なら並列可 (DB の種類は techStack.database.type)
 
   カバーするスコープ:
 
@@ -45,7 +45,7 @@ disable-model-invocation: true
       - context.catalogs.errors → httpStatus assertion
 
     P2 (backend DB 副作用 + TX — #871):
-      - DB 副作用 (dbAccess INSERT/UPDATE/DELETE) の Prisma SELECT 検証
+      - DB 副作用 (dbAccess INSERT/UPDATE/DELETE) の SELECT 検証 (techStack.backend.orm が prisma / 省略なら Prisma、typeorm なら TypeORM の DataSource / Repository)
       - loop collectionSource の配列 N 件 assertion
       - transactionScope 故意失敗テスト (TX 未実装の場合は文書化テストとして生成、#1221 で旧 txBoundary は廃止)
       - affectedRowsCheck.onViolation=throw/log テスト
@@ -65,7 +65,7 @@ disable-model-invocation: true
       - screenTransitions[] / events.handlerFlowId / path-based の 3段 fallback 遷移導出
       - 起動形式: /generate-tests --scenario <from> <to> または --scenario-name "<name>" <id1>...<idN>
       - auth helper (loginAs API 経由 / loginViaUI UI 経由)
-      - DB seed/truncate helper (Prisma)
+      - DB seed/truncate helper (orm に従う。Prisma が既定、typeorm なら DataSource)
       - playwright.config.ts 雛形 (webServer はコメントアウト — AI は dev server を spawn しない)
 
     P5 (AI flow mock + 実 API 切替 — #874 / Phase 2-B + 2-C):
@@ -225,11 +225,11 @@ ProcessFlow に登場する tableId を収集し、各テーブルの physicalNa
 
 ```
 テーブル index 構築手順:
-1. ProcessFlow JSON 全体から tableId 値をすべて収集 (steps の lineage.writes / lineage.reads)
+1. ProcessFlow JSON 全体から tableId 値をすべて収集 (steps の lineage.writes / lineage.reads)。generate-code が作る model / Entity の範囲は「lineage の表 + その FK の参照先 + このテストが seed / 検証 / truncate で触る表」なので、**テストが触る表は、flow の lineage に出なくても model / Entity が要る** (欠けていれば、generate-code 側の `schema.prisma` / `entities` に追記する旨を報告する)
 2. 各 tableId について harmony/tables/<tableId>.json を Read
 3. physicalName を取得して map 化: { "<tableId>": "<physicalName>" }
    例: { "post-table": "posts", "photo-table": "photos" }
-4. Prisma model 名は physicalName の snake_case → PascalCase 変換
+4. Prisma model 名 (`orm: typeorm` では Entity クラス名。同じ規則) は physicalName の snake_case → PascalCase 変換で、最後の語を単数形にする (generate-code の PRISMA_SCHEMA.md と同じ規則。Step 6)
    例: "posts" → Post, "post_tags" → PostTag, "photos" → Photo
 ```
 
@@ -252,6 +252,8 @@ if techStack.backend.language !== "typescript":
    現在の techStack.backend.language: "<value>"。」と報告して中止
 ```
 
+`techStack.backend.orm` は `prisma` / `typeorm` のどちらか (省略時 `prisma`)。それ以外の値なら「未対応の ORM です」と報告して中止する。DB の検証・seed・truncate は「DB 検証の ORM 別の書き方」に従って ORM ごとに書く。
+
 → 検証 OK → Step 3 (backend E2E test 生成) へ
 
 ### 2-B. Screen モード (frontend component test)
@@ -269,6 +271,144 @@ if techStack.frontend.library !== "react":
 ```
 
 → 検証 OK → Step P3-1 (Screen component test 生成) へ
+
+---
+
+## DB 検証の ORM 別の書き方 (`techStack.backend.orm`)
+
+backend E2E (Step 3) と Playwright シナリオ (P4) の DB の検証・seed・truncate は、**生成されたアプリの ORM に合わせて書く**。生成物に 2 つの ORM を混ぜない (`orm: prisma` のテストに `typeorm` / `DataSource` を出さない。`orm: typeorm` のテストに `@prisma/client` / `PrismaClient` を出さない)。
+
+| 決めるもの | 読む場所 | 省略時 |
+|---|---|---|
+| ORM | `techStack.backend.orm` (`prisma` / `typeorm`) | **`prisma`** (generate-code と同じ) |
+| DB の種類 | `techStack.database.type` (`postgresql` / `mysql` / `sqlite`) | `postgresql` |
+
+本ファイルの以降の例 (Step 3 以降の `prisma.<Model>.…`) は **Prisma の書き方 (既定)**。`orm: typeorm` のときは、下の対応表と準備の書き方に読み替える。読み替えの結果、`prisma` の語がテストに 1 つも残らないこと。
+
+### model / Entity / フィールドの名前
+
+| | Prisma (既定) | TypeORM (`orm: typeorm`) |
+|---|---|---|
+| model / Entity 名 | physicalName の snake_case → PascalCase (最後の語を単数形): `posts` → `Post` | 同じ (`Post`)。import 元は `entity/<physicalName の kebab-case>.entity.ts` |
+| テストでの入口 | `prisma.post` (先頭を小文字) | `dataSource.getRepository(Post)` |
+| フィールド名 | `columns[].physicalName` のまま (snake_case): `row.user_id` | camelCase: `row.userId` (DB のカラム名は `@Column({ name })` で物理名) |
+
+生成されたアプリが既にあるときは、`prisma/schema.prisma` の `model` 名 / `entity/*.entity.ts` のクラス名と**照合**し、違えばアプリ側の名前に合わせる (アプリが正)。
+
+### DB 接続の準備 (3-1 / 3-2 の `beforeAll`)
+
+接続先は `DATABASE_URL`。DB の種類で書き方が変わる:
+
+| `techStack.database.type` | `DATABASE_URL` | 備考 |
+|---|---|---|
+| `sqlite` | 未設定なら絶対パスの `file:` を補う (Spike L-6)。Prisma: `file:${path.resolve(__dirname, '../prisma/dev.db')}`、TypeORM: `file:${path.resolve(__dirname, '../data/dev.db')}` | jest は `--runInBand` 必須 (D-7) |
+| `postgresql` / `mysql` | 補わない。未設定ならテストを `throw new Error('DATABASE_URL が未設定です (開発コンテナの環境変数に設定済みのはず)')` で止める | 並列実行できる。テストが触る行は `createdIds` で自分の分だけ掃除する |
+
+**Prisma (既定)**:
+
+```typescript
+import { PrismaClient } from '@prisma/client';
+
+let prisma: PrismaClient;
+// beforeAll (AppModule を compile する前に。アプリの PrismaService も schema.prisma の env("DATABASE_URL") を読むので、環境変数そのものに入れる):
+process.env.DATABASE_URL ??= `file:${require('path').resolve(__dirname, '../prisma/dev.db')}`;  // sqlite のとき。他の DB は書かず、未設定なら throw
+// ... Test.createTestingModule({ imports: [AppModule] }).compile() / app.init() のあと:
+prisma = new PrismaClient({ datasources: { db: { url: process.env.DATABASE_URL } } });   // 検証用の接続 (アプリと同じ DB)
+// afterAll:
+await prisma.$disconnect();
+```
+
+テスト専用の PrismaClient にだけ `datasources.url` を渡して環境変数を設定しないと、アプリ側の `PrismaService` (`$connect()`) が `Environment variable not found: DATABASE_URL` で起動に失敗する (実機で確認)。
+
+**TypeORM (`orm: typeorm` のときだけ)**:
+
+```typescript
+import { DataSource } from 'typeorm';
+import { Post } from '../entity/posts.entity';   // 検証に使う Entity だけ import
+
+let dataSource: DataSource;
+// beforeAll (AppModule を compile する前に):
+process.env.DATABASE_URL ??= `file:${require('path').resolve(__dirname, '../data/dev.db')}`;  // sqlite のとき。他の DB は書かず、未設定なら throw
+// ... Test.createTestingModule({ imports: [AppModule] }).compile() / app.init() のあと:
+dataSource = app.get(DataSource);   // アプリが使っている DataSource をそのまま使う (テスト専用の接続を別に作らない)
+// afterAll: DataSource は app.close() が閉じる。テスト側で destroy() しない
+```
+
+TypeORM では、アプリの DataSource に `synchronize` を効かせて表を作る必要がある。`DB_SYNCHRONIZE=true` を環境に渡して jest を起動する (開発コンテナは設定済み。渡さずに新しい DB で動かすと `no such table` で全件落ちる。実機で確認)。
+
+- `process.env.DATABASE_URL ??= …` は AppModule の `compile()` より前に書く。generate-code の雛形は `TypeOrmModule.forRootAsync` なので、factory が compile 時に環境変数を読む (`forRoot(…)` だと `app.module.ts` を import した時点で読んでしまい、あとから入れても効かない)
+- テストが seed / 検証する表の Entity は、アプリの `typeorm.config.ts` の `entities` に入っている必要がある (業務 Module の `forFeature` に無い表、たとえば `users` も、`entities` に入っていれば使える。入っていなければ `No metadata for "User" was found`)。足りなければ生成したアプリ側 (`entities`) に足す
+- 主キーの重複で TX を失敗させるテスト (transactionScope の rollback) は、アプリ側の INSERT が `insert()` でないと失敗しない (`save()` は UPDATE にする)。落ちたら、テストではなく Service の INSERT を直す (generate-code の `SERVICE.md`)
+
+### 検証の書き方の対応表
+
+| やること | Prisma (既定) | TypeORM (`orm: typeorm`) |
+|---|---|---|
+| 主キーで 1 行 | `await prisma.post.findUnique({ where: { id } })` | `await dataSource.getRepository(Post).findOneBy({ id })` |
+| 条件で複数行 | `await prisma.post.findMany({ where: { ... } })` | `await dataSource.getRepository(Post).find({ where: { ... } })` |
+| 条件で 1 行 | `await prisma.post.findFirst({ where: { ... } })` | `await dataSource.getRepository(Post).findOne({ where: { ... } })` |
+| 件数 | `await prisma.post.count({ where: { ... } })` | `await dataSource.getRepository(Post).count({ where: { ... } })` |
+| seed (1 行作る) | `await prisma.user.create({ data: { login_id: 'u1', ... } })` | `const repo = dataSource.getRepository(User); await repo.save(repo.create({ loginId: 'u1', ... }))` |
+| seed (あれば更新) | `await prisma.user.upsert({ where, update, create })` | `await dataSource.getRepository(User).upsert({ ... }, ['loginId'])` |
+| 条件で消す | `await prisma.post.deleteMany({ where: { id } })` | `await dataSource.getRepository(Post).delete({ id })` (ID の配列 `delete([a, b])` も可。**空配列 `[]` は `Empty criteria` で落ちる**ので、空かもしれないときは `if (ids.length > 0)` で囲む) |
+| 全部消す | `await prisma.post.deleteMany({})` | `await dataSource.getRepository(Post).createQueryBuilder().delete().execute()` (`delete({})` は空条件でエラーになる) |
+| フィールド | `row.user_id` | `row.userId` |
+| 大きい整数 (BIGINT) | `postgresql` / `mysql` は **`bigint`** で返る (`sqlite` は `Int` なので `number`)。書き方は下の「Prisma の BigInt の id」 | `postgresql` は文字列で返る → `Number(row.id)` (下の TypeORM の節・generate-code の `ENTITY.md`) |
+| 接続を閉じる | `await prisma.$disconnect()` | (`app.close()` が閉じる) |
+
+### Prisma の BigInt の id (`orm: prisma` かつ `techStack.database.type` が `postgresql` / `mysql`)
+
+`BIGINT` の列は `BigInt` で、Prisma は JS の **`bigint`** で返す (generate-code の `PRISMA_SCHEMA.md` / `SERVICE.md`「BigInt の列の扱い」)。`sqlite` は `Int` なので `number` のまま。**テストコードも `bigint` と `number` を混ぜない** (混ぜると `ts-jest` が `tsc` と同じ型エラーで落ちる)。HTTP の境界 (リクエスト・レスポンスの JSON) は `number` で、DB を直接触る所は `bigint`。
+
+| 場面 | 書き方 |
+|---|---|
+| seed で作った行の id を持つ変数 | `let userId: bigint;` / `const createdPostIds: bigint[] = [];`。`userId = user.id;` (`Number()` を通さない) |
+| レスポンスの id で DB を検証 | `await prisma.post.findUnique({ where: { id: BigInt(res.body.postId) } })` (`res.body.postId` は `number`)。cleanup 用の配列にも `BigInt(res.body.postId)` を入れる |
+| 値の比較 | `expect(row!.user_id).toBe(userId)` (`bigint` 同士)。リテラルは `expect(row!.id).toBe(1n)`。number と比べるなら `expect(Number(row!.id)).toBe(res.body.postId)`。`toBe` に `bigint` と `number` を混ぜると常に失敗する |
+| リクエストに id を入れる (JSON ボディ・パス・ヘッダ) | `{ id: Number(tag.id) }` / `` `/api/posts/${String(id)}` `` / `.set('x-session-user-id', String(userId))`。JSON ボディに `bigint` を入れると `JSON.stringify` が例外になる |
+| 1 行 seed の `data` / 複数条件の `where` | `bigint` を渡す (`post_id: p.id`)。リテラルは `1n`。`{ in: [a, b] }` の要素は `bigint` だけにそろえる |
+| 件数 (`count`) | `number`。`expect(await prisma.photo.count({ where: { post_id: id } })).toBe(2)` (`2n` にしない) |
+| 生 SQL (`$queryRaw`) の結果 | `COUNT(*)` や `BIGINT` 列は `bigint` で返る → `Number(rows[0].c)` で比べる |
+| 存在しない id を指定するテスト | `del(999999999)` のように `number` / 文字列でよい (HTTP の境界)。DB 側に渡すなら `999999999n` |
+
+TypeORM の `bigint` 列は `postgresql` で**文字列**になる (上の対応表・generate-code の `ENTITY.md`)。Prisma の `bigint` とは別なので、この節の書き方を TypeORM に持ち込まない。
+
+### seed / truncate の helper (`helpers/db.ts`、P4 の Playwright シナリオ)
+
+どちらの ORM でも、**子 → 親の順** (外部キーの向きの逆) に消す。`TRUNCATE` は外部キーがあると失敗する DB があるので使わず、1 テーブルずつ全削除する。seed は親 → 子の順。
+
+```typescript
+// Prisma (既定)
+import { PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient({ datasources: { db: { url: process.env.DATABASE_URL ?? `file:${require('path').resolve(process.cwd(), 'prisma/dev.db')}` } } });
+export async function truncateTestData() {
+  await prisma.postTag.deleteMany({});   // 子
+  await prisma.photo.deleteMany({});
+  await prisma.post.deleteMany({});
+  await prisma.tag.deleteMany({});
+  await prisma.user.deleteMany({});      // 親
+  await prisma.$disconnect();
+}
+```
+
+```typescript
+// TypeORM (orm: typeorm のときだけ)。Playwright はアプリの外から DB に触るので、テスト専用の DataSource を作る
+import { DataSource } from 'typeorm';
+import { Post } from '../entity/posts.entity';
+// ... 使う Entity を import
+const dataSource = new DataSource({
+  type: 'better-sqlite3',   // techStack.database.type=sqlite のとき。postgresql は 'postgres'、mysql は 'mysql'
+  database: (process.env.DATABASE_URL ?? `file:${require('path').resolve(process.cwd(), 'data/dev.db')}`).replace(/^file:/, ''),   // postgresql / mysql は url: process.env.DATABASE_URL
+  entities: [Post /* , ... */],
+});
+export async function truncateTestData() {
+  if (!dataSource.isInitialized) await dataSource.initialize();
+  for (const entity of [PostTag, Photo, Post, Tag, User]) {   // 子 → 親
+    await dataSource.getRepository(entity).createQueryBuilder().delete().execute();
+  }
+  await dataSource.destroy();
+}
+```
 
 ---
 
@@ -299,7 +439,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 const request = require('supertest');  // Spike L-5: require で import
 import { AppModule } from '../src/app.module';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';   // orm: prisma (既定・省略時)。orm: typeorm では `import { DataSource } from 'typeorm';` と検証に使う Entity の import に置き換え、PrismaClient は import しない
 ```
 
 ### 3-2. describe / beforeAll / afterAll / beforeEach / afterEach の命名
@@ -307,19 +447,22 @@ import { PrismaClient } from '@prisma/client';
 ```typescript
 describe('<httpRoute.method> <httpRoute.path> (<action.name> E2E)', () => {
   let app: INestApplication;
-  let prisma: PrismaClient;
+  let prisma: PrismaClient;   // orm: typeorm では `let dataSource: DataSource;`
   let accessToken: string;  // httpRoute.auth="required" の場合のみ
   let createdIds: { [table: string]: (number | string)[] } = {};  // cleanup 用
 
   beforeAll(async () => {
+    // DATABASE_URL 絶対パス対応 (Spike L-6)。この `file:` の補いは techStack.database.type=sqlite のときだけ。
+    // postgresql / mysql は補わず、未設定なら throw する。orm: typeorm の準備は「DB 検証の ORM 別の書き方」
+    // AppModule を compile する前に環境変数へ入れる (アプリの PrismaService も schema.prisma の env("DATABASE_URL") を読む)
+    process.env.DATABASE_URL ??= `file:${require('path').resolve(__dirname, '../prisma/dev.db')}`;
+
     const moduleFixture = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true, forbidNonWhitelisted: false }));
     await app.init();
 
-    // DATABASE_URL 絶対パス対応 (Spike L-6)
-    const dbPath = process.env.DATABASE_URL || `file:${require('path').resolve(__dirname, '../prisma/dev.db')}`;
-    prisma = new PrismaClient({ datasources: { db: { url: dbPath } } });
+    prisma = new PrismaClient({ datasources: { db: { url: process.env.DATABASE_URL } } });
 
     // JWT 取得 (httpRoute.auth="required" の場合)
     accessToken = await loginAsAdmin(app);
@@ -958,27 +1101,52 @@ ai-skills/generate-tests/golden-examples/
 it('#N <test description>', async () => { ... });
 ```
 
-## Step 6: tableId → Prisma model 名解決 (D-2)
+## Step 6: tableId → Prisma model / TypeORM Entity 名解決 (D-2)
 
-Step 1-4 で構築した tableId → physicalName map を使い、Prisma model 名を導出する。
+Step 1-4 で構築した tableId → physicalName map を使い、Prisma model 名 (`orm: typeorm` では Entity クラス名。同じ名前) を導出する。**generate-code の `templates/backend/typescript-nestjs/PRISMA_SCHEMA.md` の「model 名・カラム名の規則」と同じ規則**。
 
 ```
-snake_case → PascalCase 変換ルール:
+snake_case → PascalCase 変換ルール (最後の語を単数形にする):
   "posts"      → Post
   "post_tags"  → PostTag
   "photos"     → Photo
   "users"      → User
   "tags"       → Tag
+  "categories" → Category
+```
 
-Prisma client 呼び出し形式:
+**単数形の規則** (対象は最後の語だけ = snake_case の最後の `_` より後ろ。上から順に当て、最初に当たったものを使う。generate-code の `PRISMA_SCHEMA.md` と generate-tests の Step 6 で同じ文面):
+
+| 順 | 当てはまる語 | 変え方 | 例 |
+|---|---|---|---|
+| 1 | 例外の語 (下) | 表のとおり | `statuses` → `Status` |
+| 2 | 語尾 `ies` | `ies` → `y` | `categories` → `Category` / `stories` → `Story` / `properties` → `Property` |
+| 3 | 語尾 `sses` `xes` `ches` `shes` | 末尾の `es` を落とす | `addresses` → `Address` / `boxes` → `Box` / `batches` → `Batch` |
+| 4 | 語尾 `ss` `us` `is` | 変えない (すでに単数形) | `status` → `Status` / `progress` → `Progress` / `analysis` → `Analysis` |
+| 5 | 語尾 `s` (上のどれにも当たらない) | 末尾の `s` を 1 つ落とす | `posts` → `Post` / `users` → `User` / `responses` → `Response` / `purchases` → `Purchase` / `databases` → `Database` / `licenses` → `License` |
+| 6 | `s` で終わらない | 変えない | `inventory` → `Inventory` |
+
+例外の語 (`s` を 1 つ落とすと壊れるもの): `statuses` → `Status` / `buses` → `Bus` / `aliases` → `Alias` / `analyses` → `Analysis` / `viruses` → `Virus` / `bonuses` → `Bonus` / `campuses` → `Campus` / `caches` → `Cache` / `menus` → `Menu` / `news` → `News` / `series` → `Series` / `species` → `Species`。表に無い語で壊れるものが出たら、generate-code と generate-tests の両方の表に足して一致させる。全体の例: `order_status` → `OrderStatus` / `user_word_progress` → `UserWordProgress` / `order_responses` → `OrderResponse`。単数化して他の model と同じ名前になるとき、または単数化できないときは、単数化せず PascalCase のまま。
+
+呼び出しの形式 (ORM ごと):
+
+```
+Prisma (orm: prisma / 省略):
   prisma.post.findUnique(...)
   prisma.postTag.findMany(...)
   prisma.photo.findMany(...)
+
+TypeORM (orm: typeorm):
+  dataSource.getRepository(Post).findOneBy(...)
+  dataSource.getRepository(PostTag).find(...)
+  dataSource.getRepository(Photo).find(...)
 ```
 
 Prisma client プロパティ名は camelCase (PascalCase の先頭を小文字化):
   `Post` → `prisma.post`
   `PostTag` → `prisma.postTag`
+
+TypeORM の Entity は、`entity/<physicalName の kebab-case>.entity.ts` から import する (`posts` → `../entity/posts.entity`)。
 
 ## Step 7: 出力検証
 

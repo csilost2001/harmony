@@ -52,6 +52,25 @@ describe("生成の指示書 (get_generation_brief)", () => {
     expect(t).not.toContain("@inputs."); // 流れは言葉
   });
 
+  it("技術スタック: TypeScript で ORM が未指定なら、既定の prisma で作ることを添える。指定済み・TypeScript 以外には添えない (#1560)", async () => {
+    const hj = path.join(WS, "harmony.json");
+    const orig = await fs.readFile(hj, "utf8");
+    const base = JSON.parse(orig);
+    const write = (backend: Record<string, unknown>) => fs.writeFile(hj, JSON.stringify({ ...base, techStack: { ...(base.techStack ?? {}), backend } }, null, 2));
+    try {
+      await write({ language: "typescript", framework: "nestjs" });
+      expect(await call("designer__get_generation_brief", { screenId: "cart" })).toContain("ORM は未指定 (backend.orm)。既定の prisma として作る。");
+      await write({ language: "typescript", framework: "nestjs", orm: "typeorm" });
+      const t = await call("designer__get_generation_brief", { screenId: "cart" });
+      expect(t).toContain('"orm": "typeorm"');
+      expect(t).not.toContain("ORM は未指定");
+      await write({ language: "java", framework: "spring-boot" });
+      expect(await call("designer__get_generation_brief", { processFlowId: "cart-add" })).not.toContain("ORM は未指定");
+    } finally {
+      await fs.writeFile(hj, orig);
+    }
+  });
+
   it("画面: 項目の制約・呼ぶ処理フロー・テスト観点", async () => {
     const t = await call("designer__get_generation_brief", { screenId: "cart" });
     expect(t).toMatch(/^# 生成の指示書: カート \(画面 `cart`\)/);

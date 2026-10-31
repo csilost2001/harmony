@@ -111,6 +111,11 @@ describe('POST /api/ai/tag-suggest (AIタグ提案 E2E) [mock mode]', () => {
   let aiRuntimeSpy: jest.SpyInstance | undefined;
 
   beforeAll(async () => {
+    // DATABASE_URL (sqlite): アプリの PrismaService も schema.prisma の env("DATABASE_URL") を読む。
+    // 検証用 PrismaClient にだけ url を渡すと、アプリ側が "Environment variable not found" で起動に失敗する。
+    // そのため AppModule を compile する前に、環境変数そのものに入れる (Spike L-6: 絶対パス)
+    process.env.DATABASE_URL ??= `file:${require('path').resolve(__dirname, '../prisma/dev.db')}`;
+
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -125,11 +130,8 @@ describe('POST /api/ai/tag-suggest (AIタグ提案 E2E) [mock mode]', () => {
     );
     await app.init();
 
-    // DATABASE_URL 絶対パス対応 (Spike L-6)
-    const dbPath =
-      process.env.DATABASE_URL ||
-      `file:${require('path').resolve(__dirname, '../prisma/dev.db')}`;
-    prisma = new PrismaClient({ datasources: { db: { url: dbPath } } });
+    // 検証用 Prisma client (アプリと同じ DB。上で環境変数に入れた DATABASE_URL を使う)
+    prisma = new PrismaClient({ datasources: { db: { url: process.env.DATABASE_URL } } });
 
     // Phase 2-C 確定: 実 AiRuntimeService を DI コンテナから取得
     aiRuntime = moduleFixture.get<AiRuntimeService>(AiRuntimeService);
@@ -379,6 +381,9 @@ describe('POST /api/ai/tag-suggest (AIタグ提案 E2E) [mock mode]', () => {
         );
       }
 
+      // アプリの PrismaService も DATABASE_URL を読むので、AppModule を compile する前に環境変数へ入れる (Spike L-6)
+      process.env.DATABASE_URL ??= `file:${require('path').resolve(__dirname, '../prisma/dev.db')}`;
+
       const moduleFixture: TestingModule = await Test.createTestingModule({
         imports: [AppModule],
       }).compile();
@@ -389,10 +394,7 @@ describe('POST /api/ai/tag-suggest (AIタグ提案 E2E) [mock mode]', () => {
       );
       await app.init();
 
-      const dbPath =
-        process.env.DATABASE_URL ||
-        `file:${require('path').resolve(__dirname, '../prisma/dev.db')}`;
-      prisma = new PrismaClient({ datasources: { db: { url: dbPath } } });
+      prisma = new PrismaClient({ datasources: { db: { url: process.env.DATABASE_URL } } });
       accessToken = await loginAsTestUser(app);
     });
 

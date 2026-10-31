@@ -28,7 +28,12 @@
 
   "onCreateCommand": "sudo chown -R node:node /home/node/.claude /home/node/.codex /home/node/.copilot /home/node/.config/gh",
 
+  // @orm prisma
   "postCreateCommand": "([ -f package.json ] && npm install || true) && ([ -f prisma/schema.prisma ] && npx prisma generate || true) && npm install -g @openai/codex && ([ -f ~/.claude/.config.json ] || echo '{}' > ~/.claude/.config.json) && (npx -y -p @playwright/mcp@latest playwright install --with-deps chromium || echo 'Playwright のブラウザを入れられませんでした。ネットにつながってから npx -y -p @playwright/mcp@latest playwright install --with-deps chromium を実行してください')",
+  // @end-orm
+  // @orm typeorm
+  "postCreateCommand": "([ -f package.json ] && npm install || true) && npm install -g @openai/codex && ([ -f ~/.claude/.config.json ] || echo '{}' > ~/.claude/.config.json) && (npx -y -p @playwright/mcp@latest playwright install --with-deps chromium || echo 'Playwright のブラウザを入れられませんでした。ネットにつながってから npx -y -p @playwright/mcp@latest playwright install --with-deps chromium を実行してください')",
+  // @end-orm
 
   "postStartCommand": "(npx -y -p @playwright/mcp@latest playwright install chromium >/dev/null 2>&1 || echo 'Playwright のブラウザを入れられませんでした。ネットにつながってから npx -y -p @playwright/mcp@latest playwright install chromium を実行してください')",
 
@@ -38,7 +43,9 @@
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
         "bradlc.vscode-tailwindcss",
+        // @orm prisma
         "Prisma.prisma",
+        // @end-orm
         "anthropic.claude-code"
       ],
       "settings": {

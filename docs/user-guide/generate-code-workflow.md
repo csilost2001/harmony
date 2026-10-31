@@ -84,8 +84,11 @@ code ~/projects/retail-app/      # project root を VS Code で開く
 ├── <processFlowName>.controller.ts     ← NestJS Controller (root 直下、HTTP ルート)
 ├── <processFlowName>.module.ts         ← NestJS Module (root 直下)
 ├── dto/                                ← Request / Response DTO
-├── entity/                             ← TypeORM Entity (DB スキーマ)
-├── src/                                ← AI / auth scaffold のみ (NestJS は src/ 強制ではない)
+├── prisma/schema.prisma                ← DB スキーマ (techStack.backend.orm が prisma または省略のとき)
+├── entity/                             ← TypeORM Entity (techStack.backend.orm が typeorm のときだけ。prisma/ とは同居しない)
+├── src/                                ← DB 層 / AI / auth scaffold のみ (NestJS は src/ 強制ではない)
+│   ├── prisma/                         ← PrismaService (orm が prisma のとき)
+│   ├── database/                       ← TypeORM の接続設定 (orm が typeorm のとき)
 │   ├── ai/                             ← AI step あり時のみ
 │   └── auth/                           ← auth.method 有効時のみ
 ├── app/                                ← Next.js App Router (frontend)
@@ -155,6 +158,15 @@ code ~/projects/retail-app/      # project root を VS Code で開く
 `/generate-code` は同じ `<出力先>` への再実行で生成ファイルを上書きします。生成後に手で加えた修正は `git diff` で確認 → 必要に応じてマージしてください。設計駆動でやり直したい変更は Harmony designer 側で行い、再生成するのが原則です。
 
 scaffold (`.devcontainer/` / `.mcp.json` / `.tmp/.gitignore` / `Dockerfile` / `docker-compose.yml` / `README.md`) は既存があれば上書きせずスキップされます (#1048)。
+
+### 3-2. NestJS の ORM と DB は技術スタックで決まる
+
+NestJS で生成するとき、DB の使い方は技術スタックの 2 つの設定で決まります (技術スタック画面で選べます)。
+
+- **ORM** (`backend.orm`): Prisma (推奨・省略時) か TypeORM。1 つの生成物に 2 つは混ざりません (TypeORM を選ぶと Prisma のファイルは出ず、Prisma のときは TypeORM のファイルは出ません)
+- **DB の種類** (`database.type`): PostgreSQL / MySQL / SQLite。省略すると PostgreSQL です。`docker-compose.yml` の DB サービスと接続先、開発コンテナの開発用 DB、README の「DB 初期化」がこれに合わせて作られます (SQLite は DB サービスなし)
+
+途中で変えたいときは、技術スタックを変えて `/generate-code` をやり直します。開発コンテナの雛形は「雛形の更新」として取り込みます (連携と運用 → 版と更新)。
 
 ### 4. 日本語値を `application.properties` に直書きしない (Spring Boot 系のみ)
 

@@ -102,6 +102,12 @@
               "enum": ["spring-boot", "nestjs", "express", "fastapi", "gin"],
               "default": "spring-boot",
               "description": "AI コード生成時のターゲット指定。バックエンドフレームワーク。言語と組合せ制約あり (techStackConstraints.ts 参照)。"
+            },
+            "orm": {
+              "type": "string",
+              "enum": ["prisma", "typeorm"],
+              "default": "prisma",
+              "description": "AI コード生成時のターゲット指定。ORM。TypeScript (nestjs / express) のときだけ意味を持つ。省略時は prisma (推奨)。"
             }
           }
         },

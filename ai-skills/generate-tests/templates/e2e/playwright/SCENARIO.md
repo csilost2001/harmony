@@ -505,6 +505,8 @@ export async function logout(page: Page): Promise<void> {
 
 ## 12. db helper テンプレート (helpers/db.ts)
 
+> 下の例は **Prisma (`techStack.backend.orm` が `prisma` または省略のとき、既定)**。`orm: typeorm` のときは `ai-skills/generate-tests/SKILL.md` の「DB 検証の ORM 別の書き方」の `helpers/db.ts` (DataSource 版) を使う。1 つの生成物に 2 つの ORM を混ぜない。`file:` の補いは `techStack.database.type=sqlite` のときだけ。
+
 ```typescript
 // helpers/db.ts
 import { PrismaClient } from '@prisma/client';

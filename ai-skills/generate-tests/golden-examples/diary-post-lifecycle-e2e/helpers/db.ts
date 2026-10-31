@@ -3,7 +3,7 @@
 // DB ヘルパー — Playwright E2E テスト用 Prisma seed / truncate
 //
 // PLACEHOLDER 解決表:
-//   <DATABASE_URL>  : file:./prisma/dev.db  (diary アプリの SQLite パス)
+//   <DATABASE_URL>  : file:./dev.db  (diary アプリの SQLite パス。Prisma は schema.prisma のあるフォルダからの相対なので prisma/dev.db を指す)
 //   Prisma model 名 : post, postTag, photo, tag, user
 //   削除順          : postTag → photo → post → tag → user (FK 依存の逆順)
 //

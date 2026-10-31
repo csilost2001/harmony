@@ -177,6 +177,8 @@ export interface TechStackBackend {
   language?: "java" | "typescript" | "python" | "go" | "kotlin";
   /** バックエンドフレームワーク。language との組合せ制約あり (techStackConstraints.ts 参照)。 */
   framework?: "spring-boot" | "nestjs" | "express" | "fastapi" | "gin";
+  /** ORM。TypeScript (nestjs / express) のときだけ意味を持つ。省略時は prisma (推奨)。 */
+  orm?: "prisma" | "typeorm";
 }
 
 /** データベース技術スタック (techStack.database サブオブジェクト)。 */

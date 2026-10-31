@@ -9,7 +9,7 @@ import { buildProjectContext } from "../projectContext.js";
 import { tools } from "../tools.js";
 import { isInProfile, PROFILES } from "../security/mcpProfiles.js";
 import { isReadOnlyTool } from "../security/mcpAccess.js";
-import { destinationOf, getScaffoldUpdate, loadTemplate, parseScaffold, recordScaffold, SCAFFOLD_COMBOS, scaffoldStore, scaffoldSummary, collectScaffoldIssues, templateVersionOf, DEFAULT_TEMPLATES_ROOT, HARMONY_IMAGE, MAX_SCAFFOLD_CONTENT, cutAtCharBoundary, defaultTemplatesRoot, usesHarmonyImage, issuesOfSummary } from "./scaffold.js";
+import { destinationOf, getScaffoldUpdate, pruneScaffoldFile, BLOCK_MARKER_LINE, loadTemplate, parseScaffold, recordScaffold, SCAFFOLD_COMBOS, scaffoldStore, scaffoldSummary, collectScaffoldIssues, templateVersionOf, DEFAULT_TEMPLATES_ROOT, HARMONY_IMAGE, MAX_SCAFFOLD_CONTENT, cutAtCharBoundary, defaultTemplatesRoot, usesHarmonyImage, issuesOfSummary } from "./scaffold.js";
 import { classifyChangedPath } from "../externalChanges.js";
 import { scaffoldTools } from "../toolsScaffold.js";
 
@@ -55,17 +55,20 @@ describe("雛形の版", () => {
 });
 
 describe("実際の 4 組合せの雛形", () => {
-  const EXPECTED = [".devcontainer/compose.yml", ".devcontainer/devcontainer.json", ".mcp.json", ".tmp/.gitignore", "Dockerfile", "README.snippet.md", "docker-compose.yml"];
+  const COMMON = [".devcontainer/compose.yml", ".devcontainer/devcontainer.json", ".mcp.json", ".tmp/.gitignore", "Dockerfile", "README.snippet.md", "docker-compose.yml"];
+  // NestJS 系は、image の build に持ち込まない物 (host の node_modules・sqlite の DB ファイル) を .dockerignore で外す (#1560)
+  const expectedOf = (combo: string) => (combo.startsWith("nestjs-") ? [".dockerignore", ...COMMON] : COMMON).sort();
   it.each(SCAFFOLD_COMBOS)("%s: 版が計算でき、列挙したファイルが行き先の表と合う", async (combo) => {
     const t = await loadTemplate(combo, ".", DEFAULT_TEMPLATES_ROOT);
     expect(t, combo).not.toBeNull();
     expect(t!.version).toMatch(/^[0-9a-f]{12}$/);
     // 雛形のフォルダに増減があれば、ここで気づく (行き先の表 destinationOf と scaffold の説明を直す)
-    expect(t!.files.map((f) => f.template).sort()).toEqual(EXPECTED);
+    expect(t!.files.map((f) => f.template).sort()).toEqual(expectedOf(combo));
     const dest = Object.fromEntries(t!.files.map((f) => [f.template, [f.path, f.kind]]));
     expect(dest[".devcontainer/devcontainer.json"]).toEqual([".devcontainer/devcontainer.json", "file"]);
     expect(dest[".tmp/.gitignore"]).toEqual([".tmp/.gitignore", "file"]);
     expect(dest["Dockerfile"]).toEqual(["Dockerfile", "file"]);
+    if (combo.startsWith("nestjs-")) expect(dest[".dockerignore"]).toEqual([".dockerignore", "file"]); // Dockerfile と同じ出力先 (build の文脈の根)
     expect(dest["README.snippet.md"]).toEqual(["README.md", "section"]);
     const t2 = await loadTemplate(combo, "backend", DEFAULT_TEMPLATES_ROOT);
     expect(Object.fromEntries(t2!.files.map((f) => [f.template, f.path]))).toMatchObject({ ".mcp.json": ".mcp.json", Dockerfile: "backend/Dockerfile", "docker-compose.yml": "backend/docker-compose.yml", "README.snippet.md": "backend/README.md" });
@@ -678,7 +681,8 @@ describe("実物の README.snippet.md (4 組合せ。5 つの ## の節から成
     "nestjs-thymeleaf": { backend: { framework: "nestjs" }, frontend: { library: "thymeleaf" } },
     "nestjs-nextjs": { backend: { framework: "nestjs" }, frontend: { library: "react" } },
   };
-  const snippetOf = (combo: string) => fs.readFile(path.join(DEFAULT_TEMPLATES_ROOT, combo, "README.snippet.md"), "utf-8");
+  // 雛形は DB / ORM ごとのブロック入り。アプリの README はブロックを消した形 (techStack 省略 = postgresql × prisma) なので、アプリに写す snippet はその形 (#1560)
+  const snippetOf = async (combo: string) => pruneScaffoldFile("README.snippet.md", await fs.readFile(path.join(DEFAULT_TEMPLATES_ROOT, combo, "README.snippet.md"), "utf-8"), { db: "postgresql", orm: "prisma" });
   const readmeOf = (u: Awaited<ReturnType<typeof getScaffoldUpdate>>) => u.files.find((f) => f.template === "README.snippet.md")!;
 
   it.each(SCAFFOLD_COMBOS)("%s: 実物の雛形が 5 つ以上の同レベルの節を持つ (この試験の前提)", async (combo) => {
@@ -713,7 +717,7 @@ describe("実物の README.snippet.md (4 組合せ。5 つの ## の節から成
     await seedWs(TECH[combo]);
     await write(path.join(ROOT, "README.md"), `# app\n\n${snippet}\n## 利用者の節\n外\n`);
     await recordScaffold(ROOT, { combo }, "AI", TPL);
-    const target = (await fs.readFile(path.join(TPL, combo, "README.snippet.md"), "utf-8")).split("\n").find((l) => l.length > 20 && !l.startsWith("#") && !l.startsWith("|") && !l.startsWith("```"))!;
+    const target = snippet.split("\n").find((l) => l.length > 20 && !l.startsWith("#") && !l.startsWith("|") && !l.startsWith("```"))!;
     const edited = snippet.replace(target, target + " 追記の一語");
     await write(path.join(TPL, combo, "README.snippet.md"), edited);
     const f = readmeOf(await getScaffoldUpdate(ROOT, TPL));
@@ -783,7 +787,7 @@ describe("実物の雛形が、見出しの改名・削除をしたあとの更�
     it.each(CHANGES)("%s: README は写したときの雛形のまま → appEdited false・範囲は全体・appChanges は空", async (_name, apply) => {
       const real = path.join(DEFAULT_TEMPLATES_ROOT, combo);
       await fs.cp(real, path.join(TPL, combo), { recursive: true });
-      const snippet = await fs.readFile(path.join(real, "README.snippet.md"), "utf-8");
+      const snippet = pruneScaffoldFile("README.snippet.md", await fs.readFile(path.join(real, "README.snippet.md"), "utf-8"), { db: "postgresql", orm: "prisma" }); // アプリの README はブロックを消した形 (#1560)
       const chunks = snippet.split(/^(?=## )/m);
       const first = chunks[0].startsWith("## ") ? 0 : 1; // 節として数える先頭の位置 (## の前に文があれば 1)
       const sections = chunks.slice(first);
@@ -811,5 +815,187 @@ describe("実物の雛形が、見出しの改名・削除をしたあとの更�
     const doc = await fs.readFile(path.join(repo, "docs/spec/integration-ops.md"), "utf-8");
     expect(doc).toContain("旧い見出しを知る手段が無く");
     expect(doc).toContain("節の順序を入れ替えたとき");
+  });
+});
+
+describe("DB ごとのブロック入りの雛形 × ブロックを消したアプリ (#1560)", () => {
+  const COMPOSE = [
+    "services:",
+    "  harmony:",
+    "    image: ${HARMONY_IMAGE:-" + HARMONY_IMAGE + ":local}",
+    "  app:",
+    "    environment:",
+    "      # @db sqlite",
+    "      # @orm prisma",
+    "      DATABASE_URL: file:./dev.db",
+    "      # @end-orm",
+    "      # @orm typeorm",
+    "      DATABASE_URL: file:./data/dev.db",
+    "      # @end-orm",
+    "      # @end-db",
+    "      # @db postgresql",
+    "      DATABASE_URL: postgresql://app:app@db:5432/app",
+    "      # @end-db",
+    "",
+  ].join("\n");
+  const DOCKERFILE = ["FROM node:26", "# @orm prisma", "RUN npx prisma generate", "# @end-orm", "RUN npm ci", ""].join("\n");
+  const TECH = (db: string | undefined, orm: string | undefined) => ({
+    backend: { framework: "spring-boot", ...(orm ? { orm } : {}) }, frontend: { library: "thymeleaf" }, ...(db ? { database: { type: db } } : {}),
+  });
+  const APP_SQLITE_TYPEORM = "services:\n  harmony:\n    image: ${HARMONY_IMAGE:-" + HARMONY_IMAGE + ":local}\n  app:\n    environment:\n      DATABASE_URL: file:./data/dev.db\n";
+  const markers = BLOCK_MARKER_LINE;
+
+  async function setup(db: string | undefined, orm: string | undefined, app: string) {
+    await seedWs(TECH(db, orm));
+    await seedTemplate({ ".devcontainer/compose.yml": COMPOSE, Dockerfile: DOCKERFILE, ".mcp.json": "{}\n", "README.snippet.md": "## 開発環境\n手順\n" });
+    await write(path.join(ROOT, ".devcontainer/compose.yml"), app);
+    await write(path.join(ROOT, "Dockerfile"), "FROM node:26\nRUN npm ci\n");
+    await write(path.join(ROOT, ".mcp.json"), "{}\n");
+    await write(path.join(ROOT, "README.md"), "# app\n\n## 開発環境\n手順\n");
+  }
+
+  it("手入れが無ければ appEdited は false。diff にマーカーも他の DB / ORM のブロックも出ない (記録あり・雛形が同じ版)", async () => {
+    await setup("sqlite", "typeorm", APP_SQLITE_TYPEORM);
+    await recordScaffold(ROOT, {}, "AI", TPL);
+    const u = await getScaffoldUpdate(ROOT, TPL);
+    expect(u.status).toBe("current");
+    expect(u.files.every((f) => f.appEdited === false)).toBe(true);
+  });
+
+  it("雛形が新しくなっても、消えるブロックだけの変更は unchanged。残るブロックと外の変更は template-changed で、diff は消した形どうしの差になる", async () => {
+    await setup("sqlite", "typeorm", APP_SQLITE_TYPEORM);
+    await recordScaffold(ROOT, {}, "AI", TPL);
+    // Dockerfile: 消える Prisma のブロックの中だけを変える。compose: 残る typeorm のブロックの中と、外 (harmony の image の下) を変える
+    await write(path.join(TPL, "spring-boot-thymeleaf/Dockerfile"), DOCKERFILE.replace("RUN npx prisma generate", "RUN npx prisma generate --no-hints"));
+    await write(path.join(TPL, "spring-boot-thymeleaf/.devcontainer/compose.yml"), COMPOSE.replace("file:./data/dev.db", "file:./data/app.db").replace("  app:\n", "  app:\n    init: true\n"));
+    const u = await getScaffoldUpdate(ROOT, TPL);
+    expect(u.status).toBe("outdated");
+    const docker = u.files.find((f) => f.template === "Dockerfile")!;
+    expect(docker.state).toBe("unchanged");
+    const compose = u.files.find((f) => f.template === ".devcontainer/compose.yml")!;
+    expect(compose.state).toBe("template-changed");
+    expect(compose.appEdited).toBe(false);
+    for (const text of [compose.diff, compose.templateDiff, compose.base, compose.latest]) expect(text).not.toMatch(markers);
+    expect(compose.latest).toContain("file:./data/app.db");
+    expect(compose.latest).toContain("init: true");
+    expect(compose.latest).not.toContain("file:./dev.db");
+    expect(compose.latest).not.toContain("postgresql://");
+    expect(compose.templateDiff).toContain("+    init: true");
+    expect(compose.templateDiff).not.toContain("prisma");
+    expect(compose.diff).toContain("+    init: true");
+    expect(compose.diff).toContain("-      DATABASE_URL: file:./data/dev.db");
+    expect(compose.appChanges).toBe("");
+  });
+
+  it("利用者が足した行は appEdited true で appChanges に出る (他の DB / ORM のブロックは出ない)", async () => {
+    await setup("sqlite", "typeorm", APP_SQLITE_TYPEORM + "      MY_FLAG: \"1\"\n");
+    await recordScaffold(ROOT, {}, "AI", TPL);
+    const f = (await getScaffoldUpdate(ROOT, TPL)).files.find((x) => x.template === ".devcontainer/compose.yml")!;
+    expect(f.appEdited).toBe(true);
+    await write(path.join(TPL, "spring-boot-thymeleaf/.devcontainer/compose.yml"), COMPOSE + "# 末尾の注記\n");
+    const g = (await getScaffoldUpdate(ROOT, TPL)).files.find((x) => x.template === ".devcontainer/compose.yml")!;
+    expect(g.appEdited).toBe(true);
+    expect(g.appChanges).toContain('+      MY_FLAG: "1"');
+    expect(g.appChanges).not.toMatch(markers);
+    expect(g.appChanges).not.toContain("prisma");
+    expect(g.appChanges).not.toContain("postgresql");
+  });
+
+  it("techStack に database / orm が無いときは、postgresql × prisma の形に消して比べる", async () => {
+    await setup(undefined, undefined, "services:\n  harmony:\n    image: ${HARMONY_IMAGE:-" + HARMONY_IMAGE + ":local}\n  app:\n    environment:\n      DATABASE_URL: postgresql://app:app@db:5432/app\n");
+    await write(path.join(ROOT, "Dockerfile"), "FROM node:26\nRUN npx prisma generate\nRUN npm ci\n");
+    await recordScaffold(ROOT, {}, "AI", TPL);
+    const u = await getScaffoldUpdate(ROOT, TPL);
+    expect(u.files.every((f) => f.appEdited === false)).toBe(true);
+  });
+
+  it("記録が無い (2 方向): アプリと同じ形に消した雛形なら unchanged、違えば template-changed で diff にマーカーが出ない", async () => {
+    await setup("sqlite", "typeorm", APP_SQLITE_TYPEORM);
+    const u = await getScaffoldUpdate(ROOT, TPL);
+    expect(u.status).toBe("no-record");
+    expect(u.files.map((f) => `${f.template}:${f.state}`).sort()).toEqual([".devcontainer/compose.yml:unchanged", ".mcp.json:unchanged", "Dockerfile:unchanged", "README.snippet.md:unchanged"]);
+    await write(path.join(ROOT, ".devcontainer/compose.yml"), APP_SQLITE_TYPEORM.replace("file:./data/dev.db", "file:./x.db"));
+    const f = (await getScaffoldUpdate(ROOT, TPL)).files.find((x) => x.template === ".devcontainer/compose.yml")!;
+    expect(f.state).toBe("template-changed");
+    expect(f.appEdited).toBeNull();
+    expect(f.diff).toContain("-      DATABASE_URL: file:./x.db");
+    expect(f.diff).toContain("+      DATABASE_URL: file:./data/dev.db");
+    expect(f.diff).not.toMatch(markers);
+    expect(f.diff).not.toContain("postgresql");
+  });
+
+  it("記録の形は変えない: scaffold.json にはブロック入りの雛形の中身がそのまま残り、版はブロック入りの中身で決まる (DB / ORM を変えても版は変わらない)", async () => {
+    await setup("sqlite", "typeorm", APP_SQLITE_TYPEORM);
+    await recordScaffold(ROOT, {}, "AI", TPL);
+    const rec = (await scaffoldStore.read(ROOT)).value!;
+    expect(rec.files.find((f) => f.template === "Dockerfile")!.content).toBe(DOCKERFILE);
+    const before = (await scaffoldSummary(ROOT, TPL)).currentVersion;
+    await seedWs(TECH("postgresql", "prisma"));
+    const after = await scaffoldSummary(ROOT, TPL);
+    expect(after.currentVersion).toBe(before);
+    expect(after.status).toBe("current");
+  });
+
+  describe("実際の NestJS 系の雛形 × 3 DB × 2 ORM", () => {
+    const REAL = DEFAULT_TEMPLATES_ROOT;
+    const cases = (["nestjs-nextjs", "nestjs-thymeleaf"] as const).flatMap((combo) => (["sqlite", "postgresql", "mysql"] as const).flatMap((db) => (["prisma", "typeorm"] as const).map((orm) => [combo, db, orm] as const)));
+    it.each(cases)("%s × %s × %s: 剪定済みのアプリは appEdited false・差分が空", async (combo, db, orm) => {
+      const { pruneScaffoldFile } = await import("./scaffold.js");
+      const tpl = (await loadTemplate(combo, ".", REAL))!;
+      await seedWs({ backend: { framework: "nestjs", orm }, frontend: { library: "react" }, database: { type: db } });
+      for (const f of tpl.files) {
+        const pruned = pruneScaffoldFile(f.template, f.content, { db, orm });
+        if (f.kind === "section") await write(path.join(ROOT, f.path), `# app\n\n${pruned}`);
+        else await write(path.join(ROOT, f.path), pruned);
+      }
+      await recordScaffold(ROOT, { combo }, "AI", REAL);
+      const u = await getScaffoldUpdate(ROOT, REAL);
+      expect(u.status).toBe("current");
+      for (const f of u.files) expect(f.appEdited, `${f.template}`).toBe(false);
+    });
+
+    it("雛形の本体を 1 行足した更新 (共通の行) は、DB / ORM のブロックを混ぜずに diff に出る", async () => {
+      const { pruneScaffoldFile } = await import("./scaffold.js");
+      const combo = "nestjs-nextjs";
+      const tpl = (await loadTemplate(combo, ".", REAL))!;
+      await seedWs({ backend: { framework: "nestjs", orm: "typeorm" }, frontend: { library: "react" }, database: { type: "mysql" } });
+      for (const f of tpl.files) {
+        if (f.kind === "section") continue;
+        await write(path.join(ROOT, f.path), pruneScaffoldFile(f.template, f.content, { db: "mysql", orm: "typeorm" }));
+        await write(path.join(TPL, combo, f.template), f.content);
+      }
+      await write(path.join(TPL, combo, "README.snippet.md"), tpl.files.find((f) => f.template === "README.snippet.md")!.content);
+      await write(path.join(ROOT, "README.md"), `# app\n\n${pruneScaffoldFile("README.snippet.md", tpl.files.find((f) => f.template === "README.snippet.md")!.content, { db: "mysql", orm: "typeorm" })}`);
+      await recordScaffold(ROOT, { combo }, "AI", TPL);
+      const dockerfile = tpl.files.find((f) => f.template === "Dockerfile")!.content;
+      await write(path.join(TPL, combo, "Dockerfile"), dockerfile.replace(/^FROM .*$/m, (m) => `${m}\nLABEL x=1`));
+      const u = await getScaffoldUpdate(ROOT, TPL);
+      expect(u.status).toBe("outdated");
+      const changed = u.files.filter((f) => f.state !== "unchanged");
+      expect(changed.map((f) => f.template)).toEqual(["Dockerfile"]);
+      const d = changed[0];
+      expect(d.appEdited).toBe(false);
+      expect(d.diff).toContain("+LABEL x=1");
+      expect(d.diff).not.toMatch(markers);
+      expect(d.diff).not.toMatch(/prisma/i);
+      expect(d.diff!.split("\n").filter((l) => /^[+-][^+-]/.test(l))).toHaveLength(1);
+    });
+  });
+
+  describe("消した結果に値の無いキーを残さない (sqlserver / oracle)", () => {
+    it.each([["sqlserver", "prisma"], ["oracle", "typeorm"]])("%s × %s: 子の行を持たない environment: / volumes: は消える", async (db, orm) => {
+      const { pruneScaffoldFile } = await import("./scaffold.js");
+      for (const combo of ["nestjs-nextjs", "nestjs-thymeleaf"] as const) {
+        const tpl = (await loadTemplate(combo, ".", DEFAULT_TEMPLATES_ROOT))!;
+        const prod = pruneScaffoldFile("docker-compose.yml", tpl.files.find((f) => f.template === "docker-compose.yml")!.content, { db, orm });
+        expect(prod).not.toMatch(markers);
+        expect(prod).not.toMatch(/^\s*volumes:\s*$/m); // DB のブロックが全部消えるので、volumes: は丸ごと消える
+        if (orm === "prisma") expect(prod).not.toMatch(/^\s*environment:\s*$/m); // 子の行が無くなる
+        else expect(prod).toMatch(/^ {4}environment:\s*\n(?: {6}#.*\n)* {6}DB_SYNCHRONIZE:/m); // 子がある environment: は残る
+        const dev = pruneScaffoldFile(".devcontainer/compose.yml", tpl.files.find((f) => f.template === ".devcontainer/compose.yml")!.content, { db, orm });
+        expect(dev).toMatch(/^ {4}environment:\s*\n(?: {6}#.*\n)* {6}DISPLAY:/m);
+        expect(dev).toMatch(/^volumes:\s*\n {2}harmony-state:/m);
+      }
+    });
   });
 });

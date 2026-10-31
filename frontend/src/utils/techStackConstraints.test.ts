@@ -172,6 +172,35 @@ describe("validateTechStackConstraints", () => {
     });
   });
 
+  // ── ORM (#1560) ──────────────────────────────────────────────────────────────
+
+  describe("backend.orm", () => {
+    it("TypeScript で prisma / typeorm を指定しても違反にならない", () => {
+      for (const orm of ["prisma", "typeorm"] as const) {
+        expect(validateTechStackConstraints({ backend: { language: "typescript", framework: "nestjs", orm } })).toHaveLength(0);
+      }
+    });
+
+    it("TypeScript 以外の言語で orm を指定すると backend.orm の違反になる", () => {
+      const result = validateTechStackConstraints({ backend: { language: "java", framework: "spring-boot", orm: "prisma" } });
+      expect(result).toHaveLength(1);
+      expect(result[0].field).toBe("backend.orm");
+      expect(result[0].severity).toBe("error");
+      expect(result[0].message).toContain("typescript");
+    });
+
+    // 仕様変更に伴う追従 (#1560 レビュー S9): language が未指定のときは schema の既定 (java) として扱う。画面も未指定を Java として ORM を選べなくしている
+    it("language が未指定のときは既定の java として扱い、orm の指定は違反になる / orm 未指定なら違反にしない", () => {
+      const result = validateTechStackConstraints({ backend: { orm: "typeorm" } });
+      expect(result).toHaveLength(1);
+      expect(result[0].field).toBe("backend.orm");
+      expect(result[0].message).toContain("java");
+      expect(result[0].message).toContain("未指定");
+      expect(validateTechStackConstraints({ backend: { language: "go", framework: "gin" } })).toHaveLength(0);
+      expect(validateTechStackConstraints({ backend: {} })).toHaveLength(0);
+    });
+  });
+
   // ── 複合制約テスト ───────────────────────────────────────────────────────────
 
   describe("複合制約テスト", () => {

@@ -1,5 +1,7 @@
 # golden-examples/diary-post-lifecycle-e2e
 
+> **ORM の前提**: この golden の DB 検証・seed は **Prisma (`techStack.backend.orm` が `prisma` または省略のとき、既定)** の書き方。`orm: typeorm` のときは `ai-skills/generate-tests/SKILL.md` の「DB 検証の ORM 別の書き方」で `DataSource` / `Repository` に読み替える (1 つのテストに 2 つの ORM を混ぜない)。
+
 diary アプリ (`examples/diary/harmony.json`) を題材にした
 `/generate-tests` スキルの P4 (Playwright E2E) ゴールデン出力。
 

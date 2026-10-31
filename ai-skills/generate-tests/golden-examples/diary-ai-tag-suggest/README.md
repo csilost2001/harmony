@@ -1,5 +1,7 @@
 # golden-examples/diary-ai-tag-suggest
 
+> **ORM の前提**: この golden の DB 検証・seed は **Prisma (`techStack.backend.orm` が `prisma` または省略のとき、既定)** の書き方。`orm: typeorm` のときは `ai-skills/generate-tests/SKILL.md` の「DB 検証の ORM 別の書き方」で `DataSource` / `Repository` に読み替える (1 つのテストに 2 つの ORM を混ぜない)。
+
 diary アプリ (`examples/diary/harmony.json`) の AIタグ提案フロー
 (`examples/diary/harmony/process-flows/ai-tag-suggest-flow.json`) を題材にした
 `/generate-tests` スキルの P5 (AI flow mock + 実 API 切替、Phase 2-B) ゴールデン出力。

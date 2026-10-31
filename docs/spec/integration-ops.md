@@ -144,13 +144,19 @@ category: ops
 | リアルタイム共同編集 (#87) | 保留中の #855 の方針 (競合の解決・スキーマ) が決まっていない。排他編集 + 閲覧の同時表示は、既にある |
 | DB からの ER の取り込み (#93) | ドライバの依存と、接続情報の扱いの判断が要る。代わりに、DDL の取り込み (§10) で `pg_dump -s` / `mysqldump --no-data` の出力を取り込める |
 | AI レビューの自動実行 (#94 の一部) | 保存時・要求時に AI を自動で動かす仕組みは作らない (AI の実行は、利用者が Codex / Claude Code で始める)。AI が見つけた指摘を、位置つきのコメントとして残す経路 (§5) だけを用意した |
-| 技術スタックの選択肢そのものの追加 (#96 の一部) | 選択肢は、スキーマ (`harmony.v3.schema.json`) の列挙値で、足すにはスキーマの変更 (設計者の判断) が要る。プリセット (既存の選択肢の組み合わせ) だけ追加した |
+| 技術スタックの選択肢そのものの追加 (#96 の一部) | 選択肢は、スキーマ (`harmony.v3.schema.json`) の列挙値で、足すにはスキーマの変更 (設計者の判断) が要る。プリセット (既存の選択肢の組み合わせ) だけ追加した。ORM (`backend.orm`) は設計者の判断で追加した (#1560。§13) |
 | PDF の自前生成 (#81 の一部) | 日本語フォントの埋め込みが要る。ブラウザの印刷 → PDF で足りる |
 | インストーラ・配布イメージの公開 (#98 の一部) | 配布の判断。`npm run setup` と、既存の Dockerfile・compose で足りる範囲 |
 
 ## 13. 技術スタックのプリセット (技術スタック画面)
 
 `frontend/src/utils/techStackPresets.ts`: Java (Spring Boot + PostgreSQL / Oracle + Thymeleaf)・Kotlin・TypeScript (NestJS + Next.js / Express)・Python (FastAPI + Vue / Nuxt)・Go (Gin + Kubernetes) の 7 つ。バックエンド・DB・フロントエンド・認証・デプロイをまとめて入れる (画面デザインの設定は変えない。保存するまで確定しない)。すべて、スキーマの列挙値と、組み合わせの制約 (`techStackConstraints.ts`) を満たす (試験で確認)。規約 (`@conv.*`) の既定値は含まない。
+
+**ORM** (#1560): `techStack.backend.orm` (`prisma` | `typeorm`。省略時は `prisma` = 推奨。設計者の判断で schema に追加)。TypeScript のときだけ意味を持つ (コード生成が対応しているのは NestJS。Express でも schema・制約・画面では指定できる)。
+- **組合せの制約** (`techStackConstraints.ts`): `orm` が指定され、`language` が `typescript` 以外なら、`backend.orm` の違反 (error)。`language` が未指定のときは schema の既定の `java` として扱い、同じく違反にする (画面が未指定を Java として ORM を選べなくしているのと合わせる)。
+- **プリセット**: TypeScript 系 (`ts-fullstack` / `ts-light`) は `orm: "prisma"`、ほかの言語は `orm` を持たない。
+- **画面**: バックエンドの欄に「ORM」(Prisma は「推奨」の印つき。説明は「コード生成の対象は NestJS」)。言語が TypeScript 以外 (未設定を含む) のあいだは選べず、**どちらも選択済みに見えない**。「対象外」の注意が出る。`orm` の指定が残っている (AI や手編集で `language: java` + `orm` になった = 制約違反) ときは、「ORM の指定が残っています」と **「ORM の指定を外す」** ボタンが出る。言語を TypeScript 以外に変えると ORM の指定は外れ、外れたことが注記で分かる (TypeScript に戻すまで)。Express を選んでいるときは「コード生成が対応しているのは NestJS だけ」と注意する。右の「現在の選択」に `ORM: …` (TypeScript で未設定なら `ORM: prisma (既定)`)。
+- **AI への伝わり方**: `designer__get_project_context` の `techStack` と、`designer__get_generation_brief` の「技術スタック」の節は `techStack` の JSON をそのまま渡すので、`orm` はそこに含まれる。生成の指示書は、TypeScript のバックエンドで `orm` が未指定のとき、「ORM は未指定 (backend.orm)。既定の prisma として作る。」を添える。
 
 ## 14. 版・リリースノート・初回セットアップ・資料の鮮度
 
@@ -160,6 +166,7 @@ category: ops
   - **画面**: 配布 image なら「配布 image」・commit・作った日時・取得元を出し、**ブランチが main でない / ブランチを特定できない (detached HEAD。`HEAD` はブランチ名として扱わない) / コミットしていない変更つき**は ⚠ の注意文で出す (作った人が、古いブランチの image を使っていると気づけるように)。
   - **MCP**: `designer__workspace_status` と `designer__get_project_context` に `harmony` (`version`・`commit`・`branch`・`dirty`・`builtAt`・`source`。ネットワークは使わない)。読み取りの tool `designer__check_harmony_update` が、画面の「更新を確認する」と同じ確認をする (GitHub への問い合わせは、この tool を呼んだときだけ。ワークスペースが開いていなくても使える)。
 - **開発コンテナの雛形の更新** (#1577): generate-code が写す雛形 (`ai-skills/generate-code/templates/devcontainer/<組合せ>/`。Harmony 本体の image にも入っている) が新しくなったとき、アプリ側に知らせ、AI が当てる。実装: `backend/src/ops/scaffold.ts`。
+  - **DB・ORM での選び方** (#1560 / #1570): NestJS 系の雛形 (`nestjs-thymeleaf` / `nestjs-nextjs`) は、`techStack.database.type` (postgresql / mysql / sqlite) と `techStack.backend.orm` (prisma / typeorm) で変わる箇所を、**雛形の中に `# @db` / `# @orm` のブロックとして全部入れてある** (`.devcontainer/devcontainer.json` は `// @orm` だけ。`orm: typeorm` の生成物に `prisma generate` と Prisma の VS Code 拡張を残さないため)。写すとき、AI が合うブロックを残し、合わないブロックを中身ごと消す (書き足さない。規則は `ai-skills/generate-code/SKILL.md` の「DB ごとのブロック」)。組合せのフォルダを DB ごとに増やさないので、`SCAFFOLD_COMBOS`・記録の形・雛形の版 (下) は変わらない。記録には雛形の中身 (ブロック入り、写したときのそのまま) が残り、アプリのファイルはブロックを消した後の形になる。そこで `designer__get_scaffold_update` (`getScaffoldUpdate`) は、**比べる前に、新しい雛形 (`latest`) と記録 (`base`) の両方を、アプリの `harmony.json` の `techStack.database.type` (省略時 postgresql) / `techStack.backend.orm` (省略時 prisma) で消す** (規則は `backend/src/ops/scaffoldBlocks.ts` の 1 か所。`generateCodeDbBlocks.test.ts` も同じ関数を使う。YAML は、子の行が無くなった `environment:` / `volumes:` の行も消す)。返す `latest` / `base` / `diff` / `templateDiff` / `appChanges` にマーカーも他の DB / ORM のブロックも出ず、手入れの無いアプリは `appEdited: false` になる。雛形の変更が消えるブロックの中だけなら、そのファイルは `unchanged`。雛形の版は全ブロック入りの中身で決まり、**techStack の `database` / `orm` を変えただけでは版は変わらず「古い」とも出ない** (雛形が新しくなったわけではない)。techStack を変えたあとの取り込みは、差分に techStack の変更による差が混ざるので、AI が雛形を新しい techStack で消して作り直し、いまのアプリのファイルとの差を利用者に見せる。写した結果が組合せ × DB × ORM のすべてで正しい形になることと、2 つの ORM が混ざらないことは `backend/src/generateCodeDbBlocks.test.ts` が確かめる
   - **雛形の版**: 組合せのフォルダの全ファイルを相対パス (`/` 区切り) の順に並べ、「パスと中身 (CRLF は LF にそろえる)」の SHA-256 の先頭 12 桁。人が版を上げ忘れない。組合せは、記録があれば記録、無ければ `harmony.json` の `techStack.backend.framework` (spring-boot / nestjs) × `techStack.frontend.library` (thymeleaf / react) で決める (generate-code の表と同じ 4 つ)。
   - **対象と行き先**: 雛形のフォルダにあるファイルすべて。`.devcontainer/devcontainer.json`・`.devcontainer/compose.yml`・`.mcp.json`・`.tmp/.gitignore` はワークスペースのルート、`Dockerfile`・`docker-compose.yml` は出力先 (`outDir`、既定 `.`)、`README.snippet.md` は出力先の `README.md` の節 (`kind: "section"`)。
   - **記録** `design/scaffold.json` (データフォルダ。git に載る。`generation.json` と同じ作法で、読み込みのたびに検証し、壊れた項目は「読み込み」の warning で知らせる): `{ combo, outDir, templateVersion, recordedAt, files: [{ template, path, kind, content?, skipped? }] }`。`content` は写したときの**雛形の**中身で、backend が雛形から読んで書く (AI に渡させない)。既存のため写さなかったファイルは `skipped` (中身なし = 2 方向)。設計の schema ではなく運用の記録。雛形の置き場は、資料の置き場 (`HARMONY_DOCS_DIR`。`harmony://skill/...` が読む場所) に従う。記録のファイルは 50 件まで (超えた分は読まず、「読み込み」の warning で知らせる)。外部の変更 (git pull・手編集) は `opsChanged` で画面に知らせる。

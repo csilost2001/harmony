@@ -38,7 +38,8 @@ PageLayout + Gadget の code generation 対応 (RFC #1021 pl-7、Phase 2) は #1
     },
     "backend": {
       "language":  "java | typescript | python | go | kotlin",
-      "framework": "spring-boot | nestjs | express | fastapi | gin"
+      "framework": "spring-boot | nestjs | express | fastapi | gin",
+      "orm":       "prisma | typeorm (language が typescript のときだけ。省略時は prisma = 推奨)"
     },
     "database": {
       "type":    "postgresql | mysql | sqlite | oracle | sqlserver",
@@ -247,11 +248,11 @@ ProcessFlow JSON の step kind ごとのコード生成方針。詳細は `ai-sk
 
 | step.kind | Java Spring Boot | TypeScript NestJS |
 |---|---|---|
-| `dbAccess` (SELECT) | JPA Repository `findBy...()` または `@Query(nativeQuery=true)` | TypeORM `repository.findOne()` または `dataSource.query()` |
-| `dbAccess` (INSERT) | `repository.save(entity)` | `manager.save(entity)` |
-| `dbAccess` (UPDATE) | `@Modifying @Query` + affectedRowsCheck | `manager.query(sql)` + 行数チェック |
-| `dbAccess` (DELETE) | `@Modifying @Query deleteBy...()` | `manager.delete()` |
-| `transactionScope` | `@Transactional(isolation, timeout)` + rollbackOn → 例外 throw | `dataSource.transaction('READ COMMITTED', async manager => { ... })` |
+| `dbAccess` (SELECT) | JPA Repository `findBy...()` または `@Query(nativeQuery=true)` | ORM で分ける (下の「NestJS の ORM と DB」) |
+| `dbAccess` (INSERT) | `repository.save(entity)` | 同上 |
+| `dbAccess` (UPDATE) | `@Modifying @Query` + affectedRowsCheck | 同上 |
+| `dbAccess` (DELETE) | `@Modifying @Query deleteBy...()` | 同上 |
+| `transactionScope` | `@Transactional(isolation, timeout)` + rollbackOn → 例外 throw | ORM で分ける (Prisma: `prisma.$transaction(async (tx) => …)` / TypeORM: `dataSource.transaction(async (manager) => …)`) |
 | `screenTransition` | `return "redirect:/path"` (MVC Controller) / REST API では出力しない | `res.redirect('/path')` |
 | `branch` | `if (condition) { ... } else { ... }` + `throw XxxException` | `if (condition) { throw new HttpException(...) }` |
 | `loop` (collection) | `for (ItemType item : collection) { ... }` | `for (const item of collection) { ... }` |
@@ -261,6 +262,24 @@ ProcessFlow JSON の step kind ごとのコード生成方針。詳細は `ai-sk
 | `return` | `ResponseEntity.<T>status(N).body(body)` | `return responseDto` または `throw new HttpException(body, status)` |
 | `log` | `log.error(message, structuredData)` | `this.logger.error(message, structuredData)` |
 | `other` | `// TODO: {{step.description}}` + outputSchema で型推定 (注: schema の `kind` に `other` は存在しない。extension step では `type: "other"` を使う別階層の概念であるため混同注意) | 同左 |
+
+### NestJS の ORM と DB (#1560 / #1570)
+
+NestJS の DB 層は、`techStack.backend.orm` (`prisma` / `typeorm`。**省略時は `prisma`**) と `techStack.database.type` (**省略時は `postgresql`**) で決まる。**1 つの生成物の中で 2 つの ORM を混ぜない** (`orm: typeorm` のときは `prisma/` `@prisma/client` `PrismaService` を一切出さず、`orm: prisma` のときは `typeorm` `@nestjs/typeorm` `*.entity.ts` を一切出さない)。
+
+| step | `orm: prisma` (既定・省略時) | `orm: typeorm` |
+|---|---|---|
+| 生成する DB 層 | `prisma/schema.prisma` (model は physicalName の snake_case → PascalCase の最後の語を単数形、`@@map("<physicalName>")`、`provider` は `database.type` から)、`src/prisma/prisma.service.ts` / `prisma.module.ts` | `entity/*.entity.ts`、`src/database/typeorm.config.ts` (`TypeOrmModule.forRootAsync` と全 Entity の列挙。`type` は `database.type` から) |
+| Service が受け取る | `PrismaService` | `DataSource` と `Repository<Entity>` |
+| `dbAccess` SELECT | `prisma.<model>.findUnique()` / `findMany()`、生 SQL は `$queryRaw` | `repository.findOneBy()` / `find()`、生 SQL は `dataSource.query()` |
+| `dbAccess` INSERT / UPDATE / DELETE | `create()` / `update()` / `delete()` | `save()` / `update()` / `delete()` |
+| `transactionScope` | `this.prisma.$transaction(async (tx) => { … })`。中では `tx` を使う | `this.dataSource.transaction(async (manager) => { … })`。中では `manager` を使う |
+| SQL のバインド変数 | `$queryRaw` のタグ付きテンプレートの `${var}` | postgresql は `$N`、mysql / sqlite は `?` |
+| 表づくり (dev) | `npx prisma db push` | アプリ起動時の `synchronize` (`DB_SYNCHRONIZE=true`) |
+
+開発コンテナの雛形 (`templates/devcontainer/nestjs-*`) は、`database.type` (postgresql / mysql / sqlite) と `orm` ごとのブロックを持ち、写すときに合うものだけ残す。`docker-compose.yml` の DB サービスと `DATABASE_URL`、`.devcontainer/compose.yml` の開発用 DB、README の「DB 初期化」が、この選択で変わる。`.devcontainer/devcontainer.json` の `postCreateCommand` (`prisma generate`) と拡張 `Prisma.prisma` は `orm` だけで変わり、`orm: typeorm` の生成物には Prisma の記述が出ない。sqlite のときの DB のファイルは、本番用 `docker-compose.yml` では `data/dev.db` (名前付きボリューム `app-data` を `/app/data` に載せる。Prisma の `DATABASE_URL` は schema.prisma 相対の `file:../data/dev.db`、TypeORM は `file:./data/dev.db`)。ボリュームを schema.prisma のある `prisma/` に載せない (イメージの schema.prisma が古いボリュームに隠れ、起動時の `prisma db push` が古い schema を使うため)。開発コンテナでは Prisma は `prisma/dev.db`、TypeORM は `data/dev.db`。DB のファイルを業務アプリの git に入れないよう、generate-code は sqlite のとき `.gitignore` に `prisma/dev.db*` (Prisma のみ)・`data/` を足す。詳細は `ai-skills/generate-code/SKILL.md` の「DB と ORM の読み方」「DB ごとのブロック」。`database.type` が `sqlserver` / `oracle` の DB サービスは雛形の対象外。Prisma は `oracle` に対応していないので、そのときは生成を止めて知らせる。
+
+generate-tests の DB 検証・seed も同じ ORM で書く (`ai-skills/generate-tests/SKILL.md` の「DB 検証の ORM 別の書き方」)。
 
 ### ambientVariables → フレームワーク引数
 
