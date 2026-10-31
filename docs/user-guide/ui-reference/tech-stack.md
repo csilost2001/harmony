@@ -30,7 +30,7 @@
 |---|---|---|
 | 言語 | Java / Kotlin / TypeScript / Python / Go | 未設定の表示は Java |
 | フレームワーク | Spring Boot / NestJS / Express / FastAPI / Gin | 言語との組合せに制約がある (例: Java に Gin は選べない → 右に「制約違反」が出て、保存できない) |
-| ORM | **Prisma (推奨)** / TypeORM | **言語が TypeScript のときだけ選べる**。ほかの言語のあいだは選べず、「ORM は、言語が TypeScript のときだけ選べます。」と出る。未設定は Prisma として扱う。言語を TypeScript 以外に変えると、ORM の指定は自動で外れる。TypeScript のプリセット (TypeScript フルスタック / 軽量) は ORM が Prisma |
+| ORM | **Prisma (推奨)** / TypeORM | **言語が TypeScript のときだけ選べる**。コード生成の対象は NestJS (Express を選んでいるときは、その旨の注意が出る)。ほかの言語 (未設定の Java 扱いを含む) のあいだは選べず、どちらも選択済みに見えない。「ORM は、言語が TypeScript のときだけ選べます (対象外)。」と出る。未設定は Prisma として扱う。AI や手編集で `language: java` のまま `orm` が書かれていると、「ORM の指定が残っています」と「ORM の指定を外す」ボタンが出て、右に制約違反も出る。言語を TypeScript 以外に変えると ORM の指定は自動で外れ、「ORM の指定 (…) を外しました」と注記が出る (TypeScript に戻すと消える)。TypeScript のプリセット (TypeScript フルスタック / 軽量) は ORM が Prisma |
 
 右の「現在の選択」には `ORM: typeorm` のように出る。TypeScript で ORM が未設定のときは `ORM: prisma (既定)`。
 

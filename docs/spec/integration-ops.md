@@ -152,10 +152,10 @@ category: ops
 
 `frontend/src/utils/techStackPresets.ts`: Java (Spring Boot + PostgreSQL / Oracle + Thymeleaf)・Kotlin・TypeScript (NestJS + Next.js / Express)・Python (FastAPI + Vue / Nuxt)・Go (Gin + Kubernetes) の 7 つ。バックエンド・DB・フロントエンド・認証・デプロイをまとめて入れる (画面デザインの設定は変えない。保存するまで確定しない)。すべて、スキーマの列挙値と、組み合わせの制約 (`techStackConstraints.ts`) を満たす (試験で確認)。規約 (`@conv.*`) の既定値は含まない。
 
-**ORM** (#1560): `techStack.backend.orm` (`prisma` | `typeorm`。省略時は `prisma` = 推奨。設計者の判断で schema に追加)。TypeScript (NestJS / Express) のときだけ意味を持つ。
-- **組合せの制約** (`techStackConstraints.ts`): `orm` が指定され、`language` が明示されていて `typescript` 以外なら、`backend.orm` の違反 (error)。`language` が未指定のときは違反にしない。
+**ORM** (#1560): `techStack.backend.orm` (`prisma` | `typeorm`。省略時は `prisma` = 推奨。設計者の判断で schema に追加)。TypeScript のときだけ意味を持つ (コード生成が対応しているのは NestJS。Express でも schema・制約・画面では指定できる)。
+- **組合せの制約** (`techStackConstraints.ts`): `orm` が指定され、`language` が `typescript` 以外なら、`backend.orm` の違反 (error)。`language` が未指定のときは schema の既定の `java` として扱い、同じく違反にする (画面が未指定を Java として ORM を選べなくしているのと合わせる)。
 - **プリセット**: TypeScript 系 (`ts-fullstack` / `ts-light`) は `orm: "prisma"`、ほかの言語は `orm` を持たない。
-- **画面**: バックエンドの欄に「ORM」(Prisma は「推奨」の印つき)。言語が TypeScript 以外のあいだは選べず、注意が出る (未設定の表示は Prisma 扱い)。言語を TypeScript 以外に変えると、ORM の指定は外れる。右の「現在の選択」に `ORM: …` (TypeScript で未設定なら `ORM: prisma (既定)`)。
+- **画面**: バックエンドの欄に「ORM」(Prisma は「推奨」の印つき。説明は「コード生成の対象は NestJS」)。言語が TypeScript 以外 (未設定を含む) のあいだは選べず、**どちらも選択済みに見えない**。「対象外」の注意が出る。`orm` の指定が残っている (AI や手編集で `language: java` + `orm` になった = 制約違反) ときは、「ORM の指定が残っています」と **「ORM の指定を外す」** ボタンが出る。言語を TypeScript 以外に変えると ORM の指定は外れ、外れたことが注記で分かる (TypeScript に戻すまで)。Express を選んでいるときは「コード生成が対応しているのは NestJS だけ」と注意する。右の「現在の選択」に `ORM: …` (TypeScript で未設定なら `ORM: prisma (既定)`)。
 - **AI への伝わり方**: `designer__get_project_context` の `techStack` と、`designer__get_generation_brief` の「技術スタック」の節は `techStack` の JSON をそのまま渡すので、`orm` はそこに含まれる。生成の指示書は、TypeScript のバックエンドで `orm` が未指定のとき、「ORM は未指定 (backend.orm)。既定の prisma として作る。」を添える。
 
 ## 14. 版・リリースノート・初回セットアップ・資料の鮮度
