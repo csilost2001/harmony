@@ -197,3 +197,63 @@ describe("AppShell routing guard restore", () => {
     expect(opens.every((c) => (c[1] as { restore?: boolean }).restore === true)).toBe(true);
   });
 });
+
+describe("AppShell 画面が古いとき (#1572)", () => {
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    bridgeMock.statusCallbacks.length = 0;
+    bridgeMock.broadcastCallbacks.length = 0;
+    const workspaceStore = await import("../store/workspaceStore");
+    workspaceStore.__resetStateForTest();
+    workspaceStore.__resetLoadChainForTest();
+    bridgeMock.request.mockImplementation(async (method: string) => {
+      if (method === "workspace.list") {
+        return {
+          workspaces: [
+            { id: "ws-aaa", path: "/data/ws-aaa", name: "WS A", lastOpenedAt: null },
+            { id: "ws-bbb", path: "/data/ws-bbb", name: "WS B", lastOpenedAt: null },
+          ],
+          lastActiveId: "ws-aaa",
+          active: { id: "ws-aaa", path: "/data/ws-aaa", name: "WS A" },
+          lockdown: false,
+          lockdownPath: null,
+        };
+      }
+      return {};
+    });
+  });
+
+  afterEach(async () => {
+    vi.unstubAllGlobals();
+    (await import("../utils/buildVersion")).__resetStaleBuildForTest();
+    vi.restoreAllMocks();
+  });
+
+  it.each([
+    ["初回の復元 (URL と active が同じ)", "/w/ws-aaa/screen/list"],
+    ["ルーティングの見張り (URL と active が違う)", "/w/ws-bbb/screen/list"],
+  ])("サーバの版と違う間は workspace.open を出さず、更新バナーを出す: %s", async (_label, url) => {
+    vi.stubGlobal("__HARMONY_BUILD_ID__", "client-1");
+    const { handleServerBuildId } = await import("../utils/buildVersion");
+    handleServerBuildId("server-2");
+    const { AppShell } = await import("./AppShell");
+    render(
+      <MemoryRouter initialEntries={[url]}>
+        <AppShell />
+      </MemoryRouter>,
+    );
+
+    bridgeMock.statusCallbacks.forEach((cb) => cb("connected"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("stale-build-banner")).toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(bridgeMock.request.mock.calls.some((c) => c[0] === "workspace.list")).toBe(true);
+    });
+    // 見張りの effect が走る時間を与えても、workspace.open は出ない
+    await new Promise((r) => setTimeout(r, 50));
+    expect(bridgeMock.request.mock.calls.some((c) => c[0] === "workspace.open")).toBe(false);
+  });
+});

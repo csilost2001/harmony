@@ -86,6 +86,8 @@ import {
 } from "../routing/lazyViews";
 import { PageLayoutDesignRedirect } from "./shell/PageLayoutDesignRedirect";
 import { RedirectGuardBanner } from "./shell/RedirectGuardBanner";
+import { StaleBuildBanner } from "./shell/StaleBuildBanner";
+import { useStaleBuild } from "../utils/buildVersion";
 import { ConnectionFailedView } from "./shell/ConnectionFailedView";
 import { tabPath } from "../routing/tabPaths";
 import { SplitPane } from "./shell/SplitPane";
@@ -163,6 +165,8 @@ export function AppShell() {
   const [guardTripped, setGuardTripped] = useState<readonly string[] | null>(
     isRedirectGuardTripped() ? [] : null,
   );
+  // 画面がサーバより古い (配布 image の版が上がった) ときの知らせ (#1572)
+  const staleBuild = useStaleBuild();
   // backend 接続失敗の可視化 (#795-C): N 秒以内に "connected" が来ない場合 true
   const [connectionFailed, setConnectionFailed] = useState(false);
   // 一度でも connected になったかを保持 (timer 内 closure 用)
@@ -266,20 +270,24 @@ export function AppShell() {
       return <ConnectionFailedView onRetry={handleRetryConnection} />;
     }
     return (
-      <div style={{
-        display: "flex", alignItems: "center", justifyContent: "center",
-        height: "100vh", flexDirection: "column", gap: "8px",
-        color: "var(--muted-text, #888)",
-      }}>
-        <i className="bi bi-hourglass-split" style={{ fontSize: "1.5rem" }} />
-        <p style={{ margin: 0 }}>ワークスペース情報を読み込み中...</p>
-      </div>
+      <>
+        {staleBuild && <StaleBuildBanner />}
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "center",
+          height: "100vh", flexDirection: "column", gap: "8px",
+          color: "var(--muted-text, #888)",
+        }}>
+          <i className="bi bi-hourglass-split" style={{ fontSize: "1.5rem" }} />
+          <p style={{ margin: 0 }}>ワークスペース情報を読み込み中...</p>
+        </div>
+      </>
     );
   }
 
   return (
     <>
       {guardTripped !== null && <RedirectGuardBanner summary={guardTripped} />}
+      {staleBuild && <StaleBuildBanner />}
     <Suspense fallback={<ViewLoading />}>
     <Routes>
       {/* /w/:wsId 配下の全ルートを **nested Routes** で宣言。
@@ -472,6 +480,10 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
   //   に持ち、mcpBridge disconnect 時にクリアして backend per-session 再構築の契約は維持する。
   __subscribeStatusClearOnce();
 
+  // 画面が古いとき (#1572): 古い画面から workspace.open を送ると、新しいサーバの作業先を古い画面の都合で書き換えてしまう。
+  // 再読み込みで新しい画面になるまで、routing 見張りの workspace.open を発行しない。
+  const staleBuild = useStaleBuild();
+
   useEffect(() => {
     // e2e テスト用 bypass (workspace-e2e-bypass=true) のみ guard スキップ。
     // それ以外の error 状態は明示的に redirect / エラー画面へ誘導する。
@@ -490,7 +502,8 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       !workspaceState.lockdown &&
       workspaceState.active !== null &&
       wsId === workspaceState.active.id &&
-      __recoveryPendingWsId === null
+      __recoveryPendingWsId === null &&
+      !staleBuild
     ) {
       const activeId = workspaceState.active.id;
       __recoveryPendingWsId = activeId;
@@ -513,6 +526,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     if (action.type === "none") return;
 
     if (action.type === "openWorkspace") {
+      if (staleBuild) return; // 古い画面は workspace.open を出さない (#1572)
       // 並行発行ガード (#963): 同 wsId に対する未完了 workspace.open RPC があれば skip
       if (__recoveryPendingWsId === action.id) {
         return;
@@ -540,7 +554,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     // action.type === "navigate"
     const guard = checkRedirect(action.path);
     if (guard.allow) navigate(action.path, { replace: true });
-  }, [workspaceState, wsId, location.pathname, navigate]);
+  }, [workspaceState, wsId, location.pathname, navigate, staleBuild]);
 
   // CSS variables でヘッダー・タブバーの高さを各コンポーネントに伝える
   // 並べて表示の右ペインの中では、ヘッダー・タブバーを出さないので、どちらも 0

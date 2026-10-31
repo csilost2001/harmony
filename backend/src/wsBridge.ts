@@ -32,6 +32,7 @@ import { authFailureDelayMs, checkAuthToken, configuredToken } from "./security/
 import { ensureRecovered } from "./operationJournal.js";
 import { schedulePrewarm } from "./prewarm.js";
 import { RateLimiter, checkContentLength, maxWsPayloadBytes, maxWsRequestsPer10s } from "./security/requestLimits.js";
+import { getServerBuildId } from "./buildId.js";
 
 type Command = { id: string; method: string; params?: unknown };
 type Response = { id: string; result?: unknown; error?: string };
@@ -481,6 +482,7 @@ export class WsBridge extends EventEmitter {
         lastWsMessageAt: health.lastWsMessageAt,
         wsConnections: health.wsConnections,
         uptimeMs: health.uptimeMs,
+        ...(getServerBuildId() ? { buildId: getServerBuildId() } : {}),
       }));
       return;
     }
@@ -569,6 +571,11 @@ export class WsBridge extends EventEmitter {
           // 実 ID で context を登録 (既存なら reconnect で activePath 維持)
           workspaceContextManager.connect(clientId, prevCtxActivePath);
           logInfo("ws-bridge", "Client registered", { clientId: clientId.substring(0, 8), total: this.clients.size });
+          // 画面が自分の版とこのサーバの版を比べられるように返す (#1572)。以後のどの応答より先に届く
+          try {
+            const buildId = getServerBuildId();
+            ws.send(JSON.stringify(buildId ? { type: "registered", buildId } : { type: "registered" }));
+          } catch { /* 送れない接続は close で片づく */ }
           return;
         }
 
