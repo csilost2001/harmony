@@ -399,7 +399,9 @@ CREATE TRIGGER t BEFORE UPDATE ON shipments FOR EACH ROW EXECUTE FUNCTION f();`;
     await page.getByTestId("op-tab-version").click();
     await expect(page.getByTestId("op-version-info")).toContainText("版", { timeout: 15000 });
     await expect(page.getByTestId("op-version-info")).toContainText(/\d+\.\d+\.\d+/);
-    await expect(page.getByTestId("op-release-notes")).toContainText("改善提案 第 4 弾");
+    // リリースノートは新しい 30 件だけ出す (versionInfo の limit)。docs/release-notes.md が増えると特定の項目は範囲外になるので、
+    // 特定の見出しではなく「日付つきの項目が 1 件以上ある」ことを確かめる
+    await expect(page.getByTestId("op-release-notes").locator(".op-note-date").first()).toHaveText(/^\d{4}-\d{2}-\d{2}$/);
     // 見た版を、別の値にして開き直す → 更新の案内
     await page.evaluate(() => localStorage.setItem("harmony.seenVersion", "0.0.1+old"));
     await ws.gotoActive(page, "/");
