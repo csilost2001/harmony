@@ -43,7 +43,7 @@ generate-tests (`ai-skills/generate-tests/SKILL.md` Step 6) が同じ規則で `
 | 5 | 語尾 `s` (上のどれにも当たらない) | 末尾の `s` を 1 つ落とす | `posts` → `Post` / `users` → `User` / `responses` → `Response` / `purchases` → `Purchase` / `databases` → `Database` / `licenses` → `License` |
 | 6 | `s` で終わらない | 変えない | `inventory` → `Inventory` |
 
-例外の語 (`s` を 1 つ落とすと壊れるもの): `statuses` → `Status` / `buses` → `Bus` / `aliases` → `Alias` / `analyses` → `Analysis` / `viruses` → `Virus` / `bonuses` → `Bonus` / `campuses` → `Campus` / `caches` → `Cache` / `menus` → `Menu`。表に無い語で壊れるものが出たら、generate-code と generate-tests の両方の表に足して一致させる。全体の例: `order_status` → `OrderStatus` / `user_word_progress` → `UserWordProgress` / `order_responses` → `OrderResponse`。単数化して他の model と同じ名前になるとき、または単数化できないときは、単数化せず PascalCase のまま。
+例外の語 (`s` を 1 つ落とすと壊れるもの): `statuses` → `Status` / `buses` → `Bus` / `aliases` → `Alias` / `analyses` → `Analysis` / `viruses` → `Virus` / `bonuses` → `Bonus` / `campuses` → `Campus` / `caches` → `Cache` / `menus` → `Menu` / `news` → `News` / `series` → `Series` / `species` → `Species`。表に無い語で壊れるものが出たら、generate-code と generate-tests の両方の表に足して一致させる。全体の例: `order_status` → `OrderStatus` / `user_word_progress` → `UserWordProgress` / `order_responses` → `OrderResponse`。単数化して他の model と同じ名前になるとき、または単数化できないときは、単数化せず PascalCase のまま。
 
 ## データ型の対応
 

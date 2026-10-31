@@ -16,28 +16,35 @@ export const DEFAULT_ORM = "prisma";
 
 export interface BlockContext { db: string; orm: string }
 
-const OPEN = /^(?:#|\/\/|<!--)\s*@(db|orm)\s+([a-z0-9,]+)\s*(?:-->)?$/;
-const CLOSE = /^(?:#|\/\/|<!--)\s*@end-(db|orm)\s*(?:-->)?$/;
+const OPEN = /^(?:#|\/\/|<!--)\s*@(db|orm)\s+([a-z0-9,]+)\s*(?:-->)?$/i;
+const CLOSE = /^(?:#|\/\/|<!--)\s*@end-(db|orm)\s*(?:-->)?$/i;
 /** ブロックのマーカー行が残っているかを見る正規表現 */
-export const BLOCK_MARKER_LINE = /^\s*(?:#|\/\/|<!--)\s*@(?:db|orm|end-db|end-orm)\b/m;
+export const BLOCK_MARKER_LINE = /^\s*(?:#|\/\/|<!--)\s*@(?:db|orm|end-db|end-orm)\b/im;
 
 /**
  * 規則 1〜5: 一致するブロックはマーカー行だけ消して中身を残し、一致しないブロックはマーカー行と中身を消す。
- * ブロックは入れ子になる (外側が一致しなければ内側ごと消える)。マーカーの行以外は変えない。開始と終了が対応しないときは Error。
+ * ブロックは入れ子になる (外側が一致しなければ内側ごと消える)。マーカーの行以外は変えない。種類 (`db` / `orm`) と名前は大文字小文字を区別しない。
+ * 開始と終了が対応しない (数が合わない・種類が違う) ときは Error。
  */
 export function pruneScaffoldBlocks(text: string, ctx: BlockContext): string {
   const out: string[] = [];
-  const stack: boolean[] = [];
+  const stack: { kind: string; keep: boolean }[] = [];
   for (const line of text.split("\n")) {
     const t = line.trim();
     const open = t.match(OPEN);
-    if (open) { stack.push(open[2].split(",").includes(ctx[open[1] as keyof BlockContext])); continue; }
-    if (CLOSE.test(t)) {
-      if (stack.length === 0) throw new Error("終了マーカーが多い");
-      stack.pop();
+    if (open) {
+      const kind = open[1].toLowerCase();
+      stack.push({ kind, keep: open[2].toLowerCase().split(",").includes(ctx[kind as keyof BlockContext].toLowerCase()) });
       continue;
     }
-    if (stack.every(Boolean)) out.push(line);
+    const close = t.match(CLOSE);
+    if (close) {
+      const top = stack.pop();
+      if (!top) throw new Error("終了マーカーが多い");
+      if (top.kind !== close[1].toLowerCase()) throw new Error(`開始マーカー (@${top.kind}) と終了マーカー (@end-${close[1].toLowerCase()}) の種類が違う`);
+      continue;
+    }
+    if (stack.every((b) => b.keep)) out.push(line);
   }
   if (stack.length !== 0) throw new Error("開始マーカーに終了マーカーが無い");
   return out.join("\n");
@@ -48,7 +55,7 @@ const EMPTYABLE_KEYS = /^(\s*)(environment|volumes):\s*$/;
 
 /**
  * 規則 6: ブロックを消した結果、子の行が 1 つも無い `environment:` / `volumes:` の行を消す (YAML のファイルだけ)。
- * 子の行 = そのキーより深いインデントの、空でもコメントでもない行
+ * 子の行 = そのキーより深いインデントの、空でもコメントでもない行 (YAML では、同じインデントの `- ` で始まる行も、そのキーの子)
  */
 export function dropEmptyComposeKeys(text: string): string {
   const lines = text.split("\n");
@@ -61,7 +68,7 @@ export function dropEmptyComposeKeys(text: string): string {
       const t = lines[j].trim();
       if (t === "" || t.startsWith("#")) continue;
       const ind = lines[j].length - lines[j].trimStart().length;
-      if (ind > indent) return; // 子がある
+      if (ind > indent || (ind === indent && t.startsWith("- "))) return; // 子がある
       break;
     }
     drop.add(i);

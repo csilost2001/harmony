@@ -22,6 +22,7 @@ export const scaffoldTools = [
       "開発コンテナの雛形に更新があるか、あれば差分の材料を返します (読み取りのみ)。status: current (最新) / outdated (雛形が新しくなった) / no-record (記録が無い。Harmony の image を使う .devcontainer/compose.yml があるとき) / not-applicable (該当しない)。" +
       "files[] は雛形が書くファイルごとに、state (unchanged / template-changed / new-in-template / removed-from-template)・base (写したときの雛形。無ければ 2 方向)・app (いまのアプリのファイル)・latest (新しい雛形)・appEdited を返します (中身は変わったファイルだけ、1 ファイル 200KB まで)。" +
       "人に見せる差分は diff (アプリ→新しい雛形)・templateDiff (雛形の変更)・appChanges (利用者の手入れ) が unified diff で付くので、自分で差分を作らずこれを見せてください。README の節 (kind: section) は appSection / sectionHeading / appSectionRange (README の行番号) も返すので、その範囲だけ差し替えます。" +
+      "NestJS 系の雛形は、アプリの techStack (database.type・backend.orm) に合わせて DB / ORM ごとのブロックを消してから比べます (base・latest・diff とも消したあとの形)。" +
       "guide に当て方の手順があります。利用者に差分を見せて OK を取ってから書き、当てたら designer__record_scaffold を呼んでください。",
     inputSchema: { type: "object" as const, properties: {}, required: [] },
   },

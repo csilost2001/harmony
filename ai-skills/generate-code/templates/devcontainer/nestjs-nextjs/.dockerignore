@@ -6,9 +6,8 @@ dist
 .git
 .tmp
 .devcontainer
-*.db
-*.db-journal
+**/*.db
+**/*.db-journal
 data
-prisma/dev.db*
 .env
 .env.*

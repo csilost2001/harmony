@@ -149,7 +149,9 @@ function BackendPanel({
   // 言語の表示上の既定は java。TypeScript 以外では ORM は選べない
   const ormDisabled = (value.language ?? "java") !== "typescript";
   // 言語を変えて ORM の指定が外れたとき、外れたことを知らせる (TypeScript に戻す、または選び直すまで)
-  const [droppedOrm, setDroppedOrm] = useState<TechStackBackend["orm"] | null>(null);
+  const [dropped, setDropped] = useState<{ orm: TechStackBackend["orm"]; language: string } | null>(null);
+  // プリセットなどで別の言語に変わったあとは、前の注記を出さない (外したときの言語のままのときだけ出す)
+  const droppedOrm = dropped && dropped.language === (value.language ?? "java") ? dropped.orm : null;
   const clearOrm = () => {
     const { orm: _orm, ...rest } = value;
     onChange(rest);
@@ -168,10 +170,10 @@ function BackendPanel({
             // ORM は TypeScript のときだけ意味を持つ。TypeScript 以外に変えたら、ORM の指定は外す
             if (language !== "typescript" && value.orm !== undefined) {
               const { orm: _orm, ...rest } = value;
-              setDroppedOrm(value.orm);
+              setDropped({ orm: value.orm, language: language ?? "java" });
               onChange({ ...rest, language });
             } else {
-              if (language === "typescript") setDroppedOrm(null);
+              if (language === "typescript") setDropped(null);
               onChange({ ...value, language });
             }
           }}

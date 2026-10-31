@@ -2088,14 +2088,15 @@ NestJS 系の雛形は、DB の種類 (postgresql / mysql / sqlite) と ORM (pri
 
 3. **既存 scaffold check (ファイルごとに判定する)**: 置き場所は 2 つ。ワークスペースのルート (`harmony.json` のあるフォルダ) と `<出力先>`。出力先をルート直下にしたときは同じ場所になる。
    - `.devcontainer/` (devcontainer.json・compose.yml) と `.mcp.json` は、**常にワークスペースのルート**に置く。ルートに `.devcontainer/devcontainer.json` があれば `.devcontainer/` は作らない。ルートに `.mcp.json` があれば `.mcp.json` も作らない (`mcpServers.harmony` に加えて `playwright` / `playwright-headed` (雛形の `.mcp.json` の該当項目) を足す案内だけ最終レポートに書く)。ルートに `.devcontainer/` があって飛ばしたときは、雛形の `postCreateCommand` / `postStartCommand` の Playwright の行と `compose.yml` の WSLg の 4 行 (volumes の 2 行、`environment:` と `DISPLAY` の 2 行) を足す案内も書く。`.tmp/.gitignore` もワークスペースのルートに置く (すでにあれば飛ばす)。出力先を `backend/` などにしても、`backend/.devcontainer/` を入れ子で作らない
-   - `Dockerfile`・`docker-compose.yml` は**出力先**に置く。出力先にすでにある**ファイルだけ**を飛ばす (上書きしない)。無いほうは作る
+   - `Dockerfile`・`docker-compose.yml`・`.dockerignore` (NestJS 系のみ) は**出力先**に置く。出力先にすでにある**ファイルだけ**を飛ばす (上書きしない)。無いほうは作る
    - 飛ばしたファイルは「既存のため飛ばした」と最終レポートに書く
-4. **ファイルコピー**: 選択したテンプレディレクトリ配下の以下を Read → Write で verbatim コピー (改変・補完なし、AI 解釈なし)。ただし NestJS 系は、上の「DB ごとのブロック」の規則で、合わないブロックを消してから書く (`.devcontainer/devcontainer.json` は `// @orm` ブロックだけ消す。`.mcp.json`・`.tmp/.gitignore` はブロックを持たないのでそのまま)。ステップ 3 で飛ばすと決めたものは書かない:
+4. **ファイルコピー**: 選択したテンプレディレクトリ配下の以下を Read → Write で verbatim コピー (改変・補完なし、AI 解釈なし)。ただし NestJS 系は、上の「DB ごとのブロック」の規則で、合わないブロックを消してから書く (`.devcontainer/devcontainer.json` は `// @orm` ブロックだけ消す。`.mcp.json`・`.tmp/.gitignore`・`.dockerignore` はブロックを持たないのでそのまま)。ステップ 3 で飛ばすと決めたものは書かない:
    - `.devcontainer/devcontainer.json` → `<ワークスペースのルート>/.devcontainer/devcontainer.json`
    - `.devcontainer/compose.yml` → `<ワークスペースのルート>/.devcontainer/compose.yml`
    - `.mcp.json` → `<ワークスペースのルート>/.mcp.json`
    - `.tmp/.gitignore` → `<ワークスペースのルート>/.tmp/.gitignore` (すでにあれば飛ばす)
    - `Dockerfile` → `<出力先>/Dockerfile`
+   - `.dockerignore` (NestJS 系のみ。そのまま写す) → `<出力先>/.dockerignore`
    - `docker-compose.yml` → `<出力先>/docker-compose.yml`
    - `.gitignore` への追記 (NestJS 系で `techStack.database.type` が `sqlite` のときだけ。雛形のファイルではなく、書き足す): `<出力先>/.gitignore` に、DB のファイルを git に入れないための行を足す (ファイルが無ければ作る。すでにある行は足さない)。`orm: prisma` は `prisma/dev.db*` と `data/`、`orm: typeorm` は `data/`。postgresql / mysql のときは足さない。足した旨を最終レポートに書く
 5. **README.md 統合**:

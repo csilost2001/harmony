@@ -27,6 +27,7 @@ COPY --from=builder /build/views ./views
 COPY --from=builder /build/prisma ./prisma
 # 本番の node_modules には Prisma Client が無いので、ここで作る (prisma は dependencies に入れておく)
 RUN npx prisma generate
+RUN mkdir -p data
 # @end-orm
 # @orm typeorm
 RUN mkdir -p data

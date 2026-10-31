@@ -16,6 +16,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { BLOCK_MARKER_LINE, pruneScaffoldBlocks, pruneScaffoldFile } from "./ops/scaffold.js";
+import { dropEmptyComposeKeys } from "./ops/scaffoldBlocks.js";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const TEMPLATES = path.join(REPO, "ai-skills/generate-code/templates/devcontainer");
@@ -215,5 +216,28 @@ describe.each(COMBOS)("雛形 %s の DB ごとのブロック (#1560)", (combo) 
 
   it(".mcp.json はブロックを持たない (そのまま写す)", () => {
     expect(MARKER_LINE.test(read(combo, ".mcp.json"))).toBe(false);
+  });
+});
+
+describe("剪定の規則の境界 (#1560)", () => {
+  const ctx = { db: "sqlite", orm: "prisma" };
+  it("マーカーの種類と名前は大文字小文字を区別しない", () => {
+    expect(pruneScaffoldBlocks("a\n# @DB SQLite\nb\n# @END-DB\n# @orm TypeORM\nc\n# @end-orm\n", ctx)).toBe("a\nb\n");
+  });
+  it("開始と終了の種類が違うときは Error (db で開いて orm で閉じる)", () => {
+    expect(() => pruneScaffoldBlocks("# @db sqlite\nx\n# @end-orm\n", ctx)).toThrow(/種類が違う/);
+  });
+  it("終了が多い・足りないときは Error", () => {
+    expect(() => pruneScaffoldBlocks("# @end-db\n", ctx)).toThrow(/終了マーカーが多い/);
+    expect(() => pruneScaffoldBlocks("# @db sqlite\nx\n", ctx)).toThrow(/終了マーカーが無い/);
+  });
+  it("入れ子は、外側が一致しなければ内側ごと消える", () => {
+    const text = "# @db mysql\n# @orm prisma\nM\n# @end-orm\n# @end-db\nkeep\n";
+    expect(pruneScaffoldBlocks(text, ctx)).toBe("keep\n");
+  });
+  it("規則 6: 同じインデントの `- ` 行も子として数える (リスト形式の volumes を消さない)", () => {
+    const yml = "services:\n  app:\n    volumes:\n    - a:/a\n    image: x\n";
+    expect(dropEmptyComposeKeys(yml)).toBe(yml);
+    expect(dropEmptyComposeKeys("services:\n  app:\n    volumes:\n    image: x\n")).toBe("services:\n  app:\n    image: x\n");
   });
 });
