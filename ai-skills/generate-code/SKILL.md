@@ -756,7 +756,7 @@ export type AuthenticatedUser = { id: string; username: string };
 @Injectable()
 export class AuthService {
   async validateUser(username: string, password: string): Promise<AuthenticatedUser | null> {
-    // PoC / dev 用の固定ユーザー。本番は DB 連携 (例: Prisma + bcrypt) に置換すること。
+    // PoC / dev 用の固定ユーザー。本番は DB 連携 (例: bcrypt + techStack.backend.orm で選んだ ORM の Repository) に置換すること。
     if (username === 'demo' && password === 'demo') {
       return { id: 'demo-user-id', username: 'demo' };
     }
@@ -2064,7 +2064,7 @@ NestJS 系の雛形は、DB の種類 (postgresql / mysql / sqlite) と ORM (pri
 
 - `designer__record_scaffold` / `designer__get_scaffold_update` と、雛形の版 (組合せのフォルダの全ファイルの SHA-256) は、組合せ (`nestjs-nextjs` など 4 つ) ごとのフォルダを単位にしている。DB ごとにフォルダを分けると、組合せが 4 → 10 に増え、backend の組合せの一覧 (`SCAFFOLD_COMBOS`)・記録の形・点検・試験を変えることになる。ブロック方式なら backend は 1 行も変えず、雛形の版は今のまま「フォルダの中身のハッシュ」で決まる
 - 差し替え文字は、複数行 (`depends_on` / `volumes` / DB サービス丸ごと) を AI が組み立てることになり、書き方がぶれる。ブロックは「消すだけ」なので、結果が一意に決まる
-- 雛形そのもの (全ブロックが入った状態) は、そのままでは 1 つの YAML として有効でない (キーが重なる)。写した結果 (ブロックを消したあと) が有効であることを、`backend/src/generateCodeTemplates.test.ts` が組合せ × DB × ORM の全部で確かめている
+- 雛形そのもの (全ブロックが入った状態) は、そのままでは 1 つの YAML として有効でない (キーが重なる)。写した結果 (ブロックを消したあと) が有効であることを、`backend/src/generateCodeDbBlocks.test.ts` が組合せ × DB × ORM の全部で確かめている
 
 **雛形の記録と更新** (`designer__record_scaffold` / `designer__get_scaffold_update`): 記録には雛形の中身 (ブロック入り) が残り、アプリのファイルはブロックを消した後の形になる。そのため、`designer__get_scaffold_update` の 3 方向の差分では、ブロックを消した部分が「利用者の手入れ」に見える。これは雛形の規則による差で、手入れではない。更新を取り込むときは、新しい雛形にも**同じ規則**でブロックを消してから、アプリのファイルと比べる。`techStack.database` や `techStack.backend.orm` を変えたときの取り込みも同じ手順で (新しい techStack で消したあとのファイルを、いまのアプリのファイルに当てる)。
 
