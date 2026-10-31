@@ -49,10 +49,10 @@ VSCode + Dev Containers 拡張があれば、`git clone` 後に `Reopen in Conta
 <!-- @end-orm -->
 <!-- @end-db -->
 <!-- @db postgresql -->
-**DB**: PostgreSQL 15。dev は `.devcontainer/compose.yml` の `db` サービス (`postgresql://app:app@db:5432/app`)、`docker compose up --build` は `docker-compose.yml` の `db` サービス (healthcheck が通ってから `app` が起動)。ORM は `techStack.backend.orm` に従う。
+**DB**: PostgreSQL __DB_VERSION__。dev は `.devcontainer/compose.yml` の `db` サービス (`postgresql://app:app@db:5432/app`)、`docker compose up --build` は `docker-compose.yml` の `db` サービス (healthcheck が通ってから `app` が起動)。ORM は `techStack.backend.orm` に従う。
 <!-- @end-db -->
 <!-- @db mysql -->
-**DB**: MySQL 8。dev は `.devcontainer/compose.yml` の `db` サービス (`mysql://app:app@db:3306/app`)、`docker compose up --build` は `docker-compose.yml` の `db` サービス (healthcheck が通ってから `app` が起動)。ORM は `techStack.backend.orm` に従う。
+**DB**: MySQL __DB_VERSION__。dev は `.devcontainer/compose.yml` の `db` サービス (`mysql://app:app@db:3306/app`)、`docker compose up --build` は `docker-compose.yml` の `db` サービス (healthcheck が通ってから `app` が起動)。ORM は `techStack.backend.orm` に従う。
 <!-- @end-db -->
 
 詳細: [`.devcontainer/devcontainer.json`](.devcontainer/devcontainer.json)

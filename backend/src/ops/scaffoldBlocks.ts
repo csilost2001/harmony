@@ -5,6 +5,9 @@
  * `techStack.backend.orm` ごとのブロック (`# @db <種別>` … `# @end-db`、`# @orm <名前>` … `# @end-orm`) が全部入っている。
  * 写すとき (generate-code の SKILL.md「DB ごとのブロック」) は、合うブロックを残し、合わないブロックを中身ごと消す。
  * **この規則はここだけに持つ**。雛形の更新の比較 (scaffold.ts) と、雛形の検査 (generateCodeDbBlocks.test.ts) が同じ関数を使う。
+ *
+ * もう 1 つの規則 (規則 7、#1587): 雛形の `__DB_VERSION__` は、`techStack.database.version` (DB の image のタグ) に置き換える。
+ * 版は DB ごとの既定 (postgresql 15 / mysql 8) があり、image のタグに入る値なので、数字とドットだけの形でない値は既定に戻す。
  */
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -14,7 +17,23 @@ export const DEFAULT_DB = "postgresql";
 /** techStack.backend.orm の既定 (schema の default。推奨) */
 export const DEFAULT_ORM = "prisma";
 
-export interface BlockContext { db: string; orm: string }
+/** techStack.database.version の既定 (DB の image のタグ。雛形に DB サービスがある DB だけ) */
+export const DEFAULT_DB_VERSIONS: Readonly<Record<string, string>> = { postgresql: "15", mysql: "8" };
+/** 雛形の中で、DB の版に置き換える印 (規則 7) */
+export const DB_VERSION_TOKEN = "__DB_VERSION__";
+/** DB の版として通す形 (image のタグに入るので、任意の文字列は通さない) */
+const DB_VERSION_FORM = /^[0-9]+(?:\.[0-9]+)*$/;
+
+/** dbVersion は省略できる (省略、または形が合わないときは、DB ごとの既定) */
+export interface BlockContext { db: string; orm: string; dbVersion?: string }
+
+/** harmony.json の database.version (生の値) から、使う版を決める。文字列で、数字とドットだけの形のときだけ通し、それ以外は DB ごとの既定 (雛形に DB サービスが無い DB は、指定があっても undefined) */
+export function resolveDbVersion(db: string, raw: unknown): string | undefined {
+  const dflt = DEFAULT_DB_VERSIONS[db.toLowerCase()];
+  if (dflt === undefined) return undefined; // 雛形に DB サービスが無い DB (sqlite・sqlserver・oracle) は、版を使わない
+  if (typeof raw === "string" && DB_VERSION_FORM.test(raw.trim())) return raw.trim();
+  return dflt;
+}
 
 const OPEN = /^(?:#|\/\/|<!--)\s*@(db|orm)\s+([a-z0-9,]+)\s*(?:-->)?$/i;
 const CLOSE = /^(?:#|\/\/|<!--)\s*@end-(db|orm)\s*(?:-->)?$/i;
@@ -34,7 +53,7 @@ export function pruneScaffoldBlocks(text: string, ctx: BlockContext): string {
     const open = t.match(OPEN);
     if (open) {
       const kind = open[1].toLowerCase();
-      stack.push({ kind, keep: open[2].toLowerCase().split(",").includes(ctx[kind as keyof BlockContext].toLowerCase()) });
+      stack.push({ kind, keep: open[2].toLowerCase().split(",").includes((kind === "db" ? ctx.db : ctx.orm).toLowerCase()) });
       continue;
     }
     const close = t.match(CLOSE);
@@ -76,9 +95,15 @@ export function dropEmptyComposeKeys(text: string): string {
   return drop.size ? lines.filter((_, i) => !drop.has(i)).join("\n") : text;
 }
 
-/** 雛形のファイル 1 つに規則 1〜6 を当てる (YAML は規則 6 まで)。ブロックが壊れているときは Error */
+/** 規則 7: `__DB_VERSION__` を DB の版に置き換える (全ファイル)。ctx.dbVersion が無い・形が合わないときは DB ごとの既定。既定の無い DB (sqlite など) は置き換えない (印はブロックの中にしか無いので、残らない) */
+export function applyDbVersion(text: string, ctx: BlockContext): string {
+  const v = resolveDbVersion(ctx.db, ctx.dbVersion);
+  return v === undefined ? text : text.split(DB_VERSION_TOKEN).join(v);
+}
+
+/** 雛形のファイル 1 つに規則 1〜7 を当てる (YAML の規則 6 は YAML だけ)。ブロックが壊れているときは Error */
 export function pruneScaffoldFile(relPath: string, text: string, ctx: BlockContext): string {
-  const pruned = pruneScaffoldBlocks(text, ctx);
+  const pruned = applyDbVersion(pruneScaffoldBlocks(text, ctx), ctx);
   return /\.ya?ml$/i.test(relPath) ? dropEmptyComposeKeys(pruned) : pruned;
 }
 
@@ -87,13 +112,15 @@ export function pruneScaffoldFileSafe(relPath: string, text: string, ctx: BlockC
   try { return pruneScaffoldFile(relPath, text, ctx); } catch { return text; }
 }
 
-/** harmony.json の techStack から、ブロックを選ぶ値 (database.type は省略時 postgresql、backend.orm は省略時 prisma)。読めなければ既定 */
+/** harmony.json の techStack から、ブロックを選ぶ値 (database.type は省略時 postgresql、backend.orm は省略時 prisma) と DB の版 (database.version。省略・不正は DB ごとの既定)。読めなければ既定 */
 export async function blockContextOf(root: string): Promise<BlockContext> {
   try {
     const hj: unknown = JSON.parse(await fs.readFile(path.join(root, "harmony.json"), "utf-8"));
     const rec = (v: unknown): Record<string, unknown> | null => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : null);
     const ts = rec(rec(hj)?.techStack);
     const pick = (v: unknown, dflt: string): string => (typeof v === "string" && v.trim() ? v.trim().toLowerCase() : dflt);
-    return { db: pick(rec(ts?.database)?.type, DEFAULT_DB), orm: pick(rec(ts?.backend)?.orm, DEFAULT_ORM) };
-  } catch { return { db: DEFAULT_DB, orm: DEFAULT_ORM }; }
+    const database = rec(ts?.database);
+    const db = pick(database?.type, DEFAULT_DB);
+    return { db, orm: pick(rec(ts?.backend)?.orm, DEFAULT_ORM), dbVersion: resolveDbVersion(db, database?.version) };
+  } catch { return { db: DEFAULT_DB, orm: DEFAULT_ORM, dbVersion: DEFAULT_DB_VERSIONS[DEFAULT_DB] }; }
 }

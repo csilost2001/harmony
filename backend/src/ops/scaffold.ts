@@ -19,7 +19,7 @@ import { cutLines, extractSection, snippetHeading, unifiedDiff, type SectionSlic
 import { makeOpsStore } from "./opsFiles.js";
 import { blockContextOf, pruneScaffoldFileSafe } from "./scaffoldBlocks.js";
 
-export { pruneScaffoldBlocks, pruneScaffoldFile, dropEmptyComposeKeys, blockContextOf, BLOCK_MARKER_LINE } from "./scaffoldBlocks.js";
+export { pruneScaffoldBlocks, pruneScaffoldFile, dropEmptyComposeKeys, blockContextOf, applyDbVersion, resolveDbVersion, DB_VERSION_TOKEN, BLOCK_MARKER_LINE } from "./scaffoldBlocks.js";
 
 const PROJECT_ROOT = path.resolve(import.meta.dirname, "../../..");
 const TEMPLATES_REL = "ai-skills/generate-code/templates/devcontainer";
@@ -338,7 +338,7 @@ export async function getScaffoldUpdate(root: string, templatesRoot = defaultTem
   if (!r.template) return out;
   const noRecord = !r.record;
   const sameVersion = r.summary.status === "current";
-  // 雛形 (latest) と記録 (base) は「DB ごとのブロック」入りの形で持つ。アプリのファイルはブロックを消した形なので、比べる前に、アプリの techStack (database.type / backend.orm) で同じ規則で消す。
+  // 雛形 (latest) と記録 (base) は「DB ごとのブロック」入りの形で持つ。アプリのファイルはブロックを消した形なので、比べる前に、アプリの techStack (database.type / backend.orm) で同じ規則で消し、DB の版 (database.version) を置き換える。
   // 雛形の版と記録の形は変えない (版は全ブロック入りの中身で決まる。記録は写したときの雛形そのまま)
   const blocks = await blockContextOf(root);
   const prune = (template: string, content: string): string => pruneScaffoldFileSafe(template, content, blocks);

@@ -122,6 +122,8 @@ project.techStack:
   deployment.target
 ```
 
+`database.version` は、NestJS 系では開発コンテナの DB の image のタグに入る (postgresql `postgres:<版>` / mysql `mysql:<版>`。省略・不正は postgresql 15 / mysql 8。読み方と置き換えの規則は「DB と ORM の読み方」「DB ごとのブロック」の規則 7)。
+
 ### 1-2. 入力 ID (EntityId または legacy UUID) の種別を harmony.json から判定
 
 `harmony.json` の `entities.processFlows[].id` と `entities.screens[].id` を照合する。
@@ -279,6 +281,7 @@ NestJS の出力は、**ORM** と **DB の種類** の 2 つを `harmony.json` �
 |---|---|---|---|
 | ORM | `techStack.backend.orm` (`prisma` / `typeorm`) | **`prisma`** (推奨・既定) | 生成ファイル (下の表)・Service の dbAccess / transactionScope・generate-tests の DB 検証・scaffold の `@orm` ブロック |
 | DB の種類 | `techStack.database.type` (`postgresql` / `mysql` / `sqlite` / `sqlserver` / `oracle`) | schema の既定値の **`postgresql`** | Prisma の `datasource.provider`・TypeORM の `type`・scaffold の `@db` ブロック (compose.yml の DB サービス / `DATABASE_URL` / README の DB の初期化) |
+| DB の版 (開発コンテナの DB の image のタグ) | `techStack.database.version` (`16`・`8.4` のように数字とドットだけ) | postgresql は **`15`**、mysql は **`8`**。数字とドットだけの形でない値 (`latest`・空・文字列でない値) も、この既定に戻す | scaffold の `docker-compose.yml` / `.devcontainer/compose.yml` の DB サービスの `image:` (`postgres:<版>` / `mysql:<版>`) と README の「DB」の行。`sqlite` / `sqlserver` / `oracle` は DB サービスが無いので使わない。下の「DB ごとのブロック」の規則 7 |
 | model / Entity 名 | `tables[].physicalName` | - | snake_case の語を PascalCase にし、最後の語を単数形にする (`posts` → `Post`)。generate-tests も同じ規則 |
 | `BIGINT` 列の型 (Prisma) | `techStack.database.type` | `postgresql` | `sqlite` は `Int` / `number`。`postgresql` / `mysql` は `BigInt` / `bigint` (Service の中は `bigint`、API の境界で `Number()` / `BigInt()`)。下の「postgresql / mysql のときの Prisma の注意」 |
 
@@ -322,7 +325,7 @@ DB の種類が `oracle` のとき、Prisma は対応していないので生成
 | `compute` | ローカル変数計算 (stream / reduce / mapToLong 等) | ローカル変数計算 (reduce / map 等) |
 | `branch` | `if (...) { ... } else { ... }` + 例外 throw | 同左 + `throw new HttpException(...)` |
 | `loop` (collection) | `for (Type item : collection) { ... }` | `for (const item of collection) { ... }` |
-| `eventPublish` | `eventPublisher.publishEvent(new XxxEvent(...))` | `eventEmitter.emit('topic', payload)` |
+| `eventPublish` | `eventPublisher.publishEvent(new XxxEvent(...))` | `eventEmitter.emit('topic', payload)` (**eventPublish の工程がある Service だけ** `EventEmitter2` を注入。依存 `@nestjs/event-emitter` と `AppModule` の `EventEmitterModule.forRoot()` もそのときだけ。無い Service には書かない) |
 | `screenTransition` | `return "redirect:/path"` (MVC) / API では出力しない | `res.redirect('/path')` |
 | `return` | `return ResponseEntity.<T>status(N).body(body)` | `throw new HttpException(body, status)` または `return response` |
 | `validation` | Bean Validation DTO + `@Valid` Controller 引数 | `class-validator` DTO デコレータ |
@@ -998,8 +1001,8 @@ Spring Boot 出力には **必ず** Maven Wrapper を verbatim コピー同梱�
 
   # アプリの入口 (プロジェクトに 1 セット。generate-tests の E2E が `../src/app.module` を import する):
   src/main.ts                            (NestFactory.create(AppModule) → listen。`ValidationPipe` を global に登録)
-  src/app.module.ts                      (各 Module と、DB 層の Module (PrismaModule / TypeOrmModule) を import)
-  package.json                           (scripts に `build` = `nest build`、`start:backend` = `nest start`。devDependencies に `@nestjs/cli`)
+  src/app.module.ts                      (各 Module と、DB 層の Module (PrismaModule / TypeOrmModule) を import。**ProcessFlow に kind=eventPublish の工程が 1 つでもあるときだけ** `EventEmitterModule.forRoot()` も import。無いときは足さない。`SERVICE.md` の「eventPublish の有無で変わるもの」)
+  package.json                           (scripts に `build` = `nest build`、`start:backend` = `nest start`。devDependencies に `@nestjs/cli`。**eventPublish の工程があるときだけ** dependencies に `@nestjs/event-emitter`。無いときは入れない)
   tsconfig.json / tsconfig.build.json / nest-cli.json  (`rootDir` は `.`、`nest-cli.json` の `sourceRoot` は `src`。業務の Service が出力先の直下、main.ts が `src/` にあるので、**ビルドの出力は `dist/src/main.js`** になる。雛形の Dockerfile と compose の起動コマンドは `node dist/src/main`)
 
   # DB 層 (techStack.backend.orm で分ける。下の「DB と ORM の読み方」。1 つの生成物で混ぜない):
@@ -1269,6 +1272,7 @@ public class ProductSearchController {
 | `tailwindcss` | `^3.4.x` | Tailwind 3 系最新 patch |
 | `postcss` (overrides) | `^8.5.x` | next の transient で `<8.5.10` の advisories が出るため `overrides` で強制最新化 |
 | `@nestjs/common` / `@nestjs/core` / `@nestjs/platform-express` / `@nestjs/testing` / `@nestjs/cli` | `^11.x` | NestJS 11 系で確かめた (12 以降は未確認) |
+| `@nestjs/event-emitter` (**kind=eventPublish の工程があるときだけ**) | `^3.x` | NestJS 11 系で確かめた。eventPublish が無いプロジェクトでは入れない (使わない依存になる)。入れるときは `AppModule` に `EventEmitterModule.forRoot()` も要る (`SERVICE.md` の「eventPublish の有無で変わるもの」) |
 | `prisma` / `@prisma/client` (`orm: prisma`) | `^6.19.x` | **6 系に固定**。`latest` は 7 以降で schema の書き方が変わる (`PRISMA_SCHEMA.md`「依存パッケージ」)。`dependencies` に入れる |
 
 **重要**: `package.json` に `"overrides": { "postcss": "^8.5.x" }` を**必ず**含めること (transient postcss の advisories を解消する唯一の方法)。これが無いと next 内部の古い postcss が pickup されて `npm audit` で moderate 警告が残る。
@@ -1893,7 +1897,7 @@ Step 0 で `--all` / `--workspace <wsId>` が指定された場合、Step 1〜6 
 |---|---|---|---|---|
 | spring-boot × thymeleaf | `mcr.microsoft.com/devcontainers/java:1-21-bookworm` | `java:1` (version 21, installMaven true)、`node:1`、`github-cli:1` | `claude-code:1.0`、`copilot-cli:1.1.2` + postCreateCommand で `codex` npm 同梱 | postgres:15 |
 | spring-boot × nextjs | 同上 | 同上 (Next.js dev server に Node 必須) | 同上 | 同上 |
-| nestjs × thymeleaf | `mcr.microsoft.com/devcontainers/typescript-node:26` | `github-cli:1` のみ (NestJS が SSR するため Maven 不要、最小構成) | 同上 | `techStack.database.type` に従う (postgresql: `postgres:15` / mysql: `mysql:8` / sqlite: DB サービスなし)。下の「DB ごとのブロック」 |
+| nestjs × thymeleaf | `mcr.microsoft.com/devcontainers/typescript-node:26` | `github-cli:1` のみ (NestJS が SSR するため Maven 不要、最小構成) | 同上 | `techStack.database.type` に従う (postgresql: `postgres:<database.version>` (省略時 15) / mysql: `mysql:<database.version>` (省略時 8) / sqlite: DB サービスなし)。下の「DB ごとのブロック」 |
 | nestjs × nextjs | `mcr.microsoft.com/devcontainers/typescript-node:26` | `github-cli:1` | 同上 | 同上 |
 
 > nestjs × thymeleaf 組合せは稀。当面は最小テンプレ提供で、需要が顕在化したら拡充。
@@ -2066,19 +2070,21 @@ NestJS 系の雛形は、DB の種類 (postgresql / mysql / sqlite) と ORM (pri
 4. ブロックは入れ子になる (`@orm` の中に `@db`、またはその逆)。外側が一致しなければ、内側ごと消える
 5. マーカーの行以外は、規則 6 の場合を除いて、一切変えない。インデントも空行もそのまま
 6. YAML のファイル (`docker-compose.yml`・`.devcontainer/compose.yml`) だけ: 規則 1〜5 で消した結果、子の行が 1 つも無くなった `environment:` / `volumes:` の行は、その行も消す (`sqlserver` / `oracle` で DB のブロックが全部消えると起きる。値の無いキーを残さないため。コメントの行は触らない)。子の行 = そのキーより深いインデントの、空でもコメントでもない行
-7. マーカーを全部処理したあと、`@db` `@orm` `@end-db` `@end-orm` のマーカー行が 1 行も残っていないこと、`docker compose -f <ファイル> config` が使えるときは通ることを確かめる
+7. **DB の版の置き換え** (#1587): ブロックの剪定のあと、雛形の `__DB_VERSION__` を、そのまま `techStack.database.version` の値に置き換える (全ファイル・全部。`image: postgres:__DB_VERSION__` → `image: postgres:16`、README の `PostgreSQL __DB_VERSION__` → `PostgreSQL 16`)。値は前後の空白を落として、`^[0-9]+(\.[0-9]+)*$` に合うときだけ使う。**合わないとき (省略・空・`latest`・`16; x`・文字列でない値) は、DB ごとの既定** (postgresql `15` / mysql `8`) にする (image のタグに入る値なので、任意の文字列は通さない)。印は postgresql / mysql のブロックの中にしか無いので、`sqlite` / `sqlserver` / `oracle` では何も置き換わらない (指定があっても無視する)。「1-1」で読む `database.version` と同じ値で、版を選ぶ場所はここ 1 か所
+8. マーカーを全部処理したあと、`@db` `@orm` `@end-db` `@end-orm` のマーカー行と `__DB_VERSION__` が 1 つも残っていないこと、`docker compose -f <ファイル> config` が使えるときは通ることを確かめる
 
 この規則で写すと、2 つの ORM は混ざらない (`orm: typeorm` の `docker-compose.yml` / `Dockerfile` / README / `devcontainer.json` に `prisma` は出ない。`orm: prisma` に `typeorm` / `DB_SYNCHRONIZE` は出ない)。`.mcp.json` と `.dockerignore` はブロックを持たない (そのまま写す。`.dockerignore` は host の `node_modules` が image の `npm ci` の結果を上書きするのと、sqlite の DB ファイルが image に入るのを防ぐ)。
 
-**この方式を選んだ理由** (DB ごとに雛形のフォルダを分けない / `__DB__` のような差し替え文字にしない):
+**この方式を選んだ理由** (DB ごとに雛形のフォルダを分けない / DB の種類の差し替え文字にしない。**DB の版だけは、1 語の値なので `__DB_VERSION__` の差し替え文字**にした。規則 7):
 
 - `designer__record_scaffold` / `designer__get_scaffold_update` と、雛形の版 (組合せのフォルダの全ファイルの SHA-256) は、組合せ (`nestjs-nextjs` など 4 つ) ごとのフォルダを単位にしている。DB ごとにフォルダを分けると、組合せが 4 → 10 に増え、backend の組合せの一覧 (`SCAFFOLD_COMBOS`)・記録の形・点検・試験を変えることになる。ブロック方式なら組合せの一覧・記録の形・雛形の版は今のまま (版は「フォルダの中身のハッシュ」で決まる)。backend の変更は、更新の比較の前にアプリの techStack でブロックを消すことだけ (下の「雛形の記録と更新」)
-- 差し替え文字は、複数行 (`depends_on` / `volumes` / DB サービス丸ごと) を AI が組み立てることになり、書き方がぶれる。ブロックは「消すだけ」なので、結果が一意に決まる
+- 差し替え文字は、複数行 (`depends_on` / `volumes` / DB サービス丸ごと) を AI が組み立てることになり、書き方がぶれる。ブロックは「消すだけ」なので、結果が一意に決まる。DB の版は 1 語 (image のタグ・README の数字) で、組み立てるものが無く結果が一意に決まるので、置き換えで足りる (印は YAML として妥当な `postgres:__DB_VERSION__` の形で、置き換えの規則と、版の形の検査 (任意の文字列を通さない) は `scaffoldBlocks.ts` の 1 か所)
 - 雛形そのもの (全ブロックが入った状態) は、そのままでは 1 つの YAML として有効でない (キーが重なる)。写した結果 (ブロックを消したあと) が有効であることを、`backend/src/generateCodeDbBlocks.test.ts` が組合せ × DB × ORM の全部で確かめている
 
-**雛形の記録と更新** (`designer__record_scaffold` / `designer__get_scaffold_update`): 記録には雛形の中身 (ブロック入り、写したときのそのまま) が残り、アプリのファイルはブロックを消した後の形になる。そのため **backend は、比べる前に、新しい雛形 (`latest`) と記録 (`base`) の両方を、アプリの `harmony.json` の `techStack.database.type` (省略時 `postgresql`) / `techStack.backend.orm` (省略時 `prisma`) で、上の規則 1〜6 と同じ実装 (`backend/src/ops/scaffoldBlocks.ts`) で消してから** `diff` / `templateDiff` / `appChanges` / `appEdited` を作る。返ってくる `latest` / `base` / `diff` にはマーカーも他の DB / ORM のブロックも出ない。AI が自分で剪定して比べる必要は無い。
+**雛形の記録と更新** (`designer__record_scaffold` / `designer__get_scaffold_update`): 記録には雛形の中身 (ブロック入り、写したときのそのまま) が残り、アプリのファイルはブロックを消した後の形になる。そのため **backend は、比べる前に、新しい雛形 (`latest`) と記録 (`base`) の両方を、アプリの `harmony.json` の `techStack.database.type` (省略時 `postgresql`) / `techStack.backend.orm` (省略時 `prisma`) で、上の規則 1〜6 と同じ実装 (`backend/src/ops/scaffoldBlocks.ts`) で消し、規則 7 で `techStack.database.version` (省略・不正は DB ごとの既定) を置き換えてから** `diff` / `templateDiff` / `appChanges` / `appEdited` を作る。返ってくる `latest` / `base` / `diff` にはマーカーも他の DB / ORM のブロックも出ない。AI が自分で剪定して比べる必要は無い。
 
 - 雛形の版 (SHA-256) は、ブロック入りの中身のまま決まる。**`database.type` / `backend.orm` を変えただけでは、版は変わらず「古い」とは出ない** (雛形が新しくなったわけではないため)。逆に、雛形の更新が、このアプリで消えるブロックの中だけだったときは、`status` は `outdated` でも、`files[]` の `state` はすべて `unchanged` になる (取り込むものは無い。`designer__record_scaffold` で版だけ最新にしてよい)
+- **`database.version` だけを変えたとき** (雛形は同じ): 雛形側の変更ではないので `status` は `current`、`files[].state` は `unchanged` のまま。ただし `latest` / `base` は新しい版で置き換えて比べるので、アプリの compose.yml の `image:` がまだ古い版なら `appEdited: true` と出る (利用者の手入れではなく、techStack を変えたあとアプリ側が追いついていない印。`state` が `unchanged` なので `diff` は返らない)。版を変えたら、アプリの `docker-compose.yml` / `.devcontainer/compose.yml` の DB の `image:` と README の DB の行を、雛形を新しい版で消して置き換えた形に直す (利用者に見せてから)。DB の volume に古い版のデータがあるときは、postgres のメジャーを上げるとデータの形式が合わず起動しないので、その旨も伝える
 - `techStack` を変えたあとの取り込み (たとえば `orm` を `prisma` から `typeorm` に変える) は、`designer__get_scaffold_update` の差分には、techStack の変更による差と雛形の更新が**混ざる** (比べる側の剪定は新しい techStack、アプリのファイルは古い techStack のまま)。この場合は、上の「実行手順」の 4 と同じように、雛形を新しい techStack で消して作り直し、いまのアプリのファイルとの差を利用者に見せる
 
 ### 実行手順

@@ -190,7 +190,7 @@ export class {{processFlow.meta.name | toPascalCase}}Module {}
 
 ## 依存パッケージ
 
-`package.json` の `dependencies` に `@prisma/client`、`prisma` を **`^6.19.0`** で入れる (本番の `npm ci --omit=dev` の後でも `prisma generate` / `prisma db push` を使うため devDependencies ではなく dependencies に入れる)。**6 系に固定する理由**: 上の schema の書き方 (`generator client { provider = "prisma-client-js" }`・`datasource` の `url = env("DATABASE_URL")`) は 6 系のもの。`latest` は 7 以降で、`datasource` の `url` の置き場などが変わっている (7 以降は未確認。対応するときは本ファイルから直す)。`typeorm` / `@nestjs/typeorm` は入れない。`prisma` と `@prisma/client` は npm 12 以降の既定 (依存の install スクリプトが止まる) のままでも `prisma generate` / `prisma db push` が動くので、`allowScripts` は `deny` でよい (SKILL.md の「npm 12 以降」参照)。`prisma generate` は `postCreateCommand` (開発コンテナ) と Dockerfile が呼ぶ。
+`package.json` の `dependencies` に `@prisma/client`、`prisma` を **`^6.19.0`** で入れる (本番の `npm ci --omit=dev` の後でも `prisma generate` / `prisma db push` を使うため devDependencies ではなく dependencies に入れる)。**6 系に固定する理由**: 上の schema の書き方 (`generator client { provider = "prisma-client-js" }`・`datasource` の `url = env("DATABASE_URL")`) は 6 系のもの。`latest` は 7 以降で、`datasource` の `url` の置き場などが変わっている (7 以降は未確認。対応するときは本ファイルから直す)。`typeorm` / `@nestjs/typeorm` は入れない。**ProcessFlow に kind=eventPublish の工程があるときだけ**、`@nestjs/event-emitter` (`^3.x`) も `dependencies` に足す (`AppModule` に `EventEmitterModule.forRoot()` も要る。無いときは足さない。[`SERVICE.md`](./SERVICE.md) の「eventPublish の有無で変わるもの」)。`prisma` と `@prisma/client` は npm 12 以降の既定 (依存の install スクリプトが止まる) のままでも `prisma generate` / `prisma db push` が動くので、`allowScripts` は `deny` でよい (SKILL.md の「npm 12 以降」参照)。`prisma generate` は `postCreateCommand` (開発コンテナ) と Dockerfile が呼ぶ。
 
 ## DB の初期化 (dev)
 

@@ -999,3 +999,99 @@ describe("DB ごとのブロック入りの雛形 × ブロックを消したア
     });
   });
 });
+
+describe("DB の版 (techStack.database.version) と雛形の更新の比較 (#1587)", () => {
+  const COMPOSE = [
+    "services:",
+    "  harmony:",
+    "    image: ${HARMONY_IMAGE:-" + HARMONY_IMAGE + ":local}",
+    "  # @db postgresql",
+    "  db:",
+    "    image: postgres:__DB_VERSION__",
+    "  # @end-db",
+    "  # @db mysql",
+    "  db:",
+    "    image: mysql:__DB_VERSION__",
+    "  # @end-db",
+    "",
+  ].join("\n");
+  const appCompose = (image: string) => `services:\n  harmony:\n    image: \${HARMONY_IMAGE:-${HARMONY_IMAGE}:local}\n  db:\n    image: ${image}\n`;
+  const TECH = (database: unknown) => ({ backend: { framework: "spring-boot" }, frontend: { library: "thymeleaf" }, database });
+  async function setup(database: unknown, app: string) {
+    await seedWs(TECH(database));
+    await seedTemplate({ ".devcontainer/compose.yml": COMPOSE, ".mcp.json": "{}\n", Dockerfile: "FROM x\n", "README.snippet.md": "## 開発環境\n手順\n" });
+    await write(path.join(ROOT, ".devcontainer/compose.yml"), app);
+    await write(path.join(ROOT, "Dockerfile"), "FROM x\n");
+    await write(path.join(ROOT, ".mcp.json"), "{}\n");
+    await write(path.join(ROOT, "README.md"), "# app\n\n## 開発環境\n手順\n");
+  }
+  const composeOf = async () => (await getScaffoldUpdate(ROOT, TPL)).files.find((f) => f.template === ".devcontainer/compose.yml")!;
+
+  it.each([[{ type: "postgresql", version: "16" }, "postgres:16"], [{ type: "postgresql" }, "postgres:15"], [{ type: "mysql" }, "mysql:8"], [{ type: "mysql", version: "8.4" }, "mysql:8.4"], [{ type: "postgresql", version: "latest" }, "postgres:15"]])(
+    "techStack.database=%j で写したアプリ (%s) は、手入れが無ければ appEdited false・差分が空・印も出ない",
+    async (database, image) => {
+      await setup(database, appCompose(image));
+      await recordScaffold(ROOT, {}, "AI", TPL);
+      const u = await getScaffoldUpdate(ROOT, TPL);
+      expect(u.status).toBe("current");
+      for (const f of u.files) expect(f.appEdited, f.template).toBe(false);
+    },
+  );
+
+  it("雛形が新しくなったとき、diff / templateDiff / base / latest は版を置き換えた形で、印は出ない", async () => {
+    await setup({ type: "postgresql", version: "16" }, appCompose("postgres:16"));
+    await recordScaffold(ROOT, {}, "AI", TPL);
+    await write(path.join(TPL, "spring-boot-thymeleaf/.devcontainer/compose.yml"), COMPOSE.replace("    image: postgres:__DB_VERSION__\n", "    image: postgres:__DB_VERSION__\n    restart: always\n"));
+    const f = await composeOf();
+    expect(f.state).toBe("template-changed");
+    expect(f.appEdited).toBe(false);
+    for (const t of [f.diff, f.templateDiff, f.base, f.latest]) expect(t).not.toContain("__DB_VERSION__");
+    expect(f.latest).toContain("image: postgres:16");
+    expect(f.templateDiff).toContain("+    restart: always");
+    expect(f.templateDiff).not.toMatch(/^[+-].*postgres:/m); // 版は base と latest で同じなので、差に出ない
+  });
+
+  it("version だけを変えた (雛形は同じ): 雛形側の変更ではない (state unchanged・status current)。版が古いアプリのファイルは appEdited true (既知の限界。差分の材料は unchanged なので返らない)", async () => {
+    await setup({ type: "postgresql", version: "15" }, appCompose("postgres:15"));
+    await recordScaffold(ROOT, {}, "AI", TPL);
+    await seedWs(TECH({ type: "postgresql", version: "16" }));
+    const u = await getScaffoldUpdate(ROOT, TPL);
+    expect(u.status).toBe("current");
+    const f = u.files.find((x) => x.template === ".devcontainer/compose.yml")!;
+    expect(f.state).toBe("unchanged");
+    // アプリ側がまだ古い版 = 比べる雛形 (新しい techStack で置き換え) と食い違う。利用者の手入れではないが、記録の base も新しい版で置き換えるので、appEdited として見える
+    expect(f.appEdited).toBe(true);
+    // 雛形の版 (SHA-256) は変わらない
+    expect(u.currentVersion).toBe(u.recordedVersion);
+    // アプリの image を新しい版に書き換えれば、また食い違いは消える
+    await write(path.join(ROOT, ".devcontainer/compose.yml"), appCompose("postgres:16"));
+    expect((await composeOf()).appEdited).toBe(false);
+  });
+
+  it("記録の形は変えない: scaffold.json には印の入った雛形がそのまま残り、版 (SHA-256) は database.version を変えても変わらない", async () => {
+    await setup({ type: "postgresql", version: "16" }, appCompose("postgres:16"));
+    await recordScaffold(ROOT, {}, "AI", TPL);
+    const rec = (await scaffoldStore.read(ROOT)).value!;
+    expect(rec.files.find((f) => f.template === ".devcontainer/compose.yml")!.content).toBe(COMPOSE);
+    const before = (await scaffoldSummary(ROOT, TPL)).currentVersion;
+    await seedWs(TECH({ type: "postgresql", version: "17" }));
+    expect((await scaffoldSummary(ROOT, TPL)).currentVersion).toBe(before);
+  });
+
+  it("実際の NestJS 系の雛形: version=16 で写した postgresql のアプリは appEdited false", async () => {
+    const REAL = DEFAULT_TEMPLATES_ROOT;
+    for (const combo of ["nestjs-nextjs", "nestjs-thymeleaf"] as const) {
+      const tpl = (await loadTemplate(combo, ".", REAL))!;
+      await seedWs({ backend: { framework: "nestjs", orm: "prisma" }, frontend: { library: "react" }, database: { type: "postgresql", version: "16" } });
+      for (const f of tpl.files) {
+        const pruned = pruneScaffoldFile(f.template, f.content, { db: "postgresql", orm: "prisma", dbVersion: "16" });
+        await write(path.join(ROOT, f.path), f.kind === "section" ? `# app\n\n${pruned}` : pruned);
+      }
+      await recordScaffold(ROOT, { combo }, "AI", REAL);
+      const u = await getScaffoldUpdate(ROOT, REAL);
+      expect(u.status).toBe("current");
+      for (const f of u.files) expect(f.appEdited, `${combo} ${f.template}`).toBe(false);
+      expect(await fs.readFile(path.join(ROOT, ".devcontainer/compose.yml"), "utf-8")).toContain("image: postgres:16");
+    }
+  });
+});

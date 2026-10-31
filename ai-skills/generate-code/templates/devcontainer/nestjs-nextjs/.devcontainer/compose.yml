@@ -56,7 +56,7 @@ services:
   # @db postgresql
   # 開発用の DB。dev から `db:5432` で届く。開発コンテナ内に docker CLI は無いので、DB はここで一緒に起動する
   db:
-    image: postgres:15
+    image: postgres:__DB_VERSION__
     environment:
       POSTGRES_DB: app
       POSTGRES_USER: app
@@ -72,7 +72,7 @@ services:
   # @db mysql
   # 開発用の DB。dev から `db:3306` で届く。開発コンテナ内に docker CLI は無いので、DB はここで一緒に起動する
   db:
-    image: mysql:8
+    image: mysql:__DB_VERSION__
     environment:
       MYSQL_DATABASE: app
       MYSQL_USER: app
