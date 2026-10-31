@@ -99,19 +99,30 @@ export interface SectionSlice {
   endLine: number;
 }
 
-const HEADING = /^(#{1,6})[ \t]+\S/;
-const FENCE = /^\s{0,3}(```|~~~)/;
+/** ATX 見出し (行頭の空白は 3 つまで)。Setext 見出し (下線の `===` / `---`) と HTML コメントの中は扱わない: 見出しとコードの囲みだけを読む */
+const HEADING = /^ {0,3}(#{1,6})[ \t]+(\S.*)$/;
+/** コードの囲みの開始 / 終了 (バッククォートかチルダが 3 つ以上。終了は同じ文字で、開始以上の長さ、情報文字列なし) */
+const FENCE = /^ {0,3}(`{3,}|~{3,})(.*)$/;
+
+interface Heading { at: number; level: number; line: string; /** 比べるための鍵: レベルと、空白を畳み閉じの # を除いた本文 */ key: string }
+
+const headingKey = (level: number, text: string): string => `${level} ${text.replace(/[ \t]+#+[ \t]*$/, "").replace(/\s+/g, " ").trim()}`;
 
 /** コードブロックの外にある見出しの行 (行番号は 0 始まり) とレベル */
-function headingsOf(lines: string[]): Array<{ at: number; level: number; line: string }> {
-  const out: Array<{ at: number; level: number; line: string }> = [];
+function headingsOf(lines: string[]): Heading[] {
+  const out: Heading[] = [];
   let fence: string | null = null;
   lines.forEach((line, at) => {
     const f = FENCE.exec(line);
-    if (f) { fence = fence === null ? f[1] : fence === f[1] ? null : fence; return; }
-    if (fence) return;
+    if (fence === null) {
+      if (f) { fence = f[1]; return; }
+    } else {
+      // 同じ文字で、開始以上の長さで、情報文字列の無い行だけが囲みを閉じる
+      if (f && f[1][0] === fence[0] && f[1].length >= fence.length && !f[2].trim()) fence = null;
+      return;
+    }
     const h = HEADING.exec(line);
-    if (h) out.push({ at, level: h[1].length, line: line.trimEnd() });
+    if (h) out.push({ at, level: h[1].length, line: line.trimEnd(), key: headingKey(h[1].length, h[2]) });
   });
   return out;
 }
@@ -123,16 +134,22 @@ export function snippetHeading(snippet: string): { line: string; level: number }
   return first && h ? { line: first.trimEnd(), level: h[1].length } : null;
 }
 
-/** README から、snippet の見出しと同じ行の節を切り出す。見出しが無い・README に節が無いときは null */
+/**
+ * README から、snippet の見出しと同じ見出しの節を切り出す。見出しが無い・README に節が無いときは null。
+ * 節の終わりは、同じか上のレベルの次の見出しの前 (README の終わりまで続くことも)。ただし、snippet 自身が持つ 2 番目以降の見出し
+ * (雛形が複数の `##` の節から成るとき) は終わりとみなさない: 節は snippet 全体を覆う。見出しは、空白の数・閉じの `#` の違いを無視して比べる
+ */
 export function extractSection(readme: string, snippet: string): SectionSlice | null {
   const want = snippetHeading(snippet);
   if (!want) return null;
   const lines = lf(readme).split("\n");
   const heads = headingsOf(lines);
-  const idx = heads.findIndex((h) => h.line === want.line);
+  const wantKey = headingKey(want.level, want.line.replace(/^ *#+[ \t]+/, ""));
+  const idx = heads.findIndex((h) => h.key === wantKey);
   if (idx < 0) return null;
+  const own = new Set(headingsOf(lf(snippet).split("\n")).slice(1).filter((h) => h.level <= want.level).map((h) => h.key));
   const start = heads[idx].at;
-  const next = heads.slice(idx + 1).find((h) => h.level <= heads[idx].level);
+  const next = heads.slice(idx + 1).find((h) => h.level <= heads[idx].level && !own.has(h.key));
   let end = (next ? next.at : lines.length) - 1;
   while (end > start && !lines[end].trim()) end--;
   return { heading: lines[start].trimEnd(), text: lines.slice(start, end + 1).join("\n"), startLine: start + 1, endLine: end + 1 };

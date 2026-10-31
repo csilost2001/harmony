@@ -77,6 +77,10 @@ describe("行の境界で切る", () => {
     expect(cutLines("あ\nい\nう\n", 7)).toEqual({ text: "あ\n", truncated: true }); // 1 行 4 バイト
     expect(cutLines("あ\nい\nう\n", 11)).toEqual({ text: "あ\nい\n", truncated: true });
     expect(cutLines("x".repeat(20), 5)).toEqual({ text: "", truncated: true });
+    // 上限ちょうどの行は残す (N2)。1 バイト足りなければ残さない
+    expect(cutLines("あ\nい\nう\n", 8)).toEqual({ text: "あ\nい\n", truncated: true });
+    expect(cutLines("あ\nい\nう\n", 4)).toEqual({ text: "あ\n", truncated: true });
+    expect(cutLines("あ\nい\nう\n", 3)).toEqual({ text: "", truncated: true });
   });
 });
 
@@ -114,5 +118,44 @@ describe("README の節の切り出し", () => {
     expect(extractSection(fenced, SNIP)).toMatchObject({ endLine: 6, text: "## 開発環境\n```sh\n# コメント\n## 見出しに見える\n```\n続き" });
     expect(extractSection("## 次\n```\n## 開発環境\n```\n", SNIP)).toBeNull(); // コードブロックの中にしか無い
     expect(extractSection("# a\r\n## 開発環境\r\nx\r\n## b\r\n", SNIP)).toMatchObject({ text: "## 開発環境\nx", startLine: 2, endLine: 3 });
+  });
+});
+
+describe("README の節: snippet が複数の同レベルの節から成るとき (#1578 レビュー M1)", () => {
+  const SNIP = "## A 開発環境\na1\n\n## B 設計ツール\nb1\n\n## C 本番\nc1\n";
+  it("snippet 自身の 2 番目以降の見出しは節の終わりにしない。snippet に無い見出しの前で終わる", () => {
+    const readme = `# app\n\n${SNIP}\n## 無関係\n外\n`;
+    expect(extractSection(readme, SNIP)).toEqual({ heading: "## A 開発環境", text: SNIP.trimEnd(), startLine: 3, endLine: 10 });
+  });
+  it("README の終わりまで続くこともある。後ろに snippet に無い上のレベルの見出しがあればそこまで", () => {
+    expect(extractSection(`# app\n${SNIP}`, SNIP)).toMatchObject({ startLine: 2, endLine: 9 });
+    expect(extractSection(`${SNIP}\n# 上\n外\n`, SNIP)).toMatchObject({ startLine: 1, endLine: 8 });
+  });
+  it("最初の見出し自身は終わりとみなす (同じ見出しが 2 回あれば最初のもので終わる)", () => {
+    expect(extractSection("## A 開発環境\n1\n## A 開発環境\n2\n", SNIP)).toMatchObject({ text: "## A 開発環境\n1", endLine: 2 });
+  });
+  it("README の節の並びが違う (snippet に無い見出しが間に入る) と、そこで終わる", () => {
+    expect(extractSection("## A 開発環境\na1\n\n## 利用者の節\nx\n\n## B 設計ツール\nb1\n", SNIP)).toMatchObject({ endLine: 2 });
+  });
+});
+
+describe("見出しとコードの囲みの読み方 (#1578 レビュー N1)", () => {
+  const SNIP = "## 開発環境\n手順\n";
+  it("4 つ以上の囲みの中の ``` では閉じない。情報文字列つきの行では閉じない", () => {
+    const readme = "## 開発環境\n````md\n```\n## 偽見出し\n```\n````\n続き\n## 次\n";
+    expect(extractSection(readme, SNIP)).toMatchObject({ endLine: 7 });
+    const info = "## 開発環境\n```\n```sh\n## 偽\n```\n続き\n## 次\n";
+    expect(extractSection(info, SNIP)).toMatchObject({ endLine: 6 });
+    expect(extractSection("## 開発環境\n~~~\n```\n## 偽\n~~~\n続き\n## 次\n", SNIP)).toMatchObject({ endLine: 6 }); // 文字が違えば閉じない
+  });
+  it("見出しの前の空白 3 つまでは見出し。4 つ以上はコード", () => {
+    expect(extractSection("## 開発環境\n本文\n  ## 次\n", SNIP)).toMatchObject({ endLine: 2 });
+    expect(extractSection("## 開発環境\n本文\n    ## 次はコード\n", SNIP)).toMatchObject({ endLine: 3 });
+  });
+  it("閉じ記号つき (## 開発環境 ##) と空白が複数の見出しも同じ見出しとして見つける", () => {
+    expect(extractSection("# a\n## 開発環境 ##\n手順\n", SNIP)).toMatchObject({ startLine: 2, endLine: 3 });
+    expect(extractSection("# a\n##   開発環境\n手順\n", SNIP)).toMatchObject({ startLine: 2 });
+    expect(extractSection("# a\n## 開発環境\n手順\n", "##  開発環境  ##\n手順\n")).toMatchObject({ startLine: 2 });
+    expect(extractSection("## 開発環境の続き\n", SNIP)).toBeNull(); // 部分一致はしない
   });
 });

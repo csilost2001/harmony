@@ -288,6 +288,9 @@ export function cutAtCharBoundary(s: string, max: number): string {
 const cut = (s: string | null | undefined): { v: string | null | undefined; truncated: boolean } =>
   typeof s === "string" && Buffer.byteLength(s) > MAX_SCAFFOLD_CONTENT ? { v: cutAtCharBoundary(s, MAX_SCAFFOLD_CONTENT), truncated: true } : { v: s, truncated: false };
 
+/** README の節の等しさ: 切り出した節と snippet が、空白の違いを除いて等しいか */
+const sameSection = (section: string, snippet: string): boolean => section.replace(/\s+/g, " ").trim() === snippet.replace(/\s+/g, " ").trim();
+
 /** README の節は、README.md の中に snippet が (空白の違いを除いて) そのまま入っているかで見る */
 const sectionHas = (app: string, snippet: string): boolean => app.replace(/\s+/g, " ").includes(snippet.replace(/\s+/g, " ").trim());
 
@@ -344,7 +347,10 @@ export async function getScaffoldUpdate(root: string, templatesRoot = defaultTem
     const edited = (): boolean | null => {
       if (app === null) return base !== undefined ? false : null; // アプリに無い: 手入れではない
       if (base === undefined) return null;
-      return kind === "section" ? !sectionHas(sec ? sec.text : app, base) : app !== base;
+      if (kind !== "section") return app !== base;
+      // 節は、切り出した節との等しさ (空白を畳む) で見る。利用者が節に行を足したら手入れ (appChanges にも出る)。見出しの無い snippet だけ README 全体で見る
+      if (sec) return !sameSection(sec.text, base);
+      return snippetHeading(base) ? true : !sectionHas(app, base);
     };
     const view: ScaffoldFileView = { template, path: p, kind, state, appEdited: edited() };
     if (state !== "unchanged") {
@@ -368,7 +374,7 @@ export async function getScaffoldUpdate(root: string, templatesRoot = defaultTem
       // 記録が無いので、アプリといまの雛形の違いだけを見る (2 方向)
       const app = await readApp(root, f.path);
       const secNow = f.kind === "section" && app !== null ? findSection(app, f.content, undefined) : null;
-      const same = app !== null && (f.kind === "section" ? sectionHas(secNow ? secNow.text : app, f.content) : app === f.content);
+      const same = app !== null && (f.kind === "section" ? (secNow ? sameSection(secNow.text, f.content) : !snippetHeading(f.content) && sectionHas(app, f.content)) : app === f.content);
       // アプリにファイルが無い・README に節が無い (足すだけ) は new-in-template、中身が違うのは template-changed
       const missing = app === null || (f.kind === "section" && !hasSectionHeading(app, f.content));
       await push(f.template, f.path, f.kind, f.content, undefined, same ? "unchanged" : missing ? "new-in-template" : "template-changed");

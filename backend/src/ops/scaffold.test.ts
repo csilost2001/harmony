@@ -213,7 +213,7 @@ describe("ファイルの state と差分の材料", () => {
     expect(f[".mcp.json"]).toMatchObject({ state: "removed-from-template", latest: null, base: "{}\n" });
   });
   it("README の節: app は README.md 全体。snippet が入っていれば appEdited false", async () => {
-    await write(path.join(ROOT, "README.md"), "# app\n\n## 開発環境\n手順\n\n他の節\n");
+    await write(path.join(ROOT, "README.md"), "# app\n\n## 開発環境\n手順\n\n## 他の節\n本文\n"); // 節の外の見出し (節は次の見出しまで。S3 で節の完全一致に追従)
     await recordScaffold(ROOT, {}, "AI", TPL);
     await seedTemplate({ ...BASE_FILES, "README.snippet.md": "## 開発環境\n新しい手順\n" });
     const f = byT(await getScaffoldUpdate(ROOT, TPL));
@@ -606,7 +606,7 @@ describe("README の節 (appSection / sectionHeading / appSectionRange)", () => 
     expect(f).toMatchObject({ kind: "section", path: "README.md", state: "template-changed", sectionHeading: "## 開発環境", appSectionRange: { startLine: 3, endLine: 5 } });
     expect(f.appSection).toBe("## 開発環境\n手順\n追記した行");
     expect(f.app).toBe(README); // README 全体は今までどおり
-    expect(f.appEdited).toBe(false); // base の節の本文は入っている (追記は手入れとみなさない: 従来どおり)
+    expect(f.appEdited).toBe(true); // 節に利用者が行を足した = 手入れ (節との完全一致。appChanges にも出る)
     expect(f.diff).toBe("--- a/README.md\n+++ b/README.md\n@@ -1,3 +1,2 @@\n ## 開発環境\n-手順\n-追記した行\n+新しい手順\n");
     expect(f.templateDiff).toBe("--- a/README.md\n+++ b/README.md\n@@ -1,2 +1,2 @@\n ## 開発環境\n-手順\n+新しい手順\n");
     expect(f.appChanges).toBe("--- a/README.md\n+++ b/README.md\n@@ -1,2 +1,3 @@\n ## 開発環境\n 手順\n+追記した行\n");
@@ -666,5 +666,101 @@ describe("guide と案内が diff / appSection を言う", () => {
     for (const [f, re] of [["ai-skills/generate-code/SKILL.md", /自分で差分を作らず/], ["docs/spec/mcp-design-access.md", /appSection/], ["docs/spec/integration-ops.md", /templateDiff/]] as const) {
       expect(await fs.readFile(path.join(repo, f), "utf-8"), f).toMatch(re);
     }
+  });
+});
+
+// ── PR #1578 3 回目のレビュー: 実物の README.snippet.md (5 つの ## の節) ・節の完全一致 ──
+
+describe("実物の README.snippet.md (4 組合せ。5 つの ## の節から成る) (レビュー M1)", () => {
+  const TECH: Record<string, unknown> = {
+    "spring-boot-thymeleaf": { backend: { framework: "spring-boot" }, frontend: { library: "thymeleaf" } },
+    "spring-boot-nextjs": { backend: { framework: "spring-boot" }, frontend: { library: "react" } },
+    "nestjs-thymeleaf": { backend: { framework: "nestjs" }, frontend: { library: "thymeleaf" } },
+    "nestjs-nextjs": { backend: { framework: "nestjs" }, frontend: { library: "react" } },
+  };
+  const snippetOf = (combo: string) => fs.readFile(path.join(DEFAULT_TEMPLATES_ROOT, combo, "README.snippet.md"), "utf-8");
+  const readmeOf = (u: Awaited<ReturnType<typeof getScaffoldUpdate>>) => u.files.find((f) => f.template === "README.snippet.md")!;
+
+  it.each(SCAFFOLD_COMBOS)("%s: 実物の雛形が 5 つ以上の同レベルの節を持つ (この試験の前提)", async (combo) => {
+    const heads = (await snippetOf(combo)).split("\n").filter((l) => /^## /.test(l));
+    expect(heads.length).toBeGreaterThanOrEqual(5);
+  });
+
+  it.each(SCAFFOLD_COMBOS)("%s: 記録なしで、README が雛形そのまま (前後に別の節) なら unchanged。節の範囲は snippet 全体", async (combo) => {
+    const snippet = await snippetOf(combo);
+    const lines = snippet.replace(/\s+$/, "").split("\n").length;
+    await seedWs(TECH[combo]);
+    await write(path.join(ROOT, ".devcontainer/compose.yml"), COMPOSE_WITH_HARMONY);
+    await write(path.join(ROOT, "README.md"), `# app\n\n${snippet}\n# 付録\n外の節\n`);
+    const u = await getScaffoldUpdate(ROOT); // 本体の実物の雛形
+    expect(u).toMatchObject({ status: "no-record", combo });
+    expect(readmeOf(u)).toMatchObject({ state: "unchanged" });
+    // 変わったものとして見ても、範囲は snippet 全体 (3 行目から)
+    const body = snippet.split("\n").filter((l) => l.length > 20 && !/^[#|`]/.test(l)).pop()!; // 最後の節に近い本文の行
+    const edited = snippet.replace(body, `${body} 改`);
+    await write(path.join(ROOT, "README.md"), `# app\n\n${edited}\n# 付録\n`);
+    const changed = readmeOf(await getScaffoldUpdate(ROOT));
+    expect(changed.state).toBe("template-changed");
+    expect(changed.appSectionRange).toEqual({ startLine: 3, endLine: 2 + lines });
+    expect(changed.appSection).toBe(edited.trimEnd());
+  });
+
+  it.each(SCAFFOLD_COMBOS)("%s: 記録あり。雛形を 1 語だけ変えると、diff は本物の 1 行の変更だけ。appEdited は false で、範囲は snippet 全体", async (combo) => {
+    const snippet = await snippetOf(combo);
+    const lines = snippet.replace(/\s+$/, "").split("\n").length;
+    // 実物の組合せを試験用の置き場に写し、記録 → 1 語変える
+    await fs.cp(path.join(DEFAULT_TEMPLATES_ROOT, combo), path.join(TPL, combo), { recursive: true });
+    await seedWs(TECH[combo]);
+    await write(path.join(ROOT, "README.md"), `# app\n\n${snippet}\n## 利用者の節\n外\n`);
+    await recordScaffold(ROOT, { combo }, "AI", TPL);
+    const target = (await fs.readFile(path.join(TPL, combo, "README.snippet.md"), "utf-8")).split("\n").find((l) => l.length > 20 && !l.startsWith("#") && !l.startsWith("|") && !l.startsWith("```"))!;
+    const edited = snippet.replace(target, target + " 追記の一語");
+    await write(path.join(TPL, combo, "README.snippet.md"), edited);
+    const f = readmeOf(await getScaffoldUpdate(ROOT, TPL));
+    expect(f).toMatchObject({ state: "template-changed", appEdited: false });
+    expect(f.appSectionRange).toEqual({ startLine: 3, endLine: 2 + lines });
+    const removed = (f.diff ?? "").split("\n").filter((l) => l.startsWith("-") && !l.startsWith("---"));
+    const added = (f.diff ?? "").split("\n").filter((l) => l.startsWith("+") && !l.startsWith("+++"));
+    expect(removed).toEqual([`-${target}`]);
+    expect(added).toEqual([`+${target} 追記の一語`]);
+    expect(f.templateDiff).toBe(f.diff);
+    expect(f.appChanges).toBe(""); // 手入れは無い
+  });
+});
+
+describe("README の節は、切り出した節との完全一致で見る (レビュー S3)", () => {
+  const readme = async (u: ReturnType<typeof getScaffoldUpdate>) => (await u).files.find((f) => f.template === "README.snippet.md")!;
+  it("3 方向: 節に利用者が行を足したら appEdited は true (追記は手入れ)。節が snippet と同じなら false", async () => {
+    await write(path.join(ROOT, "README.md"), "# app\n\n## 開発環境\n手順\n自分で足した注意\n\n## 本番\nx\n");
+    await recordScaffold(ROOT, {}, "AI", TPL);
+    await seedTemplate({ ...BASE_FILES, "README.snippet.md": "## 開発環境\n新しい手順\n" });
+    const f = await readme(getScaffoldUpdate(ROOT, TPL));
+    expect(f.appEdited).toBe(true);
+    expect(f.appChanges).toContain("+自分で足した注意");
+    await write(path.join(ROOT, "README.md"), "# app\n\n## 開発環境\n手順\n\n## 本番\nx\n");
+    expect((await readme(getScaffoldUpdate(ROOT, TPL))).appEdited).toBe(false);
+  });
+  it("節の文面が README の別の節にもそっくり入っていても、切り出した節で見る (README 全体で見ると true になる例)", async () => {
+    // 「## 開発環境 手順」は、README 全体では (別の見出しの行として) 含まれるが、切り出した「## 開発環境」の節は書き換えられている
+    await write(path.join(ROOT, "README.md"), "# app\n\n## 開発環境\n書き換えた\n\n## 別\n## 開発環境 手順\n");
+    await recordScaffold(ROOT, {}, "AI", TPL);
+    await seedTemplate({ ...BASE_FILES, "README.snippet.md": "## 開発環境\n新しい手順\n" });
+    expect((await readme(getScaffoldUpdate(ROOT, TPL))).appEdited).toBe(true);
+  });
+  it("記録なし (2 方向): 同じかは切り出した節で見る。README 全体に含まれていても、節が違えば template-changed", async () => {
+    await write(path.join(ROOT, ".devcontainer/compose.yml"), COMPOSE_WITH_HARMONY);
+    await write(path.join(ROOT, "README.md"), "# app\n\n## 開発環境\n古い\n\n## 別\n## 開発環境 手順\n");
+    expect((await readme(getScaffoldUpdate(ROOT, TPL))).state).toBe("template-changed");
+    await write(path.join(ROOT, "README.md"), "# app\n\n## 開発環境\n手順\n自分で足した行\n");
+    expect((await readme(getScaffoldUpdate(ROOT, TPL))).state).toBe("template-changed"); // 節の完全一致 (追記があれば違う)
+  });
+  it("雛形が見出しの文を変えても、写したときの見出し (base) で README の節を見つける (レビュー N3)", async () => {
+    await seedTemplate({ ...BASE_FILES, "README.snippet.md": "## 開発環境\n手順\n" });
+    await write(path.join(ROOT, "README.md"), "# app\n\n## 開発環境\n手順\n\n## 別\nx\n");
+    await recordScaffold(ROOT, {}, "AI", TPL);
+    await seedTemplate({ ...BASE_FILES, "README.snippet.md": "## 開発環境 (Dev Containers)\n手順\n" }); // latest の見出しは README に無い
+    const f = await readme(getScaffoldUpdate(ROOT, TPL));
+    expect(f).toMatchObject({ state: "template-changed", appSection: "## 開発環境\n手順", appSectionRange: { startLine: 3, endLine: 4 }, appEdited: false });
+    expect(f.diff).toContain("-## 開発環境\n+## 開発環境 (Dev Containers)");
   });
 });
