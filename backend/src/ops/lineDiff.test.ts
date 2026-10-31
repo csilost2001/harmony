@@ -159,3 +159,28 @@ describe("見出しとコードの囲みの読み方 (#1578 レビュー N1)", (
     expect(extractSection("## 開発環境の続き\n", SNIP)).toBeNull(); // 部分一致はしない
   });
 });
+
+describe("雛形が見出しを改名・削除したあとも、README に残る旧い見出しで節を切らない (#1578 4 回目のレビュー S1)", () => {
+  const BASE = "## A 開発環境\na1\n\n## B 設計\nb1\n\n## C 本番\nc1\n";
+  const README = `# app\n\n${BASE}\n# 付録\n`;
+  it("alsoOwn に写したときの雛形を渡すと、改名・削除された旧い見出しは終わりにならない", () => {
+    const renamed = "## A 開発環境\na1\n\n## B 設計 (改)\nb1\n\n## C 本番\nc1\n";
+    expect(extractSection(README, renamed)).toMatchObject({ endLine: 4 }); // 渡さないと旧い「B 設計」で切れる
+    expect(extractSection(README, renamed, [BASE])).toMatchObject({ startLine: 3, endLine: 10 });
+    const deleted = "## A 開発環境\na1\n";
+    expect(extractSection(README, deleted, [BASE])).toMatchObject({ endLine: 10 });
+  });
+  it("alsoOwn の最初の見出し (同じ見出し) は終わりのまま。レベルが下の見出しは対象外", () => {
+    expect(extractSection("## A 開発環境\n1\n## A 開発環境\n2\n", "## A 開発環境\nx\n", ["## A 開発環境\ny\n"])).toMatchObject({ endLine: 2 });
+    expect(extractSection("## A 開発環境\n1\n### 小\n2\n", "## A 開発環境\nx\n", ["## A 開発環境\n### 小\n"])).toMatchObject({ endLine: 4 });
+  });
+});
+
+describe("バッククォートの囲みの開始 (#1578 4 回目のレビュー N2)", () => {
+  const SNIP = "## 開発環境\n手順\n";
+  it("情報文字列にバッククォートを含む行 (行内のコード ```a```) は囲みではない", () => {
+    expect(extractSection("## 開発環境\n```a``` と書く\n## 次\n", SNIP)).toMatchObject({ endLine: 2 });
+    expect(extractSection("## 開発環境\n```sh\n## 偽\n```\n## 次\n", SNIP)).toMatchObject({ endLine: 4 }); // 普通の囲みは従来どおり
+    expect(extractSection("## 開発環境\n~~~a`b\n## 偽\n~~~\n## 次\n", SNIP)).toMatchObject({ endLine: 4 }); // チルダはバッククォートを含んでもよい
+  });
+});

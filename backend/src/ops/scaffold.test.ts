@@ -764,3 +764,52 @@ describe("README の節は、切り出した節との完全一致で見る (レ�
     expect(f.diff).toContain("-## 開発環境\n+## 開発環境 (Dev Containers)");
   });
 });
+
+describe("実物の雛形が、見出しの改名・削除をしたあとの更新 (レビュー 4 回目 S1)", () => {
+  const TECH: Record<string, unknown> = {
+    "spring-boot-thymeleaf": { backend: { framework: "spring-boot" }, frontend: { library: "thymeleaf" } },
+    "spring-boot-nextjs": { backend: { framework: "spring-boot" }, frontend: { library: "react" } },
+    "nestjs-thymeleaf": { backend: { framework: "nestjs" }, frontend: { library: "thymeleaf" } },
+    "nestjs-nextjs": { backend: { framework: "nestjs" }, frontend: { library: "react" } },
+  };
+  type Change = [name: string, apply: (chunks: string[]) => string[]];
+  const CHANGES: Change[] = [
+    ["5 つ目の節の見出しを改名", (c) => c.map((x, i) => (i === 4 ? x.replace(/^## (.*)/, "## $1 (改)") : x))],
+    ["4 つ目の節の見出しを改名", (c) => c.map((x, i) => (i === 3 ? x.replace(/^## (.*)/, "## $1 (改)") : x))],
+    ["3 つ目の節を削除", (c) => c.filter((_, i) => i !== 2)],
+    ["最後の節を削除", (c) => c.slice(0, -1)],
+  ];
+  describe.each(SCAFFOLD_COMBOS)("%s", (combo) => {
+    it.each(CHANGES)("%s: README は写したときの雛形のまま → appEdited false・範囲は全体・appChanges は空", async (_name, apply) => {
+      const real = path.join(DEFAULT_TEMPLATES_ROOT, combo);
+      await fs.cp(real, path.join(TPL, combo), { recursive: true });
+      const snippet = await fs.readFile(path.join(real, "README.snippet.md"), "utf-8");
+      const chunks = snippet.split(/^(?=## )/m);
+      const first = chunks[0].startsWith("## ") ? 0 : 1; // 節として数える先頭の位置 (## の前に文があれば 1)
+      const sections = chunks.slice(first);
+      expect(sections.length).toBeGreaterThanOrEqual(5);
+      const head = first ? chunks[0] : "";
+      await seedWs(TECH[combo]);
+      await write(path.join(ROOT, "README.md"), `# app\n\n${snippet}\n# 付録\n外\n`);
+      await recordScaffold(ROOT, { combo }, "AI", TPL);
+      await write(path.join(TPL, combo, "README.snippet.md"), head + apply(sections).join(""));
+      const f = (await getScaffoldUpdate(ROOT, TPL)).files.find((x) => x.template === "README.snippet.md")!;
+      const lines = snippet.replace(/\s+$/, "").split("\n").length;
+      expect(f.appSectionRange).toEqual({ startLine: 3, endLine: 2 + lines });
+      expect(f.appEdited).toBe(false);
+      expect(f.appChanges).toBe("");
+      expect(f.state).toBe("template-changed");
+    });
+  });
+  it("記録が無い (2 方向) と、旧い見出しを知る手段が無い: 限界を guide と仕様書に書いてある", async () => {
+    await write(path.join(ROOT, ".devcontainer/compose.yml"), COMPOSE_WITH_HARMONY);
+    const guide = (await getScaffoldUpdate(ROOT, TPL)).guide.join("\n");
+    expect(guide).toContain("appSectionRange の前後の README の実際の文面");
+    expect(guide).toContain("旧い見出し");
+    expect(guide).toMatch(/もう一度 designer__get_scaffold_update を呼び/);
+    const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
+    const doc = await fs.readFile(path.join(repo, "docs/spec/integration-ops.md"), "utf-8");
+    expect(doc).toContain("旧い見出しを知る手段が無く");
+    expect(doc).toContain("節の順序を入れ替えたとき");
+  });
+});

@@ -115,7 +115,8 @@ function headingsOf(lines: string[]): Heading[] {
   lines.forEach((line, at) => {
     const f = FENCE.exec(line);
     if (fence === null) {
-      if (f) { fence = f[1]; return; }
+      // バッククォートの囲みは、情報文字列にバッククォートを含む行 (```a``` のような行内のコード) では始まらない (CommonMark)
+      if (f && !(f[1][0] === "`" && f[2].includes("`"))) { fence = f[1]; return; }
     } else {
       // 同じ文字で、開始以上の長さで、情報文字列の無い行だけが囲みを閉じる
       if (f && f[1][0] === fence[0] && f[1].length >= fence.length && !f[2].trim()) fence = null;
@@ -137,9 +138,10 @@ export function snippetHeading(snippet: string): { line: string; level: number }
 /**
  * README から、snippet の見出しと同じ見出しの節を切り出す。見出しが無い・README に節が無いときは null。
  * 節の終わりは、同じか上のレベルの次の見出しの前 (README の終わりまで続くことも)。ただし、snippet 自身が持つ 2 番目以降の見出し
- * (雛形が複数の `##` の節から成るとき) は終わりとみなさない: 節は snippet 全体を覆う。見出しは、空白の数・閉じの `#` の違いを無視して比べる
+ * (雛形が複数の `##` の節から成るとき) は終わりとみなさない: 節は snippet 全体を覆う。見出しは、空白の数・閉じの `#` の違いを無視して比べる。
+ * alsoOwn: 写したときの雛形など、README に残っているかもしれない旧い見出しを持つ雛形 (雛形が見出しを改名・削除しても、旧い見出しで節が切れないように)
  */
-export function extractSection(readme: string, snippet: string): SectionSlice | null {
+export function extractSection(readme: string, snippet: string, alsoOwn: string[] = []): SectionSlice | null {
   const want = snippetHeading(snippet);
   if (!want) return null;
   const lines = lf(readme).split("\n");
@@ -147,7 +149,10 @@ export function extractSection(readme: string, snippet: string): SectionSlice | 
   const wantKey = headingKey(want.level, want.line.replace(/^ *#+[ \t]+/, ""));
   const idx = heads.findIndex((h) => h.key === wantKey);
   if (idx < 0) return null;
-  const own = new Set(headingsOf(lf(snippet).split("\n")).slice(1).filter((h) => h.level <= want.level).map((h) => h.key));
+  const own = new Set([
+    ...headingsOf(lf(snippet).split("\n")).slice(1),
+    ...alsoOwn.flatMap((t) => headingsOf(lf(t).split("\n")).filter((h) => h.key !== wantKey)),
+  ].filter((h) => h.level <= want.level).map((h) => h.key));
   const start = heads[idx].at;
   const next = heads.slice(idx + 1).find((h) => h.level <= heads[idx].level && !own.has(h.key));
   let end = (next ? next.at : lines.length) - 1;

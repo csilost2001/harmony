@@ -262,8 +262,8 @@ const GUIDE = [
   "2. base があるファイルは 3 方向で比べます: base→latest が雛形の変更、base→app が利用者の手入れ。雛形の変更を取り込み、利用者が手を入れた箇所は残します。",
   "3. base が無いファイル (記録が無い・飛ばしたファイル) は 2 方向で比べます: app と latest の差を、利用者に見せて 1 つずつ選んでもらいます。appEdited が null のとき、手入れかどうかは分かりません。",
   "4. 残すもの: Harmony の image の版 (compose.yml の image: の指定)・利用者が足した service・ポート・環境変数・自分で書いた設定。雛形が変えた箇所だけを足します。",
-  "5. 書く前に、ファイルごとの差分を利用者に見せて OK を取ります。OK が無いファイルは書きません。kind が section の README は、appSection (README から切り出した節。appSectionRange の行) の範囲だけを latest の節で差し替えます (README の他の部分は触りません)。appSection が null なら README に節が無いので、latest の節を README に足します。",
-  "6. 当てたら designer__record_scaffold を呼びます。当てなかったファイル (利用者が見送った・既存のまま残した) は必ず skipped に渡してください。渡さないと、そのファイルの「写したときの中身」が最新の雛形に置き換わり、次の更新で利用者の手入れと雛形の変更を取り違えます。これで記録の版が最新になり、お知らせが消えます。",
+  "5. 書く前に、ファイルごとの差分を利用者に見せて OK を取ります。OK が無いファイルは書きません。kind が section の README は、appSection (README から切り出した節。appSectionRange の行) の範囲だけを latest の節で差し替えます (README の他の部分は触りません)。appSection が null なら README に節が無いので、latest の節を README に足します。差し替える前に、appSectionRange の前後の README の実際の文面を見て、利用者が足した見出し・節を消さず、重複を作らないでください (利用者が雛形の途中に自分の見出しを足した・節の順序を入れ替えたときは、範囲が雛形の全体を覆わないことがあります。記録が無い (2 方向) ときは、雛形が改名・削除した旧い見出しを知る手段が無く、README に残る旧い見出しで範囲が切れることもあります)。",
+  "6. 当てたら designer__record_scaffold を呼びます。当てなかったファイル (利用者が見送った・既存のまま残した) は必ず skipped に渡してください。渡さないと、そのファイルの「写したときの中身」が最新の雛形に置き換わり、次の更新で利用者の手入れと雛形の変更を取り違えます。これで記録の版が最新になり、お知らせが消えます。記録したあと、もう一度 designer__get_scaffold_update を呼び、status が current で、当てたファイル (README の節は appEdited) が false (latest と同じ) になっていることを確かめてください。",
   "7. .devcontainer/ のファイルを変えたときは、利用者に VS Code の「Dev Containers: Rebuild Container」を頼みます (変更は作り直すまで効きません)。",
 ];
 
@@ -296,7 +296,7 @@ const sectionHas = (app: string, snippet: string): boolean => app.replace(/\s+/g
 
 /** README から節を切り出す。見出しは、いまの雛形 (latest) の見出しで探し、無ければ写したとき (base) の見出し (見出しの文を変えた雛形でも見つける) */
 const findSection = (readme: string, latest: string | null | undefined, base: string | undefined): SectionSlice | null =>
-  (latest ? extractSection(readme, latest) : null) ?? (base ? extractSection(readme, base) : null);
+  (latest ? extractSection(readme, latest, base ? [base] : []) : null) ?? (base ? extractSection(readme, base, latest ? [latest] : []) : null);
 
 /** 節の比べるときは、末尾の空行・空白を除いて 1 つの改行で終える (節は README の中で後ろに空行が続くため) */
 const eolNorm = (s: string): string => { const t = s.replace(/\s+$/, ""); return t ? `${t}\n` : ""; };
@@ -350,7 +350,7 @@ export async function getScaffoldUpdate(root: string, templatesRoot = defaultTem
       if (kind !== "section") return app !== base;
       // 節は、切り出した節との等しさ (空白を畳む) で見る。利用者が節に行を足したら手入れ (appChanges にも出る)。見出しの無い snippet だけ README 全体で見る
       if (sec) return !sameSection(sec.text, base);
-      return snippetHeading(base) ? true : !sectionHas(app, base);
+      return !sectionHas(app, base);
     };
     const view: ScaffoldFileView = { template, path: p, kind, state, appEdited: edited() };
     if (state !== "unchanged") {
