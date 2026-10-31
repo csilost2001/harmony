@@ -1270,7 +1270,7 @@ public class ProductSearchController {
 
 1. `npm install` のあと `npm install-scripts ls` で、止まったものを見る (止まったものは `npm install` の末尾にも警告で出る)
 2. 動くのに要るものは `npm install-scripts approve <pkg>` (`allowScripts` に `"<pkg>@<版>": true` が入る)。要らないものは `npm install-scripts deny <pkg>` (`false` が入り、警告が消える)
-3. 要るかどうかは、止めたまま動かして決める。確かめた例 (npm 12.2.1 / Node 26): `prisma`・`@prisma/client`・`@prisma/engines` (6.19) は止まっても `prisma generate`・`prisma db push`・クエリが動くので `deny`。`bcrypt` 6 も止まったまま動くが、`bcrypt` 5 は止まると読み込みで失敗する (`bcrypt_lib.node` が無い) ので `approve`。`orm: typeorm` で `database.type=sqlite` のときの `better-sqlite3` はネイティブのビルドが要るので、同じく止めたまま動かして確かめ、動かなければ `approve`。Prisma は `prisma` を `devDependencies` ではなく `dependencies` に入れる (本番イメージの `npm ci --omit=dev` の後で `prisma db push` / `prisma generate` を使うため)
+3. 要るかどうかは、止めたまま動かして決める。確かめた例 (npm 12.2.1 / Node 26): `prisma`・`@prisma/client`・`@prisma/engines` (6.19) は止まっても `prisma generate`・`prisma db push`・クエリが動くので `deny`。`bcrypt` 6 も止まったまま動くが、`bcrypt` 5 は止まると読み込みで失敗する (`bcrypt_lib.node` が無い) ので `approve`。`orm: typeorm` で `database.type=sqlite` のときの `better-sqlite3` (12.x) は、止まると読み込みで失敗する (`Could not locate the bindings file`) ので `approve` する。**`approve` は `allowScripts` に書くだけで、その場では install スクリプトを走らせない**ので、すぐ動かすなら続けて `npm rebuild better-sqlite3` する (`approve` のあとの `npm ci` / `npm install` では、最初から走る。確かめた: node 26 / npm 12.2.1)。Prisma は `prisma` を `devDependencies` ではなく `dependencies` に入れる (本番イメージの `npm ci --omit=dev` の後で `prisma db push` / `prisma generate` を使うため)
 
 **App Router async API 注記**: Next.js 15 では `cookies()` / `headers()` / `params` / `searchParams` が **Promise 返却** に変更。Page / Layout / Route Handler で:
 
@@ -1923,7 +1923,7 @@ Step 0 で `--all` / `--workspace <wsId>` が指定された場合、Step 1〜6 
 | techStack | postCreateCommand |
 |---|---|
 | spring-boot 系 | `./mvnw -B dependency:resolve 2>/dev/null \|\| mvn -B dependency:resolve \|\| true` (mvnw 優先 + Java feature 同梱 mvn fallback。Spring Boot 出力には #1050 で mvnw 同梱されるが旧出力との互換のため fallback 残置) |
-| nestjs 系 | `([ -f package.json ] && npm install \|\| true) && ([ -f prisma/schema.prisma ] && npx prisma generate \|\| true)` (root 単一 package.json 構造、#1050 で確認。設計だけでまだ生成前でも止まらず、Prisma のスキーマがなければ prisma を取りに行かない)。この行は ORM で書き換えない: `orm: typeorm` では `prisma/schema.prisma` が無いので何もしない (`prisma` を取りに行かない)。devcontainer.json の拡張 `Prisma.prisma` も、`orm: typeorm` では使われないだけで害はない |
+| nestjs 系 | `([ -f package.json ] && npm install \|\| true) && ([ -f prisma/schema.prisma ] && npx prisma generate \|\| true)` (root 単一 package.json 構造、#1050 で確認。設計だけでまだ生成前でも止まらず、Prisma のスキーマがなければ prisma を取りに行かない)。この行は ORM のブロックで選ぶ (雛形に `orm: prisma` 用と `orm: typeorm` 用の 2 行ある)。`orm: typeorm` の行には `prisma generate` が無く、拡張 `Prisma.prisma` も入らない (Prisma の記述が TypeORM の生成物に出ないようにするため) |
 
 ### forwardPorts (default)
 
@@ -2046,6 +2046,7 @@ NestJS 系の雛形は、DB の種類 (postgresql / mysql / sqlite) と ORM (pri
 | ファイル | マーカーの書き方 |
 |---|---|
 | `docker-compose.yml`・`.devcontainer/compose.yml`・`Dockerfile` | `# @db <種別>[,<種別>]` ... `# @end-db`、`# @orm <名前>` ... `# @end-orm` |
+| `.devcontainer/devcontainer.json` (JSONC。`postCreateCommand` と拡張 `Prisma.prisma` が `@orm` だけ持つ) | `// @orm <名前>` ... `// @end-orm` (`@db` は持たない) |
 | `README.snippet.md` | `<!-- @db <種別>[,<種別>] -->` ... `<!-- @end-db -->`、`<!-- @orm <名前> -->` ... `<!-- @end-orm -->` |
 
 規則 (機械的に適用する。迷う余地を残さない):
@@ -2057,7 +2058,7 @@ NestJS 系の雛形は、DB の種類 (postgresql / mysql / sqlite) と ORM (pri
 5. マーカーの行以外は、一切変えない。インデントも空行もそのまま
 6. マーカーを全部処理したあと、`@db` `@orm` `@end-db` `@end-orm` のマーカー行が 1 行も残っていないこと、`docker compose -f <ファイル> config` が使えるときは通ることを確かめる
 
-この規則で写すと、2 つの ORM は混ざらない (`orm: typeorm` の `docker-compose.yml` / `Dockerfile` / README に `prisma` は出ない。`orm: prisma` に `typeorm` / `DB_SYNCHRONIZE` は出ない)。`devcontainer.json` と `.mcp.json` はブロックを持たない (そのまま写す)。
+この規則で写すと、2 つの ORM は混ざらない (`orm: typeorm` の `docker-compose.yml` / `Dockerfile` / README / `devcontainer.json` に `prisma` は出ない。`orm: prisma` に `typeorm` / `DB_SYNCHRONIZE` は出ない)。`.mcp.json` はブロックを持たない (そのまま写す)。
 
 **この方式を選んだ理由** (DB ごとに雛形のフォルダを分けない / `__DB__` のような差し替え文字にしない):
 
@@ -2083,7 +2084,7 @@ NestJS 系の雛形は、DB の種類 (postgresql / mysql / sqlite) と ORM (pri
    - `.devcontainer/` (devcontainer.json・compose.yml) と `.mcp.json` は、**常にワークスペースのルート**に置く。ルートに `.devcontainer/devcontainer.json` があれば `.devcontainer/` は作らない。ルートに `.mcp.json` があれば `.mcp.json` も作らない (`mcpServers.harmony` に加えて `playwright` / `playwright-headed` (雛形の `.mcp.json` の該当項目) を足す案内だけ最終レポートに書く)。ルートに `.devcontainer/` があって飛ばしたときは、雛形の `postCreateCommand` / `postStartCommand` の Playwright の行と `compose.yml` の WSLg の 4 行 (volumes の 2 行、`environment:` と `DISPLAY` の 2 行) を足す案内も書く。`.tmp/.gitignore` もワークスペースのルートに置く (すでにあれば飛ばす)。出力先を `backend/` などにしても、`backend/.devcontainer/` を入れ子で作らない
    - `Dockerfile`・`docker-compose.yml` は**出力先**に置く。出力先にすでにある**ファイルだけ**を飛ばす (上書きしない)。無いほうは作る
    - 飛ばしたファイルは「既存のため飛ばした」と最終レポートに書く
-4. **ファイルコピー**: 選択したテンプレディレクトリ配下の以下を Read → Write で verbatim コピー (改変・補完なし、AI 解釈なし)。ただし NestJS 系は、上の「DB ごとのブロック」の規則で、合わないブロックを消してから書く (`.mcp.json`・`devcontainer.json`・`.tmp/.gitignore` はブロックを持たないのでそのまま)。ステップ 3 で飛ばすと決めたものは書かない:
+4. **ファイルコピー**: 選択したテンプレディレクトリ配下の以下を Read → Write で verbatim コピー (改変・補完なし、AI 解釈なし)。ただし NestJS 系は、上の「DB ごとのブロック」の規則で、合わないブロックを消してから書く (`.devcontainer/devcontainer.json` は `// @orm` ブロックだけ消す。`.mcp.json`・`.tmp/.gitignore` はブロックを持たないのでそのまま)。ステップ 3 で飛ばすと決めたものは書かない:
    - `.devcontainer/devcontainer.json` → `<ワークスペースのルート>/.devcontainer/devcontainer.json`
    - `.devcontainer/compose.yml` → `<ワークスペースのルート>/.devcontainer/compose.yml`
    - `.mcp.json` → `<ワークスペースのルート>/.mcp.json`

@@ -28,12 +28,12 @@ function prune(text: string, ctx: Ctx): string {
   const stack: boolean[] = [];
   for (const line of text.split("\n")) {
     const t = line.trim();
-    const open = t.match(/^(?:#|<!--)\s*@(db|orm)\s+([a-z0-9,]+)\s*(?:-->)?$/);
+    const open = t.match(/^(?:#|\/\/|<!--)\s*@(db|orm)\s+([a-z0-9,]+)\s*(?:-->)?$/);
     if (open) {
       stack.push(open[2].split(",").includes(ctx[open[1] as keyof Ctx]));
       continue;
     }
-    if (/^(?:#|<!--)\s*@end-(db|orm)\s*(?:-->)?$/.test(t)) {
+    if (/^(?:#|\/\/|<!--)\s*@end-(db|orm)\s*(?:-->)?$/.test(t)) {
       if (stack.length === 0) throw new Error("終了マーカーが多い");
       stack.pop();
       continue;
@@ -44,7 +44,7 @@ function prune(text: string, ctx: Ctx): string {
   return out.join("\n");
 }
 
-const MARKER_LINE = /^\s*(?:#|<!--)\s*@(?:db|orm|end-db|end-orm)\b/m;
+const MARKER_LINE = /^\s*(?:#|\/\/|<!--)\s*@(?:db|orm|end-db|end-orm)\b/m;
 
 /** 同じ親の下に同じキーが 2 つある (YAML として重複) ものを探す。簡易 (インデントだけ見る。リスト項目の中は見ない) */
 function duplicateKeys(yaml: string): string[] {
@@ -91,7 +91,7 @@ function volumeNames(yaml: string): { declared: string[]; used: string[] } {
 
 describe.each(COMBOS)("雛形 %s の DB ごとのブロック (#1560)", (combo) => {
   it("マーカーの開始と終了が対応している (全ファイル)", () => {
-    for (const f of ["docker-compose.yml", ".devcontainer/compose.yml", "Dockerfile", "README.snippet.md"]) {
+    for (const f of ["docker-compose.yml", ".devcontainer/compose.yml", ".devcontainer/devcontainer.json", "Dockerfile", "README.snippet.md"]) {
       expect(() => prune(read(combo, f), { db: "sqlite", orm: "prisma" }), f).not.toThrow();
     }
   });
@@ -157,6 +157,22 @@ describe.each(COMBOS)("雛形 %s の DB ごとのブロック (#1560)", (combo) 
         }
       });
 
+      it("devcontainer.json: ブロックを消した結果が JSON として読め、Prisma の記述は prisma のときだけ残る", () => {
+        const out = prune(read(combo, ".devcontainer/devcontainer.json"), ctx);
+        expect(MARKER_LINE.test(out)).toBe(false);
+        const json = JSON.parse(out.split("\n").filter((l) => !l.trim().startsWith("//")).join("\n")) as {
+          postCreateCommand: string;
+          customizations?: { vscode?: { extensions?: string[] } };
+        };
+        expect(/prisma/i.test(out)).toBe(orm === "prisma");
+        expect(json.postCreateCommand.includes("prisma generate")).toBe(orm === "prisma");
+        expect(json.postCreateCommand).toContain("npm install -g @openai/codex");
+        expect(json.postCreateCommand).toContain("playwright install --with-deps chromium");
+        if (combo === "nestjs-nextjs") {
+          expect(json.customizations?.vscode?.extensions?.includes("Prisma.prisma")).toBe(orm === "prisma");
+        }
+      });
+
       it("docker compose config が使えれば通る", () => {
         const probe = spawnSync("docker", ["compose", "version"]);
         if (probe.error || probe.status !== 0) return; // docker が無い環境では確かめない
@@ -174,8 +190,7 @@ describe.each(COMBOS)("雛形 %s の DB ごとのブロック (#1560)", (combo) 
     });
   });
 
-  it("devcontainer.json と .mcp.json はブロックを持たない (そのまま写す)", () => {
-    expect(MARKER_LINE.test(read(combo, ".devcontainer/devcontainer.json"))).toBe(false);
+  it(".mcp.json はブロックを持たない (そのまま写す)", () => {
     expect(MARKER_LINE.test(read(combo, ".mcp.json"))).toBe(false);
   });
 });
