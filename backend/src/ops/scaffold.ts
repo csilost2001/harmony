@@ -405,7 +405,7 @@ export async function getScaffoldUpdate(root: string, templatesRoot = defaultTem
     const tpl = r.template.files.find((f) => f.template === v.template);
     const app = await readApp(root, v.path);
     const found = tpl && app !== null ? dbVersionDrift(v.template, lf(tpl.content), app, blocks) : null;
-    if (found) out.problems.push(`DB の版 (techStack.database.version) が雛形に反映されていないファイルがあります。${v.path} の DB の image は「${found}」で、techStack の版は「${blocks.dbVersion}」です。files[] の appEdited が true のファイルの image (と README の DB の行) を確かめてください`);
+    if (found) out.problems.push(`DB の版 (techStack.database.version) が雛形に反映されていないファイルがあります。${v.path} の DB の image は「${found}」で、techStack の版は「${blocks.dbVersion}」です。files[] の appEdited が true のファイルの image を確かめてください`);
   }
   return out;
 }

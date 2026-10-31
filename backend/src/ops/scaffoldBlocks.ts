@@ -21,8 +21,8 @@ export const DEFAULT_ORM = "prisma";
 export const DEFAULT_DB_VERSIONS: ReadonlyMap<string, string> = new Map([["postgresql", "15"], ["mysql", "8"]]);
 /** 雛形の中で、DB の版に置き換える印 (規則 7) */
 export const DB_VERSION_TOKEN = "__DB_VERSION__";
-/** DB の版として通す形 (image のタグに入るので、任意の文字列は通さない): 数字とドット (`16`・`8.4`。先頭 0 の `016` も docker のタグとして有効なので通す) + ハイフンと小文字英数字のサフィックス 1 つ (`16-alpine`・`16.4-bookworm`)。全体で 32 文字まで */
-const DB_VERSION_FORM = /^[0-9]+(?:\.[0-9]+)*(?:-[a-z][a-z0-9]*)?$/;
+/** DB の版として通す形 (image のタグに入るので、任意の文字列は通さない): 数字とドット (`16`・`8.4`。先頭 0 の `016` も docker のタグとして有効なので通す) + ハイフンと小文字英数字のサフィックス 1 つ (`16-alpine`・`16.4-bookworm`。サフィックスは、単語 (`alpine`)、または数字で終わる単語に `.数字` が続く形 (`alpine3.20`)。`alpine.3` `alpine3.` は不可)。全体で 32 文字まで */
+const DB_VERSION_FORM = /^[0-9]+(?:\.[0-9]+)*(?:-(?:[a-z][a-z0-9]*|[a-z][a-z0-9]*[0-9](?:\.[0-9]+)+))?$/;
 export const DB_VERSION_MAX_LENGTH = 32;
 
 /** 版として使える形か (trim したあと) */
@@ -114,9 +114,15 @@ export function pruneScaffoldFile(relPath: string, text: string, ctx: BlockConte
   return /\.ya?ml$/i.test(relPath) ? dropEmptyComposeKeys(pruned) : pruned;
 }
 
+/** dbVersionDrift が読むアプリの 1 行の長さの上限 (これより長い行は image の行ではないので読まない。照合の時間を行の長さで抑える) */
+const DRIFT_MAX_LINE = 512;
+
 /**
- * 雛形(印入り)をブロックだけ剪定し(印は残す)、アプリのファイルと行ごと一致するかを見て、印の位置のアプリの値が techStack の版と違えば、その値を返す。
- * 一致しない(印以外の行が違う)・印が無い・版を使わない DB・同じ版のときは null。`designer__get_scaffold_update` が「database.version だけ変えた」を知らせるのに使う
+ * 雛形(印入り)をブロックだけ剪定し(印は残す)、印 (`__DB_VERSION__`) を含む行だけを取り出して、アプリのファイルのどこかの行がその行と一致するときの、印の位置の値を調べる。
+ * 一致した行の値がどれも techStack の版と違うとき、その値を返す (版が合う行が 1 つでもあれば、または一致する行が無ければ null)。
+ * ファイルのほかの行 (利用者が足した service・環境変数、末尾の改行の有無) は見ない。行は前後の空白を落として比べる。
+ * 印を持つ行ごとに 1 本の正規表現 (`^…$`、他の文字は escape、印は `[0-9][0-9a-z.-]*` の捕獲 (数字で始まる値だけ。`latest` や変数は読まない))。隣り合う印は 1 つの捕獲にまとめ、アプリの行は 512 文字までしか読まないので、照合は短い行 1 本ぶんの時間で済む。
+ * 版を使わない DB・印が無いファイル・版が合っているときは null。YAML でないファイル (README の節) は呼び出し側 (getScaffoldUpdate) が対象にしない
  */
 export function dbVersionDrift(relPath: string, templateText: string, appText: string, ctx: BlockContext): string | null {
   const want = resolveDbVersion(ctx.db, ctx.dbVersion);
@@ -126,13 +132,24 @@ export function dbVersionDrift(relPath: string, templateText: string, appText: s
     pruned = pruneScaffoldBlocks(templateText, ctx);
     if (/\.ya?ml$/i.test(relPath)) pruned = dropEmptyComposeKeys(pruned);
   } catch { return null; }
-  if (!pruned.includes(DB_VERSION_TOKEN)) return null;
+  const tokenLines = [...new Set(pruned.split("\n").map((l) => l.trim()).filter((l) => l.includes(DB_VERSION_TOKEN)))];
+  if (tokenLines.length === 0) return null;
   const esc = (t: string): string => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const re = new RegExp(`^${pruned.split(DB_VERSION_TOKEN).map(esc).join("([0-9][A-Za-z0-9.-]*)")}$`);
-  const m = re.exec(appText);
-  if (!m) return null;
-  const found = m.slice(1).find((v) => v !== want);
-  return found ?? null;
+  const patterns = tokenLines.map((l) => new RegExp(`^${l.split(new RegExp(`(?:${DB_VERSION_TOKEN})+`)).map(esc).join("([0-9][0-9a-z.-]*)")}$`));
+  const appLines = appText.split("\n").map((l) => l.trim()).filter((l) => l.length <= DRIFT_MAX_LINE);
+  for (const re of patterns) {
+    let stale: string | null = null;
+    let current = false;
+    for (const line of appLines) {
+      const m = re.exec(line);
+      if (!m) continue;
+      const other = m.slice(1).find((v) => v !== want);
+      if (other === undefined) { current = true; break; }
+      stale ??= other;
+    }
+    if (!current && stale !== null) return stale;
+  }
+  return null;
 }
 
 /** ブロックが壊れていても止めない版 (更新の比較用)。壊れていれば、消さずにそのまま返す */

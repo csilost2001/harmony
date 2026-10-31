@@ -9,7 +9,7 @@ import { buildProjectContext } from "../projectContext.js";
 import { tools } from "../tools.js";
 import { isInProfile, PROFILES } from "../security/mcpProfiles.js";
 import { isReadOnlyTool } from "../security/mcpAccess.js";
-import { destinationOf, getScaffoldUpdate, pruneScaffoldFile, BLOCK_MARKER_LINE, loadTemplate, parseScaffold, recordScaffold, SCAFFOLD_COMBOS, scaffoldStore, scaffoldSummary, collectScaffoldIssues, templateVersionOf, DEFAULT_TEMPLATES_ROOT, HARMONY_IMAGE, MAX_SCAFFOLD_CONTENT, cutAtCharBoundary, defaultTemplatesRoot, usesHarmonyImage, issuesOfSummary } from "./scaffold.js";
+import { dbVersionDrift, destinationOf, getScaffoldUpdate, pruneScaffoldFile, BLOCK_MARKER_LINE, loadTemplate, parseScaffold, recordScaffold, SCAFFOLD_COMBOS, scaffoldStore, scaffoldSummary, collectScaffoldIssues, templateVersionOf, DEFAULT_TEMPLATES_ROOT, HARMONY_IMAGE, MAX_SCAFFOLD_CONTENT, cutAtCharBoundary, defaultTemplatesRoot, usesHarmonyImage, issuesOfSummary } from "./scaffold.js";
 import { classifyChangedPath } from "../externalChanges.js";
 import { scaffoldTools } from "../toolsScaffold.js";
 
@@ -1084,6 +1084,17 @@ describe("DB の版 (techStack.database.version) と雛形の更新の比較 (#1
     expect(u.problems).toEqual([]);
   });
 
+  it("image が古く、別の行も足してある (手入れ有り・末尾の改行なし) アプリでも、知らせが出る", async () => {
+    await setup({ type: "postgresql", version: "16" }, appCompose("postgres:15"));
+    await recordScaffold(ROOT, {}, "AI", TPL);
+    await write(path.join(ROOT, ".devcontainer/compose.yml"), appCompose("postgres:15") + "    restart: always\n  extra:\n    image: x");
+    const u = await getScaffoldUpdate(ROOT, TPL);
+    expect(u.files.find((f) => f.template === ".devcontainer/compose.yml")!.appEdited).toBe(true);
+    expect(u.problems).toHaveLength(1);
+    expect(u.problems[0]).toContain("「15」");
+    expect(u.problems[0]).not.toContain("README");
+  });
+
   it("サフィックスつきの版 (16-alpine) が通り、アプリの image が古い (15) と知らせる", async () => {
     await setup({ type: "postgresql", version: "16-alpine" }, appCompose("postgres:16-alpine"));
     await recordScaffold(ROOT, {}, "AI", TPL);
@@ -1117,5 +1128,76 @@ describe("DB の版 (techStack.database.version) と雛形の更新の比較 (#1
       for (const f of u.files) expect(f.appEdited, `${combo} ${f.template}`).toBe(false);
       expect(await fs.readFile(path.join(ROOT, ".devcontainer/compose.yml"), "utf-8")).toContain("image: postgres:16");
     }
+  });
+});
+
+describe("dbVersionDrift (DB の image の行だけを、アプリの行と照らす) (#1587)", () => {
+  const TPL_YML = [
+    "services:",
+    "  # @db postgresql",
+    "  db:",
+    "    image: postgres:__DB_VERSION__",
+    "  # @end-db",
+    "  # @db mysql",
+    "  db:",
+    "    image: mysql:__DB_VERSION__",
+    "  # @end-db",
+    "",
+  ].join("\n");
+  const pg = (version?: string) => ({ db: "postgresql", orm: "prisma", ...(version ? { dbVersion: version } : {}) });
+  const app = (image: string, extra = "") => `services:\n  db:\n    image: ${image}\n${extra}`;
+
+  it("image が古ければ、その値を返す。合っていれば null (手入れの有無・末尾の改行の有無・インデントの違いに関係なく)", () => {
+    expect(dbVersionDrift("c.yml", TPL_YML, app("postgres:15"), pg("16"))).toBe("15");
+    expect(dbVersionDrift("c.yml", TPL_YML, app("postgres:16"), pg("16"))).toBeNull();
+    expect(dbVersionDrift("c.yml", TPL_YML, app("postgres:15", "    restart: always\n  web:\n    ports:\n      - 80:80\n"), pg("16"))).toBe("15"); // 手入れ有り
+    expect(dbVersionDrift("c.yml", TPL_YML, app("postgres:16", "    restart: always\n"), pg("16"))).toBeNull();
+    expect(dbVersionDrift("c.yml", TPL_YML, "services:\n  db:\n    image: postgres:15", pg("16"))).toBe("15"); // 末尾の改行なし
+    expect(dbVersionDrift("c.yml", TPL_YML, "services:\r\n  db:\r\n  image: postgres:15\r\n", pg("16"))).toBe("15"); // CRLF・インデントが違う
+    expect(dbVersionDrift("c.yml", TPL_YML, app("postgres:16-alpine"), pg("16"))).toBe("16-alpine");
+    expect(dbVersionDrift("c.yml", TPL_YML, app("postgres:15"), pg())).toBeNull(); // 版の省略 = 既定 15
+    expect(dbVersionDrift("c.yml", TPL_YML, app("postgres:16"), pg())).toBe("16");
+  });
+
+  it("image の行がアプリに無い・形が違う (latest や変数)・別の DB の行しかない: null (偽の知らせを出さない)", () => {
+    expect(dbVersionDrift("c.yml", TPL_YML, "services:\n  web:\n    build: .\n", pg("16"))).toBeNull();
+    expect(dbVersionDrift("c.yml", TPL_YML, app("postgres:latest"), pg("16"))).toBeNull();
+    expect(dbVersionDrift("c.yml", TPL_YML, app("${DB_IMAGE}"), pg("16"))).toBeNull();
+    expect(dbVersionDrift("c.yml", TPL_YML, app("mysql:8"), pg("16"))).toBeNull(); // 剪定で mysql の行は雛形に残らない
+  });
+
+  it("同じ印の行が複数あるとき: 版が合う行が 1 つでもあれば null、全部古ければ知らせる。印を含む行が複数種類あれば、1 つでも食い違えば知らせる", () => {
+    expect(dbVersionDrift("c.yml", TPL_YML, app("postgres:15", "  other:\n    image: postgres:16\n"), pg("16"))).toBeNull();
+    expect(dbVersionDrift("c.yml", TPL_YML, app("postgres:15", "  other:\n    image: postgres:14\n"), pg("16"))).toBe("15");
+    const two = "# @db postgresql\nimage: postgres:__DB_VERSION__\nlabel: pg-__DB_VERSION__-x\n# @end-db\n";
+    expect(dbVersionDrift("a.txt", two, "image: postgres:16\nlabel: pg-15-x\n", pg("16"))).toBe("15");
+    expect(dbVersionDrift("a.txt", two, "image: postgres:16\nlabel: pg-16-x\n", pg("16"))).toBeNull();
+  });
+
+  it("sqlite / sqlserver / oracle (版を使わない DB)・印の無い雛形・壊れたブロックは null", () => {
+    for (const db of ["sqlite", "sqlserver", "oracle"]) expect(dbVersionDrift("c.yml", TPL_YML, app("postgres:15"), { db, orm: "prisma", dbVersion: "16" })).toBeNull();
+    expect(dbVersionDrift("c.yml", "services:\n  db:\n    image: postgres:15\n", app("postgres:14"), pg("16"))).toBeNull();
+    expect(dbVersionDrift("c.yml", "# @db postgresql\nimage: postgres:__DB_VERSION__\n", app("postgres:15"), pg("16"))).toBeNull();
+  });
+
+  it("README の行 (`*` や `` ` `` を含む) も escape で壊れない。印の位置の値だけ読む", () => {
+    const readme = "**DB**: PostgreSQL __DB_VERSION__。dev は `db` (`postgresql://app:app@db:5432/app`) [x] (y) *z*。\n";
+    const t = "<!-- @db postgresql -->\n" + readme + "<!-- @end-db -->\n";
+    expect(dbVersionDrift("README.snippet.md", t, "**DB**: PostgreSQL 15。dev は `db` (`postgresql://app:app@db:5432/app`) [x] (y) *z*。\n", pg("16"))).toBe("15");
+    expect(dbVersionDrift("README.snippet.md", t, "**DB**: PostgreSQL 15。dev は `db` (`postgresql://app:app@db:5432/app`) [x] (y) *z*。 extra\n", pg("16"))).toBeNull(); // 行が違う
+  });
+
+  it("印が隣り合う行・印の間に区切りが無い行でも、時間が長くならない (数千文字の行・20 万文字のファイルで 100ms 未満)", () => {
+    const t = "# @db postgresql\nx: __DB_VERSION____DB_VERSION____DB_VERSION__!\ny: __DB_VERSION__-__DB_VERSION__-__DB_VERSION__!\n# @end-db\n";
+    const evil = `x: ${"1".repeat(5000)}?\ny: ${"1-".repeat(2500)}?\n`;
+    const big = `${"a: 1\n".repeat(30000)}x: ${"1".repeat(400)}?\nx: 15!\n`;
+    for (const text of [evil, big]) {
+      const t0 = performance.now();
+      const r = dbVersionDrift("a.yml", t, text, pg("16"));
+      expect(performance.now() - t0).toBeLessThan(100);
+      expect(r === null || typeof r === "string").toBe(true);
+    }
+    expect(dbVersionDrift("a.yml", t, "x: 15!\n", pg("16"))).toBe("15"); // 隣り合う印は 1 つの値として読む
+    expect(dbVersionDrift("a.yml", t, "x: 16!\n", pg("16"))).toBeNull();
   });
 });
