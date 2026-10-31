@@ -298,7 +298,7 @@ NestJS の出力は、**ORM** と **DB の種類** の 2 つを `harmony.json` �
 - `BIGINT` の列は `BigInt` ではなく **`Int`** にする (`BigInt` の主キーは SQLite で自動採番されない)。Service の ID も `number` で書く
 - `DATABASE_URL` の相対パスは `schema.prisma` のあるフォルダ (`prisma/`) からの相対。`file:./dev.db` と書く (`file:./prisma/dev.db` だと `prisma/prisma/dev.db` になる)
 
-DB の種類が `oracle` のとき、Prisma は対応していないので生成を止めて利用者に知らせる (`orm: typeorm` に変えれば生成できる)。`sqlserver` と `oracle` は、開発コンテナの雛形に DB サービスが無い (下の「DB ごとのブロック」の対象外) ので、`@db` ブロックは全部消え、compose.yml の `volumes:` の欄が空になる。そのときは `docker-compose.yml` の `volumes:` 行と `DATABASE_URL` を利用者に確認して手で整える旨を最終レポートに書く。
+DB の種類が `oracle` のとき、Prisma は対応していないので生成を止めて利用者に知らせる (`orm: typeorm` に変えれば生成できる)。`sqlserver` と `oracle` は、開発コンテナの雛形に DB サービスが無い (下の「DB ごとのブロック」の対象外) ので、`@db` ブロックは全部消え、`DATABASE_URL` (接続先) も compose.yml に書かれない。値が無くなった `environment:` / `volumes:` のキーは、規則 6 で行ごと消えるので、compose.yml は YAML として妥当なまま残る。そのときは、接続先 (`DATABASE_URL`) と DB のコンテナを利用者が決めて足す旨を最終レポートに書く。
 
 ### step kind ごとのコード生成ルール (§8 — ProcessFlow → backend mapping)
 
@@ -2055,18 +2055,22 @@ NestJS 系の雛形は、DB の種類 (postgresql / mysql / sqlite) と ORM (pri
 2. **一致するブロック**は、マーカー行 (開始行と終了行) だけ消して、中身を残す
 3. **一致しないブロック**は、マーカー行と中身をまとめて消す
 4. ブロックは入れ子になる (`@orm` の中に `@db`、またはその逆)。外側が一致しなければ、内側ごと消える
-5. マーカーの行以外は、一切変えない。インデントも空行もそのまま
-6. マーカーを全部処理したあと、`@db` `@orm` `@end-db` `@end-orm` のマーカー行が 1 行も残っていないこと、`docker compose -f <ファイル> config` が使えるときは通ることを確かめる
+5. マーカーの行以外は、規則 6 の場合を除いて、一切変えない。インデントも空行もそのまま
+6. YAML のファイル (`docker-compose.yml`・`.devcontainer/compose.yml`) だけ: 規則 1〜5 で消した結果、子の行が 1 つも無くなった `environment:` / `volumes:` の行は、その行も消す (`sqlserver` / `oracle` で DB のブロックが全部消えると起きる。値の無いキーを残さないため。コメントの行は触らない)。子の行 = そのキーより深いインデントの、空でもコメントでもない行
+7. マーカーを全部処理したあと、`@db` `@orm` `@end-db` `@end-orm` のマーカー行が 1 行も残っていないこと、`docker compose -f <ファイル> config` が使えるときは通ることを確かめる
 
 この規則で写すと、2 つの ORM は混ざらない (`orm: typeorm` の `docker-compose.yml` / `Dockerfile` / README / `devcontainer.json` に `prisma` は出ない。`orm: prisma` に `typeorm` / `DB_SYNCHRONIZE` は出ない)。`.mcp.json` はブロックを持たない (そのまま写す)。
 
 **この方式を選んだ理由** (DB ごとに雛形のフォルダを分けない / `__DB__` のような差し替え文字にしない):
 
-- `designer__record_scaffold` / `designer__get_scaffold_update` と、雛形の版 (組合せのフォルダの全ファイルの SHA-256) は、組合せ (`nestjs-nextjs` など 4 つ) ごとのフォルダを単位にしている。DB ごとにフォルダを分けると、組合せが 4 → 10 に増え、backend の組合せの一覧 (`SCAFFOLD_COMBOS`)・記録の形・点検・試験を変えることになる。ブロック方式なら backend は 1 行も変えず、雛形の版は今のまま「フォルダの中身のハッシュ」で決まる
+- `designer__record_scaffold` / `designer__get_scaffold_update` と、雛形の版 (組合せのフォルダの全ファイルの SHA-256) は、組合せ (`nestjs-nextjs` など 4 つ) ごとのフォルダを単位にしている。DB ごとにフォルダを分けると、組合せが 4 → 10 に増え、backend の組合せの一覧 (`SCAFFOLD_COMBOS`)・記録の形・点検・試験を変えることになる。ブロック方式なら組合せの一覧・記録の形・雛形の版は今のまま (版は「フォルダの中身のハッシュ」で決まる)。backend の変更は、更新の比較の前にアプリの techStack でブロックを消すことだけ (下の「雛形の記録と更新」)
 - 差し替え文字は、複数行 (`depends_on` / `volumes` / DB サービス丸ごと) を AI が組み立てることになり、書き方がぶれる。ブロックは「消すだけ」なので、結果が一意に決まる
 - 雛形そのもの (全ブロックが入った状態) は、そのままでは 1 つの YAML として有効でない (キーが重なる)。写した結果 (ブロックを消したあと) が有効であることを、`backend/src/generateCodeDbBlocks.test.ts` が組合せ × DB × ORM の全部で確かめている
 
-**雛形の記録と更新** (`designer__record_scaffold` / `designer__get_scaffold_update`): 記録には雛形の中身 (ブロック入り) が残り、アプリのファイルはブロックを消した後の形になる。そのため、`designer__get_scaffold_update` の 3 方向の差分では、ブロックを消した部分が「利用者の手入れ」に見える。これは雛形の規則による差で、手入れではない。更新を取り込むときは、新しい雛形にも**同じ規則**でブロックを消してから、アプリのファイルと比べる。`techStack.database` や `techStack.backend.orm` を変えたときの取り込みも同じ手順で (新しい techStack で消したあとのファイルを、いまのアプリのファイルに当てる)。
+**雛形の記録と更新** (`designer__record_scaffold` / `designer__get_scaffold_update`): 記録には雛形の中身 (ブロック入り、写したときのそのまま) が残り、アプリのファイルはブロックを消した後の形になる。そのため **backend は、比べる前に、新しい雛形 (`latest`) と記録 (`base`) の両方を、アプリの `harmony.json` の `techStack.database.type` (省略時 `postgresql`) / `techStack.backend.orm` (省略時 `prisma`) で、上の規則 1〜6 と同じ実装 (`backend/src/ops/scaffoldBlocks.ts`) で消してから** `diff` / `templateDiff` / `appChanges` / `appEdited` を作る。返ってくる `latest` / `base` / `diff` にはマーカーも他の DB / ORM のブロックも出ない。AI が自分で剪定して比べる必要は無い。
+
+- 雛形の版 (SHA-256) は、ブロック入りの中身のまま決まる。**`database.type` / `backend.orm` を変えただけでは、版は変わらず「古い」とは出ない** (雛形が新しくなったわけではないため)。逆に、雛形の更新が、このアプリで消えるブロックの中だけだったときは、`status` は `outdated` でも、`files[]` の `state` はすべて `unchanged` になる (取り込むものは無い。`designer__record_scaffold` で版だけ最新にしてよい)
+- `techStack` を変えたあとの取り込み (たとえば `orm` を `prisma` から `typeorm` に変える) は、`designer__get_scaffold_update` の差分には、techStack の変更による差と雛形の更新が**混ざる** (比べる側の剪定は新しい techStack、アプリのファイルは古い techStack のまま)。この場合は、上の「実行手順」の 4 と同じように、雛形を新しい techStack で消して作り直し、いまのアプリのファイルとの差を利用者に見せる
 
 ### 実行手順
 
@@ -2104,7 +2108,7 @@ NestJS 系の雛形は、DB の種類 (postgresql / mysql / sqlite) と ORM (pri
 
 Harmony の雛形が新しくなると、`designer__check_design` の info (section「開発コンテナの雛形」)・`designer__get_project_context` の `scaffold`・画面「連携と運用 → 版と更新」が知らせる。利用者に「開発コンテナの雛形の更新を取り込んで」と頼まれたら、次の順で行う (この手順の対象は、雛形が書くファイル全部: `.devcontainer/` の 2 つ・`.mcp.json`・`.tmp/.gitignore`・`Dockerfile`・`docker-compose.yml`・README の節)。
 
-1. NestJS 系は、先に「DB ごとのブロック」の規則で、新しい雛形(`latest`)のブロックを、いまの `techStack.database.type` / `techStack.backend.orm` で消した形にそろえてから読む (ブロックを消した差は手入れではない)。`designer__get_scaffold_update` を呼ぶ。`status` が `outdated` (雛形が新しくなった) か `no-record` (記録が無い古いアプリ) でなければ、取り込むものは無い。`files[]` のうち `state` が `unchanged` でないものが対象 (`guide` に同じ手順が付く)
+1. `designer__get_scaffold_update` を呼ぶ。NestJS 系の「DB ごとのブロック」は、サーバがアプリの `techStack.database.type` / `techStack.backend.orm` で消してから比べて返す (ブロックを消した差は手入れに見えない。自分で消さなくてよい)。`status` が `outdated` (雛形が新しくなった) か `no-record` (記録が無い古いアプリ) でなければ、取り込むものは無い。`files[]` のうち `state` が `unchanged` でないものが対象 (`guide` に同じ手順が付く)
 2. ファイルごとの差分は、`files[]` の **`diff` (いまのアプリ → 新しい雛形)**・`base` があるときは **`templateDiff` (雛形の変更)** と **`appChanges` (利用者の手入れ)** にある (unified diff)。**自分で差分を作らず、これを利用者に見せる** (`diffTooLarge: true` のファイルだけ、`app` と `latest` を自分で比べる。`diffTruncated` は差分が切れているので同じく自分で読み直す)。比べ方は次のとおり:
    - `base` がある (記録があり、飛ばしていない): **3 方向**。`base`→`latest` が雛形の変更、`base`→`app` が利用者の手入れ。雛形の変更を取り込み、手入れは残す
    - `base` が無い (記録が無い・飛ばしたファイル): **2 方向**。`app` と `latest` の差を、利用者に 1 つずつ見せて選んでもらう (`appEdited` が `null` = 手入れかどうか不明)

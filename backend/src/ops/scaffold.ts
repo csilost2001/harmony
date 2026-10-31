@@ -17,6 +17,9 @@ import { findDocsRoot } from "../docsRoot.js";
 import { recordAudit } from "./audit.js";
 import { cutLines, extractSection, snippetHeading, unifiedDiff, type SectionSlice } from "./lineDiff.js";
 import { makeOpsStore } from "./opsFiles.js";
+import { blockContextOf, pruneScaffoldFileSafe } from "./scaffoldBlocks.js";
+
+export { pruneScaffoldBlocks, pruneScaffoldFile, dropEmptyComposeKeys, blockContextOf, BLOCK_MARKER_LINE } from "./scaffoldBlocks.js";
 
 const PROJECT_ROOT = path.resolve(import.meta.dirname, "../../..");
 const TEMPLATES_REL = "ai-skills/generate-code/templates/devcontainer";
@@ -335,12 +338,17 @@ export async function getScaffoldUpdate(root: string, templatesRoot = defaultTem
   if (!r.template) return out;
   const noRecord = !r.record;
   const sameVersion = r.summary.status === "current";
+  // 雛形 (latest) と記録 (base) は「DB ごとのブロック」入りの形で持つ。アプリのファイルはブロックを消した形なので、比べる前に、アプリの techStack (database.type / backend.orm) で同じ規則で消す。
+  // 雛形の版と記録の形は変えない (版は全ブロック入りの中身で決まる。記録は写したときの雛形そのまま)
+  const blocks = await blockContextOf(root);
+  const prune = (template: string, content: string): string => pruneScaffoldFileSafe(template, content, blocks);
+  const templateFiles = r.template.files.map((f) => ({ ...f, content: prune(f.template, f.content) }));
   const recorded = new Map((r.record?.files ?? []).map((f) => [f.template, f]));
   const views: ScaffoldFileView[] = [];
 
   const push = async (template: string, p: string, kind: ScaffoldKind, latest: string | null, rec: ScaffoldFileRecord | undefined, state: ScaffoldFileState) => {
     const app = await readApp(root, p);
-    const base = rec && !rec.skipped && typeof rec.content === "string" ? lf(rec.content) : undefined;
+    const base = rec && !rec.skipped && typeof rec.content === "string" ? prune(rec.template, lf(rec.content)) : undefined;
     // README の節は、README 全体でなく、切り出した節で比べる (節の見出しが無い snippet は、README 全体で見る)
     const sec = kind === "section" && app !== null ? findSection(app, latest, base) : null;
     const appPart = kind === "section" ? (sec ? sec.text : null) : app;
@@ -369,7 +377,7 @@ export async function getScaffoldUpdate(root: string, templatesRoot = defaultTem
     views.push(view);
   };
 
-  for (const f of r.template.files) {
+  for (const f of templateFiles) {
     if (noRecord) {
       // 記録が無いので、アプリといまの雛形の違いだけを見る (2 方向)
       const app = await readApp(root, f.path);
@@ -382,11 +390,12 @@ export async function getScaffoldUpdate(root: string, templatesRoot = defaultTem
     }
     const rec = recorded.get(f.template);
     if (!rec) { await push(f.template, f.path, f.kind, f.content, undefined, "new-in-template"); continue; }
-    const changed = !sameVersion && (rec.skipped || typeof rec.content !== "string" || lf(rec.content) !== f.content);
+    // 変わったかは、ブロックを消した形で見る (消えるブロックだけが変わった雛形の更新は、このアプリには関係ない = unchanged)
+    const changed = !sameVersion && (rec.skipped || typeof rec.content !== "string" || prune(rec.template, lf(rec.content)) !== f.content);
     await push(f.template, f.path, f.kind, f.content, rec, changed ? "template-changed" : "unchanged");
   }
   if (r.record) {
-    const inTemplate = new Set(r.template.files.map((f) => f.template));
+    const inTemplate = new Set(templateFiles.map((f) => f.template));
     for (const rec of r.record.files) if (!inTemplate.has(rec.template)) await push(rec.template, rec.path, rec.kind, null, rec, "removed-from-template");
   }
   out.files = views;
