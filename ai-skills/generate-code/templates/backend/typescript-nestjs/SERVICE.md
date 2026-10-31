@@ -124,7 +124,7 @@ dbAccess / transactionScope 以外の step は、ORM が何でも同じに展開
 ```typescript
 import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';   // transactionScope を使わない Service では、この行は消す (未使用 import で lint の警告になる)。tx の型 (Prisma.TransactionClient) を使うときだけ残す
 import { PrismaService } from './src/prisma/prisma.service';   // Service は出力先の直下、PrismaService は src/prisma/ (出力先の位置を変えたときは相対パスを合わせる)
 import { {{processFlow.meta.name | toPascalCase}}RequestDto } from './dto/{{processFlow.meta.name | toKebabCase}}-request.dto';
 import { {{processFlow.meta.name | toPascalCase}}ResponseDto } from './dto/{{processFlow.meta.name | toKebabCase}}-response.dto';
@@ -191,7 +191,7 @@ export class {{processFlow.meta.name | toPascalCase}}Service {
 ```typescript
 import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';   // EntityManager は transactionScope の helper (manager を引数で受ける) を書くときだけ残す。使わなければ import から外す (未使用 import で lint の警告になる)
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { {{processFlow.meta.name | toPascalCase}}RequestDto } from './dto/{{processFlow.meta.name | toKebabCase}}-request.dto';
 import { {{processFlow.meta.name | toPascalCase}}ResponseDto } from './dto/{{processFlow.meta.name | toKebabCase}}-response.dto';

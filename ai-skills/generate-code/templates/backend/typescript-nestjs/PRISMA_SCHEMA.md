@@ -2,7 +2,7 @@
 
 `techStack.backend.orm` が `prisma` のとき、または**省略されているとき** (省略時は `prisma`) に使う。`techStack.backend.orm: typeorm` のときは本ファイルを使わず [`ENTITY.md`](./ENTITY.md) を使う。**1 つの生成物の中で Prisma と TypeORM を混ぜない** (`orm: prisma` のときは `typeorm` / `@nestjs/typeorm` / `*.entity.ts` を一切出さない)。
 
-ProcessFlow の `lineage.reads / lineage.writes` で参照されるテーブル (`tables/<tableId>.json`) から、プロジェクトに 1 つの `prisma/schema.prisma` と、`src/prisma/` の `PrismaService` / `PrismaModule` を生成する。
+テーブル定義 (`tables/<tableId>.json`) から、プロジェクトに 1 つの `prisma/schema.prisma` と、`src/prisma/` の `PrismaService` / `PrismaModule` を生成する。生成する表の範囲は、**生成対象の処理フローの `lineage.reads / lineage.writes` に出る表 + その表が外部キーで参照する表 (再帰的に) + generate-tests が seed / 検証 / truncate で触る表** (E2E の前提データや認証のユーザー表など。どの flow の lineage にも出なくても含める)。それ以外の表は作らない。bulk モード (複数の flow を生成するとき) は、全 flow の分の和集合。flow を後から足したら、表が増えるので既存のファイルに追記する。Entity (`ENTITY.md`) も同じ範囲。
 
 ## 生成物
 

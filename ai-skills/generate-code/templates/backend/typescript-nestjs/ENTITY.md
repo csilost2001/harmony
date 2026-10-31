@@ -2,7 +2,7 @@
 
 > **このファイルは `techStack.backend.orm: typeorm` のときだけ使う。** `orm` が省略されているとき (省略時は `prisma`) や `prisma` のときは、本ファイルではなく [`PRISMA_SCHEMA.md`](./PRISMA_SCHEMA.md) を使う。1 つの生成物の中で TypeORM と Prisma を混ぜない (`orm: typeorm` のときは `prisma/` `@prisma/client` `PrismaService` を一切出さない)。
 
-ProcessFlow の `lineage.reads / lineage.writes` で参照されるテーブルから TypeORM Entity を生成する。**Prisma の model と同じ範囲の表を生成する** (参照されない表の Entity も、`synchronize` で表を作るには `entities` に入れる必要がある。下の「接続の設定」)。
+テーブル定義 (`tables/<tableId>.json`) から TypeORM Entity を生成する。生成する表の範囲は、**生成対象の処理フローの `lineage.reads / lineage.writes` に出る表 + その表が外部キーで参照する表 (再帰的に) + generate-tests が seed / 検証 / truncate で触る表** (E2E の前提データや認証のユーザー表など。どの flow の lineage にも出なくても含める)。それ以外の表は作らない。bulk モード (複数の flow を生成するとき) は、全 flow の分の和集合。flow を後から足したら、表が増えるので既存のファイルに追記する。**Prisma の model と同じ範囲** (どの業務 Module の `forFeature` にも入らない Entity も、`synchronize` で表を作るには `entities` に入れる必要がある。下の「接続の設定」)。
 
 ## techStack からの読み方
 
@@ -17,6 +17,7 @@ ProcessFlow の `lineage.reads / lineage.writes` で参照されるテーブル�
 
 ```typescript
 import {
+  Check,
   Column,
   CreateDateColumn,
   Entity,
@@ -26,7 +27,7 @@ import {
   ManyToOne,
   JoinColumn,
   Unique,
-} from 'typeorm';
+} from 'typeorm';   // 使わないものは import から外す (未使用 import は lint の警告になる)
 
 /**
  * {{table.name}} エンティティ。
@@ -78,19 +79,61 @@ export class {{table.physicalName | toModelName}} {
 
 **主キーを自分で渡す表 (自然キー・複数列) への INSERT は `repository.save()` ではなく `insert()` を使う** ([`SERVICE.md`](./SERVICE.md) の TypeORM の節)。`save()` は同じ主キーの行があると UPDATE にしてしまい、重複で失敗しない (実機で確認)。
 
+## 制約・既定値・リレーション (TypeORM)
+
+PRISMA_SCHEMA.md の「制約・既定値・リレーション」と同じテーブル定義を、TypeORM ではデコレータで書く。**プロパティ名は camelCase、`@Column` の `name` で物理名にそろえる**。`@Unique` / `@Index` の列の指定は、DB のカラム名ではなく**プロパティ名** (`order_number` → `'orderNumber'`)。
+
+| テーブル定義 | Entity |
+|---|---|
+| `notNull: false` | `@Column({ ..., nullable: true })`、型は `string \| null` |
+| `primaryKey: true` (1 列、自動採番) / 自然キー / 主キーが複数列 | 上の「主キーの書き方」 |
+| `unique: true` (1 列) | `@Column({ ..., unique: true })` |
+| `constraints[].kind=unique` (複数列) | クラスに `@Unique('<constraint.physicalName>', ['colA', 'colB'])` |
+| `indexes[]` | クラスに `@Index('<index.physicalName>', ['colA', 'colB'])` (`unique: true` は `{ unique: true }` を第 3 引数に) |
+| `defaultValue` がリテラル | `@Column({ ..., default: 'x' })` / `default: 0` / `default: true` |
+| `defaultValue` が `CURRENT_TIMESTAMP` / `now()` | `@Column({ ..., default: () => 'CURRENT_TIMESTAMP' })`。作成日時・更新日時の列 (`created_at` / `updated_at`) は `@CreateDateColumn` / `@UpdateDateColumn` |
+| `kind=check` | クラスに `@Check('<constraint.physicalName>', '<式>')` (式は DB の SQL。sqlite / postgresql / mysql 8 で使える) |
+| `constraints[].kind=foreignKey` | 外部キーの列を `@Column` で持ったうえで、`@ManyToOne(() => Parent, { onDelete: '...' })` + `@JoinColumn({ name: '<外部キーの列の physicalName>' })` の関連を足す (下) |
+| 同じ列の一意が重複している (列の `unique: true`・`constraints[].kind=unique`・`unique: true` の `indexes[]` の 2 つ以上) | 1 つにまとめる (列の `unique: true` を残し、他は書かない) |
+
+### リレーション
+
+外部キー (`kind=foreignKey`) ごとに、**子の Entity** に次の 2 つを書く。親の Entity には `@OneToMany` を足さなくてよい (業務コードは Repository で子を引くので不要。足すと循環 import になりやすい)。
+
+```typescript
+// 子 (外部キーを持つ側)。列そのもの (値で読み書きする) と、関連 (JOIN 用) の両方を同じ列名で書く
+@Column({ name: 'user_id', type: 'int', nullable: false })
+userId: number;
+
+@ManyToOne(() => User, { onDelete: 'CASCADE', onUpdate: 'NO ACTION' })
+@JoinColumn({ name: 'user_id' })
+user: User;
+```
+
+- `onDelete` / `onUpdate`: `cascade` → `'CASCADE'`、`setNull` → `'SET NULL'`、`setDefault` → `'SET DEFAULT'`、`restrict` → `'RESTRICT'`、`noAction` → `'NO ACTION'`。省略時は書かない
+- 関連のプロパティ名: 親の Entity 名の camelCase (`User` → `user`)。同じ親への外部キーが 2 つ以上あるときは、外部キーの列名から付ける (`author_id` → `author`)
+- `noConstraint: true` (DB の外部キー制約を張らない) は `@ManyToOne` / `@JoinColumn` を作らず、`@Column` だけ残す
+- 親の Entity は `entities` に入っている必要がある (上の「生成する表の範囲」。FK の参照先は含める)
+
 ## データ型変換 (TypeORM)
 
 | DB カラム型 | TypeORM `type` | TypeScript 型 |
 |---|---|---|
-| `VARCHAR(n)` | `'varchar'` | `string` |
+| `VARCHAR(n)` | `'varchar'` (`length: n`) | `string` |
+| `CHAR(n)` | `'char'` (`length: n`) | `string` |
 | `TEXT` | `'text'` | `string` |
 | `INTEGER` | `'int'` | `number` |
+| `SMALLINT` | `'smallint'` | `number` |
 | `BIGINT` | `'bigint'` | `number` と書く。ただし **postgresql (`pg`) は実行時に文字列で返す** (sqlite の `better-sqlite3` は数値)。比較や返却の前に `Number(row.userId)` を通す。自動採番の主キー (`@PrimaryGeneratedColumn`) は `int` の列になるので数値のまま |
 | `BOOLEAN` | `'boolean'` | `boolean` |
 | `TIMESTAMP` | `'timestamp'` | `Date` |
 | `DATE` | `'date'` | `Date` |
 | `DECIMAL(p,s)` | `'decimal'` | `string` (TypeORM は string で返す) |
+| `FLOAT` | `'float'` | `number` |
+| `TIME` | `'time'` | `string` (`'HH:MM:SS'`) |
+| `BLOB` | `'blob'` (postgresql は `'bytea'`) | `Buffer` |
 | `JSON` | `'json'` (sqlite は `'simple-json'`) | `unknown` / 型を決めた interface |
+| 拡張 (`namespace:TYPE`) | 近い型 + 先頭に `// TODO:` コメント | 例: `postgres:JSONB` → `'jsonb'` (postgresql のとき) |
 
 DB が `sqlite` のときの差: `TIMESTAMP` は `'datetime'` にする (`'timestamp'` は sqlite の型に無い)。`DATE` / `TIME` は `'date'` / `'time'` のまま。
 

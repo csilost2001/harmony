@@ -225,7 +225,7 @@ ProcessFlow に登場する tableId を収集し、各テーブルの physicalNa
 
 ```
 テーブル index 構築手順:
-1. ProcessFlow JSON 全体から tableId 値をすべて収集 (steps の lineage.writes / lineage.reads)
+1. ProcessFlow JSON 全体から tableId 値をすべて収集 (steps の lineage.writes / lineage.reads)。generate-code が作る model / Entity の範囲は「lineage の表 + その FK の参照先 + このテストが seed / 検証 / truncate で触る表」なので、**テストが触る表は、flow の lineage に出なくても model / Entity が要る** (欠けていれば、generate-code 側の `schema.prisma` / `entities` に追記する旨を報告する)
 2. 各 tableId について harmony/tables/<tableId>.json を Read
 3. physicalName を取得して map 化: { "<tableId>": "<physicalName>" }
    例: { "post-table": "posts", "photo-table": "photos" }

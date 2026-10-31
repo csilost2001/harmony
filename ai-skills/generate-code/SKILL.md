@@ -997,11 +997,11 @@ Spring Boot 出力には **必ず** Maven Wrapper を verbatim コピー同梱�
 
   # DB 層 (techStack.backend.orm で分ける。下の「DB と ORM の読み方」。1 つの生成物で混ぜない):
   #   orm: prisma (既定・省略時) — プロジェクトに 1 セット。PRISMA_SCHEMA.md
-  prisma/schema.prisma                   (lineage の tables → model。provider は techStack.database.type)
+  prisma/schema.prisma                   (表の範囲は PRISMA_SCHEMA.md「生成する表の範囲」→ model。provider は techStack.database.type)
   src/prisma/prisma.service.ts           (PrismaClient を継承した @Injectable)
   src/prisma/prisma.module.ts            (@Global の Module。AppModule で 1 回 import)
   #   orm: typeorm — ENTITY.md。prisma/ と src/prisma/ は出さない
-  entity/<tableName>.entity.ts           (lineage.writes → TypeORM Entity)
+  entity/<tableName>.entity.ts           (表の範囲は schema.prisma の model と同じ → TypeORM Entity)
   src/database/typeorm.config.ts         (TypeOrmModule.forRootAsync の設定と、全 Entity の列挙。AppModule で 1 回 import)
 
   # AI flow 含有時のみ (Phase 2-C、最初の AI flow 検出時に 1 セット生成):
@@ -2191,9 +2191,9 @@ frontend は Thymeleaf (同 project root の `src/main/resources/templates/`) or
 │   ├── <actionName>-request.dto.ts
 │   └── <actionName>-response.dto.ts
 ├── prisma/                             ← orm: prisma (既定・省略時) のときだけ。orm: typeorm では作らない
-│   └── schema.prisma                   ← lineage の tables → model (provider は techStack.database.type)
+│   └── schema.prisma                   ← 表の範囲 (lineage の表 + FK の参照先 + generate-tests が触る表) → model (provider は techStack.database.type)
 ├── entity/                             ← orm: typeorm のときだけ。orm: prisma では作らない
-│   └── <tableName>.entity.ts           ← TypeORM Entity (root 直下、lineage.writes → Entity)
+│   └── <tableName>.entity.ts           ← TypeORM Entity (root 直下。表の範囲は schema.prisma の model と同じ)
 ├── src/                                ← アプリの入口 (main.ts / app.module.ts) と DB 層 / AI / auth scaffold
 │   ├── main.ts                         ← ビルド後は dist/src/main.js (Dockerfile の CMD は `node dist/src/main`)
 │   ├── app.module.ts
