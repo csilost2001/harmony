@@ -250,9 +250,12 @@ test.describe("業務フロー", () => {
     expect(await laneIds()).toEqual(before);
     await dragTo(before[2], before[0]);
     expect(await laneIds()).toEqual([before[2], before[0], before[1], ...before.slice(3)]);
+    // 「元に戻す」で変更なしに戻っているので、未保存の印が出てから保存する (出る前だと、次の「印が無い」が保存の完了を待たずに通ってしまう)
+    await expect(page.getByTestId("bf-dirty")).toBeVisible();
     await saveEdit(page);
     await expect(page.getByTestId("bf-dirty")).toHaveCount(0);
-    expect((await readFlow("order-to-shipment")).lanes.map((l: { id: string }) => l.id)).toEqual([before[2], before[0], before[1], ...before.slice(3)]);
+    await expect.poll(async () => (await readFlow("order-to-shipment")).lanes.map((l: { id: string }) => l.id), { timeout: 10000 })
+      .toEqual([before[2], before[0], before[1], ...before.slice(3)]);
 
     // キーボードでも並べ替えられる: 持ち手にフォーカス → Space で持ち上げ → ↓ で動かし → Space で置く
     const order = [before[2], before[0], before[1], ...before.slice(3)];

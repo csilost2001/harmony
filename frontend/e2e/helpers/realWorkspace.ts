@@ -320,8 +320,15 @@ export async function withBrowserSession<T>(
  */
 export async function resetWorkspaceRuntimeState(
   page?: PageLike,
+  workspacePath?: string,
 ): Promise<void> {
   await withBrowserSession(async (call) => {
+    // 0. workspacePath が渡されたら、まず自分のワークスペースを開く。
+    //    新しい接続の既定は「最後にどこかの worker が開いたワークスペース」なので、開かずに list / discard すると
+    //    workers > 1 のとき別 worker の編集セッション (dirty-mark-resume の下書きなど) まで破棄してしまう (#1575)。
+    if (workspacePath) {
+      await call("workspace.open", { path: workspacePath });
+    }
     // 1. editSession 全 discard
     try {
       const result = await call("editSession.list", {}) as
@@ -706,7 +713,7 @@ export async function setupTestWorkspace(opts: SetupTestWorkspaceOptions): Promi
       }
     },
     async resetRuntimeState(page?: PageLike) {
-      await resetWorkspaceRuntimeState(page).catch(() => undefined);
+      await resetWorkspaceRuntimeState(page, workspacePath).catch(() => undefined);
     },
   };
 }
