@@ -71,6 +71,14 @@ function recordHowTo(kind: string, id: string): string {
   ].join("\n");
 }
 
+/** 技術スタックの JSON。TypeScript のバックエンドで ORM が未指定なら、既定 (prisma) で作ることを添える (#1560) */
+function techStackBlock(techStack: unknown): string {
+  const block = "```json\n" + JSON.stringify(techStack, null, 2) + "\n```";
+  const backend = isRecord(techStack) && isRecord(techStack.backend) ? techStack.backend : undefined;
+  if (backend?.language === "typescript" && backend.orm === undefined) return `${block}\n\nORM は未指定 (backend.orm)。既定の prisma として作る。`;
+  return block;
+}
+
 export async function buildGenerationBrief(root: string, args: { processFlowId?: string; screenId?: string }): Promise<string> {
   const { input } = await loadDesignInputFromRoot(root);
   const project = await readProject(root);
@@ -96,7 +104,7 @@ export async function buildGenerationBrief(root: string, args: { processFlowId?:
     out.push(`# 生成の指示書: ${flow.meta.name ?? flow.meta.id} (処理フロー \`${flow.meta.id}\`)`, "");
     out.push("## 何を作るか", "", flow.meta.description ?? "(説明なし)", "");
     for (const a of actionList) out.push(`- アクション \`${a.id ?? ""}\` ${a.name ?? ""}${a.httpRoute ? ` — ${a.httpRoute.method} ${a.httpRoute.path}${a.httpRoute.auth ? ` (認証: ${a.httpRoute.auth})` : ""}` : ""}${a.requiredPermissions?.length ? ` / 必要な権限: ${a.requiredPermissions.join(", ")}` : ""}`);
-    out.push("", "## 技術スタック", "", techStack ? "```json\n" + JSON.stringify(techStack, null, 2) + "\n```" : "(未設定。designer__get_tech_stack / save_tech_stack)", "");
+    out.push("", "## 技術スタック", "", techStack ? techStackBlock(techStack) : "(未設定。designer__get_tech_stack / save_tech_stack)", "");
     let story: string;
     try { story = storyOf(flow as never, actionsOf(flow as never, undefined), await flowContext(root)); } catch { story = "(処理の流れを組み立てられませんでした。設計が壊れている可能性があります。designer__check_design で確かめてください)"; }
     if (story.length > MAX_STORY_CHARS) story = `${story.slice(0, MAX_STORY_CHARS)}\n\n(長いので ${MAX_STORY_CHARS} 文字で切りました。続きは designer__get_flow_story { processFlowId, actionId } でアクションごとに)`;
@@ -126,7 +134,7 @@ export async function buildGenerationBrief(root: string, args: { processFlowId?:
     const cases = sheet.screens.flatMap((s) => s.cases);
     out.push(`# 生成の指示書: ${screen.name ?? screen.id} (画面 \`${screen.id}\`)`, "");
     out.push("## 何を作るか", "", `${screen.description ?? "(説明なし)"}`, "", `- 経路: ${screen.path ?? "(未設定)"} / 種類: ${screen.kind ?? "?"}${screen.auth ? ` / 認証: ${screen.auth}` : ""}${screen.permissions?.length ? ` / 必要な権限: ${screen.permissions.join(", ")}` : ""}`, "");
-    out.push("## 技術スタック", "", techStack ? "```json\n" + JSON.stringify(techStack, null, 2) + "\n```" : "(未設定)", "");
+    out.push("## 技術スタック", "", techStack ? techStackBlock(techStack) : "(未設定)", "");
     const it = more(screen.items ?? [], MAX_ITEMS);
     out.push("## 画面項目", "", it.shown.length ? it.shown.map(itemLine).join("\n") : "(項目なし)", ...(it.extra ? [`\n(ほか ${it.extra} 件)`] : []), "");
     out.push("## この画面から呼ぶ処理フロー", "", flows.length ? flows.map((f) => `- \`${f.meta.id}\` ${f.meta.name ?? ""} — 生成の指示書: designer__get_generation_brief { processFlowId: "${f.meta.id}" }`).join("\n") : "(なし)", "");
