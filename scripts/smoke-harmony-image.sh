@@ -69,9 +69,16 @@ const timer = setTimeout(() => {
   console.error("WebSocket smoke timeout");
   process.exit(1);
 }, 3000);
+// サーバは origin / 接続トークンの検査に落ちても、いったん接続を受けてから 1008 で閉じる。open が来ただけで通ったことにせず、
+// open のあと少し待って、サーバ側から閉じられていない (close が来ない) ことまで確かめる
 ws.addEventListener("open", () => {
   clearTimeout(timer);
-  ws.close();
+  const wait = setTimeout(() => { ws.close(); process.exit(0); }, 500);
+  ws.addEventListener("close", (ev) => {
+    clearTimeout(wait);
+    console.error(`WebSocket が接続の直後に閉じられました (code ${ev.code} ${ev.reason || ""})。origin / 接続トークンの検査に落ちた可能性があります`);
+    process.exit(1);
+  });
 });
 ws.addEventListener("error", (ev) => {
   clearTimeout(timer);
@@ -128,6 +135,25 @@ fetch(`http://127.0.0.1:${port}/mcp`, {
 '
 else
   echo "注意: build-info.json に commit がない image です (git の作業コピーでなく作った)。commit の一致の確認を飛ばします" >&2
+fi
+
+# (3) 画面「版と更新」のリリースノート (/app/docs/release-notes.md) が、image の commit までの履歴から作られていること
+#     (scripts/build-harmony-image.sh の --build-context での差し替えが効いたか)。先頭の数行に、image の commit の題名があること。
+#     build script を通さず docker build だけで作った image では差し替わらないので、HARMONY_SMOKE_SKIP_NOTES=1 で飛ばせる。commit の題名が取れない (git が無い・host に無い commit) ときも飛ばして注意を出す
+if [ -n "${IMAGE_COMMIT}" ] && [ -z "${HARMONY_SMOKE_SKIP_NOTES:-}" ]; then
+  NOTES_SUBJECT="$(git log -1 --first-parent --format=%s "${IMAGE_COMMIT}" 2>/dev/null | sed -E 's/[[:space:]]*\(#[0-9]+\)//g' || true)"
+  if [ -z "${NOTES_SUBJECT}" ] || [[ "${NOTES_SUBJECT}" =~ ^(Merge|Revert\ \"Merge) ]]; then
+    echo "注意: commit ${IMAGE_COMMIT:0:7} の題名を host の git から取れない (または Merge commit) ため、リリースノートの確認を飛ばします" >&2
+  else
+    NOTES_HEAD="$("${ENGINE}" exec "${CONTAINER_NAME}" head -n 12 /app/docs/release-notes.md)" || {
+      echo "image に /app/docs/release-notes.md がありません (Dockerfile の COPY を確認してください)" >&2
+      exit 1
+    }
+    if ! grep -qF -- "${NOTES_SUBJECT}" <<<"${NOTES_HEAD}"; then
+      echo "リリースノートの先頭に、image の commit の題名「${NOTES_SUBJECT}」がありません。--build-context での差し替えが効いていないかもしれません (build script を通さず作った image なら HARMONY_SMOKE_SKIP_NOTES=1)" >&2
+      exit 1
+    fi
+  fi
 fi
 
 TEMPLATES="/app/ai-skills/generate-code/templates/devcontainer"

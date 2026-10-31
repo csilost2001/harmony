@@ -111,6 +111,18 @@ describe("smoke の script が image の中を確かめる", () => {
     expect(portCheck).toBeLessThan(smoke.indexOf("run -d")); // 起動の前に確かめる
     expect(smoke).toContain("HARMONY_SMOKE_PORT=5189");
   });
+  it("リリースノートが image の commit までの履歴から作られたことを確かめる。docker exec の失敗は理由を出し、題名が取れなければ飛ばす (レビュー S2)", () => {
+    expect(smoke).toContain("/app/docs/release-notes.md");
+    expect(smoke).toContain("--first-parent");
+    expect(smoke).toContain("HARMONY_SMOKE_SKIP_NOTES");
+    expect(smoke).toContain("image に /app/docs/release-notes.md がありません");
+    expect(smoke).toMatch(/grep -qF -- "\$\{NOTES_SUBJECT\}"/);
+    expect(smoke).toContain("リリースノートの確認を飛ばします");
+  });
+  it("WebSocket は open のあと少し待ち、サーバから閉じられていないことまで確かめる (1008 の見落とし防止。レビュー N4)", () => {
+    expect(smoke).toMatch(/addEventListener\("close"/);
+    expect(smoke).toContain("接続の直後に閉じられました");
+  });
   it("雛形の 4 組合せ × 7 ファイルが image にあることを確かめる (script の組合せとファイルが、コードの定義と同じ)", () => {
     const combos = /for combo in ([^;]+); do/.exec(smoke)?.[1].trim().split(/\s+/);
     expect(combos).toEqual([...SCAFFOLD_COMBOS]);
@@ -118,5 +130,17 @@ describe("smoke の script が image の中を確かめる", () => {
     expect(files).toHaveLength(7);
     for (const combo of SCAFFOLD_COMBOS) for (const f of files) expect(fs.existsSync(path.join(DEFAULT_TEMPLATES_ROOT, combo, f)), `${combo}/${f}`).toBe(true);
     expect(smoke).toContain("/app/ai-skills/generate-code/templates/devcontainer");
+  });
+});
+
+describe("build script (レビュー S1・N6)", () => {
+  const build = read("scripts/build-harmony-image.sh");
+  it("build --help を一度変数に受けてから grep する (pipefail と SIGPIPE で誤判定しない)", () => {
+    expect(build).not.toMatch(/build --help[^\n]*\|\s*grep/);
+    expect(build).toMatch(/BUILD_HELP="\$\(.*build --help 2>&1 \|\| true\)"/);
+    expect(build).toMatch(/grep -q -- '--build-context' <<<"\$\{BUILD_HELP\}"/);
+  });
+  it("main 以外から作るときの注意に、リリースノートにそのブランチの commit が並ぶことを書く", () => {
+    expect(build).toMatch(/リリースノートにも、そのブランチの commit/);
   });
 });

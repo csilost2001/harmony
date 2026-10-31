@@ -51,7 +51,7 @@ if [ -n "${BUILD_COMMIT}" ]; then
   if [ -z "${BUILD_BRANCH}" ]; then
     echo "注意: ブランチを特定できません (detached HEAD)。画面の「版と更新」に注意が出ます" >&2
   elif [ "${BUILD_BRANCH}" != "main" ]; then
-    echo "注意: main ではなくブランチ '${BUILD_BRANCH}' から作ります。画面の「版と更新」に警告が出ます" >&2
+    echo "注意: main ではなくブランチ '${BUILD_BRANCH}' から作ります。画面の「版と更新」に警告が出ます (リリースノートにも、そのブランチの commit の題名が並びます)" >&2
   fi
   if [ "${BUILD_DIRTY}" = "true" ]; then
     echo "注意: コミットしていない変更があります。image には作業コピーのファイルが入りますが、記録されるのは commit だけです" >&2
@@ -72,7 +72,7 @@ if [ -z "${BUILD_COMMIT}" ]; then
   echo "注意: git の履歴が使えないため、リリースノートは commit 済みの docs/release-notes.md のまま image に入ります" >&2
 elif ! command -v node >/dev/null 2>&1; then
   echo "注意: node が無いため、リリースノートは commit 済みの docs/release-notes.md のまま image に入ります" >&2
-elif ! "${ENGINE}" build --help 2>/dev/null | grep -q -- '--build-context'; then
+elif BUILD_HELP="$("${ENGINE}" build --help 2>&1 || true)"; ! grep -q -- '--build-context' <<<"${BUILD_HELP}"; then
   echo "注意: ${ENGINE} が --build-context に対応していないため、リリースノートは commit 済みの docs/release-notes.md のまま image に入ります (${ENGINE} を新しくすると、作るときの履歴から作れます)" >&2
 else
   NOTES_DIR="$(mktemp -d)"
