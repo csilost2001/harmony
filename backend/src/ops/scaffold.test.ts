@@ -55,17 +55,20 @@ describe("雛形の版", () => {
 });
 
 describe("実際の 4 組合せの雛形", () => {
-  const EXPECTED = [".devcontainer/compose.yml", ".devcontainer/devcontainer.json", ".mcp.json", ".tmp/.gitignore", "Dockerfile", "README.snippet.md", "docker-compose.yml"];
+  const COMMON = [".devcontainer/compose.yml", ".devcontainer/devcontainer.json", ".mcp.json", ".tmp/.gitignore", "Dockerfile", "README.snippet.md", "docker-compose.yml"];
+  // NestJS 系は、image の build に持ち込まない物 (host の node_modules・sqlite の DB ファイル) を .dockerignore で外す (#1560)
+  const expectedOf = (combo: string) => (combo.startsWith("nestjs-") ? [".dockerignore", ...COMMON] : COMMON).sort();
   it.each(SCAFFOLD_COMBOS)("%s: 版が計算でき、列挙したファイルが行き先の表と合う", async (combo) => {
     const t = await loadTemplate(combo, ".", DEFAULT_TEMPLATES_ROOT);
     expect(t, combo).not.toBeNull();
     expect(t!.version).toMatch(/^[0-9a-f]{12}$/);
     // 雛形のフォルダに増減があれば、ここで気づく (行き先の表 destinationOf と scaffold の説明を直す)
-    expect(t!.files.map((f) => f.template).sort()).toEqual(EXPECTED);
+    expect(t!.files.map((f) => f.template).sort()).toEqual(expectedOf(combo));
     const dest = Object.fromEntries(t!.files.map((f) => [f.template, [f.path, f.kind]]));
     expect(dest[".devcontainer/devcontainer.json"]).toEqual([".devcontainer/devcontainer.json", "file"]);
     expect(dest[".tmp/.gitignore"]).toEqual([".tmp/.gitignore", "file"]);
     expect(dest["Dockerfile"]).toEqual(["Dockerfile", "file"]);
+    if (combo.startsWith("nestjs-")) expect(dest[".dockerignore"]).toEqual([".dockerignore", "file"]); // Dockerfile と同じ出力先 (build の文脈の根)
     expect(dest["README.snippet.md"]).toEqual(["README.md", "section"]);
     const t2 = await loadTemplate(combo, "backend", DEFAULT_TEMPLATES_ROOT);
     expect(Object.fromEntries(t2!.files.map((f) => [f.template, f.path]))).toMatchObject({ ".mcp.json": ".mcp.json", Dockerfile: "backend/Dockerfile", "docker-compose.yml": "backend/docker-compose.yml", "README.snippet.md": "backend/README.md" });

@@ -2020,6 +2020,7 @@ ai-skills/generate-code/templates/devcontainer/
   nestjs-thymeleaf/
     .devcontainer/devcontainer.json
     .devcontainer/compose.yml
+    .dockerignore
     .mcp.json
     .tmp/.gitignore
     Dockerfile
@@ -2028,6 +2029,7 @@ ai-skills/generate-code/templates/devcontainer/
   nestjs-nextjs/
     .devcontainer/devcontainer.json
     .devcontainer/compose.yml
+    .dockerignore
     .mcp.json
     .tmp/.gitignore
     Dockerfile
@@ -2059,7 +2061,7 @@ NestJS 系の雛形は、DB の種類 (postgresql / mysql / sqlite) と ORM (pri
 6. YAML のファイル (`docker-compose.yml`・`.devcontainer/compose.yml`) だけ: 規則 1〜5 で消した結果、子の行が 1 つも無くなった `environment:` / `volumes:` の行は、その行も消す (`sqlserver` / `oracle` で DB のブロックが全部消えると起きる。値の無いキーを残さないため。コメントの行は触らない)。子の行 = そのキーより深いインデントの、空でもコメントでもない行
 7. マーカーを全部処理したあと、`@db` `@orm` `@end-db` `@end-orm` のマーカー行が 1 行も残っていないこと、`docker compose -f <ファイル> config` が使えるときは通ることを確かめる
 
-この規則で写すと、2 つの ORM は混ざらない (`orm: typeorm` の `docker-compose.yml` / `Dockerfile` / README / `devcontainer.json` に `prisma` は出ない。`orm: prisma` に `typeorm` / `DB_SYNCHRONIZE` は出ない)。`.mcp.json` はブロックを持たない (そのまま写す)。
+この規則で写すと、2 つの ORM は混ざらない (`orm: typeorm` の `docker-compose.yml` / `Dockerfile` / README / `devcontainer.json` に `prisma` は出ない。`orm: prisma` に `typeorm` / `DB_SYNCHRONIZE` は出ない)。`.mcp.json` と `.dockerignore` はブロックを持たない (そのまま写す。`.dockerignore` は host の `node_modules` が image の `npm ci` の結果を上書きするのと、sqlite の DB ファイルが image に入るのを防ぐ)。
 
 **この方式を選んだ理由** (DB ごとに雛形のフォルダを分けない / `__DB__` のような差し替え文字にしない):
 

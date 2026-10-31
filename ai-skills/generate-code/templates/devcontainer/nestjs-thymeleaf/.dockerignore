@@ -1,0 +1,14 @@
+# image の build に持ち込まない物。host の node_modules は `npm ci` の結果を上書きし、
+# DB のファイル (sqlite) と dev の作業物は image に入れない
+node_modules
+dist
+.next
+.git
+.tmp
+.devcontainer
+*.db
+*.db-journal
+data
+prisma/dev.db*
+.env
+.env.*
