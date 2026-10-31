@@ -276,7 +276,7 @@ NestJS の DB 層は、`techStack.backend.orm` (`prisma` / `typeorm`。**省略�
 | SQL のバインド変数 | `$queryRaw` のタグ付きテンプレートの `${var}` | postgresql は `$N`、mysql / sqlite は `?` |
 | 表づくり (dev) | `npx prisma db push` | アプリ起動時の `synchronize` (`DB_SYNCHRONIZE=true`) |
 
-開発コンテナの雛形 (`templates/devcontainer/nestjs-*`) は、`database.type` (postgresql / mysql / sqlite) と `orm` ごとのブロックを持ち、写すときに合うものだけ残す。`docker-compose.yml` の DB サービスと `DATABASE_URL`、`.devcontainer/compose.yml` の開発用 DB、README の「DB 初期化」が、この選択で変わる。詳細は `ai-skills/generate-code/SKILL.md` の「DB と ORM の読み方」「DB ごとのブロック」。`database.type` が `sqlserver` / `oracle` の DB サービスは雛形の対象外。Prisma は `oracle` に対応していないので、そのときは生成を止めて知らせる。
+開発コンテナの雛形 (`templates/devcontainer/nestjs-*`) は、`database.type` (postgresql / mysql / sqlite) と `orm` ごとのブロックを持ち、写すときに合うものだけ残す。`docker-compose.yml` の DB サービスと `DATABASE_URL`、`.devcontainer/compose.yml` の開発用 DB、README の「DB 初期化」が、この選択で変わる。`.devcontainer/devcontainer.json` の `postCreateCommand` (`prisma generate`) と拡張 `Prisma.prisma` は `orm` だけで変わり、`orm: typeorm` の生成物には Prisma の記述が出ない。詳細は `ai-skills/generate-code/SKILL.md` の「DB と ORM の読み方」「DB ごとのブロック」。`database.type` が `sqlserver` / `oracle` の DB サービスは雛形の対象外。Prisma は `oracle` に対応していないので、そのときは生成を止めて知らせる。
 
 generate-tests の DB 検証・seed も同じ ORM で書く (`ai-skills/generate-tests/SKILL.md` の「DB 検証の ORM 別の書き方」)。
 | `other` | `// TODO: {{step.description}}` + outputSchema で型推定 (注: schema の `kind` に `other` は存在しない。extension step では `type: "other"` を使う別階層の概念であるため混同注意) | 同左 |
