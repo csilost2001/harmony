@@ -2,7 +2,7 @@
 
 > **このファイルは `techStack.backend.orm: typeorm` のときだけ使う。** `orm` が省略されているとき (省略時は `prisma`) や `prisma` のときは、本ファイルではなく [`PRISMA_SCHEMA.md`](./PRISMA_SCHEMA.md) を使う。1 つの生成物の中で TypeORM と Prisma を混ぜない (`orm: typeorm` のときは `prisma/` `@prisma/client` `PrismaService` を一切出さない)。
 
-ProcessFlow の `lineage.reads / lineage.writes` で参照されるテーブルから TypeORM Entity を生成する。
+ProcessFlow の `lineage.reads / lineage.writes` で参照されるテーブルから TypeORM Entity を生成する。**Prisma の model と同じ範囲の表を生成する** (参照されない表の Entity も、`synchronize` で表を作るには `entities` に入れる必要がある。下の「接続の設定」)。
 
 ## techStack からの読み方
 
@@ -68,6 +68,16 @@ export class {{table.physicalName | toModelName}} {
 }
 ```
 
+## 主キーの書き方
+
+| 表の主キー | 書き方 |
+|---|---|
+| 自動採番の 1 列 (`id`) | `@PrimaryGeneratedColumn('increment') id: number;` (上のテンプレート) |
+| 自動採番でない 1 列 (自然キー) | `@PrimaryColumn({ name: '<physicalName>', type: '...' })` |
+| 複数列 (中間テーブルなど) | 主キーの列ごとに `@PrimaryColumn({ name: '<physicalName>', type: '...' })` を付ける (`@PrimaryGeneratedColumn` の `id` は作らない) |
+
+**主キーを自分で渡す表 (自然キー・複数列) への INSERT は `repository.save()` ではなく `insert()` を使う** ([`SERVICE.md`](./SERVICE.md) の TypeORM の節)。`save()` は同じ主キーの行があると UPDATE にしてしまい、重複で失敗しない (実機で確認)。
+
 ## データ型変換 (TypeORM)
 
 | DB カラム型 | TypeORM `type` | TypeScript 型 |
@@ -75,7 +85,7 @@ export class {{table.physicalName | toModelName}} {
 | `VARCHAR(n)` | `'varchar'` | `string` |
 | `TEXT` | `'text'` | `string` |
 | `INTEGER` | `'int'` | `number` |
-| `BIGINT` | `'bigint'` | `number` / `string` (big int 注意) |
+| `BIGINT` | `'bigint'` | `number` と書く。ただし **postgresql (`pg`) は実行時に文字列で返す** (sqlite の `better-sqlite3` は数値)。比較や返却の前に `Number(row.userId)` を通す。自動採番の主キー (`@PrimaryGeneratedColumn`) は `int` の列になるので数値のまま |
 | `BOOLEAN` | `'boolean'` | `boolean` |
 | `TIMESTAMP` | `'timestamp'` | `Date` |
 | `DATE` | `'date'` | `Date` |
@@ -108,15 +118,17 @@ import { {{processFlow.meta.name | toPascalCase}}Service } from './{{processFlow
 export class {{processFlow.meta.name | toPascalCase}}Module {}
 ```
 
-## 接続の設定 (`TypeOrmModule.forRoot`)
+## 接続の設定 (`TypeOrmModule.forRootAsync`)
 
-プロジェクトに 1 つ。`src/database/typeorm.config.ts` を作り、`AppModule` の `imports` に `TypeOrmModule.forRoot(typeOrmOptions())` を 1 回足す。業務 Module は `forFeature` だけでよい。`DataSource` は `TypeOrmModule.forRoot` が全 Module に提供するので、Service は `private readonly dataSource: DataSource` をそのまま注入できる ([`SERVICE.md`](./SERVICE.md) の TypeORM の節)。
+プロジェクトに 1 つ。`src/database/typeorm.config.ts` を作り、`AppModule` の `imports` に `TypeOrmModule.forRootAsync({ useFactory: typeOrmOptions })` を 1 回足す。**`forRoot(typeOrmOptions())` と書かない**: `@Module` のデコレータは `app.module.ts` を import した時点で評価されるので、`DATABASE_URL` を import のあとで入れるテスト (generate-tests の E2E) が効かなくなる。`forRootAsync` の factory は Nest が起動 (`compile()`) するときに呼ぶので、その前に設定した環境変数を読める。業務 Module は `forFeature` だけでよい。`DataSource` は `TypeOrmModule.forRoot` が全 Module に提供するので、Service は `private readonly dataSource: DataSource` をそのまま注入できる ([`SERVICE.md`](./SERVICE.md) の TypeORM の節)。
 
 **`techStack.database.type` に合う 1 つの分岐だけを書く** (下の 4 つを全部並べない)。接続先は `DATABASE_URL` から取る (値は雛形の compose.yml / README が環境ごとに渡す)。
 
 ```typescript
 // src/database/typeorm.config.ts
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
+import { Post } from '../../entity/posts.entity';   // 生成した Entity を全部 import する
+// ...
 
 export function typeOrmOptions(): TypeOrmModuleOptions {
   return {
@@ -129,7 +141,9 @@ export function typeOrmOptions(): TypeOrmModuleOptions {
     // --- database.type=sqlite のとき (パッケージ: better-sqlite3) ---
     // type: 'better-sqlite3',
     // database: (process.env.DATABASE_URL ?? 'file:./data/dev.db').replace(/^file:/, ''),
-    autoLoadEntities: true,   // forFeature に登録した Entity を自動で読む
+    // 生成した Entity を全部列挙する。`autoLoadEntities` だけだと、業務 Module の forFeature に入れない Entity
+    // (どの flow も触らない表、E2E が seed する表) は登録されず、synchronize でも表が作られない (実機で確認)
+    entities: [Post /* , ... */],
     // 初回の表づくり。dev と、雛形の docker-compose.yml (DB_SYNCHRONIZE=true) だけ有効。運用が始まったらマイグレーションに切り替える
     synchronize: process.env.DB_SYNCHRONIZE === 'true',
   };
@@ -140,8 +154,8 @@ export function typeOrmOptions(): TypeOrmModuleOptions {
 
 ## 依存パッケージ
 
-`package.json` の `dependencies` に `typeorm`、`@nestjs/typeorm`、上の DB ドライバ 1 つ (`pg` / `mysql2` / `better-sqlite3`)。`prisma` / `@prisma/client` は入れない。`better-sqlite3` はネイティブのビルドがあるので、npm 12 以降の既定 (install スクリプトが止まる) では動かない。`npm install-scripts approve better-sqlite3` で許す (SKILL.md の「npm 12 以降」参照)。
+`package.json` の `dependencies` に `typeorm`、`@nestjs/typeorm`、上の DB ドライバ 1 つ (`pg` / `mysql2` / `better-sqlite3`)。`prisma` / `@prisma/client` は入れない。`better-sqlite3` はネイティブのビルドがあるので、npm 12 以降の既定 (install スクリプトが止まる) では動かない (`Could not locate the bindings file`)。`npm install-scripts approve better-sqlite3` で許し、すぐ動かすなら `npm rebuild better-sqlite3` する (SKILL.md の「npm 12 以降」参照。実機で確認)。`pg` / `mysql2` は純 JavaScript なので、この手順は要らない。
 
 ## DB の初期化 (dev)
 
-コマンドは要らない。`DB_SYNCHRONIZE=true` のとき、アプリの起動時に Entity から表を作る。接続先は `DATABASE_URL` (sqlite は `file:./data/dev.db`、postgresql / mysql は開発コンテナの環境変数に設定済み)。
+コマンドは要らない。`DB_SYNCHRONIZE=true` のとき、アプリの起動時に `entities` の Entity から表を作る。接続先は `DATABASE_URL` (sqlite は `file:./data/dev.db`、postgresql / mysql は開発コンテナの環境変数に設定済み)。sqlite のファイルは、起動したフォルダ (cwd) からの相対パスで、`data/` のフォルダが無くても TypeORM が作る (Prisma の `file:` は `schema.prisma` のフォルダからの相対で、決まりが違う)。

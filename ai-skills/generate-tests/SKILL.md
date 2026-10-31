@@ -334,7 +334,11 @@ dataSource = app.get(DataSource);   // アプリが使っている DataSource �
 // afterAll: DataSource は app.close() が閉じる。テスト側で destroy() しない
 ```
 
-TypeORM では、アプリの DataSource に `synchronize` を効かせて表を作る必要がある。`DB_SYNCHRONIZE=true` を環境に渡して jest を起動する (開発コンテナは設定済み)。
+TypeORM では、アプリの DataSource に `synchronize` を効かせて表を作る必要がある。`DB_SYNCHRONIZE=true` を環境に渡して jest を起動する (開発コンテナは設定済み。渡さずに新しい DB で動かすと `no such table` で全件落ちる。実機で確認)。
+
+- `process.env.DATABASE_URL ??= …` は AppModule の `compile()` より前に書く。generate-code の雛形は `TypeOrmModule.forRootAsync` なので、factory が compile 時に環境変数を読む (`forRoot(…)` だと `app.module.ts` を import した時点で読んでしまい、あとから入れても効かない)
+- テストが seed / 検証する表の Entity は、アプリの `typeorm.config.ts` の `entities` に入っている必要がある (業務 Module の `forFeature` に無い表、たとえば `users` も、`entities` に入っていれば使える。入っていなければ `No metadata for "User" was found`)。足りなければ生成したアプリ側 (`entities`) に足す
+- 主キーの重複で TX を失敗させるテスト (transactionScope の rollback) は、アプリ側の INSERT が `insert()` でないと失敗しない (`save()` は UPDATE にする)。落ちたら、テストではなく Service の INSERT を直す (generate-code の `SERVICE.md`)
 
 ### 検証の書き方の対応表
 
@@ -346,7 +350,7 @@ TypeORM では、アプリの DataSource に `synchronize` を効かせて表を
 | 件数 | `await prisma.post.count({ where: { ... } })` | `await dataSource.getRepository(Post).count({ where: { ... } })` |
 | seed (1 行作る) | `await prisma.user.create({ data: { login_id: 'u1', ... } })` | `const repo = dataSource.getRepository(User); await repo.save(repo.create({ loginId: 'u1', ... }))` |
 | seed (あれば更新) | `await prisma.user.upsert({ where, update, create })` | `await dataSource.getRepository(User).upsert({ ... }, ['loginId'])` |
-| 条件で消す | `await prisma.post.deleteMany({ where: { id } })` | `await dataSource.getRepository(Post).delete({ id })` |
+| 条件で消す | `await prisma.post.deleteMany({ where: { id } })` | `await dataSource.getRepository(Post).delete({ id })` (ID の配列 `delete([a, b])` も可。**空配列 `[]` は `Empty criteria` で落ちる**ので、空かもしれないときは `if (ids.length > 0)` で囲む) |
 | 全部消す | `await prisma.post.deleteMany({})` | `await dataSource.getRepository(Post).createQueryBuilder().delete().execute()` (`delete({})` は空条件でエラーになる) |
 | フィールド | `row.user_id` | `row.userId` |
 | 大きい整数 (BIGINT) | `BigInt` で返る → `Number(row.id)` (`sqlite` は `Int` なので `number` で返る。generate-code の `PRISMA_SCHEMA.md`) | 文字列で返る → `Number(row.id)` |

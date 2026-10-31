@@ -55,9 +55,10 @@ ProcessFlow の `actions[]` 全体を 1 つの `@Injectable` Service クラス�
 | `SELECT` (主キー / 一意キー) | `await this.<entity>Repository.findOneBy({ id })` |
 | `SELECT` (条件) | `await this.<entity>Repository.find({ where: { ... }, order: { ... } })` / `findOne` |
 | `SELECT` (件数) | `await this.<entity>Repository.count({ where: { ... } })` |
-| `INSERT` | `await this.<entity>Repository.save(this.<entity>Repository.create({ ... }))` (複数行は `insert([...])`) |
+| `INSERT` (自動採番の主キー) | `await this.<entity>Repository.save(this.<entity>Repository.create({ ... }))` (複数行は `insert([...])`) |
+| `INSERT` (主キーを自分で渡す表: 自然キー・複数列の中間テーブル) | `await this.<entity>Repository.insert({ ... })`。**`save()` にしない**: 同じ主キーの行があると UPDATE になり、重複で失敗しない (rollback の検証も通らなくなる。実機で確認) |
 | `UPDATE` | `await this.<entity>Repository.update({ id }, { ... })` |
-| `DELETE` | `await this.<entity>Repository.delete({ id })` |
+| `DELETE` | `await this.<entity>Repository.delete({ id })` (条件が空 `{}` や ID の空配列 `[]` は `Empty criteria` のエラー。全削除は `createQueryBuilder().delete().execute()`) |
 | 生 SQL が要るとき (`sql` が JOIN / 集計など) | `await this.dataSource.query('SELECT ... WHERE id = $1', [id])` (バインド変数は DB で書き方が違う: postgresql は `$1`、mysql / sqlite は `?`) |
 
 `<entity>` は Entity クラス名の camelCase (`ENTITY.md` の規則。`posts` → `Post` → `postRepository`)。transactionScope の中では `this.<entity>Repository` ではなく `manager` (`manager.getRepository(Post)`) を使う。
@@ -397,6 +398,9 @@ export class PostsService {
         await manager.save(manager.create(Photo, { postId: post.id, ... }));
       }
 
+      // 主キーを自分で渡す表 (post_tags: post_id + tag_id) は insert()。save() だと重複が UPDATE になる
+      // await manager.insert(PostTag, { postId: post.id, tagId, ... });
+
       // step-06: UPDATE tags.usage_count (manager 経由、TX commit と一体)
       await manager.increment(Tag, { id: tagId }, 'usageCount', 1);
 
@@ -411,6 +415,8 @@ export class PostsService {
   }
 }
 ```
+
+一意制約違反を捕まえて続行したいとき (`affectedRowsCheck.onViolation: log` など) は、`QueryFailedError` の `driverError.code` で見分ける: sqlite は `SQLITE_CONSTRAINT_UNIQUE` (主キーの重複は `SQLITE_CONSTRAINT_PRIMARYKEY`)、postgresql は `23505`、mysql は `ER_DUP_ENTRY`。postgresql は、失敗した文のあとの TX が中止状態になり続行できないので、続行したいときは `SAVEPOINT` を切るか、先に SELECT で確かめる。
 
 TX の結果で分岐したいとき (`@var.action.txResult.committed` 相当) は、`rollbackOn` の errorCode を例外として throw させ、TX の外側で try/catch して `HttpException` に変換する:
 

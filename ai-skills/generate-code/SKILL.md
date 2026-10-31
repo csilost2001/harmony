@@ -1002,7 +1002,7 @@ Spring Boot 出力には **必ず** Maven Wrapper を verbatim コピー同梱�
   src/prisma/prisma.module.ts            (@Global の Module。AppModule で 1 回 import)
   #   orm: typeorm — ENTITY.md。prisma/ と src/prisma/ は出さない
   entity/<tableName>.entity.ts           (lineage.writes → TypeORM Entity)
-  src/database/typeorm.config.ts         (TypeOrmModule.forRoot の設定。AppModule で 1 回 import)
+  src/database/typeorm.config.ts         (TypeOrmModule.forRootAsync の設定と、全 Entity の列挙。AppModule で 1 回 import)
 
   # AI flow 含有時のみ (Phase 2-C、最初の AI flow 検出時に 1 セット生成):
   src/ai/ai-runtime.service.ts

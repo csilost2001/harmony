@@ -268,7 +268,7 @@ NestJS の DB 層は、`techStack.backend.orm` (`prisma` / `typeorm`。**省略�
 
 | step | `orm: prisma` (既定・省略時) | `orm: typeorm` |
 |---|---|---|
-| 生成する DB 層 | `prisma/schema.prisma` (model は physicalName の snake_case → PascalCase の最後の語を単数形、`@@map("<physicalName>")`、`provider` は `database.type` から)、`src/prisma/prisma.service.ts` / `prisma.module.ts` | `entity/*.entity.ts`、`src/database/typeorm.config.ts` (`TypeOrmModule.forRoot`。`type` は `database.type` から) |
+| 生成する DB 層 | `prisma/schema.prisma` (model は physicalName の snake_case → PascalCase の最後の語を単数形、`@@map("<physicalName>")`、`provider` は `database.type` から)、`src/prisma/prisma.service.ts` / `prisma.module.ts` | `entity/*.entity.ts`、`src/database/typeorm.config.ts` (`TypeOrmModule.forRootAsync` と全 Entity の列挙。`type` は `database.type` から) |
 | Service が受け取る | `PrismaService` | `DataSource` と `Repository<Entity>` |
 | `dbAccess` SELECT | `prisma.<model>.findUnique()` / `findMany()`、生 SQL は `$queryRaw` | `repository.findOneBy()` / `find()`、生 SQL は `dataSource.query()` |
 | `dbAccess` INSERT / UPDATE / DELETE | `create()` / `update()` / `delete()` | `save()` / `update()` / `delete()` |
