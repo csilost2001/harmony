@@ -29,6 +29,15 @@ const dummyProject = buildProject({
 
 const toolbarSave = '[data-testid="edit-mode-save"]';
 
+/**
+ * 保存が終わるまで待つ。保存ボタンは「保存中...」のあいだも無効なので、無効になっただけでは完了と言えない。
+ * この後すぐ画面を移動する試験では、書き込み前の保存がページごと中断されて、原本に反映されない (#1582)。
+ */
+async function expectSaved(page: Page): Promise<void> {
+  await expect(page.locator(toolbarSave)).toBeDisabled({ timeout: 15000 });
+  await expect(page.locator(toolbarSave)).not.toContainText("保存中", { timeout: 15000 });
+}
+
 // ── state ────────────────────────────────────────────────────────────────────
 
 const WS_KEY = "issue-933-flow-editor";
@@ -179,7 +188,7 @@ test.describe("画面フロー — node D&D / edge / marker / 削除動線", { t
 
     // 保存: srb-btn-save を押して disabled に戻るのを待つ
     await page.locator(toolbarSave).click();
-    await expect(page.locator(toolbarSave)).toBeDisabled({ timeout: 15000 });
+    await expectSaved(page);
 
     // drag 後のノード内部 position (ReactFlow style.transform) を記録する
     // fitView が viewport を変換するため、pixel 座標ではなく transform の translate 値を比較
@@ -245,7 +254,7 @@ test.describe("画面フロー — node D&D / edge / marker / 削除動線", { t
     // 保存 → reload → edge が永続化されている
     await expect(page.locator(toolbarSave)).toBeEnabled({ timeout: 5000 });
     await page.locator(toolbarSave).click();
-    await expect(page.locator(toolbarSave)).toBeDisabled({ timeout: 15000 });
+    await expectSaved(page);
 
     await ws.gotoActive(page, "/screen/flow");
     await expect(page.locator(".flow-root")).toBeVisible();
@@ -427,7 +436,7 @@ test.describe("画面フロー — node D&D / edge / marker / 削除動線", { t
     // 保存
     await expect(page.locator(toolbarSave)).toBeEnabled({ timeout: 5000 });
     await page.locator(toolbarSave).click();
-    await expect(page.locator(toolbarSave)).toBeDisabled({ timeout: 15000 });
+    await expectSaved(page);
 
     // 画面一覧に遷移して名称が反映されていることを確認
     await ws.gotoActive(page, "/screen/list");
