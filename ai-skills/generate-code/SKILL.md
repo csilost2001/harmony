@@ -293,6 +293,11 @@ NestJS の出力は、**ORM** と **DB の種類** の 2 つを `harmony.json` �
 | Service が受け取る | `PrismaService` | `DataSource` と `Repository<Entity>` |
 | 表の作り方 (dev) | `npx prisma db push` | アプリ起動時の `synchronize` (`DB_SYNCHRONIZE=true`) |
 
+**sqlite のときの Prisma の注意** (実機で確認した。詳細は `PRISMA_SCHEMA.md`):
+
+- `BIGINT` の列は `BigInt` ではなく **`Int`** にする (`BigInt` の主キーは SQLite で自動採番されない)。Service の ID も `number` で書く
+- `DATABASE_URL` の相対パスは `schema.prisma` のあるフォルダ (`prisma/`) からの相対。`file:./dev.db` と書く (`file:./prisma/dev.db` だと `prisma/prisma/dev.db` になる)
+
 DB の種類が `oracle` のとき、Prisma は対応していないので生成を止めて利用者に知らせる (`orm: typeorm` に変えれば生成できる)。`sqlserver` と `oracle` は、開発コンテナの雛形に DB サービスが無い (下の「DB ごとのブロック」の対象外) ので、`@db` ブロックは全部消え、compose.yml の `volumes:` の欄が空になる。そのときは `docker-compose.yml` の `volumes:` 行と `DATABASE_URL` を利用者に確認して手で整える旨を最終レポートに書く。
 
 ### step kind ごとのコード生成ルール (§8 — ProcessFlow → backend mapping)
@@ -984,6 +989,12 @@ Spring Boot 出力には **必ず** Maven Wrapper を verbatim コピー同梱�
   dto/<actionName>-request.dto.ts        (inputs[] → DTO)
   dto/<actionName>-response.dto.ts       (outputs[] → DTO)
 
+  # アプリの入口 (プロジェクトに 1 セット。generate-tests の E2E が `../src/app.module` を import する):
+  src/main.ts                            (NestFactory.create(AppModule) → listen。`ValidationPipe` を global に登録)
+  src/app.module.ts                      (各 Module と、DB 層の Module (PrismaModule / TypeOrmModule) を import)
+  package.json                           (scripts に `build` = `nest build`、`start:backend` = `nest start`。devDependencies に `@nestjs/cli`)
+  tsconfig.json / tsconfig.build.json / nest-cli.json  (`rootDir` は `.`、`nest-cli.json` の `sourceRoot` は `src`。業務の Service が出力先の直下、main.ts が `src/` にあるので、**ビルドの出力は `dist/src/main.js`** になる。雛形の Dockerfile と compose の起動コマンドは `node dist/src/main`)
+
   # DB 層 (techStack.backend.orm で分ける。下の「DB と ORM の読み方」。1 つの生成物で混ぜない):
   #   orm: prisma (既定・省略時) — プロジェクトに 1 セット。PRISMA_SCHEMA.md
   prisma/schema.prisma                   (lineage の tables → model。provider は techStack.database.type)
@@ -1250,6 +1261,8 @@ public class ProductSearchController {
 | `typescript` | `^5.x` | TypeScript 5 系最新 patch |
 | `tailwindcss` | `^3.4.x` | Tailwind 3 系最新 patch |
 | `postcss` (overrides) | `^8.5.x` | next の transient で `<8.5.10` の advisories が出るため `overrides` で強制最新化 |
+| `@nestjs/common` / `@nestjs/core` / `@nestjs/platform-express` / `@nestjs/testing` / `@nestjs/cli` | `^11.x` | NestJS 11 系で確かめた (12 以降は未確認) |
+| `prisma` / `@prisma/client` (`orm: prisma`) | `^6.19.x` | **6 系に固定**。`latest` は 7 以降で schema の書き方が変わる (`PRISMA_SCHEMA.md`「依存パッケージ」)。`dependencies` に入れる |
 
 **重要**: `package.json` に `"overrides": { "postcss": "^8.5.x" }` を**必ず**含めること (transient postcss の advisories を解消する唯一の方法)。これが無いと next 内部の古い postcss が pickup されて `npm audit` で moderate 警告が残る。
 
@@ -2161,7 +2174,8 @@ frontend は Thymeleaf (同 project root の `src/main/resources/templates/`) or
 ├── README.md
 ├── package.json                        ← caret prefix `^` 必須 (#1035)
 ├── tsconfig.json
-├── nest-cli.json                       ← NestJS CLI 設定
+├── tsconfig.build.json                 ← build 用 (test/ を除く)
+├── nest-cli.json                       ← NestJS CLI 設定 (`sourceRoot: "src"`)
 ├── next.config.mjs                     ← Next.js 設定
 ├── tailwind.config.ts                  ← Tailwind (cssFramework=tailwind の場合)
 ├── <processFlowName>.service.ts        ← NestJS @Injectable Service (root 直下、actions → Service)
@@ -2174,7 +2188,9 @@ frontend は Thymeleaf (同 project root の `src/main/resources/templates/`) or
 │   └── schema.prisma                   ← lineage の tables → model (provider は techStack.database.type)
 ├── entity/                             ← orm: typeorm のときだけ。orm: prisma では作らない
 │   └── <tableName>.entity.ts           ← TypeORM Entity (root 直下、lineage.writes → Entity)
-├── src/                                ← DB 層 / AI / auth scaffold のみ (Phase 2-C)
+├── src/                                ← アプリの入口 (main.ts / app.module.ts) と DB 層 / AI / auth scaffold
+│   ├── main.ts                         ← ビルド後は dist/src/main.js (Dockerfile の CMD は `node dist/src/main`)
+│   ├── app.module.ts
 │   ├── prisma/                         ← orm: prisma のときだけ (prisma.service.ts / prisma.module.ts)
 │   ├── database/                       ← orm: typeorm のときだけ (typeorm.config.ts)
 │   ├── ai/                             ← AI step あり時のみ (#§ AI step kind 検出時)

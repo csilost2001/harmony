@@ -37,7 +37,7 @@ services:
       # @end-db
       # @db sqlite
       # @orm prisma
-      DATABASE_URL: file:./prisma/dev.db
+      DATABASE_URL: file:./dev.db
       # @end-orm
       # @orm typeorm
       DATABASE_URL: file:./data/dev.db

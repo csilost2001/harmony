@@ -16,7 +16,7 @@ VSCode + Dev Containers 拡張があれば、`git clone` 後に `Reopen in Conta
 <!-- @db sqlite -->
 4. DB 初期化 (Prisma + SQLite、dev 用):
    ```bash
-   DATABASE_URL=file:./prisma/dev.db npx prisma db push
+   DATABASE_URL=file:./dev.db npx prisma db push
    ```
 <!-- @end-db -->
 <!-- @db postgresql,mysql -->
@@ -46,7 +46,7 @@ VSCode + Dev Containers 拡張があれば、`git clone` 後に `Reopen in Conta
 
 <!-- @db sqlite -->
 <!-- @orm prisma -->
-**DB**: SQLite (`file:./prisma/dev.db`、Prisma 経由。`docker compose up` のときは `prisma-data` ボリュームに残る)。PostgreSQL / MySQL に変えるときは、`techStack.database` を変えて `/generate-code` をやり直し、雛形の更新として取り込む。
+**DB**: SQLite (`file:./dev.db`、Prisma 経由。`docker compose up` のときは `prisma-data` ボリュームに残る)。PostgreSQL / MySQL に変えるときは、`techStack.database` を変えて `/generate-code` をやり直し、雛形の更新として取り込む。
 <!-- @end-orm -->
 <!-- @orm typeorm -->
 **DB**: SQLite (`file:./data/dev.db`、TypeORM 経由。`docker compose up` のときは `app-data` ボリュームに残る)。PostgreSQL / MySQL に変えるときは、`techStack.database` を変えて `/generate-code` をやり直し、雛形の更新として取り込む。

@@ -133,7 +133,7 @@ describe.each(COMBOS)("雛形 %s の DB ごとのブロック (#1560)", (combo) 
           expect(prod).toContain("image: mysql:8");
         }
         if (db === "sqlite") {
-          expect(prod).toContain(orm === "prisma" ? "file:./prisma/dev.db" : "file:./data/dev.db");
+          expect(prod).toContain(orm === "prisma" ? "file:./dev.db" : "file:./data/dev.db");
         }
       });
 

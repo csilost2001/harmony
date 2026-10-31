@@ -43,7 +43,7 @@ generate-tests (`ai-skills/generate-tests/SKILL.md` Step 6) が同じ規則で `
 | `TEXT` | `String` | `@db.Text` | mysql は `@db.Text` を付けないと VARCHAR(191) になる |
 | `INTEGER` | `Int` | | |
 | `SMALLINT` | `Int` | `@db.SmallInt` | |
-| `BIGINT` | `BigInt` | | JS の `bigint`。JSON に出すときは `Number()` か文字列に変換する |
+| `BIGINT` | `BigInt` (`sqlite` は **`Int`**) | | `BigInt` は JS の `bigint` で、JSON にできないので返すときは `Number()` か文字列に変換する。**sqlite で `BIGINT` の主キー (`autoincrement`) を `BigInt` にすると、自動採番されず `Null constraint violation on the fields: (id)` で INSERT が失敗する** (実機で確認)。SQLite の INTEGER は 64 bit なので、sqlite のときは `BIGINT` 列 (主キー・外部キー) をすべて `Int` にする。このときは Service も `bigint` ではなく `number` で書く |
 | `DECIMAL(p,s)` | `Decimal` | `@db.Decimal(p, s)` | `Prisma.Decimal` で返る |
 | `FLOAT` | `Float` | | |
 | `BOOLEAN` | `Boolean` | | |
@@ -64,11 +64,12 @@ generate-tests (`ai-skills/generate-tests/SKILL.md` Step 6) が同じ規則で `
 | `autoIncrement: true` | `@default(autoincrement())` |
 | `unique: true` | `@unique` |
 | `constraints[].kind=unique` (複数列) | `@@unique([a, b])` |
-| `indexes[]` | `@@index([a, b], map: "<index.physicalName>")` (`unique: true` は `@@unique`) |
+| `indexes[]` | `@@index([a, b], map: "<index.physicalName>")` (`unique: true` は `@@unique`)。降順の列は `a(sort: Desc)` |
 | `defaultValue` がリテラル | `@default("x")` / `@default(0)` / `@default(true)` |
 | `defaultValue` が `CURRENT_TIMESTAMP` / `now()` | `@default(now())` |
 | `updated_at` のような更新日時 (列名が `updated_at`) | `@updatedAt` |
 | `constraints[].kind=foreignKey` | 子の model に `@relation` を持つフィールドを足す (下) |
+| 同じ列の一意が重複している (列の `unique: true`・`constraints[].kind=unique`・`unique: true` の `indexes[]` の 2 つ以上) | 1 つにまとめる (列の `@unique` を残し、他は書かない)。重複して書くと、同じ一意の索引が 2 つ以上できる |
 | `kind=check` | Prisma は CHECK を持てないので、フィールドに付けず `// CHECK: <式>` のコメントで残し、Service 側の検証で守る |
 
 ### リレーション
@@ -176,9 +177,10 @@ export class {{processFlow.meta.name | toPascalCase}}Module {}
 
 ## 依存パッケージ
 
-`package.json` の `dependencies` に `@prisma/client`、`prisma` (本番の `npm ci --omit=dev` の後でも `prisma generate` / `prisma db push` を使うため devDependencies ではなく dependencies に入れる)。`typeorm` / `@nestjs/typeorm` は入れない。`prisma` と `@prisma/client` は npm 12 以降の既定 (依存の install スクリプトが止まる) のままでも `prisma generate` / `prisma db push` が動くので、`allowScripts` は `deny` でよい (SKILL.md の「npm 12 以降」参照)。`prisma generate` は `postCreateCommand` (開発コンテナ) と Dockerfile が呼ぶ。
+`package.json` の `dependencies` に `@prisma/client`、`prisma` を **`^6.19.0`** で入れる (本番の `npm ci --omit=dev` の後でも `prisma generate` / `prisma db push` を使うため devDependencies ではなく dependencies に入れる)。**6 系に固定する理由**: 上の schema の書き方 (`generator client { provider = "prisma-client-js" }`・`datasource` の `url = env("DATABASE_URL")`) は 6 系のもの。`latest` は 7 以降で、`datasource` の `url` の置き場などが変わっている (7 以降は未確認。対応するときは本ファイルから直す)。`typeorm` / `@nestjs/typeorm` は入れない。`prisma` と `@prisma/client` は npm 12 以降の既定 (依存の install スクリプトが止まる) のままでも `prisma generate` / `prisma db push` が動くので、`allowScripts` は `deny` でよい (SKILL.md の「npm 12 以降」参照)。`prisma generate` は `postCreateCommand` (開発コンテナ) と Dockerfile が呼ぶ。
 
 ## DB の初期化 (dev)
 
 - `npx prisma db push` で `schema.prisma` から表を作る (マイグレーション履歴を持たない。設計途中向け)
-- 接続先は `DATABASE_URL` (sqlite は `file:./prisma/dev.db`、postgresql / mysql は開発コンテナの環境変数に設定済み)。雛形: `templates/devcontainer/nestjs-*/` (SKILL.md の「DB と ORM の読み方」)
+- 接続先は `DATABASE_URL` (sqlite は `file:./dev.db`、postgresql / mysql は開発コンテナの環境変数に設定済み)。**sqlite の相対パスは、プロジェクトのルートではなく `schema.prisma` のあるフォルダ (`prisma/`) からの相対**。`file:./prisma/dev.db` と書くと `prisma/prisma/dev.db` に作られ、テスト (generate-tests) が補う絶対パス `prisma/dev.db` と別のファイルになる (実機で確認)。`prisma db push` も実行時の PrismaClient も同じ規則なので、環境変数を書き分けなければ食い違わない。
+- 雛形: `templates/devcontainer/nestjs-*/` (SKILL.md の「DB と ORM の読み方」)

@@ -10,7 +10,7 @@ services:
     environment:
       # @db sqlite
       # @orm prisma
-      DATABASE_URL: ${DATABASE_URL:-file:./prisma/dev.db}
+      DATABASE_URL: ${DATABASE_URL:-file:./dev.db}
       # @end-orm
       # @orm typeorm
       DATABASE_URL: ${DATABASE_URL:-file:./data/dev.db}
@@ -28,7 +28,7 @@ services:
       # @end-orm
     # @orm prisma
     # 表づくり (prisma db push) をしてから起動する。prisma は dependencies に入れておく (本番の npm ci --omit=dev でも使うため)
-    command: ["sh", "-c", "npx prisma db push --skip-generate && node dist/main"]
+    command: ["sh", "-c", "npx prisma db push --skip-generate && node dist/src/main"]
     # @end-orm
     # @db postgresql,mysql
     depends_on:

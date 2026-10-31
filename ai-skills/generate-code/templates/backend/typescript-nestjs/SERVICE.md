@@ -124,7 +124,7 @@ dbAccess / transactionScope 以外の step は、ORM が何でも同じに展開
 import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Prisma } from '@prisma/client';
-import { PrismaService } from '../src/prisma/prisma.service';   // 出力先の位置に合わせて相対パスを調整
+import { PrismaService } from './src/prisma/prisma.service';   // Service は出力先の直下、PrismaService は src/prisma/ (出力先の位置を変えたときは相対パスを合わせる)
 import { {{processFlow.meta.name | toPascalCase}}RequestDto } from './dto/{{processFlow.meta.name | toKebabCase}}-request.dto';
 import { {{processFlow.meta.name | toPascalCase}}ResponseDto } from './dto/{{processFlow.meta.name | toKebabCase}}-response.dto';
 // AI flow 含有時のみ:
@@ -293,7 +293,7 @@ constructor で `PrismaService` を注入し、`Prisma.TransactionClient` 型を
 
 ```typescript
 import { Prisma } from '@prisma/client';
-import { PrismaService } from '../src/prisma/prisma.service';
+import { PrismaService } from './src/prisma/prisma.service';
 
 @Injectable()
 export class PostsService {

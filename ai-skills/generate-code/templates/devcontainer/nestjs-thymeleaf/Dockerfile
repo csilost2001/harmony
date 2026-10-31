@@ -32,4 +32,4 @@ RUN npx prisma generate
 RUN mkdir -p data
 # @end-orm
 EXPOSE 3000
-CMD ["node", "dist/main"]
+CMD ["node", "dist/src/main"]
