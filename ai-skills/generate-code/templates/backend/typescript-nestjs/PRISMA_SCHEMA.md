@@ -27,10 +27,23 @@ ProcessFlow の `lineage.reads / lineage.writes` で参照されるテーブル 
 
 generate-tests (`ai-skills/generate-tests/SKILL.md` Step 6) が同じ規則で `prisma.<model>` を引くので、**必ず一致させる**。
 
-- **model 名**: `physicalName` を snake_case で語に分け、各語を PascalCase にして連結し、**最後の語を単数形にする**。`posts` → `Post` / `post_tags` → `PostTag` / `categories` → `Category` / `users` → `User` / `photos` → `Photo`。単数形の規則は、語尾 `ies` → `y`、`sses`・`xes`・`ches`・`shes`・`ses` → 末尾の `es` を落とす、それ以外の末尾 `s` (`ss` で終わる語を除く) を落とす。単数化して他の model と同じ名前になるとき、または単数化できないときは、単数化せず PascalCase のままにする
+- **model 名**: `physicalName` を snake_case で語に分け、各語を PascalCase にして連結し、**最後の語を単数形にする**。`posts` → `Post` / `post_tags` → `PostTag` / `categories` → `Category` / `users` → `User` / `photos` → `Photo`。 単数形の規則は下の表。
 - **テーブル名**: `@@map("<physicalName>")` で物理テーブル名にそろえる (dbAccess の `sql` が書く表名と一致させるため)
 - **フィールド名**: `columns[].physicalName` をそのまま (snake_case のまま) 使う。`@map` は付けない (フィールド名とカラム名が同じだから)。`prisma.post.create({ data: { user_id: 1 } })` のように、業務コードも tests も physicalName で書く。フィールド名を camelCase にしたいときは、すべてのフィールドに `@map("<physicalName>")` を付け、業務コードと tests も camelCase でそろえる (混ぜない)
 - **Prisma client のプロパティ名**: model 名の先頭を小文字にしたもの (`Post` → `prisma.post`、`PostTag` → `prisma.postTag`)
+
+**単数形の規則** (対象は最後の語だけ = snake_case の最後の `_` より後ろ。上から順に当て、最初に当たったものを使う。generate-code の `PRISMA_SCHEMA.md` と generate-tests の Step 6 で同じ文面):
+
+| 順 | 当てはまる語 | 変え方 | 例 |
+|---|---|---|---|
+| 1 | 例外の語 (下) | 表のとおり | `statuses` → `Status` |
+| 2 | 語尾 `ies` | `ies` → `y` | `categories` → `Category` / `stories` → `Story` / `properties` → `Property` |
+| 3 | 語尾 `sses` `xes` `ches` `shes` | 末尾の `es` を落とす | `addresses` → `Address` / `boxes` → `Box` / `batches` → `Batch` |
+| 4 | 語尾 `ss` `us` `is` | 変えない (すでに単数形) | `status` → `Status` / `progress` → `Progress` / `analysis` → `Analysis` |
+| 5 | 語尾 `s` (上のどれにも当たらない) | 末尾の `s` を 1 つ落とす | `posts` → `Post` / `users` → `User` / `responses` → `Response` / `purchases` → `Purchase` / `databases` → `Database` / `licenses` → `License` |
+| 6 | `s` で終わらない | 変えない | `inventory` → `Inventory` |
+
+例外の語 (`s` を 1 つ落とすと壊れるもの): `statuses` → `Status` / `buses` → `Bus` / `aliases` → `Alias` / `analyses` → `Analysis` / `viruses` → `Virus` / `bonuses` → `Bonus` / `campuses` → `Campus` / `caches` → `Cache` / `menus` → `Menu`。表に無い語で壊れるものが出たら、generate-code と generate-tests の両方の表に足して一致させる。全体の例: `order_status` → `OrderStatus` / `user_word_progress` → `UserWordProgress` / `order_responses` → `OrderResponse`。単数化して他の model と同じ名前になるとき、または単数化できないときは、単数化せず PascalCase のまま。
 
 ## データ型の対応
 

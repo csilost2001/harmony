@@ -1096,11 +1096,20 @@ snake_case → PascalCase 変換ルール (最後の語を単数形にする):
   "users"      → User
   "tags"       → Tag
   "categories" → Category
-
-単数形の規則: 語尾 `ies` → `y`、`sses`・`xes`・`ches`・`shes`・`ses` → 末尾の `es` を落とす、
-それ以外の末尾 `s` (`ss` で終わる語を除く) を落とす。単数化して他のテーブルと同じ名前になるとき、
-または単数化できないときは、単数化せず PascalCase のまま。
 ```
+
+**単数形の規則** (対象は最後の語だけ = snake_case の最後の `_` より後ろ。上から順に当て、最初に当たったものを使う。generate-code の `PRISMA_SCHEMA.md` と generate-tests の Step 6 で同じ文面):
+
+| 順 | 当てはまる語 | 変え方 | 例 |
+|---|---|---|---|
+| 1 | 例外の語 (下) | 表のとおり | `statuses` → `Status` |
+| 2 | 語尾 `ies` | `ies` → `y` | `categories` → `Category` / `stories` → `Story` / `properties` → `Property` |
+| 3 | 語尾 `sses` `xes` `ches` `shes` | 末尾の `es` を落とす | `addresses` → `Address` / `boxes` → `Box` / `batches` → `Batch` |
+| 4 | 語尾 `ss` `us` `is` | 変えない (すでに単数形) | `status` → `Status` / `progress` → `Progress` / `analysis` → `Analysis` |
+| 5 | 語尾 `s` (上のどれにも当たらない) | 末尾の `s` を 1 つ落とす | `posts` → `Post` / `users` → `User` / `responses` → `Response` / `purchases` → `Purchase` / `databases` → `Database` / `licenses` → `License` |
+| 6 | `s` で終わらない | 変えない | `inventory` → `Inventory` |
+
+例外の語 (`s` を 1 つ落とすと壊れるもの): `statuses` → `Status` / `buses` → `Bus` / `aliases` → `Alias` / `analyses` → `Analysis` / `viruses` → `Virus` / `bonuses` → `Bonus` / `campuses` → `Campus` / `caches` → `Cache` / `menus` → `Menu`。表に無い語で壊れるものが出たら、generate-code と generate-tests の両方の表に足して一致させる。全体の例: `order_status` → `OrderStatus` / `user_word_progress` → `UserWordProgress` / `order_responses` → `OrderResponse`。単数化して他の model と同じ名前になるとき、または単数化できないときは、単数化せず PascalCase のまま。
 
 呼び出しの形式 (ORM ごと):
 
