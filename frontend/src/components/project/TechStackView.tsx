@@ -49,6 +49,8 @@ interface RadioOption {
   value: string;
   label: string;
   description?: string;
+  /** ラベルの横に出す印 (例: 「推奨」) */
+  badge?: string;
 }
 
 interface RadioGroupProps {
@@ -56,9 +58,11 @@ interface RadioGroupProps {
   options: RadioOption[];
   value: string | undefined;
   onChange: (v: string) => void;
+  /** true のとき、どれも選べない (組合せの都合で無効な欄) */
+  disabled?: boolean;
 }
 
-function RadioGroup({ name, options, value, onChange }: RadioGroupProps) {
+function RadioGroup({ name, options, value, onChange, disabled }: RadioGroupProps) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       {options.map((opt) => (
@@ -66,7 +70,8 @@ function RadioGroup({ name, options, value, onChange }: RadioGroupProps) {
           key={opt.value}
           style={{
             display: "flex", alignItems: "flex-start", gap: 8,
-            padding: "10px 12px", borderRadius: 6, cursor: "pointer",
+            padding: "10px 12px", borderRadius: 6, cursor: disabled ? "not-allowed" : "pointer",
+            opacity: disabled ? 0.5 : 1,
             background: value === opt.value ? "var(--hm-accent-soft)" : "var(--hm-surface)",
             border: `1px solid ${value === opt.value ? "var(--hm-accent)" : "var(--hm-border)"}`,
           }}
@@ -76,11 +81,25 @@ function RadioGroup({ name, options, value, onChange }: RadioGroupProps) {
             name={name}
             value={opt.value}
             checked={value === opt.value}
+            disabled={disabled}
             onChange={() => onChange(opt.value)}
             style={{ marginTop: 3, flexShrink: 0 }}
           />
           <div>
-            <div style={{ fontWeight: 500, fontSize: 13 }}>{opt.label}</div>
+            <div style={{ fontWeight: 500, fontSize: 13 }}>
+              {opt.label}
+              {opt.badge && (
+                <span
+                  data-testid={`radio-badge-${opt.value}`}
+                  style={{
+                    marginLeft: 8, padding: "1px 6px", borderRadius: 4, fontSize: 11, fontWeight: 600,
+                    background: "var(--hm-accent-soft)", color: "var(--hm-accent)", border: "1px solid var(--hm-accent)",
+                  }}
+                >
+                  {opt.badge}
+                </span>
+              )}
+            </div>
             {opt.description && (
               <div style={{ fontSize: 11, color: "var(--hm-fg-muted)", marginTop: 2 }}>{opt.description}</div>
             )}
@@ -127,6 +146,8 @@ function BackendPanel({
   value: TechStackBackend;
   onChange: (v: TechStackBackend) => void;
 }) {
+  // 言語の表示上の既定は java。TypeScript 以外では ORM は選べない
+  const ormDisabled = (value.language ?? "java") !== "typescript";
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
       <div>
@@ -136,7 +157,16 @@ function BackendPanel({
         <RadioGroup
           name="backend-language"
           value={value.language ?? "java"}
-          onChange={(v) => onChange({ ...value, language: v as TechStackBackend["language"] })}
+          onChange={(v) => {
+            const language = v as TechStackBackend["language"];
+            // ORM は TypeScript のときだけ意味を持つ。TypeScript 以外に変えたら、ORM の指定は外す
+            if (language !== "typescript" && value.orm !== undefined) {
+              const { orm: _orm, ...rest } = value;
+              onChange({ ...rest, language });
+            } else {
+              onChange({ ...value, language });
+            }
+          }}
           options={[
             { value: "java",       label: "Java" },
             { value: "kotlin",     label: "Kotlin" },
@@ -162,6 +192,27 @@ function BackendPanel({
             { value: "gin",         label: "Gin",         description: "Go" },
           ]}
         />
+      </div>
+      <div data-testid="backend-orm-section">
+        <h3 style={{ margin: "0 0 12px", fontSize: 13, color: "var(--hm-fg-muted)", textTransform: "uppercase" as const, letterSpacing: 1 }}>
+          ORM
+        </h3>
+        <RadioGroup
+          name="backend-orm"
+          value={value.orm ?? "prisma"}
+          disabled={ormDisabled}
+          onChange={(v) => onChange({ ...value, orm: v as TechStackBackend["orm"] })}
+          options={[
+            { value: "prisma",  label: "Prisma",  badge: "推奨", description: "TypeScript (NestJS / Express)。未設定のときも Prisma として扱う" },
+            { value: "typeorm", label: "TypeORM", description: "TypeScript (NestJS / Express)" },
+          ]}
+        />
+        {ormDisabled && (
+          <div data-testid="backend-orm-note" style={{ fontSize: 12, color: "var(--hm-fg-muted)", marginTop: 8 }}>
+            <i className="bi bi-info-circle" style={{ marginRight: 4 }} />
+            ORM は、言語が TypeScript のときだけ選べます。
+          </div>
+        )}
       </div>
     </div>
   );
@@ -503,6 +554,8 @@ export function TechStackView() {
         <SummarySection label="バックエンド" lines={[
           techStack.backend?.language  ? `言語: ${techStack.backend.language}`              : "",
           techStack.backend?.framework ? `FW: ${techStack.backend.framework}`               : "",
+          techStack.backend?.orm ? `ORM: ${techStack.backend.orm}`
+            : techStack.backend?.language === "typescript" ? "ORM: prisma (既定)"          : "",
         ]} />
         <SummarySection label="データベース" lines={[
           techStack.database?.type    ? `種別: ${techStack.database.type}`                  : "",

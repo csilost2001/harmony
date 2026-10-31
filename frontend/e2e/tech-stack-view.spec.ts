@@ -93,4 +93,31 @@ test.describe("技術スタック選定画面 (#826)", { tag: ["@regression"] },
     await expect(page.getByText("制約違反", { exact: true })).toBeVisible();
     await expect(page.locator("button", { hasText: "保存" })).toBeDisabled();
   });
+  test("ORM: TypeScript のときだけ選べ、Prisma に「推奨」が出る。選んで保存すると読み直しても残る (#1560)", async ({ page }) => {
+    await setup(page);
+    await page.locator("button", { hasText: "バックエンド" }).click();
+    // 言語が Java のあいだは、ORM は選べず注意が出る
+    await expect(page.locator('input[name="backend-orm"][value="prisma"]')).toBeDisabled();
+    await expect(page.getByTestId("backend-orm-note")).toBeVisible();
+    // TypeScript にすると選べる。未設定は Prisma 扱いで「推奨」が出る
+    await page.locator('input[name="backend-language"][value="typescript"]').click();
+    await page.locator('input[name="backend-framework"][value="nestjs"]').click();
+    await expect(page.locator('input[name="backend-orm"][value="prisma"]')).toBeEnabled();
+    await expect(page.locator('input[name="backend-orm"][value="prisma"]')).toBeChecked();
+    await expect(page.getByTestId("radio-badge-prisma")).toHaveText("推奨");
+    await expect(page.getByTestId("backend-orm-note")).toHaveCount(0);
+    await page.getByTestId("backend-orm-section").screenshot({ path: "../.tmp/screenshots/1560-tech-stack-orm.png" });
+    await page.locator('input[name="backend-orm"][value="typeorm"]').click();
+    await expect(page.getByText("ORM: typeorm")).toBeVisible();
+    await page.locator("button", { hasText: "保存" }).click();
+    await expect(page.getByText("保存しました")).toBeVisible();
+    await setup(page);
+    await page.locator("button", { hasText: "バックエンド" }).click();
+    await expect(page.locator('input[name="backend-orm"][value="typeorm"]')).toBeChecked();
+    // TypeScript 以外に戻すと、ORM の指定は外れて保存できる (制約違反にならない)
+    await page.locator('input[name="backend-language"][value="java"]').click();
+    await page.locator('input[name="backend-framework"][value="spring-boot"]').click();
+    await expect(page.getByText("制約違反", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("ORM: typeorm")).toHaveCount(0);
+  });
 });

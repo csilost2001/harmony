@@ -93,3 +93,52 @@ describe("プリセット", () => {
     expect(saveTechStackMock.mock.calls[0][0]).toMatchObject({ designer: { cssFramework: "tailwind" }, backend: { language: "go", framework: "gin" }, deployment: { target: "kubernetes" } });
   });
 });
+
+describe("ORM の選択 (#1560)", () => {
+  beforeEach(() => { saveTechStackMock.mockReset(); });
+  async function openBackend(techStack: unknown) {
+    loadRawProjectMock.mockResolvedValue({ techStack });
+    const utils = render(<TechStackView />);
+    fireEvent.click(await utils.findByRole("button", { name: /バックエンド/ }));
+    return utils;
+  }
+  const orm = (c: HTMLElement, v: string) => c.querySelector(`input[name="backend-orm"][value="${v}"]`) as HTMLInputElement;
+
+  it("TypeScript のとき、ORM を選べ、未設定は Prisma 扱いで「推奨」が出る。サマリにも出る", async () => {
+    const { container, findByTestId, getByText } = await openBackend({ backend: { language: "typescript", framework: "nestjs" } });
+    expect(orm(container, "prisma").checked).toBe(true);
+    expect(orm(container, "prisma").disabled).toBe(false);
+    expect((await findByTestId("radio-badge-prisma")).textContent).toBe("推奨");
+    expect(container.querySelector('[data-testid="backend-orm-note"]')).toBeNull();
+    expect(getByText("ORM: prisma (既定)")).toBeTruthy();
+    fireEvent.click(orm(container, "typeorm"));
+    await waitFor(() => expect(getByText("ORM: typeorm")).toBeTruthy());
+    expect(orm(container, "typeorm").checked).toBe(true);
+  });
+
+  it("TypeScript 以外のときは選べず、注意が出る。言語を TypeScript 以外に変えると ORM の指定は外れる", async () => {
+    const { container, findByTestId, queryByText } = await openBackend({ backend: { language: "typescript", framework: "nestjs", orm: "typeorm" } });
+    expect(queryByText("ORM: typeorm")).toBeTruthy();
+    fireEvent.click(container.querySelector('input[name="backend-language"][value="java"]') as HTMLInputElement);
+    expect(await findByTestId("backend-orm-note")).toBeTruthy();
+    expect(orm(container, "prisma").disabled).toBe(true);
+    expect(orm(container, "typeorm").disabled).toBe(true);
+    expect(queryByText("ORM: typeorm")).toBeNull();
+  });
+
+  it("言語が未設定 (既定は Java) のときも ORM は選べない", async () => {
+    const { container } = await openBackend({});
+    expect(orm(container, "prisma").disabled).toBe(true);
+  });
+
+  it("TypeScript のプリセットを選ぶと、ORM は prisma で保存される", async () => {
+    loadRawProjectMock.mockResolvedValue({ techStack: {} });
+    saveTechStackMock.mockResolvedValue(undefined);
+    const { findByTestId, getByRole, findByText } = render(<TechStackView />);
+    fireEvent.change((await findByTestId("techstack-preset-select")) as HTMLSelectElement, { target: { value: "ts-fullstack" } });
+    expect(await findByText("ORM: prisma")).toBeTruthy();
+    fireEvent.click(getByRole("button", { name: /保存/ }));
+    await waitFor(() => expect(saveTechStackMock).toHaveBeenCalledTimes(1));
+    expect(saveTechStackMock.mock.calls[0][0]).toMatchObject({ backend: { language: "typescript", framework: "nestjs", orm: "prisma" } });
+  });
+});
