@@ -256,7 +256,7 @@ ProcessFlow JSON の step kind ごとのコード生成方針。詳細は `ai-sk
 | `screenTransition` | `return "redirect:/path"` (MVC Controller) / REST API では出力しない | `res.redirect('/path')` |
 | `branch` | `if (condition) { ... } else { ... }` + `throw XxxException` | `if (condition) { throw new HttpException(...) }` |
 | `loop` (collection) | `for (ItemType item : collection) { ... }` | `for (const item of collection) { ... }` |
-| `eventPublish` | `ApplicationEventPublisher.publishEvent(new XxxEvent(...))` | `EventEmitter2.emit('topic', payload)` |
+| `eventPublish` | `ApplicationEventPublisher.publishEvent(new XxxEvent(...))` | `EventEmitter2.emit('topic', payload)` (eventPublish の工程がある Service だけ `EventEmitter2` を注入。依存 `@nestjs/event-emitter` と `AppModule` の `EventEmitterModule.forRoot()` もそのときだけ。無い Service には書かない) |
 | `compute` | ローカル変数計算 (`stream().mapToLong().sum()` 等) | ローカル変数計算 (`reduce`, `map` 等) |
 | `validation` | Bean Validation DTO アノテーション + `@Valid` Controller 引数 | `class-validator` DTO デコレータ |
 | `return` | `ResponseEntity.<T>status(N).body(body)` | `return responseDto` または `throw new HttpException(body, status)` |

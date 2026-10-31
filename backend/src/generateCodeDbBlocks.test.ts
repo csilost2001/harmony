@@ -16,14 +16,14 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { BLOCK_MARKER_LINE, pruneScaffoldBlocks, pruneScaffoldFile } from "./ops/scaffold.js";
-import { dropEmptyComposeKeys } from "./ops/scaffoldBlocks.js";
+import { DB_VERSION_TOKEN, applyDbVersion, dropEmptyComposeKeys, isUsableDbVersion, resolveDbVersion } from "./ops/scaffoldBlocks.js";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const TEMPLATES = path.join(REPO, "ai-skills/generate-code/templates/devcontainer");
 const COMBOS = ["nestjs-nextjs", "nestjs-thymeleaf"] as const;
 const DBS = ["sqlite", "postgresql", "mysql"] as const;
 const ORMS = ["prisma", "typeorm"] as const;
-type Ctx = { db: string; orm: string };
+type Ctx = { db: string; orm: string; dbVersion?: string };
 
 const read = (combo: string, rel: string) => fs.readFileSync(path.join(TEMPLATES, combo, rel), "utf8");
 const prune = (rel: string, text: string, ctx: Ctx) => pruneScaffoldFile(rel, text, ctx);
@@ -239,5 +239,113 @@ describe("剪定の規則の境界 (#1560)", () => {
     const yml = "services:\n  app:\n    volumes:\n    - a:/a\n    image: x\n";
     expect(dropEmptyComposeKeys(yml)).toBe(yml);
     expect(dropEmptyComposeKeys("services:\n  app:\n    volumes:\n    image: x\n")).toBe("services:\n  app:\n    image: x\n");
+  });
+});
+
+describe("DB の版 (techStack.database.version) の置き換え (#1587)", () => {
+  const imageOf = (yml: string): string | undefined => {
+    const db = asMap(asMap(asMap(parseYaml(yml)).services).db);
+    return db.image as string | undefined;
+  };
+  const FILES = ["docker-compose.yml", ".devcontainer/compose.yml"] as const;
+
+  it("雛形には印 (__DB_VERSION__) が入り、版の数字は直書きしない (image の行と README の DB の行)", () => {
+    for (const combo of COMBOS) {
+      for (const f of FILES) {
+        const t = read(combo, f);
+        expect(t).toContain(`image: postgres:${DB_VERSION_TOKEN}`);
+        expect(t).toContain(`image: mysql:${DB_VERSION_TOKEN}`);
+        expect(t).not.toMatch(/image: (?:postgres|mysql):\d/);
+      }
+      const readme = read(combo, "README.snippet.md");
+      expect(readme).toContain(`PostgreSQL ${DB_VERSION_TOKEN}`);
+      expect(readme).toContain(`MySQL ${DB_VERSION_TOKEN}`);
+    }
+  });
+
+  describe.each(COMBOS)("%s", (combo) => {
+    it.each([["postgresql", "16", "postgres:16"], ["postgresql", undefined, "postgres:15"], ["postgresql", "16.4", "postgres:16.4"], ["mysql", "8.4", "mysql:8.4"], ["mysql", undefined, "mysql:8"], ["mysql", "5.7", "mysql:5.7"], ["postgresql", "16-alpine", "postgres:16-alpine"], ["postgresql", "16.4-bookworm", "postgres:16.4-bookworm"], ["mysql", "8.4-oracle", "mysql:8.4-oracle"], ["postgresql", "016", "postgres:016"], ["postgresql", "16-alpine3", "postgres:16-alpine3"], ["postgresql", "16-alpine3.20", "postgres:16-alpine3.20"], ["postgresql", "16.4-alpine3.20", "postgres:16.4-alpine3.20"]] as const)(
+      "%s × version=%s: 2 つの compose.yml の DB の image が %s で、YAML として妥当・印が残らない",
+      (db, version, image) => {
+        for (const orm of ORMS) {
+          for (const f of FILES) {
+            const out = prune(f, read(combo, f), { db, orm, dbVersion: version });
+            expect(imageOf(out), `${f}`).toBe(image);
+            expect(out).not.toContain(DB_VERSION_TOKEN);
+            checkCompose(`${combo}/${f}`, out);
+          }
+          const readme = prune("README.snippet.md", read(combo, "README.snippet.md"), { db, orm, dbVersion: version });
+          expect(readme).not.toContain(DB_VERSION_TOKEN);
+          expect(readme).toContain(`${db === "postgresql" ? "PostgreSQL" : "MySQL"} ${image.split(":")[1]}。`);
+        }
+      },
+    );
+
+    it.each(["latest", "16; rm -rf /", "", " ", "16 && x", "v16", "16.", ".16", "1e2", "16\nx", "16-", "16--a", "-a", "-16", "16-Alpine", "16;x", "16-alpine;x", "16-alpine-x", "16_a", "16-1a", "16-alpine3.", "16-alpine.3", "16-alpine3..20", "16-alpine3.x", "16-.3", "16$x", "16 alpine", "1".repeat(33), `16-${"a".repeat(31)}`, "__DB_VERSION__", 16 as unknown as string, null as unknown as string, { a: 1 } as unknown as string])(
+      "不正な version (%j) は既定 (postgres:15 / mysql:8) に戻る",
+      (version) => {
+        for (const [db, image] of [["postgresql", "postgres:15"], ["mysql", "mysql:8"]] as const) {
+          for (const f of FILES) {
+            const out = prune(f, read(combo, f), { db, orm: "prisma", dbVersion: version });
+            expect(imageOf(out), `${db} ${f}`).toBe(image);
+            expect(out).not.toContain(DB_VERSION_TOKEN);
+          }
+        }
+      },
+    );
+
+    it("sqlite / sqlserver / oracle は version を指定しても変わらない (DB サービスが無い。印も残らない)", () => {
+      for (const db of ["sqlite", "sqlserver", "oracle"]) {
+        for (const f of [...FILES, "README.snippet.md"]) {
+          const withV = prune(f, read(combo, f), { db, orm: "typeorm", dbVersion: "16" });
+          const without = prune(f, read(combo, f), { db, orm: "typeorm" });
+          expect(withV).toBe(without);
+          expect(withV).not.toContain(DB_VERSION_TOKEN);
+          expect(withV).not.toMatch(/postgres:|mysql:/);
+        }
+      }
+    });
+
+    it("version の置き換えは ORM のブロックの剪定と共存する (置き換えるのは印だけ。ほかの行は version の有無で変わらない)", () => {
+      for (const orm of ORMS) {
+        for (const f of FILES) {
+          const a = prune(f, read(combo, f), { db: "postgresql", orm, dbVersion: "16" });
+          const b = prune(f, read(combo, f), { db: "postgresql", orm });
+          expect(a.replace("postgres:16", "postgres:15")).toBe(b);
+          expect(orm === "prisma" ? /typeorm|DB_SYNCHRONIZE/i.test(a) : /prisma/i.test(a)).toBe(false); // もう片方の ORM が混ざらない
+        }
+      }
+    });
+  });
+
+  it("版の形: 数字とドット + 小文字英数字のサフィックス 1 つ。全体 32 文字まで (境界)", () => {
+    expect(isUsableDbVersion("1".repeat(32))).toBe(true);
+    expect(isUsableDbVersion("1".repeat(33))).toBe(false);
+    expect(isUsableDbVersion(`16-${"a".repeat(29)}`)).toBe(true); // 32 文字
+    expect(isUsableDbVersion(`16-${"a".repeat(30)}`)).toBe(false); // 33 文字
+    expect(isUsableDbVersion("16-alpine")).toBe(true);
+    expect(isUsableDbVersion(" 16-alpine ")).toBe(true);
+    expect(isUsableDbVersion("16-alpine3.20")).toBe(true);
+    expect(isUsableDbVersion("016")).toBe(true); // 先頭 0 は docker のタグとして有効なので通す
+    for (const bad of ["", " ", "16-", "16--a", "-a", "16-Alpine", "16;x", "latest", "16-alpine;x", null, undefined, 16, {}, []]) expect(isUsableDbVersion(bad), String(bad)).toBe(false);
+  });
+
+  it("database.type が Object.prototype の名前でも既定を取り違えない (__proto__ / constructor / toString)", () => {
+    for (const db of ["__proto__", "constructor", "toString", "hasOwnProperty", "valueOf"]) {
+      expect(resolveDbVersion(db, "16"), db).toBeUndefined();
+      expect(resolveDbVersion(db, undefined), db).toBeUndefined();
+      expect(resolveDbVersion(db, { a: 1 }), db).toBeUndefined();
+      expect(applyDbVersion(`x ${DB_VERSION_TOKEN}`, { db, orm: "prisma", dbVersion: "16" }), db).toBe(`x ${DB_VERSION_TOKEN}`);
+    }
+  });
+
+  it("applyDbVersion / resolveDbVersion の規則: 印を全部置き換える・前後の空白は落とす・既定の無い DB は置き換えない", () => {
+    expect(applyDbVersion(`a ${DB_VERSION_TOKEN} b ${DB_VERSION_TOKEN}`, { db: "postgresql", orm: "prisma", dbVersion: " 16 " })).toBe("a 16 b 16");
+    expect(applyDbVersion(`x ${DB_VERSION_TOKEN}`, { db: "sqlite", orm: "prisma", dbVersion: "16" })).toBe(`x ${DB_VERSION_TOKEN}`);
+    expect(resolveDbVersion("PostgreSQL", "17")).toBe("17");
+    expect(resolveDbVersion("postgresql", undefined)).toBe("15");
+    expect(resolveDbVersion("mysql", 8)).toBe("8");
+    expect(resolveDbVersion("sqlite", "3")).toBeUndefined(); // DB サービスの無い DB は、指定があっても使わない
+    expect(resolveDbVersion("sqlite", undefined)).toBeUndefined();
   });
 });

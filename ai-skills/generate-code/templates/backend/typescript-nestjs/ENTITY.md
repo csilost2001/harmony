@@ -197,7 +197,7 @@ export function typeOrmOptions(): TypeOrmModuleOptions {
 
 ## 依存パッケージ
 
-`package.json` の `dependencies` に `typeorm`、`@nestjs/typeorm`、上の DB ドライバ 1 つ (`pg` / `mysql2` / `better-sqlite3`)。`prisma` / `@prisma/client` は入れない。`better-sqlite3` はネイティブのビルドがあるので、npm 12 以降の既定 (install スクリプトが止まる) では動かない (`Could not locate the bindings file`)。`npm install-scripts approve better-sqlite3` で許し、すぐ動かすなら `npm rebuild better-sqlite3` する (SKILL.md の「npm 12 以降」参照。実機で確認)。`pg` / `mysql2` は純 JavaScript なので、この手順は要らない。
+`package.json` の `dependencies` に `typeorm`、`@nestjs/typeorm`、上の DB ドライバ 1 つ (`pg` / `mysql2` / `better-sqlite3`)。`prisma` / `@prisma/client` は入れない。**ProcessFlow に kind=eventPublish の工程があるときだけ**、`@nestjs/event-emitter` (`^3.x`) も `dependencies` に足す (`AppModule` に `EventEmitterModule.forRoot()` も要る。無いときは足さない。[`SERVICE.md`](./SERVICE.md) の「eventPublish の有無で変わるもの」)。`better-sqlite3` はネイティブのビルドがあるので、npm 12 以降の既定 (install スクリプトが止まる) では動かない (`Could not locate the bindings file`)。`npm install-scripts approve better-sqlite3` で許し、すぐ動かすなら `npm rebuild better-sqlite3` する (SKILL.md の「npm 12 以降」参照。実機で確認)。`pg` / `mysql2` は純 JavaScript なので、この手順は要らない。
 
 ## DB の初期化 (dev)
 

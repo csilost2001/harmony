@@ -43,7 +43,7 @@ services:
 
   # @db postgresql
   db:
-    image: postgres:15
+    image: postgres:__DB_VERSION__
     environment:
       POSTGRES_DB: app
       POSTGRES_USER: app
@@ -58,7 +58,7 @@ services:
   # @end-db
   # @db mysql
   db:
-    image: mysql:8
+    image: mysql:__DB_VERSION__
     environment:
       MYSQL_DATABASE: app
       MYSQL_USER: app

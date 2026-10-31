@@ -13,7 +13,7 @@ ProcessFlow の `actions[]` 全体を 1 つの `@Injectable` Service クラス�
 | `steps` (kind=dbAccess) | ORM ごとに下の「dbAccess の対応表」(Prisma が既定。`techStack.backend.orm` が `typeorm` のときだけ TypeORM) |
 | `steps` (kind=transactionScope) | ORM ごとに `steps[]` 内の全 step を 1 TX で wrap (Prisma: `prisma.$transaction(async (tx) => { ... })` / TypeORM: `dataSource.transaction(async (manager) => { ... })`)。詳細は本ファイル末尾の「transactionScope mapping」セクション (#875 / #1221 で旧 txBoundary 廃止し transactionScope に一本化) |
 | `steps` (kind=branch) | if/else 文 |
-| `steps` (kind=eventPublish) | `EventEmitter2.emit(topic, payload)` |
+| `steps` (kind=eventPublish) | `EventEmitter2.emit(topic, payload)` (eventPublish の工程がある Service だけ。import / constructor / 依存 / `EventEmitterModule.forRoot()` は下の「eventPublish の有無で変わるもの」) |
 | `steps` (kind=compute) | ローカル変数計算ロジック |
 | `steps` (kind=validation) | class-validator / 手動バリデーション |
 | `steps` (kind=return) | `return { ... }` 文 |
@@ -149,7 +149,7 @@ dbAccess / transactionScope 以外の step は、ORM が何でも同じに展開
 
 ```typescript
 import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2 } from '@nestjs/event-emitter';   // ProcessFlow に kind=eventPublish の工程があるときだけ書く (無い Service では、この行ごと消す。依存 `@nestjs/event-emitter` が無いと `tsc` が落ちる)
 import { Prisma } from '@prisma/client';   // transactionScope を使わない Service では、この行は消す (未使用 import で lint の警告になる)。tx の型 (Prisma.TransactionClient) を使うときだけ残す
 import { PrismaService } from './src/prisma/prisma.service';   // Service は出力先の直下、PrismaService は src/prisma/ (出力先の位置を変えたときは相対パスを合わせる)
 import { {{processFlow.meta.name | toPascalCase}}RequestDto } from './dto/{{processFlow.meta.name | toKebabCase}}-request.dto';
@@ -170,7 +170,7 @@ export class {{processFlow.meta.name | toPascalCase}}Service {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly eventEmitter: EventEmitter2,
+    private readonly eventEmitter: EventEmitter2,   // kind=eventPublish の工程があるときだけ書く (無い Service では、この行ごと消す)。AppModule に EventEmitterModule.forRoot() が要る (下の「eventPublish の有無で変わるもの」)
     // AI flow 含有時のみ inject (kind=aiCall|aiAgent step がある場合):
     // private readonly aiRuntime: AiRuntimeService,
   ) {}
@@ -210,6 +210,37 @@ export class {{processFlow.meta.name | toPascalCase}}Service {
 }
 ```
 
+### eventPublish の有無で変わるもの (EventEmitter2)
+
+`EventEmitter2` は、その Service の ProcessFlow に `kind=eventPublish` の工程がある (`Step` を持つ場所**すべて**の中を、入れ子の深さを問わず探す。`schemas/v3/process-flow.v3.schema.json` で確かめた持ち場所: `actions[].steps`・全 step の `subSteps`・`validation` の `inlineBranch.ok` / `inlineBranch.ng`・`branch` の `branches[].steps` と `elseBranch.steps`・`loop` の `steps`・`workflow` の `onApproved` / `onRejected` / `onTimeout`・`transactionScope` の `steps` / `onCommit` / `onRollback`。**これだけではない**: schema に `Step` を持つ場所が増えても同じで、ProcessFlow の JSON を `"kind": "eventPublish"` で全文検索するのと同じ結果になるように探す) ときだけ使う。**無いときは書かない** (書くと、依存と `EventEmitterModule.forRoot()` が無いために `tsc` が `Cannot find module '@nestjs/event-emitter'`、依存だけ足しても起動時に `Nest can't resolve dependencies of the ... Service (..., ?)` で落ちる。実機で確認した)。
+
+| | eventPublish の工程が **ある** Service | **無い** Service |
+|---|---|---|
+| import | `import { EventEmitter2 } from '@nestjs/event-emitter';` | 書かない |
+| constructor | `constructor(private readonly prisma: PrismaService, private readonly eventEmitter: EventEmitter2) {}` (TypeORM は `dataSource` と `eventEmitter`) | `constructor(private readonly prisma: PrismaService) {}` (TypeORM は `dataSource` だけ。Repository を注入するならそれ) |
+| 工程の展開 | `this.eventEmitter.emit('<topic>', payload)` | - |
+| 依存 (`package.json` の `dependencies`) | `@nestjs/event-emitter` (`^3.x`) を足す | 足さない |
+| `AppModule` の `imports` | `EventEmitterModule.forRoot()` を **1 回** 足す (`import { EventEmitterModule } from '@nestjs/event-emitter';`) | 足さない |
+
+`EventEmitterModule.forRoot()` と依存は**プロジェクトに 1 セット**で、eventPublish の工程を持つ Service が 1 つでもあれば足す (全部の Service が無いときは、どちらも足さない)。あるときの `AppModule` の例:
+
+```typescript
+import { Module } from '@nestjs/common';
+import { EventEmitterModule } from '@nestjs/event-emitter';   // eventPublish の工程があるときだけ
+import { PrismaModule } from './prisma/prisma.module';
+
+@Module({
+  imports: [
+    EventEmitterModule.forRoot(),   // eventPublish の工程があるときだけ
+    PrismaModule,
+    // 各業務 Module
+  ],
+})
+export class AppModule {}
+```
+
+eventPublish を `emit` する側だけを生成する。受け取る側 (`@OnEvent('<topic>')` の listener) は ProcessFlow 側の別の設計 (イベントを購読する flow) で決まるので、ここでは作らない。generate-tests の E2E は `Test.createTestingModule({ imports: [AppModule] })` で `AppModule` ごと立ち上げる (Service の mock は作らない) ので、`AppModule` が上の表のとおりなら、eventPublish の有無で追加の設定は要らない (`ai-skills/generate-tests` に EventEmitter2 の記述は無いことを確認した)。
+
 ## テンプレート本体 (TypeORM、`orm: typeorm` のときだけ)
 
 `techStack.backend.orm` が `typeorm` のときだけ。`orm` が省略 / `prisma` のときは、この節を使わない。Entity と接続の設定は `ENTITY.md`。`DataSource` は `TypeOrmModule.forRoot` が提供する。
@@ -218,7 +249,7 @@ export class {{processFlow.meta.name | toPascalCase}}Service {
 import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';   // EntityManager は transactionScope の helper (manager を引数で受ける) を書くときだけ残す。使わなければ import から外す (未使用 import で lint の警告になる)
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2 } from '@nestjs/event-emitter';   // kind=eventPublish の工程があるときだけ書く (無い Service では、この行ごと消す)
 import { {{processFlow.meta.name | toPascalCase}}RequestDto } from './dto/{{processFlow.meta.name | toKebabCase}}-request.dto';
 import { {{processFlow.meta.name | toPascalCase}}ResponseDto } from './dto/{{processFlow.meta.name | toKebabCase}}-response.dto';
 // import { {{table.physicalName | toModelName}} } from './entity/{{table.physicalName | toKebabCase}}.entity';
@@ -241,7 +272,7 @@ export class {{processFlow.meta.name | toPascalCase}}Service {
     // @InjectRepository({{table.physicalName | toModelName}})
     // private readonly {{table.physicalName | toModelName | toCamelCase}}Repository: Repository<{{table.physicalName | toModelName}}>,
     private readonly dataSource: DataSource,
-    private readonly eventEmitter: EventEmitter2,
+    private readonly eventEmitter: EventEmitter2,   // kind=eventPublish の工程があるときだけ書く (無い Service では、この行ごと消す)
     // AI flow 含有時のみ inject (kind=aiCall|aiAgent step がある場合):
     // private readonly aiRuntime: AiRuntimeService,
   ) {}
