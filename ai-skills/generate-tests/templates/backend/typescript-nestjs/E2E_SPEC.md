@@ -74,6 +74,11 @@ import { PrismaClient } from '@prisma/client';
 
 ```typescript
 beforeAll(async () => {
+  // DATABASE_URL (sqlite のとき): アプリの PrismaService も schema.prisma の env("DATABASE_URL") を読む。
+  // 検証用の PrismaClient にだけ url を渡すと、アプリ側が "Environment variable not found" で起動に失敗する。
+  // そのため AppModule を compile する前に、環境変数そのものに入れる (Spike L-6: 絶対パス)
+  process.env.DATABASE_URL ??= `file:${require('path').resolve(__dirname, '../prisma/dev.db')}`;
+
   // NestJS TestingModule の作成と起動
   const moduleFixture: TestingModule = await Test.createTestingModule({
     imports: [AppModule],
@@ -91,12 +96,9 @@ beforeAll(async () => {
   );
   await app.init();
 
-  // テスト専用 Prisma client (Spike L-6: DATABASE_URL は絶対パス対応)
-  // DATABASE_URL env が設定されていれば優先、なければ相対パスを resolve して絶対パス化
-  const dbPath = process.env.DATABASE_URL
-    || `file:${require('path').resolve(__dirname, '../prisma/dev.db')}`;
+  // 検証用 Prisma client (アプリと同じ DB。上で環境変数に入れた DATABASE_URL を使う)
   prisma = new PrismaClient({
-    datasources: { db: { url: dbPath } },
+    datasources: { db: { url: process.env.DATABASE_URL } },
   });
 
   // JWT 取得 (httpRoute.auth="required" の場合)

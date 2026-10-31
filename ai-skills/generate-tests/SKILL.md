@@ -310,12 +310,15 @@ backend E2E (Step 3) と Playwright シナリオ (P4) の DB の検証・seed・
 import { PrismaClient } from '@prisma/client';
 
 let prisma: PrismaClient;
-// beforeAll:
-const dbUrl = process.env.DATABASE_URL || `file:${require('path').resolve(__dirname, '../prisma/dev.db')}`;  // sqlite のとき。他の DB は || 以降を書かず、未設定なら throw
-prisma = new PrismaClient({ datasources: { db: { url: dbUrl } } });
+// beforeAll (AppModule を compile する前に。アプリの PrismaService も schema.prisma の env("DATABASE_URL") を読むので、環境変数そのものに入れる):
+process.env.DATABASE_URL ??= `file:${require('path').resolve(__dirname, '../prisma/dev.db')}`;  // sqlite のとき。他の DB は書かず、未設定なら throw
+// ... Test.createTestingModule({ imports: [AppModule] }).compile() / app.init() のあと:
+prisma = new PrismaClient({ datasources: { db: { url: process.env.DATABASE_URL } } });   // 検証用の接続 (アプリと同じ DB)
 // afterAll:
 await prisma.$disconnect();
 ```
+
+テスト専用の PrismaClient にだけ `datasources.url` を渡して環境変数を設定しないと、アプリ側の `PrismaService` (`$connect()`) が `Environment variable not found: DATABASE_URL` で起動に失敗する (実機で確認)。
 
 **TypeORM (`orm: typeorm` のときだけ)**:
 
@@ -346,7 +349,7 @@ TypeORM では、アプリの DataSource に `synchronize` を効かせて表を
 | 条件で消す | `await prisma.post.deleteMany({ where: { id } })` | `await dataSource.getRepository(Post).delete({ id })` |
 | 全部消す | `await prisma.post.deleteMany({})` | `await dataSource.getRepository(Post).createQueryBuilder().delete().execute()` (`delete({})` は空条件でエラーになる) |
 | フィールド | `row.user_id` | `row.userId` |
-| 大きい整数 (BIGINT) | `BigInt` で返る → `Number(row.id)` | 文字列で返る → `Number(row.id)` |
+| 大きい整数 (BIGINT) | `BigInt` で返る → `Number(row.id)` (`sqlite` は `Int` なので `number` で返る。generate-code の `PRISMA_SCHEMA.md`) | 文字列で返る → `Number(row.id)` |
 | 接続を閉じる | `await prisma.$disconnect()` | (`app.close()` が閉じる) |
 
 ### seed / truncate の helper (`helpers/db.ts`、P4 の Playwright シナリオ)
@@ -428,15 +431,17 @@ describe('<httpRoute.method> <httpRoute.path> (<action.name> E2E)', () => {
   let createdIds: { [table: string]: (number | string)[] } = {};  // cleanup 用
 
   beforeAll(async () => {
+    // DATABASE_URL 絶対パス対応 (Spike L-6)。この `file:` の補いは techStack.database.type=sqlite のときだけ。
+    // postgresql / mysql は補わず、未設定なら throw する。orm: typeorm の準備は「DB 検証の ORM 別の書き方」
+    // AppModule を compile する前に環境変数へ入れる (アプリの PrismaService も schema.prisma の env("DATABASE_URL") を読む)
+    process.env.DATABASE_URL ??= `file:${require('path').resolve(__dirname, '../prisma/dev.db')}`;
+
     const moduleFixture = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true, forbidNonWhitelisted: false }));
     await app.init();
 
-    // DATABASE_URL 絶対パス対応 (Spike L-6)。この `file:` の補いは techStack.database.type=sqlite のときだけ。
-    // postgresql / mysql は補わず、未設定なら throw する。orm: typeorm の準備は「DB 検証の ORM 別の書き方」
-    const dbPath = process.env.DATABASE_URL || `file:${require('path').resolve(__dirname, '../prisma/dev.db')}`;
-    prisma = new PrismaClient({ datasources: { db: { url: dbPath } } });
+    prisma = new PrismaClient({ datasources: { db: { url: process.env.DATABASE_URL } } });
 
     // JWT 取得 (httpRoute.auth="required" の場合)
     accessToken = await loginAsAdmin(app);
