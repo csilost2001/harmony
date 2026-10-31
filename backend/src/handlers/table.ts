@@ -23,6 +23,7 @@ import {
 import { readProjectWithUnregistered } from "../registryMerge.js";
 import { assertEntityIdMcp, type ToolHandler } from "../mcpHelpers.js";
 import { getHarmonyValidator } from "../workspaceInit.js";
+import { withProjectLock } from "../storageCore.js";
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
 
@@ -48,7 +49,12 @@ const errorKey = (e: SchemaError): string => `${e.instancePath ?? ""}|${e.keywor
  * 書こうとしたことで新しく増えた違反があれば、何も書かずにエラーにする (画面がワークスペースを開けなくなるのを防ぐ。#1568)。
  * もとから違反していた所 (旧形式の項目など) は、ここでは止めない: それは designer__repair_registry で直す。
  */
-export async function assertHarmonyStillValid(before: Record<string, unknown>, after: Record<string, unknown>): Promise<void> {
+export async function assertHarmonyStillValid(
+  before: Record<string, unknown>,
+  after: Record<string, unknown>,
+  where = "entities.tables",
+  hint = "maturity は draft / provisional / committed のいずれか、category は文字列にしてください",
+): Promise<void> {
   const validate = await getHarmonyValidator();
   validate(before);
   const known = new Set(((Array.isArray(validate.errors) ? validate.errors : []) as SchemaError[]).map(errorKey));
@@ -61,7 +67,7 @@ export async function assertHarmonyStillValid(before: Record<string, unknown>, a
   }).join("; ");
   throw new McpError(
     ErrorCode.InvalidParams,
-    `harmony.json の entities.tables に書く値が harmony.v3 スキーマに合いません。何も書きませんでした: ${detail}。maturity は draft / provisional / committed のいずれか、category は文字列にしてください`,
+    `harmony.json の ${where} に書く値が harmony.v3 スキーマに合いません。何も書きませんでした: ${detail}。${hint}`,
   );
 }
 
@@ -143,36 +149,39 @@ export const handleTableTool: ToolHandler = async (name, args, root) => {
       if (!PHYSICAL_NAME_RE.test(a.physicalName) || a.physicalName.length > 63) {
         throw new McpError(ErrorCode.InvalidParams, `physicalName は英小文字で始まる snake_case (英小文字・数字・_、63 文字まで) で指定してください: ${a.physicalName}`);
       }
-      const project = await readProjectForWrite(root);
-      // 同じ物理名のテーブルがすでにあれば、断る (一覧に載っていないファイルも見る)
-      await assertPhysicalNameFree(root, a.physicalName);
-      // #1294 I-2: id は kebab-case EntityId (RFC #1284)、uuid は別途 randomUUID で採番
-      // 暫定採番形式 (I-5 で UI 創成ダイアログから人間入力 / AI 提案に置き換え)
-      const id = `table-${randomUUID().slice(0, 8)}`;
-      const uuid = randomUUID();
-      const now = new Date().toISOString();
-      const tableDef: Record<string, unknown> = {
-        id,
-        uuid,
-        physicalName: a.physicalName,
-        name: a.name,
-        ...(typeof a.description === "string" && a.description ? { description: a.description } : {}),
-        ...(typeof a.category === "string" && a.category ? { category: a.category } : {}),
-        columns: [],
-        indexes: [],
-        createdAt: now,
-        updatedAt: now,
-      };
-      // harmony.json の entities.tables[] (v3) も更新。スキーマに合うと確かめてから、テーブルのファイルと harmony.json を書く
-      const next = structuredClone(project);
-      const tables = [...tableEntries(next)];
-      const no = tables.reduce((m, e) => Math.max(m, typeof e.no === "number" ? e.no : 0), 0) + 1;
-      tables.push(buildTableEntry(id, tableDef, undefined, no, now));
-      setTableEntries(next, tables, now);
-      await assertHarmonyStillValid(project, next);
-      await writeTable(id, tableDef, root);
-      await writeProject(next, root);
-      return { content: [{ type: "text", text: `テーブル「${a.name}」(${a.physicalName}) を追加しました（ID: ${id}）` }] };
+      const physicalName: string = a.physicalName;
+      return withProjectLock(root, async () => {
+        const project = await readProjectForWrite(root);
+        // 同じ物理名のテーブルがすでにあれば、断る (一覧に載っていないファイルも見る)
+        await assertPhysicalNameFree(root, physicalName);
+        // #1294 I-2: id は kebab-case EntityId (RFC #1284)、uuid は別途 randomUUID で採番
+        // 暫定採番形式 (I-5 で UI 創成ダイアログから人間入力 / AI 提案に置き換え)
+        const id = `table-${randomUUID().slice(0, 8)}`;
+        const uuid = randomUUID();
+        const now = new Date().toISOString();
+        const tableDef: Record<string, unknown> = {
+          id,
+          uuid,
+          physicalName: physicalName,
+          name: a.name,
+          ...(typeof a.description === "string" && a.description ? { description: a.description } : {}),
+          ...(typeof a.category === "string" && a.category ? { category: a.category } : {}),
+          columns: [],
+          indexes: [],
+          createdAt: now,
+          updatedAt: now,
+        };
+        // harmony.json の entities.tables[] (v3) も更新。スキーマに合うと確かめてから、テーブルのファイルと harmony.json を書く
+        const next = structuredClone(project);
+        const tables = [...tableEntries(next)];
+        const no = tables.reduce((m, e) => Math.max(m, typeof e.no === "number" ? e.no : 0), 0) + 1;
+        tables.push(buildTableEntry(id, tableDef, undefined, no, now));
+        setTableEntries(next, tables, now);
+        await assertHarmonyStillValid(project, next);
+        await writeTable(id, tableDef, root);
+        await writeProject(next, root);
+        return { content: [{ type: "text", text: `テーブル「${a.name}」(${physicalName}) を追加しました（ID: ${id}）` }] };
+      });
     }
 
     case "designer__update_table": {
@@ -181,29 +190,32 @@ export const handleTableTool: ToolHandler = async (name, args, root) => {
       }
       // S-002: ID validation
       assertEntityIdMcp(a.tableId, "tableId");
-      const project = await readProjectForWrite(root);
-      const def = a.definition as Record<string, unknown>;
-      // physicalName を別のテーブルと同じ値に変えるのは、add_table と同じく断る (自分自身と同じ値は可)
-      if (typeof def.physicalName === "string" && def.physicalName) {
-        await assertPhysicalNameFree(root, def.physicalName, a.tableId);
-      }
-      const now = new Date().toISOString();
-      def.updatedAt = now;
-      // harmony.json の entities.tables[] (v3) を更新 (並び順 no は維持)。スキーマに合うと確かめてから書く
-      const next = structuredClone(project);
-      const tables = [...tableEntries(next)];
-      const idx = tables.findIndex((t) => t.id === a.tableId);
-      if (idx >= 0) {
-        tables[idx] = buildTableEntry(a.tableId, def, tables[idx], typeof tables[idx].no === "number" ? tables[idx].no as number : idx + 1, now);
-      } else {
-        const no = tables.reduce((m, e) => Math.max(m, typeof e.no === "number" ? e.no : 0), 0) + 1;
-        tables.push(buildTableEntry(a.tableId, def, undefined, no, now));
-      }
-      setTableEntries(next, tables, now);
-      await assertHarmonyStillValid(project, next);
-      await writeTable(a.tableId, def, root);
-      await writeProject(next, root);
-      return { content: [{ type: "text", text: `テーブル ${a.tableId} を更新しました。` }] };
+      const tableId: string = a.tableId;
+      return withProjectLock(root, async () => {
+        const project = await readProjectForWrite(root);
+        const def = a.definition as Record<string, unknown>;
+        // physicalName を別のテーブルと同じ値に変えるのは、add_table と同じく断る (自分自身と同じ値は可)
+        if (typeof def.physicalName === "string" && def.physicalName) {
+          await assertPhysicalNameFree(root, def.physicalName, tableId);
+        }
+        const now = new Date().toISOString();
+        def.updatedAt = now;
+        // harmony.json の entities.tables[] (v3) を更新 (並び順 no は維持)。スキーマに合うと確かめてから書く
+        const next = structuredClone(project);
+        const tables = [...tableEntries(next)];
+        const idx = tables.findIndex((t) => t.id === tableId);
+        if (idx >= 0) {
+          tables[idx] = buildTableEntry(tableId, def, tables[idx], typeof tables[idx].no === "number" ? tables[idx].no as number : idx + 1, now);
+        } else {
+          const no = tables.reduce((m, e) => Math.max(m, typeof e.no === "number" ? e.no : 0), 0) + 1;
+          tables.push(buildTableEntry(tableId, def, undefined, no, now));
+        }
+        setTableEntries(next, tables, now);
+        await assertHarmonyStillValid(project, next);
+        await writeTable(tableId, def, root);
+        await writeProject(next, root);
+        return { content: [{ type: "text", text: `テーブル ${tableId} を更新しました。` }] };
+      });
     }
 
     case "designer__remove_table": {
@@ -212,12 +224,15 @@ export const handleTableTool: ToolHandler = async (name, args, root) => {
       }
       // S-002: ID validation
       assertEntityIdMcp(a.tableId, "tableId");
-      const project = await readProjectForWrite(root);
-      await deleteTableFile(a.tableId, root);
-      const tables = tableEntries(project).filter((t) => t.id !== a.tableId);
-      setTableEntries(project, tables, new Date().toISOString());
-      await writeProject(project, root);
-      return { content: [{ type: "text", text: `テーブル ${a.tableId} を削除しました。` }] };
+      const tableId: string = a.tableId;
+      return withProjectLock(root, async () => {
+        const project = await readProjectForWrite(root);
+        await deleteTableFile(tableId, root);
+        const tables = tableEntries(project).filter((t) => t.id !== tableId);
+        setTableEntries(project, tables, new Date().toISOString());
+        await writeProject(project, root);
+        return { content: [{ type: "text", text: `テーブル ${tableId} を削除しました。` }] };
+      });
     }
 
     default:

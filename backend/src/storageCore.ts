@@ -186,6 +186,16 @@ export async function writeJSON(filePath: string, data: unknown): Promise<void> 
   }
 }
 
+/**
+ * harmony.json を「読んで・差し替えて・書く」操作を、ワークスペースごとに 1 本ずつ行う鍵 (#1591)。
+ * MCP の呼び出しは並列に来るので、鍵なしだと、読んだ時点の索引へ書き戻して先の更新を黙って消す。
+ * 注意: 中で同じ鍵を取らない (再入するとデッドロック)。readProject / writeProject / assertHarmonyStillValid は鍵を取らない。
+ * 鍵の中で外部呼び出し・ユーザー待ち (ブラウザへの sendCommand など) をしない。
+ */
+export function withProjectLock<T>(root: string, run: () => Promise<T>): Promise<T> {
+  return withFileLock(harmonyFile(root), run);
+}
+
 /** 同じファイルへの更新が並行しても、読んで・差し替えて・書く を 1 本ずつ行う (独自部品・業務フロー・帳票で共用) */
 const fileLocks = new Map<string, Promise<unknown>>();
 export function withFileLock<T>(file: string, run: () => Promise<T>): Promise<T> {
