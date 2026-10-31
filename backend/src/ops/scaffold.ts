@@ -17,9 +17,9 @@ import { findDocsRoot } from "../docsRoot.js";
 import { recordAudit } from "./audit.js";
 import { cutLines, extractSection, snippetHeading, unifiedDiff, type SectionSlice } from "./lineDiff.js";
 import { makeOpsStore } from "./opsFiles.js";
-import { blockContextOf, pruneScaffoldFileSafe } from "./scaffoldBlocks.js";
+import { blockContextOf, dbVersionDrift, pruneScaffoldFileSafe } from "./scaffoldBlocks.js";
 
-export { pruneScaffoldBlocks, pruneScaffoldFile, dropEmptyComposeKeys, blockContextOf, applyDbVersion, resolveDbVersion, DB_VERSION_TOKEN, BLOCK_MARKER_LINE } from "./scaffoldBlocks.js";
+export { pruneScaffoldBlocks, pruneScaffoldFile, dropEmptyComposeKeys, blockContextOf, applyDbVersion, resolveDbVersion, isUsableDbVersion, dbVersionDrift, DB_VERSION_TOKEN, BLOCK_MARKER_LINE } from "./scaffoldBlocks.js";
 
 const PROJECT_ROOT = path.resolve(import.meta.dirname, "../../..");
 const TEMPLATES_REL = "ai-skills/generate-code/templates/devcontainer";
@@ -334,7 +334,7 @@ const hasSectionHeading = (app: string, snippet: string): boolean => {
 
 export async function getScaffoldUpdate(root: string, templatesRoot = defaultTemplatesRoot()): Promise<ScaffoldUpdate> {
   const r = await resolve(root, templatesRoot);
-  const out: ScaffoldUpdate = { ...r.summary, ...(r.record ? { recordedAt: r.record.recordedAt } : {}), files: [], guide: r.summary.status === "not-applicable" ? [] : GUIDE, problems: r.problems };
+  const out: ScaffoldUpdate = { ...r.summary, ...(r.record ? { recordedAt: r.record.recordedAt } : {}), files: [], guide: r.summary.status === "not-applicable" ? [] : GUIDE, problems: [...r.problems] };
   if (!r.template) return out;
   const noRecord = !r.record;
   const sameVersion = r.summary.status === "current";
@@ -399,5 +399,13 @@ export async function getScaffoldUpdate(root: string, templatesRoot = defaultTem
     for (const rec of r.record.files) if (!inTemplate.has(rec.template)) await push(rec.template, rec.path, rec.kind, null, rec, "removed-from-template");
   }
   out.files = views;
+  // database.version だけを変えたあと: 雛形は同じ (unchanged) なので差分は返らないが、アプリの DB の image が techStack の版と食い違う。AI が取り込みを始める手がかりとして 1 行出す
+  for (const v of views) {
+    if (v.state !== "unchanged" || v.kind === "section" || v.appEdited !== true) continue;
+    const tpl = r.template.files.find((f) => f.template === v.template);
+    const app = await readApp(root, v.path);
+    const found = tpl && app !== null ? dbVersionDrift(v.template, lf(tpl.content), app, blocks) : null;
+    if (found) out.problems.push(`DB の版 (techStack.database.version) が雛形に反映されていないファイルがあります。${v.path} の DB の image は「${found}」で、techStack の版は「${blocks.dbVersion}」です。files[] の appEdited が true のファイルの image (と README の DB の行) を確かめてください`);
+  }
   return out;
 }

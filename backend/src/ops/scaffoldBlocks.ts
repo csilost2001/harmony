@@ -7,7 +7,7 @@
  * **この規則はここだけに持つ**。雛形の更新の比較 (scaffold.ts) と、雛形の検査 (generateCodeDbBlocks.test.ts) が同じ関数を使う。
  *
  * もう 1 つの規則 (規則 7、#1587): 雛形の `__DB_VERSION__` は、`techStack.database.version` (DB の image のタグ) に置き換える。
- * 版は DB ごとの既定 (postgresql 15 / mysql 8) があり、image のタグに入る値なので、数字とドットだけの形でない値は既定に戻す。
+ * 版は DB ごとの既定 (postgresql 15 / mysql 8) があり、image のタグに入る値なので、決まった形 (数字とドット + 小文字英数字のサフィックス 1 つ。`16`・`8.4`・`16-alpine`) でない値は既定に戻す。
  */
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -18,21 +18,28 @@ export const DEFAULT_DB = "postgresql";
 export const DEFAULT_ORM = "prisma";
 
 /** techStack.database.version の既定 (DB の image のタグ。雛形に DB サービスがある DB だけ) */
-export const DEFAULT_DB_VERSIONS: Readonly<Record<string, string>> = { postgresql: "15", mysql: "8" };
+export const DEFAULT_DB_VERSIONS: ReadonlyMap<string, string> = new Map([["postgresql", "15"], ["mysql", "8"]]);
 /** 雛形の中で、DB の版に置き換える印 (規則 7) */
 export const DB_VERSION_TOKEN = "__DB_VERSION__";
-/** DB の版として通す形 (image のタグに入るので、任意の文字列は通さない) */
-const DB_VERSION_FORM = /^[0-9]+(?:\.[0-9]+)*$/;
+/** DB の版として通す形 (image のタグに入るので、任意の文字列は通さない): 数字とドット (`16`・`8.4`。先頭 0 の `016` も docker のタグとして有効なので通す) + ハイフンと小文字英数字のサフィックス 1 つ (`16-alpine`・`16.4-bookworm`)。全体で 32 文字まで */
+const DB_VERSION_FORM = /^[0-9]+(?:\.[0-9]+)*(?:-[a-z][a-z0-9]*)?$/;
+export const DB_VERSION_MAX_LENGTH = 32;
+
+/** 版として使える形か (trim したあと) */
+export function isUsableDbVersion(raw: unknown): raw is string {
+  if (typeof raw !== "string") return false;
+  const v = raw.trim();
+  return v.length <= DB_VERSION_MAX_LENGTH && DB_VERSION_FORM.test(v);
+}
 
 /** dbVersion は省略できる (省略、または形が合わないときは、DB ごとの既定) */
 export interface BlockContext { db: string; orm: string; dbVersion?: string }
 
-/** harmony.json の database.version (生の値) から、使う版を決める。文字列で、数字とドットだけの形のときだけ通し、それ以外は DB ごとの既定 (雛形に DB サービスが無い DB は、指定があっても undefined) */
+/** harmony.json の database.version (生の値) から、使う版を決める。文字列で、上の形 (数字とドット + 小文字英数字のサフィックス 1 つ、32 文字まで) のときだけ通し、それ以外は DB ごとの既定 (雛形に DB サービスが無い DB は、指定があっても undefined) */
 export function resolveDbVersion(db: string, raw: unknown): string | undefined {
-  const dflt = DEFAULT_DB_VERSIONS[db.toLowerCase()];
+  const dflt = DEFAULT_DB_VERSIONS.get(db.toLowerCase()); // Map で引く (database.type が `__proto__` / `constructor` でも既定にならない)
   if (dflt === undefined) return undefined; // 雛形に DB サービスが無い DB (sqlite・sqlserver・oracle) は、版を使わない
-  if (typeof raw === "string" && DB_VERSION_FORM.test(raw.trim())) return raw.trim();
-  return dflt;
+  return isUsableDbVersion(raw) ? raw.trim() : dflt;
 }
 
 const OPEN = /^(?:#|\/\/|<!--)\s*@(db|orm)\s+([a-z0-9,]+)\s*(?:-->)?$/i;
@@ -107,6 +114,27 @@ export function pruneScaffoldFile(relPath: string, text: string, ctx: BlockConte
   return /\.ya?ml$/i.test(relPath) ? dropEmptyComposeKeys(pruned) : pruned;
 }
 
+/**
+ * 雛形(印入り)をブロックだけ剪定し(印は残す)、アプリのファイルと行ごと一致するかを見て、印の位置のアプリの値が techStack の版と違えば、その値を返す。
+ * 一致しない(印以外の行が違う)・印が無い・版を使わない DB・同じ版のときは null。`designer__get_scaffold_update` が「database.version だけ変えた」を知らせるのに使う
+ */
+export function dbVersionDrift(relPath: string, templateText: string, appText: string, ctx: BlockContext): string | null {
+  const want = resolveDbVersion(ctx.db, ctx.dbVersion);
+  if (want === undefined) return null;
+  let pruned: string;
+  try {
+    pruned = pruneScaffoldBlocks(templateText, ctx);
+    if (/\.ya?ml$/i.test(relPath)) pruned = dropEmptyComposeKeys(pruned);
+  } catch { return null; }
+  if (!pruned.includes(DB_VERSION_TOKEN)) return null;
+  const esc = (t: string): string => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(`^${pruned.split(DB_VERSION_TOKEN).map(esc).join("([0-9][A-Za-z0-9.-]*)")}$`);
+  const m = re.exec(appText);
+  if (!m) return null;
+  const found = m.slice(1).find((v) => v !== want);
+  return found ?? null;
+}
+
 /** ブロックが壊れていても止めない版 (更新の比較用)。壊れていれば、消さずにそのまま返す */
 export function pruneScaffoldFileSafe(relPath: string, text: string, ctx: BlockContext): string {
   try { return pruneScaffoldFile(relPath, text, ctx); } catch { return text; }
@@ -122,5 +150,5 @@ export async function blockContextOf(root: string): Promise<BlockContext> {
     const database = rec(ts?.database);
     const db = pick(database?.type, DEFAULT_DB);
     return { db, orm: pick(rec(ts?.backend)?.orm, DEFAULT_ORM), dbVersion: resolveDbVersion(db, database?.version) };
-  } catch { return { db: DEFAULT_DB, orm: DEFAULT_ORM, dbVersion: DEFAULT_DB_VERSIONS[DEFAULT_DB] }; }
+  } catch { return { db: DEFAULT_DB, orm: DEFAULT_ORM, dbVersion: DEFAULT_DB_VERSIONS.get(DEFAULT_DB) }; }
 }

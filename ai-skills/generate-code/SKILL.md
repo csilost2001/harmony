@@ -281,7 +281,7 @@ NestJS の出力は、**ORM** と **DB の種類** の 2 つを `harmony.json` �
 |---|---|---|---|
 | ORM | `techStack.backend.orm` (`prisma` / `typeorm`) | **`prisma`** (推奨・既定) | 生成ファイル (下の表)・Service の dbAccess / transactionScope・generate-tests の DB 検証・scaffold の `@orm` ブロック |
 | DB の種類 | `techStack.database.type` (`postgresql` / `mysql` / `sqlite` / `sqlserver` / `oracle`) | schema の既定値の **`postgresql`** | Prisma の `datasource.provider`・TypeORM の `type`・scaffold の `@db` ブロック (compose.yml の DB サービス / `DATABASE_URL` / README の DB の初期化) |
-| DB の版 (開発コンテナの DB の image のタグ) | `techStack.database.version` (`16`・`8.4` のように数字とドットだけ) | postgresql は **`15`**、mysql は **`8`**。数字とドットだけの形でない値 (`latest`・空・文字列でない値) も、この既定に戻す | scaffold の `docker-compose.yml` / `.devcontainer/compose.yml` の DB サービスの `image:` (`postgres:<版>` / `mysql:<版>`) と README の「DB」の行。`sqlite` / `sqlserver` / `oracle` は DB サービスが無いので使わない。下の「DB ごとのブロック」の規則 7 |
+| DB の版 (開発コンテナの DB の image のタグ) | `techStack.database.version` (`16`・`8.4`・`16-alpine`・`16.4-bookworm` のように、数字とドット + 小文字英数字のサフィックス 1 つ。全体で 32 文字まで) | postgresql は **`15`**、mysql は **`8`**。この形でない値 (`latest`・空・大文字・`;` や空白を含む・文字列でない値) も、この既定に戻す (戻したら最終レポートに書く。規則 7) | scaffold の `docker-compose.yml` / `.devcontainer/compose.yml` の DB サービスの `image:` (`postgres:<版>` / `mysql:<版>`) と README の「DB」の行。**NestJS 系の雛形だけ** (Spring Boot 系の雛形は `postgres:15` 固定で、この版を反映しない)。`sqlite` / `sqlserver` / `oracle` は DB サービスが無いので使わない。下の「DB ごとのブロック」の規則 7 |
 | model / Entity 名 | `tables[].physicalName` | - | snake_case の語を PascalCase にし、最後の語を単数形にする (`posts` → `Post`)。generate-tests も同じ規則 |
 | `BIGINT` 列の型 (Prisma) | `techStack.database.type` | `postgresql` | `sqlite` は `Int` / `number`。`postgresql` / `mysql` は `BigInt` / `bigint` (Service の中は `bigint`、API の境界で `Number()` / `BigInt()`)。下の「postgresql / mysql のときの Prisma の注意」 |
 
@@ -1001,7 +1001,7 @@ Spring Boot 出力には **必ず** Maven Wrapper を verbatim コピー同梱�
 
   # アプリの入口 (プロジェクトに 1 セット。generate-tests の E2E が `../src/app.module` を import する):
   src/main.ts                            (NestFactory.create(AppModule) → listen。`ValidationPipe` を global に登録)
-  src/app.module.ts                      (各 Module と、DB 層の Module (PrismaModule / TypeOrmModule) を import。**ProcessFlow に kind=eventPublish の工程が 1 つでもあるときだけ** `EventEmitterModule.forRoot()` も import。無いときは足さない。`SERVICE.md` の「eventPublish の有無で変わるもの」)
+  src/app.module.ts                      (各 Module と、DB 層の Module (PrismaModule / TypeOrmModule) を import。**ProcessFlow に kind=eventPublish の工程が 1 つでもあるときだけ** `EventEmitterModule.forRoot()` も import。無いときは足さない。工程は `Step` を持つ場所すべて (入れ子の中も) から探す。`SERVICE.md` の「eventPublish の有無で変わるもの」)
   package.json                           (scripts に `build` = `nest build`、`start:backend` = `nest start`。devDependencies に `@nestjs/cli`。**eventPublish の工程があるときだけ** dependencies に `@nestjs/event-emitter`。無いときは入れない)
   tsconfig.json / tsconfig.build.json / nest-cli.json  (`rootDir` は `.`、`nest-cli.json` の `sourceRoot` は `src`。業務の Service が出力先の直下、main.ts が `src/` にあるので、**ビルドの出力は `dist/src/main.js`** になる。雛形の Dockerfile と compose の起動コマンドは `node dist/src/main`)
 
@@ -1968,7 +1968,7 @@ volumes:
   db-data:
 ```
 
-上は Spring Boot 系 (PostgreSQL 固定) の形。NestJS 系の `docker-compose.yml` は、雛形の「DB ごとのブロック」を `techStack.database.type` と `techStack.backend.orm` で選んで作る (上の例のようには固定しない)。
+上は Spring Boot 系 (PostgreSQL 固定。`postgres:15` のまま、`techStack.database.version` を反映しない。反映するのは NestJS 系の雛形だけ) の形。NestJS 系の `docker-compose.yml` は、雛形の「DB ごとのブロック」を `techStack.database.type` と `techStack.backend.orm` で選んで作る (上の例のようには固定しない)。
 
 ### README.md セクション (生成アプリ用、scaffold 一部)
 
@@ -2070,7 +2070,7 @@ NestJS 系の雛形は、DB の種類 (postgresql / mysql / sqlite) と ORM (pri
 4. ブロックは入れ子になる (`@orm` の中に `@db`、またはその逆)。外側が一致しなければ、内側ごと消える
 5. マーカーの行以外は、規則 6 の場合を除いて、一切変えない。インデントも空行もそのまま
 6. YAML のファイル (`docker-compose.yml`・`.devcontainer/compose.yml`) だけ: 規則 1〜5 で消した結果、子の行が 1 つも無くなった `environment:` / `volumes:` の行は、その行も消す (`sqlserver` / `oracle` で DB のブロックが全部消えると起きる。値の無いキーを残さないため。コメントの行は触らない)。子の行 = そのキーより深いインデントの、空でもコメントでもない行
-7. **DB の版の置き換え** (#1587): ブロックの剪定のあと、雛形の `__DB_VERSION__` を、そのまま `techStack.database.version` の値に置き換える (全ファイル・全部。`image: postgres:__DB_VERSION__` → `image: postgres:16`、README の `PostgreSQL __DB_VERSION__` → `PostgreSQL 16`)。値は前後の空白を落として、`^[0-9]+(\.[0-9]+)*$` に合うときだけ使う。**合わないとき (省略・空・`latest`・`16; x`・文字列でない値) は、DB ごとの既定** (postgresql `15` / mysql `8`) にする (image のタグに入る値なので、任意の文字列は通さない)。印は postgresql / mysql のブロックの中にしか無いので、`sqlite` / `sqlserver` / `oracle` では何も置き換わらない (指定があっても無視する)。「1-1」で読む `database.version` と同じ値で、版を選ぶ場所はここ 1 か所
+7. **DB の版の置き換え** (#1587): ブロックの剪定のあと、雛形の `__DB_VERSION__` を、そのまま `techStack.database.version` の値に置き換える (全ファイル・全部。`image: postgres:__DB_VERSION__` → `image: postgres:16`、README の `PostgreSQL __DB_VERSION__` → `PostgreSQL 16`)。値は前後の空白を落として、`^[0-9]+(\.[0-9]+)*(-[a-z][a-z0-9]*)?$` (数字とドット + `-alpine` `-bookworm` `-oracle` のような小文字英数字のサフィックス 1 つ。先頭 0 の `016` も docker のタグとして有効なので通す) で、全体が 32 文字までのときだけ使う。**合わないとき (省略・空・`latest`・`16; x`・`16-Alpine` (大文字)・`16-` `16--a` `-a`・33 文字以上・文字列でない値) は、DB ごとの既定** (postgresql `15` / mysql `8`) にする (image のタグに入る値なので、任意の文字列は通さない)。**既定に戻したのが「省略」でなく、値が書いてあったのに形に合わなかったとき**は、黙らずに最終レポートの scaffold の節へ「`database.version=<値>` は image のタグとして使えない形だったので既定 (<既定>) にした」と書く (利用者が 16 系のつもりで書いて 15 の DB が立つ、という食い違いを残さない)。印は postgresql / mysql のブロックの中にしか無いので、`sqlite` / `sqlserver` / `oracle` では何も置き換わらない (指定があっても無視する)。「1-1」で読む `database.version` と同じ値で、版を選ぶ場所はここ 1 か所
 8. マーカーを全部処理したあと、`@db` `@orm` `@end-db` `@end-orm` のマーカー行と `__DB_VERSION__` が 1 つも残っていないこと、`docker compose -f <ファイル> config` が使えるときは通ることを確かめる
 
 この規則で写すと、2 つの ORM は混ざらない (`orm: typeorm` の `docker-compose.yml` / `Dockerfile` / README / `devcontainer.json` に `prisma` は出ない。`orm: prisma` に `typeorm` / `DB_SYNCHRONIZE` は出ない)。`.mcp.json` と `.dockerignore` はブロックを持たない (そのまま写す。`.dockerignore` は host の `node_modules` が image の `npm ci` の結果を上書きするのと、sqlite の DB ファイルが image に入るのを防ぐ)。
@@ -2084,7 +2084,7 @@ NestJS 系の雛形は、DB の種類 (postgresql / mysql / sqlite) と ORM (pri
 **雛形の記録と更新** (`designer__record_scaffold` / `designer__get_scaffold_update`): 記録には雛形の中身 (ブロック入り、写したときのそのまま) が残り、アプリのファイルはブロックを消した後の形になる。そのため **backend は、比べる前に、新しい雛形 (`latest`) と記録 (`base`) の両方を、アプリの `harmony.json` の `techStack.database.type` (省略時 `postgresql`) / `techStack.backend.orm` (省略時 `prisma`) で、上の規則 1〜6 と同じ実装 (`backend/src/ops/scaffoldBlocks.ts`) で消し、規則 7 で `techStack.database.version` (省略・不正は DB ごとの既定) を置き換えてから** `diff` / `templateDiff` / `appChanges` / `appEdited` を作る。返ってくる `latest` / `base` / `diff` にはマーカーも他の DB / ORM のブロックも出ない。AI が自分で剪定して比べる必要は無い。
 
 - 雛形の版 (SHA-256) は、ブロック入りの中身のまま決まる。**`database.type` / `backend.orm` を変えただけでは、版は変わらず「古い」とは出ない** (雛形が新しくなったわけではないため)。逆に、雛形の更新が、このアプリで消えるブロックの中だけだったときは、`status` は `outdated` でも、`files[]` の `state` はすべて `unchanged` になる (取り込むものは無い。`designer__record_scaffold` で版だけ最新にしてよい)
-- **`database.version` だけを変えたとき** (雛形は同じ): 雛形側の変更ではないので `status` は `current`、`files[].state` は `unchanged` のまま。ただし `latest` / `base` は新しい版で置き換えて比べるので、アプリの compose.yml の `image:` がまだ古い版なら `appEdited: true` と出る (利用者の手入れではなく、techStack を変えたあとアプリ側が追いついていない印。`state` が `unchanged` なので `diff` は返らない)。版を変えたら、アプリの `docker-compose.yml` / `.devcontainer/compose.yml` の DB の `image:` と README の DB の行を、雛形を新しい版で消して置き換えた形に直す (利用者に見せてから)。DB の volume に古い版のデータがあるときは、postgres のメジャーを上げるとデータの形式が合わず起動しないので、その旨も伝える
+- **`database.version` だけを変えたとき** (雛形は同じ): 雛形側の変更ではないので `status` は `current`、`files[].state` は `unchanged` のまま。**`status` が `current` でも、`database.version` を変えたあとは `files[].appEdited` を見る。** アプリの DB の image が techStack の版と食い違うときだけ、`designer__get_scaffold_update` の `problems[]` に「DB の版 (techStack.database.version) が雛形に反映されていないファイルがあります。…」の 1 行が出る (image の行以外は雛形と同じときだけ。利用者が他の行を足しただけなら出ない)。これは `latest` / `base` を新しい版で置き換えて比べるためで、アプリの compose.yml の `image:` がまだ古い版なら `appEdited: true` と出る (利用者の手入れではなく、techStack を変えたあとアプリ側が追いついていない印。`state` が `unchanged` なので `diff` は返らない)。版を変えたら、アプリの `docker-compose.yml` / `.devcontainer/compose.yml` の DB の `image:` と README の DB の行を、雛形を新しい版で消して置き換えた形に直す (利用者に見せてから)。DB の volume に古い版のデータがあるときは、postgres のメジャーを上げるとデータの形式が合わず起動しないので、その旨も伝える
 - `techStack` を変えたあとの取り込み (たとえば `orm` を `prisma` から `typeorm` に変える) は、`designer__get_scaffold_update` の差分には、techStack の変更による差と雛形の更新が**混ざる** (比べる側の剪定は新しい techStack、アプリのファイルは古い techStack のまま)。この場合は、上の「実行手順」の 4 と同じように、雛形を新しい techStack で消して作り直し、いまのアプリのファイルとの差を利用者に見せる
 
 ### 実行手順
@@ -2103,7 +2103,7 @@ NestJS 系の雛形は、DB の種類 (postgresql / mysql / sqlite) と ORM (pri
    - `.devcontainer/` (devcontainer.json・compose.yml) と `.mcp.json` は、**常にワークスペースのルート**に置く。ルートに `.devcontainer/devcontainer.json` があれば `.devcontainer/` は作らない。ルートに `.mcp.json` があれば `.mcp.json` も作らない (`mcpServers.harmony` に加えて `playwright` / `playwright-headed` (雛形の `.mcp.json` の該当項目) を足す案内だけ最終レポートに書く)。ルートに `.devcontainer/` があって飛ばしたときは、雛形の `postCreateCommand` / `postStartCommand` の Playwright の行と `compose.yml` の WSLg の 4 行 (volumes の 2 行、`environment:` と `DISPLAY` の 2 行) を足す案内も書く。`.tmp/.gitignore` もワークスペースのルートに置く (すでにあれば飛ばす)。出力先を `backend/` などにしても、`backend/.devcontainer/` を入れ子で作らない
    - `Dockerfile`・`docker-compose.yml`・`.dockerignore` (NestJS 系のみ) は**出力先**に置く。出力先にすでにある**ファイルだけ**を飛ばす (上書きしない)。無いほうは作る
    - 飛ばしたファイルは「既存のため飛ばした」と最終レポートに書く
-4. **ファイルコピー**: 選択したテンプレディレクトリ配下の以下を Read → Write で verbatim コピー (改変・補完なし、AI 解釈なし)。ただし NestJS 系は、上の「DB ごとのブロック」の規則で、合わないブロックを消してから書く (`.devcontainer/devcontainer.json` は `// @orm` ブロックだけ消す。`.mcp.json`・`.tmp/.gitignore`・`.dockerignore` はブロックを持たないのでそのまま)。ステップ 3 で飛ばすと決めたものは書かない:
+4. **ファイルコピー**: 選択したテンプレディレクトリ配下の以下を Read → Write で verbatim コピー (改変・補完なし、AI 解釈なし)。ただし NestJS 系は、上の「DB ごとのブロック」の規則で、合わないブロックを消し、`__DB_VERSION__` を `techStack.database.version` (形に合わない・省略は DB ごとの既定。規則 7) に置き換えてから書く (`.devcontainer/devcontainer.json` は `// @orm` ブロックだけ消す。`.mcp.json`・`.tmp/.gitignore`・`.dockerignore` はブロックを持たないのでそのまま)。ステップ 3 で飛ばすと決めたものは書かない:
    - `.devcontainer/devcontainer.json` → `<ワークスペースのルート>/.devcontainer/devcontainer.json`
    - `.devcontainer/compose.yml` → `<ワークスペースのルート>/.devcontainer/compose.yml`
    - `.mcp.json` → `<ワークスペースのルート>/.mcp.json`
@@ -2113,6 +2113,7 @@ NestJS 系の雛形は、DB の種類 (postgresql / mysql / sqlite) と ORM (pri
    - `docker-compose.yml` → `<出力先>/docker-compose.yml`
    - `.gitignore` への追記 (NestJS 系で `techStack.database.type` が `sqlite` のときだけ。雛形のファイルではなく、書き足す): `<出力先>/.gitignore` に、DB のファイルを git に入れないための行を足す (ファイルが無ければ作る。すでにある行は足さない)。`orm: prisma` は `prisma/dev.db*` と `data/`、`orm: typeorm` は `data/`。postgresql / mysql のときは足さない。足した旨を最終レポートに書く
 5. **README.md 統合**:
+   - `README.snippet.md` は、NestJS 系ではステップ 4 と同じく、ブロックを消し `__DB_VERSION__` を置き換えた内容を使う (「PostgreSQL 16。」のように版が入る)
    - `<出力先>/README.md` 既存 → 冒頭 (最初の `# ` 見出しの直後) に `README.snippet.md` 内容を挿入。ただし README.snippet の節 (`## 開発環境 (Dev Containers)` など) がすでに入っていれば足さない
    - `<出力先>/README.md` 無し → `README.snippet.md` をベースに `# <appName>\n\n` ヘッダを付けて新規 `README.md` 作成
 6. **雛形の記録 (#1577)**: コピーのあと `designer__record_scaffold` を呼ぶ。「写した雛形の版と中身」を `design/scaffold.json` に残す (雛形の中身は backend が雛形から読む。渡さない)。後で雛形が新しくなったとき、この記録が「3 方向の差分」の元になる。
@@ -2125,7 +2126,7 @@ NestJS 系の雛形は、DB の種類 (postgresql / mysql / sqlite) と ORM (pri
 
 Harmony の雛形が新しくなると、`designer__check_design` の info (section「開発コンテナの雛形」)・`designer__get_project_context` の `scaffold`・画面「連携と運用 → 版と更新」が知らせる。利用者に「開発コンテナの雛形の更新を取り込んで」と頼まれたら、次の順で行う (この手順の対象は、雛形が書くファイル全部: `.devcontainer/` の 2 つ・`.mcp.json`・`.tmp/.gitignore`・`Dockerfile`・`docker-compose.yml`・README の節)。
 
-1. `designer__get_scaffold_update` を呼ぶ。NestJS 系の「DB ごとのブロック」は、サーバがアプリの `techStack.database.type` / `techStack.backend.orm` で消してから比べて返す (ブロックを消した差は手入れに見えない。自分で消さなくてよい)。`status` が `outdated` (雛形が新しくなった) か `no-record` (記録が無い古いアプリ) でなければ、取り込むものは無い。`files[]` のうち `state` が `unchanged` でないものが対象 (`guide` に同じ手順が付く)
+1. `designer__get_scaffold_update` を呼ぶ。NestJS 系の「DB ごとのブロック」は、サーバがアプリの `techStack.database.type` / `techStack.backend.orm` で消してから比べて返す (ブロックを消した差と DB の版の置き換えは手入れに見えない。自分で消したり置き換えたりしなくてよい。ただし `database.version` を変えたあとは、`status` が `current` でも `files[].appEdited` と `problems[]` を見る)。`status` が `outdated` (雛形が新しくなった) か `no-record` (記録が無い古いアプリ) でなければ、取り込むものは無い。`files[]` のうち `state` が `unchanged` でないものが対象 (`guide` に同じ手順が付く)
 2. ファイルごとの差分は、`files[]` の **`diff` (いまのアプリ → 新しい雛形)**・`base` があるときは **`templateDiff` (雛形の変更)** と **`appChanges` (利用者の手入れ)** にある (unified diff)。**自分で差分を作らず、これを利用者に見せる** (`diffTooLarge: true` のファイルだけ、`app` と `latest` を自分で比べる。`diffTruncated` は差分が切れているので同じく自分で読み直す)。比べ方は次のとおり:
    - `base` がある (記録があり、飛ばしていない): **3 方向**。`base`→`latest` が雛形の変更、`base`→`app` が利用者の手入れ。雛形の変更を取り込み、手入れは残す
    - `base` が無い (記録が無い・飛ばしたファイル): **2 方向**。`app` と `latest` の差を、利用者に 1 つずつ見せて選んでもらう (`appEdited` が `null` = 手入れかどうか不明)

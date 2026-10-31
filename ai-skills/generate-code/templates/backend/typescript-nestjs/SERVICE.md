@@ -212,7 +212,7 @@ export class {{processFlow.meta.name | toPascalCase}}Service {
 
 ### eventPublish の有無で変わるもの (EventEmitter2)
 
-`EventEmitter2` は、その Service の ProcessFlow に `kind=eventPublish` の工程がある (`inlineBranch` / `branches` / `elseBranch` / `loop` / `transactionScope` の中も再帰して探す) ときだけ使う。**無いときは書かない** (書くと、依存と `EventEmitterModule.forRoot()` が無いために `tsc` が `Cannot find module '@nestjs/event-emitter'`、依存だけ足しても起動時に `Nest can't resolve dependencies of the ... Service (..., ?)` で落ちる。実機で確認した)。
+`EventEmitter2` は、その Service の ProcessFlow に `kind=eventPublish` の工程がある (`Step` を持つ場所**すべて**の中を、入れ子の深さを問わず探す。`schemas/v3/process-flow.v3.schema.json` で確かめた持ち場所: `actions[].steps`・全 step の `subSteps`・`validation` の `inlineBranch.ok` / `inlineBranch.ng`・`branch` の `branches[].steps` と `elseBranch.steps`・`loop` の `steps`・`workflow` の `onApproved` / `onRejected` / `onTimeout`・`transactionScope` の `steps` / `onCommit` / `onRollback`。**これだけではない**: schema に `Step` を持つ場所が増えても同じで、ProcessFlow の JSON を `"kind": "eventPublish"` で全文検索するのと同じ結果になるように探す) ときだけ使う。**無いときは書かない** (書くと、依存と `EventEmitterModule.forRoot()` が無いために `tsc` が `Cannot find module '@nestjs/event-emitter'`、依存だけ足しても起動時に `Nest can't resolve dependencies of the ... Service (..., ?)` で落ちる。実機で確認した)。
 
 | | eventPublish の工程が **ある** Service | **無い** Service |
 |---|---|---|

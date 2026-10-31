@@ -1061,11 +1061,35 @@ describe("DB の版 (techStack.database.version) と雛形の更新の比較 (#1
     expect(f.state).toBe("unchanged");
     // アプリ側がまだ古い版 = 比べる雛形 (新しい techStack で置き換え) と食い違う。利用者の手入れではないが、記録の base も新しい版で置き換えるので、appEdited として見える
     expect(f.appEdited).toBe(true);
+    // status が current でも、AI が取り込みを始める手がかりとして problems に 1 行出る (image が techStack の版と食い違うときだけ)
+    expect(u.problems.filter((p) => p.includes("techStack.database.version"))).toHaveLength(1);
+    expect(u.problems[0]).toContain("「15」");
+    expect(u.problems[0]).toContain("「16」");
     // 雛形の版 (SHA-256) は変わらない
     expect(u.currentVersion).toBe(u.recordedVersion);
     // アプリの image を新しい版に書き換えれば、また食い違いは消える
     await write(path.join(ROOT, ".devcontainer/compose.yml"), appCompose("postgres:16"));
     expect((await composeOf()).appEdited).toBe(false);
+    expect((await getScaffoldUpdate(ROOT, TPL)).problems).toEqual([]);
+  });
+
+  it("手入れが無い (版が合っている) アプリや、版と関係ない手入れでは、DB の版の知らせは出ない", async () => {
+    await setup({ type: "postgresql", version: "16" }, appCompose("postgres:16"));
+    await recordScaffold(ROOT, {}, "AI", TPL);
+    expect((await getScaffoldUpdate(ROOT, TPL)).problems).toEqual([]);
+    // 利用者が別の行を足した (image は techStack の版のまま): appEdited は true でも、版の知らせは出ない
+    await write(path.join(ROOT, ".devcontainer/compose.yml"), appCompose("postgres:16") + "    restart: always\n");
+    const u = await getScaffoldUpdate(ROOT, TPL);
+    expect(u.files.find((f) => f.template === ".devcontainer/compose.yml")!.appEdited).toBe(true);
+    expect(u.problems).toEqual([]);
+  });
+
+  it("サフィックスつきの版 (16-alpine) が通り、アプリの image が古い (15) と知らせる", async () => {
+    await setup({ type: "postgresql", version: "16-alpine" }, appCompose("postgres:16-alpine"));
+    await recordScaffold(ROOT, {}, "AI", TPL);
+    expect((await getScaffoldUpdate(ROOT, TPL)).problems).toEqual([]);
+    await write(path.join(ROOT, ".devcontainer/compose.yml"), appCompose("postgres:15"));
+    expect((await getScaffoldUpdate(ROOT, TPL)).problems).toHaveLength(1);
   });
 
   it("記録の形は変えない: scaffold.json には印の入った雛形がそのまま残り、版 (SHA-256) は database.version を変えても変わらない", async () => {

@@ -16,7 +16,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { BLOCK_MARKER_LINE, pruneScaffoldBlocks, pruneScaffoldFile } from "./ops/scaffold.js";
-import { DB_VERSION_TOKEN, applyDbVersion, dropEmptyComposeKeys, resolveDbVersion } from "./ops/scaffoldBlocks.js";
+import { DB_VERSION_TOKEN, applyDbVersion, dropEmptyComposeKeys, isUsableDbVersion, resolveDbVersion } from "./ops/scaffoldBlocks.js";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const TEMPLATES = path.join(REPO, "ai-skills/generate-code/templates/devcontainer");
@@ -264,7 +264,7 @@ describe("DB の版 (techStack.database.version) の置き換え (#1587)", () =>
   });
 
   describe.each(COMBOS)("%s", (combo) => {
-    it.each([["postgresql", "16", "postgres:16"], ["postgresql", undefined, "postgres:15"], ["postgresql", "16.4", "postgres:16.4"], ["mysql", "8.4", "mysql:8.4"], ["mysql", undefined, "mysql:8"], ["mysql", "5.7", "mysql:5.7"]] as const)(
+    it.each([["postgresql", "16", "postgres:16"], ["postgresql", undefined, "postgres:15"], ["postgresql", "16.4", "postgres:16.4"], ["mysql", "8.4", "mysql:8.4"], ["mysql", undefined, "mysql:8"], ["mysql", "5.7", "mysql:5.7"], ["postgresql", "16-alpine", "postgres:16-alpine"], ["postgresql", "16.4-bookworm", "postgres:16.4-bookworm"], ["mysql", "8.4-oracle", "mysql:8.4-oracle"], ["postgresql", "016", "postgres:016"], ["postgresql", "16-alpine3", "postgres:16-alpine3"]] as const)(
       "%s × version=%s: 2 つの compose.yml の DB の image が %s で、YAML として妥当・印が残らない",
       (db, version, image) => {
         for (const orm of ORMS) {
@@ -281,7 +281,7 @@ describe("DB の版 (techStack.database.version) の置き換え (#1587)", () =>
       },
     );
 
-    it.each(["latest", "16; rm -rf /", "", " ", "16 && x", "v16", "16.", ".16", "1e2", "16\nx", 16 as unknown as string, null as unknown as string, { a: 1 } as unknown as string])(
+    it.each(["latest", "16; rm -rf /", "", " ", "16 && x", "v16", "16.", ".16", "1e2", "16\nx", "16-", "16--a", "-a", "-16", "16-Alpine", "16;x", "16-alpine;x", "16-alpine-x", "16_a", "16-1a", "16$x", "16 alpine", "1".repeat(33), `16-${"a".repeat(31)}`, "__DB_VERSION__", 16 as unknown as string, null as unknown as string, { a: 1 } as unknown as string])(
       "不正な version (%j) は既定 (postgres:15 / mysql:8) に戻る",
       (version) => {
         for (const [db, image] of [["postgresql", "postgres:15"], ["mysql", "mysql:8"]] as const) {
@@ -316,6 +316,26 @@ describe("DB の版 (techStack.database.version) の置き換え (#1587)", () =>
         }
       }
     });
+  });
+
+  it("版の形: 数字とドット + 小文字英数字のサフィックス 1 つ。全体 32 文字まで (境界)", () => {
+    expect(isUsableDbVersion("1".repeat(32))).toBe(true);
+    expect(isUsableDbVersion("1".repeat(33))).toBe(false);
+    expect(isUsableDbVersion(`16-${"a".repeat(29)}`)).toBe(true); // 32 文字
+    expect(isUsableDbVersion(`16-${"a".repeat(30)}`)).toBe(false); // 33 文字
+    expect(isUsableDbVersion("16-alpine")).toBe(true);
+    expect(isUsableDbVersion(" 16-alpine ")).toBe(true);
+    expect(isUsableDbVersion("016")).toBe(true); // 先頭 0 は docker のタグとして有効なので通す
+    for (const bad of ["", " ", "16-", "16--a", "-a", "16-Alpine", "16;x", "latest", "16-alpine;x", null, undefined, 16, {}, []]) expect(isUsableDbVersion(bad), String(bad)).toBe(false);
+  });
+
+  it("database.type が Object.prototype の名前でも既定を取り違えない (__proto__ / constructor / toString)", () => {
+    for (const db of ["__proto__", "constructor", "toString", "hasOwnProperty", "valueOf"]) {
+      expect(resolveDbVersion(db, "16"), db).toBeUndefined();
+      expect(resolveDbVersion(db, undefined), db).toBeUndefined();
+      expect(resolveDbVersion(db, { a: 1 }), db).toBeUndefined();
+      expect(applyDbVersion(`x ${DB_VERSION_TOKEN}`, { db, orm: "prisma", dbVersion: "16" }), db).toBe(`x ${DB_VERSION_TOKEN}`);
+    }
   });
 
   it("applyDbVersion / resolveDbVersion の規則: 印を全部置き換える・前後の空白は落とす・既定の無い DB は置き換えない", () => {
