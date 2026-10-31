@@ -32,6 +32,19 @@ Podman で build する場合:
 CONTAINER_ENGINE=podman bash scripts/build-harmony-image.sh local
 ```
 
+### image に残る版の記録 (#1577)
+
+build script は、作った時点の commit (完全な SHA)・ブランチ・コミットしていない変更の有無・作った日時 (UTC)・取得元 (`origin` が GitHub のときの `owner/repo`) を build-arg で渡し、image に次の 2 つで残す。git の作業コピーでないとき (git が無い・`.git` が無い) は空で渡し、image は作れるが記録は残らない。
+
+- OCI の label: `org.opencontainers.image.revision` / `created` / `source` (`docker inspect <image>` で読める)
+- `/app/build-info.json`: `{ "commit", "branch", "dirty", "builtAt", "repo" }` (空の項目は書かない)
+
+作る前に、「main ではなくブランチ X から作る」「コミットしていない変更がある」ときは注意を表示する。作った image を起動すると、画面「連携と運用 → 版と更新」に、配布 image・commit・作った日時・取得元が出る。main 以外のブランチ・コミットしていない変更から作った image は ⚠ の注意が出る。「更新を確認する」を押すと、記録した commit を GitHub の main と比べて「main より N commit 古い」を表示する (GitHub への読み取りの問い合わせだけ。認証なし)。AI (MCP) からは `designer__workspace_status` の `harmony` と `designer__check_harmony_update`。仕様: [integration-ops.md](../spec/integration-ops.md) §14。
+
+リリースノート (画面「版と更新」に出る一覧) は、commit 済みの `docs/release-notes.md` ではなく、**作るときの履歴 (`HEAD` まで) から作り直して** image に入れる。commit 済みのファイルは、その PR 自身の題名を含められず、いつも 1 つ遅れるため。build script が `node scripts/release/notes.mjs --ref HEAD --stdout` の出力を一時フォルダ (終わったら消す) に書き、`--build-context releasenotes=<フォルダ>` で渡す (Dockerfile の `FROM scratch AS releasenotes` の段と差し替わる)。**`docker build` だけで作ると、commit 済みのファイルのまま**になる (最新のリリースノートが欲しいときは、build script で作る)。git・node が無いとき、`--build-context` に対応しない engine のときは、注意を出して commit 済みのファイルで作る。podman は、`build --help` に `--build-context` があれば同じように渡す (新しい版のみ。無ければ commit 済みのファイル)。ブランチから作ると、ブランチの commit の題名も並ぶ。
+
+**注意**: 記録されるのは commit だけで、コミットしていない変更の中身は残らない。配布用の image は、変更をコミットした `main` (または PR のブランチ) から作る。
+
 ## 起動
 
 local default のまま起動する:

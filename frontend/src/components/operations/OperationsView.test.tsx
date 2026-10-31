@@ -38,6 +38,7 @@ beforeEach(() => {
     "git.log": { commits: [] }, "git.branches": { branches: [] }, "notify.load": { webhooks: [], problems: [] }, "generation.status": { rows: [], problems: [] },
     "access.load": { access: { version: 1, users: [], policy: { requireApprovalForCommitted: false } }, problems: [], you: { name: "花子", role: null, enforced: false } },
     "app.version": { version: "1.2.3", commit: "abc1234", startedAt: "2026-10-01T00:00:00.000Z", notes: [{ date: "2026-10-01", title: "更新あり", pr: "9" }], notesTotal: 1 },
+    "scaffold.status": { status: "not-applicable", reason: "このワークスペースには、開発コンテナの雛形の記録がありません" },
     listAllTables: [], loadAllProcessFlows: [],
   };
   request.mockImplementation(async (method: string, params: unknown) => {
@@ -320,5 +321,99 @@ describe("生成の管理・版と更新", () => {
     fireEvent.click(screen.getByTestId("op-version-check"));
     expect((await screen.findByTestId("op-version-update")).textContent).toBe("更新があります");
     expect(localStorage.getItem("harmony.seenVersion")).toBe("1.2.3+abc1234"); // この画面で版を見たので、更新の案内は出さない
+    expect(screen.queryByTestId("op-version-image")).toBeNull(); // git の作業コピーなので、配布 image の表示は出さない
+    expect(screen.queryByTestId("op-version-warn")).toBeNull();
+  });
+
+  it("配布 image は、commit・作った日時・取得元を出し、main 以外のブランチ・未コミットの変更つきなら注意を出す。更新の確認に N commit が出る (#1577)", async () => {
+    rpc["app.version"] = () => ({ version: "1.2.3", commit: "0123456", commitFull: "0123456789abcdef0123456789abcdef01234567", branch: "feat/issue-1561-x", dirty: true, source: "image", builtAt: "2026-10-30T11:23:00.000Z", repo: "csilost2001/harmony", startedAt: "2026-10-31T00:00:00.000Z", notes: [], notesTotal: 0 });
+    rpc["app.checkUpdate"] = () => ({ status: "behind", message: "この image は main より 12 commit 古いです。image を作り直してください", behindBy: 12, aheadBy: 0 });
+    await open("version");
+    const info = (await screen.findByTestId("op-version-info")).textContent ?? "";
+    expect(info).toContain("配布 image");
+    expect(info).toContain("0123456");
+    expect(info).toContain("github.com/csilost2001/harmony");
+    const warns = screen.getAllByTestId("op-version-warn").map((e) => e.textContent ?? "");
+    expect(warns).toHaveLength(2);
+    expect(warns[0]).toContain("feat/issue-1561-x");
+    expect(warns[1]).toContain("コミットしていない変更");
+    fireEvent.click(screen.getByTestId("op-version-check"));
+    expect((await screen.findByTestId("op-version-update")).textContent).toContain("main より 12 commit 古い");
+  });
+
+  it("配布 image が main の commit 済みから作られていれば、注意は出ない (#1577)", async () => {
+    rpc["app.version"] = () => ({ version: "1.2.3", commit: "0123456", branch: "main", dirty: false, source: "image", builtAt: "2026-10-30T11:23:00.000Z", repo: "csilost2001/harmony", startedAt: "2026-10-31T00:00:00.000Z", notes: [], notesTotal: 0 });
+    await open("version");
+    expect((await screen.findByTestId("op-version-info")).textContent).toContain("配布 image");
+    expect(screen.queryByTestId("op-version-warn")).toBeNull();
+  });
+
+  it("開発コンテナの雛形: 該当しなければ理由だけ。古ければ状態・版・AI への頼み方を出す (#1577)", async () => {
+    await open("version");
+    expect((await screen.findByTestId("op-scaffold-status")).textContent).toBe("該当しません");
+    expect(screen.getByTestId("op-scaffold-reason").textContent).toContain("記録がありません");
+    expect(screen.queryByTestId("op-scaffold-ask")).toBeNull();
+  });
+
+  it("開発コンテナの雛形が新しくなっていれば、記録の版といまの版と、「AI に頼む」案内が出る (#1577)", async () => {
+    rpc["scaffold.status"] = () => ({ status: "outdated", combo: "spring-boot-thymeleaf", recordedVersion: "aaaaaaaaaaaa", currentVersion: "bbbbbbbbbbbb", outDir: "." });
+    await open("version");
+    expect((await screen.findByTestId("op-scaffold-status")).textContent).toBe("雛形が新しくなっています");
+    const info = screen.getByTestId("op-scaffold-info").textContent ?? "";
+    expect(info).toContain("spring-boot-thymeleaf");
+    expect(info).toContain("aaaaaaaaaaaa");
+    expect(info).toContain("bbbbbbbbbbbb");
+    expect(screen.getByTestId("op-scaffold-ask").textContent).toContain("開発コンテナの雛形の更新を取り込んで");
+  });
+
+  it("開発コンテナの雛形: 記録が無い (Harmony の image を使う) ときも案内が出る。最新なら案内は出ない (#1577)", async () => {
+    rpc["scaffold.status"] = () => ({ status: "no-record", combo: "nestjs-nextjs", currentVersion: "bbbbbbbbbbbb" });
+    await open("version");
+    expect((await screen.findByTestId("op-scaffold-status")).textContent).toBe("雛形の記録がありません");
+    expect(screen.getByTestId("op-scaffold-ask")).toBeTruthy();
+  });
+
+  it("開発コンテナの雛形が最新なら、案内は出ない (#1577)", async () => {
+    rpc["scaffold.status"] = () => ({ status: "current", combo: "nestjs-nextjs", recordedVersion: "bbbbbbbbbbbb", currentVersion: "bbbbbbbbbbbb" });
+    await open("version");
+    expect((await screen.findByTestId("op-scaffold-status")).textContent).toBe("最新です");
+    expect(screen.queryByTestId("op-scaffold-ask")).toBeNull();
+  });
+
+  // ── #1577 PR #1578 レビューの指摘への試験 ──
+  it("AI が雛形を当てて記録を書き直すと (opsChanged)、版と更新を開いたままでも、雛形の状態を読み直してお知らせが消える (S2)", async () => {
+    let status: Record<string, unknown> = { status: "outdated", combo: "spring-boot-thymeleaf", recordedVersion: "aaaaaaaaaaaa", currentVersion: "bbbbbbbbbbbb", outDir: "." };
+    rpc["scaffold.status"] = () => status;
+    await open("version");
+    expect((await screen.findByTestId("op-scaffold-status")).textContent).toBe("雛形が新しくなっています");
+    expect(screen.getByTestId("op-scaffold-ask")).toBeTruthy();
+    const before = calls("scaffold.status").length;
+    status = { status: "current", combo: "spring-boot-thymeleaf", recordedVersion: "bbbbbbbbbbbb", currentVersion: "bbbbbbbbbbbb", outDir: "." };
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try { for (const cb of listeners.get("opsChanged") ?? []) cb(); await vi.advanceTimersByTimeAsync(500); } finally { vi.useRealTimers(); }
+    await waitFor(() => expect(calls("scaffold.status").length).toBeGreaterThan(before));
+    await waitFor(() => expect(screen.getByTestId("op-scaffold-status").textContent).toBe("最新です"));
+    expect(screen.queryByTestId("op-scaffold-ask")).toBeNull();
+  });
+
+  it("配布 image の行は「種類 / 配布 image (git の作業コピーではありません)」と読める (N9)", async () => {
+    rpc["app.version"] = () => ({ version: "1.2.3", commit: "0123456", branch: "main", dirty: false, source: "image", builtAt: "2026-10-30T11:23:00.000Z", repo: "csilost2001/harmony", startedAt: "2026-10-31T00:00:00.000Z", notes: [], notesTotal: 0 });
+    await open("version");
+    const row = (await screen.findByTestId("op-version-image")).textContent;
+    expect(row).toBe("配布 image (git の作業コピーではありません)");
+    const dts = Array.from(screen.getByTestId("op-version-info").querySelectorAll("dt")).map((e) => e.textContent);
+    expect(dts).toContain("種類");
+    expect(dts).not.toContain("配布");
+  });
+
+  it("配布 image のブランチが分からない (detached HEAD) ときは、「ブランチを特定できません」の注意を出し、「ブランチ HEAD」とは出さない (N1)", async () => {
+    rpc["app.version"] = () => ({ version: "1.2.3", commit: "0123456", dirty: false, source: "image", builtAt: "2026-10-30T11:23:00.000Z", repo: "csilost2001/harmony", startedAt: "2026-10-31T00:00:00.000Z", notes: [], notesTotal: 0 });
+    await open("version");
+    const info = (await screen.findByTestId("op-version-info")).textContent ?? "";
+    expect(info).not.toContain("ブランチ HEAD");
+    const warns = screen.getAllByTestId("op-version-warn").map((e) => e.textContent ?? "");
+    expect(warns).toHaveLength(1);
+    expect(warns[0]).toContain("ブランチを特定できません");
+    expect(warns[0]).not.toContain("「HEAD」");
   });
 });

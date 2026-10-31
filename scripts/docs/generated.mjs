@@ -292,7 +292,9 @@ export const CORE_TERMS = [
 ];
 
 function toolNames(base) {
-  const src = read(base, "backend/src/tools.ts");
+  // tools.ts と、そこから分けた tools*.ts (toolsWorkspace.ts など) をまとめて読む
+  const dir = path.join(base, "backend/src");
+  const src = fs.readdirSync(dir).filter((f) => /^tools[A-Za-z]*\.ts$/.test(f)).map((f) => read(base, `backend/src/${f}`)).join("\n");
   return new Set([...src.matchAll(/name:\s*"(?:designer|editSession)__([a-z_]+)"/g)].map((m) => m[1]));
 }
 

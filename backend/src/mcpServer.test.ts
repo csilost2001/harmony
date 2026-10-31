@@ -62,6 +62,12 @@ describe("プロファイル (tool の絞り込み)", () => {
     expect(profilesFromRequest("/mcp?profile=", { HARMONY_MCP_PROFILE: "flow" }).names).toEqual(["flow"]); // 空は未指定
   });
 
+  it("designer__check_harmony_update は、どのプロファイルにも入り、読み取り専用の接続でも使え、GitHub へ問い合わせる印 (openWorld) が付く (#1577)", () => {
+    for (const p of Object.keys(PROFILES)) expect(isInProfile("designer__check_harmony_update", [p]), p).toBe(true);
+    expect(isReadOnlyTool("designer__check_harmony_update")).toBe(true);
+    expect(tools.find((t) => t.name === "designer__check_harmony_update")?.inputSchema).toMatchObject({ properties: {} });
+  });
+
   it("すべての tool が、どれかのプロファイルに入る (絞った接続で、案内の手順が行き止まりにならない)", () => {
     const orphans = tools.map((t) => t.name).filter((n) => !Object.keys(PROFILES).some((p) => isInProfile(n, [p])));
     expect(orphans).toEqual([]);
@@ -292,6 +298,7 @@ describe("designer__get_project_context (設計全体の要約)", () => {
       expect(ctx.designs.flows.items[0]).toMatchObject({ id: expect.any(String), actions: expect.any(Number), steps: expect.any(Number) });
       expect(ctx.designs.tables.items[0].columns).toBeGreaterThan(0);
       expect(typeof ctx.markers.unresolved).toBe("number");
+      expect(ctx.harmony).toMatchObject({ version: expect.any(String) }); // この Harmony の版 (#1577)
       expect(ctx.next).toEqual([...NEXT_STEPS]);
       // 同じ内容を resource でも読める
       const res = await client.readResource({ uri: "harmony://project/context" });
@@ -383,6 +390,7 @@ describe("ワークスペース未選択でも使える workspace の tool", () 
 
       const status = JSON.parse(textOf(await client.callTool({ name: "designer__workspace_status", arguments: {} })));
       expect(status.active).toBeNull();
+      expect(status.harmony).toMatchObject({ version: expect.any(String) }); // ワークスペース未選択でも、この Harmony の版は分かる (#1577)
       const list = JSON.parse(textOf(await client.callTool({ name: "designer__workspace_list", arguments: {} })));
       expect(list.active).toBeNull();
       expect(Array.isArray(list.workspaces)).toBe(true);

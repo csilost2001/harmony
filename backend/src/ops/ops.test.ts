@@ -11,7 +11,7 @@ import { addComment, generationStatus, listApprovals, recordGeneration, regenera
 import { AUDIT_MAX_BYTES, parseAuditLines, readAudit, recordAudit } from "./audit.js";
 import { isPrivateAddress, sendWebhook, dispatchNotify, type SendDeps } from "./notifySend.js";
 import { assertBranchName, assertGitPath, execOverrides, gitBranches, gitCheckout, gitCommit, gitDiff, gitInit, gitLog, gitStatus } from "./gitOps.js";
-import { parseReleaseNotes, readVersionInfo } from "./versionInfo.js";
+import { branchName, checkForUpdate, describeFetchError, createUpdateCheckMemo, harmonySummary, parseReleaseNotes, readBuildInfo, readVersionInfo, resetHarmonySummaryCache, type UpdateCheck } from "./versionInfo.js";
 import { suggestRevision } from "./revisionSuggest.js";
 import { createdIdFromResultText, describeAiTool, describeRpc, isAiDryRun, isAiNoWrite } from "./auditMap.js";
 
@@ -464,6 +464,210 @@ describe("版の情報", () => {
     expect(noGit.version).toBe("2.3.4");
     expect(noGit.commit).toBeUndefined();
     await fs.rm(proj, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+  });
+});
+
+describe("版の情報: 配布 image の build-info.json と、GitHub への更新の確認 (#1577)", () => {
+  const SHA = "0123456789abcdef0123456789abcdef01234567";
+  const noGit = async () => { throw new Error("git が見つかりません"); };
+  let proj = "";
+  beforeEach(async () => { proj = await fs.mkdtemp(path.join(os.tmpdir(), "ops-bi-")); await fs.writeFile(path.join(proj, "package.json"), JSON.stringify({ version: "9.9.9" })); });
+  afterEach(async () => { await fs.rm(proj, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
+  const writeBuildInfo = (v: unknown) => fs.writeFile(path.join(proj, "build-info.json"), typeof v === "string" ? v : JSON.stringify(v));
+  const gitRun = async (_cwd: string, args: string[]) => {
+    const out: Record<string, string> = { "rev-parse --show-toplevel": proj, "rev-parse --short HEAD": "abc1234", "rev-parse HEAD": SHA, "rev-parse --abbrev-ref HEAD": "main", "status --porcelain --untracked-files=no": "" };
+    return { stdout: out[args.join(" ")] ?? "", stderr: "", code: 0 };
+  };
+
+  it("git の作業コピーなら source は git で、完全な SHA も返す (build-info があっても git が優先)", async () => {
+    await writeBuildInfo({ commit: "f".repeat(40), branch: "x" });
+    expect(await readVersionInfo(gitRun, proj)).toMatchObject({ source: "git", commit: "abc1234", commitFull: SHA, branch: "main", dirty: false });
+  });
+  it("git の作業コピーでなければ build-info.json を読む (commit は短縮 7 桁、完全な SHA も返す)", async () => {
+    await writeBuildInfo({ commit: SHA, branch: "feat/x", dirty: true, builtAt: "2026-10-30T11:23:00Z", repo: "csilost2001/harmony", extra: "無視される" });
+    const info = await readVersionInfo(noGit, proj);
+    expect(info).toMatchObject({ version: "9.9.9", source: "image", commit: "0123456", commitFull: SHA, branch: "feat/x", dirty: true, builtAt: "2026-10-30T11:23:00Z", repo: "csilost2001/harmony" });
+    expect(info).not.toHaveProperty("extra");
+  });
+  it("build-info の一部の項目が空・不正でも、commit が正しければ、ほかの正しい項目だけ使う", async () => {
+    await writeBuildInfo({ commit: SHA, branch: "", dirty: "true", builtAt: "いつか", repo: "../evil" });
+    const info = await readVersionInfo(noGit, proj);
+    expect(info).toMatchObject({ source: "image", commit: "0123456" });
+    for (const k of ["branch", "dirty", "builtAt", "repo"]) expect(info, k).not.toHaveProperty(k);
+  });
+  it("git も build-info も無ければ、版だけ (source は無い)。壊れた build-info・commit が不正な build-info は無視する", async () => {
+    const none = await readVersionInfo(noGit, proj);
+    expect(none).toMatchObject({ version: "9.9.9" });
+    for (const k of ["commit", "source", "commitFull"]) expect(none, k).not.toHaveProperty(k);
+    for (const bad of ["{ 壊れた", "[]", "null", JSON.stringify({ commit: "abc1234" }), JSON.stringify({ commit: SHA.toUpperCase() }), JSON.stringify({ branch: "x" })]) {
+      await writeBuildInfo(bad);
+      expect(await readBuildInfo(proj), bad).toBeUndefined();
+      expect(await readVersionInfo(noGit, proj), bad).not.toHaveProperty("source");
+    }
+  });
+
+  const BI = { commit: SHA, repo: "csilost2001/harmony" };
+  const reply = (status: number, body: unknown = {}) => async () => ({ ok: status >= 200 && status < 300, status, json: async () => body });
+  const check = async (fetchFn: Parameters<typeof checkForUpdate>[2]) => { await writeBuildInfo(BI); return checkForUpdate(noGit, proj, fetchFn); };
+
+  it("GitHub の compare に、repo と commit を入れて問い合わせる (認証なし・User-Agent つき・時間切れの signal つき)", async () => {
+    let seen: { url: string; init?: { headers?: Record<string, string>; signal?: AbortSignal } } | undefined;
+    await check(async (url, init) => { seen = { url, init }; return { ok: true, status: 200, json: async () => ({ status: "identical" }) }; });
+    expect(seen?.url).toBe(`https://api.github.com/repos/csilost2001/harmony/compare/${SHA}...main?per_page=1`); // 返答を小さくするため per_page=1 (使うのは status / ahead_by / behind_by だけ)
+    expect(seen?.init?.headers?.["User-Agent"]).toBeTruthy();
+    expect(seen?.init?.headers?.Authorization).toBeUndefined();
+    expect(seen?.init?.signal).toBeInstanceOf(AbortSignal);
+  });
+  it("main と同じ → current", async () => {
+    expect(await check(reply(200, { status: "identical", ahead_by: 0, behind_by: 0 }))).toMatchObject({ status: "current", local: "0123456", behindBy: 0, aheadBy: 0 });
+  });
+  it("main が進んでいる (image が古い) → behind。compare の ahead_by は main が進んだ数", async () => {
+    const r = await check(reply(200, { status: "ahead", ahead_by: 12, behind_by: 0 }));
+    expect(r).toMatchObject({ status: "behind", behindBy: 12, aheadBy: 0 });
+    expect(r.message).toContain("main より 12 commit 古い");
+  });
+  it("image の方が先 (main にない commit だけ) → current。分岐 (両方) → behind で、main にない commit の数も添える", async () => {
+    expect(await check(reply(200, { status: "behind", ahead_by: 0, behind_by: 3 }))).toMatchObject({ status: "current", behindBy: 0, aheadBy: 3, message: expect.stringContaining("main より先に進んでいます") });
+    const d = await check(reply(200, { status: "diverged", ahead_by: 5, behind_by: 2 }));
+    expect(d).toMatchObject({ status: "behind", behindBy: 5, aheadBy: 2 });
+    expect(d.message).toContain("main より 5 commit 古い");
+    expect(d.message).toContain("main にない commit が 2");
+  });
+  it("404 → 記録した commit が GitHub に無い (push していないブランチ)。それ以外の HTTP の失敗・ネットワークの失敗・形の違う返答は unknown", async () => {
+    expect(await check(reply(404))).toMatchObject({ status: "unknown", message: expect.stringContaining("記録した commit が GitHub にありません") });
+    expect(await check(reply(403))).toMatchObject({ status: "unknown", message: expect.stringMatching(/確かめられません.*403/) });
+    expect(await check(async () => { throw new Error("fetch failed"); })).toMatchObject({ status: "unknown", message: expect.stringContaining("確かめられません (fetch failed)") });
+    expect(await check(reply(200, { status: "???" }))).toMatchObject({ status: "unknown" });
+    expect(await check(async () => ({ ok: true, status: 200, json: async () => { throw new Error("bad json"); } }))).toMatchObject({ status: "unknown" });
+  });
+  it("build-info に repo が無い・不正な形のときは、問い合わせず unknown (URL に入れない)", async () => {
+    let called = 0;
+    const spy = async () => { called++; return { ok: true, status: 200, json: async () => ({}) }; };
+    await writeBuildInfo({ commit: SHA });
+    expect(await checkForUpdate(noGit, proj, spy)).toMatchObject({ status: "unknown", message: expect.stringContaining("取得元") });
+    await writeBuildInfo({ commit: SHA, repo: "a/b/../../c" }); // 不正な repo は readBuildInfo が落とすので、repo なしと同じ扱い
+    expect(await checkForUpdate(noGit, proj, spy)).toMatchObject({ status: "unknown" });
+    await writeBuildInfo({ commit: "abc1234", repo: "a/b" });
+    expect(await checkForUpdate(noGit, proj, spy)).toMatchObject({ status: "unknown" });
+    expect(called).toBe(0);
+  });
+  it("git の作業コピーでも build-info も無ければ、これまでどおり確認できない旨を返す", async () => {
+    expect(await checkForUpdate(noGit, proj, reply(200))).toMatchObject({ status: "unknown", message: expect.stringContaining("git の作業コピーではない") });
+  });
+  it("git の作業コピーは、これまでどおり origin の main と比べる", async () => {
+    const run = async (_c: string, args: string[]) => {
+      const k = args.join(" ");
+      if (k === "rev-parse --show-toplevel") return { stdout: proj, stderr: "", code: 0 };
+      if (k === "rev-parse HEAD") return { stdout: SHA, stderr: "", code: 0 };
+      if (k.startsWith("ls-remote")) return { stdout: `${"1".repeat(40)}\trefs/heads/main`, stderr: "", code: 0 };
+      if (k.startsWith("merge-base")) return { stdout: "", stderr: "", code: 1 };
+      return { stdout: "", stderr: "", code: 0 };
+    };
+    expect(await checkForUpdate(run, proj, async () => { throw new Error("GitHub は使わない"); })).toMatchObject({ status: "behind", local: "0123456", remote: "1111111" });
+  });
+  it("harmonySummary は、版・commit・branch・dirty・source を返す (ネットワークなし)", async () => {
+    expect(await harmonySummary()).toMatchObject({ version: expect.any(String) });
+  });
+  it("harmonySummary は 30 秒のあいだ同じ結果を覚え、30 秒後に読み直す (#1577 レビュー N10)", async () => {
+    resetHarmonySummaryCache();
+    const t0 = Date.now();
+    const first = await harmonySummary(t0);
+    expect(await harmonySummary(t0 + 29_999)).toBe(first); // 同じ object = 覚えている (git を呼び直さない)
+    const later = await harmonySummary(t0 + 30_001);
+    expect(later).not.toBe(first); // 読み直した
+    expect(later).toEqual(first); // 中身は同じ
+    expect(await harmonySummary(t0 + 30_002)).toBe(later);
+    resetHarmonySummaryCache(); // 後の試験に、この試験の時刻の覚えを残さない
+  });
+  it("detached HEAD (git が HEAD と返す) はブランチ名とみなさない。build-info の branch が HEAD でも同じ (#1577 レビュー N1)", async () => {
+    expect(branchName("HEAD\n")).toBeUndefined();
+    expect(branchName(" main \n")).toBe("main");
+    expect(branchName("")).toBeUndefined();
+    const detached = async (_c: string, args: string[]) => {
+      const out: Record<string, string> = { "rev-parse --show-toplevel": proj, "rev-parse --short HEAD": "abc1234", "rev-parse HEAD": SHA, "rev-parse --abbrev-ref HEAD": "HEAD", "status --porcelain --untracked-files=no": "" };
+      return { stdout: out[args.join(" ")] ?? "", stderr: "", code: 0 };
+    };
+    expect(await readVersionInfo(detached, proj)).not.toHaveProperty("branch");
+    await writeBuildInfo({ commit: SHA, branch: "HEAD" });
+    const img = await readVersionInfo(noGit, proj);
+    expect(img).toMatchObject({ source: "image", commit: "0123456" });
+    expect(img).not.toHaveProperty("branch");
+  });
+  it("403 / 429 は回数制限の案内 (しばらくしてから)。HTTP 番号も添える (#1577 レビュー S4)", async () => {
+    for (const status of [403, 429]) {
+      const r = await check(reply(status));
+      expect(r.status).toBe("unknown");
+      expect(r.message).toContain("回数制限");
+      expect(r.message).toContain(`HTTP ${status}`);
+      expect(r.message).toContain("しばらくして");
+    }
+    expect((await check(reply(500))).message).not.toContain("回数制限"); // ほかの失敗は回数制限と言わない
+  });
+  it("ネットワークの失敗は cause の理由 (ENOTFOUND など) と、時間切れの案内を添える (#1577 レビュー S4)", async () => {
+    const withCause = Object.assign(new TypeError("fetch failed"), { cause: Object.assign(new Error("getaddrinfo ENOTFOUND api.github.com"), { code: "ENOTFOUND", hostname: "api.github.com" }) });
+    const r = await check(async () => { throw withCause; });
+    expect(r.message).toContain("fetch failed");
+    expect(r.message).toContain("ENOTFOUND");
+    expect(r.message).toContain("api.github.com");
+    expect(r.message).toContain("プロキシ");
+    expect(describeFetchError(Object.assign(new Error("The operation was aborted due to timeout"), { name: "TimeoutError" }))).toContain("10 秒");
+    expect(describeFetchError(new Error("plain"))).toBe("plain"); // cause が無ければ message のまま
+    expect(describeFetchError("x")).toBe("x");
+  });
+  it("更新の確認の結果は 60 秒覚える。失敗 (unknown) は覚えない。同時の問い合わせは 1 回にまとめる。鍵が違えば別 (#1577 レビュー S4)", async () => {
+    let calls = 0, now = 1_000_000;
+    let reply1: UpdateCheck = { status: "behind", message: "古い", behindBy: 3 };
+    const memo = createUpdateCheckMemo(60_000, () => now);
+    const run = () => memo("k", async () => { calls++; return reply1; });
+    const [a, b] = await Promise.all([run(), run()]);
+    expect(calls).toBe(1); // 同時
+    expect(a).toBe(b);
+    now += 59_999;
+    await run();
+    expect(calls).toBe(1); // 60 秒以内は覚えている
+    await memo("other", async () => { calls++; return reply1; });
+    expect(calls).toBe(2); // 鍵が違えば別
+    now += 2;
+    await run();
+    expect(calls).toBe(3); // 過ぎたら問い合わせる
+    reply1 = { status: "unknown", message: "失敗" };
+    now += 60_001;
+    await run();
+    expect(calls).toBe(4);
+    await run();
+    expect(calls).toBe(5); // unknown は覚えない (すぐ再試行できる)
+    reply1 = { status: "current", message: "最新" };
+    expect((await run()).status).toBe("current");
+    expect(calls).toBe(6);
+  });
+  it("覚えるのは配布 image の経路だけ。git の作業コピー (ls-remote) は毎回問い合わせ、git pull のあとの 2 回目は新しい結果になる (#1577 再レビュー R1)", async () => {
+    const memo = createUpdateCheckMemo(60_000, () => 1);
+    let head = SHA, lsRemote = 0;
+    const run = async (_c: string, args: string[]) => {
+      const k = args.join(" ");
+      if (k === "rev-parse --show-toplevel") return { stdout: proj, stderr: "", code: 0 };
+      if (k === "rev-parse HEAD") return { stdout: head, stderr: "", code: 0 };
+      if (k.startsWith("ls-remote")) { lsRemote++; return { stdout: `${"1".repeat(40)}\trefs/heads/main`, stderr: "", code: 0 }; }
+      if (k.startsWith("merge-base")) return { stdout: "", stderr: "", code: head === "1".repeat(40) ? 0 : 1 };
+      return { stdout: "", stderr: "", code: 0 };
+    };
+    const noFetch = async () => { throw new Error("GitHub は使わない"); };
+    expect(await checkForUpdate(run, proj, noFetch, memo)).toMatchObject({ status: "behind" });
+    head = "1".repeat(40); // git pull した
+    expect(await checkForUpdate(run, proj, noFetch, memo)).toMatchObject({ status: "current", message: "最新です" });
+    expect(lsRemote).toBe(2);
+  });
+  it("配布 image の経路は、覚え (memo) を渡すと GitHub への問い合わせが 1 回になり、渡さなければ毎回問い合わせる (#1577 再レビュー R1)", async () => {
+    await writeBuildInfo(BI);
+    let fetched = 0;
+    const f = async () => { fetched++; return { ok: true, status: 200, json: async () => ({ status: "identical" }) }; };
+    const memo = createUpdateCheckMemo(60_000, () => 1);
+    await checkForUpdate(noGit, proj, f, memo);
+    await checkForUpdate(noGit, proj, f, memo);
+    expect(fetched).toBe(1);
+    await checkForUpdate(noGit, proj, f);
+    await checkForUpdate(noGit, proj, f);
+    expect(fetched).toBe(3);
   });
 });
 

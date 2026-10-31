@@ -756,13 +756,13 @@ describe("MCP の権限 (mcpAccess)", () => {
   it("readonly で残る tool の一覧 (新しい tool が読み取り扱いになるときは、中身を確かめてここを更新する)", () => {
     const listed = filterTools(tools, { HARMONY_MCP_MODE: "readonly" }).map((t) => t.name).sort();
     expect(listed).toEqual([
-      "designer__analyze_branches", "designer__analyze_design", "designer__check_design", "designer__check_generation_drift", "designer__check_screen_item_refs",
+      "designer__analyze_branches", "designer__analyze_design", "designer__check_design", "designer__check_generation_drift", "designer__check_harmony_update", "designer__check_screen_item_refs",
       "designer__check_test_coverage", "designer__close_tab", "designer__compare_workspaces", "designer__export_arazzo", "designer__export_openapi",
       "designer__export_spec", "designer__find_all_markers", "designer__find_references", "designer__generate_ddl", "designer__generate_er_mermaid",
       "designer__generate_test_data", "designer__get_business_flow", "designer__get_changes_since", "designer__get_conventions", "designer__get_design",
       "designer__get_design_document", "designer__get_er_diagram", "designer__get_extension_package", "designer__get_flow", "designer__get_flow_story",
       "designer__get_generation_brief", "designer__get_page_layout", "designer__get_process_flow", "designer__get_project_context", "designer__get_regeneration_diff",
-      "designer__get_rename_context", "designer__get_report", "designer__get_response_type_extension", "designer__get_screen_layout", "designer__get_step",
+      "designer__get_rename_context", "designer__get_report", "designer__get_response_type_extension", "designer__get_scaffold_update", "designer__get_screen_layout", "designer__get_step",
       "designer__get_table", "designer__get_tech_stack", "designer__get_test_viewpoints", "designer__get_tool_guide", "designer__list_business_flows",
       "designer__list_designs", "designer__list_extension_packages", "designer__list_extensions", "designer__list_layout_components", "designer__list_markers",
       "designer__list_page_layouts", "designer__list_process_flows", "designer__list_reports", "designer__list_response_type_extensions", "designer__list_review_comments",

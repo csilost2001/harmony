@@ -225,7 +225,9 @@ const TOOL_NAME_DOCS = ["docs/AI-INDEX.md", "docs/spec/ai-recipes.md", "docs/spe
 export function aiIndexToolIssues(base) {
   const toolsTs = path.join(base, "backend/src/tools.ts");
   if (!fs.existsSync(toolsTs)) return [];
-  const known = new Set([...fs.readFileSync(toolsTs, "utf8").matchAll(/name:\s*"(?:designer|editSession)__([a-z_]+)"/g)].map((m) => m[1]));
+  // tools.ts と、そこから分けた tools*.ts (toolsWorkspace.ts など) をまとめて読む
+  const toolsSrc = fs.readdirSync(path.dirname(toolsTs)).filter((f) => /^tools[A-Za-z]*\.ts$/.test(f)).map((f) => fs.readFileSync(path.join(path.dirname(toolsTs), f), "utf8")).join("\n");
+  const known = new Set([...toolsSrc.matchAll(/name:\s*"(?:designer|editSession)__([a-z_]+)"/g)].map((m) => m[1]));
   const out = [];
   for (const rel of TOOL_NAME_DOCS) {
     const doc = path.join(base, rel);

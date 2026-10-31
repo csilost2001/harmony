@@ -54,6 +54,7 @@ import { handleDesignInsightTool, toolGuide } from "./handlers/designInsight.js"
 import { handleFlowBatchTool } from "./handlers/flowBatch.js";
 import { handleReportTool } from "./handlers/report.js";
 import { handleWorkspaceTool } from "./handlers/workspace.js";
+import { checkForUpdateCached } from "./ops/versionInfo.js";
 import { handleEditSessionTool } from "./handlers/editSession.js";
 
 
@@ -121,6 +122,12 @@ export function createMcpServer(sessionId: string, profiles: readonly string[] =
       // tool の詳細は、この接続で使える tool (拒否・読み取り専用の入口で使えないものを除く) だけを出す。ワークスペースがなくても使える
       if (name === "designer__get_tool_guide") {
         const res = toolGuide(argRecord, mcpEnv);
+        logInfo("mcp", "tool", { tool: name, ok: true, ms: Date.now() - startedAt });
+        return res;
+      }
+      // この Harmony 自身の更新の確認 (GitHub への読み取りの問い合わせ)。ワークスペースがなくても使える
+      if (name === "designer__check_harmony_update") {
+        const res = { content: [{ type: "text" as const, text: JSON.stringify(await checkForUpdateCached(), null, 2) }] };
         logInfo("mcp", "tool", { tool: name, ok: true, ms: Date.now() - startedAt });
         return res;
       }

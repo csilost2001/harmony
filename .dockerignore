@@ -47,6 +47,7 @@ docs/*
 !docs/codemap.md
 !docs/glossary.json
 !docs/decisions
+!docs/release-notes.md
 
 # 開発時 workspaces / data (利用者が volume mount する)
 workspaces

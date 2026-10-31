@@ -7,6 +7,7 @@ import type { SchemaIssue } from "../schemaIssues.js";
 import { resolveDataRoot } from "../storageCore.js";
 import { sha256 } from "./entityHash.js";
 import { accessStore, approvalsStore, commentsStore, generationStore, notifyStore, templateStore } from "./stores.js";
+import { scaffoldStore } from "./scaffold.js";
 
 const DIRS: Record<OpsEntityKind, string> = { screen: "screens", table: "tables", processFlow: "process-flows", businessFlow: "business-flows", report: "reports", sequence: "sequences", view: "views", viewDefinition: "view-definitions" };
 
@@ -40,6 +41,6 @@ async function computePolicyIssues(root: string): Promise<SchemaIssue[]> {
 const policyIssues = memoizeBySignature(computePolicyIssues);
 
 export async function collectOpsIssues(root: string): Promise<SchemaIssue[]> {
-  const problems = (await Promise.all([templateStore, approvalsStore, commentsStore, accessStore, generationStore, notifyStore].map((s) => s.read(root).then((r) => r.problems, () => [] as string[])))).flat();
+  const problems = (await Promise.all([templateStore, approvalsStore, commentsStore, accessStore, generationStore, notifyStore, scaffoldStore].map((s) => s.read(root).then((r) => r.problems, () => [] as string[])))).flat();
   return [...problems.map((message): SchemaIssue => ({ severity: "warning", section: "読み込み", message })), ...await policyIssues(root).catch(() => [])];
 }

@@ -28,6 +28,7 @@ import { runEntityRename, runEntityRenamePreview, runEntityUndo, runReplace, run
 import { wsBridge } from "../wsBridge.js";
 import { addComment, emitNotify, generationStatus, recordGeneration, regenerationDiff } from "../ops/service.js";
 import { commentsStore } from "../ops/stores.js";
+import { getScaffoldUpdate, recordScaffold } from "../ops/scaffold.js";
 import { OPS_ENTITY_KINDS } from "@harmony/shared";
 import { workspaceContextManager } from "../workspaceState.js";
 import type { ToolHandler } from "../mcpHelpers.js";
@@ -101,6 +102,12 @@ export const handleDesignTool: ToolHandler = async (name, args, root, sessionId)
       const stale = rows.filter((r) => r.state !== "current");
       return json({ ok: stale.length === 0 && problems.length === 0, total: rows.length, needsAttention: stale.length, problems, rows });
     }
+
+    case "designer__record_scaffold": {
+      try { return json(await recordScaffold(root, { combo: a.combo, outDir: a.outDir, skipped: a.skipped })); } catch (e) { throw new McpError(ErrorCode.InvalidParams, e instanceof Error ? e.message : String(e)); }
+    }
+
+    case "designer__get_scaffold_update": return json(await getScaffoldUpdate(root));
 
     case "designer__get_regeneration_diff": return json({ diffs: await regenerationDiff(root, typeof a.path === "string" ? a.path : undefined) });
 

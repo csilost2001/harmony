@@ -29,10 +29,11 @@ export async function dataSignature(root: string): Promise<string> {
 }
 
 /** 直近 1 件の結果を、署名が同じあいだ使い回す (ワークスペースごと)。同時に来た問い合わせは、同じ計算を共有する */
-export function memoizeBySignature<T>(compute: (root: string) => Promise<T>): (root: string) => Promise<T> {
+export function memoizeBySignature<T>(compute: (root: string) => Promise<T>, extraSignature?: (root: string) => Promise<string>): (root: string) => Promise<T> {
   const last = new Map<string, { sig: string; value: Promise<T> }>();
   return async (root: string) => {
-    const sig = await dataSignature(root);
+    // extraSignature: データフォルダの外にある、結果に効くファイルの署名 (例: ルートの .devcontainer/compose.yml)
+    const sig = extraSignature ? `${await dataSignature(root)}#${await extraSignature(root).catch(() => "?")}` : await dataSignature(root);
     const hit = last.get(root);
     if (hit && hit.sig === sig) return hit.value;
     const value = compute(root);

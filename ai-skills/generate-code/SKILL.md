@@ -1862,7 +1862,7 @@ Step 0 で `--all` / `--workspace <wsId>` が指定された場合、Step 1〜6 
 
 **ブラウザの自動操作 (Playwright MCP、#1573)**: 4 組合せすべてに既定で入れる。AI が画面を開いて確かめる・E2E の確認に使う。
 - `.mcp.json`: `playwright` (headless。ふだん使う) と `playwright-headed` (人が「画面を見たい」と言ったときだけ)。どちらも `npx -y @playwright/mcp@latest --isolated --browser chromium --output-dir /workspaces/app/.tmp/playwright-mcp` (headless は `--headless` 付き)
-- `devcontainer.json`: `postCreateCommand` の末尾で `(npx -y -p @playwright/mcp@latest playwright install --with-deps chromium || echo '<入れられなかった旨の案内>')` (依存ライブラリは初回だけ。失敗しても `|| echo` で postCreate 全体を止めない)。`postStartCommand` で起動のたびに `playwright install chromium` (最新の MCP に合うブラウザを入れ直す。入っていれば数秒、失敗しても起動は止めない)
+- `devcontainer.json`: `postCreateCommand` の末尾で `(npx -y -p @playwright/mcp@latest playwright install --with-deps chromium || echo '<入れられなかった旨の案内>')` (依存ライブラリは初回だけ。失敗しても `|| echo` で postCreate 全体を止めない)。`postStartCommand` で起動のたびに `(playwright install chromium >/dev/null 2>&1 || echo '<案内>')` (最新の MCP に合うブラウザを入れ直す。入っていれば数秒で出力なし、失敗したときだけ案内を出す。起動は止めない。postStart の出力を捨てるのは、Playwright が依存を入れていないプロジェクトで毎回出す英語の WARNING 枠が、失敗に見えるため (#1579)。postCreate は apt の進み具合が見えるよう出力を残すので、**初回の postCreate のログだけ**にその WARNING が 1 回出る。無視してよい (ブラウザは入っている) と README にも書く)
 - `compose.yml`: `dev` に WSLg の X11 (`/tmp/.X11-unix`・`/mnt/wslg`・`DISPLAY=":0"`) を渡す。headed の窓を Windows のデスクトップに出すため (Harmony 本体の開発コンテナと同じ。Windows + WSL2 + Docker Desktop 前提)。プロジェクトのフォルダは WSL の中に置いて WSL から開く (Windows 側から開くと窓が出ない)。macOS / Linux native では 4 行 (volumes の `/tmp/.X11-unix` と `/mnt/wslg` の 2 行、`environment:` と `DISPLAY` の 2 行) を消す (Docker Desktop for Mac など共有されていないパスでは、消さないと起動しないおそれがある。Linux native では空のフォルダができるだけ)。`WAYLAND_DISPLAY` は設定しない
 - `.tmp/.gitignore`: スナップショット・スクリーンショットの出力先 `.tmp/playwright-mcp/` を git に入れない
 - generate-tests の E2E (`@playwright/test`) は別に `npx playwright install chromium` で自分の版のブラウザを入れる (MCP と版が違うと Chromium が 2 つ入る。そろえない)
@@ -1937,7 +1937,7 @@ VSCode + Dev Containers 拡張があれば、`git clone` 後に `Reopen in Conta
 
 ## ブラウザの自動操作 (Playwright MCP)
 
-AI が画面を開いて確かめられます。`.mcp.json` の `playwright` (headless、ふだん使う) と `playwright-headed` (人が「画面を見たい」と言ったときだけ。Windows のデスクトップに窓が開く。Windows + WSL2 + Docker Desktop 前提で、フォルダは WSL の中に置いて WSL から開く。macOS / Linux native は `.devcontainer/compose.yml` の WSLg の 4 行 (volumes の 2 行、`environment:` と `DISPLAY` の 2 行) を消して headless だけ使う) があります。Harmony の画面 `http://localhost:5179` も業務アプリもそのまま開けます。ブラウザは起動のたびに入れ直します。「ブラウザが無い」と出たら `npx -y -p @playwright/mcp@latest playwright install chromium`。スナップショット・スクリーンショットは `.tmp/playwright-mcp/` (git に入りません)。E2E (`@playwright/test`) のブラウザは別に `npx playwright install chromium` で入れます。自動のブラウザも Harmony の「開いている画面」に数えられます。
+AI が画面を開いて確かめられます。`.mcp.json` の `playwright` (headless、ふだん使う) と `playwright-headed` (人が「画面を見たい」と言ったときだけ。Windows のデスクトップに窓が開く。Windows + WSL2 + Docker Desktop 前提で、フォルダは WSL の中に置いて WSL から開く。macOS / Linux native は `.devcontainer/compose.yml` の WSLg の 4 行 (volumes の 2 行、`environment:` と `DISPLAY` の 2 行) を消して headless だけ使う) があります。Harmony の画面 `http://localhost:5179` も業務アプリもそのまま開けます。ブラウザは起動のたびに入れ直します（出力は出さず、失敗したときだけ案内が出ます）。初回の postCreate のログに出る WARNING (`npx playwright install without first installing your project's dependencies`) は無視してよい (ブラウザは入っている)。「ブラウザが無い」と出たら `npx -y -p @playwright/mcp@latest playwright install chromium`。スナップショット・スクリーンショットは `.tmp/playwright-mcp/` (git に入りません)。E2E (`@playwright/test`) のブラウザは別に `npx playwright install chromium` で入れます。自動のブラウザも Harmony の「開いている画面」に数えられます。
 
 ## 本番デプロイ (Docker)
 
@@ -2014,7 +2014,25 @@ ai-skills/generate-code/templates/devcontainer/
 5. **README.md 統合**:
    - `<出力先>/README.md` 既存 → 冒頭 (最初の `# ` 見出しの直後) に `README.snippet.md` 内容を挿入。ただし README.snippet の節 (`## 開発環境 (Dev Containers)` など) がすでに入っていれば足さない
    - `<出力先>/README.md` 無し → `README.snippet.md` をベースに `# <appName>\n\n` ヘッダを付けて新規 `README.md` 作成
-6. **最終レポート反映**: Step 5 の per-entity ファイル列挙とは別カテゴリで `### プロジェクト scaffold` セクションを追加、生成したファイルを列挙
+6. **雛形の記録 (#1577)**: コピーのあと `designer__record_scaffold` を呼ぶ。「写した雛形の版と中身」を `design/scaffold.json` に残す (雛形の中身は backend が雛形から読む。渡さない)。後で雛形が新しくなったとき、この記録が「3 方向の差分」の元になる。
+   - `combo`: ステップ 2 で選んだ組合せ (techStack から決まるときは省略できる)。`outDir`: 出力先をルート直下以外にしたときだけ (ワークスペースからの相対パス。既定 ".")
+   - `skipped`: ステップ 3 で飛ばした (既存のため書かなかった) ファイル、README の節を足さなかったときの `README.snippet.md`。雛形のパス (`Dockerfile`・`.devcontainer/compose.yml`・`.mcp.json` など) で渡す。飛ばしたファイルは中身を記録せず、後の更新で 2 方向 (いまの雛形とアプリ) の比較になる
+   - bulk モードでは、最初の scaffold 生成のとき 1 度だけ呼ぶ
+7. **最終レポート反映**: Step 5 の per-entity ファイル列挙とは別カテゴリで `### プロジェクト scaffold` セクションを追加、生成したファイルを列挙 (記録したこと・飛ばしたファイルも書く)
+
+### 雛形の更新の取り込み (#1577)
+
+Harmony の雛形が新しくなると、`designer__check_design` の info (section「開発コンテナの雛形」)・`designer__get_project_context` の `scaffold`・画面「連携と運用 → 版と更新」が知らせる。利用者に「開発コンテナの雛形の更新を取り込んで」と頼まれたら、次の順で行う (この手順の対象は、雛形が書くファイル全部: `.devcontainer/` の 2 つ・`.mcp.json`・`.tmp/.gitignore`・`Dockerfile`・`docker-compose.yml`・README の節)。
+
+1. `designer__get_scaffold_update` を呼ぶ。`status` が `outdated` (雛形が新しくなった) か `no-record` (記録が無い古いアプリ) でなければ、取り込むものは無い。`files[]` のうち `state` が `unchanged` でないものが対象 (`guide` に同じ手順が付く)
+2. ファイルごとの差分は、`files[]` の **`diff` (いまのアプリ → 新しい雛形)**・`base` があるときは **`templateDiff` (雛形の変更)** と **`appChanges` (利用者の手入れ)** にある (unified diff)。**自分で差分を作らず、これを利用者に見せる** (`diffTooLarge: true` のファイルだけ、`app` と `latest` を自分で比べる。`diffTruncated` は差分が切れているので同じく自分で読み直す)。比べ方は次のとおり:
+   - `base` がある (記録があり、飛ばしていない): **3 方向**。`base`→`latest` が雛形の変更、`base`→`app` が利用者の手入れ。雛形の変更を取り込み、手入れは残す
+   - `base` が無い (記録が無い・飛ばしたファイル): **2 方向**。`app` と `latest` の差を、利用者に 1 つずつ見せて選んでもらう (`appEdited` が `null` = 手入れかどうか不明)
+   - `state: "new-in-template"` は新しく足すファイル、`"removed-from-template"` は雛形から無くなったファイル (消すかどうかは利用者に聞く)。`kind: "section"` (README) は、`appSection` (README から切り出した節。`appSectionRange` の行) の範囲だけを `latest` の節で差し替え、README の他の部分は触らない (`appSection` が null なら README に節が無いので、`latest` の節を足す)
+   - **残すもの**: Harmony の `image:` の版の指定 (`compose.yml`)・利用者が足した service・ポート・環境変数・自分で書いた設定。`truncated: true` のファイルは中身が切れているので、そのファイルは自分で読み直してから比べる
+3. **書く前に、ファイルごとの差分を利用者に見せて OK を取る**。OK が無いファイルは書かない
+4. 書いたら `designer__record_scaffold` を呼ぶ。書かなかった・見送ったファイルは**必ず** `skipped` に雛形のパスで渡す (省略すると前回の `skipped` のまま。渡さないと、そのファイルの記録が最新の雛形に置き換わり、次の更新で手入れと雛形の変更を取り違える)。記録の版が最新になり、お知らせが消える
+5. `.devcontainer/` のファイルを変えたときは、利用者に VS Code の「Dev Containers: Rebuild Container」を頼む (作り直すまで効かない)
 
 ### 出力先の運用想定 (project-root model)
 

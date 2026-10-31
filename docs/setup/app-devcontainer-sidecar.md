@@ -119,6 +119,15 @@ bash scripts/build-harmony-image.sh local
 
 > **版を上げたら、開いている Harmony の画面 (ブラウザのタブ・VS Code の簡易ブラウザ) をすべて再読み込みする。** 作り直す前から開いていたタブは古い画面のまま動き続け、ワークスペースの扱いが新しい版と食い違うことがある (例: AI がワークスペースを閉じたとき、古いタブが開き直して、AI の作業先が戻る)。
 
+## 雛形の更新を取り込む
+
+開発コンテナの雛形 (`.devcontainer/`・`.mcp.json`・`Dockerfile` など) は、コードを生成したときに Harmony の雛形から写したものです。Harmony の雛形が新しくなると、アプリ側は古いままになります。次のしくみで気づけます。
+
+- 雛形を写したあと、AI が `designer__record_scaffold` で記録 (`design/scaffold.json`。git に載る) を残す。記録は、写したときの雛形の版と中身
+- 雛形が新しくなると、`designer__check_design` の info (「開発コンテナの雛形」)・`designer__get_project_context` の `scaffold`・画面「連携と運用 → 版と更新」の節「開発コンテナの雛形」が知らせる。記録が無い古いアプリも、ルートの `.devcontainer/compose.yml` が Harmony の image を使っていれば知らせる
+- 取り込むときは、AI に「**開発コンテナの雛形の更新を取り込んで**」と頼む。AI は `designer__get_scaffold_update` で差分の材料を取り、記録があるファイルは 3 方向 (写したときの雛形・いまの雛形・いまのアプリ)、無いファイルは 2 方向 (いまの雛形・いまのアプリ) で比べる。**利用者が手を入れた箇所 (Harmony の `image:` の版、足した service、ポートなど) は残し**、差分を見せて OK を取ってから書く。当てたら `designer__record_scaffold` で記録を最新にする
+- `.devcontainer/` のファイルを変えたら、VS Code で `Dev Containers: Rebuild Container` が要る
+
 ## 接続できない場合 (別のコンテナ名・host.docker.internal)
 
 次のような経路で Harmony の `/mcp` や画面に接続すると、`Host header not allowed` で断られる。
@@ -154,7 +163,7 @@ AI が画面を開いて見た目や動きを確かめる (E2E の確認にも�
 
 どちらも `.mcp.json` に `npx -y @playwright/mcp@latest --isolated --browser chromium --output-dir /workspaces/app/.tmp/playwright-mcp` で書いてある (`playwright` は `--headless` 付き)。開発コンテナの `localhost` で動くので、Harmony の画面 `http://localhost:5179` も業務アプリ (`http://localhost:3000` など) もそのまま開ける。
 
-- **入るもの**: `devcontainer.json` の `postCreateCommand` の末尾で `(npx -y -p @playwright/mcp@latest playwright install --with-deps chromium || echo '入れられなかった旨の案内')` (依存ライブラリは `sudo apt` で入る。初回だけ。Chromium の分で初回が 1〜2 分・数百 MB 延びる。ネットが無いなどで失敗しても、`|| echo` があるので postCreate 全体は失敗せず、コンテナの作成は止まらない)。`postStartCommand` で、起動のたびに `playwright install chromium` で最新の MCP に合うブラウザを入れ直す (入っていれば数秒。ネットが無いなどで失敗しても、コンテナの起動は止めない)
+- **入るもの**: `devcontainer.json` の `postCreateCommand` の末尾で `(npx -y -p @playwright/mcp@latest playwright install --with-deps chromium || echo '入れられなかった旨の案内')` (依存ライブラリは `sudo apt` で入る。初回だけ。Chromium の分で初回が 1〜2 分・数百 MB 延びる。ネットが無いなどで失敗しても、`|| echo` があるので postCreate 全体は失敗せず、コンテナの作成は止まらない)。`postStartCommand` で、起動のたびに `(playwright install chromium >/dev/null 2>&1 || echo '案内')` で最新の MCP に合うブラウザを入れ直す (入っていれば数秒で出力なし。ネットが無いなどで失敗したときだけ案内を出し、コンテナの起動は止めない)。postStart の出力を捨てるのは、Playwright が、プロジェクトの依存に入れていない状態で毎回出す英語の WARNING 枠が、失敗に見えるため (#1579)。postCreate は apt の進み具合が見えるよう出力を残すので、初回の postCreate のログに 1 回出る WARNING (`npx playwright install without first installing your project's dependencies`) は無視してよい (ブラウザは入っている)。
 - **版**: `@latest`。MCP の版が上がるとブラウザの版も変わるので、起動のたびに入れ直している。それでも「ブラウザが無い」と出たら `npx -y -p @playwright/mcp@latest playwright install chromium`
 - **headed の前提**: Windows + WSL2 + Docker Desktop。`compose.yml` の `dev` に、WSLg の X11 (`/tmp/.X11-unix`・`/mnt/wslg` の volumes と `DISPLAY: ":0"`) を渡している (Harmony 本体の開発コンテナと同じ)。プロジェクトのフォルダは WSL の中に置き、WSL から開く (Windows 側のフォルダから開くと窓が出ない)。**macOS / Linux native では、WSLg の 4 行 (volumes の `/tmp/.X11-unix` と `/mnt/wslg` の 2 行、`environment:` と `DISPLAY` の 2 行) を消す** (`environment:` のキー行だけ残すと値の無い mapping になるので、`DISPLAY` の行と一緒に消す)。消さないと、Docker Desktop for Mac など共有されていないパスを渡せない環境ではコンテナが起動しないおそれがある (実機では未確認。確認項目 9)。Linux native ではホストに空のフォルダができるだけ。そのときは headed は使えず、`playwright` だけ使う。`WAYLAND_DISPLAY` は設定しない。Dev Containers 拡張の Wayland socket の mount エラーが出る環境では、VS Code の user settings に `dev.containers.mountWaylandSocket=false` を入れる
 - **保存先**: スナップショット・スクリーンショットは `.tmp/playwright-mcp/`。雛形の `.tmp/.gitignore` (`*` と `!.gitignore`) があるので git に入らない。VS Code のエクスプローラーでは開ける。ただし `browser_take_screenshot` などでファイル名を指定すると、`--output-dir` ではなく起動した場所 (プロジェクトのルート) からの相対パスで保存される (実機で確認)。名前を指定するときは `.tmp/playwright-mcp/` の下を指定する

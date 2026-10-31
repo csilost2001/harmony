@@ -12,6 +12,7 @@ import { entityDirOf, harmonyFile, listAllTables, listProcessFlows, readScreenEn
 import { createFileMemo } from "./fileMemo.js";
 import { readCheckSettings } from "./designCheckSettings.js";
 import { collectOpsIssues } from "./ops/opsIssues.js";
+import { collectScaffoldIssues } from "./ops/scaffold.js";
 
 export interface SchemaIssue {
   severity: "error" | "warning" | "info";
@@ -70,5 +71,5 @@ export async function collectExtraIssues(root: string): Promise<SchemaIssue[]> {
   // 点検の設定 (design-check.json) の読めない項目・JSON の誤り。読めないまま黙っていると、抑制・独自ルールが効かないことに気づけない
   const settingsProblems = (await readCheckSettings(root).catch(() => ({ problems: [] as string[] }))).problems
     .map((message): SchemaIssue => ({ severity: "warning", section: "読み込み", message }));
-  return [...await collectSchemaIssues(root), ...health, ...settingsProblems, ...await collectOpsIssues(root)];
+  return [...await collectSchemaIssues(root), ...health, ...settingsProblems, ...await collectOpsIssues(root), ...await collectScaffoldIssues(root)];
 }

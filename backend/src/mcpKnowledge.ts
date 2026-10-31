@@ -14,6 +14,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 import { buildProjectContext } from "./projectContext.js";
+import { findDocsRoot } from "./docsRoot.js";
 
 /** 接続したときに、AI へ最初に渡す案内 (initialize の instructions) */
 export const SERVER_INSTRUCTIONS = [
@@ -26,16 +27,7 @@ export const SERVER_INSTRUCTIONS = [
   "手順 (Prompts) の本文で参照するそのスキルの付属ファイル (`templates/...` のようなスキルのフォルダからの相対パスや `ai-skills/<名前>/...`) は、Resource harmony://skill/<名前>/<スキルのフォルダからの相対パス> で読めます。一覧は harmony://skill/<名前>/files です。付属ファイルのあるスキルだけに当てはまります。",
 ].join("\n");
 
-/** 資料を同梱するディレクトリ (リポジトリの根)。HARMONY_DOCS_DIR で変えられる。docs/AI-INDEX.md と schemas/v3 がある場所 */
-export function findDocsRoot(env: NodeJS.ProcessEnv = process.env): string | null {
-  const candidates: string[] = [];
-  if (env.HARMONY_DOCS_DIR?.trim()) candidates.push(path.resolve(env.HARMONY_DOCS_DIR.trim()));
-  const here = path.dirname(fileURLToPath(import.meta.url)); // backend/src または backend/dist
-  candidates.push(path.resolve(here, "../.."), path.resolve(process.cwd(), ".."), process.cwd());
-  const found = candidates.find((d) => fs.existsSync(path.join(d, "schemas/v3")) && fs.existsSync(path.join(d, "docs/spec"))) ?? null;
-  if (env.HARMONY_DOCS_DIR?.trim() && found !== path.resolve(env.HARMONY_DOCS_DIR.trim())) console.error(`[MCP] HARMONY_DOCS_DIR=${env.HARMONY_DOCS_DIR} に schemas/v3 と docs/spec がありません。${found ?? "資料なし"} を使います`);
-  return found;
-}
+export { findDocsRoot };
 
 /** harmony://docs/<名前> で読める資料 (リポジトリの根からの相対パス)。許可リスト */
 const DOC_FILES: Record<string, { file: string; name: string; description: string; mimeType: string }> = {

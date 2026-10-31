@@ -80,8 +80,10 @@ describe("designer workspace tools lockdown behavior", () => {
       },
       lockdown: true,
       lockdownPath: path.resolve(process.env.DESIGNER_DATA_DIR!),
+      harmony: expect.objectContaining({ version: expect.any(String) }), // この Harmony の版 (#1577)。本体の package.json / build-info を読むので、読み取りの確認は下で recent に絞る
     });
-    expect(readSpy).not.toHaveBeenCalled();
+    // recent の一覧 (TMP_ROOT の中) は読まない。harmony の版のために、本体の package.json などは読む
+    expect(readSpy.mock.calls.filter(([p]) => String(p).startsWith(TMP_ROOT))).toEqual([]);
   });
 
   it("designer__workspace_open rejects before id lookup in lockdown", async () => {

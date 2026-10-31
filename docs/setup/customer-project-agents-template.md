@@ -28,7 +28,7 @@ Harmony を Docker image として使い、業務 project 側だけを AI の wr
 3. コードの生成は Prompt `generate-code` の手順に従う (VS Code の Claude Code 拡張のように Prompts を出さない AI クライアントでは、Resource `harmony://skill/generate-code/SKILL.md` を読めば同じ手順になる。Prompt は SKILL.md の本文と同じ)。手順が参照する付属ファイル (`templates/**` など) は
    Resource `harmony://skill/generate-code/<スキルのフォルダからの相対パス>` で読む (一覧は `harmony://skill/generate-code/files`)。
    出力先は既定でプロジェクトのルート (開発コンテナの雛形 `.devcontainer/` はルートにあるので、作り直さない)。`backend/` などに分けたいときは出力先にそのフォルダを渡す (`.devcontainer/` と `.mcp.json` はルートのまま。本番用の `Dockerfile` / `docker-compose.yml` と README の節は、その出力先のフォルダに作られる。すでにあるファイルだけは飛ばす)
-4. 生成したら `designer__record_generation` で「どの設計からどのファイルを作ったか」を記録する
+4. 生成したら `designer__record_generation` で「どの設計からどのファイルを作ったか」を記録する。開発コンテナの雛形を写したときは `designer__record_scaffold` も呼ぶ。雛形が新しくなったと知らされたら (`check_design` の info「開発コンテナの雛形」・`get_project_context` の `scaffold`)、`designer__get_scaffold_update` で差分を取り、利用者が手を入れた箇所を残して、利用者の OK を取ってから当てる (当てたら `record_scaffold`、`.devcontainer/` を変えたら Rebuild Container を頼む)
 5. 設計を直して再生成するときは、先に `designer__check_generation_drift` (生成物を手で直していないか) と
    `designer__get_regeneration_diff` (何が変わるか) を呼ぶ
 

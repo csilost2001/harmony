@@ -27,11 +27,11 @@ export interface McpProfile {
 
 /** どのプロファイルにも入る土台: ワークスペース・設計の俯瞰と点検・参照元・マーカーを読む・版・タブ (読み取りだけ) */
 const BASE: RegExp[] = [
-  /^workspace_(list|status|open|inspect|close)$/, /^get_project_context$/, /^check_design$/, /^analyze_design$/, /^find_references$/,
+  /^workspace_(list|status|open|inspect|close)$/, /^check_harmony_update$/, /^get_project_context$/, /^get_scaffold_update$/, /^check_design$/, /^analyze_design$/, /^find_references$/,
   /^(find_all_markers|list_markers)$/, /^list_versions$/, /^(search_design|validate_design|get_changes_since|compare_workspaces|get_design_document|get_tool_guide|get_generation_brief|check_test_coverage|walk_flow|list_designs|get_design|get_conventions|get_tech_stack)$/, /^(list_tabs|open_tab|switch_tab|close_tab|navigate_screen)$/,
 ];
 /** 設計を作る・直すプロファイル (flow / table / screen / doc) に共通の操作: 生成の記録・改名・参照の付け替え・版を戻す */
-const AUTHORING: RegExp[] = [/^record_generation$/, /^(rename_entity|undo_rename|replace_references|undo_replace_references|restore_version)$/];
+const AUTHORING: RegExp[] = [/^record_generation$/, /^record_scaffold$/, /^(rename_entity|undo_rename|replace_references|undo_replace_references|restore_version)$/];
 
 /** 書き込みのプロファイルに足す、人との受け渡しの操作: マーカー (人の指示・質問に答える)・詰まった点の記録 */
 const MARKER_WRITES: RegExp[] = [/^(add_marker|resolve_marker|remove_marker|report_confusion)$/];
@@ -67,7 +67,7 @@ export const PROFILES: Readonly<Record<string, McpProfile>> = {
   },
   maint: {
     label: "保守: 一括保存・版の復旧・登録簿の修復・スキーマ移行・パック・ワークスペースの削除",
-    patterns: [/^(save_all|restore_version|repair_registry|persist_uuids|migrate_schema|apply_rename_mapping|solution_pack|solution_unpack|workspace_remove)$/, /^(check_generation_drift|get_regeneration_diff|record_generation)$/],
+    patterns: [/^(save_all|restore_version|repair_registry|persist_uuids|migrate_schema|apply_rename_mapping|solution_pack|solution_unpack|workspace_remove)$/, /^(check_generation_drift|get_regeneration_diff|record_generation|record_scaffold)$/],
   },
 };
 

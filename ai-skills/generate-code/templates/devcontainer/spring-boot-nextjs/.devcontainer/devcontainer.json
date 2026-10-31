@@ -33,7 +33,7 @@
 
   "postCreateCommand": "(./mvnw -B dependency:resolve 2>/dev/null || mvn -B dependency:resolve || true) && (cd frontend && npm install || true) && npm install -g @openai/codex && ([ -f ~/.claude/.config.json ] || echo '{}' > ~/.claude/.config.json) && (npx -y -p @playwright/mcp@latest playwright install --with-deps chromium || echo 'Playwright のブラウザを入れられませんでした。ネットにつながってから npx -y -p @playwright/mcp@latest playwright install --with-deps chromium を実行してください')",
 
-  "postStartCommand": "npx -y -p @playwright/mcp@latest playwright install chromium || echo 'Playwright のブラウザを入れられませんでした。ネットにつながってから npx -y -p @playwright/mcp@latest playwright install chromium を実行してください'",
+  "postStartCommand": "(npx -y -p @playwright/mcp@latest playwright install chromium >/dev/null 2>&1 || echo 'Playwright のブラウザを入れられませんでした。ネットにつながってから npx -y -p @playwright/mcp@latest playwright install chromium を実行してください')",
 
   "customizations": {
     "vscode": {
