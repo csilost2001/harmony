@@ -2,15 +2,20 @@
 // html-qa: 議題 JSON (vN.json) を、1 ファイルで完結する対話用 HTML に変換する。
 //
 //   node ai-skills/html-qa/scripts/build.mjs <topic-dir | vN.json> [...]
+//   node ai-skills/html-qa/scripts/build.mjs --hub-url <URL> --hub-key <鍵> --project <名前>   ハブの登録 (1 回。以後は省略できる)
+//   node ai-skills/html-qa/scripts/build.mjs --hub off                                          ハブの登録を解除
 //
 // - 同じ議題フォルダの v*.json をすべて作り直す (版の切り替え一覧を最新にするため)
 // - <topic>/index.html は最新版の写し。F5 で最新が見られる
 // - 親フォルダ (既定 .tmp/html-qa/) に議題一覧 index.html を作る
+// - ハブの設定 (.tmp/html-qa/.hub.json) があれば、作った全版をハブへ送り、ハブでの URL を出す。送れなくても
+//   ローカルの HTML は作り、理由を △ で出す (終了コードは変えない)。設定が無ければ従来どおりローカルだけ
 // - 形式の誤りは一覧にして終了コード 1
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { pageUrls } from "./lib.mjs";
+import { pageUrls, hubConfig, setHubConfig, DEFAULT_ROOT } from "./lib.mjs";
+import { hubCall, publishTopic, hubUrls, HubClientError } from "./hub-client.mjs";
 import { buildIndex, versionsIn } from "./index-page.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -201,18 +206,67 @@ function buildTopic(dir, css, js) {
     fs.writeFileSync(path.join(dir, `v${d.v}.html`), html);
     if (d.v === latest) fs.writeFileSync(path.join(dir, "index.html"), html);
   }
-  return { ok: problems.every((p) => !p.errs.length), problems, latest, dir };
+  return { ok: problems.every((p) => !p.errs.length), problems, latest, dir, built: docs.filter((d) => !d.errs.length).map((d) => d.v) };
 }
 
-function main() {
-  const args = process.argv.slice(2);
-  if (!args.length || args.includes("-h") || args.includes("--help")) {
-    console.log("使い方: node ai-skills/html-qa/scripts/build.mjs <議題フォルダ | vN.json> [...]");
-    process.exit(args.length ? 0 : 1);
+// --name 値 の形のオプションを取り出し、残りの引数を返す
+function takeOpts(args, names) {
+  const opts = {};
+  const rest = [];
+  for (let i = 0; i < args.length; i++) {
+    const m = names.find((n) => args[i] === `--${n}`);
+    if (m) { opts[m] = args[i + 1]; i++; } else rest.push(args[i]);
+  }
+  return { opts, rest };
+}
+
+// ハブの登録・解除。設定を書いた root を返す
+async function registerHub(opts, root) {
+  if (opts.hub !== undefined) {
+    if (opts.hub !== "off") { console.error('✗ --hub は "off" だけ指定できます (登録は --hub-url / --hub-key / --project)'); process.exit(2); }
+    setHubConfig(root, { url: "off" });
+    console.log("✓ ハブの登録を解除しました (以後はこのプロジェクトのローカルだけで動きます)");
+    return;
+  }
+  const cur = hubConfig(root);
+  const project = opts.project ?? cur?.project ?? path.basename(process.cwd()).toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 41);
+  let cfg;
+  try { cfg = setHubConfig(root, { url: opts["hub-url"] ?? cur?.url, key: opts["hub-key"] ?? cur?.key, project }); } catch (e) { console.error(`✗ ${e.message}`); process.exit(2); }
+  console.log(`✓ ハブを登録しました: ${cfg.url} (プロジェクト名: ${cfg.project}) → ${path.relative(process.cwd(), path.join(root, ".hub.json")) || ".hub.json"} (鍵を含むので他人に渡さない)`);
+  try { await hubCall(cfg, "GET", "/api/ping"); console.log("  ハブにつながりました"); } catch (e) { console.warn(`△ ${e.message}\n  (登録はしました。ハブが起動してから build.mjs を実行してください)`); }
+}
+
+// 作った全版をハブへ送り、URL を出す。失敗は △ で理由を出し、ローカルの結果は変えない
+async function publishToHub(cfg, dir, built) {
+  const rel = (f) => path.relative(process.cwd(), f).split(path.sep).join("/");
+  try {
+    const r = await publishTopic(cfg, dir, built);
+    const u = hubUrls(cfg, r);
+    console.log(`  ハブに送りました: ${cfg.project}/${path.basename(dir)} (v${built[0]}${built.length > 1 ? `〜v${built[built.length - 1]}` : ""})`);
+    console.log(`  開く: ${u.local}`);
+    if (u.lan) console.log(`  スマホ (家庭内 LAN): ${u.lan}`);
+    return true;
+  } catch (e) {
+    const why = e instanceof HubClientError ? e.message : `想定外の失敗: ${e.message}`;
+    console.warn(`△ ハブに送れませんでした: ${why}\n  ローカルの HTML は作りました (${rel(path.join(dir, `v${built[built.length - 1]}.html`))})。ハブへは、直してからもう一度 build.mjs を実行してください`);
+    return false;
+  }
+}
+
+async function main() {
+  const { opts, rest: args } = takeOpts(process.argv.slice(2), ["hub-url", "hub-key", "project", "hub"]);
+  const wantsHub = ["hub-url", "hub-key", "project", "hub"].some((k) => opts[k] !== undefined);
+  if ((!args.length && !wantsHub) || args.includes("-h") || args.includes("--help")) {
+    console.log("使い方: node ai-skills/html-qa/scripts/build.mjs <議題フォルダ | vN.json> [...]\n        node ai-skills/html-qa/scripts/build.mjs --hub-url <URL> --hub-key <鍵> --project <名前>   (ハブの登録。--hub off で解除)");
+    process.exit(args.length || wantsHub ? 0 : 1);
   }
   const css = fs.readFileSync(path.join(ASSETS, "style.css"), "utf8");
   const js = fs.readFileSync(path.join(ASSETS, "runtime.js"), "utf8").replace(/<\/script/gi, "<\\/script");
   const dirs = [...new Set(args.map((a) => { const p = path.resolve(a); return fs.existsSync(p) && fs.statSync(p).isDirectory() ? p : path.dirname(p); }))];
+  if (wantsHub) {
+    await registerHub(opts, dirs.length ? path.dirname(dirs[0]) : path.resolve(DEFAULT_ROOT));
+    if (!dirs.length) process.exit(0);
+  }
   let ok = true;
   const roots = new Set();
   for (const dir of dirs) {
@@ -227,6 +281,8 @@ function main() {
     if (!r.ok) { ok = false; continue; }
     const relDir = path.relative(process.cwd(), dir).split(path.sep).join("/");
     console.log(`✓ ${relDir}/v${r.latest}.html (index.html も最新に更新)`);
+    const hub = hubConfig(path.dirname(dir));
+    if (hub) { await publishToHub(hub, dir, r.built); continue; }
     const u = pageUrls(path.dirname(dir), path.basename(dir));
     console.log(`  開く: ${u.local}`);
     if (u.lan) console.log(`  スマホ (家庭内 LAN): ${u.lan}`);

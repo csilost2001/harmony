@@ -29,6 +29,7 @@ const SCRIPT = `(() => {
       el.hidden = !ok; if (ok) n++;
     });
     cnt.textContent = n + " 件"; none.hidden = n > 0;
+    document.querySelectorAll("section.grp").forEach((g) => { g.hidden = !g.querySelector(".t:not([hidden])"); });
     btns.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.filter === filter)));
     const p = new URLSearchParams(); if (qi.value.trim()) p.set("q", qi.value); if (filter !== "all") p.set("filter", filter);
     try { history.replaceState(null, "", location.pathname + (p.toString() ? "?" + p : "")); } catch { /* file:// など */ }
@@ -38,12 +39,15 @@ const SCRIPT = `(() => {
   apply();
 })();`;
 
-export function buildIndex(root) {
+// baseDir 直下の議題フォルダを、一覧の 1 行ごとのデータにする。hrefPrefix は一覧から議題へのリンクの前置き
+export function collectRows(baseDir, hrefPrefix = "") {
   const rows = [];
-  for (const e of fs.readdirSync(root, { withFileTypes: true })) {
-    if (!e.isDirectory()) continue;
-    const dir = path.join(root, e.name);
-    const vs = versionsIn(dir);
+  if (!fs.existsSync(baseDir)) return rows;
+  for (const e of fs.readdirSync(baseDir, { withFileTypes: true })) {
+    if (!e.isDirectory() || e.name.startsWith(".")) continue;
+    const dir = path.join(baseDir, e.name);
+    // ハブに預かった議題は json が無いこともある (html だけ)。版は json と html の両方から数える
+    const vs = [...new Set([...versionsIn(dir), ...fs.readdirSync(dir).map((f) => f.match(/^v(\d+)\.html$/)).filter(Boolean).map((m) => Number(m[1]))])].sort((a, b) => a - b);
     if (!vs.length) continue;
     const v = vs[vs.length - 1];
     const doc = readJson(path.join(dir, `v${v}.json`));
@@ -56,22 +60,35 @@ export function buildIndex(root) {
       const f = path.join(dir, `v${n}.answer.md`);
       if (fs.existsSync(f) && ans.length < MAX_ANS) ans += `${fs.readFileSync(f, "utf8").replace(/^<!--.*?-->\n/, "")}\n`;
     }
-    const mtime = fs.statSync(path.join(dir, `v${v}.json`)).mtime;
+    const mtime = fs.statSync(path.join(dir, fs.existsSync(path.join(dir, `v${v}.json`)) ? `v${v}.json` : `v${v}.html`)).mtime;
     const answered = fs.existsSync(path.join(dir, `v${v}.answer.md`));
-    rows.push({ name: e.name, title, v, mtime, answered, h: nz([title, e.name, doc?.lead || "", ...qs, ans.slice(0, MAX_ANS)].join("\n")) });
+    rows.push({ name: e.name, href: `${hrefPrefix}${encodeURIComponent(e.name)}/index.html`, title, v, mtime, answered, h: nz([title, e.name, doc?.lead || "", ...qs, ans.slice(0, MAX_ANS)].join("\n")) });
   }
   rows.sort((a, b) => b.mtime - a.mtime);
-  const list = rows.map((r) => `<a class="t" href="${encodeURIComponent(r.name)}/index.html"><span><b>${escHtml(r.title)}</b><br><span class="muted mono">${escHtml(r.name)}</span></span><span class="badge">v${r.v}${r.answered ? " · 回答済み" : ""}</span><span class="muted">${escHtml(r.mtime.toLocaleString("ja-JP"))}</span></a>`).join("\n");
-  const tool = rows.length ? `<div class="tfilter"><input type="search" id="qs" placeholder="題名・質問・回答から探す (空白で絞り込み)" aria-label="議題を探す"><span class="fbtns"><button class="btn" data-filter="all">すべて</button><button class="btn" data-filter="waiting">回答待ち</button><button class="btn" data-filter="answered">回答済み</button></span><span class="muted" id="cnt"></span></div>` : "";
-  const body = `<div class="topics"><h1>議題の一覧</h1><p class="muted">AI とのやりとりの資料 (新しい順)。各議題の index.html はいつも最新版です。</p>${tool}${list || '<p class="muted">まだありません。</p>'}<p class="muted" id="none" hidden>一致する議題がありません。</p></div>
-<script type="application/json" id="qa-index">${jsonForScript(rows.map((r) => ({ answered: r.answered, h: r.h })))}</script>
-${rows.length ? `<script>${SCRIPT}</script>` : ""}`;
-  const html = `<!doctype html>
+  return rows;
+}
+
+// groups: [{ label?, href?, rows }]。label のあるグループは見出し (プロジェクト名) つきで分けて出す。検索・絞り込みは全グループにかかる
+export function renderIndex(groups, { heading = "議題の一覧", lead = "AI とのやりとりの資料 (新しい順)。各議題の index.html はいつも最新版です。", back = null } = {}) {
+  const all = groups.flatMap((g) => g.rows);
+  const rowHtml = (r) => `<a class="t" href="${r.href}"><span><b>${escHtml(r.title)}</b><br><span class="muted mono">${escHtml(r.name)}</span></span><span class="badge">v${r.v}${r.answered ? " · 回答済み" : ""}</span><span class="muted">${escHtml(r.mtime.toLocaleString("ja-JP"))}</span></a>`;
+  const list = groups.map((g) => {
+    const inner = g.rows.map(rowHtml).join("\n");
+    if (!g.label) return inner;
+    const head = g.href ? `<a href="${g.href}">${escHtml(g.label)}</a>` : escHtml(g.label);
+    return `<section class="grp"><h2>${head} <span class="muted">${g.rows.length} 件</span></h2>\n${inner}</section>`;
+  }).join("\n");
+  const tool = all.length ? `<div class="tfilter"><input type="search" id="qs" placeholder="題名・質問・回答から探す (空白で絞り込み)" aria-label="議題を探す"><span class="fbtns"><button class="btn" data-filter="all">すべて</button><button class="btn" data-filter="waiting">回答待ち</button><button class="btn" data-filter="answered">回答済み</button></span><span class="muted" id="cnt"></span></div>` : "";
+  const backHtml = back ? `<p><a href="${back.href}">${escHtml(back.label)}</a></p>` : "";
+  const body = `<div class="topics">${backHtml}<h1>${escHtml(heading)}</h1><p class="muted">${escHtml(lead)}</p>${tool}${list || '<p class="muted">まだありません。</p>'}<p class="muted" id="none" hidden>一致する議題がありません。</p></div>
+<script type="application/json" id="qa-index">${jsonForScript(all.map((r) => ({ answered: r.answered, h: r.h })))}</script>
+${all.length ? `<script>${SCRIPT}</script>` : ""}`;
+  return `<!doctype html>
 <html lang="ja">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>議題の一覧</title>
+<title>${escHtml(heading)}</title>
 <style>${fs.readFileSync(CSS, "utf8")}</style>
 </head>
 <body>
@@ -79,5 +96,8 @@ ${body}
 </body>
 </html>
 `;
-  fs.writeFileSync(path.join(root, "index.html"), html);
+}
+
+export function buildIndex(root) {
+  fs.writeFileSync(path.join(root, "index.html"), renderIndex([{ rows: collectRows(root) }]));
 }

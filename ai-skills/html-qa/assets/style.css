@@ -278,3 +278,6 @@ body.present main > .ptitle.cur { font-size: 1.8em; margin: .4em 0 .6em; }
 .topics .tfilter { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
 .topics .tfilter input { flex: 1 1 260px; width: auto; }
 .topics .fbtns { display: inline-flex; gap: 6px; }
+.topics .grp { margin-top: 20px; }
+.topics .grp[hidden] { display: none; }
+.topics .grp h2 { font-size: 16px; margin: 0 0 8px; }
