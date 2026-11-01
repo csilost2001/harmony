@@ -36,7 +36,10 @@ export const checkVersion = (v) => {
 const subdirs = (dir) => (fs.existsSync(dir) ? fs.readdirSync(dir, { withFileTypes: true }).filter((e) => e.isDirectory() && HUB_NAME_RE.test(e.name)).map((e) => e.name) : []);
 export const hubProjects = (root) => subdirs(hubBase(root)).filter((n) => !HUB_RESERVED.has(n));
 export const hubTopics = (root, project) => subdirs(path.join(hubBase(root), project));
-export const hasHubProject = (root, project) => HUB_NAME_RE.test(project) && !HUB_RESERVED.has(project) && fs.existsSync(path.join(hubBase(root), project));
+// 通常のファイルか (リンクは false。外のファイルを指しうる)
+export const isRegularFile = (f) => { try { return fs.lstatSync(f).isFile(); } catch { return false; } };
+const isRealDir = (f) => { try { return fs.lstatSync(f).isDirectory(); } catch { return false; } };
+export const hasHubProject = (root, project) => HUB_NAME_RE.test(project) && !HUB_RESERVED.has(project) && isRealDir(path.join(hubBase(root), project));
 
 // 検証済みの名前から議題フォルダのパスを返す。create なら上限を確かめて作る。realpath でも .hub の下であることを確かめる
 export function hubTopicDir(root, project, topic, { create = false } = {}) {
@@ -76,10 +79,24 @@ const writeAtomic = (file, data) => {
   fs.renameSync(tmp, file);
 };
 
-// ハブ全体の使用量 (.hub 以下の合計)。数えるのは高くつくので 30 秒だけ覚え、預かった分は足していく
+// 入れ子の深さが max を超えるか。再帰せず、深さを数える途中で打ち切る (10 万段の入れ子でスタックを使い切らないため)
+export function nestingTooDeep(v, max = 100) {
+  const stack = [[v, 1]];
+  while (stack.length) {
+    const [x, d] = stack.pop();
+    if (x && typeof x === "object") {
+      if (d > max) return true;
+      for (const k of Object.keys(x)) stack.push([x[k], d + 1]);
+    }
+  }
+  return false;
+}
+const sizeOf = (f) => { try { const st = fs.lstatSync(f); return st.isFile() ? st.size : 0; } catch { return 0; } };
+
+// ハブ全体の使用量 (.hub 以下の合計)。数えるのは高くつくので 5 秒だけ覚え、預かった分の増減は足していく
 const usageCache = { at: 0, bytes: 0 };
 function hubUsage(root) {
-  if (Date.now() - usageCache.at < 30_000) return usageCache.bytes;
+  if (Date.now() - usageCache.at < 5_000) return usageCache.bytes;
   let total = 0;
   const walk = (d) => {
     for (const e of fs.readdirSync(d, { withFileTypes: true })) {
@@ -103,30 +120,42 @@ export function savePublish(root, body) {
   if (json !== undefined && json !== null) {
     if (typeof json !== "object" || Array.isArray(json)) throw new HubError(400, "json はオブジェクトにしてください");
     if (json.topic !== topic || json.version !== version) throw new HubError(400, "json の topic / version が、送り先の topic / version と一致しません");
+    let deep;
+    try { deep = nestingTooDeep(json); } catch { deep = true; }
+    if (deep) throw new HubError(400, "json の入れ子が深すぎます (100 段まで)");
     // 形式は build.mjs と同じ検査 (壊れた議題を預かると、一覧などが読めなくなるため)
     let errs;
-    try { errs = validate(json, path.join(path.sep, topic, `v${version}.json`)).errs; } catch { errs = ["json の形が読み取れません"]; }
+    try { errs = validate(json, path.join(path.sep, topic, `v${version}.json`)).errs; } catch { throw new HubError(400, "json の形が読み取れません"); }
     if (errs.length) throw new HubError(400, `json の形が不正です: ${errs.slice(0, 3).join(" / ")}${errs.length > 3 ? ` ほか ${errs.length - 3} 件` : ""}`);
     jsonText = `${JSON.stringify(json, null, 2)}\n`;
     if (Buffer.byteLength(jsonText) > LIMITS.json) throw new HubError(413, "json が大きすぎます");
   }
-  const incoming = Buffer.byteLength(html) + (jsonText ? Buffer.byteLength(jsonText) : 0);
-  if (hubUsage(root) + incoming > totalLimit()) throw new HubError(507, `ハブの容量の上限 (${Math.floor(totalLimit() / 1048576)}MB) を超えます。古い議題を .tmp/html-qa/.hub から消してください`);
-  const dir = hubTopicDir(root, project, topic, { create: true });
-  const vs = hubVersions(dir);
+  const existing = hubTopicDir(root, project, topic); // まだ無ければ null (ここでは作らない)
+  const vs = existing ? hubVersions(existing) : [];
   if (!vs.includes(version) && vs.length >= LIMITS.versionsPerTopic) throw new HubError(429, `1 議題の版は ${LIMITS.versionsPerTopic} までです`);
   const latestBefore = vs.length ? vs[vs.length - 1] : 0;
+  const writesIndex = version >= latestBefore; // 最新版なら index.html の写しも書き換わる
+  // 容量: 増える分 = 新しく書く分 (版 + json + 写し) - 置き換わる古い分
+  const incoming = Buffer.byteLength(html) * (writesIndex ? 2 : 1) + (jsonText ? Buffer.byteLength(jsonText) : 0);
+  const replaced = existing ? sizeOf(path.join(existing, `v${version}.html`)) + (jsonText ? sizeOf(path.join(existing, `v${version}.json`)) : 0) + (writesIndex ? sizeOf(path.join(existing, "index.html")) : 0) : 0;
+  const delta = incoming - replaced;
+  if (delta > 0 && hubUsage(root) + delta > totalLimit()) throw new HubError(507, `ハブの容量の上限 (${Math.floor(totalLimit() / 1048576)}MB) を超えます。古い議題を .tmp/html-qa/.hub から消してください`);
+  const dir = existing ?? hubTopicDir(root, project, topic, { create: true });
   writeAtomic(path.join(dir, `v${version}.html`), html);
   if (jsonText) writeAtomic(path.join(dir, `v${version}.json`), jsonText);
-  if (version >= latestBefore) writeAtomic(path.join(dir, "index.html"), html);
-  usageCache.bytes += incoming;
+  if (writesIndex) writeAtomic(path.join(dir, "index.html"), html);
+  usageCache.bytes = Math.max(0, usageCache.bytes + delta);
   return { project, topic, version, path: `/${project}/${topic}/` };
 }
 
 // 回答の保存 (ハブ配下・従来のどちらも使う)。.json を先に書き、.md が届いた時点で揃っているようにする
 export function writeAnswerFiles(dir, topic, version, text, answers) {
   const jsonFile = path.join(dir, `v${version}.answer.json`);
-  if (answers && typeof answers === "object" && !Array.isArray(answers) && answers.topic === topic && answers.version === version) {
+  // 書き先がリンクなら、たどらずに外す (リンク先の外のファイルを書き換えない)
+  for (const f of [jsonFile, path.join(dir, `v${version}.answer.md`)]) { try { if (fs.lstatSync(f).isSymbolicLink()) fs.unlinkSync(f); } catch { /* 無い */ } }
+  let tooDeep = false;
+  try { tooDeep = nestingTooDeep(answers); } catch { tooDeep = true; }
+  if (!tooDeep && answers && typeof answers === "object" && !Array.isArray(answers) && answers.topic === topic && answers.version === version) {
     try { fs.writeFileSync(jsonFile, `${JSON.stringify(answers, null, 2)}\n`); } catch (err) { console.error(`vN.answer.json を書けませんでした: ${err.message}`); }
   } else fs.rmSync(jsonFile, { force: true }); // 古い画面からの送信: 前の構造化回答を残さない
   const file = path.join(dir, `v${version}.answer.md`);
@@ -145,12 +174,13 @@ export function listHubAnswers(dir, { version = null, unread = false } = {}) {
     const v = Number(m[1]);
     if (version !== null && v !== version) continue;
     const file = path.join(dir, f);
+    if (!isRegularFile(file)) continue; // リンクは読まない
     const mtimeMs = Math.floor(fs.statSync(file).mtimeMs);
     const seenFile = file.replace(/\.md$/, ".seen");
     const seenAt = fs.existsSync(seenFile) ? Number(fs.readFileSync(seenFile, "utf8").trim()) || 0 : 0;
     const seen = seenAt >= mtimeMs;
     if (unread && seen) continue;
-    out.push({ version: v, mtimeMs, seen, text: fs.readFileSync(file, "utf8").replace(/^<!--.*?-->\n/, ""), json: readJsonSafe(path.join(dir, `v${v}.answer.json`)) });
+    out.push({ version: v, mtimeMs, seen, text: fs.readFileSync(file, "utf8").replace(/^<!--.*?-->\n/, ""), json: isRegularFile(path.join(dir, `v${v}.answer.json`)) ? readJsonSafe(path.join(dir, `v${v}.answer.json`)) : null });
   }
   return out.sort((a, b) => a.mtimeMs - b.mtimeMs);
 }

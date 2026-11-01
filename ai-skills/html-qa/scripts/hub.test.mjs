@@ -493,14 +493,15 @@ test("不正な形の json は預かれない。保存済みの不正な json �
   assert.ok((await top.text()).includes("題 good v1"));
   assert.equal((await get(hub, "/p/pj/")).status, 200);
   assert.ok(await alive(hub));
-  // 予期しない例外 (v1.html がファイルでなくフォルダ): 500 を返し、鍵やパスは本文に出さず、プロセスは生きている
+  // 予期しない例外 (v1.html が読めない = EACCES): 500 を返し、鍵やパスは本文に出さず、プロセスは生きている
   const g = path.join(hub.root, ".hub", "pj", "good");
-  fs.rmSync(path.join(g, "v1.html"));
-  fs.mkdirSync(path.join(g, "v1.html"));
-  const r = await get(hub, "/pj/good/v1.html");
-  assert.equal(r.status, 500);
-  const text = await r.text();
-  assert.ok(!text.includes(hub.key) && !text.includes(tmp), `エラー本文に機密: ${text}`);
+  fs.chmodSync(path.join(g, "v1.html"), 0o000);
+  if (process.getuid?.() !== 0) { // root は権限を無視するので、この確認は root 以外のときだけ
+    const r = await get(hub, "/pj/good/v1.html");
+    assert.equal(r.status, 500);
+    const text = await r.text();
+    assert.ok(!text.includes(hub.key) && !text.includes(tmp), `エラー本文に機密: ${text}`);
+  }
   assert.ok(await alive(hub));
   assert.ok(!hub.out.stderr.includes(hub.key));
   // .hub の中のシンボリックリンク: 配信・/api/latest・/api/status・回答が落ちず、外の物は返さない
@@ -607,7 +608,7 @@ test("従来の議題とハブのプロジェクトが同名でも、/p/<project
 
 test("ハブ全体の容量の上限を超えると 507。差し替えや回答は止めない", async () => {
   const hub = await startHub("quota", { env: { HTML_QA_HUB_MAX_BYTES: "300000" } });
-  const html = (c) => `<p>${c.repeat(100_000)}</p>`;
+  const html = (c) => `<p>${c.repeat(60_000)}</p>`; // index.html の写しも数えるので、1 版は約 12 万バイト
   assert.equal((await post(hub, "/api/publish", { project: "pj", topic: "a", version: 1, html: html("a") })).status, 200);
   assert.equal((await post(hub, "/api/publish", { project: "pj", topic: "b", version: 1, html: html("b") })).status, 200);
   const over = await post(hub, "/api/publish", { project: "pj", topic: "c", version: 1, html: html("c") });
@@ -656,4 +657,129 @@ test("ハブに無い議題を待つと、分かる文で知らせる。ルー�
   const open = await startHub("open-host", { args: ["--host", "0.0.0.0"] });
   assert.match(open.out.stdout, /0\.0\.0\.0.*LAN/s);
   assert.doesNotMatch(hub.out.stdout, /△/);
+});
+
+
+// ---- 再レビュー (PR #1594 r2) の修正の試験 ----
+test("起動の引数: 値の無い・-- 始まり・空の --host / --port などは起動を断る (終了コード 2)", async () => {
+  const root = path.join(tmp, "args", "root");
+  const port = String(await freePort());
+  const run = (...args) => spawnSync(process.execPath, [SERVE, ...(args.includes("--root") ? [] : ["--root", root]), ...args], { cwd: tmp, encoding: "utf8", timeout: 5000, killSignal: "SIGKILL" });
+  for (const args of [["--port", port, "--host"], ["--host", "--port", port], ["--port", port, "--host", ""], ["--host", "--port", "1"], ["--port"], ["--port", ""], ["--port", "abc"], ["--port", "70000"], ["--port", port, "--root"], ["--port", port, "--lan-url"]]) {
+    const r = run(...args);
+    assert.equal(r.status, 2, `${JSON.stringify(args)} → status=${r.status} ${r.stdout}${r.stderr}`);
+    assert.match(r.stderr, /指定してください|不正/);
+  }
+  // 正しい指定は通る (起動して ping できる)
+  const hub = await startHub("args-ok", { args: ["--host", "127.0.0.1"] });
+  assert.ok(await alive(hub));
+});
+
+test("容量の数え方: 同じ版を何度上書きしても増えず、index.html の写しも数える", async () => {
+  const hub = await startHub("quota2", { env: { HTML_QA_HUB_MAX_BYTES: "300000" } });
+  const html = (c) => `<p>${c.repeat(60_000)}</p>`; // 版 + 写し = 約 12 万バイト
+  for (let i = 0; i < 8; i++) assert.equal((await post(hub, "/api/publish", { project: "pj", topic: "a", version: 1, html: html("a") })).status, 200, `上書き ${i + 1} 回目`);
+  assert.equal((await post(hub, "/api/publish", { project: "pj", topic: "b", version: 1, html: html("b") })).status, 200); // 約 24 万
+  // 写しを含めて 36 万になるので断る (写しを数えないと 30 万に収まって通ってしまう)
+  assert.equal((await post(hub, "/api/publish", { project: "pj", topic: "c", version: 1, html: html("c") })).status, 507);
+  // 古い版 (v1) より新しい版 (v2) を預けると写しは差し替わるので、増えるのは版の分だけ
+  assert.equal((await post(hub, "/api/publish", { project: "pj", topic: "a", version: 2, html: `<p>${"x".repeat(50_000)}</p>` })).status, 200);
+  assert.ok(await alive(hub));
+});
+
+test("版のファイル・プロジェクトのフォルダがシンボリックリンクなら配らず、一覧にも出さない", async () => {
+  const hub = await startHub("filelink");
+  assert.equal((await pub(hub, "pj", "t", 1)).status, 200);
+  const outside = path.join(tmp, "filelink", "outside");
+  fs.mkdirSync(path.join(outside, "t"), { recursive: true });
+  fs.writeFileSync(path.join(outside, "secret.txt"), "SECRET-FILE");
+  fs.writeFileSync(path.join(outside, "t", "v1.html"), "SECRET-HTML");
+  fs.writeFileSync(path.join(outside, "t", "v1.json"), JSON.stringify(jdoc("t", 1, { title: "SECRET-TITLE" })));
+  fs.writeFileSync(path.join(outside, "ans.md"), "SECRET-ANSWER");
+  const d = path.join(hub.root, ".hub", "pj", "t");
+  fs.rmSync(path.join(d, "index.html"));
+  fs.symlinkSync(path.join(outside, "secret.txt"), path.join(d, "index.html"));
+  fs.symlinkSync(path.join(outside, "secret.txt"), path.join(d, "v2.html"));
+  fs.symlinkSync(path.join(outside, "ans.md"), path.join(d, "v1.answer.md"));
+  fs.symlinkSync(outside, path.join(hub.root, ".hub", "linkp"));
+  // json がリンクの議題 (題名が外のファイルのもの)
+  assert.equal((await pub(hub, "pj", "t2", 1)).status, 200);
+  fs.rmSync(path.join(hub.root, ".hub", "pj", "t2", "v1.json"));
+  fs.symlinkSync(path.join(outside, "t", "v1.json"), path.join(hub.root, ".hub", "pj", "t2", "v1.json"));
+  for (const p of ["/pj/t/", "/pj/t/index.html", "/pj/t/v2.html", "/linkp/", "/linkp/t/", "/linkp/t/v1.html", "/p/linkp/", "/api/answer?project=pj&topic=t", "/api/answer?project=pj", "/api/status?project=pj&topic=t&version=1"]) {
+    const x = await get(hub, p);
+    const text = await x.text();
+    assert.ok(!/secret-/i.test(text), `${p} が外のファイルの中身を返した: ${text.slice(0, 80)}`);
+    assert.ok([200, 204, 403, 404].includes(x.status), `${p} → ${x.status}`);
+  }
+  for (const p of ["/pj/t/", "/pj/t/v2.html", "/linkp/", "/p/linkp/"]) assert.ok([403, 404].includes((await get(hub, p)).status), p);
+  const top = await (await get(hub, "/")).text();
+  assert.ok(!/secret-|linkp/i.test(top), "一覧に外のものが出た");
+  assert.ok(await alive(hub));
+  // 通常のファイルは今までどおり
+  assert.equal((await get(hub, "/pj/t/v1.html")).status, 200);
+  // 回答の保存は、リンクをたどって外のファイルを書き換えない
+  assert.equal((await post(hub, "/api/answer", { project: "pj", topic: "t", version: 1, text: "新しい回答" }, jar(hub))).status, 200);
+  assert.equal(fs.readFileSync(path.join(outside, "ans.md"), "utf8"), "SECRET-ANSWER");
+});
+
+test("リダイレクトを返すハブには従わず、鍵のヘッダを別のオリジンへ持ち出さない", async () => {
+  const seen = [];
+  const other = http.createServer((req, res) => { seen.push({ url: req.url, key: req.headers["x-html-qa-key"] }); res.writeHead(200, { "Content-Type": "application/json" }); res.end('{"ok":true}'); });
+  await new Promise((r) => other.listen(0, "127.0.0.1", r));
+  const redirector = http.createServer((req, res) => { req.resume(); res.writeHead(302, { Location: `http://127.0.0.1:${other.address().port}${req.url}` }); res.end(); });
+  await new Promise((r) => redirector.listen(0, "127.0.0.1", r));
+  try {
+    const p = mkProject("redir", "t-redir");
+    fs.writeFileSync(path.join(p.root, ".hub.json"), JSON.stringify({ url: `http://127.0.0.1:${redirector.address().port}`, key: "k".repeat(32), project: "pr" }));
+    const r = runBuildAsync(p);
+    const out = await r;
+    assert.equal(out.code, 0, out.stderr);
+    assert.match(out.stderr, /△ ハブに送れませんでした/);
+    assert.deepEqual(seen, [], "リダイレクト先に鍵つきの要求が届いた");
+  } finally {
+    await new Promise((r) => redirector.close(r));
+    await new Promise((r) => other.close(r));
+  }
+});
+const runBuildAsync = (p) => runAsync([BUILD, p.rel], { cwd: p.cwd });
+
+test("json の検査: 型名が Object.prototype のキー・深すぎる入れ子・検査中の例外は 400 で預からない", async () => {
+  const hub = await startHub("deep");
+  const mk = (type) => ({ ...jdoc("t", 1), sections: [{ title: "章", blocks: [{ type }] }] });
+  for (const type of ["toString", "constructor", "__proto__", "hasOwnProperty", "valueOf"]) {
+    const r = await post(hub, "/api/publish", { project: "pj", topic: "t", version: 1, html: "<p>x</p>", json: mk(type) });
+    assert.equal(r.status, 400, type);
+    assert.match((await r.json()).error, /使えません/, type);
+  }
+  // build.mjs も同じ検査で、落ちずに ✗ を出す
+  const p = mkProject("proto", "t-proto");
+  fs.writeFileSync(path.join(p.dir, "v1.json"), JSON.stringify({ ...jdoc("t-proto", 1), sections: [{ title: "章", blocks: [{ type: "toString" }] }] }));
+  const b = runBuild(p, p.rel);
+  assert.equal(b.status, 1);
+  assert.match(b.stderr, /✗.*使えません/);
+  assert.doesNotMatch(b.stderr, /TypeError|at /);
+  // 10 万段の入れ子 (余計なキーの中) は 500 でなく 400
+  const depth = 100_000;
+  const deep = `${"[".repeat(depth)}${"]".repeat(depth)}`;
+  const body = `{"project":"pj","topic":"t","version":1,"html":"<p>x</p>","json":{"topic":"t","version":1,"title":"x","sections":[{"title":"s","blocks":[{"type":"text","md":"m"}]}],"pad":${deep}}}`;
+  const r = await fetch(`${hub.base}/api/publish`, { method: "POST", headers: H(hub, { "Content-Type": "application/json" }), body });
+  assert.equal(r.status, 400, await r.text());
+  assert.deepEqual(tree(path.join(hub.root, ".hub")), []);
+  // 回答の構造化データが深すぎても 500 にならない (構造化データは捨て、本文だけ保存する)
+  assert.equal((await pub(hub, "pj", "t", 1)).status, 200);
+  const ans = await fetch(`${hub.base}/api/answer`, { method: "POST", headers: { ...jar(hub), "Content-Type": "application/json" }, body: `{"project":"pj","topic":"t","version":1,"text":"本文","answers":{"topic":"t","version":1,"deep":${deep}}}` });
+  assert.equal(ans.status, 200);
+  assert.ok(!fs.existsSync(path.join(hub.root, ".hub", "pj", "t", "v1.answer.json")));
+  assert.ok(await alive(hub));
+});
+
+test("savePublish: 検査の途中で例外が出ても握りつぶさず、400 で預からない", async () => {
+  const { savePublish, HubError } = await import("./hub.mjs");
+  const root = path.join(tmp, "inproc");
+  // 入れ子の深さの確認 (1 回目の読み取り) は通り、形式の検査 (2 回目以降の読み取り) で例外になる
+  let reads = 0;
+  const evil = { topic: "t", version: 1, title: "x", sections: [{ title: "s", blocks: [{ get type() { if (reads++ >= 1) throw new Error("検査中の例外"); return "text"; }, md: "m" }] }] };
+  assert.throws(() => savePublish(root, { project: "pj", topic: "t", version: 1, html: "<p>x</p>", json: evil }), (e) => e instanceof HubError && e.status === 400);
+  assert.ok(!fs.existsSync(path.join(root, ".hub", "pj", "t", "v1.html")), "検査に失敗した議題が保存された");
 });

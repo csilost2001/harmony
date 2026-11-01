@@ -26,12 +26,21 @@ import fs from "node:fs";
 import path from "node:path";
 import { buildIndex, collectRows, renderIndex } from "./index-page.mjs";
 import { TOPIC_RE, DEFAULT_ROOT, answerStatus, isWaiting, accessKey, keyMatches, setLanBase, pageUrls, lanBase } from "./lib.mjs";
-import { HubError, LIMITS, hubBase, hubTopicDir, hubProjects, hubTopics, hasHubProject, latestHtml, savePublish, writeAnswerFiles, listHubAnswers, markHubSeen, setHubWaiting, isHubWaiting, checkNames, checkVersion } from "./hub.mjs";
+import { HubError, LIMITS, isRegularFile, hubBase, hubTopicDir, hubProjects, hubTopics, hasHubProject, latestHtml, savePublish, writeAnswerFiles, listHubAnswers, markHubSeen, setHubWaiting, isHubWaiting, checkNames, checkVersion } from "./hub.mjs";
 
-const arg = (name, d) => { const i = process.argv.indexOf(`--${name}`); return i > 0 ? process.argv[i + 1] : d; };
+// 値つきの引数。値が無い・空・次が -- 始まりのときは起動を断る (--host の値が欠けて全経路で待ってしまう、などを防ぐ)
+const EXAMPLES = { root: ".tmp/html-qa", port: "5190", host: "127.0.0.1", "lan-url": "http://192.168.1.10:5191" };
+const arg = (name, d) => {
+  const i = process.argv.indexOf(`--${name}`);
+  if (i < 0) return d;
+  const v = process.argv[i + 1];
+  if (v === undefined || v === "" || v.startsWith("--")) { console.error(`--${name} には値を指定してください (例: --${name} ${EXAMPLES[name] ?? "<値>"})`); process.exit(2); }
+  return v;
+};
 const ROOT = path.resolve(arg("root", DEFAULT_ROOT));
 const PORT = Number(arg("port", process.env.HTML_QA_PORT || 5190));
 const HOST = arg("host", "127.0.0.1");
+if (!Number.isInteger(PORT) || PORT < 0 || PORT > 65535) { console.error(`--port が不正です (0〜65535 の整数を指定してください): ${arg("port", "")}`); process.exit(2); }
 const MAX_BODY = 512 * 1024;
 const HUB_FILE_RE = /^(?:index|v\d{1,4})\.html$|^v\d{1,4}\.(?:json|answer\.md|answer\.json)$/;
 const COOKIE = "html_qa_key";
@@ -85,6 +94,7 @@ const readJson = (req, res, max, then) => {
     let body;
     try { body = JSON.parse(Buffer.concat(chunks).toString("utf8")); } catch { return send(res, 400, { error: "JSON が読めません" }); }
     try { then(body); } catch (err) {
+      if (res.headersSent || res.writableEnded) { res.destroy(); return; } // 応答済みなら、接続を閉じるだけ
       if (err instanceof HubError) return send(res, err.status, { error: err.message });
       console.error(`処理に失敗しました: ${err.message}`);
       return send(res, 500, { error: "サーバ内の処理に失敗しました" });
@@ -256,7 +266,8 @@ function handle(req, res) {
     if (segs.length > 3 || !HUB_FILE_RE.test(name)) return send(res, 404, "見つかりません", "text/plain; charset=utf-8");
     const dir = hubTopicDir(ROOT, project, topic);
     const file = dir && path.join(dir, name);
-    if (!file || !fs.existsSync(file)) return send(res, 404, "見つかりません (ハブにその議題・版はありません)", "text/plain; charset=utf-8");
+    // 通常のファイルだけ配る (リンクは、外のファイルを指しうるので配らない)
+    if (!file || !isRegularFile(file)) return send(res, 404, "見つかりません (ハブにその議題・版はありません)", "text/plain; charset=utf-8");
     return send(res, 200, fs.readFileSync(file), TYPES[path.extname(file).toLowerCase()] || "application/octet-stream");
   }
 

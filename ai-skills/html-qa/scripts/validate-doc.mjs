@@ -53,7 +53,7 @@ export function validate(doc, file) {
     if (!Array.isArray(blocks)) { e(base, "blocks は配列にしてください"); return; }
     blocks.forEach((b, i) => {
       const p = `${base}[${i}]`;
-      const spec = SPEC[b?.type];
+      const spec = typeof b?.type === "string" && Object.hasOwn(SPEC, b.type) ? SPEC[b.type] : undefined; // toString などの継承されたキーは型として認めない
       if (!spec) { e(p, `type "${b?.type}" は使えません (使えるもの: ${Object.keys(SPEC).join(", ")})`); return; }
       const where = `${p} (${b.type}${b.id ? ` ${b.id}` : ""})`;
       for (const r of spec.req) if (b[r] == null || b[r] === "") e(where, `${r} が必要です`);

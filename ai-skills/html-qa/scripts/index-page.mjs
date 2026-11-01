@@ -10,7 +10,9 @@ const QTYPES = new Set(["choice", "multi", "input", "scale", "rank", "review"]);
 const escHtml = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const jsonForScript = (v) => JSON.stringify(v).replace(/</g, "\\u003c").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
 const nz = (s) => String(s).normalize("NFKC").toLowerCase();
-const readJson = (f) => { try { return JSON.parse(fs.readFileSync(f, "utf8")); } catch { return null; } };
+// 通常のファイルだけ読む (リンクは、外のファイルを指しうるので読まない)
+const regular = (f) => { try { return fs.lstatSync(f).isFile(); } catch { return false; } };
+const readJson = (f) => { try { return regular(f) ? JSON.parse(fs.readFileSync(f, "utf8")) : null; } catch { return null; } };
 
 export function versionsIn(dir) {
   return fs.readdirSync(dir).map((f) => f.match(/^v(\d+)\.json$/)).filter(Boolean).map((m) => Number(m[1])).sort((a, b) => a - b);
@@ -66,10 +68,10 @@ function rowOf(baseDir, name, hrefPrefix) {
   let ans = "";
   for (const n of vs) {
     const f = path.join(dir, `v${n}.answer.md`);
-    if (fs.existsSync(f) && ans.length < MAX_ANS) ans += `${fs.readFileSync(f, "utf8").replace(/^<!--.*?-->\n/, "")}\n`;
+    if (regular(f) && ans.length < MAX_ANS) ans += `${fs.readFileSync(f, "utf8").replace(/^<!--.*?-->\n/, "")}\n`;
   }
-  const mtime = fs.statSync(path.join(dir, fs.existsSync(path.join(dir, `v${v}.json`)) ? `v${v}.json` : `v${v}.html`)).mtime;
-  const answered = fs.existsSync(path.join(dir, `v${v}.answer.md`));
+  const mtime = fs.statSync(path.join(dir, regular(path.join(dir, `v${v}.json`)) ? `v${v}.json` : `v${v}.html`)).mtime;
+  const answered = regular(path.join(dir, `v${v}.answer.md`));
   return { name: name, href: `${hrefPrefix}${encodeURIComponent(name)}/index.html`, title, v, mtime, answered, h: nz([title, name, doc?.lead || "", ...qs, ans.slice(0, MAX_ANS)].join("\n")) };
 }
 
