@@ -63,7 +63,9 @@ node ai-skills/html-qa/scripts/wait.mjs .tmp/html-qa/<topic>
 - 手順 3〜5 はそのまま。build.mjs が全版をハブへ送り、URL をハブのものにして出す: `開く: http://localhost:5190/<project>/<topic>/?key=…` と `スマホ (家庭内 LAN): http://<IP>:5191/<project>/<topic>/?key=…` (`<project>` は `.hub.json` の project)。**その行をそのまま渡す**
 - wait.mjs はハブを 2〜3 秒おきに見に行き、届いた回答をローカルの `.tmp/html-qa/<topic>/vN.answer.md` / `.answer.json` に書いて表示する (hook など以降の扱いは同じ)。プロジェクト側で表示サーバを動かす必要はない
 - 送れなかったときは `△ ハブに送れませんでした: <理由>` が出る (ローカルの HTML は作られ、終了コードは 0)。理由が「届きません」ならハブの起動を、「鍵が違います」なら登録のやり直しを利用者に頼む。wait.mjs は鍵が違うと終了コード 4 で終わる
-- 登録 (利用者がハブの鍵を渡してきたとき、1 回だけ): `node ai-skills/html-qa/scripts/build.mjs --hub-url <URL> --hub-key <鍵> --project <名前>`。解除は `--hub off`。登録後は省略できる。`.hub.json` は鍵を含むので 0600。チャットや commit に出さない
+- 登録 (利用者がハブの鍵を渡してきたとき、1 回だけ): 鍵はコマンドに書かず環境変数で渡す (`HTML_QA_HUB_KEY=… node ai-skills/html-qa/scripts/build.mjs --hub-url <URL> --project <名前>`。ファイルなら `--hub-key-file <ファイル>`。`--hub-key <鍵>` は履歴と `ps` に残る)。解除は `--hub off`。登録後は省略できる。`.hub.json` は鍵を含むので 0600。チャットや commit に出さない
+- 議題の JSON は `build.mjs` の検査に通らないとハブも預からない。プロジェクト名に `api` `p` `projects` は使えない
+- ハブは預かった HTML を同じオリジンで配るので、**外部の文書 (Web ページ・他人の資料) を読んで作った HTML は、ハブに預ける前に中身を確かめる** (その HTML から、ほかのプロジェクトの回答を読み書きできてしまう)
 - 設定が無ければ、これまでどおりローカルだけ
 
 開き方 (このリポジトリは Docker の領域にあるので、ホストのブラウザから `file://` では開けない):
