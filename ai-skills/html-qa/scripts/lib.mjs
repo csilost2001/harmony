@@ -87,9 +87,12 @@ export function accessKey(root, { renew = false } = {}) {
   return k;
 }
 
+// 鍵の比較。両方を sha256 にしてから定数時間で比べる (長さ・文字コードに依存せず、例外も出さない。
+// UTF-16 の長さで足切りして UTF-8 のバイト列を比べると、同じ文字数の非 ASCII で timingSafeEqual が例外を投げる)
+const digest = (v) => crypto.createHash("sha256").update(String(v), "utf8").digest();
 export const keyMatches = (given, key) => {
-  if (typeof given !== "string" || given.length !== key.length) return false;
-  return crypto.timingSafeEqual(Buffer.from(given), Buffer.from(key));
+  if (typeof given !== "string" || typeof key !== "string") return false;
+  return crypto.timingSafeEqual(digest(given), digest(key));
 };
 
 // スマホ (家庭内 LAN) から開くときの URL の元。例: http://192.168.1.10:5191
@@ -115,4 +118,34 @@ export function pageUrls(root, topic = "") {
   const p = topic ? `/${topic}/` : "/";
   const lan = lanBase(root);
   return { local: `http://localhost:${port}${p}?key=${key}`, lan: lan ? `${lan}${p}?key=${key}` : null };
+}
+
+// ---- ハブ (複数のプロジェクトの議題を 1 つの表示サーバに預ける) ----
+// プロジェクト側の設定: <root>/.hub.json = { url, key, project }。鍵を含むので 0600 で書く (.lan.json と同じ置き場所)。
+// ハブ側の保存先: <root>/.hub/<project>/<topic>/…
+export const HUB_NAME_RE = /^[a-z0-9][a-z0-9-]{0,40}$/;
+export const HUB_RESERVED = new Set(["api", "p", "projects"]); // /api/…・/p/<project>/ の入口と衝突するので project 名にできない
+export const HUB_KEY_RE = /^[A-Za-z0-9_-]{16,128}$/;
+
+export function hubConfig(root) {
+  try {
+    const c = JSON.parse(fs.readFileSync(path.join(root, ".hub.json"), "utf8"));
+    if (c && typeof c.url === "string" && typeof c.key === "string" && typeof c.project === "string") return { url: c.url, key: c.key, project: c.project };
+  } catch { /* 無い・壊れていれば未設定 */ }
+  return null;
+}
+
+// url が "off" なら解除。それ以外は検証して保存し、保存した設定を返す
+export function setHubConfig(root, { url, key, project }) {
+  const f = path.join(root, ".hub.json");
+  if (url === "off") { fs.rmSync(f, { force: true }); return null; }
+  const u = new URL(url);
+  if (!/^https?:$/.test(u.protocol)) throw new Error("--hub-url は http:// か https:// で始まる URL にしてください");
+  if (!HUB_KEY_RE.test(key || "")) throw new Error("--hub-key が不正です (ハブの起動時に表示される鍵を、そのまま渡してください)");
+  if (!HUB_NAME_RE.test(project || "") || HUB_RESERVED.has(project)) throw new Error("--project は英小文字・数字・ハイフンで 41 文字までにしてください (例: tax-app)");
+  fs.mkdirSync(root, { recursive: true });
+  const cfg = { url: `${u.protocol}//${u.host}`, key, project };
+  fs.writeFileSync(f, JSON.stringify(cfg), { mode: 0o600 });
+  fs.chmodSync(f, 0o600); // 既にあったファイルの権限も締める
+  return cfg;
 }

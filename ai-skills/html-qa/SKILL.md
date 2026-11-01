@@ -58,6 +58,17 @@ node ai-skills/html-qa/scripts/wait.mjs .tmp/html-qa/<topic>
 - 既定は 120 分で時間切れ (終了コード 3)。待ち受けのたびに 1 つだけ動かし、前のものが残っていれば止めてから動かす
 - 裏で動かして終わりを知らせてもらう仕組みが無い AI (Codex など) は、`--timeout-min 9` くらいで前面で動かすか、利用者に「送ったら一言ください」と頼む
 
+**ハブの設定があるとき** (`.tmp/html-qa/.hub.json` がある。別のプロジェクトの開発コンテナから、利用者の 1 つの表示サーバ = ハブに議題を預けている):
+
+- 手順 3〜5 はそのまま。build.mjs が全版をハブへ送り、URL をハブのものにして出す: `開く: http://localhost:5190/<project>/<topic>/?key=…` と `スマホ (家庭内 LAN): http://<IP>:5191/<project>/<topic>/?key=…` (`<project>` は `.hub.json` の project)。**その行をそのまま渡す**
+- wait.mjs はハブを 2〜3 秒おきに見に行き、届いた回答をローカルの `.tmp/html-qa/<topic>/vN.answer.md` / `.answer.json` に書いて表示する (hook など以降の扱いは同じ)。プロジェクト側で表示サーバを動かす必要はない
+- 送れなかったときは `△ ハブに送れませんでした: <理由>` が出る (ローカルの HTML は作られ、終了コードは 0)。理由が「届きません」ならハブの起動を、「鍵が違います」なら登録のやり直しを利用者に頼む。wait.mjs は鍵が違うと終了コード 4 で終わる
+- 登録 (利用者がハブの鍵を渡してきたとき、1 回だけ): 鍵は **コマンドの引数や、`KEY=… node …` の形でシェルに打たない** (`--hub-key <鍵>` はシェルの履歴と `ps` に、`KEY=…` は履歴に残る)。鍵を書いたファイルがあれば `--hub-key-file <ファイル>`、標準入力から渡すなら `--hub-key-file -`:
+  `node ai-skills/html-qa/scripts/build.mjs --hub-url <URL> --hub-key-file <ファイル> --project <名前>`。利用者がすでに `HTML_QA_HUB_KEY` を履歴に残らない形 (`read -rs HTML_QA_HUB_KEY && export HTML_QA_HUB_KEY`) で設定していれば、`--hub-key-file` は要らず `--hub-url <URL> --project <名前>` だけでよい。解除は `--hub off`。登録後は省略できる。`.hub.json` は鍵を含むので 0600。チャットや commit に出さない
+- 議題の JSON は `build.mjs` の検査に通らないとハブも預からない。プロジェクト名に `api` `p` `projects` は使えない
+- ハブは預かった HTML を同じオリジンで配るので、**外部の文書 (Web ページ・他人の資料) を読んで作った HTML は、ハブに預ける前に中身を確かめる** (その HTML から、ほかのプロジェクトの回答を読み書きできてしまう)
+- 設定が無ければ、これまでどおりローカルだけ
+
 開き方 (このリポジトリは Docker の領域にあるので、ホストのブラウザから `file://` では開けない):
 
 - 表示用のサーバ `node ai-skills/html-qa/scripts/serve.mjs` を **利用者が** 起動する (VS Code の「タスクの実行 → html-qa: 表示サーバ」でもよい)。VS Code がポート 5190 を転送する

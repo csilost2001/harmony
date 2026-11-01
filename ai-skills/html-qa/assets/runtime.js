@@ -481,6 +481,13 @@
     if (await copyText(text)) { pushHistory(text, "copy"); say("コピーしました。AI のチャットに貼り付けてください"); }
     else { promptBox.focus(); promptBox.select(); say("コピーできませんでした。選択された文を手でコピーしてください", true); }
   };
+  // ハブ (複数プロジェクトを預かる表示サーバ) の議題は /<project>/<topic>/… で開く。従来は /<topic>/<ファイル>.html。
+  // ハブのときは、サーバへの問い合わせに project を添える
+  const HUB_PROJECT = (() => {
+    const seg = location.pathname.split("/").filter(Boolean);
+    return seg.length >= 2 && !seg[1].includes(".") ? seg[0] : null;
+  })();
+  const projectQ = HUB_PROJECT ? `project=${encodeURIComponent(HUB_PROJECT)}&` : "";
   // サーバ経由のときの状態: AI が待ち受け中か / 送った回答を AI が読んだか
   const live = { served: false, waiting: false, sent: false, seen: false };
   const aiState = h("span", { class: "aistate", hidden: true, role: "status" });
@@ -494,7 +501,7 @@
   const doSend = async () => {
     const text = promptBox.value;
     try {
-      const r = await fetch("/api/answer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ topic: DOC.topic, version: DOC.version, text, answers: buildAnswers() }) });
+      const r = await fetch("/api/answer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...(HUB_PROJECT ? { project: HUB_PROJECT } : {}), topic: DOC.topic, version: DOC.version, text, answers: buildAnswers() }) });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || r.statusText);
       pushHistory(text, "file");
@@ -629,7 +636,7 @@
 
   // サーバ経由で開いているときは「AI に送る」・AI の状態・新しい版の通知を使う
   async function fetchStatus() {
-    const r = await fetch(`/api/status?topic=${encodeURIComponent(DOC.topic)}&version=${DOC.version}`);
+    const r = await fetch(`/api/status?${projectQ}topic=${encodeURIComponent(DOC.topic)}&version=${DOC.version}`);
     if (!r.ok) return;
     const x = await r.json();
     live.waiting = x.waiting; live.seen = x.seen; live.sent = x.answered;
@@ -650,7 +657,7 @@
       const poll = async () => {
         try {
           await fetchStatus();
-          const r = await fetch(`/api/latest?topic=${encodeURIComponent(DOC.topic)}`); const x = await r.json();
+          const r = await fetch(`/api/latest?${projectQ}topic=${encodeURIComponent(DOC.topic)}`); const x = await r.json();
           if (x.version > Math.max(DOC.version, META.latest || 0)) {
             // 送り終えた版なら、そのまま新しい版へ移る (入力はブラウザに残っている)
             if (live.sent && live.seen) { location.href = x.file; return; }
