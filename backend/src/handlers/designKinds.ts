@@ -24,6 +24,7 @@ import { isValidEntityId } from "../security/idValidator.js";
 import { assertEntityIdMcp, type ToolHandler } from "../mcpHelpers.js";
 import { assertSafeName } from "../security/idValidator.js";
 import { wsBridge } from "../wsBridge.js";
+import { withProjectLock } from "../storageCore.js";
 import { workspaceContextManager } from "../workspaceState.js";
 
 const json = (v: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(v, null, 2) }] });
@@ -246,9 +247,12 @@ export const handleDesignKindsTool: ToolHandler = async (name, args, root, sessi
 
     case "designer__save_tech_stack": {
       if (!isRecord(a.techStack)) throw bad("techStack は JSON のオブジェクトで指定してください (designer / backend / database など)");
-      const project = await readProject(root);
-      if (!isRecord(project)) throw bad("harmony.json を読めません (ワークスペースを確かめてください)");
-      await writeProject({ ...project, techStack: a.techStack }, root);
+      const techStack = a.techStack;
+      await withProjectLock(root, async () => {
+        const project = await readProject(root);
+        if (!isRecord(project)) throw bad("harmony.json を読めません (ワークスペースを確かめてください)");
+        await writeProject({ ...project, techStack }, root);
+      });
       wsBridge.broadcast({ wsId: wsId(), event: "projectChanged", data: { reload: true } });
       return json({ saved: true, note: "技術スタックは全体を置き換えます" });
     }

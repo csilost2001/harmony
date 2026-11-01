@@ -12,7 +12,7 @@ export const tools = [
   {
     name: "designer__list_screens",
     description:
-      "プロジェクトに登録されている画面 (Screen) の一覧を取得します。purpose で page (画面遷移図対象) / gadget (PageLayout 部品) を絞り込めます (RFC #1021)。",
+      "プロジェクトに登録されている画面 (Screen) の一覧を取得します (ブラウザ不要)。purpose で page (画面遷移図対象) / gadget (PageLayout 部品) を絞り込めます (RFC #1021)。",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -29,12 +29,12 @@ export const tools = [
   {
     name: "designer__add_screen",
     description:
-      "フロー図に新しい画面ノードを追加します。追加後、ブラウザのフロー図に即時反映されます。" +
-      " 新しい画面は、画面名の見出しだけを置いた業務部品レイアウト (layout) を持ちます。" +
-      " 画面の中身は designer__set_screen_layout で設定してください。",
+      "フロー図に新しい画面ノードを追加します。ブラウザが開いていれば即時反映され、開いていなくてもファイルに直接書きます (フロー図の位置は、既存の画面と重ならない所へ自動配置)。" +
+      " 新しい画面は、画面名の見出しだけを置いた業務部品レイアウト (layout) を持ちます。画面の中身は designer__set_screen_layout で設定してください。",
     inputSchema: {
       type: "object" as const,
       properties: {
+        id: { type: "string", description: "画面 ID (kebab-case の英単語。例: customer-list)。省略時は scr-<8桁> を採番。すでにある ID は断る。" },
         name: {
           type: "string",
           description: "画面名（例: 顧客一覧）",
@@ -68,7 +68,7 @@ export const tools = [
   {
     name: "designer__update_screen",
     description:
-      "既存画面のメタ情報 (名前・種別・説明・想定URL・purpose・pageLayoutId) を更新します。",
+      "既存画面のメタ情報 (名前・種別・説明・想定URL・purpose・pageLayoutId) を更新します。ブラウザが無くてもファイルに直接書きます。",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -100,7 +100,7 @@ export const tools = [
   {
     name: "designer__remove_screen",
     description:
-      "画面をフロー図から削除します。関連する遷移エッジとデザインデータも削除されます。",
+      "画面をフロー図から削除します。関連する遷移エッジとデザインデータも削除されます。ブラウザが無くても動きます。",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -115,7 +115,7 @@ export const tools = [
   {
     name: "designer__add_edge",
     description:
-      "2つの画面間に遷移エッジを追加します。",
+      "2つの画面間に遷移エッジを追加します。ブラウザが無くても動きます。",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -143,7 +143,7 @@ export const tools = [
   {
     name: "designer__remove_edge",
     description:
-      "遷移エッジを削除します。",
+      "遷移エッジを削除します。ブラウザが無くても動きます。",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -158,7 +158,7 @@ export const tools = [
   {
     name: "designer__get_flow",
     description:
-      "フロー図全体のデータ（全画面・全遷移エッジ）をJSON形式で取得します。プロジェクトの全体像を把握する際に使います。",
+      "フロー図全体のデータ（全画面・全遷移エッジ）をJSON形式で取得します。プロジェクトの全体像を把握する際に使います。ブラウザが無くても動きます。",
     inputSchema: {
       type: "object" as const,
       properties: {},
@@ -1135,7 +1135,7 @@ export const tools = [
   {
     name: "designer__save_screen",
     description:
-      "指定した画面の変更をファイルに永続化します。ブラウザのキャッシュをサーバーのファイルに書き込みます。",
+      "指定した画面の変更をファイルに永続化します。ブラウザのキャッシュをサーバーのファイルに書き込みます。ブラウザが無ければ未保存の編集は無いと答えます (編集セッションの作業コピーは editSession__save)。",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -1150,7 +1150,7 @@ export const tools = [
   {
     name: "designer__save_all",
     description:
-      "未保存の変更がある全タブをまとめてファイルに永続化します。",
+      "未保存の変更がある全タブをまとめてファイルに永続化します。ブラウザが無ければ未保存の編集は無いと答えます (編集セッションの作業コピーは editSession__save)。",
     inputSchema: {
       type: "object" as const,
       properties: {},

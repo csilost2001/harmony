@@ -48,7 +48,7 @@ export {
 import {
   SCHEMAS_DIR, actionsDir, businessFlowsDir, catalogsDir, conventionsDir, conventionsFile, ensureDataDir, ensureDataDirFromRoot, erLayoutFile, extensionsDir,
   externalCatalogsFile, fileExists, genericDefinitionsDir, harmonyFile, layoutComponentsFile, pageLayoutsDir, processFlowsDir, readJSON, reportsDir,
-  resolveDataRoot, resolveRoot, screenFlowPositionsFile, screenItemsDir, screensDir, sequencesDir, tablesDir, viewDefsDir, viewsDir, withFileLock, writeJSON,
+  resolveDataRoot, resolveRoot, screenFlowPositionsFile, screenItemsDir, screensDir, sequencesDir, tablesDir, viewDefsDir, viewsDir, withFileLock, withProjectLock, writeJSON,
 } from "./storageCore.js";
 export {
   actionsDir, conventionsFile, ensureDataDir, erLayoutFile, extensionsDir, externalCatalogsFile, harmonyFile, layoutComponentsFile,
@@ -1420,12 +1420,12 @@ function layoutHasContent(layout: unknown): boolean {
 /** harmony.json の画面エントリの hasDesign (一覧の「デザイン済」) を、レイアウトの中身に合わせる */
 async function syncScreenHasDesign(screenId: string, hasDesign: boolean, root: string): Promise<void> {
   try {
-    const project = await readProject(root);
-    const entry = getScreenEntry(project, screenId);
-    if (!entry || Boolean(entry.hasDesign) === hasDesign) return;
-    entry.hasDesign = hasDesign;
-    entry.updatedAt = new Date().toISOString();
-    await writeProject(project, root);
+    await withProjectLock(root, async () => { // 読んで書く間に、他の更新が入って消えないように
+      const project = await readProject(root); const entry = getScreenEntry(project, screenId);
+      if (!entry || Boolean(entry.hasDesign) === hasDesign) return;
+      entry.hasDesign = hasDesign; entry.updatedAt = new Date().toISOString();
+      await writeProject(project, root);
+    });
   } catch (e) {
     console.error("[projectStorage] hasDesign の更新に失敗:", e);
   }

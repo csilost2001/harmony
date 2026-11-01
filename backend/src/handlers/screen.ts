@@ -12,6 +12,9 @@
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { readProject } from "../projectStorage.js";
 import { wsBridge } from "../wsBridge.js";
+import {
+  addScreenToFiles, updateScreenInFiles, removeScreenFromFiles, assertScreenKind, assertScreenIdFree, assertScreenIdFreeLocked,
+} from "../screenFlowFiles.js";
 import { assertEntityIdMcp, type ToolHandler } from "../mcpHelpers.js";
 
 export const handleScreenTool: ToolHandler = async (name, args, root) => {
@@ -32,11 +35,11 @@ export const handleScreenTool: ToolHandler = async (name, args, root) => {
         v3Screens = legacy?.screens;
       }
       if (!v3Screens) {
-        // ブラウザ経由 fallback (purpose 情報なし)
-        const result = (await wsBridge.sendCommand("listScreens")) as {
+        // ブラウザ経由 fallback (purpose 情報なし)。ブラウザが無ければ、画面は無いものとして扱う (ファイルに画面の一覧が無い = 登録なし。#1591)
+        const result = (wsBridge.hasActiveBrowser() ? await wsBridge.sendCommand("listScreens") : null) as {
           screens: Array<{ id: string; name: string; type: string; path: string; hasDesign: boolean }>;
-        };
-        v3Screens = result.screens.map((s) => ({
+        } | null;
+        v3Screens = (result?.screens ?? []).map((s) => ({
           id: s.id,
           name: s.name,
           kind: s.type,
@@ -70,16 +73,45 @@ export const handleScreenTool: ToolHandler = async (name, args, root) => {
     }
 
     case "designer__add_screen": {
-      if (typeof a.name !== "string") {
+      if (typeof a.name !== "string" || !a.name.trim()) {
         throw new McpError(ErrorCode.InvalidParams, "name は必須です");
       }
-      const result = (await wsBridge.sendCommand("addScreen", {
-        name: a.name,
-        type: typeof a.type === "string" ? a.type : undefined,
-        path: typeof a.path === "string" ? a.path : undefined,
-        position: a.position,
-        purpose: typeof a.purpose === "string" ? a.purpose : "page",
-      })) as { screenId: string };
+      assertScreenKind(a.type);
+      if (a.purpose !== undefined && a.purpose !== "page" && a.purpose !== "gadget") {
+        throw new McpError(ErrorCode.InvalidParams, `purpose は page / gadget のいずれかにしてください: ${JSON.stringify(a.purpose)}`);
+      }
+      if (a.path !== undefined && typeof a.path !== "string") {
+        throw new McpError(ErrorCode.InvalidParams, "path は文字列で指定してください");
+      }
+      if (a.id !== undefined && a.id !== "") assertEntityIdMcp(a.id, "id");
+      let position: { x: number; y: number } | undefined;
+      if (a.position !== undefined) {
+        const p = a.position as { x?: unknown; y?: unknown } | null;
+        if (!p || typeof p !== "object" || !Number.isFinite(p.x) || !Number.isFinite(p.y)) {
+          throw new McpError(ErrorCode.InvalidParams, "position は { x: 数値, y: 数値 } の形で指定してください");
+        }
+        position = { x: p.x as number, y: p.y as number };
+      }
+      const purpose = a.purpose === "gadget" ? "gadget" : "page";
+      const reqId = typeof a.id === "string" && a.id !== "" ? a.id : undefined;
+      // 重複 ID は、ブラウザの有無によらず先に断る (ブラウザの addScreen は検査せず、既存の画面の中身を上書きするため)。
+      // ブラウザ有り: 検査だけ鍵の中、ブラウザへの送信は鍵の外 (応答待ちで他の書き込みを止めない)。同じ ID の同時 2 件は、
+      // どちらもブラウザへ送られうるので完全には防げない (ブラウザ側の未保存の画面は backend から見えない)。ブラウザ無しは addScreenToFiles が鍵の中で再検査する
+      if (reqId) {
+        if (wsBridge.hasActiveBrowser()) await assertScreenIdFreeLocked(root, reqId);
+        else await assertScreenIdFree(root, reqId);
+      }
+      // ブラウザが無いときは、ブラウザと同じ結果になるようにファイルへ直接書く (#1591)
+      const result = !wsBridge.hasActiveBrowser()
+        ? await addScreenToFiles(root, { id: reqId, name: a.name, kind: typeof a.type === "string" ? a.type : undefined, path: typeof a.path === "string" ? a.path : undefined, position, purpose })
+        : (await wsBridge.sendCommand("addScreen", {
+          id: reqId,
+          name: a.name,
+          type: typeof a.type === "string" ? a.type : undefined,
+          path: typeof a.path === "string" ? a.path : undefined,
+          position,
+          purpose,
+        })) as { screenId: string };
       return {
         content: [
           {
@@ -98,12 +130,28 @@ export const handleScreenTool: ToolHandler = async (name, args, root) => {
       assertEntityIdMcp(a.screenId, "screenId");
       // #1332 Codex 9 巡目 M2: pageLayoutId は top-level EntityId (schema: harmony.v3 ScreenEntry.pageLayoutId)。
       // 解除値 (空文字 / null) はそのまま許容、それ以外は EntityId 検証する。
+      // 指定が無い (undefined) ときは触らない: null (解除) にすると、名前だけ直した画面のレイアウト指定まで消える (#1591 で気づいた不具合)
       const normalizedPageLayoutId =
-        a.pageLayoutId === "" || a.pageLayoutId === null || a.pageLayoutId === undefined
-          ? null
-          : a.pageLayoutId;
+        a.pageLayoutId === undefined
+          ? undefined
+          : a.pageLayoutId === "" || a.pageLayoutId === null
+            ? null
+            : a.pageLayoutId;
       if (normalizedPageLayoutId !== null && normalizedPageLayoutId !== undefined) {
         assertEntityIdMcp(normalizedPageLayoutId, "pageLayoutId");
+      }
+      // ブラウザが無いときは、ファイルへ直接書く (#1591)
+      assertScreenKind(a.type); // ブラウザの有無によらず検査する
+      if (!wsBridge.hasActiveBrowser()) {
+        await updateScreenInFiles(root, a.screenId, {
+          name: typeof a.name === "string" ? a.name : undefined,
+          kind: typeof a.type === "string" ? a.type : undefined,
+          description: typeof a.description === "string" ? a.description : undefined,
+          path: typeof a.path === "string" ? a.path : undefined,
+          purpose: typeof a.purpose === "string" ? a.purpose : undefined,
+          pageLayoutId: normalizedPageLayoutId as string | null | undefined,
+        });
+        return { content: [{ type: "text", text: `画面 ${a.screenId} を更新しました。` }] };
       }
       // RFC #1021 pl-6 (Codex B-2): purpose / pageLayoutId も update 可能に
       await wsBridge.sendCommand("updateScreenMeta", {
@@ -129,7 +177,9 @@ export const handleScreenTool: ToolHandler = async (name, args, root) => {
       }
       // S-002: ID validation
       assertEntityIdMcp(a.screenId, "screenId");
-      await wsBridge.sendCommand("removeScreenNode", { screenId: a.screenId });
+      // ブラウザが無いときは、ファイルへ直接書く (#1591)
+      if (wsBridge.hasActiveBrowser()) await wsBridge.sendCommand("removeScreenNode", { screenId: a.screenId });
+      else await removeScreenFromFiles(root, a.screenId);
       return {
         content: [
           { type: "text", text: `画面 ${a.screenId} を削除しました。` },

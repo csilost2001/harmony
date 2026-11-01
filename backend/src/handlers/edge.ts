@@ -9,6 +9,7 @@
  */
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { readProject } from "../projectStorage.js";
+import { addEdgeToFiles, removeEdgeFromFiles, flowSnapshotOf } from "../screenFlowFiles.js";
 import { wsBridge } from "../wsBridge.js";
 import { assertEntityIdMcp, type ToolHandler } from "../mcpHelpers.js";
 
@@ -23,12 +24,17 @@ export const handleEdgeTool: ToolHandler = async (name, args, root) => {
       // #1332 Codex 9 巡目 M2: source / target は Screen EntityId (画面フロー edge の端点)。
       assertEntityIdMcp(a.source, "source");
       assertEntityIdMcp(a.target, "target");
-      const result = (await wsBridge.sendCommand("addFlowEdge", {
-        source: a.source,
-        target: a.target,
-        label: typeof a.label === "string" ? a.label : "",
-        trigger: typeof a.trigger === "string" ? a.trigger : undefined,
-      })) as { edgeId: string };
+      const edgeTrigger = typeof a.trigger === "string" ? a.trigger : undefined;
+      const edgeLabel = typeof a.label === "string" ? a.label : "";
+      // ブラウザが無いときは、ファイルへ直接書く (#1591)
+      const result = !wsBridge.hasActiveBrowser()
+        ? await addEdgeToFiles(root, { source: a.source, target: a.target, label: edgeLabel, trigger: edgeTrigger })
+        : (await wsBridge.sendCommand("addFlowEdge", {
+          source: a.source,
+          target: a.target,
+          label: edgeLabel,
+          trigger: edgeTrigger,
+        })) as { edgeId: string };
       return {
         content: [
           {
@@ -43,7 +49,8 @@ export const handleEdgeTool: ToolHandler = async (name, args, root) => {
       if (typeof a.edgeId !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "edgeId は必須です");
       }
-      await wsBridge.sendCommand("removeFlowEdge", { edgeId: a.edgeId });
+      if (wsBridge.hasActiveBrowser()) await wsBridge.sendCommand("removeFlowEdge", { edgeId: a.edgeId });
+      else await removeEdgeFromFiles(root, a.edgeId); // ブラウザが無いときは、ファイルへ直接書く (#1591)
       return {
         content: [
           { type: "text", text: `エッジ ${a.edgeId} を削除しました。` },
@@ -62,7 +69,10 @@ export const handleEdgeTool: ToolHandler = async (name, args, root) => {
         mermaid: string;
       };
       let result: FlowResult;
-      const fileData = await readProject(root) as FlowResult["project"] | null;
+      // v3 の harmony.json (entities.screens / entities.screenTransitions) から作る。旧形式 (最上位の screens) は、そのまま使う (#1591)
+      const rawProject = await readProject(root);
+      const legacyData = rawProject as FlowResult["project"] | null;
+      const fileData = legacyData?.screens ? legacyData : (wsBridge.hasActiveBrowser() ? null : flowSnapshotOf(rawProject));
       if (fileData?.screens) {
         // ファイルから読んで Mermaid を生成
         const p = fileData;
@@ -119,7 +129,7 @@ export const handleEdgeTool: ToolHandler = async (name, args, root) => {
       }
       // #1332 Codex 9 巡目 M2: URL 側では UUID reject 実装、MCP 経路も Screen EntityId を強制する。
       assertEntityIdMcp(a.screenId, "screenId");
-      await wsBridge.sendCommand("navigateScreen", { screenId: a.screenId });
+      await wsBridge.sendCommand("navigateScreen", { screenId: a.screenId }, "画面の表示を切り替える操作です");
       return {
         content: [
           {

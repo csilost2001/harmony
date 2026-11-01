@@ -13,6 +13,7 @@ import {
 } from "./projectStorage.js";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { withProjectLock } from "./storageCore.js";
 
 /** この backend が書くスキーマの版 (harmony.json の schemaVersion の最新) */
 export const LATEST_SCHEMA_VERSION = "v3";
@@ -76,7 +77,11 @@ export interface MigrationReport {
 const KINDS: TopLevelEntityKind[] = ["screen", "table", "processFlow", "sequence", "view", "viewDefinition", "pageLayout"];
 
 /** ワークスペースの設計データに、移行を当てる。apply が true のときだけ書く (予行が既定) */
-export async function migrateWorkspace(root: string, opts: { apply?: boolean; migrations?: readonly SchemaMigration[]; latest?: string } = {}): Promise<MigrationReport> {
+export function migrateWorkspace(root: string, opts: { apply?: boolean; migrations?: readonly SchemaMigration[]; latest?: string } = {}): Promise<MigrationReport> {
+  // 読んで書く間、他の更新が harmony.json に入って消えないよう、鍵を取る (#1591)
+  return withProjectLock(root, () => migrateWorkspaceUnlocked(root, opts));
+}
+async function migrateWorkspaceUnlocked(root: string, opts: { apply?: boolean; migrations?: readonly SchemaMigration[]; latest?: string }): Promise<MigrationReport> {
   const migrations = opts.migrations ?? MIGRATIONS;
   const latest = opts.latest ?? LATEST_SCHEMA_VERSION;
   const project = await readProject(root);

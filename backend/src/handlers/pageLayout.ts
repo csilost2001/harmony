@@ -22,6 +22,7 @@ import {
   listAllPageLayouts,
 } from "../projectStorage.js";
 import { assertEntityIdMcp, type ToolHandler } from "../mcpHelpers.js";
+import { withProjectLock } from "../storageCore.js";
 
 /** harmony.json の更新時刻は meta.updatedAt (v3 は最上位に updatedAt を持てない。#1568) */
 function touchProjectMeta(project: Record<string, unknown>, at: string): void {
@@ -72,26 +73,28 @@ export const handlePageLayoutTool: ToolHandler = async (name, args, root) => {
       };
       await writePageLayout(id, def, root);
       // harmony.json の entities.pageLayouts[] 更新
-      const project = (await readProject(root) ?? {}) as Record<string, unknown>;
-      const entities = ((project.entities ?? {}) as Record<string, unknown>);
-      const pageLayouts = ((entities.pageLayouts ?? []) as Array<Record<string, unknown>>);
-      // RFC #1021 pl-6 (Codex D-4): EntryBase は createdAt を required にしないため省略
-      // (PageLayoutEntry shape を schema 通りに統一)
-      pageLayouts.push({
-        id,
-        no: pageLayouts.length + 1,
-        name: a.name,
-        maturity: "draft",
-        updatedAt: now,
-        regionCount: 4,
-        assignmentCount: 0,
-        hasProcessFlow: false,
-        hasDesign: false,
+      await withProjectLock(root, async () => {
+        const project = (await readProject(root) ?? {}) as Record<string, unknown>;
+        const entities = ((project.entities ?? {}) as Record<string, unknown>);
+        const pageLayouts = ((entities.pageLayouts ?? []) as Array<Record<string, unknown>>);
+        // RFC #1021 pl-6 (Codex D-4): EntryBase は createdAt を required にしないため省略
+        // (PageLayoutEntry shape を schema 通りに統一)
+        pageLayouts.push({
+          id,
+          no: pageLayouts.length + 1,
+          name: a.name,
+          maturity: "draft",
+          updatedAt: now,
+          regionCount: 4,
+          assignmentCount: 0,
+          hasProcessFlow: false,
+          hasDesign: false,
+        });
+        entities.pageLayouts = pageLayouts;
+        project.entities = entities;
+        touchProjectMeta(project, now);
+        await writeProject(project, root);
       });
-      entities.pageLayouts = pageLayouts;
-      project.entities = entities;
-      touchProjectMeta(project, now);
-      await writeProject(project, root);
       return { content: [{ type: "text", text: `PageLayout 「${a.name}」を追加しました（ID: ${id}）` }] };
     }
 
@@ -109,30 +112,32 @@ export const handlePageLayoutTool: ToolHandler = async (name, args, root) => {
       def.updatedAt = new Date().toISOString();
       await writePageLayout(a.pageLayoutId, def, root);
       // harmony.json メタ更新
-      const project = (await readProject(root) ?? {}) as Record<string, unknown>;
-      const entities = ((project.entities ?? {}) as Record<string, unknown>);
-      const pageLayouts = ((entities.pageLayouts ?? []) as Array<Record<string, unknown>>);
-      const idx = pageLayouts.findIndex((p) => p.id === a.pageLayoutId);
-      const regions = (def.regions ?? []) as unknown[];
-      const assignments = (def.assignments ?? {}) as Record<string, unknown>;
-      // RFC #1021 pl-6 (Codex D-4): EntryBase の `no` を既存値から維持、hasDesign は region に gadget を割り当てているか
-      const existingNo = idx >= 0 ? pageLayouts[idx].no : pageLayouts.length + 1;
-      const meta = {
-        id: a.pageLayoutId,
-        no: existingNo,
-        name: def.name,
-        maturity: def.maturity ?? "draft",
-        updatedAt: def.updatedAt as string,
-        regionCount: regions.length,
-        assignmentCount: Object.keys(assignments).length,
-        hasProcessFlow: Boolean(def.processFlowId),
-        hasDesign: Object.keys((def.assignments ?? {}) as Record<string, unknown>).length > 0,
-      };
-      if (idx >= 0) pageLayouts[idx] = meta; else pageLayouts.push(meta);
-      entities.pageLayouts = pageLayouts;
-      project.entities = entities;
-      touchProjectMeta(project, def.updatedAt as string);
-      await writeProject(project, root);
+      await withProjectLock(root, async () => {
+        const project = (await readProject(root) ?? {}) as Record<string, unknown>;
+        const entities = ((project.entities ?? {}) as Record<string, unknown>);
+        const pageLayouts = ((entities.pageLayouts ?? []) as Array<Record<string, unknown>>);
+        const idx = pageLayouts.findIndex((p) => p.id === a.pageLayoutId);
+        const regions = (def.regions ?? []) as unknown[];
+        const assignments = (def.assignments ?? {}) as Record<string, unknown>;
+        // RFC #1021 pl-6 (Codex D-4): EntryBase の `no` を既存値から維持、hasDesign は region に gadget を割り当てているか
+        const existingNo = idx >= 0 ? pageLayouts[idx].no : pageLayouts.length + 1;
+        const meta = {
+          id: a.pageLayoutId,
+          no: existingNo,
+          name: def.name,
+          maturity: def.maturity ?? "draft",
+          updatedAt: def.updatedAt as string,
+          regionCount: regions.length,
+          assignmentCount: Object.keys(assignments).length,
+          hasProcessFlow: Boolean(def.processFlowId),
+          hasDesign: Object.keys((def.assignments ?? {}) as Record<string, unknown>).length > 0,
+        };
+        if (idx >= 0) pageLayouts[idx] = meta; else pageLayouts.push(meta);
+        entities.pageLayouts = pageLayouts;
+        project.entities = entities;
+        touchProjectMeta(project, def.updatedAt as string);
+        await writeProject(project, root);
+      });
       return { content: [{ type: "text", text: `PageLayout ${a.pageLayoutId} を更新しました。` }] };
     }
 
@@ -143,13 +148,15 @@ export const handlePageLayoutTool: ToolHandler = async (name, args, root) => {
       // #1294 I-2: ID validation (RFC #1284 移行期間 compat = EntityId | UUID v4)
       assertEntityIdMcp(a.pageLayoutId, "pageLayoutId");
       await deletePageLayoutFile(a.pageLayoutId, root);
-      const project = (await readProject(root) ?? {}) as Record<string, unknown>;
-      const entities = ((project.entities ?? {}) as Record<string, unknown>);
-      const pageLayouts = ((entities.pageLayouts ?? []) as Array<Record<string, unknown>>).filter((p) => p.id !== a.pageLayoutId);
-      entities.pageLayouts = pageLayouts;
-      project.entities = entities;
-      touchProjectMeta(project, new Date().toISOString());
-      await writeProject(project, root);
+      await withProjectLock(root, async () => {
+        const project = (await readProject(root) ?? {}) as Record<string, unknown>;
+        const entities = ((project.entities ?? {}) as Record<string, unknown>);
+        const pageLayouts = ((entities.pageLayouts ?? []) as Array<Record<string, unknown>>).filter((p) => p.id !== a.pageLayoutId);
+        entities.pageLayouts = pageLayouts;
+        project.entities = entities;
+        touchProjectMeta(project, new Date().toISOString());
+        await writeProject(project, root);
+      });
       return { content: [{ type: "text", text: `PageLayout ${a.pageLayoutId} を削除しました。` }] };
     }
 

@@ -30,6 +30,7 @@ import { checkRequestOrigin } from "./security/originCheck.js";
 import { ExternalChangeWatcher } from "./externalChanges.js";
 import { authFailureDelayMs, checkAuthToken, configuredToken } from "./security/authToken.js";
 import { ensureRecovered } from "./operationJournal.js";
+import { browserRequiredMessage } from "./uiUrl.js";
 import { schedulePrewarm } from "./prewarm.js";
 import { RateLimiter, checkContentLength, maxWsPayloadBytes, maxWsRequestsPer10s } from "./security/requestLimits.js";
 import { getServerBuildId } from "./buildId.js";
@@ -870,13 +871,17 @@ export class WsBridge extends EventEmitter {
     }
   }
 
-  /** MCP コマンドをアクティブクライアントへ送信 */
-  async sendCommand(method: string, params?: unknown): Promise<unknown> {
+  /** コマンドを受けられるブラウザが接続しているか (ブラウザが無いとき、ファイルへ直接書く tool の分岐に使う) */
+  hasActiveBrowser(): boolean {
+    return this.activeClient !== null;
+  }
+
+  /** MCP コマンドをアクティブクライアントへ送信。browserReason = ブラウザが無いときのエラーに添える、ブラウザを要する理由 */
+  async sendCommand(method: string, params?: unknown, browserReason?: string): Promise<unknown> {
     const ws = this.activeClient;
     if (!ws) {
-      throw new Error(
-        "デザイナーがブラウザで開かれていません。http://localhost:5173 を開いてください",
-      );
+      // 案内の URL は、いま動いている Harmony の画面 (配布 image / sidecar は backend のポート、開発は Vite) (#1591)
+      throw new Error(browserRequiredMessage(browserReason));
     }
 
     const id = randomUUID();

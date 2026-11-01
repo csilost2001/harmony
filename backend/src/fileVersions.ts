@@ -5,6 +5,7 @@
  */
 import fs from "node:fs/promises";
 import path from "node:path";
+import { withProjectLock } from "./storageCore.js";
 import {
   actionsDir, readEntityReadOnly, readProject, resolveDataRoot, writeProject, writeBusinessFlow, writePageLayout, writeProcessFlow, writeReport, writeSequence, writeTable, writeView, writeViewDefinition,
 } from "./projectStorage.js";
@@ -122,14 +123,16 @@ const REGISTRY: Record<string, { key: string; kind: "table" | "processFlow" | "v
 async function syncRegistryEntry(root: string, resourceType: string, id: string): Promise<void> {
   const r = REGISTRY[resourceType];
   if (!r) return;
-  const project = await readProject(root);
-  if (!isRecord(project) || !isRecord(project.entities) || !Array.isArray(project.entities[r.key])) return;
-  const list = project.entities[r.key] as unknown[];
-  const idx = list.findIndex((e) => isRecord(e) && e.id === id);
-  if (idx < 0) return;
-  const saved = await readEntityReadOnly(r.kind, id, root);
-  if (!isRecord(saved)) return;
-  const next = [...list];
-  next[idx] = { ...(list[idx] as Record<string, unknown>), ...r.summary(saved) };
-  await writeProject({ ...project, entities: { ...project.entities, [r.key]: next } }, root);
+  await withProjectLock(root, async () => { // 読んで書く間に、他の更新が入って消えないように (#1591)
+    const project = await readProject(root);
+    if (!isRecord(project) || !isRecord(project.entities) || !Array.isArray(project.entities[r.key])) return;
+    const list = project.entities[r.key] as unknown[];
+    const idx = list.findIndex((e) => isRecord(e) && e.id === id);
+    if (idx < 0) return;
+    const saved = await readEntityReadOnly(r.kind, id, root);
+    if (!isRecord(saved)) return;
+    const next = [...list];
+    next[idx] = { ...(list[idx] as Record<string, unknown>), ...r.summary(saved) };
+    await writeProject({ ...project, entities: { ...project.entities, [r.key]: next } }, root);
+  });
 }

@@ -10,6 +10,7 @@
  */
 import fs from "node:fs/promises";
 import path from "node:path";
+import { withProjectLock } from "./storageCore.js";
 import {
   actionsDir, deriveStableUuid, entityDirOf, isLegacyGrapesScreen, listExistingEntityIds, listScreenIdsIncludingLegacy, projectSaltFor, readEntityReadOnly, readProject, resolveDataRoot,
   writeJsonFile, writeProject, type TopLevelEntityKind,
@@ -297,7 +298,11 @@ async function refreshTableSummaries(tables: unknown[], root: string): Promise<{
 }
 
 /** 一覧 (harmony.json) とファイルの食い違いを直す。apply が true のときだけ書く (予行が既定) */
-export async function repairRegistry(root: string, apply: boolean): Promise<RegistryRepairPlan> {
+export function repairRegistry(root: string, apply: boolean): Promise<RegistryRepairPlan> {
+  // 読んで書く間、他の更新が harmony.json に入って消えないよう、鍵を取る (#1591)
+  return withProjectLock(root, () => repairRegistryUnlocked(root, apply));
+}
+async function repairRegistryUnlocked(root: string, apply: boolean): Promise<RegistryRepairPlan> {
   const project = await readProject(root);
   if (!isRecord(project)) throw new Error("harmony.json を読めません");
   const merged = await mergeUnregisteredEntities(project, root);
