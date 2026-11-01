@@ -30,13 +30,17 @@ const BEAT_MS = 10_000;
 const clear = setWaiting(dir);
 let beat = null;
 let finishing = false;
-const finish = async (code, msg) => {
+// 回答 (msg) を先に出力してから、ハブへの後始末 (待ち受けの終了の合図・受け取りの印) を短い時間だけ試みる
+const finish = async (code, msg, after = null) => {
   if (finishing) return;
   finishing = true;
   clearInterval(beat);
   clear();
-  if (hub) await waitingBeat(hub, topic, true);
   if (msg) console.log(msg);
+  if (hub) {
+    if (after) await after();
+    await waitingBeat(hub, topic, true);
+  }
   process.exit(code);
 };
 process.on("SIGINT", () => finish(130));
@@ -49,7 +53,7 @@ if (hub) {
 }
 
 const started = Date.now();
-let hubDown = false;
+let hubDown = false; // 直前に表示した問題の文 (同じ文は繰り返さない)
 const check = async () => {
   let pulled = [];
   if (hub) {
@@ -58,15 +62,15 @@ const check = async () => {
       if (hubDown) { hubDown = false; console.error("[html-qa] ハブにつながりました"); }
     } catch (e) {
       if (e.kind === "auth") return finish(4, `[html-qa] ${e.message}`);
-      if (!hubDown) { hubDown = true; console.error(`△ [html-qa] ${e.message}\n  (待ち受けは続けます。ハブに届くようになれば受け取ります)`); }
+      const msg = e.status === 404 ? `ハブにその議題がありません (project=${hub.project}, topic=${topic})。build で publish したか確かめてください` : e.message;
+      if (hubDown !== msg) { hubDown = msg; console.error(`△ [html-qa] ${msg}\n  (待ち受けは続けます。直れば受け取ります)`); }
     }
   }
   const list = unreadAnswers([dir]);
   if (list.length) {
     const text = formatAnswers(list);
     list.forEach(markSeen);
-    if (hub) await seenHub(hub, pulled);
-    return finish(0, text);
+    return finish(0, text, () => seenHub(hub, pulled));
   }
   if (hub && pulled.length) await seenHub(hub, pulled); // ローカルで読み済みの回答: ハブにも印だけ付ける
   if (timeoutMin > 0 && Date.now() - started > timeoutMin * 60_000) {

@@ -4,6 +4,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { HUB_NAME_RE, HUB_RESERVED } from "./lib.mjs";
+import { validate } from "./validate-doc.mjs";
 
 export class HubError extends Error {
   constructor(status, message) { super(message); this.status = status; }
@@ -16,7 +17,9 @@ export const LIMITS = {
   versionsPerTopic: 300,
   maxVersion: 9999,
   json: 4 * 1024 * 1024,
+  total: 1024 * 1024 * 1024, // ハブ全体 (.hub 以下) の合計。環境変数 HTML_QA_HUB_MAX_BYTES で変えられる (試験用)
 };
+const totalLimit = () => { const n = Number(process.env.HTML_QA_HUB_MAX_BYTES); return Number.isFinite(n) && n > 0 ? n : LIMITS.total; };
 const WAIT_TTL_MS = 30_000;
 
 export const hubBase = (root) => path.join(root, ".hub");
@@ -41,15 +44,19 @@ export function hubTopicDir(root, project, topic, { create = false } = {}) {
   const base = path.resolve(hubBase(root));
   const dir = path.resolve(base, project, topic);
   if (!within(base, dir) || dir === base) throw new HubError(400, "保存先が範囲外です");
+  // 作る前に、いちばん近い既存の親を realpath で確かめる (.hub の中のリンクをたどって外にフォルダを作らせない)
+  const realBaseOf = () => { fs.mkdirSync(base, { recursive: true }); return fs.realpathSync(base); };
+  const nearestExisting = () => { let d = dir; while (!fs.existsSync(d)) d = path.dirname(d); return d; };
   if (!fs.existsSync(dir)) {
     if (!create) return null;
+    const realBase = realBaseOf(); // .hub は先に作る (近い既存の親が .hub より上にならないように)
+    if (!within(realBase, fs.realpathSync(nearestExisting()))) throw new HubError(403, "保存先が範囲外です");
     const pdir = path.join(base, project);
     if (!fs.existsSync(pdir) && hubProjects(root).length >= LIMITS.projects) throw new HubError(429, `プロジェクトは ${LIMITS.projects} 個までです`);
     if (subdirs(pdir).length >= LIMITS.topicsPerProject) throw new HubError(429, `1 プロジェクトの議題は ${LIMITS.topicsPerProject} 個までです`);
     fs.mkdirSync(dir, { recursive: true });
   }
-  const realBase = fs.realpathSync(base);
-  if (!within(realBase, fs.realpathSync(dir))) throw new HubError(400, "保存先が範囲外です");
+  if (!within(realBaseOf(), fs.realpathSync(dir))) throw new HubError(403, "保存先が範囲外です");
   return dir;
 }
 
@@ -69,6 +76,23 @@ const writeAtomic = (file, data) => {
   fs.renameSync(tmp, file);
 };
 
+// ハブ全体の使用量 (.hub 以下の合計)。数えるのは高くつくので 30 秒だけ覚え、預かった分は足していく
+const usageCache = { at: 0, bytes: 0 };
+function hubUsage(root) {
+  if (Date.now() - usageCache.at < 30_000) return usageCache.bytes;
+  let total = 0;
+  const walk = (d) => {
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      const f = path.join(d, e.name);
+      if (e.isDirectory()) walk(f);
+      else if (e.isFile()) { try { total += fs.statSync(f).size; } catch { /* 消えた */ } }
+    }
+  };
+  if (fs.existsSync(hubBase(root))) walk(hubBase(root));
+  usageCache.at = Date.now(); usageCache.bytes = total;
+  return total;
+}
+
 // POST /api/publish の本体。保存して、{ project, topic, version, path } を返す
 export function savePublish(root, body) {
   const { project, topic, version, html, json } = body && typeof body === "object" ? body : {};
@@ -79,9 +103,15 @@ export function savePublish(root, body) {
   if (json !== undefined && json !== null) {
     if (typeof json !== "object" || Array.isArray(json)) throw new HubError(400, "json はオブジェクトにしてください");
     if (json.topic !== topic || json.version !== version) throw new HubError(400, "json の topic / version が、送り先の topic / version と一致しません");
+    // 形式は build.mjs と同じ検査 (壊れた議題を預かると、一覧などが読めなくなるため)
+    let errs;
+    try { errs = validate(json, path.join(path.sep, topic, `v${version}.json`)).errs; } catch { errs = ["json の形が読み取れません"]; }
+    if (errs.length) throw new HubError(400, `json の形が不正です: ${errs.slice(0, 3).join(" / ")}${errs.length > 3 ? ` ほか ${errs.length - 3} 件` : ""}`);
     jsonText = `${JSON.stringify(json, null, 2)}\n`;
     if (Buffer.byteLength(jsonText) > LIMITS.json) throw new HubError(413, "json が大きすぎます");
   }
+  const incoming = Buffer.byteLength(html) + (jsonText ? Buffer.byteLength(jsonText) : 0);
+  if (hubUsage(root) + incoming > totalLimit()) throw new HubError(507, `ハブの容量の上限 (${Math.floor(totalLimit() / 1048576)}MB) を超えます。古い議題を .tmp/html-qa/.hub から消してください`);
   const dir = hubTopicDir(root, project, topic, { create: true });
   const vs = hubVersions(dir);
   if (!vs.includes(version) && vs.length >= LIMITS.versionsPerTopic) throw new HubError(429, `1 議題の版は ${LIMITS.versionsPerTopic} までです`);
@@ -89,6 +119,7 @@ export function savePublish(root, body) {
   writeAtomic(path.join(dir, `v${version}.html`), html);
   if (jsonText) writeAtomic(path.join(dir, `v${version}.json`), jsonText);
   if (version >= latestBefore) writeAtomic(path.join(dir, "index.html"), html);
+  usageCache.bytes += incoming;
   return { project, topic, version, path: `/${project}/${topic}/` };
 }
 

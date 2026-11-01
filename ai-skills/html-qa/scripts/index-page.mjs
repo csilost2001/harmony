@@ -45,27 +45,32 @@ export function collectRows(baseDir, hrefPrefix = "") {
   if (!fs.existsSync(baseDir)) return rows;
   for (const e of fs.readdirSync(baseDir, { withFileTypes: true })) {
     if (!e.isDirectory() || e.name.startsWith(".")) continue;
-    const dir = path.join(baseDir, e.name);
-    // ハブに預かった議題は json が無いこともある (html だけ)。版は json と html の両方から数える
-    const vs = [...new Set([...versionsIn(dir), ...fs.readdirSync(dir).map((f) => f.match(/^v(\d+)\.html$/)).filter(Boolean).map((m) => Number(m[1]))])].sort((a, b) => a - b);
-    if (!vs.length) continue;
-    const v = vs[vs.length - 1];
-    const doc = readJson(path.join(dir, `v${v}.json`));
-    const title = doc?.title || e.name;
-    const qs = [];
-    const walk = (blocks) => { for (const b of blocks || []) { if (b?.type === "details") walk(b.blocks); else if (QTYPES.has(b?.type) && b.q) qs.push(b.q); } };
-    for (const s of doc?.sections || []) walk(s?.blocks);
-    let ans = "";
-    for (const n of vs) {
-      const f = path.join(dir, `v${n}.answer.md`);
-      if (fs.existsSync(f) && ans.length < MAX_ANS) ans += `${fs.readFileSync(f, "utf8").replace(/^<!--.*?-->\n/, "")}\n`;
-    }
-    const mtime = fs.statSync(path.join(dir, fs.existsSync(path.join(dir, `v${v}.json`)) ? `v${v}.json` : `v${v}.html`)).mtime;
-    const answered = fs.existsSync(path.join(dir, `v${v}.answer.md`));
-    rows.push({ name: e.name, href: `${hrefPrefix}${encodeURIComponent(e.name)}/index.html`, title, v, mtime, answered, h: nz([title, e.name, doc?.lead || "", ...qs, ans.slice(0, MAX_ANS)].join("\n")) });
+    // 壊れた議題 (不正な形の json など) があっても、その議題だけ飛ばして一覧を返す
+    try { const row = rowOf(baseDir, e.name, hrefPrefix); if (row) rows.push(row); } catch { /* 飛ばす */ }
   }
   rows.sort((a, b) => b.mtime - a.mtime);
   return rows;
+}
+
+function rowOf(baseDir, name, hrefPrefix) {
+  const dir = path.join(baseDir, name);
+  // ハブに預かった議題は json が無いこともある (html だけ)。版は json と html の両方から数える
+  const vs = [...new Set([...versionsIn(dir), ...fs.readdirSync(dir).map((f) => f.match(/^v(\d+)\.html$/)).filter(Boolean).map((m) => Number(m[1]))])].sort((a, b) => a - b);
+  if (!vs.length) return null;
+  const v = vs[vs.length - 1];
+  const doc = readJson(path.join(dir, `v${v}.json`));
+  const title = doc?.title || name;
+  const qs = [];
+  const walk = (blocks) => { for (const b of Array.isArray(blocks) ? blocks : []) { if (b?.type === "details") walk(b.blocks); else if (QTYPES.has(b?.type) && b.q) qs.push(b.q); } };
+  for (const s of Array.isArray(doc?.sections) ? doc.sections : []) walk(s?.blocks);
+  let ans = "";
+  for (const n of vs) {
+    const f = path.join(dir, `v${n}.answer.md`);
+    if (fs.existsSync(f) && ans.length < MAX_ANS) ans += `${fs.readFileSync(f, "utf8").replace(/^<!--.*?-->\n/, "")}\n`;
+  }
+  const mtime = fs.statSync(path.join(dir, fs.existsSync(path.join(dir, `v${v}.json`)) ? `v${v}.json` : `v${v}.html`)).mtime;
+  const answered = fs.existsSync(path.join(dir, `v${v}.answer.md`));
+  return { name: name, href: `${hrefPrefix}${encodeURIComponent(name)}/index.html`, title, v, mtime, answered, h: nz([title, name, doc?.lead || "", ...qs, ans.slice(0, MAX_ANS)].join("\n")) };
 }
 
 // groups: [{ label?, href?, rows }]。label のあるグループは見出し (プロジェクト名) つきで分けて出す。検索・絞り込みは全グループにかかる

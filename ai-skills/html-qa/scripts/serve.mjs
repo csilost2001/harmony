@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // html-qa: 議題フォルダ (既定 .tmp/html-qa/) をブラウザで開くための小さなサーバ。
 //
-//   node ai-skills/html-qa/scripts/serve.mjs [--port 5190] [--lan-url http://<PC の IP>:5191 | off] [--new-key]
+//   node ai-skills/html-qa/scripts/serve.mjs [--port 5190] [--host 127.0.0.1] [--lan-url http://<PC の IP>:5191 | off] [--new-key]
 //
 // - 静的ファイルを返す (キャッシュしない。F5 で最新が見える)
 // - POST /api/answer: 画面の「AI に送る」で <topic>/vN.answer.md (と、あれば構造化した vN.answer.json) を書く。AI はそれを読む。議題一覧も作り直す
@@ -104,14 +104,14 @@ const hubIndexHtml = () => {
   const groups = [];
   if (projects.length) {
     if (own.length) groups.push({ label: "このハブ自身の議題", rows: own });
-    for (const p of projects) groups.push({ label: p, href: `/${encodeURIComponent(p)}/`, rows: collectRows(path.join(hubBase(ROOT), p), `${encodeURIComponent(p)}/`) });
+    for (const p of projects) groups.push({ label: p, href: `/p/${encodeURIComponent(p)}/`, rows: collectRows(path.join(hubBase(ROOT), p), `/${encodeURIComponent(p)}/`) });
     return renderIndex(groups, { lead: "ハブに預かっている全プロジェクトの議題 (プロジェクトごと・新しい順)。" });
   }
   return renderIndex([{ rows: own }]);
 };
-const hubProjectIndexHtml = (p) => renderIndex([{ rows: collectRows(path.join(hubBase(ROOT), p)) }], { heading: `議題の一覧: ${p}`, lead: "このプロジェクトの議題 (新しい順)。", back: { href: "/", label: "← すべてのプロジェクト" } });
+const hubProjectIndexHtml = (p) => renderIndex([{ rows: collectRows(path.join(hubBase(ROOT), p), `/${encodeURIComponent(p)}/`) }], { heading: `議題の一覧: ${p}`, lead: "このプロジェクトの議題 (新しい順)。", back: { href: "/", label: "← すべてのプロジェクト" } });
 
-const server = http.createServer((req, res) => {
+function handle(req, res) {
   const url = new URL(req.url, "http://x");
   const qkey = url.searchParams.get("key");
   if (qkey != null) {
@@ -238,6 +238,11 @@ const server = http.createServer((req, res) => {
   const segs = rel.split("/").filter(Boolean);
   const legacyTopic = TOPIC_RE.test(segs[0] || "") && fs.existsSync(path.join(ROOT, segs[0])) && fs.statSync(path.join(ROOT, segs[0])).isDirectory();
   const legacyShape = segs.length === 1 || (segs.length === 2 && segs[1].includes("."));
+  // プロジェクトの一覧の別の入口 /p/<project>/ (従来の議題と同名のプロジェクトでも行ける)
+  if (segs[0] === "p" && segs.length >= 2 && segs.length <= 3 && (segs.length === 2 || segs[2] === "index.html") && hasHubProject(ROOT, segs[1])) {
+    if (segs.length === 2 && !rel.endsWith("/")) { res.writeHead(302, { Location: `${url.pathname}/` }); return res.end(); }
+    return send(res, 200, hubProjectIndexHtml(segs[1]), "text/html; charset=utf-8");
+  }
   if (segs.length && !(legacyTopic && legacyShape) && hasHubProject(ROOT, segs[0])) {
     const project = segs[0];
     if (segs.length === 1 || (segs.length === 2 && segs[1] === "index.html")) {
@@ -263,6 +268,19 @@ const server = http.createServer((req, res) => {
   }
   if (!fs.existsSync(file)) return send(res, 404, "見つかりません (build.mjs を実行しましたか?)", "text/plain; charset=utf-8");
   return send(res, 200, fs.readFileSync(file), TYPES[path.extname(file).toLowerCase()] || "application/octet-stream");
+}
+
+// 受け皿: どの経路で例外が出ても、プロセスは落とさず 500 (HubError なら、その状態) を返す。
+// ログには種別と URL のパス (?key= を含むクエリは除く) だけを出し、応答の本文にも内部の情報は入れない
+function fail(req, res, err) {
+  const where = String(req.url || "").split("?")[0].slice(0, 200);
+  const status = err instanceof HubError ? err.status : err?.code === "ERR_INVALID_URL" ? 400 : 500;
+  if (status >= 500) console.error(`リクエストの処理に失敗しました (${err?.code || err?.name || "Error"}): ${req.method} ${where}`);
+  if (res.headersSent || res.writableEnded) { res.destroy(); return; }
+  try { send(res, status, { error: err instanceof HubError ? err.message : status === 400 ? "URL が不正です" : "サーバ内の処理に失敗しました" }); } catch { res.destroy(); }
+}
+const server = http.createServer((req, res) => {
+  try { handle(req, res); } catch (err) { fail(req, res, err); }
 });
 
 server.listen(PORT, HOST, () => {
@@ -275,8 +293,10 @@ server.listen(PORT, HOST, () => {
   console.log("");
   console.log("ほかのプロジェクト (開発コンテナ) の議題を預かるには、そのプロジェクトで 1 回だけ登録します:");
   console.log(`  ハブの鍵: ${KEY}`);
-  console.log(`  node ai-skills/html-qa/scripts/build.mjs --hub-url http://host.docker.internal:${PORT_ACTUAL} --hub-key ${KEY} --project <プロジェクト名>`);
-  console.log("  (解除は --hub off。詳しくは ai-skills/html-qa/README.md)");
+  console.log("  read -rs HTML_QA_HUB_KEY && export HTML_QA_HUB_KEY      # 上の鍵を貼り付けて Enter (コマンド履歴や ps に鍵が残らない)");
+  console.log(`  node ai-skills/html-qa/scripts/build.mjs --hub-url http://host.docker.internal:${PORT_ACTUAL} --project <プロジェクト名>`);
+  console.log("  (URL の host.docker.internal:… は環境で変わります。解除は --hub off。届かないとき・詳しくは ai-skills/html-qa/README.md)");
+  if (!["127.0.0.1", "localhost", "::1"].includes(HOST)) console.log(`\n△ ${HOST} で待っています。同じ LAN の機器から届きます (鍵が無い接続は断りますが、鍵は他人に渡さないでください)。`);
 });
 server.on("error", (err) => {
   console.error(err.code === "EADDRINUSE" ? `ポート ${PORT} は使用中です。--port で変えてください` : err.message);

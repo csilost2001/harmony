@@ -6,6 +6,7 @@ import fs from "node:fs";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
+import http from "node:http";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
@@ -32,10 +33,10 @@ const freePort = () => new Promise((resolve, reject) => {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ハブを起動して { port, root, key, base, stderr } を返す
-async function startHub(name) {
+async function startHub(name, { args = [], env = {} } = {}) {
   const root = path.join(tmp, name, "hub-root");
   const port = await freePort();
-  const child = spawn(process.execPath, [SERVE, "--root", root, "--port", String(port)], { cwd: tmp, stdio: ["ignore", "pipe", "pipe"] });
+  const child = spawn(process.execPath, [SERVE, "--root", root, "--port", String(port), ...args], { cwd: tmp, env: { ...process.env, ...env }, stdio: ["ignore", "pipe", "pipe"] });
   children.add(child);
   const out = { stdout: "", stderr: "" };
   child.stdout.on("data", (d) => { out.stdout += d; });
@@ -96,10 +97,11 @@ test("publish → 一覧 → 画面取得 → 回答 → 取り出し → 受け
 
   // 一覧
   const top = await (await get(hub, "/")).text();
-  assert.ok(top.includes("tax-app") && top.includes("題 login v1") && top.includes("login/index.html") && top.includes('href="/tax-app/login/index.html"') === false);
-  assert.ok(top.includes('href="tax-app/login/index.html"'));
+  assert.ok(top.includes("tax-app") && top.includes("題 login v1"));
+  assert.ok(top.includes('href="/tax-app/login/index.html"') && top.includes('href="/p/tax-app/"'));
   const proj = await (await get(hub, "/tax-app/")).text();
-  assert.ok(proj.includes('href="login/index.html"') && proj.includes("すべてのプロジェクト"));
+  assert.ok(proj.includes('href="/tax-app/login/index.html"') && proj.includes("すべてのプロジェクト"));
+  assert.equal((await get(hub, "/p/tax-app/")).status, 200);
 
   // 回答前: 取り出しは 204、状態は未回答
   assert.equal((await get(hub, "/api/answer?project=tax-app&topic=login&unread=1")).status, 204);
@@ -142,15 +144,15 @@ test("publish → 一覧 → 画面取得 → 回答 → 取り出し → 受け
 
 test("鍵なし・違う鍵は拒否される。書き込みは cookie だけでは通らない", async () => {
   const hub = await startHub("auth");
-  const body = { project: "p", topic: "t", version: 1, html: "<p>x</p>" };
+  const body = { project: "pj", topic: "t", version: 1, html: "<p>x</p>" };
   for (const headers of [{}, { "X-Html-Qa-Key": "wrong-key-wrong-key-wrong-key-12345" }, { "X-Html-Qa-Key": "" }, { "X-Html-Qa-Key": hub.key.slice(1) }]) {
     assert.equal((await post(hub, "/api/publish", body, headers)).status, 401, JSON.stringify(headers));
   }
   assert.equal((await post(hub, "/api/publish", body, jar(hub))).status, 401, "cookie だけの publish");
-  assert.equal((await post(hub, "/api/waiting", { project: "p", topic: "t" }, jar(hub))).status, 401);
-  assert.equal((await post(hub, "/api/seen", { project: "p", topic: "t", version: 1, mtimeMs: 1 }, jar(hub))).status, 401);
-  assert.equal((await get(hub, "/api/answer?project=p&topic=t", {})).status, 401);
-  assert.equal((await get(hub, "/api/status?project=p&topic=t&version=1", {})).status, 401);
+  assert.equal((await post(hub, "/api/waiting", { project: "pj", topic: "t" }, jar(hub))).status, 401);
+  assert.equal((await post(hub, "/api/seen", { project: "pj", topic: "t", version: 1, mtimeMs: 1 }, jar(hub))).status, 401);
+  assert.equal((await get(hub, "/api/answer?project=pj&topic=t", {})).status, 401);
+  assert.equal((await get(hub, "/api/status?project=pj&topic=t&version=1", {})).status, 401);
   assert.equal((await get(hub, "/", {})).status, 401);
   assert.equal((await fetch(`${hub.base}/?key=wrong`, { redirect: "manual" })).status, 401);
   assert.equal((await get(hub, "/api/publish")).status, 405);
@@ -162,39 +164,39 @@ test("不正な project / topic / version は断られ、保存先の外には�
   const before = tree(path.dirname(hub.root));
   const bad = ["..", ".", "../x", "a/b", "a\\b", "a/../b", "A", "Ab", "", " ", "-a", "a b", "a\0b", "a%2fb", "__proto__", "constructor.x", "x".repeat(42), "日本語", null, 5, ["a"], { a: 1 }];
   for (const v of bad) {
-    for (const [project, topic] of [[v, "t"], ["p", v]]) {
+    for (const [project, topic] of [[v, "t"], ["pj", v]]) {
       const r = await pub(hub, project, topic, 1);
       assert.equal(r.status, 400, `project=${JSON.stringify(project)} topic=${JSON.stringify(topic)}`);
     }
   }
   assert.equal((await pub(hub, "api", "t", 1)).status, 400, "project 名 api は /api/ と衝突するので使えない");
-  for (const v of [0, -1, 1.5, "1", null, 10000, 1e9, NaN, true, [1], {}]) assert.equal((await pub(hub, "p", "t", v)).status, 400, `version=${JSON.stringify(v)}`);
+  for (const v of [0, -1, 1.5, "1", null, 10000, 1e9, NaN, true, [1], {}]) assert.equal((await pub(hub, "pj", "t", v)).status, 400, `version=${JSON.stringify(v)}`);
   // json の topic / version が送り先と食い違う・html が空
-  assert.equal((await pub(hub, "p", "t", 1, { json: jdoc("other", 1) })).status, 400);
-  assert.equal((await pub(hub, "p", "t", 1, { json: jdoc("t", 2) })).status, 400);
-  assert.equal((await pub(hub, "p", "t", 1, { html: "" })).status, 400);
-  assert.equal((await pub(hub, "p", "t", 1, { html: 5 })).status, 400);
-  assert.equal((await pub(hub, "p", "t", 1, { json: [] })).status, 400);
+  assert.equal((await pub(hub, "pj", "t", 1, { json: jdoc("other", 1) })).status, 400);
+  assert.equal((await pub(hub, "pj", "t", 1, { json: jdoc("t", 2) })).status, 400);
+  assert.equal((await pub(hub, "pj", "t", 1, { html: "" })).status, 400);
+  assert.equal((await pub(hub, "pj", "t", 1, { html: 5 })).status, 400);
+  assert.equal((await pub(hub, "pj", "t", 1, { json: [] })).status, 400);
   assert.equal((await post(hub, "/api/publish", null)).status, 400);
   assert.equal((await fetch(`${hub.base}/api/publish`, { method: "POST", headers: H(hub, { "Content-Type": "application/json" }), body: "{broken" })).status, 400);
   assert.equal((await fetch(`${hub.base}/api/publish`, { method: "POST", headers: H(hub, { "Content-Type": "text/plain" }), body: "x" })).status, 415);
   // __proto__ を JSON 本文のキーに持たせても無害
-  assert.equal((await fetch(`${hub.base}/api/publish`, { method: "POST", headers: H(hub, { "Content-Type": "application/json" }), body: '{"__proto__":{"x":1},"project":"p","topic":"t","version":1,"html":"<p>ok</p>"}' })).status, 200);
+  assert.equal((await fetch(`${hub.base}/api/publish`, { method: "POST", headers: H(hub, { "Content-Type": "application/json" }), body: '{"__proto__":{"x":1},"project":"pj","topic":"t","version":1,"html":"<p>ok</p>"}' })).status, 200);
   assert.equal({}.x, undefined);
   // 回答・取り出し・受け取りの印・状態も同じく検証される
   for (const v of ["..", "a/b", "__proto__", "x".repeat(42)]) {
     assert.equal((await post(hub, "/api/answer", { project: v, topic: "t", version: 1, text: "x" }, jar(hub))).status, 400);
-    assert.equal((await post(hub, "/api/answer", { project: "p", topic: v, version: 1, text: "x" }, jar(hub))).status, 400);
+    assert.equal((await post(hub, "/api/answer", { project: "pj", topic: v, version: 1, text: "x" }, jar(hub))).status, 400);
     assert.equal((await get(hub, `/api/answer?project=${encodeURIComponent(v)}&topic=t`)).status, 400);
-    assert.equal((await get(hub, `/api/answer?project=p&topic=${encodeURIComponent(v)}`)).status, 400);
+    assert.equal((await get(hub, `/api/answer?project=pj&topic=${encodeURIComponent(v)}`)).status, 400);
     assert.equal((await get(hub, `/api/status?project=${encodeURIComponent(v)}&topic=t&version=1`)).status, 400);
-    assert.equal((await post(hub, "/api/seen", { project: "p", topic: v, version: 1, mtimeMs: 1 })).status, 400);
+    assert.equal((await post(hub, "/api/seen", { project: "pj", topic: v, version: 1, mtimeMs: 1 })).status, 400);
   }
-  assert.equal((await post(hub, "/api/seen", { project: "p", topic: "t", version: 99999, mtimeMs: 1 })).status, 400);
-  assert.equal((await get(hub, "/api/answer?project=p&topic=t&version=-1")).status, 400);
+  assert.equal((await post(hub, "/api/seen", { project: "pj", topic: "t", version: 99999, mtimeMs: 1 })).status, 400);
+  assert.equal((await get(hub, "/api/answer?project=pj&topic=t&version=-1")).status, 400);
   assert.equal((await get(hub, "/api/answer?topic=t")).status, 400);
   // 配信でも .. や隠しフォルダには出られない
-  for (const p of ["/p/%2e%2e/%2e%2e/.key", "/p/t/..%2f..%2f.key", "/.hub/p/t/v1.html", "/p/.hub/t/v1.html", "/p/t/.waiting.json", "/p/t/%00", "/p/t/v1.html%00.png", "/p/t/..%5c..%5c.key", "/p/t/sub/v1.html", "/p/t/secret.txt", "/%2e%2e/%2e%2e/etc/passwd"]) {
+  for (const p of ["/pj/%2e%2e/%2e%2e/.key", "/pj/t/..%2f..%2f.key", "/.hub/pj/t/v1.html", "/pj/.hub/t/v1.html", "/pj/t/.waiting.json", "/pj/t/%00", "/pj/t/v1.html%00.png", "/pj/t/..%5c..%5c.key", "/pj/t/sub/v1.html", "/pj/t/secret.txt", "/%2e%2e/%2e%2e/etc/passwd"]) {
     const r = await get(hub, p);
     assert.ok([400, 403, 404].includes(r.status), `${p} → ${r.status}`);
     assert.ok(!(await r.text()).includes(hub.key));
@@ -202,17 +204,17 @@ test("不正な project / topic / version は断られ、保存先の外には�
   // 成功した 1 件 (p/t) 以外は何も増えていない
   const after = tree(path.dirname(hub.root)).filter((f) => !before.includes(f));
   assert.deepEqual(after.filter((f) => !f.startsWith(path.join("hub-root", ".hub"))), [], "保存先の外にファイルができた");
-  assert.deepEqual(tree(path.join(hub.root, ".hub")).sort(), ["p", path.join("p", "t"), path.join("p", "t", "index.html"), path.join("p", "t", "v1.html")].sort());
+  assert.deepEqual(tree(path.join(hub.root, ".hub")).sort(), ["pj", path.join("pj", "t"), path.join("pj", "t", "index.html"), path.join("pj", "t", "v1.html")].sort());
 });
 
 test("大きさと数の上限", async () => {
   const hub = await startHub("limits");
-  const big = await post(hub, "/api/publish", { project: "p", topic: "t", version: 1, html: "x".repeat(17 * 1024 * 1024) });
+  const big = await post(hub, "/api/publish", { project: "pj", topic: "t", version: 1, html: "x".repeat(17 * 1024 * 1024) });
   assert.equal(big.status, 413);
   assert.deepEqual(tree(path.join(hub.root, ".hub")), []);
-  assert.equal((await post(hub, "/api/publish", { project: "p", topic: "t", version: 1, html: "<p>ok</p>", json: { ...jdoc("t", 1), pad: "x".repeat(5 * 1024 * 1024) } })).status, 413);
-  assert.equal((await pub(hub, "p", "t", 9999)).status, 200); // 版の最大
-  assert.equal((await pub(hub, "p", "t", 10000)).status, 400);
+  assert.equal((await post(hub, "/api/publish", { project: "pj", topic: "t", version: 1, html: "<p>ok</p>", json: { ...jdoc("t", 1), pad: "x".repeat(5 * 1024 * 1024) } })).status, 413);
+  assert.equal((await pub(hub, "pj", "t", 9999)).status, 200); // 版の最大
+  assert.equal((await pub(hub, "pj", "t", 10000)).status, 400);
   for (let i = 0; i < 300; i++) { const r = await post(hub, "/api/publish", { project: "v", topic: "t", version: i + 1, html: "<p>x</p>" }); if (i < 300) assert.equal(r.status, 200, `v${i + 1}`); }
   assert.equal((await post(hub, "/api/publish", { project: "v", topic: "t", version: 301, html: "<p>x</p>" })).status, 429);
   assert.equal((await post(hub, "/api/publish", { project: "v", topic: "t", version: 5, html: "<p>y</p>" })).status, 200, "既にある版の差し替えは上限に数えない");
@@ -249,8 +251,8 @@ test("2 つのプロジェクトが同じ議題名でも互いを上書きしな
   assert.ok(!fs.existsSync(path.join(hub.root, ".hub", "proj-b", "same-topic", "v1.answer.md")));
   // 一覧に 2 プロジェクトが分かれて出る
   const top = await (await get(hub, "/")).text();
-  assert.ok(top.includes('href="/proj-a/"') && top.includes('href="/proj-b/"'));
-  assert.ok(top.includes('href="proj-a/same-topic/index.html"') && top.includes('href="proj-b/same-topic/index.html"'));
+  assert.ok(top.includes('href="/p/proj-a/"') && top.includes('href="/p/proj-b/"'));
+  assert.ok(top.includes('href="/proj-a/same-topic/index.html"') && top.includes('href="/proj-b/same-topic/index.html"'));
   assert.ok(top.includes("B の議題") && top.includes("回答済み"));
   assert.ok(top.includes('data-filter="waiting"'));
   // スマホ用の URL の元を登録すると、build がスマホ行を出す
@@ -422,4 +424,236 @@ test("ハブの登録: .hub.json は 0600 で、--hub off で解除できる。�
   assert.ok(!fs.existsSync(f));
   const out = runBuild(p, p.rel);
   assert.match(out.stdout, /開く: http:\/\/localhost:5190\/t-r\//);
+});
+
+
+// ---- レビュー指摘 (PR #1594) の修正の試験 ----
+const runAsync = (args, { killAfterMs = 0, ...opts } = {}) => new Promise((resolve) => {
+  const t0 = Date.now();
+  const c = spawn(process.execPath, args, { stdio: ["ignore", "pipe", "pipe"], ...opts });
+  children.add(c);
+  if (killAfterMs) setTimeout(() => c.kill("SIGKILL"), killAfterMs); // hook の時間切れを真似る
+  const o = { stdout: "", stderr: "", code: null, ms: 0 };
+  c.stdout.on("data", (d) => { o.stdout += d; });
+  c.stderr.on("data", (d) => { o.stderr += d; });
+  c.on("exit", (code) => { o.code = code; o.ms = Date.now() - t0; resolve(o); });
+});
+const alive = async (hub) => (await get(hub, "/api/ping")).status === 200;
+
+test("鍵の比較: 同じ文字数の非 ASCII・サロゲートペア・空・巨大な値でもサーバは落ちず 401 を返す (ヘッダ・?key=・cookie)", async () => {
+  const hub = await startHub("keycmp");
+  const k = hub.key;
+  const bad = [
+    k.slice(0, -1) + "é", // 同じ文字数で UTF-8 では長い
+    k.slice(0, -2) + "😀", // サロゲートペア (UTF-16 で 2 文字)
+    k.slice(0, -1) + "日",
+    "", "x", k + k, "é".repeat(k.length), "é".repeat(6000),
+  ];
+  for (const v of bad) {
+    // ヘッダ
+    const h = await fetch(`${hub.base}/api/ping`, { headers: { "X-Html-Qa-Key": v.replace(/[^\x00-\xff]/g, "é") } }).catch((e) => ({ status: `fetch失敗: ${e.message}` }));
+    assert.ok([401, 431].includes(h.status) || String(h.status).startsWith("fetch失敗"), `header ${JSON.stringify(v.slice(0, 40))} → ${h.status}`);
+    assert.ok(await alive(hub), `ヘッダの値 ${JSON.stringify(v.slice(0, 40))} でサーバが落ちた`);
+    // ?key=
+    const q = await fetch(`${hub.base}/api/ping?key=${encodeURIComponent(v)}`, { redirect: "manual" }).catch(() => ({ status: 0 }));
+    assert.ok([401, 414, 431, 0].includes(q.status), `?key= ${JSON.stringify(v.slice(0, 40))} → ${q.status}`);
+    assert.ok(await alive(hub), `?key= の値 ${JSON.stringify(v.slice(0, 40))} でサーバが落ちた`);
+    // cookie (latin1 に収まる値だけ送れる)
+    const c = await fetch(`${hub.base}/api/ping`, { headers: { Cookie: `html_qa_key=${v.replace(/[^\x00-\xff]/g, "é")}` } }).catch(() => ({ status: 0 }));
+    assert.ok([401, 431, 0].includes(c.status), `cookie ${JSON.stringify(v.slice(0, 40))} → ${c.status}`);
+    assert.ok(await alive(hub), `cookie の値 ${JSON.stringify(v.slice(0, 40))} でサーバが落ちた`);
+  }
+  assert.equal((await get(hub, "/api/ping", {})).status, 401);
+});
+
+test("不正な形の json は預かれない。保存済みの不正な json があっても一覧は出る。ハンドラが投げてもプロセスは生きている", async () => {
+  const hub = await startHub("shape");
+  for (const json of [
+    { ...jdoc("t", 1), sections: 5 },
+    { ...jdoc("t", 1), sections: [{ title: "章", blocks: 5 }] },
+    { ...jdoc("t", 1), sections: [{ title: "章", blocks: [{ type: "nonexistent" }] }] },
+    { ...jdoc("t", 1), sections: [] },
+    { ...jdoc("t", 1), title: "" },
+  ]) {
+    const r = await post(hub, "/api/publish", { project: "pj", topic: "t", version: 1, html: "<p>x</p>", json });
+    assert.equal(r.status, 400, JSON.stringify(json).slice(0, 80));
+    assert.equal(JSON.stringify(await r.json()).includes(hub.key), false);
+  }
+  assert.deepEqual(tree(path.join(hub.root, ".hub")), [], "不正な json が保存された");
+  assert.equal((await pub(hub, "pj", "good", 1)).status, 200);
+  // すでに保存されてしまった不正な json (手で置いた・古い版が預かった): その議題だけ飛ばして一覧を返す
+  for (const [name, content] of [["broken1", '{"topic":"broken1","version":1,"sections":5}'], ["broken2", '{"sections":[{"blocks":5}]}'], ["broken3", "{not json"], ["broken4", "null"]]) {
+    const d = path.join(hub.root, ".hub", "pj", name);
+    fs.mkdirSync(d, { recursive: true });
+    fs.writeFileSync(path.join(d, "v1.json"), content);
+    fs.writeFileSync(path.join(d, "v1.html"), "<p>x</p>");
+  }
+  const top = await get(hub, "/");
+  assert.equal(top.status, 200);
+  assert.ok((await top.text()).includes("題 good v1"));
+  assert.equal((await get(hub, "/p/pj/")).status, 200);
+  assert.ok(await alive(hub));
+  // 予期しない例外 (v1.html がファイルでなくフォルダ): 500 を返し、鍵やパスは本文に出さず、プロセスは生きている
+  const g = path.join(hub.root, ".hub", "pj", "good");
+  fs.rmSync(path.join(g, "v1.html"));
+  fs.mkdirSync(path.join(g, "v1.html"));
+  const r = await get(hub, "/pj/good/v1.html");
+  assert.equal(r.status, 500);
+  const text = await r.text();
+  assert.ok(!text.includes(hub.key) && !text.includes(tmp), `エラー本文に機密: ${text}`);
+  assert.ok(await alive(hub));
+  assert.ok(!hub.out.stderr.includes(hub.key));
+  // .hub の中のシンボリックリンク: 配信・/api/latest・/api/status・回答が落ちず、外の物は返さない
+  const outside = path.join(tmp, "shape", "outside");
+  fs.mkdirSync(outside, { recursive: true });
+  fs.writeFileSync(path.join(outside, "v1.html"), "SECRET-OUTSIDE");
+  fs.mkdirSync(path.join(hub.root, ".hub", "px"), { recursive: true });
+  fs.symlinkSync(outside, path.join(hub.root, ".hub", "px", "linkt"));
+  fs.symlinkSync(outside, path.join(hub.root, ".hub", "evilp"));
+  for (const p of ["/px/linkt/v1.html", "/px/linkt/", "/evilp/linkt/v1.html", "/api/latest?project=px&topic=linkt", "/api/status?project=px&topic=linkt&version=1", "/api/answer?project=px&topic=linkt", "/api/answer?project=px"]) {
+    const x = await get(hub, p);
+    assert.ok([403, 404, 400, 204].includes(x.status), `${p} → ${x.status}`);
+    assert.ok(!(await x.text()).includes("SECRET-OUTSIDE"));
+    assert.ok(await alive(hub), `${p} でサーバが落ちた`);
+  }
+  assert.ok((await get(hub, "/")).status === 200);
+  // 書き込み側もリンクをたどらない
+  assert.equal((await pub(hub, "px", "linkt", 1)).status, 403);
+  assert.equal((await pub(hub, "evilp", "t", 1)).status, 403);
+  assert.deepEqual(fs.readdirSync(outside), ["v1.html"], "リンク先の外に書かれた");
+  assert.equal(fs.readFileSync(path.join(outside, "v1.html"), "utf8"), "SECRET-OUTSIDE");
+  assert.ok(await alive(hub));
+});
+
+test("配信は許可リストの名前だけ。内部のファイルは実在しても返さない", async () => {
+  const hub = await startHub("allow");
+  assert.equal((await pub(hub, "pj", "t", 1)).status, 200);
+  const d = path.join(hub.root, ".hub", "pj", "t");
+  for (const f of ["v1.answer.seen", "v1.answer.hub", "v1.html.tmp-123", "secret.txt", "notes.md", "v1.answer.md.bak", "V1.html", "v12345.html"]) fs.writeFileSync(path.join(d, f), "INTERNAL-FILE");
+  for (const f of ["v1.answer.seen", "v1.answer.hub", "v1.html.tmp-123", "secret.txt", "notes.md", "v1.answer.md.bak", "V1.html", "v12345.html"]) {
+    const x = await get(hub, `/pj/t/${f}`);
+    assert.equal(x.status, 404, f);
+    assert.ok(!(await x.text()).includes("INTERNAL-FILE"));
+  }
+  fs.writeFileSync(path.join(d, "v1.answer.md"), "<!-- x -->\n回答");
+  assert.equal((await get(hub, "/pj/t/v1.answer.md")).status, 200); // 許可リストにある名前は返す
+});
+
+test("hook: ハブの印 (seen) が応答しなくても、回答は先に出力して数秒で終わる。ハブへの印が失敗しても二重には渡さない", async () => {
+  const sockets = new Set();
+  const fake = http.createServer((req, res) => {
+    if (req.url.startsWith("/api/answer")) { res.writeHead(200, { "Content-Type": "application/json" }); return res.end(JSON.stringify({ answers: [{ topic: "t-s", version: 1, mtimeMs: 111, seen: false, text: "stall の回答", json: null }] })); }
+    if (req.url === "/api/ping") { res.writeHead(200, { "Content-Type": "application/json" }); return res.end('{"ok":true}'); }
+    /* /api/seen は接続を受けても返さない */
+  });
+  fake.on("connection", (s) => { sockets.add(s); s.on("close", () => sockets.delete(s)); });
+  await new Promise((r) => fake.listen(0, "127.0.0.1", r));
+  try {
+    const p = mkProject("stall", "t-s");
+    fs.writeFileSync(path.join(p.root, ".hub.json"), JSON.stringify({ url: `http://127.0.0.1:${fake.address().port}`, key: "k".repeat(32), project: "ps" }));
+    const env = { ...process.env, CLAUDE_PROJECT_DIR: p.cwd };
+    const first = await runAsync([HOOK], { cwd: p.cwd, env });
+    assert.equal(first.code, 0);
+    assert.match(JSON.parse(first.stdout).hookSpecificOutput.additionalContext, /stall の回答/);
+    assert.ok(first.ms < 6000, `hook が遅い: ${first.ms}ms`);
+    // 印が付かなかった回答が、次の取り込みでまた来ても、渡し直さない
+    const second = await runAsync([HOOK], { cwd: p.cwd, env });
+    assert.equal(second.stdout, "", "二重に渡された");
+    assert.ok(second.ms < 6000);
+    // hook が印の途中で時間切れで殺されても、回答はもう出力されている (出力が先)
+    const p3 = mkProject("stall3", "t-s");
+    fs.writeFileSync(path.join(p3.root, ".hub.json"), JSON.stringify({ url: `http://127.0.0.1:${fake.address().port}`, key: "k".repeat(32), project: "ps" }));
+    const killed = await runAsync([HOOK], { cwd: p3.cwd, env: { ...process.env, CLAUDE_PROJECT_DIR: p3.cwd }, killAfterMs: 1200 });
+    assert.match(JSON.parse(killed.stdout || "{}").hookSpecificOutput?.additionalContext ?? "", /stall の回答/, "印の待ちの間に殺されると回答が出ていない");
+    // wait.mjs も同じ: 出力は先、印の失敗では待たされない
+    const w = await runAsync([WAIT, p.rel, "--timeout-min", "0.05"], { cwd: p.cwd, env: { ...process.env, HTML_QA_HUB_POLL_MS: "100" } });
+    assert.equal(w.code, 3, w.stdout + w.stderr);
+    assert.ok(!w.stdout.includes("stall の回答"));
+    // ローカルが未読のところから: wait.mjs は回答を出して 6 秒以内に終わる
+    const p2 = mkProject("stall2", "t-s");
+    fs.writeFileSync(path.join(p2.root, ".hub.json"), JSON.stringify({ url: `http://127.0.0.1:${fake.address().port}`, key: "k".repeat(32), project: "ps" }));
+    const w2 = await runAsync([WAIT, p2.rel, "--timeout-min", "1"], { cwd: p2.cwd, env: { ...process.env, HTML_QA_HUB_POLL_MS: "100" } });
+    assert.equal(w2.code, 0, w2.stderr);
+    assert.ok(w2.stdout.includes("stall の回答"));
+    assert.ok(w2.ms < 8000, `wait が遅い: ${w2.ms}ms`);
+    const p4 = mkProject("stall4", "t-s");
+    fs.writeFileSync(path.join(p4.root, ".hub.json"), JSON.stringify({ url: `http://127.0.0.1:${fake.address().port}`, key: "k".repeat(32), project: "ps" }));
+    const w4 = await runAsync([WAIT, p4.rel, "--timeout-min", "1"], { cwd: p4.cwd, env: { ...process.env, HTML_QA_HUB_POLL_MS: "100" }, killAfterMs: 1200 });
+    assert.ok(w4.stdout.includes("stall の回答"), "wait.mjs: 印の待ちの間に殺されると回答が出ていない");
+  } finally {
+    for (const s of sockets) s.destroy();
+    await new Promise((r) => fake.close(r));
+  }
+});
+
+test("従来の議題とハブのプロジェクトが同名でも、/p/<project>/ からプロジェクトの一覧に行ける。p・projects は project 名にできない", async () => {
+  const hub = await startHub("collide");
+  const dir = path.join(hub.root, "foo");
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, "v1.json"), JSON.stringify(jdoc("foo", 1)));
+  fs.writeFileSync(path.join(dir, "v1.html"), "<p>LEGACY-FOO</p>");
+  fs.writeFileSync(path.join(dir, "index.html"), "<p>LEGACY-FOO</p>");
+  assert.equal((await pub(hub, "foo", "bar", 1)).status, 200);
+  assert.match(await (await get(hub, "/foo/")).text(), /LEGACY-FOO/); // 従来が勝つ
+  const pr = await (await get(hub, "/p/foo/")).text();
+  assert.ok(pr.includes("題 bar v1") && pr.includes('href="/foo/bar/index.html"'));
+  assert.equal((await get(hub, "/p/foo/index.html")).status, 200);
+  assert.equal((await get(hub, "/p/nothere/")).status, 404);
+  assert.match(await (await get(hub, "/foo/bar/")).text(), /foo\/bar\/v1/); // 議題そのものはハブ
+  const top = await (await get(hub, "/")).text();
+  assert.ok(top.includes('href="/p/foo/"') && top.includes('href="/foo/bar/index.html"'));
+  for (const name of ["p", "projects", "api"]) assert.equal((await pub(hub, name, "t", 1)).status, 400, name);
+});
+
+test("ハブ全体の容量の上限を超えると 507。差し替えや回答は止めない", async () => {
+  const hub = await startHub("quota", { env: { HTML_QA_HUB_MAX_BYTES: "300000" } });
+  const html = (c) => `<p>${c.repeat(100_000)}</p>`;
+  assert.equal((await post(hub, "/api/publish", { project: "pj", topic: "a", version: 1, html: html("a") })).status, 200);
+  assert.equal((await post(hub, "/api/publish", { project: "pj", topic: "b", version: 1, html: html("b") })).status, 200);
+  const over = await post(hub, "/api/publish", { project: "pj", topic: "c", version: 1, html: html("c") });
+  assert.equal(over.status, 507);
+  assert.ok(!fs.existsSync(path.join(hub.root, ".hub", "pj", "c", "v1.html")));
+  assert.equal((await post(hub, "/api/answer", { project: "pj", topic: "a", version: 1, text: "回答" }, jar(hub))).status, 200);
+  assert.ok(await alive(hub));
+});
+
+test("鍵を引数に書かずに登録できる (環境変数・--hub-key-file・標準入力)", async () => {
+  const hub = await startHub("keyfile");
+  const read = (p) => JSON.parse(fs.readFileSync(path.join(p.root, ".hub.json"), "utf8"));
+  const a = mkProject("kf-env");
+  const r1 = spawnSync(process.execPath, [BUILD, "--hub-url", hub.base, "--project", "kf-env"], { cwd: a.cwd, encoding: "utf8", env: { ...process.env, HTML_QA_HUB_KEY: hub.key } });
+  assert.equal(r1.status, 0, r1.stderr);
+  assert.equal(read(a).key, hub.key);
+  assert.match(r1.stdout, /ハブにつながりました/);
+  const b = mkProject("kf-file");
+  const keyFile = path.join(tmp, "keyfile.txt");
+  fs.writeFileSync(keyFile, `${hub.key}\n`);
+  const r2 = runBuild(b, "--hub-url", hub.base, "--hub-key-file", keyFile, "--project", "kf-file");
+  assert.equal(r2.status, 0, r2.stderr);
+  assert.equal(read(b).key, hub.key);
+  const c = mkProject("kf-stdin");
+  const r3 = spawnSync(process.execPath, [BUILD, "--hub-url", hub.base, "--hub-key-file", "-", "--project", "kf-stdin"], { cwd: c.cwd, encoding: "utf8", input: `${hub.key}\n` });
+  assert.equal(r3.status, 0, r3.stderr);
+  assert.equal(read(c).key, hub.key);
+  const d = mkProject("kf-none");
+  const r4 = spawnSync(process.execPath, [BUILD, "--hub-url", hub.base, "--project", "kf-none"], { cwd: d.cwd, encoding: "utf8", env: { ...process.env, HTML_QA_HUB_KEY: "" } });
+  assert.equal(r4.status, 2);
+  assert.ok(!fs.existsSync(path.join(d.root, ".hub.json")));
+  assert.equal(runBuild(a, "--hub-url", hub.base, "--hub-key-file", path.join(tmp, "nothing-here"), "--project", "x").status, 2);
+  // 起動時の案内の登録コマンドは、鍵を引数に書かない形
+  assert.ok(/HTML_QA_HUB_KEY/.test(hub.out.stdout));
+  assert.ok(!/--hub-key [A-Za-z0-9_-]{16,}/.test(hub.out.stdout), "案内の登録コマンドに鍵が入っている");
+});
+
+test("ハブに無い議題を待つと、分かる文で知らせる。ループバック以外で待つと警告を出す", async () => {
+  const hub = await startHub("nowait");
+  const p = mkProject("nowait", "not-sent");
+  assert.equal(register(p, hub, "pn").status, 0); // build していない = 未送信
+  const w = await runAsync([WAIT, p.rel, "--timeout-min", "0.03"], { cwd: p.cwd, env: { ...process.env, HTML_QA_HUB_POLL_MS: "100" } });
+  assert.equal(w.code, 3, w.stdout + w.stderr);
+  assert.match(w.stderr, /ハブにその議題がありません \(project=pn, topic=not-sent\)。build で publish したか確かめてください/);
+  assert.equal((w.stderr.match(/ハブにその議題がありません/g) || []).length, 1, "同じ表示を繰り返している");
+  const open = await startHub("open-host", { args: ["--host", "0.0.0.0"] });
+  assert.match(open.out.stdout, /0\.0\.0\.0.*LAN/s);
+  assert.doesNotMatch(hub.out.stdout, /△/);
 });

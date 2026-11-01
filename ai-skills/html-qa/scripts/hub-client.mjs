@@ -17,6 +17,7 @@ export async function hubCall(cfg, method, p, body, { timeoutMs = 10_000 } = {})
       headers: { "X-Html-Qa-Key": cfg.key, ...(body !== undefined ? { "Content-Type": "application/json" } : {}) },
       body: body !== undefined ? JSON.stringify(body) : undefined,
       signal: AbortSignal.timeout(timeoutMs),
+      redirect: "error", // 鍵のヘッダを、リダイレクト先 (別のオリジン) へ持ち出さない
     });
   } catch (e) {
     const why = e?.cause?.code || e?.name || "error";
@@ -78,13 +79,17 @@ export async function pullHubAnswers(root, cfg, topic = null, opts = {}) {
   return got;
 }
 
-// ハブに「受け取った」印を付ける (失敗しても続ける。次に取り込むとき、ローカルの印で二重には渡さない)
-export async function seenHub(cfg, items) {
-  for (const it of items) {
-    try { await hubCall(cfg, "POST", "/api/seen", { project: cfg.project, topic: it.topic, version: it.version, mtimeMs: it.mtimeMs }, { timeoutMs: 5000 }); } catch { /* 続ける */ }
-  }
+// ハブに「受け取った」印を付ける。回答を出力したあとに呼ぶ。全体で totalMs までしか待たない (ハブが応答しなくても終われるように)。
+// 失敗しても続ける: ローカルの印 (vN.answer.hub と .seen) を正とし、次に取り込んだときに二重には渡さない
+export async function seenHub(cfg, items, { totalMs = 2500 } = {}) {
+  const deadline = Date.now() + totalMs;
+  await Promise.all(items.map(async (it) => {
+    const left = deadline - Date.now();
+    if (left <= 0) return;
+    try { await hubCall(cfg, "POST", "/api/seen", { project: cfg.project, topic: it.topic, version: it.version, mtimeMs: it.mtimeMs }, { timeoutMs: left }); } catch { /* 続ける */ }
+  }));
 }
 
 export async function waitingBeat(cfg, topic, done = false) {
-  try { await hubCall(cfg, "POST", "/api/waiting", { project: cfg.project, topic, ...(done ? { done: true } : {}) }, { timeoutMs: 4000 }); } catch { /* 合図は届かなくてもよい */ }
+  try { await hubCall(cfg, "POST", "/api/waiting", { project: cfg.project, topic, ...(done ? { done: true } : {}) }, { timeoutMs: 2000 }); } catch { /* 合図は届かなくてもよい */ }
 }
