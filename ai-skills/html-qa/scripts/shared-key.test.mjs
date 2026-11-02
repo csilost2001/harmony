@@ -163,11 +163,79 @@ test("hubCall: 401 で共有の鍵が変わっていれば 1 回だけ読み直�
   } finally { delete process.env.HTML_QA_HUB_KEY_FILE; }
 });
 
-test("雛形 4 種の devcontainer.json に mount と initializeCommand がある", () => {
+test("雛形 4 種: compose.yml の dev サービスに :ro の mount、devcontainer.json に initializeCommand (mounts には置かない)", () => {
   const base = path.join(HERE, "..", "..", "generate-code", "templates", "devcontainer");
   for (const [combo, home] of [["nestjs-nextjs", "/home/node"], ["nestjs-thymeleaf", "/home/node"], ["spring-boot-nextjs", "/home/vscode"], ["spring-boot-thymeleaf", "/home/vscode"]]) {
-    const s = fs.readFileSync(path.join(base, combo, ".devcontainer", "devcontainer.json"), "utf8");
-    assert.ok(s.includes(`.agent-containers/.shared/html-qa,target=${home}/.html-qa-shared,type=bind,readonly`), combo);
-    assert.match(s, /"initializeCommand": "bash -c 'mkdir -p ~\/\.agent-containers\/\.shared\/html-qa'"/, combo);
+    const dc = fs.readFileSync(path.join(base, combo, ".devcontainer", "devcontainer.json"), "utf8");
+    const compose = fs.readFileSync(path.join(base, combo, ".devcontainer", "compose.yml"), "utf8");
+    const dev = compose.slice(compose.indexOf("  dev:"), compose.indexOf("  harmony:"));
+    assert.ok(dev.includes(`- \${HOME}/.agent-containers/.shared/html-qa:${home}/.html-qa-shared:ro`), combo);
+    assert.ok(!dc.includes("target=" + home + "/.html-qa-shared"), combo);
+    assert.match(dc, /"initializeCommand": "bash -c 'mkdir -p ~\/\.agent-containers\/\.shared\/html-qa'"/, combo);
   }
+});
+
+test("serve.mjs: コンテナの中では共有の場所への書き出しに △ を付ける (書き出しは続ける)", async () => {
+  const file = path.join(tmp, "cont", "hub.key");
+  process.env.HTML_QA_IN_CONTAINER = "1";
+  try {
+    const hub = await startHub("cont", ["--key-export", file]);
+    assert.match(hub.out.stdout, /△ ハブの鍵を共有の場所に書きました/);
+    assert.match(hub.out.stdout, /別のコンテナとは共有されません。ハブは WSL ホストで動かしてください/);
+    assert.equal(fs.existsSync(file), true);
+  } finally { delete process.env.HTML_QA_IN_CONTAINER; }
+  process.env.HTML_QA_IN_CONTAINER = "0";
+  try { const h = await startHub("cont2", ["--key-export", path.join(tmp, "cont2", "hub.key")]); assert.match(h.out.stdout, /✓ ハブの鍵を共有の場所に書きました/); } finally { delete process.env.HTML_QA_IN_CONTAINER; }
+});
+
+test("serve.mjs: --key-export off は、前に既定の場所へ書いた鍵を消す", async () => {
+  const def = path.join(process.env.HOME, ".agent-containers", ".shared", "html-qa", "hub.key");
+  fs.mkdirSync(path.dirname(def), { recursive: true });
+  fs.writeFileSync(def, "old-key-old-key-old-key-1234\n");
+  const h = await startHub("offclean", ["--key-export", "off"]);
+  assert.equal(fs.existsSync(def), false);
+  assert.match(h.out.stdout, /消しました/);
+});
+
+test("共有の鍵は、loopback / host.docker.internal / プライベート IP / .local だけに使う。外部のホストへは使わず明示を求める", () => {
+  const keyfile = path.join(tmp, "s3.key"); fs.writeFileSync(keyfile, `${"K".repeat(32)}\n`);
+  const env = { HTML_QA_HUB_KEY_FILE: keyfile };
+  const ok = ["http://localhost:5190", "http://127.0.0.1:5190", "http://[::1]:5190", "http://host.docker.internal:5190", "http://10.1.2.3:5190", "http://172.16.0.5:5190", "http://172.31.255.1:5190", "http://192.168.11.2:5190", "http://[fd12::1]:5190", "http://[fe80::1]:5190", "http://pc.local:5190"];
+  const ng = ["https://example.com", "http://8.8.8.8:5190", "http://172.32.0.1:5190", "http://172.15.0.1:5190", "http://192.169.0.1:5190", "http://evil.local.example.com:5190", "http://[2001:db8::1]:5190"];
+  ok.forEach((u, i) => {
+    const p = mkProject(`s3ok${i}`);
+    assert.equal(build(p, ["--hub-url", u, "--project", `s3ok${i}`], env).status, 0, u);
+  });
+  ng.forEach((u, i) => {
+    const p = mkProject(`s3ng${i}`);
+    const r = build(p, ["--hub-url", u, "--project", `s3ng${i}`], env);
+    assert.equal(r.status, 2, u);
+    assert.match(r.stderr, /鍵を明示して渡してください/, u);
+    assert.equal(fs.existsSync(p.hubJson), false);
+    assert.equal(r.stdout.includes("K".repeat(32)) || r.stderr.includes("K".repeat(32)), false);
+  });
+  // 明示した鍵なら外部でも登録できる
+  const p = mkProject("s3explicit");
+  assert.equal(build(p, ["--hub-url", "https://example.com", "--project", "s3explicit"], { ...env, HTML_QA_HUB_KEY: "E".repeat(32) }).status, 0);
+});
+
+test("共有の場所に鍵が無い・形が不正なときは、空の鍵を送らず理由の分かる文で止まる", async () => {
+  const hub = await startHub("n1", ["--key-export", "off"]);
+  const missing = path.join(tmp, "n1-missing.key");
+  const bad = path.join(tmp, "n1-bad.key"); fs.writeFileSync(bad, "short\n");
+  const p = mkProject("n1p");
+  const r0 = build(p, ["--hub-url", hub.base, "--project", "n1p"], { HTML_QA_HUB_KEY_FILE: missing });
+  assert.equal(r0.status, 2);
+  assert.match(r0.stderr, /共有の場所に鍵がありません/);
+  const r1 = build(p, ["--hub-url", hub.base, "--project", "n1p"], { HTML_QA_HUB_KEY_FILE: bad });
+  assert.equal(r1.status, 2);
+  assert.match(r1.stderr, /共有の場所の鍵の形が不正です/);
+  // 登録済み (鍵なし) のあとで共有の鍵が消えた: 空の鍵を送らず、理由を △ で出す
+  fs.writeFileSync(missing, `${hub.key}\n`);
+  assert.equal(build(p, ["--hub-url", hub.base, "--project", "n1p"], { HTML_QA_HUB_KEY_FILE: missing }).status, 0);
+  fs.rmSync(missing);
+  const r2 = build(p, [path.join(p.root, "t1")], { HTML_QA_HUB_KEY_FILE: missing });
+  assert.match(r2.stdout + r2.stderr, /共有の場所に鍵がありません/);
+  const e = await hubCall({ url: hub.base, key: "", project: "n1p", shared: true }, "GET", "/api/ping").catch((x) => x);
+  assert.ok(e instanceof HubClientError && e.kind === "auth");
 });

@@ -2,7 +2,7 @@
 //   設定は <root>/.hub.json (lib.mjs の hubConfig)。鍵はヘッダ X-Html-Qa-Key で渡し、URL・ログには出さない
 import fs from "node:fs";
 import path from "node:path";
-import { HUB_NAME_RE, readSharedKey } from "./lib.mjs";
+import { HUB_NAME_RE, readSharedKey, sharedKeyProblem, sharedKeyAllowedHost, SHARED_HOST_MSG } from "./lib.mjs";
 
 // kind: unreachable (届かない) / auth (鍵が違う) / toolarge / bad (こちらの送る内容の誤り) / server
 export class HubClientError extends Error {
@@ -21,6 +21,8 @@ export async function hubCall(cfg, method, p, body, opts = {}) {
 }
 
 async function hubCallOnce(cfg, method, p, body, { timeoutMs = 10_000 } = {}) {
+  if (cfg.shared && !sharedKeyAllowedHost(cfg.url)) throw new HubClientError("auth", SHARED_HOST_MSG, 0);
+  if (!cfg.key) throw new HubClientError("auth", cfg.shared ? (sharedKeyProblem() || "共有の場所の鍵を読めません") : "ハブの鍵がありません (--hub-key-file か HTML_QA_HUB_KEY で渡して登録し直してください)", 0);
   let res;
   try {
     res = await fetch(`${cfg.url}${p}`, {

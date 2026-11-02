@@ -146,6 +146,32 @@ export function readSharedKey(env = process.env) {
   return null;
 }
 
+// 共有の場所から鍵を読めないときの理由 (読めるなら null)。「空の鍵を送る」のではなく、分かる文で止めるために使う
+export function sharedKeyProblem(env = process.env) {
+  if (readSharedKey(env)) return null;
+  for (const file of sharedKeyCandidates(env)) {
+    let text;
+    try { text = fs.readFileSync(file, "utf8").trim(); } catch { continue; }
+    return `共有の場所の鍵の形が不正です (${file})。ハブ (serve.mjs) を WSL ホストで起動し直して書き直させるか、鍵を明示して渡してください${text ? "" : " (ファイルが空です)"}`;
+  }
+  return `共有の場所に鍵がありません (${sharedKeyCandidates(env).join(" か ")})。ハブを WSL ホストで起動したか、開発コンテナを作り直したか (雛形の mount が入っているか) を確かめてください`;
+}
+
+// 共有の場所の鍵を送ってよい宛先か。loopback / host.docker.internal / プライベート IP / *.local だけ (外部のホストへ鍵を渡さない)
+export function sharedKeyAllowedHost(url) {
+  let h;
+  try { h = new URL(url).hostname.toLowerCase().replace(/^\[|\]$/g, ""); } catch { return false; }
+  if (h === "localhost" || h === "host.docker.internal" || h === "::1" || h.endsWith(".local")) return true;
+  const m = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (m) {
+    const [a, b] = [Number(m[1]), Number(m[2])];
+    return a === 127 || a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168);
+  }
+  if (h.includes(":")) return /^f[cd][0-9a-f]{2}:/.test(h) || /^fe[89ab][0-9a-f]:/.test(h);
+  return false;
+}
+const SHARED_HOST_MSG = "共有の場所の鍵は、loopback / host.docker.internal / プライベート IP / .local のハブにだけ使います。この URL には使わないので、--hub-key-file か HTML_QA_HUB_KEY で鍵を明示して渡してください";
+
 // 鍵を共有の場所へ書く。フォルダ 0700・ファイル 0600、一時ファイルに書いてから rename (読む側が書きかけを見ない)。書けなければ例外
 export function writeSharedKey(file, key) {
   const dir = path.dirname(file);
@@ -179,7 +205,8 @@ export function setHubConfig(root, { url, key, project }) {
   if (!/^https?:$/.test(u.protocol)) throw new Error("--hub-url は http:// か https:// で始まる URL にしてください");
   // key が null / undefined のときは、共有の場所から毎回読む設定にする (共有の場所に鍵が無ければ断る)
   const shared = key == null;
-  if (shared && !readSharedKey()) throw new Error("ハブの鍵がありません。--hub-key-file か環境変数 HTML_QA_HUB_KEY で渡すか、ハブ (serve.mjs) を WSL ホストで起動して鍵の共有の場所に書かせてください");
+  if (shared && !sharedKeyAllowedHost(url)) throw new Error(SHARED_HOST_MSG);
+  if (shared && sharedKeyProblem()) throw new Error(`${sharedKeyProblem()}。または --hub-key-file か HTML_QA_HUB_KEY で鍵を渡してください`);
   if (!shared && !HUB_KEY_RE.test(key || "")) throw new Error("--hub-key が不正です (ハブの起動時に表示される鍵を、そのまま渡してください)");
   if (!HUB_NAME_RE.test(project || "") || HUB_RESERVED.has(project)) throw new Error("--project は英小文字・数字・ハイフンで 41 文字までにしてください (例: tax-app)");
   fs.mkdirSync(root, { recursive: true });
@@ -188,3 +215,5 @@ export function setHubConfig(root, { url, key, project }) {
   fs.chmodSync(f, 0o600); // 既にあったファイルの権限も締める
   return shared ? { ...cfg, key: readSharedKey().key, shared: true } : cfg;
 }
+
+export { SHARED_HOST_MSG };

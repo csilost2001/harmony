@@ -53,6 +53,12 @@ const KEY = accessKey(ROOT, { renew: process.argv.includes("--new-key") });
 // ハブの鍵を、開発コンテナ (readonly の mount) が読める共有の場所へ書く (#1595)。書けなくても続ける。鍵はここに出さない
 const KEY_EXPORT = (() => { const v = arg("key-export", ""); return v === "off" ? null : v ? path.resolve(v) : SHARED_KEY_WRITE(); })();
 let KEY_EXPORT_RESULT = "off";
+let KEY_EXPORT_CLEANUP = null; // off のとき、前に既定の場所へ書いた鍵を消した結果 ("removed" / エラー名)
+if (!KEY_EXPORT) {
+  const def = SHARED_KEY_WRITE();
+  if (fs.existsSync(def)) { try { fs.rmSync(def); KEY_EXPORT_CLEANUP = "removed"; } catch (e) { KEY_EXPORT_CLEANUP = e?.code || "error"; } }
+}
+const IN_CONTAINER = process.env.HTML_QA_IN_CONTAINER ? process.env.HTML_QA_IN_CONTAINER === "1" : fs.existsSync("/.dockerenv");
 if (KEY_EXPORT) {
   try { writeSharedKey(KEY_EXPORT, KEY); KEY_EXPORT_RESULT = "ok"; } catch (e) { KEY_EXPORT_RESULT = e?.code || "error"; }
 }
@@ -310,12 +316,15 @@ server.listen(PORT, HOST, () => {
   console.log("");
   console.log("ほかのプロジェクト (開発コンテナ) の議題を預かるには、このハブを WSL ホストで動かします (コンテナの中の serve.mjs は別のコンテナから届きません)。");
   if (KEY_EXPORT_RESULT === "ok") {
-    console.log(`✓ ハブの鍵を共有の場所に書きました: ${KEY_EXPORT} (自分だけが読める権限。git に入れない・同じ PC の中だけで使う)`);
+    console.log(`${IN_CONTAINER ? "△" : "✓"} ハブの鍵を共有の場所に書きました: ${KEY_EXPORT} (自分だけが読める権限。git に入れない・同じ PC の中だけで使う)`);
+    if (IN_CONTAINER) console.log("  △ いまはコンテナの中で動いているので、この場所は別のコンテナとは共有されません。ハブは WSL ホストで動かしてください");
     console.log("  雛形の開発コンテナは、この場所を ~/.html-qa-shared に読み取り専用で mount します。プロジェクト側は、鍵なしで 1 回だけ登録します:");
     console.log(`  node ai-skills/html-qa/scripts/build.mjs --hub-url http://host.docker.internal:${PORT_ACTUAL} --project <プロジェクト名>`);
     console.log("  (共有 PC では、雛形の devcontainer.json から html-qa の mount を外してください。--key-export off でハブも書きません)");
   } else {
     if (KEY_EXPORT_RESULT !== "off") console.log(`△ ハブの鍵を共有の場所 (${KEY_EXPORT}) に書けませんでした (${KEY_EXPORT_RESULT})。手で渡してください`);
+    if (KEY_EXPORT_CLEANUP === "removed") console.log("  前に共有の場所へ書いた鍵のファイルを消しました (--key-export off)");
+    else if (KEY_EXPORT_CLEANUP) console.log(`△ 前に共有の場所へ書いた鍵のファイルを消せませんでした (${KEY_EXPORT_CLEANUP})。手で消してください: ${SHARED_KEY_WRITE()}`);
     console.log("  鍵は、ハブの起動時に表示されるものをプロジェクト側へ手で渡します (鍵の自動の受け渡しは --key-export で有効にできます):");
     console.log(`  ハブの鍵: ${KEY}`);
     console.log("  read -rs HTML_QA_HUB_KEY && export HTML_QA_HUB_KEY      # 上の鍵を貼り付けて Enter (コマンド履歴や ps に鍵が残らない)");

@@ -25,12 +25,11 @@
     "source=${localEnv:HOME}/.agent-containers/${localWorkspaceFolderBasename}/.claude,target=/home/vscode/.claude,type=bind,consistency=cached",
     "source=${localEnv:HOME}/.agent-containers/${localWorkspaceFolderBasename}/.codex,target=/home/vscode/.codex,type=bind,consistency=cached",
     "source=${localEnv:HOME}/.agent-containers/${localWorkspaceFolderBasename}/.copilot,target=/home/vscode/.copilot,type=bind,consistency=cached",
-    "source=${localEnv:HOME}/.config/gh,target=/home/vscode/.config/gh,type=bind,consistency=cached",
-    // html-qa のハブの鍵 (WSL ホストの serve.mjs が書く)。読み取り専用。共有 PC では、この行と initializeCommand の html-qa を外す (#1595)
-    "source=${localEnv:HOME}/.agent-containers/.shared/html-qa,target=/home/vscode/.html-qa-shared,type=bind,readonly"
+    "source=${localEnv:HOME}/.config/gh,target=/home/vscode/.config/gh,type=bind,consistency=cached"
   ],
 
-  // initializeCommand: container 起動前に host 側の bind mount source を作る (無いと起動しない。#1340)。host shell = bash 前提
+  // initializeCommand: container 起動前に host 側の bind mount source を作る (無いと起動しない。#1340)。host shell = bash 前提。
+  // html-qa の鍵の共有の場所 (#1595) の mount は compose.yml の dev サービスにある (compose 方式では mounts の readonly が効かないため)
   "initializeCommand": "bash -c 'mkdir -p ~/.agent-containers/.shared/html-qa'",
 
   "onCreateCommand": "sudo chown -R vscode:vscode /home/vscode/.claude /home/vscode/.codex /home/vscode/.copilot /home/vscode/.config/gh",

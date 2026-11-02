@@ -149,14 +149,15 @@ describe("4 組合せの Playwright MCP の設定が同じ", () => {
 });
 
 describe.each(COMBOS)("雛形 %s の html-qa の鍵の mount (#1595)", (combo) => {
-  it("鍵の共有の場所を、home の .html-qa-shared に readonly で mount し、無ければ initializeCommand で作る", () => {
-    const d = JSON.parse(read(combo, ".devcontainer/devcontainer.json").split("\n").filter((l) => !l.trim().startsWith("//")).join("\n")) as {
-      mounts: string[];
-      initializeCommand: string;
-      remoteUser: string;
-    };
+  it("compose.yml の dev サービスが共有の場所を home の .html-qa-shared に :ro で mount し、initializeCommand で作る", () => {
+    const text = read(combo, ".devcontainer/devcontainer.json");
+    const d = JSON.parse(text.split("\n").filter((l) => !l.trim().startsWith("//")).join("\n")) as { initializeCommand: string; remoteUser: string; mounts: string[] };
     const home = d.remoteUser === "node" ? "/home/node" : "/home/vscode";
-    expect(d.mounts).toContain(`source=\${localEnv:HOME}/.agent-containers/.shared/html-qa,target=${home}/.html-qa-shared,type=bind,readonly`);
+    const compose = read(combo, ".devcontainer/compose.yml");
+    const dev = compose.slice(compose.indexOf("  dev:"), compose.indexOf("  harmony:"));
+    expect(dev).toContain(`      - \${HOME}/.agent-containers/.shared/html-qa:${home}/.html-qa-shared:ro`);
+    // compose 方式では devcontainer.json の mounts の readonly が落ちるので、そちらには置かない
+    expect(d.mounts.some((m) => m.includes("html-qa"))).toBe(false);
     expect(d.initializeCommand).toContain("mkdir -p ~/.agent-containers/.shared/html-qa");
     expect(d.initializeCommand.startsWith("bash -c")).toBe(true);
   });
