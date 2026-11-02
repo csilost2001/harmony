@@ -320,7 +320,7 @@ server.listen(PORT, HOST, () => {
     if (IN_CONTAINER) console.log("  △ いまはコンテナの中で動いているので、この場所は別のコンテナとは共有されません。ハブは WSL ホストで動かしてください");
     console.log("  雛形の開発コンテナは、この場所を ~/.html-qa-shared に読み取り専用で mount します。プロジェクト側は、鍵なしで 1 回だけ登録します:");
     console.log(`  node ai-skills/html-qa/scripts/build.mjs --hub-url http://host.docker.internal:${PORT_ACTUAL} --project <プロジェクト名>`);
-    console.log("  (共有 PC では、雛形の devcontainer.json から html-qa の mount を外してください。--key-export off でハブも書きません)");
+    console.log("  (共有 PC では、雛形の compose.yml から html-qa の mount を外してください。--key-export off でハブも書きません)");
   } else {
     if (KEY_EXPORT_RESULT !== "off") console.log(`△ ハブの鍵を共有の場所 (${KEY_EXPORT}) に書けませんでした (${KEY_EXPORT_RESULT})。手で渡してください`);
     if (KEY_EXPORT_CLEANUP === "removed") console.log("  前に共有の場所へ書いた鍵のファイルを消しました (--key-export off)");
