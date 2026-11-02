@@ -18,7 +18,9 @@ const HOOK = path.join(HERE, "hook-inject.mjs");
 
 let tmp;
 const children = new Set();
-before(() => { tmp = fs.mkdtempSync(path.join(os.tmpdir(), "html-qa-hub-")); });
+before(() => { tmp = fs.mkdtempSync(path.join(os.tmpdir(), "html-qa-hub-"));
+  process.env.HOME = path.join(tmp, "home"); delete process.env.HTML_QA_HUB_KEY_FILE; // 実際のホームの共有の鍵を読み書きしない (#1595)
+});
 after(async () => {
   for (const c of children) c.kill("SIGKILL");
   await Promise.all([...children].map((c) => (c.exitCode !== null || c.signalCode ? null : new Promise((r) => c.once("exit", r)))));
@@ -36,7 +38,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function startHub(name, { args = [], env = {} } = {}) {
   const root = path.join(tmp, name, "hub-root");
   const port = await freePort();
-  const child = spawn(process.execPath, [SERVE, "--root", root, "--port", String(port), ...args], { cwd: tmp, env: { ...process.env, ...env }, stdio: ["ignore", "pipe", "pipe"] });
+  const child = spawn(process.execPath, [SERVE, "--root", root, "--port", String(port), "--key-export", "off", ...args], { cwd: tmp, env: { ...process.env, ...env }, stdio: ["ignore", "pipe", "pipe"] });
   children.add(child);
   const out = { stdout: "", stderr: "" };
   child.stdout.on("data", (d) => { out.stdout += d; });

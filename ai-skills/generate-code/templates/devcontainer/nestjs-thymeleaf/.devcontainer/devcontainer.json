@@ -22,8 +22,13 @@
     "source=${localEnv:HOME}/.agent-containers/${localWorkspaceFolderBasename}/.claude,target=/home/node/.claude,type=bind,consistency=cached",
     "source=${localEnv:HOME}/.agent-containers/${localWorkspaceFolderBasename}/.codex,target=/home/node/.codex,type=bind,consistency=cached",
     "source=${localEnv:HOME}/.agent-containers/${localWorkspaceFolderBasename}/.copilot,target=/home/node/.copilot,type=bind,consistency=cached",
-    "source=${localEnv:HOME}/.config/gh,target=/home/node/.config/gh,type=bind,consistency=cached"
+    "source=${localEnv:HOME}/.config/gh,target=/home/node/.config/gh,type=bind,consistency=cached",
+    // html-qa のハブの鍵 (WSL ホストの serve.mjs が書く)。読み取り専用。共有 PC では、この行と initializeCommand の html-qa を外す (#1595)
+    "source=${localEnv:HOME}/.agent-containers/.shared/html-qa,target=/home/node/.html-qa-shared,type=bind,readonly"
   ],
+
+  // initializeCommand: container 起動前に host 側の bind mount source を作る (無いと起動しない。#1340)。host shell = bash 前提
+  "initializeCommand": "bash -c 'mkdir -p ~/.agent-containers/.shared/html-qa'",
 
   "onCreateCommand": "sudo chown -R node:node /home/node/.claude /home/node/.codex /home/node/.copilot /home/node/.config/gh",
 

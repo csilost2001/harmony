@@ -147,3 +147,17 @@ describe("4 組合せの Playwright MCP の設定が同じ", () => {
     }
   });
 });
+
+describe.each(COMBOS)("雛形 %s の html-qa の鍵の mount (#1595)", (combo) => {
+  it("鍵の共有の場所を、home の .html-qa-shared に readonly で mount し、無ければ initializeCommand で作る", () => {
+    const d = JSON.parse(read(combo, ".devcontainer/devcontainer.json").split("\n").filter((l) => !l.trim().startsWith("//")).join("\n")) as {
+      mounts: string[];
+      initializeCommand: string;
+      remoteUser: string;
+    };
+    const home = d.remoteUser === "node" ? "/home/node" : "/home/vscode";
+    expect(d.mounts).toContain(`source=\${localEnv:HOME}/.agent-containers/.shared/html-qa,target=${home}/.html-qa-shared,type=bind,readonly`);
+    expect(d.initializeCommand).toContain("mkdir -p ~/.agent-containers/.shared/html-qa");
+    expect(d.initializeCommand.startsWith("bash -c")).toBe(true);
+  });
+});

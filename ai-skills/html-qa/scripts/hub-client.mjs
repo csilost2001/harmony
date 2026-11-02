@@ -2,14 +2,25 @@
 //   設定は <root>/.hub.json (lib.mjs の hubConfig)。鍵はヘッダ X-Html-Qa-Key で渡し、URL・ログには出さない
 import fs from "node:fs";
 import path from "node:path";
-import { HUB_NAME_RE } from "./lib.mjs";
+import { HUB_NAME_RE, readSharedKey } from "./lib.mjs";
 
 // kind: unreachable (届かない) / auth (鍵が違う) / toolarge / bad (こちらの送る内容の誤り) / server
 export class HubClientError extends Error {
   constructor(kind, message, status = 0) { super(message); this.kind = kind; this.status = status; }
 }
 
-export async function hubCall(cfg, method, p, body, { timeoutMs = 10_000 } = {}) {
+export async function hubCall(cfg, method, p, body, opts = {}) {
+  try { return await hubCallOnce(cfg, method, p, body, opts); } catch (e) {
+    // 共有の場所から読んだ鍵で 401 のとき、ハブが鍵を作り直していれば読み直して 1 回だけやり直す
+    if (e instanceof HubClientError && e.kind === "auth" && cfg.shared) {
+      const fresh = readSharedKey()?.key;
+      if (fresh && fresh !== cfg.key) { cfg.key = fresh; return await hubCallOnce(cfg, method, p, body, opts); }
+    }
+    throw e;
+  }
+}
+
+async function hubCallOnce(cfg, method, p, body, { timeoutMs = 10_000 } = {}) {
   let res;
   try {
     res = await fetch(`${cfg.url}${p}`, {
@@ -27,7 +38,7 @@ export async function hubCall(cfg, method, p, body, { timeoutMs = 10_000 } = {})
   let json = null;
   try { json = await res.json(); } catch { /* 本文なし */ }
   if (res.ok) return { status: res.status, json };
-  if (res.status === 401) throw new HubClientError("auth", "ハブの鍵が違います (ハブの起動時に表示された鍵で、--hub-key を登録し直してください)", 401);
+  if (res.status === 401) throw new HubClientError("auth", cfg.shared ? "ハブの鍵が違います (共有の場所の鍵がハブの鍵と合っていません。ハブを起動し直すか、--hub-key-file で鍵を渡して登録し直してください)" : "ハブの鍵が違います (ハブの起動時に表示された鍵で、--hub-key を登録し直してください)", 401);
   if (res.status === 413) throw new HubClientError("toolarge", `ハブが受け付ける大きさを超えています (${json?.error || "413"})`, 413);
   throw new HubClientError(res.status >= 500 ? "server" : "bad", `ハブが ${res.status} を返しました${json?.error ? `: ${json.error}` : ""}`, res.status);
 }
