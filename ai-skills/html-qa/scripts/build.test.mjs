@@ -8,7 +8,9 @@ import { fileURLToPath } from "node:url";
 
 const BUILD = path.join(path.dirname(fileURLToPath(import.meta.url)), "build.mjs");
 let tmp;
-before(() => { tmp = fs.mkdtempSync(path.join(os.tmpdir(), "html-qa-test-")); });
+before(() => { tmp = fs.mkdtempSync(path.join(os.tmpdir(), "html-qa-test-"));
+  process.env.HOME = path.join(tmp, "home"); delete process.env.HTML_QA_HUB_KEY_FILE; // 実際のホームの共有の鍵を読み書きしない (#1595)
+});
 after(() => { fs.rmSync(tmp, { recursive: true, force: true }); });
 
 const doc = (topic, version, blocks, extra = {}) => ({ topic, version, title: `題 ${topic} v${version}`, lead: "要旨", sections: [{ title: "章", blocks }], ...extra });

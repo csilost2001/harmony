@@ -2,8 +2,8 @@
 // html-qa: 議題 JSON (vN.json) を、1 ファイルで完結する対話用 HTML に変換する。
 //
 //   node ai-skills/html-qa/scripts/build.mjs <topic-dir | vN.json> [...]
-//   node ai-skills/html-qa/scripts/build.mjs --hub-url <URL> --project <名前>   ハブの登録 (1 回。以後は省略できる)。鍵は環境変数 HTML_QA_HUB_KEY か
-//                                          --hub-key-file <ファイル | -> で渡す (--hub-key <鍵> も使えるが、シェルの履歴と ps に残る)
+//   node ai-skills/html-qa/scripts/build.mjs --hub-url <URL> --project <名前>   ハブの登録 (1 回。以後は省略できる)。鍵は、環境変数 HTML_QA_HUB_KEY / --hub-key-file <ファイル | -> で渡すか、
+//                                          渡さなければ共有の場所 (~/.html-qa-shared/hub.key。HTML_QA_HUB_KEY_FILE で変更) から読む (--hub-key <鍵> も使えるが、シェルの履歴と ps に残る)
 //   node ai-skills/html-qa/scripts/build.mjs --hub off                                          ハブの登録を解除
 //
 // - 同じ議題フォルダの v*.json をすべて作り直す (版の切り替え一覧を最新にするため)
@@ -15,7 +15,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { pageUrls, hubConfig, setHubConfig, DEFAULT_ROOT } from "./lib.mjs";
+import { pageUrls, hubConfig, setHubConfig, readSharedKey, DEFAULT_ROOT } from "./lib.mjs";
 import { hubCall, publishTopic, hubUrls, HubClientError } from "./hub-client.mjs";
 import { buildIndex, versionsIn } from "./index-page.mjs";
 import { SPEC, validate } from "./validate-doc.mjs";
@@ -139,9 +139,11 @@ async function registerHub(opts, root) {
     try { key = fs.readFileSync(opts["hub-key-file"] === "-" ? 0 : opts["hub-key-file"], "utf8").trim(); } catch (e) { console.error(`✗ --hub-key-file を読めません: ${e.code || e.message}`); process.exit(2); }
   }
   if (key === undefined && process.env.HTML_QA_HUB_KEY) key = process.env.HTML_QA_HUB_KEY.trim();
+  // 鍵の順番: --hub-key → --hub-key-file → HTML_QA_HUB_KEY → 共有の場所 (#1595。保存せず毎回読む) → 前の登録の鍵
+  const useShared = key === undefined && !!readSharedKey();
   let cfg;
-  try { cfg = setHubConfig(root, { url: opts["hub-url"] ?? cur?.url, key: key ?? cur?.key, project }); } catch (e) { console.error(`✗ ${e.message}`); process.exit(2); }
-  console.log(`✓ ハブを登録しました: ${cfg.url} (プロジェクト名: ${cfg.project}) → ${path.relative(process.cwd(), path.join(root, ".hub.json")) || ".hub.json"} (鍵を含むので他人に渡さない)`);
+  try { cfg = setHubConfig(root, { url: opts["hub-url"] ?? cur?.url, key: useShared ? null : (key ?? (cur?.shared ? null : cur?.key)), project }); } catch (e) { console.error(`✗ ${e.message}`); process.exit(2); }
+  console.log(`✓ ハブを登録しました: ${cfg.url} (プロジェクト名: ${cfg.project}) → ${path.relative(process.cwd(), path.join(root, ".hub.json")) || ".hub.json"} ${cfg.shared ? "(鍵は共有の場所から毎回読みます)" : "(鍵を含むので他人に渡さない)"}`);
   try { await hubCall(cfg, "GET", "/api/ping"); console.log("  ハブにつながりました"); } catch (e) { console.warn(`△ ${e.message}\n  (登録はしました。ハブが起動してから build.mjs を実行してください)`); }
 }
 

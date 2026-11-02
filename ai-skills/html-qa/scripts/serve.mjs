@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // html-qa: 議題フォルダ (既定 .tmp/html-qa/) をブラウザで開くための小さなサーバ。
 //
-//   node ai-skills/html-qa/scripts/serve.mjs [--port 5190] [--host 127.0.0.1] [--lan-url http://<PC の IP>:5191 | off] [--new-key]
+//   node ai-skills/html-qa/scripts/serve.mjs [--port 5190] [--host 127.0.0.1] [--lan-url http://<PC の IP>:5191 | off] [--new-key] [--key-export <ファイル | off>]
 //
 // - 静的ファイルを返す (キャッシュしない。F5 で最新が見える)
 // - POST /api/answer: 画面の「AI に送る」で <topic>/vN.answer.md (と、あれば構造化した vN.answer.json) を書く。AI はそれを読む。議題一覧も作り直す
@@ -25,11 +25,11 @@ import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import { buildIndex, collectRows, renderIndex } from "./index-page.mjs";
-import { TOPIC_RE, DEFAULT_ROOT, answerStatus, isWaiting, accessKey, keyMatches, setLanBase, pageUrls, lanBase } from "./lib.mjs";
+import { TOPIC_RE, DEFAULT_ROOT, answerStatus, isWaiting, accessKey, keyMatches, setLanBase, pageUrls, lanBase, writeSharedKey, SHARED_KEY_WRITE } from "./lib.mjs";
 import { HubError, LIMITS, isRegularFile, hubBase, hubTopicDir, hubProjects, hubTopics, hasHubProject, latestHtml, savePublish, writeAnswerFiles, listHubAnswers, markHubSeen, setHubWaiting, isHubWaiting, checkNames, checkVersion } from "./hub.mjs";
 
 // 値つきの引数。値が無い・空・次が -- 始まりのときは起動を断る (--host の値が欠けて全経路で待ってしまう、などを防ぐ)
-const EXAMPLES = { root: ".tmp/html-qa", port: "5190", host: "127.0.0.1", "lan-url": "http://192.168.1.10:5191" };
+const EXAMPLES = { "key-export": "~/.agent-containers/.shared/html-qa/hub.key", root: ".tmp/html-qa", port: "5190", host: "127.0.0.1", "lan-url": "http://192.168.1.10:5191" };
 const arg = (name, d) => {
   const i = process.argv.indexOf(`--${name}`);
   if (i < 0) return d;
@@ -50,6 +50,18 @@ let PORT_ACTUAL = PORT;
 process.env.HTML_QA_PORT = String(PORT);
 fs.mkdirSync(ROOT, { recursive: true });
 const KEY = accessKey(ROOT, { renew: process.argv.includes("--new-key") });
+// ハブの鍵を、開発コンテナ (readonly の mount) が読める共有の場所へ書く (#1595)。書けなくても続ける。鍵はここに出さない
+const KEY_EXPORT = (() => { const v = arg("key-export", ""); return v === "off" ? null : v ? path.resolve(v) : SHARED_KEY_WRITE(); })();
+let KEY_EXPORT_RESULT = "off";
+let KEY_EXPORT_CLEANUP = null; // off のとき、前に既定の場所へ書いた鍵を消した結果 ("removed" / エラー名)
+if (!KEY_EXPORT) {
+  const def = SHARED_KEY_WRITE();
+  if (fs.existsSync(def)) { try { fs.rmSync(def); KEY_EXPORT_CLEANUP = "removed"; } catch (e) { KEY_EXPORT_CLEANUP = e?.code || "error"; } }
+}
+const IN_CONTAINER = process.env.HTML_QA_IN_CONTAINER ? process.env.HTML_QA_IN_CONTAINER === "1" : fs.existsSync("/.dockerenv");
+if (KEY_EXPORT) {
+  try { writeSharedKey(KEY_EXPORT, KEY); KEY_EXPORT_RESULT = "ok"; } catch (e) { KEY_EXPORT_RESULT = e?.code || "error"; }
+}
 if (process.argv.includes("--lan-url")) {
   try { const b = setLanBase(ROOT, arg("lan-url")); console.log(b ? `スマホから開く URL の元を ${b} にしました` : "スマホから開く URL を消しました"); }
   catch (e) { console.error(`--lan-url: ${e.message}`); process.exit(2); }
@@ -302,11 +314,23 @@ server.listen(PORT, HOST, () => {
   if (u.lan) console.log(`スマホ (家庭内 LAN): ${u.lan}`);
   console.log(`フォルダ: ${path.relative(process.cwd(), ROOT) || "."} / 止めるときは Ctrl+C`);
   console.log("");
-  console.log("ほかのプロジェクト (開発コンテナ) の議題を預かるには、そのプロジェクトで 1 回だけ登録します:");
-  console.log(`  ハブの鍵: ${KEY}`);
-  console.log("  read -rs HTML_QA_HUB_KEY && export HTML_QA_HUB_KEY      # 上の鍵を貼り付けて Enter (コマンド履歴や ps に鍵が残らない)");
-  console.log(`  node ai-skills/html-qa/scripts/build.mjs --hub-url http://host.docker.internal:${PORT_ACTUAL} --project <プロジェクト名>`);
-  console.log("  (URL の host.docker.internal:… は環境で変わります。解除は --hub off。届かないとき・詳しくは ai-skills/html-qa/README.md)");
+  console.log("ほかのプロジェクト (開発コンテナ) の議題を預かるには、このハブを WSL ホストで動かします (コンテナの中の serve.mjs は別のコンテナから届きません)。");
+  if (KEY_EXPORT_RESULT === "ok") {
+    console.log(`${IN_CONTAINER ? "△" : "✓"} ハブの鍵を共有の場所に書きました: ${KEY_EXPORT} (自分だけが読める権限。git に入れない・同じ PC の中だけで使う)`);
+    if (IN_CONTAINER) console.log("  △ いまはコンテナの中で動いているので、この場所は別のコンテナとは共有されません。ハブは WSL ホストで動かしてください");
+    console.log("  雛形の開発コンテナは、この場所を ~/.html-qa-shared に読み取り専用で mount します。プロジェクト側は、鍵なしで 1 回だけ登録します:");
+    console.log(`  node ai-skills/html-qa/scripts/build.mjs --hub-url http://host.docker.internal:${PORT_ACTUAL} --project <プロジェクト名>`);
+    console.log("  (共有 PC では、雛形の compose.yml から html-qa の mount を外してください。--key-export off でハブも書きません)");
+  } else {
+    if (KEY_EXPORT_RESULT !== "off") console.log(`△ ハブの鍵を共有の場所 (${KEY_EXPORT}) に書けませんでした (${KEY_EXPORT_RESULT})。手で渡してください`);
+    if (KEY_EXPORT_CLEANUP === "removed") console.log("  前に共有の場所へ書いた鍵のファイルを消しました (--key-export off)");
+    else if (KEY_EXPORT_CLEANUP) console.log(`△ 前に共有の場所へ書いた鍵のファイルを消せませんでした (${KEY_EXPORT_CLEANUP})。手で消してください: ${SHARED_KEY_WRITE()}`);
+    console.log("  鍵は、ハブの起動時に表示されるものをプロジェクト側へ手で渡します (鍵の自動の受け渡しは --key-export で有効にできます):");
+    console.log(`  ハブの鍵: ${KEY}`);
+    console.log("  read -rs HTML_QA_HUB_KEY && export HTML_QA_HUB_KEY      # 上の鍵を貼り付けて Enter (コマンド履歴や ps に鍵が残らない)");
+    console.log(`  node ai-skills/html-qa/scripts/build.mjs --hub-url http://host.docker.internal:${PORT_ACTUAL} --project <プロジェクト名>`);
+  }
+  console.log("  (URL の host.docker.internal:… は環境で変わります。解除は --hub off。Harmony のコンテナの中の AI は同じファイルを直接使うので登録は要りません。詳しくは ai-skills/html-qa/README.md)");
   if (!["127.0.0.1", "localhost", "::1"].includes(HOST)) console.log(`\n△ ${HOST} で待っています。同じ LAN の機器から届きます (鍵が無い接続は断りますが、鍵は他人に渡さないでください)。`);
 });
 server.on("error", (err) => {

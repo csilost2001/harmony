@@ -6,6 +6,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import os from "node:os";
 
 export const TOPIC_RE = /^[a-z0-9][a-z0-9-]{0,63}$/;
 export const DEFAULT_ROOT = ".tmp/html-qa";
@@ -127,10 +128,71 @@ export const HUB_NAME_RE = /^[a-z0-9][a-z0-9-]{0,40}$/;
 export const HUB_RESERVED = new Set(["api", "p", "projects"]); // /api/…・/p/<project>/ の入口と衝突するので project 名にできない
 export const HUB_KEY_RE = /^[A-Za-z0-9_-]{16,128}$/;
 
+// ---- ハブの鍵の共有の場所 (#1595) ----
+// ハブ (serve.mjs、WSL ホスト) が鍵をここへ書き、開発コンテナには readonly で mount される (~/.html-qa-shared/)。
+// 場所はホームの下 (git の外)。鍵そのものはログ・画面に出さない
+export const SHARED_KEY_WRITE = () => path.join(os.homedir(), ".agent-containers", ".shared", "html-qa", "hub.key");
+export const sharedKeyCandidates = (env = process.env) =>
+  env.HTML_QA_HUB_KEY_FILE ? [env.HTML_QA_HUB_KEY_FILE] : [path.join(os.homedir(), ".html-qa-shared", "hub.key"), SHARED_KEY_WRITE()];
+
+// 共有の場所から鍵を読む。有効な鍵が入った最初のファイルの { key, file }。無ければ null
+export function readSharedKey(env = process.env) {
+  for (const file of sharedKeyCandidates(env)) {
+    try {
+      const key = fs.readFileSync(file, "utf8").trim();
+      if (HUB_KEY_RE.test(key)) return { key, file };
+    } catch { /* 無い・読めなければ次へ */ }
+  }
+  return null;
+}
+
+// 共有の場所から鍵を読めないときの理由 (読めるなら null)。「空の鍵を送る」のではなく、分かる文で止めるために使う
+export function sharedKeyProblem(env = process.env) {
+  if (readSharedKey(env)) return null;
+  for (const file of sharedKeyCandidates(env)) {
+    let text;
+    try { text = fs.readFileSync(file, "utf8").trim(); } catch { continue; }
+    return `共有の場所の鍵の形が不正です (${file})。ハブ (serve.mjs) を WSL ホストで起動し直して書き直させるか、鍵を明示して渡してください${text ? "" : " (ファイルが空です)"}`;
+  }
+  return `共有の場所に鍵がありません (${sharedKeyCandidates(env).join(" か ")})。ハブを WSL ホストで起動したか、開発コンテナを作り直したか (雛形の mount が入っているか) を確かめてください`;
+}
+
+// 共有の場所の鍵を送ってよい宛先か。loopback / host.docker.internal / プライベート IP / *.local だけ (外部のホストへ鍵を渡さない)
+export function sharedKeyAllowedHost(url) {
+  let h;
+  try { h = new URL(url).hostname.toLowerCase().replace(/^\[|\]$/g, ""); } catch { return false; }
+  if (h === "localhost" || h === "host.docker.internal" || h === "::1" || h.endsWith(".local")) return true;
+  const m = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (m) {
+    const [a, b] = [Number(m[1]), Number(m[2])];
+    return a === 127 || a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168);
+  }
+  if (h.includes(":")) return /^f[cd][0-9a-f]{2}:/.test(h) || /^fe[89ab][0-9a-f]:/.test(h);
+  return false;
+}
+const SHARED_HOST_MSG = "共有の場所の鍵は、loopback / host.docker.internal / プライベート IP / .local のハブにだけ使います。この URL には使わないので、--hub-key-file か HTML_QA_HUB_KEY で鍵を明示して渡してください";
+
+// 鍵を共有の場所へ書く。フォルダ 0700・ファイル 0600、一時ファイルに書いてから rename (読む側が書きかけを見ない)。書けなければ例外
+export function writeSharedKey(file, key) {
+  const dir = path.dirname(file);
+  fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+  try { fs.chmodSync(dir, 0o700); } catch { /* 他人のフォルダ等は触れない */ }
+  const tmpFile = path.join(dir, `.hub.key.${process.pid}.${crypto.randomBytes(4).toString("hex")}.tmp`);
+  try {
+    fs.writeFileSync(tmpFile, `${key}\n`, { mode: 0o600 });
+    fs.chmodSync(tmpFile, 0o600);
+    fs.renameSync(tmpFile, file);
+  } catch (e) { fs.rmSync(tmpFile, { force: true }); throw e; }
+}
+
+// 設定に key が無い (共有の場所から読む) ときは、毎回その場所から読む (鍵の作り直しに追従)。{ url, key, project, shared? }
 export function hubConfig(root) {
   try {
     const c = JSON.parse(fs.readFileSync(path.join(root, ".hub.json"), "utf8"));
-    if (c && typeof c.url === "string" && typeof c.key === "string" && typeof c.project === "string") return { url: c.url, key: c.key, project: c.project };
+    if (c && typeof c.url === "string" && typeof c.project === "string") {
+      if (typeof c.key === "string") return { url: c.url, key: c.key, project: c.project };
+      if (c.key === undefined) return { url: c.url, key: readSharedKey()?.key ?? "", project: c.project, shared: true };
+    }
   } catch { /* 無い・壊れていれば未設定 */ }
   return null;
 }
@@ -141,11 +203,17 @@ export function setHubConfig(root, { url, key, project }) {
   if (url === "off") { fs.rmSync(f, { force: true }); return null; }
   const u = new URL(url);
   if (!/^https?:$/.test(u.protocol)) throw new Error("--hub-url は http:// か https:// で始まる URL にしてください");
-  if (!HUB_KEY_RE.test(key || "")) throw new Error("--hub-key が不正です (ハブの起動時に表示される鍵を、そのまま渡してください)");
+  // key が null / undefined のときは、共有の場所から毎回読む設定にする (共有の場所に鍵が無ければ断る)
+  const shared = key == null;
+  if (shared && !sharedKeyAllowedHost(url)) throw new Error(SHARED_HOST_MSG);
+  if (shared && sharedKeyProblem()) throw new Error(`${sharedKeyProblem()}。または --hub-key-file か HTML_QA_HUB_KEY で鍵を渡してください`);
+  if (!shared && !HUB_KEY_RE.test(key || "")) throw new Error("--hub-key が不正です (ハブの起動時に表示される鍵を、そのまま渡してください)");
   if (!HUB_NAME_RE.test(project || "") || HUB_RESERVED.has(project)) throw new Error("--project は英小文字・数字・ハイフンで 41 文字までにしてください (例: tax-app)");
   fs.mkdirSync(root, { recursive: true });
-  const cfg = { url: `${u.protocol}//${u.host}`, key, project };
+  const cfg = { url: `${u.protocol}//${u.host}`, ...(shared ? {} : { key }), project };
   fs.writeFileSync(f, JSON.stringify(cfg), { mode: 0o600 });
   fs.chmodSync(f, 0o600); // 既にあったファイルの権限も締める
-  return cfg;
+  return shared ? { ...cfg, key: readSharedKey().key, shared: true } : cfg;
 }
+
+export { SHARED_HOST_MSG };

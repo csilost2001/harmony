@@ -18,6 +18,8 @@ services:
     command: sleep infinity
     volumes:
       - ..:/workspaces/app:cached
+      # html-qa のハブの鍵 (WSL ホストの serve.mjs が書く共有の場所)。読み取り専用 (#1595)。共有 PC では、この 2 行 (コメントと下の 1 行) と devcontainer.json の initializeCommand を外す。
+      - ${HOME}/.agent-containers/.shared/html-qa:/home/node/.html-qa-shared:ro
       # 下の WSLg の 4 行 (volumes の /tmp/.X11-unix と /mnt/wslg の 2 行、その下の environment: と DISPLAY の 2 行) は、ブラウザの自動操作 (Playwright MCP の playwright-headed) の窓を Windows のデスクトップに出すため。
       # Windows + WSL2 + Docker Desktop 前提 (WSLg の X11。Harmony 本体の開発コンテナと同じ)。
       # macOS / Linux native ではこの 4 行 (volumes の /tmp/.X11-unix と /mnt/wslg の 2 行、environment: と DISPLAY の 2 行) を消す。environment: のキー行だけ残すと値の無い mapping になるので、必ず DISPLAY の行と一緒に消す。

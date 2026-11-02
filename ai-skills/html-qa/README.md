@@ -67,20 +67,34 @@ AI が流れ図などを `mermaid` の図で出すことがあります。描画
 
 ### 使い始める (1 回だけ)
 
-1. **ハブを起動し直す** (この機能が入った版の `serve.mjs` で)。止めて、また起動します (VS Code のタスク「html-qa: 表示サーバ」を再起動、またはターミナルで Ctrl+C のあと `node ai-skills/html-qa/scripts/serve.mjs`)。起動時の表示に **ハブの鍵** と登録コマンドの例が出ます
-2. 預けたいプロジェクトのターミナルで、**起動時の表示のコマンドをそのまま** 1 回実行します。鍵はコマンドの引数に書かず、環境変数で渡すと、シェルの履歴や `ps` に残りません (`<プロジェクト名>` は例 `tax-app`)
+**ハブは WSL ホスト (開発コンテナの外) で動かすのが標準です。** コンテナの中で動かした `serve.mjs` はそのコンテナの `127.0.0.1` で待つので、VS Code の転送では PC から開けても、別のコンテナの `host.docker.internal:5190` からは届きません。なお Harmony 本体のコンテナの中の AI は、ハブと同じファイル (`.tmp/html-qa/`) を直接読み書きするので、**ハブへの登録は要りません**。
+
+1. **ホストでハブを起動する** (止めて起動し直す場合は Ctrl+C のあと `node ai-skills/html-qa/scripts/serve.mjs`)。起動時に、ハブの鍵を **共有の場所** `~/.agent-containers/.shared/html-qa/hub.key` に書きます (フォルダ 0700・ファイル 0600。書けなければ `△` を出して続け、鍵を画面に出す従来の案内にします)。場所を変える・書かないのは `--key-export <ファイル | off>` (`off` のときは、前に既定の場所へ書いた鍵のファイルがあれば消します)。ハブをコンテナの中で動かすと `△` を出します (その場所は別のコンテナとは共有されません)。`--new-key` で鍵を作り直すときも書き直します
+2. 開発コンテナには、generate-code の雛形 (4 種) がこの場所を `~/.html-qa-shared/` に **読み取り専用** で mount します (`.devcontainer/compose.yml` の dev サービスの `volumes` に `:ro` で。compose 方式では `devcontainer.json` の `mounts` の readonly が効かないため。`initializeCommand` が host 側のフォルダを作ります)。すでにあるコンテナは、雛形の `compose.yml` の volumes と `devcontainer.json` の `initializeCommand` を足して、コンテナを作り直してください。mount が無い環境では、下の「手で鍵を渡す」を使います
+3. 預けたいプロジェクトで、**鍵なしで** 1 回だけ登録します (`<プロジェクト名>` は例 `tax-app`)
 
    ```bash
-   read -rs HTML_QA_HUB_KEY && export HTML_QA_HUB_KEY     # ハブの鍵を貼り付けて Enter (画面には出ません)
    node ai-skills/html-qa/scripts/build.mjs --hub-url http://host.docker.internal:5190 --project tax-app
    ```
 
+   - 鍵の探し方は、`--hub-key` → `--hub-key-file` → 環境変数 `HTML_QA_HUB_KEY` → **共有の場所** の順です。共有の場所は、`HTML_QA_HUB_KEY_FILE` で指すファイル、なければ `~/.html-qa-shared/hub.key`、なければ `~/.agent-containers/.shared/html-qa/hub.key`
+   - 共有の場所から読んだときは、`.hub.json` に **鍵を保存せず**、毎回その場所から読みます。共有の場所の鍵は、`--hub-url` のホストが loopback / `host.docker.internal` / プライベート IP (10/8・172.16/12・192.168/16・fc00::/7・fe80::/10) / `.local` のときだけ使います (外部のホストへ鍵を渡さないため)。それ以外は断るので、鍵を明示して渡してください。共有の場所に鍵が無い・形が不正なときは、空の鍵を送らず、理由を出して止まります。ハブの鍵を作り直しても登録し直しは要りません (401 のとき、共有の鍵が変わっていれば 1 回だけ読み直してやり直します)
    - `--hub-url` の `host.docker.internal:5190` は **環境で変わります** (ハブのポートを変えた・コンテナからの経路が違う、など)。起動時の表示にある URL を使ってください
-   - 環境変数のかわりに、鍵を書いたファイルを `--hub-key-file <ファイル>` で、標準入力を `--hub-key-file -` で渡せます。`--hub-key <鍵>` も使えますが、履歴と `ps` に鍵が残ります
-   - `.tmp/html-qa/.hub.json` に保存されます (鍵を含むので 0600。git には入りません)。以後 `build.mjs` / `wait.mjs` は自動でハブを使い、省略できます。解除は `build.mjs --hub off`
-3. あとは同じです。AI が `build.mjs` を実行すると議題がハブに送られ、AI が出す `開く:` / `スマホ (家庭内 LAN):` の URL がハブのものになります
+   - `.tmp/html-qa/.hub.json` に保存されます (git には入りません)。以後 `build.mjs` / `wait.mjs` は自動でハブを使い、省略できます。解除は `build.mjs --hub off`
+4. あとは同じです。AI が `build.mjs` を実行すると議題がハブに送られ、AI が出す `開く:` / `スマホ (家庭内 LAN):` の URL がハブのものになります
 
-ハブに届かないときは、ローカルの HTML は作られたうえで `△ ハブに送れませんでした: …` と理由が出ます (ハブが起動していない / URL が違う / 鍵が違う)。ハブの鍵を作り直した (`serve.mjs --new-key`) ときは、各プロジェクトで登録し直してください。
+**鍵の扱い (注意)**: 鍵は git に入れない・チャットに貼らない。共有の場所はホームの下で、**同じ PC の中だけ** で使います。**共有 PC では、雛形の `compose.yml` の html-qa の volumes 行 (と `initializeCommand`) を外し**、ハブも `--key-export off` で起動してください (同じ PC の別の利用者や、ほかのコンテナから鍵を読めないようにするため)。
+
+**手で鍵を渡す** (共有の場所が使えないとき): ハブの起動時の表示にある鍵を、コマンドの引数に書かず環境変数で渡すと、シェルの履歴や `ps` に残りません。
+
+```bash
+read -rs HTML_QA_HUB_KEY && export HTML_QA_HUB_KEY     # ハブの鍵を貼り付けて Enter (画面には出ません)
+node ai-skills/html-qa/scripts/build.mjs --hub-url http://host.docker.internal:5190 --project tax-app
+```
+
+環境変数のかわりに、鍵を書いたファイルを `--hub-key-file <ファイル>` で、標準入力を `--hub-key-file -` で渡せます。`--hub-key <鍵>` も使えますが、履歴と `ps` に鍵が残ります。この場合は `.hub.json` に鍵を保存するので、ハブの鍵を作り直した (`serve.mjs --new-key`) ときは登録し直してください。
+
+ハブに届かないときは、ローカルの HTML は作られたうえで `△ ハブに送れませんでした: …` と理由が出ます (ハブが起動していない / URL が違う / 鍵が違う)。
 
 ### `host.docker.internal` で届かないとき
 

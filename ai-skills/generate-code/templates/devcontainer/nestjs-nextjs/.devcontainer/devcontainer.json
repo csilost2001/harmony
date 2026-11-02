@@ -26,6 +26,10 @@
     "source=${localEnv:HOME}/.config/gh,target=/home/node/.config/gh,type=bind,consistency=cached"
   ],
 
+  // initializeCommand: container 起動前に host 側の bind mount source を作る (無いと起動しない。#1340)。host shell = bash 前提。
+  // html-qa の鍵の共有の場所 (#1595) の mount は compose.yml の dev サービスにある (compose 方式では mounts の readonly が効かないため)
+  "initializeCommand": "bash -c 'mkdir -p ~/.agent-containers/.shared/html-qa'",
+
   "onCreateCommand": "sudo chown -R node:node /home/node/.claude /home/node/.codex /home/node/.copilot /home/node/.config/gh",
 
   // @orm prisma
