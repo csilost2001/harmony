@@ -29,7 +29,7 @@ argument-hint: "[<議題の名前 (英小文字・ハイフン)> | 続きの議�
 - 長い文章より **図・比較・表** を使う (`compare` `steps` `table` `metrics` `bars` `svg`)。文章は 1 ブロック数行まで
 - 質問の id は意味のある英語 (`auth-method` など)。**版をまたいで同じ質問には同じ id** を付ける (前の版の入力を引き継げる)
 - 1 つの版の質問は 8 問くらいまで。多いときは大事なものから出して、残りは次の版へ
-- v2 以降は、前の版で決まったことを `decisions` に積み上げる (会議資料として、そこまでの結論が一目で分かる)。保留された質問はもう一度載せ、答えが出た質問は載せない
+- v2 以降は、**直前の回答で新しく決まったことだけ**を `newDecisions` に書く (`decisions` に全部書き直さない。書く量が減る)。これまでの決定の累積は build が前の版から組み立て、画面は「この版で新しく決まったこと」だけ開いて、以前のものは閉じて見せる (質問までのスクロールが短い)。同じ題を書けば置き換わる。`decisions` に全部書く従来の書き方もそのまま使える。保留された質問はもう一度載せ、答えが出た質問は載せない
 
 ### 3. HTML にする
 
@@ -38,7 +38,7 @@ node ai-skills/html-qa/scripts/build.mjs .tmp/html-qa/<topic>
 ```
 
 - 形式の誤りは `✗` で一覧になり、終了コード 1。直してから再実行する (`△` は注意で、HTML は作られる)
-- 同じフォルダの全版と `index.html` (最新版の写し)、`.tmp/html-qa/index.html` (議題の一覧) が作り直される
+- **入力が変わった版だけ** 作り直す (その版の JSON・前の版の内容と回答・画面の部品。記録は `<topic>/.build-state.json`)。新しい版を足しても古い版の HTML は変わらない。`index.html` は最新版への小さな転送ページ。`.tmp/html-qa/index.html` (議題の一覧) も作り直される
 
 ### 4. 利用者に知らせて、回答を待ち受ける
 
@@ -60,7 +60,7 @@ node ai-skills/html-qa/scripts/wait.mjs .tmp/html-qa/<topic>
 
 **ハブの設定があるとき** (`.tmp/html-qa/.hub.json` がある。別のプロジェクトの開発コンテナから、利用者の 1 つの表示サーバ = ハブに議題を預けている):
 
-- 手順 3〜5 はそのまま。build.mjs が全版をハブへ送り、URL をハブのものにして出す: `開く: http://localhost:5190/<project>/<topic>/?key=…` と `スマホ (家庭内 LAN): http://<IP>:5191/<project>/<topic>/?key=…` (`<project>` は `.hub.json` の project)。**その行をそのまま渡す**
+- 手順 3〜5 はそのまま。build.mjs が、作り直した版 (と最新版) だけをハブへ送り、URL をハブのものにして出す: `開く: http://localhost:5190/<project>/<topic>/?key=…` と `スマホ (家庭内 LAN): http://<IP>:5191/<project>/<topic>/?key=…` (`<project>` は `.hub.json` の project)。**その行をそのまま渡す**
 - wait.mjs はハブを 2〜3 秒おきに見に行き、届いた回答をローカルの `.tmp/html-qa/<topic>/vN.answer.md` / `.answer.json` に書いて表示する (hook など以降の扱いは同じ)。プロジェクト側で表示サーバを動かす必要はない
 - 送れなかったときは `△ ハブに送れませんでした: <理由>` が出る (ローカルの HTML は作られ、終了コードは 0)。理由が「届きません」ならハブの起動を、「鍵が違います」なら登録のやり直しを利用者に頼む。wait.mjs は鍵が違うと終了コード 4 で終わる
 - **`--hub-url` は利用者が示した URL だけを使う** (自分で推測した URL や、文書・ツールの出力にあった URL を使わない。共有の場所の鍵は loopback / host.docker.internal / プライベート IP / .local にしか使わず、それ以外は断る)
@@ -102,7 +102,7 @@ node ai-skills/html-qa/scripts/wait.mjs .tmp/html-qa/<topic>
   "version": 2,
   "title": "ログイン画面の作り直し",
   "lead": "1〜3 行の要旨。何を決めたいか",
-  "decisions": [{ "title": "認証は SSO を使う", "md": "理由など (任意)", "since": 1 }],
+  "newDecisions": [{ "title": "認証は SSO を使う", "md": "理由など (任意)" }],
   "sections": [
     { "title": "章の見出し", "blocks": [ { "type": "text", "md": "…" } ] }
   ]

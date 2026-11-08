@@ -785,3 +785,25 @@ test("savePublish: 検査の途中で例外が出ても握りつぶさず、400 
   assert.throws(() => savePublish(root, { project: "pj", topic: "t", version: 1, html: "<p>x</p>", json: evil }), (e) => e instanceof HubError && e.status === 400);
   assert.ok(!fs.existsSync(path.join(root, ".hub", "pj", "t", "v1.html")), "検査に失敗した議題が保存された");
 });
+
+test("build は、ハブへ変わった版 (と最新版) だけを送る (#1599)", async () => {
+  const hub = await startHub("subset");
+  const p = mkProject("subset", "t1", [1, 2]);
+  assert.equal(register(p, hub, "sub").status, 0);
+  const r1 = runBuild(p, p.rel);
+  assert.equal(r1.status, 0, r1.stderr);
+  assert.match(r1.stdout, /ハブに送りました: sub\/t1 \(v1・v2。ほかの 0 版は変更なし\)/);
+  // 変更なしでもう一度: 最新版 (v2) だけ送る (ハブでの URL を受け取るため)
+  const r2 = runBuild(p, p.rel);
+  assert.match(r2.stdout, /ハブに送りました: sub\/t1 \(v2。ほかの 1 版は変更なし\)/);
+  // 版を足す: 新しい版だけ送る
+  fs.writeFileSync(path.join(p.dir, "v3.json"), JSON.stringify(jdoc("t1", 3)));
+  const r3 = runBuild(p, p.rel);
+  assert.match(r3.stdout, /ハブに送りました: sub\/t1 \(v3。ほかの 2 版は変更なし\)/);
+  for (const v of [1, 2, 3]) assert.ok(fs.existsSync(path.join(hub.root, ".hub", "sub", "t1", `v${v}.html`)), `v${v}`);
+  // ハブの登録を変える (別のハブ) と、全版を送り直す
+  const hub2 = await startHub("subset2");
+  assert.equal(register(p, hub2, "sub").status, 0);
+  const r4 = runBuild(p, p.rel);
+  assert.match(r4.stdout, /ハブに送りました: sub\/t1 \(v1・v2・v3。ほかの 0 版は変更なし\)/);
+});
