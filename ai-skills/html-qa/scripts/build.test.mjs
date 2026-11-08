@@ -63,3 +63,54 @@ test("議題一覧 index.html に検索用のデータが入る", () => {
   assert.ok(data[0].h.includes("abc質問?") && data[0].h.includes("ひみつの言葉"));
   assert.match(html, /id="qs"/);
 });
+
+// ---- #1599: 版を重ねても軽くする ----
+const qdoc = (file) => JSON.parse(fs.readFileSync(file, "utf8").match(/id="qa-doc">(.*?)<\/script>/s)[1]);
+
+test("newDecisions を前の版の累積に足して、画面の決定にする。decisions を書いた従来の JSON も同じに動く (#1599)", () => {
+  const { dir } = mk("dec");
+  write(dir, 1, doc("t1", 1, [{ type: "input", id: "a", q: "A?" }]));
+  write(dir, 2, doc("t1", 2, [{ type: "input", id: "a", q: "A?" }], { newDecisions: [{ title: "決定A" }, { title: "決定B", md: "理由" }] }));
+  write(dir, 3, doc("t1", 3, [{ type: "input", id: "a", q: "A?" }], { newDecisions: [{ title: "決定C" }, { title: "決定A", md: "言い直し" }] }));
+  assert.equal(build(dir).status, 0);
+  assert.deepEqual(qdoc(path.join(dir, "v2.html")).decisions.map((d) => [d.title, d.since]), [["決定A", 2], ["決定B", 2]]);
+  assert.deepEqual(qdoc(path.join(dir, "v3.html")).decisions.map((d) => [d.title, d.since]), [["決定B", 2], ["決定C", 3], ["決定A", 3]], "同じ題の決定は、新しい版のもので置き換える");
+  // 従来: decisions に全部書く。そのあとの newDecisions はそれに足す
+  write(dir, 4, doc("t1", 4, [{ type: "input", id: "a", q: "A?" }], { decisions: [{ title: "全部書いた1", since: 1 }, { title: "全部書いた2", since: 3 }], newDecisions: [{ title: "決定D" }] }));
+  assert.equal(build(dir).status, 0);
+  assert.deepEqual(qdoc(path.join(dir, "v4.html")).decisions.map((d) => d.title), ["全部書いた1", "全部書いた2", "決定D"]);
+  assert.ok(!("newDecisions" in qdoc(path.join(dir, "v4.html"))));
+});
+
+test("入力が変わらない版は作り直さない。新しい版を足しても、古い版の HTML は変わらない。index.html は転送ページ (#1599)", () => {
+  const { dir } = mk("inc");
+  write(dir, 1, doc("t1", 1, [{ type: "input", id: "a", q: "A?" }]));
+  write(dir, 2, doc("t1", 2, [{ type: "input", id: "a", q: "A?" }, { type: "input", id: "b", q: "B?" }], { newDecisions: [{ title: "決定A" }] }));
+  const r1 = build(dir); assert.equal(r1.status, 0, r1.stderr);
+  assert.match(r1.stdout, /作り直した版: v1・v2/);
+  const h1 = fs.readFileSync(path.join(dir, "v1.html"), "utf8");
+  const old = new Date(Date.now() - 3600_000);
+  fs.utimesSync(path.join(dir, "v1.html"), old, old); fs.utimesSync(path.join(dir, "v2.html"), old, old);
+  const r2 = build(dir); assert.equal(r2.status, 0);
+  assert.match(r2.stdout, /変更なし/);
+  assert.equal(fs.statSync(path.join(dir, "v1.html")).mtimeMs, old.getTime(), "変わっていない版は書かない");
+  assert.equal(fs.statSync(path.join(dir, "v2.html")).mtimeMs, old.getTime());
+  // v3 を足す: v1・v2 は書き換わらない
+  write(dir, 3, doc("t1", 3, [{ type: "input", id: "c", q: "C?" }]));
+  const r3 = build(dir); assert.equal(r3.status, 0);
+  assert.match(r3.stdout, /作り直した版: v3。ほかの 2 版は変更なし/);
+  assert.equal(fs.readFileSync(path.join(dir, "v1.html"), "utf8"), h1, "古い版の HTML は、新しい版を足しても変わらない");
+  assert.equal(fs.statSync(path.join(dir, "v1.html")).mtimeMs, old.getTime());
+  // 各版が知っているのは、自分と前の版だけ
+  assert.deepEqual(meta(path.join(dir, "v1.html")).versions.map((v) => v.version), [1]);
+  assert.deepEqual(meta(path.join(dir, "v2.html")).history.map((h) => h.version), [1, 2]);
+  assert.equal(meta(path.join(dir, "v2.html")).latest, 2);
+  // 前の版の回答が届いたら、その後の版だけが作り直される
+  fs.writeFileSync(path.join(dir, "v2.answer.json"), JSON.stringify({ topic: "t1", version: 2, questions: [{ id: "gone", state: "answered", answer: "x" }] }));
+  const r4 = build(dir); assert.equal(r4.status, 0);
+  assert.match(r4.stdout, /作り直した版: v3/);
+  assert.equal(fs.statSync(path.join(dir, "v1.html")).mtimeMs, old.getTime());
+  const idx = fs.readFileSync(path.join(dir, "index.html"), "utf8");
+  assert.match(idx, /url=v3\.html/);
+  assert.ok(idx.length < 600, "index.html は小さな転送ページ");
+});

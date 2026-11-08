@@ -42,10 +42,14 @@ export function validate(doc, file) {
   if (!Number.isInteger(doc.version) || doc.version < 1) e("version", "1 以上の整数にしてください");
   else if (m && Number(m[1]) !== doc.version) e("version", `ファイル名 v${m[1]} と一致しません`);
   if (typeof doc.title !== "string" || !doc.title.trim()) e("title", "必須です");
-  for (const k of Object.keys(doc)) if (!["topic", "version", "title", "lead", "decisions", "sections", "$comment"].includes(k)) w(k, "不明な項目です (無視されます)");
+  for (const k of Object.keys(doc)) if (!["topic", "version", "title", "lead", "decisions", "newDecisions", "sections", "$comment"].includes(k)) w(k, "不明な項目です (無視されます)");
   if (doc.decisions != null) {
     if (!Array.isArray(doc.decisions)) e("decisions", "配列にしてください");
     else doc.decisions.forEach((d, i) => { if (!d?.title) e(`decisions[${i}]`, "title が必須です"); });
+  }
+  if (doc.newDecisions != null) {
+    if (!Array.isArray(doc.newDecisions)) e("newDecisions", "配列にしてください");
+    else doc.newDecisions.forEach((d, i) => { if (!d?.title) e(`newDecisions[${i}]`, "title が必須です"); });
   }
   if (!Array.isArray(doc.sections) || !doc.sections.length) { e("sections", "1 つ以上の章が必要です"); return { errs, warns }; }
   const qids = new Map();

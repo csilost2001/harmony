@@ -281,3 +281,8 @@ body.present main > .ptitle.cur { font-size: 1.8em; margin: .4em 0 .6em; }
 .topics .grp { margin-top: 20px; }
 .topics .grp[hidden] { display: none; }
 .topics .grp h2 { font-size: 16px; margin: 0 0 8px; }
+
+/* 折りたたみ (これまでに決まったこと・版の変化。#1599) */
+details.fold { margin: 6px 0; }
+details.fold > summary { cursor: pointer; color: var(--muted, #667); padding: 6px 2px; }
+details.fold[open] > summary { margin-bottom: 6px; }

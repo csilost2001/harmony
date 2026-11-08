@@ -383,8 +383,16 @@
   const zoomLabel = h("span", { class: "progress mono" });
   const progress = h("span", { class: "progress" });
   const versions = META.versions || [];
+  // 各版の HTML は、その版より新しい版を知らない (#1599)。新しい版は、画面が /api/latest で知って、ここに足す
+  const verOpt = (v, latest) => h("option", { value: v.file, selected: v.version === DOC.version || null }, `v${v.version}${v.version === latest ? " (最新)" : ""}`);
   const verSel = versions.length > 1 ? h("select", { class: "btn", "aria-label": "版", onchange: (e) => { location.href = e.target.value; } },
-    versions.map((v) => h("option", { value: v.file, selected: v.version === DOC.version || null }, `v${v.version}${v.version === META.latest ? " (最新)" : ""}`))) : null;
+    versions.map((v) => verOpt(v, META.latest))) : null;
+  const addNewerVersions = (latest) => {
+    if (!verSel) return;
+    const known = Math.max(...[...verSel.options].map((o) => Number(o.textContent.match(/^v(\d+)/)?.[1] || 0)));
+    for (let n = known + 1; n <= latest; n++) verSel.append(verOpt({ version: n, file: `v${n}.html` }, latest));
+    for (const o of verSel.options) if (Number(o.textContent.match(/^v(\d+)/)?.[1]) === latest && !o.textContent.includes("(最新)")) o.textContent += " (最新)";
+  };
 
   const presentBtn = h("button", { class: "btn", title: "会議用に 1 枚ずつ大きく表示 (← → で進む・Esc で終わる)", onclick: () => (present < 0 ? enterPresent(0) : exitPresent()) }, "発表");
   document.title = `${DOC.title} — v${DOC.version}`;
@@ -407,8 +415,13 @@
   if (DOC.lead) main.append(h("div", { class: "lead md", html: md(DOC.lead) }));
 
   if (DOC.decisions?.length) {
+    // この版で新しく決まったこと (since がこの版以降) だけ開いて見せ、以前のものは閉じる。質問までのスクロールを短くする (#1599)
+    const decRow = (d) => h("div", { class: "dec" }, h("span", { class: "dv" }, d.since ? `v${d.since}` : ""), h("div", null, h("b", null, d.title), d.md && mdEl(d.md, "muted")));
+    const fresh = DOC.decisions.filter((d) => (d.since || 0) >= DOC.version);
+    const older = DOC.decisions.filter((d) => !((d.since || 0) >= DOC.version));
     main.append(h("section", { class: "sec", id: "sec-decisions" }, h("h2", null, "これまでに決まったこと"),
-      h("div", { class: "card decisions" }, DOC.decisions.map((d) => h("div", { class: "dec" }, h("span", { class: "dv" }, d.since ? `v${d.since}` : ""), h("div", null, h("b", null, d.title), d.md && mdEl(d.md, "muted")))))));
+      fresh.length ? h("div", { class: "card decisions" }, h("div", { class: "muted" }, `この版で新しく決まったこと (${fresh.length} 件)`), fresh.map(decRow)) : null,
+      older.length ? h("details", { class: "fold" }, h("summary", null, `${fresh.length ? "以前に決まったこと" : "決まったこと"} (${older.length} 件) を見る`), h("div", { class: "card decisions" }, older.map(decRow))) : null));
     toc.append(h("a", { class: "sec", href: "#sec-decisions" }, "これまでに決まったこと"));
   }
   // 版どうしの違い: 比べる版 (既定は 1 つ前) からの、質問と決まったことの増減
@@ -440,9 +453,10 @@
       grp("消えた質問", removed.map((x) => h("span", null, `${x.q} `, h("span", { class: "ref mono" }, x.id), rec(x)))),
       grp("変わった質問", changed.map((c) => h("span", null, link(c.x), ` — ${c.why.join("・")}が変わりました`))),
       grp("増えた決定", addedD), grp("消えた決定", removedD)].filter(Boolean);
-    diffSec.replaceChildren(h("h2", null, `v${cmpV} からの変化`),
+    const nChanges = groups.reduce((n, g) => n + g.querySelectorAll("li").length, 0);
+    diffSec.replaceChildren(h("h2", null, `v${cmpV} からの変化`), h("details", { class: "fold" }, h("summary", null, nChanges ? `質問と決まったことの変化 (${nChanges} 件) を見る` : "質問と決まったことに変化はありません"),
       h("div", { class: "cmprow", hidden: cmpList.length < 2 || null }, "比べる版: ", h("select", { class: "btn", "aria-label": "比べる版", onchange: (e) => { cmpV = Number(e.target.value); renderDiff(); } }, cmpList.map((v) => h("option", { value: v, selected: v === cmpV || null }, `v${v}`)))),
-      h("div", { class: "card" }, groups.length ? groups : h("span", { class: "muted" }, "質問と決まったことに変化はありません")));
+      h("div", { class: "card" }, groups.length ? groups : h("span", { class: "muted" }, "質問と決まったことに変化はありません"))));
     diffToc.textContent = `v${cmpV} からの変化`;
     const mark = new Map([...added.map((x) => [x.id, "new"]), ...changed.map((c) => [c.x.id, "changed"])]);
     for (const el of [main, toc].flatMap((n) => [...n.querySelectorAll("[data-mk]")])) { const k = mark.get(el.dataset.mk); el.className = `mk ${k || ""}`; el.textContent = k === "new" ? "新規" : k === "changed" ? "変更" : ""; }
@@ -658,6 +672,7 @@
         try {
           await fetchStatus();
           const r = await fetch(`/api/latest?${projectQ}topic=${encodeURIComponent(DOC.topic)}`); const x = await r.json();
+          if (x.version > (versions.length ? Math.max(...versions.map((v) => v.version)) : DOC.version)) addNewerVersions(x.version);
           if (x.version > Math.max(DOC.version, META.latest || 0)) {
             // 送り終えた版なら、そのまま新しい版へ移る (入力はブラウザに残っている)
             if (live.sent && live.seen) { location.href = x.file; return; }

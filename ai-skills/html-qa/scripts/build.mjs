@@ -6,14 +6,16 @@
 //                                          渡さなければ共有の場所 (~/.html-qa-shared/hub.key。HTML_QA_HUB_KEY_FILE で変更) から読む (--hub-key <鍵> も使えるが、シェルの履歴と ps に残る)
 //   node ai-skills/html-qa/scripts/build.mjs --hub off                                          ハブの登録を解除
 //
-// - 同じ議題フォルダの v*.json をすべて作り直す (版の切り替え一覧を最新にするため)
-// - <topic>/index.html は最新版の写し。F5 で最新が見られる
+// - 同じ議題フォルダの v*.json のうち、入力 (その版の JSON・前の版の内容と回答・画面の部品) が変わった版だけ作り直す (#1599。<topic>/.build-state.json に記録)
+// - <topic>/index.html は最新版への転送ページ。F5 で最新が見られる
+// - 質問 JSON の newDecisions (その版で新しく決まったことだけ) を、前の版の累積に足して、画面の「これまでに決まったこと」にする
 // - 親フォルダ (既定 .tmp/html-qa/) に議題一覧 index.html を作る
-// - ハブの設定 (.tmp/html-qa/.hub.json) があれば、作った全版をハブへ送り、ハブでの URL を出す。送れなくても
+// - ハブの設定 (.tmp/html-qa/.hub.json) があれば、作り直した版 (と、まだ送っていない版・最新版) をハブへ送り、ハブでの URL を出す。送れなくても
 //   ローカルの HTML は作り、理由を △ で出す (終了コードは変えない)。設定が無ければ従来どおりローカルだけ
 // - 形式の誤りは一覧にして終了コード 1
 import fs from "node:fs";
 import path from "node:path";
+import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { pageUrls, hubConfig, setHubConfig, readSharedKey, DEFAULT_ROOT } from "./lib.mjs";
 import { hubCall, publishTopic, hubUrls, HubClientError } from "./hub-client.mjs";
@@ -78,6 +80,24 @@ function historyFor(history, cur) {
   return history.map((h) => ({ ...h, answers: h.version >= cur.version || !h.answers ? null : { questions: (h.answers.questions || []).filter((x) => x && !ids.has(x.id)).map((x) => ({ id: x.id, state: x.state, answer: x.answer })) } }));
 }
 
+// 決定の累積 (#1599): 版ごとの newDecisions (その版で新しく決まったことだけ) を前の版の累積に足す。
+// decisions を書いた従来の JSON は、それを累積の土台にする (後ろ向きの互換)。since は書かなければその版
+function accumulateDecisions(goodDocs) {
+  let acc = [];
+  for (const d of goodDocs) {
+    if (Array.isArray(d.doc.decisions) && d.doc.decisions.length) acc = d.doc.decisions.map((x) => ({ ...x }));
+    const nd = Array.isArray(d.doc.newDecisions) ? d.doc.newDecisions.map((x) => ({ ...x, since: x.since ?? d.v })) : [];
+    if (nd.length) acc = [...acc.filter((x) => !nd.some((n) => n.title === x.title)), ...nd];
+    d.doc = { ...d.doc, decisions: acc };
+    delete d.doc.newDecisions;
+  }
+}
+
+const sha = (s) => createHash("sha256").update(s).digest("hex").slice(0, 16);
+const STATE = ".build-state.json";
+const readState = (dir) => { try { const j = JSON.parse(fs.readFileSync(path.join(dir, STATE), "utf8")); return { built: j.built || {}, published: j.published || {} }; } catch { return { built: {}, published: {} }; } };
+const writeState = (dir, st) => fs.writeFileSync(path.join(dir, STATE), `${JSON.stringify(st)}\n`);
+
 function buildTopic(dir, css, js) {
   const vs = versionsIn(dir);
   if (!vs.length) return { ok: false, out: [`${dir}: v*.json がありません`] };
@@ -94,22 +114,39 @@ function buildTopic(dir, css, js) {
   }
   const good = docs.filter((d) => !d.errs.length);
   if (!good.length) return { ok: false, problems };
+  accumulateDecisions(good);
   const latest = good[good.length - 1].v;
   const meta = good.map((d) => ({ version: d.v, file: `v${d.v}.html`, title: d.doc.title }));
   const history = good.map((d) => summarize(d, dir));
   const rel = (f) => path.relative(process.cwd(), f).split(path.sep).join("/");
+  const state = readState(dir);
+  const sigs = {};
+  const written = [];
+  const unchanged = [];
+  const assetSig = sha(css + js);
   for (const d of docs) {
     if (d.errs.length) continue;
-    const metaFor = { versions: meta, latest, jsonPath: rel(d.file), indexHref: "../index.html", history: historyFor(history, history.find((x) => x.version === d.v)) };
+    // 各版の HTML は、その版と、それより前の版だけに依存する (版の一覧・最新の版は埋め込まず、画面が /api/latest で知る)。
+    // だから、新しい版を足しても、古い版の HTML は変わらない (#1599)
+    const metaFor = { versions: meta.filter((m) => m.version <= d.v), latest: d.v, jsonPath: rel(d.file), indexHref: "../index.html", history: historyFor(history.filter((x) => x.version <= d.v), history.find((x) => x.version === d.v)) };
+    const sig = sha(assetSig + JSON.stringify(d.doc) + JSON.stringify(metaFor));
+    sigs[d.v] = sig;
+    const htmlFile = path.join(dir, `v${d.v}.html`);
+    if (state.built[d.v] === sig && fs.existsSync(htmlFile)) { unchanged.push(d.v); continue; }
     const body = `<script type="application/json" id="qa-doc">${jsonForScript(d.doc)}</script>
 <script type="application/json" id="qa-meta">${jsonForScript(metaFor)}</script>
 <noscript>この資料の表示には JavaScript が必要です。</noscript>
 <script>${js}</script>`;
-    const html = page(`${d.doc.title} — v${d.v}`, body, css);
-    fs.writeFileSync(path.join(dir, `v${d.v}.html`), html);
-    if (d.v === latest) fs.writeFileSync(path.join(dir, "index.html"), html);
+    fs.writeFileSync(htmlFile, page(`${d.doc.title} — v${d.v}`, body, css));
+    written.push(d.v);
   }
-  return { ok: problems.every((p) => !p.errs.length), problems, latest, dir, built: docs.filter((d) => !d.errs.length).map((d) => d.v) };
+  // index.html は最新版への転送ページ (最新版の丸ごとの写しにしない)
+  const redirect = `<!doctype html>\n<html lang="ja"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=v${latest}.html"><title>v${latest}</title></head><body><a href="v${latest}.html">最新の v${latest} を開く</a></body></html>\n`;
+  const indexFile = path.join(dir, "index.html");
+  if (!fs.existsSync(indexFile) || fs.readFileSync(indexFile, "utf8") !== redirect) fs.writeFileSync(indexFile, redirect);
+  state.built = sigs;
+  writeState(dir, state);
+  return { ok: problems.every((p) => !p.errs.length), problems, latest, dir, built: good.map((d) => d.v), written, unchanged, sigs, state };
 }
 
 // --name 値 の形のオプションを取り出し、残りの引数を返す
@@ -148,18 +185,24 @@ async function registerHub(opts, root) {
 }
 
 // 作った全版をハブへ送り、URL を出す。失敗は △ で理由を出し、ローカルの結果は変えない
-async function publishToHub(cfg, dir, built) {
+async function publishToHub(cfg, dir, r) {
   const rel = (f) => path.relative(process.cwd(), f).split(path.sep).join("/");
+  const hubKey = `${cfg.url}|${cfg.project}`;
+  const sent = r.state.published[hubKey] || {};
+  const latest = r.built[r.built.length - 1];
+  const todo = r.built.filter((v) => sent[v] !== r.sigs[v] || v === latest);   // 最新版は、ハブでの URL を受け取るために毎回送る
   try {
-    const r = await publishTopic(cfg, dir, built);
-    const u = hubUrls(cfg, r);
-    console.log(`  ハブに送りました: ${cfg.project}/${path.basename(dir)} (v${built[0]}${built.length > 1 ? `〜v${built[built.length - 1]}` : ""})`);
+    const res = await publishTopic(cfg, dir, todo);
+    r.state.published[hubKey] = { ...sent, ...Object.fromEntries(todo.map((v) => [v, r.sigs[v]])) };
+    writeState(dir, r.state);
+    const u = hubUrls(cfg, res);
+    console.log(`  ハブに送りました: ${cfg.project}/${path.basename(dir)} (${todo.map((v) => `v${v}`).join("・")}。ほかの ${r.built.length - todo.length} 版は変更なし)`);
     console.log(`  開く: ${u.local}`);
     if (u.lan) console.log(`  スマホ (家庭内 LAN): ${u.lan}`);
     return true;
   } catch (e) {
     const why = e instanceof HubClientError ? e.message : `想定外の失敗: ${e.message}`;
-    console.warn(`△ ハブに送れませんでした: ${why}\n  ローカルの HTML は作りました (${rel(path.join(dir, `v${built[built.length - 1]}.html`))})。ハブへは、直してからもう一度 build.mjs を実行してください`);
+    console.warn(`△ ハブに送れませんでした: ${why}\n  ローカルの HTML は作りました (${rel(path.join(dir, `v${latest}.html`))})。ハブへは、直してからもう一度 build.mjs を動かすと送ります。`);
     return false;
   }
 }
@@ -191,9 +234,9 @@ async function main() {
     }
     if (!r.ok) { ok = false; continue; }
     const relDir = path.relative(process.cwd(), dir).split(path.sep).join("/");
-    console.log(`✓ ${relDir}/v${r.latest}.html (index.html も最新に更新)`);
+    console.log(`✓ ${relDir}/v${r.latest}.html (${r.written.length ? `作り直した版: ${r.written.map((v) => `v${v}`).join("・")}` : "変更なし"}${r.unchanged.length ? `。ほかの ${r.unchanged.length} 版は変更なし` : ""})`);
     const hub = hubConfig(path.dirname(dir));
-    if (hub) { await publishToHub(hub, dir, r.built); continue; }
+    if (hub) { await publishToHub(hub, dir, r); continue; }
     const u = pageUrls(path.dirname(dir), path.basename(dir));
     console.log(`  開く: ${u.local}`);
     if (u.lan) console.log(`  スマホ (家庭内 LAN): ${u.lan}`);
