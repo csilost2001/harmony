@@ -40,9 +40,7 @@ export type ProcessFlowDoc = {
   id: string;
   maturity?: string;
   actions: Action[];
-  errorCatalog?: Record<string, unknown>;
-  secretsCatalog?: Record<string, unknown>;
-  externalSystemCatalog?: Record<string, unknown>;
+  context?: { catalogs?: Partial<Record<CatalogName, Record<string, unknown>>>; [k: string]: unknown };
   updatedAt?: string;
   [k: string]: unknown;
 };
@@ -223,31 +221,72 @@ export function addStepNote(
   return { id: note.id };
 }
 
-export type CatalogName = "errorCatalog" | "secretsCatalog" | "externalSystemCatalog";
+/** v3 の context.catalogs の種類 (schemas/v3/process-flow.v3.schema.json の $defs/Catalogs)。 */
+export const CATALOG_NAMES = ["errors", "externalSystems", "secrets", "envVars", "domains", "functions", "events", "modelEndpoints"] as const;
+export type CatalogName = typeof CATALOG_NAMES[number];
+/** プロジェクト共通のカタログ (catalogs/external.json、external-catalogs.v3) に置ける種類。 */
+export const PROJECT_CATALOG_NAMES = ["modelEndpoints", "secrets", "envVars", "events", "functions", "externalSystems"] as const;
+/** 古い名前 (v1/v2 の一番上のキー) → v3 の名前。呼び出し側の互換のために受ける。 */
+const LEGACY_CATALOG_NAMES: Record<string, CatalogName> = {
+  errorCatalog: "errors",
+  secretsCatalog: "secrets",
+  externalSystemCatalog: "externalSystems",
+};
 
+/** カタログ名を v3 の名前にそろえる。知らない名前は null。 */
+export function normalizeCatalogName(name: string): CatalogName | null {
+  if ((CATALOG_NAMES as readonly string[]).includes(name)) return name as CatalogName;
+  return LEGACY_CATALOG_NAMES[name] ?? null;
+}
+
+/** カタログ (`{ <種類>: { <キー>: 値 } }` の形) に 1 件を追加・置き換える。処理フローの context.catalogs と catalogs/external.json で共通。 */
+export function setCatalogEntry(
+  catalogs: Record<string, unknown>,
+  catalog: CatalogName,
+  key: string,
+  value: Record<string, unknown>,
+): void {
+  const current = (catalogs[catalog] as Record<string, unknown> | undefined) ?? {};
+  current[key] = value;
+  catalogs[catalog] = current;
+}
+
+/** カタログから 1 件を消す。消して空になった種類は取り除く。消したら true。 */
+export function deleteCatalogEntry(
+  catalogs: Record<string, unknown>,
+  catalog: CatalogName,
+  key: string,
+): boolean {
+  const current = catalogs[catalog] as Record<string, unknown> | undefined;
+  if (!current || !(key in current)) return false;
+  delete current[key];
+  if (Object.keys(current).length === 0) delete catalogs[catalog];
+  return true;
+}
+
+/** 処理フローの context.catalogs.<種類> に 1 件を追加・置き換える。 */
 export function addCatalogEntry(
   ag: ProcessFlowDoc,
   catalog: CatalogName,
   key: string,
   value: Record<string, unknown>,
 ): void {
-  const current = (ag[catalog] as Record<string, unknown> | undefined) ?? {};
-  current[key] = value;
-  ag[catalog] = current;
+  const context = (ag.context ??= {});
+  const catalogs = (context.catalogs ??= {}) as Record<string, unknown>;
+  setCatalogEntry(catalogs, catalog, key, value);
 }
 
+/** 処理フローの context.catalogs.<種類> から 1 件を消す。catalogs が空になれば catalogs ごと取り除く。消したら true。 */
 export function removeCatalogEntry(
   ag: ProcessFlowDoc,
   catalog: CatalogName,
   key: string,
-): void {
-  const current = (ag[catalog] as Record<string, unknown> | undefined) ?? {};
-  delete current[key];
-  if (Object.keys(current).length === 0) {
-    delete ag[catalog];
-  } else {
-    ag[catalog] = current;
-  }
+): boolean {
+  const catalogs = ag.context?.catalogs as Record<string, unknown> | undefined;
+  if (!catalogs) return false;
+  const removed = deleteCatalogEntry(catalogs, catalog, key);
+  if (Object.keys(catalogs).length === 0) delete ag.context!.catalogs;
+  return removed;
 }
 
 export function insertStepAt(

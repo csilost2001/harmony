@@ -82,14 +82,14 @@ async function main() {
 
     if (m.kind === "todo") {
       // 命令形チェックは本番の LLM が行う。ここではキーワードベースの簡易版。
-      // 例: "errorCatalog に STOCK_SHORTAGE 409 を追加" → key=STOCK_SHORTAGE, 409
-      const match = body.match(/errorCatalog\s*[にを]?\s*([A-Z][A-Z0-9_]{2,})\s*\(?(\d{3})\)?/);
+      // 例: "errorCatalog に STOCK_SHORTAGE 409 を追加" → key=STOCK_SHORTAGE, 409 (書き先は v3 の context.catalogs.errors。#1601)
+      const match = body.match(/(?:errorCatalog|errors)\s*[にを]?\s*([A-Z][A-Z0-9_]{2,})\s*\(?(\d{3})\)?/);
       if (match && body.includes("追加")) {
         const key = match[1];
         const httpStatus = Number(match[2]);
-        addCatalogEntry(ag, "errorCatalog", key, { httpStatus });
-        catalogChanges.push(`errorCatalog.${key} (${httpStatus})`);
-        resolveMarker(ag, m.id, `errorCatalog.${key} (httpStatus ${httpStatus}) を追加`);
+        addCatalogEntry(ag, "errors", key, { httpStatus });
+        catalogChanges.push(`context.catalogs.errors.${key} (${httpStatus})`);
+        resolveMarker(ag, m.id, `context.catalogs.errors.${key} (httpStatus ${httpStatus}) を追加`);
         resolvedCount++;
         continue;
       }

@@ -1463,35 +1463,33 @@ export const tools = [
   },
   {
     name: "designer__add_catalog_entry",
-    description: "ProcessFlow レベルのカタログ (errorCatalog / secretsCatalog / externalSystemCatalog) にエントリを追加・更新します。typeCatalog は add_response_type_extension に転送されます。",
+    description: "カタログに 1 件を追加・更新します (値は全体置換)。processFlowId を指定すると処理フローの context.catalogs.<catalog> に、省くとプロジェクト共通のカタログ (catalogs/external.json。処理フローに同じキーがあればそちらが優先) に書きます。値はスキーマ ($defs/Catalogs) で検査し、違反なら書きません。処理フローを丸ごと送り直さずに関数・エラー・秘密情報などを 1 件ずつ足すときに使います。",
     inputSchema: {
       type: "object" as const,
       properties: {
-        processFlowId: { type: "string" },
+        processFlowId: { type: "string", description: "処理フローの id。省くとプロジェクト共通のカタログ" },
         catalog: {
           type: "string",
-          enum: ["errorCatalog", "secretsCatalog", "externalSystemCatalog"],
+          enum: ["errors", "externalSystems", "secrets", "envVars", "domains", "functions", "events", "modelEndpoints"],
+          description: "カタログの種類。プロジェクト共通に置けるのは modelEndpoints / secrets / envVars / events / functions / externalSystems。古い名前 errorCatalog / secretsCatalog / externalSystemCatalog も受けます",
         },
-        key: { type: "string", description: "エントリキー (例: STOCK_SHORTAGE / stripeApiKey / ApiError / stripe)" },
-        value: { type: "object", description: "エントリの値。全体置換。" },
+        key: { type: "string", description: "エントリのキー (例: STOCK_SHORTAGE / stripeApiKey / formatCurrency / STRIPE_API_BASE)" },
+        value: { type: "object", description: "エントリの値。全体置換。形は schemas/v3/process-flow.v3.schema.json の $defs (FunctionEntry: signature・returnType・description・examples など)" },
       },
-      required: ["processFlowId", "catalog", "key", "value"],
+      required: ["catalog", "key", "value"],
     },
   },
   {
     name: "designer__remove_catalog_entry",
-    description: "ProcessFlow カタログからエントリを削除します。",
+    description: "カタログから 1 件を削除します。processFlowId を指定すると処理フローの context.catalogs から、省くとプロジェクト共通のカタログ (catalogs/external.json) から消します。",
     inputSchema: {
       type: "object" as const,
       properties: {
-        processFlowId: { type: "string" },
-        catalog: {
-          type: "string",
-          enum: ["errorCatalog", "secretsCatalog", "externalSystemCatalog"],
-        },
+        processFlowId: { type: "string", description: "処理フローの id。省くとプロジェクト共通のカタログ" },
+        catalog: { type: "string", enum: ["errors", "externalSystems", "secrets", "envVars", "domains", "functions", "events", "modelEndpoints"] },
         key: { type: "string" },
       },
-      required: ["processFlowId", "catalog", "key"],
+      required: ["catalog", "key"],
     },
   },
   {
