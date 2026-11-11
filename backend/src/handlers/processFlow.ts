@@ -25,8 +25,10 @@ import {
   resolveDataRoot,
   readExtensionsBundle,
   writeExtensionsFile,
+  readExternalCatalogs,
   type ExtensionFileKind,
 } from "../projectStorage.js";
+import { updateExternalCatalogs, validateCatalogEntry } from "../catalogStore.js";
 import {
   updateStep as editUpdateStep,
   removeStep as editRemoveStep,
@@ -36,7 +38,12 @@ import {
   addStepNote as editAddStepNote,
   addCatalogEntry as editAddCatalogEntry,
   removeCatalogEntry as editRemoveCatalogEntry,
+  setCatalogEntry,
+  deleteCatalogEntry,
+  normalizeCatalogName,
   insertStepAt as editInsertStepAt,
+  CATALOG_NAMES,
+  PROJECT_CATALOG_NAMES,
   type ProcessFlowDoc,
   type CatalogName,
 } from "../processFlowEdits.js";
@@ -785,11 +792,9 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
     }
 
     case "designer__add_catalog_entry": {
-      if (typeof a.processFlowId !== "string" || typeof a.catalog !== "string" || typeof a.key !== "string" || typeof a.value !== "object" || a.value === null) {
-        throw new McpError(ErrorCode.InvalidParams, "processFlowId, catalog, key, value は必須です");
+      if (typeof a.catalog !== "string" || typeof a.key !== "string" || typeof a.value !== "object" || a.value === null || Array.isArray(a.value)) {
+        throw new McpError(ErrorCode.InvalidParams, "catalog, key, value (オブジェクト) は必須です");
       }
-      // #1332 Codex 9 巡目 M2: processFlowId は top-level EntityId (ProcessFlow)。
-      assertEntityIdMcp(a.processFlowId, "processFlowId");
       if (a.catalog === "typeCatalog") {
         console.warn("[deprecation] add_catalog_entry catalogName=typeCatalog is forwarded to add_response_type_extension");
         const value = a.value as Record<string, unknown>;
@@ -800,19 +805,27 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
           description: value.description,
         }, root);
       }
-      const pf = await readProcessFlow(a.processFlowId, root) as ProcessFlowDoc | null;
-      if (!pf) throw new McpError(ErrorCode.InvalidParams, `処理フロー ${a.processFlowId} が見つかりません`);
-      editAddCatalogEntry(pf, a.catalog as CatalogName, a.key as string, a.value as Record<string, unknown>);
-      await saveAndBroadcast(a.processFlowId, pf, root);
-      return { content: [{ type: "text", text: `${a.catalog}.${a.key} を追加/更新しました。` }] };
+      const target = resolveCatalogTarget(a);
+      const value = a.value as Record<string, unknown>;
+      const errors = await validateCatalogEntry(target.catalog, a.key, value);
+      if (errors.length) {
+        throw new McpError(ErrorCode.InvalidParams, `${target.catalog}.${a.key} の形がスキーマに合いません (書いていません): ${formatCatalogErrors(errors)}`);
+      }
+      if (target.scope === "project") {
+        await updateExternalCatalogs(root, (doc) => { setCatalogEntry(doc, target.catalog, a.key as string, value); return true; });
+        return { content: [{ type: "text", text: `プロジェクト共通のカタログ (catalogs/external.json) の ${target.catalog}.${a.key} を追加/更新しました。処理フローに同じキーがあれば、そちらが優先されます。` }] };
+      }
+      const pf = await readProcessFlow(target.processFlowId, root) as ProcessFlowDoc | null;
+      if (!pf) throw new McpError(ErrorCode.InvalidParams, `処理フロー ${target.processFlowId} が見つかりません`);
+      editAddCatalogEntry(pf, target.catalog, a.key, value);
+      await saveAndBroadcast(target.processFlowId, pf, root);
+      return { content: [{ type: "text", text: `context.catalogs.${target.catalog}.${a.key} を追加/更新しました。` }] };
     }
 
     case "designer__remove_catalog_entry": {
-      if (typeof a.processFlowId !== "string" || typeof a.catalog !== "string" || typeof a.key !== "string") {
-        throw new McpError(ErrorCode.InvalidParams, "processFlowId, catalog, key は必須です");
+      if (typeof a.catalog !== "string" || typeof a.key !== "string") {
+        throw new McpError(ErrorCode.InvalidParams, "catalog, key は必須です");
       }
-      // #1332 Codex 9 巡目 M2: processFlowId は top-level EntityId (ProcessFlow)。
-      assertEntityIdMcp(a.processFlowId, "processFlowId");
       if (a.catalog === "typeCatalog") {
         console.warn("[deprecation] remove_catalog_entry catalogName=typeCatalog is forwarded to delete_response_type_extension");
         const file = await readResponseTypesFile(root);
@@ -824,11 +837,19 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
         }
         return { content: [{ type: "text", text: `responseTypes.${a.key} を削除しました。` }] };
       }
-      const pf = await readProcessFlow(a.processFlowId, root) as ProcessFlowDoc | null;
-      if (!pf) throw new McpError(ErrorCode.InvalidParams, `処理フロー ${a.processFlowId} が見つかりません`);
-      editRemoveCatalogEntry(pf, a.catalog as CatalogName, a.key as string);
-      await saveAndBroadcast(a.processFlowId, pf, root);
-      return { content: [{ type: "text", text: `${a.catalog}.${a.key} を削除しました。` }] };
+      const target = resolveCatalogTarget(a);
+      if (target.scope === "project") {
+        const removed = await updateExternalCatalogs(root, (doc) => deleteCatalogEntry(doc, target.catalog, a.key as string));
+        if (!removed) throw new McpError(ErrorCode.InvalidParams, `プロジェクト共通のカタログに ${target.catalog}.${a.key} はありません`);
+        return { content: [{ type: "text", text: `プロジェクト共通のカタログ (catalogs/external.json) の ${target.catalog}.${a.key} を削除しました。` }] };
+      }
+      const pf = await readProcessFlow(target.processFlowId, root) as ProcessFlowDoc | null;
+      if (!pf) throw new McpError(ErrorCode.InvalidParams, `処理フロー ${target.processFlowId} が見つかりません`);
+      if (!editRemoveCatalogEntry(pf, target.catalog, a.key)) {
+        throw new McpError(ErrorCode.InvalidParams, `処理フロー ${target.processFlowId} の context.catalogs に ${target.catalog}.${a.key} はありません`);
+      }
+      await saveAndBroadcast(target.processFlowId, pf, root);
+      return { content: [{ type: "text", text: `context.catalogs.${target.catalog}.${a.key} を削除しました。` }] };
     }
 
     case "designer__export_arazzo": {
@@ -841,7 +862,7 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       if (!flow) throw new McpError(ErrorCode.InvalidParams, `処理フロー ${a.processFlowId} が見つかりません`);
 
       const fmt = (a.outputFormat as string | undefined) ?? "yaml";
-      const arazzo = buildArazzoDoc(flow);
+      const arazzo = buildArazzoDoc(flow, await readExternalCatalogs(root));
 
       let text: string;
       if (fmt === "json") {
@@ -1216,10 +1237,40 @@ function collectExternalSteps(steps: unknown[]): Array<Record<string, unknown>> 
   return result;
 }
 
-function buildArazzoDoc(flow: Record<string, unknown>): ArazzoDoc {
-  const flowId = flow.id as string;
-  const flowName = flow.name as string ?? flowId;
-  const catalog = (flow.externalSystemCatalog ?? {}) as Record<string, Record<string, unknown>>;
+type CatalogTarget =
+  | { scope: "project"; catalog: CatalogName }
+  | { scope: "processFlow"; catalog: CatalogName; processFlowId: string };
+
+/** add/remove_catalog_entry の書き先を決める (#1601)。processFlowId があれば処理フロー、無ければプロジェクト共通のカタログ。 */
+function resolveCatalogTarget(a: Record<string, unknown>): CatalogTarget {
+  const catalog = normalizeCatalogName(a.catalog as string);
+  if (!catalog) {
+    throw new McpError(ErrorCode.InvalidParams, `catalog が不正です: ${String(a.catalog)} (使えるもの: ${CATALOG_NAMES.join(" / ")})`);
+  }
+  if (a.processFlowId === undefined || a.processFlowId === null || a.processFlowId === "") {
+    if (!(PROJECT_CATALOG_NAMES as readonly string[]).includes(catalog)) {
+      throw new McpError(ErrorCode.InvalidParams, `${catalog} はプロジェクト共通のカタログに置けません (置けるもの: ${PROJECT_CATALOG_NAMES.join(" / ")})。processFlowId を指定してください`);
+    }
+    return { scope: "project", catalog };
+  }
+  if (typeof a.processFlowId !== "string") throw new McpError(ErrorCode.InvalidParams, "processFlowId は文字列で指定してください");
+  // #1332 Codex 9 巡目 M2: processFlowId は top-level EntityId (ProcessFlow)。
+  assertEntityIdMcp(a.processFlowId, "processFlowId");
+  return { scope: "processFlow", catalog, processFlowId: a.processFlowId };
+}
+
+function formatCatalogErrors(errors: Array<{ instancePath?: string; message?: string; params?: unknown }>): string {
+  return errors.slice(0, 5).map((e) => `${e.instancePath || "/"} ${e.message ?? ""}${e.params ? ` ${JSON.stringify(e.params)}` : ""}`.trim()).join("; ");
+}
+
+function buildArazzoDoc(flow: Record<string, unknown>, projectCatalogs?: unknown): ArazzoDoc {
+  // v3: id・名前は meta、外部システムは context.catalogs.externalSystems (#1601)。プロジェクト共通のカタログも引き、処理フロー側を優先する
+  const meta = (flow.meta ?? {}) as { id?: string; name?: string };
+  const flowId = meta.id ?? "";
+  const flowName = meta.name ?? flowId;
+  const flowCatalog = ((flow.context as { catalogs?: { externalSystems?: unknown } } | undefined)?.catalogs?.externalSystems ?? {}) as Record<string, Record<string, unknown>>;
+  const projectCatalog = ((projectCatalogs as { externalSystems?: unknown } | null | undefined)?.externalSystems ?? {}) as Record<string, Record<string, unknown>>;
+  const catalog = { ...projectCatalog, ...flowCatalog };
 
   const allSteps: Array<Record<string, unknown>> = [];
   for (const action of (flow.actions ?? []) as Array<{ steps?: unknown[] }>) {

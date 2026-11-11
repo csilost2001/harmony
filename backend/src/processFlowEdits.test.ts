@@ -6,6 +6,7 @@ import {
   setMaturity,
   addStepNote,
   addCatalogEntry,
+  normalizeCatalogName,
   removeCatalogEntry,
   insertStepAt,
   findStep,
@@ -196,19 +197,40 @@ describe("addStepNote", () => {
 });
 
 describe("addCatalogEntry / removeCatalogEntry", () => {
-  it("errorCatalog に追加・削除", () => {
+  it("v3 の context.catalogs.errors に追加・削除し、空になれば catalogs ごと取り除く (#1601)", () => {
     const ag = makeGroup();
-    addCatalogEntry(ag, "errorCatalog", "STOCK_SHORTAGE", { httpStatus: 409 });
-    expect(ag.errorCatalog?.STOCK_SHORTAGE).toEqual({ httpStatus: 409 });
-    removeCatalogEntry(ag, "errorCatalog", "STOCK_SHORTAGE");
-    expect(ag.errorCatalog).toBeUndefined();
+    addCatalogEntry(ag, "errors", "STOCK_SHORTAGE", { httpStatus: 409 });
+    expect(ag.context?.catalogs?.errors?.STOCK_SHORTAGE).toEqual({ httpStatus: 409 });
+    expect(ag).not.toHaveProperty("errorCatalog");
+    expect(removeCatalogEntry(ag, "errors", "STOCK_SHORTAGE")).toBe(true);
+    expect(ag.context?.catalogs).toBeUndefined();
   });
-  it("secretsCatalog を複数追加、一部削除", () => {
+  it("secrets を複数追加、一部削除。ほかの種類と context の既存の項目は残る", () => {
     const ag = makeGroup();
-    addCatalogEntry(ag, "secretsCatalog", "a", { source: "env", name: "A" });
-    addCatalogEntry(ag, "secretsCatalog", "b", { source: "env", name: "B" });
-    removeCatalogEntry(ag, "secretsCatalog", "a");
-    expect(Object.keys(ag.secretsCatalog ?? {})).toEqual(["b"]);
+    ag.context = { ambientVariables: [] };
+    addCatalogEntry(ag, "secrets", "a", { source: "env", name: "A" });
+    addCatalogEntry(ag, "secrets", "b", { source: "env", name: "B" });
+    addCatalogEntry(ag, "functions", "f", { signature: "f(): number", returnType: "number", description: "x" });
+    removeCatalogEntry(ag, "secrets", "a");
+    expect(Object.keys(ag.context?.catalogs?.secrets ?? {})).toEqual(["b"]);
+    expect(ag.context?.catalogs?.functions?.f).toBeDefined();
+    expect(ag.context?.ambientVariables).toEqual([]);
+  });
+  it("無いキーの削除は false で、何も変えない", () => {
+    const ag = makeGroup();
+    expect(removeCatalogEntry(ag, "errors", "NONE")).toBe(false);
+    expect(ag.context).toBeUndefined();
+  });
+});
+
+describe("normalizeCatalogName", () => {
+  it("v3 の名前はそのまま、古い名前は v3 に読み替え、知らない名前は null", () => {
+    expect(normalizeCatalogName("functions")).toBe("functions");
+    expect(normalizeCatalogName("errorCatalog")).toBe("errors");
+    expect(normalizeCatalogName("secretsCatalog")).toBe("secrets");
+    expect(normalizeCatalogName("externalSystemCatalog")).toBe("externalSystems");
+    expect(normalizeCatalogName("typeCatalog")).toBeNull();
+    expect(normalizeCatalogName("nope")).toBeNull();
   });
 });
 

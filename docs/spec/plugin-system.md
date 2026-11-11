@@ -302,13 +302,15 @@ AI がプラグインを操作するための専用ツール。拡張種別ご�
 | `remove_extension` | 任意の拡張エントリを削除 |
 | `list_extensions` | 現在の全拡張一覧を取得 |
 
-### 既存 `add_catalog_entry` / `remove_catalog_entry` の扱い
+### `add_catalog_entry` / `remove_catalog_entry` の扱い
 
-これらの MCP ツールは現状 `errorCatalog` / `secretsCatalog` / `typeCatalog` / `externalSystemCatalog` の 4 種を扱う (`CatalogName` enum)。
+カタログに 1 件ずつ足す・消す MCP ツール。処理フローを丸ごと送り直さずに済む。
 
-- **typeCatalog** → 廃止し `add_response_type_extension` に置換
-- **errorCatalog / secretsCatalog / externalSystemCatalog** → 引き続き ProcessFlow 内部のカタログとして残す (これらはグローバル化の必然性が低く、ProcessFlow 単位で完結する)
-- `CatalogName` enum から `"typeCatalog"` を削除
+- **書き先** (#1601): `processFlowId` を指定すると処理フローの `context.catalogs.<種類>`、省くとプロジェクト共通のカタログ `<dataDir>/catalogs/external.json` (external-catalogs.v3。処理フローに同じキーがあれば、そちらが優先)
+- **種類**: v3 の `Catalogs` の 8 種類 (`errors` / `externalSystems` / `secrets` / `envVars` / `domains` / `functions` / `events` / `modelEndpoints`)。プロジェクト共通に置けるのは `modelEndpoints` / `secrets` / `envVars` / `events` / `functions` / `externalSystems` の 6 種類。古い名前 `errorCatalog` / `secretsCatalog` / `externalSystemCatalog` は v3 の名前に読み替える
+- **検査**: 書く前に、キーと値を `process-flow.v3.schema.json` の `$defs/Catalogs` で検査し、違反なら書かない
+- **typeCatalog** → 廃止し `add_response_type_extension` に転送 (deprecation warning を出す)
+- #1601 より前は、処理フローの一番上に古い名前 (`errorCatalog` など) で書いていて、v3 のスキーマ違反になっていた。そうなっている処理フローは、そのキーを `context.catalogs.<v3 の名前>` に移す
 
 ---
 
