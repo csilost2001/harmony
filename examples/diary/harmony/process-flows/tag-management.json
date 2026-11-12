@@ -398,7 +398,7 @@
       ],
       "steps": [
         {
-          "id": "step-01",
+          "id": "step-10",
           "kind": "validation",
           "description": "id 必須、name 最大長 (指定時)、slug regex (指定時)、color hex regex (指定時)。",
           "rules": [
@@ -437,7 +437,7 @@
             "ok": [],
             "ng": [
               {
-                "id": "step-01-ng-01",
+                "id": "step-11",
                 "kind": "return",
                 "description": "400 バリデーションエラーを返す。",
                 "responseId": "400-validation",
@@ -448,7 +448,7 @@
           "fieldErrorsVar": "fieldErrors"
         },
         {
-          "id": "step-02",
+          "id": "step-12",
           "kind": "dbAccess",
           "description": "対象タグの存在を SELECT で確認する。",
           "tableId": "tag",
@@ -459,7 +459,7 @@
           }
         },
         {
-          "id": "step-03",
+          "id": "step-13",
           "kind": "branch",
           "description": "対象タグが存在しない場合は 404 を返す。",
           "branches": [
@@ -490,7 +490,7 @@
           }
         },
         {
-          "id": "step-04",
+          "id": "step-14",
           "kind": "compute",
           "description": "更新後の name / slug を解決する (未指定なら既存値を維持)。重複チェック / UPDATE 双方で再利用する。",
           "expression": "{ name: COALESCE(@inputs.name, @existingTag.name), slug: COALESCE(@inputs.slug, @existingTag.slug) }",
@@ -499,7 +499,7 @@
           }
         },
         {
-          "id": "step-05",
+          "id": "step-15",
           "kind": "dbAccess",
           "description": "他タグとの name / slug 重複を SELECT で確認する (自身は除外)。",
           "tableId": "tag",
@@ -510,7 +510,7 @@
           }
         },
         {
-          "id": "step-06",
+          "id": "step-16",
           "kind": "branch",
           "description": "他タグと重複していたら 409 を返す。",
           "branches": [
@@ -624,7 +624,7 @@
       ],
       "steps": [
         {
-          "id": "step-01",
+          "id": "step-17",
           "kind": "validation",
           "description": "id 必須チェック。",
           "rules": [
@@ -639,7 +639,7 @@
             "ok": [],
             "ng": [
               {
-                "id": "step-01-ng-01",
+                "id": "step-18",
                 "kind": "return",
                 "description": "400 バリデーションエラーを返す。",
                 "responseId": "400-validation",
@@ -650,7 +650,7 @@
           "fieldErrorsVar": "fieldErrors"
         },
         {
-          "id": "step-02",
+          "id": "step-19",
           "kind": "dbAccess",
           "description": "post_tags 経由でタグの使用件数を集計する (使用中なら 409 で削除拒否)。",
           "tableId": "post-tag",
@@ -661,7 +661,7 @@
           }
         },
         {
-          "id": "step-03",
+          "id": "step-20",
           "kind": "branch",
           "description": "使用中なら 409 を返す (cascade 削除はしない)。",
           "branches": [
@@ -675,7 +675,7 @@
               },
               "steps": [
                 {
-                  "id": "step-03-a-01",
+                  "id": "step-21",
                   "kind": "return",
                   "description": "409 削除拒否を返す。usageCount を payload に含めて UI で件数表示できるようにする。",
                   "responseId": "409-conflict",
@@ -692,7 +692,7 @@
           }
         },
         {
-          "id": "step-04",
+          "id": "step-22",
           "kind": "dbAccess",
           "description": "tags から id を DELETE する。0 行 (既に削除済) なら 404 を返す。",
           "tableId": "tag",
@@ -707,7 +707,7 @@
           }
         },
         {
-          "id": "step-05",
+          "id": "step-23",
           "kind": "return",
           "description": "204 No Content を返す。",
           "responseId": "204-no-content"

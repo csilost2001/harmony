@@ -52,6 +52,7 @@ import { handleDesignTool } from "./handlers/design.js";
 import { handleDesignKindsTool } from "./handlers/designKinds.js";
 import { handleDesignInsightTool, toolGuide } from "./handlers/designInsight.js";
 import { handleFlowBatchTool } from "./handlers/flowBatch.js";
+import { handleFlowEditTool } from "./handlers/flowEdit.js";
 import { handleReportTool } from "./handlers/report.js";
 import { handleWorkspaceTool } from "./handlers/workspace.js";
 import { checkForUpdateCached } from "./ops/versionInfo.js";
@@ -172,6 +173,7 @@ export function createMcpServer(sessionId: string, profiles: readonly string[] =
         handleDesignKindsTool,
         handleDesignInsightTool,
         handleFlowBatchTool,
+        handleFlowEditTool,
         handleReportTool,
         handleWorkspaceTool,
         handleEditSessionTool,

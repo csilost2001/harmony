@@ -46,7 +46,7 @@ export const PROFILES: Readonly<Record<string, McpProfile>> = {
   flow: {
     label: "処理フローを作る・直す",
     patterns: [
-      /process_flow/, /^edit_steps$/, /^import_openapi$/, /^(list_steps|get_flow_story|analyze_branches)$/, /^add_action$/, /_step$/, /^(move|nest)_step$/, /^add_step_note$/, /^set_maturity$/, /^get_test_viewpoints$/, /^get_rename_context$/,
+      /process_flow/, /^edit_steps$/, /^import_openapi$/, /^(list_steps|get_flow_story|analyze_branches)$/, /^add_action$/, /^(update|remove)_action$/, /^(update_flow_meta|renumber_step_ids)$/, /_step$/, /^(move|nest)_step$/, /^add_step_note$/, /^set_maturity$/, /^get_test_viewpoints$/, /^get_rename_context$/,
       /^(list_screens|get_screen_layout|list_tables|get_table|list_extensions|get_extension_package)$/, /^editSession__/, ...AUTHORING,
     ],
   },

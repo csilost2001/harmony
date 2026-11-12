@@ -223,6 +223,16 @@ describe("applyProcessFlowMutation (browser-first v3, #1149 / #1332 M1)", () => 
       expect(step.level).toBe("error");
       expect(step.kind).toBe("log"); // 既存 field は維持
     });
+
+    it("actionId があれば、そのアクションの工程だけに当てる (工程の id がアクションをまたいで重複するとき。#1603)", () => {
+      const a = makeAction("act-a", [{ id: "step-01", kind: "log", description: "a" }]);
+      const b = makeAction("act-b", [{ id: "step-01", kind: "log", description: "b" }]);
+      const g = makeProcessFlow([a, b]);
+      applyProcessFlowMutation(g, "designer__update_step", { actionId: "act-b", stepId: "step-01", patch: { description: "b-new" } });
+      expect(g.actions.map((x) => (x.steps[0] as unknown as { description: string }).description)).toEqual(["a", "b-new"]);
+      applyProcessFlowMutation(g, "designer__remove_step", { actionId: "act-b", stepId: "step-01" });
+      expect(g.actions.map((x) => x.steps.length)).toEqual([1, 0]);
+    });
   });
 
   describe("designer__remove_step", () => {

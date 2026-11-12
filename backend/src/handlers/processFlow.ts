@@ -31,6 +31,7 @@ import {
 import { updateExternalCatalogs, validateCatalogEntry } from "../catalogStore.js";
 import {
   updateStep as editUpdateStep,
+  findStep as editFindStep,
   removeStep as editRemoveStep,
   moveStep as editMoveStep,
   nestStep as editNestStep,
@@ -248,6 +249,28 @@ function buildV3ProcessFlow(opts: {
 /** 安全な isRecord 判定 */
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+/**
+ * 処理フローの名前・種類・アクションの数などを、harmony.json の一覧 (entities.processFlows[]) に写す。
+ * 処理フロー全体の置き換えと、アクション・meta の部分更新 (#1603) で使う
+ */
+export async function syncProcessFlowEntry(id: string, pfDef: Record<string, unknown>, root: string, now = new Date().toISOString()): Promise<void> {
+  const pfMeta = isRecord(pfDef.meta) ? pfDef.meta : {};
+  await withProjectLock(root, async () => {
+    const pfProject = (await readProject(root) ?? {}) as Record<string, unknown>;
+    const actions = Array.isArray(pfDef.actions) ? pfDef.actions : [];
+    const name = (pfMeta.name as string | undefined) ?? (pfDef.name as string | undefined) ?? "(no-name)";
+    // #1263 Phase X1: meta.flowType (旧 meta.kind) / legacy: type
+    const flowType = (pfMeta.flowType as string | undefined) ?? (pfDef.type as string | undefined) ?? "other";
+    const screenId = (pfMeta.screenId as string | undefined) ?? (pfDef.screenId as string | undefined);
+    const maturity = (pfMeta.maturity as string | undefined) ?? (pfDef.maturity as string | undefined);
+    upsertProcessFlowEntry(pfProject, { id, name, flowType, screenId, actionCount: actions.length, updatedAt: now, maturity });
+    const projMeta = isRecord(pfProject.meta) ? pfProject.meta : {};
+    projMeta.updatedAt = now;
+    pfProject.meta = projMeta;
+    await writeProject(pfProject, root);
+  });
 }
 
 /**
@@ -469,29 +492,7 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       pfDef.meta = pfMeta;
       await writeProcessFlow(a.processFlowId, pfDef, root);
 
-      const updId: string = a.processFlowId;
-      await withProjectLock(root, async () => {
-        const pfProject = (await readProject(root) ?? {}) as Record<string, unknown>;
-        const actions = Array.isArray(pfDef.actions) ? pfDef.actions : [];
-        const name = (pfMeta.name as string | undefined) ?? (pfDef.name as string | undefined) ?? "(no-name)";
-        // #1263 Phase X1: meta.flowType (旧 meta.kind) / legacy: type
-        const flowType = (pfMeta.flowType as string | undefined) ?? (pfDef.type as string | undefined) ?? "other";
-        const screenId = (pfMeta.screenId as string | undefined) ?? (pfDef.screenId as string | undefined);
-        const maturity = (pfMeta.maturity as string | undefined) ?? (pfDef.maturity as string | undefined);
-        upsertProcessFlowEntry(pfProject, {
-          id: updId,
-          name,
-          flowType,
-          screenId,
-          actionCount: actions.length,
-          updatedAt: pfNow,
-          maturity,
-        });
-        const projMeta = isRecord(pfProject.meta) ? pfProject.meta : {};
-        projMeta.updatedAt = pfNow;
-        pfProject.meta = projMeta;
-        await writeProject(pfProject, root);
-      });
+      await syncProcessFlowEntry(a.processFlowId, pfDef, root, pfNow);
       return { content: [{ type: "text", text: `処理フロー ${a.processFlowId} を更新しました。` }] };
     }
 
@@ -595,6 +596,7 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       // S-002 + #1294 I-2: ID validation (processFlowId は EntityId|UUID、stepId は LocalId なので維持)
       assertEntityIdMcp(a.processFlowId, "processFlowId");
       assertLocalIdMcp(a.stepId, "stepId"); // #1332 Codex 9 巡目 M3: stepId は schema (Step.id: LocalId) 規範
+      const stepActionId = await resolveStepActionId(a, root);
       const updApplied = await wsBridge.tryCommand("applyProcessFlowMutation", {
         id: a.processFlowId, type: "designer__update_step", params: a,
       });
@@ -605,7 +607,7 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       const updPf = await readProcessFlow(a.processFlowId, root) as ProcessFlowDoc | null;
       if (!updPf) throw new McpError(ErrorCode.InvalidParams, `処理フロー ${a.processFlowId} が見つかりません`);
       try {
-        editUpdateStep(updPf, a.stepId, a.patch as Record<string, unknown>);
+        editUpdateStep(updPf, a.stepId, a.patch as Record<string, unknown>, stepActionId);
       } catch (e) {
         throw new McpError(ErrorCode.InvalidParams, (e as Error).message);
       }
@@ -620,6 +622,7 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       // S-002 + #1294 I-2: ID validation (processFlowId は EntityId|UUID、stepId は LocalId なので維持)
       assertEntityIdMcp(a.processFlowId, "processFlowId");
       assertLocalIdMcp(a.stepId, "stepId"); // #1332 Codex 9 巡目 M3: stepId は schema (Step.id: LocalId) 規範
+      const stepActionId = await resolveStepActionId(a, root);
       const rmApplied = await wsBridge.tryCommand("applyProcessFlowMutation", {
         id: a.processFlowId, type: "designer__remove_step", params: a,
       });
@@ -630,7 +633,7 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       const rmPf = await readProcessFlow(a.processFlowId, root) as ProcessFlowDoc | null;
       if (!rmPf) throw new McpError(ErrorCode.InvalidParams, `処理フロー ${a.processFlowId} が見つかりません`);
       try {
-        editRemoveStep(rmPf, a.stepId);
+        editRemoveStep(rmPf, a.stepId, stepActionId);
       } catch (e) {
         throw new McpError(ErrorCode.InvalidParams, (e as Error).message);
       }
@@ -645,6 +648,7 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       // S-002 + #1294 I-2: ID validation (processFlowId は EntityId|UUID、stepId は LocalId なので維持)
       assertEntityIdMcp(a.processFlowId, "processFlowId");
       assertLocalIdMcp(a.stepId, "stepId"); // #1332 Codex 9 巡目 M3: stepId は schema (Step.id: LocalId) 規範
+      const stepActionId = await resolveStepActionId(a, root);
       const mvApplied = await wsBridge.tryCommand("applyProcessFlowMutation", {
         id: a.processFlowId, type: "designer__move_step", params: a,
       });
@@ -655,7 +659,7 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       const mvPf = await readProcessFlow(a.processFlowId, root) as ProcessFlowDoc | null;
       if (!mvPf) throw new McpError(ErrorCode.InvalidParams, `処理フロー ${a.processFlowId} が見つかりません`);
       try {
-        editMoveStep(mvPf, a.stepId, a.newIndex);
+        editMoveStep(mvPf, a.stepId, a.newIndex, stepActionId);
       } catch (e) {
         throw new McpError(ErrorCode.InvalidParams, (e as Error).message);
       }
@@ -669,6 +673,7 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       }
       assertEntityIdMcp(a.processFlowId, "processFlowId");
       assertLocalIdMcp(a.stepId, "stepId");
+      const stepActionId = await resolveStepActionId(a, root);
       const nestApplied = await wsBridge.tryCommand("applyProcessFlowMutation", {
         id: a.processFlowId, type: "designer__nest_step", params: a,
       });
@@ -679,7 +684,7 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       const nestPf = await readProcessFlow(a.processFlowId, root) as ProcessFlowDoc | null;
       if (!nestPf) throw new McpError(ErrorCode.InvalidParams, `処理フロー ${a.processFlowId} が見つかりません`);
       try {
-        editNestStep(nestPf, a.stepId, a.direction);
+        editNestStep(nestPf, a.stepId, a.direction, stepActionId);
       } catch (e) {
         throw new McpError(ErrorCode.InvalidParams, (e as Error).message);
       }
@@ -1235,6 +1240,23 @@ function collectExternalSteps(steps: unknown[]): Array<Record<string, unknown>> 
     }
   }
   return result;
+}
+
+/**
+ * 工程を指す tool の actionId を確かめる (#1603)。actionId があれば形を検査して返す。
+ * 無いときは、保存済みのファイルで同じ id の工程が複数のアクションにないかを見て、あればエラー
+ * (画面で開いている処理フローに当てる前にも止めるため、ファイルで先に確かめる)。
+ */
+async function resolveStepActionId(a: Record<string, unknown>, root: string): Promise<string | undefined> {
+  if (a.actionId !== undefined) {
+    assertLocalIdMcp(a.actionId, "actionId");
+    return a.actionId as string;
+  }
+  const pf = await readProcessFlow(a.processFlowId as string, root) as ProcessFlowDoc | null;
+  if (pf) {
+    try { editFindStep(pf, a.stepId as string); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+  }
+  return undefined;
 }
 
 type CatalogTarget =

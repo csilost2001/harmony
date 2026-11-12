@@ -30,7 +30,7 @@ export const MAX_BATCH_EDITS = 100;
  * スキーマ違反の文言 (編集の前後で比べ、この編集で増えたものだけを知らせる)。
  * 配列の番号は # にそろえる: 工程を動かしただけで、もとからある違反が「新しい違反」に見えないように。
  */
-async function schemaMessages(doc: unknown): Promise<string[]> {
+export async function schemaMessages(doc: unknown): Promise<string[]> {
   const out = (await validateEntitySchema("processFlow", doc)).map((e) => `${describeAjvError(e)}${e.instancePath ? ` (${e.instancePath.replace(/\/\d+(?=\/|$)/g, "/#")})` : ""}`);
   return [...new Set(out)];
 }
@@ -47,6 +47,12 @@ function allStepIds(doc: ProcessFlowDoc): string[] {
   };
   for (const act of doc.actions ?? []) walk(act.steps as unknown[]);
   return out;
+}
+/** edit の actionId (任意。工程の id がアクションをまたいで重複するとき、どのアクションの工程かを指す。#1603) */
+function actionIdOf(e: Record<string, unknown>): string | undefined {
+  if (e.actionId === undefined) return undefined;
+  assertLocalIdMcp(e.actionId, "actionId");
+  return e.actionId as string;
 }
 const duplicatesOf = (ids: string[]) => new Set(ids.filter((id, i) => ids.indexOf(id) !== i));
 
@@ -95,27 +101,27 @@ export const handleFlowBatchTool: ToolHandler = async (name, args, root) => {
           assertLocalIdMcp(e.stepId, "stepId");
           if (!isRecord(e.patch)) throw new Error("patch が必要です (JSON のオブジェクト)");
           if ("id" in e.patch) throw new Error("patch で id は変えられません");
-          editUpdateStep(doc, e.stepId as string, e.patch);
+          editUpdateStep(doc, e.stepId as string, e.patch, actionIdOf(e));
           results.push({ index: i, op: "update", stepId: e.stepId });
           break;
         }
         case "remove": {
           assertLocalIdMcp(e.stepId, "stepId");
-          editRemoveStep(doc, e.stepId as string);
+          editRemoveStep(doc, e.stepId as string, actionIdOf(e));
           results.push({ index: i, op: "remove", stepId: e.stepId });
           break;
         }
         case "move": {
           assertLocalIdMcp(e.stepId, "stepId");
           if (typeof e.newIndex !== "number" || !Number.isInteger(e.newIndex)) throw new Error("newIndex が必要です (整数。0 が先頭)");
-          editMoveStep(doc, e.stepId as string, e.newIndex);
+          editMoveStep(doc, e.stepId as string, e.newIndex, actionIdOf(e));
           results.push({ index: i, op: "move", stepId: e.stepId });
           break;
         }
         case "nest": {
           assertLocalIdMcp(e.stepId, "stepId");
           if (e.direction !== "indent" && e.direction !== "outdent") throw new Error("direction は indent / outdent のどちらかです");
-          editNestStep(doc, e.stepId as string, e.direction);
+          editNestStep(doc, e.stepId as string, e.direction, actionIdOf(e));
           results.push({ index: i, op: "nest", stepId: e.stepId });
           break;
         }

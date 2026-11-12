@@ -101,6 +101,7 @@ Prompt `review-flow`。指摘は `add_review_findings` (位置つきのコメン
 | 「この処理フローは画面で開かれています」 | `edit_steps` は保存済みのファイルだけが対象。画面で保存して閉じるか、`update_step` など 1 工程ずつの tool を使う |
 | 「工程の id が重複します」 | `patch` / `detail` の中の入れ子の工程が、既存の id を使っている。`list_steps` で id を確かめ、別の id にする |
 | `edit_steps` を呼んだのに、変わらない | 既定は予行。保存するには `apply: true` |
+| 「工程の id「step-01」は複数のアクション (…) にあります」 | 古い処理フローで、工程の id がアクションをまたいで重複している。`actionId` を付けて指すか、`renumber_step_ids` で振り直す (#1603) |
 | 「プロファイルでは使えません」 | 接続の `?profile=` で絞られている。URL から外すか、`get_tool_guide` で、その tool がどのプロファイルにあるかを見る |
 | 「読み取り専用」で断られた | `HARMONY_MCP_MODE=readonly` かプロファイル `read` / `review`。書き込みは利用者に設定を変えてもらう |
 | id の形で断られた | 処理フロー・画面・テーブルなどの id は、英小文字で始まる kebab-case (`order-confirm`)。大文字・日本語・`_`・UUID の形は使えない。工程・アクションの id は `step-03` `act-001` の形 |

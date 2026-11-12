@@ -31,6 +31,7 @@ MCP につながっていれば、この文書は Resource `harmony://docs/ai-in
 | DDL・OpenAPI から取り込む | [mcp-design-access.md](spec/mcp-design-access.md) | `import_ddl` / `import_openapi` (既定は予行、`apply: true` で保存) |
 | 処理フローを新しく作る | [process-flow-variables.md](spec/process-flow-variables.md) / [process-flow-expression-language.md](spec/process-flow-expression-language.md) / [process-flow-runtime-conventions.md](spec/process-flow-runtime-conventions.md) / [conversion-guideline-for-ai.md](spec/conversion-guideline-for-ai.md) | 手順 `create-flow` → `add_process_flow` / `add_action` / `add_step` |
 | 工程をまとめて直す (全部成功か何も保存しない) | [mcp-design-access.md](spec/mcp-design-access.md) | `edit_steps` (既定は予行、`apply: true` で保存) |
+| アクション・処理フロー本体を直す (全体を送り直さない) | [mcp-design-access.md](spec/mcp-design-access.md) | `update_action` / `remove_action` / `update_flow_meta` (既定は予行)。工程の id が重複していたら `renumber_step_ids` |
 | 処理フローを直す | [process-flow-story-view.md](spec/process-flow-story-view.md) (人が見る「流れ」の言葉) | まず `get_flow_story` (全体を文章で) → `list_steps` → `get_step` (1 工程) → `update_step` / `move_step` / `nest_step` / `remove_step` / `add_step_note`。分岐の抜けは `analyze_branches` |
 | 処理フローをレビューする | [process-flow-runtime-conventions.md](spec/process-flow-runtime-conventions.md) | 手順 `review-flow`、`add_review_findings` |
 | 画面を作る・直す | [screen-layout.md](spec/screen-layout.md) / [layout-components.md](spec/layout-components.md) / [screen-items.md](spec/screen-items.md) | `list_screens` / `get_screen_layout` / `set_screen_layout` / `add_screen` / `update_screen` |
