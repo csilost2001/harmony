@@ -36,7 +36,7 @@ Issue: [RFC #1254](https://github.com/csilost2001/harmony/issues/1254) 件 3.7 /
 | `@policy` | runtime-policy (retry / timeout / cache) | ✅ pure ref | `generic-definitions/runtime-policy/*.json` |
 | `@component` | component-definition | ❌ inline 禁止 (副作用 invocation) | `generic-definitions/component-definition/*.json` |
 | `@const` | constants catalog | ✅ pure ref (JS keyword 衝突回避で `@const` 採用) | `generic-definitions/constants/*.json` |
-| `@msg` | message catalog (i18n) | ✅ pure ref + label override | `generic-definitions/message/*.json` |
+| `@msg` | message catalog (i18n)。**非推奨 (#1605)**: メッセージの文は規約の msg (`@conv.msg.<key>`) に置く。§4.1 | ✅ pure ref + label override | `generic-definitions/message/*.json` |
 | `@event` | domain-event | ✅ pure ref | `generic-definitions/domain-event/*.json` |
 | `@logEvent` | log-event (構造化ログ) | ✅ pure ref | `generic-definitions/log-event/*.json` |
 | `@logConfig` | log-config (log level / sink) | ✅ pure ref | `generic-definitions/log-config/*.json` |
@@ -70,7 +70,7 @@ Issue: [RFC #1254](https://github.com/csilost2001/harmony/issues/1254) 件 3.7 /
 参照 + 位置引数 + label 上書きを 1 行で表現:
 
 ```text
-${@msg.orderConfirmed(orderNumber=@var.action.newOrderNumber)[注文確定]}
+${@conv.msg.orderConfirmed(orderNumber=@var.action.newOrderNumber)[注文確定]}
 ${@const.taxRate[消費税率]}
 ${@validation.isPositive(@var.flowParameter.quantity)[数量 > 0]}
 ```
@@ -78,6 +78,15 @@ ${@validation.isPositive(@var.flowParameter.quantity)[数量 > 0]}
 - `(args)` 位置引数 / 名前付き引数の全 namespace で許容 (撤廃された制限 S-5、user 原則)
 - `[label]` は UI 表示用の label 上書き (TemplateString 補間時に prefer)
 - ネスト `${...}` および `@<key>` フル許容 (撤廃された制限 S-4、user 原則)
+
+### 4.1 メッセージの参照 (`@conv.msg.<key>(name=式, …)[ラベル]`、#1605)
+
+メッセージの文の正式な置き場所は、**規約の msg** (`conventions/catalog.json` の `msg`。`{ template, params, locales, description }`、`template` の差し込みは `{name}`)。参照は `@conv.msg.<key>`。2026-11-12 に設計者が決定した (汎用定義の `message` は、文を機械で読む形が無く、編集画面・分析・点検も無いため)。
+
+- 文に値を差し込むときは、引数を渡す: `@conv.msg.stockShortage(productName=@var.item.name, available=@var.stock)`。名前つき (`name=式`) が基本。名前の無い引数は `params` の順に当てる
+- `[ラベル]` は画面に出す見出しの上書き (上の書き方と同じ)
+- 点検 (`check_design`): キーが規約に無い・渡した引数の名前が `params` に無い・`params` にあるのに渡していない (名前の無い引数なら数が違う) を warning にする。`params` が無ければ、`template` の `{name}` を引数とみなす。引数を書かない参照 (`@conv.msg.required`) は、差し込みを実行側に任せる参照として扱い、引数の点検はしない
+- 汎用定義の `message` (`@msg.<key>`) は非推奨。サンプルの `@msg` は規約の msg に移した。残すか・なくすかは別に決める
 
 ## 5. depth warning 撤廃 (dogfood driven)
 

@@ -7,7 +7,7 @@
     "ダッシュボードの mount 時 (or 取引登録後の再計算後) に評価",
     "totalIncome - totalExpense < 0 なら警告バナー描画",
     "警告は dismissable (ユーザーが閉じれば次回計算まで非表示)",
-    "メッセージは @msg.DeficitWarning (本ルール固有)、severity=warning"
+    "メッセージは @conv.msg.deficitWarning (本ルール固有)、severity=warning"
   ],
   "targets": ["frontend"],
   "constraints": [

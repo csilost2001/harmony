@@ -130,28 +130,28 @@
               "field": "occurredOn",
               "type": "required",
               "severity": "error",
-              "message": "@msg.FieldRequired",
+              "message": "@conv.msg.required",
               "exceptionTypeRef": "generic-definitions/exception-type/ValidationException"
             },
             {
               "field": "accountId",
               "type": "required",
               "severity": "error",
-              "message": "@msg.FieldRequired",
+              "message": "@conv.msg.required",
               "exceptionTypeRef": "generic-definitions/exception-type/ValidationException"
             },
             {
               "field": "categoryId",
               "type": "required",
               "severity": "error",
-              "message": "@msg.FieldRequired",
+              "message": "@conv.msg.required",
               "exceptionTypeRef": "generic-definitions/exception-type/ValidationException"
             },
             {
               "field": "amount",
               "type": "required",
               "severity": "error",
-              "message": "@msg.FieldRequired",
+              "message": "@conv.msg.required",
               "exceptionTypeRef": "generic-definitions/exception-type/ValidationException"
             },
             {
@@ -160,7 +160,7 @@
               "min": 1,
               "max": 100000000,
               "severity": "error",
-              "message": "@msg.AmountOutOfRange",
+              "message": "@conv.msg.amountOutOfRange",
               "exceptionTypeRef": "generic-definitions/exception-type/ValidationException"
             },
             {
@@ -168,7 +168,7 @@
               "type": "maxLength",
               "length": 200,
               "severity": "error",
-              "message": "@msg.MemoMaxLength",
+              "message": "@conv.msg.memoMaxLength",
               "exceptionTypeRef": "generic-definitions/exception-type/ValidationException"
             }
           ],

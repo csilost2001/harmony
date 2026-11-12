@@ -24,7 +24,7 @@ Issue: #253 (初版) / #533 R3 fix で IdentifierPath 規範化 / **#539 R5-3 �
 **副作用 inline 禁止** (#1263 Phase X2 / RFC #1254 件 3.7、validator dispatch rule で enforce):
 
 - ❌ `${...}` 内で `@flow.<id>(...)` / `@action.<id>(...)` / `@step.<id>(...)` / `@component.<name>.<op>(...)` を呼び出すのは禁止
-- ✅ `@validation.<name>(args)` (boolean return) / `@conv.*` / `@const.*` / `@msg.*` / `@var.*` 等の pure 参照は inline 可
+- ✅ `@validation.<name>(args)` (boolean return) / `@conv.*` (メッセージは `@conv.msg.<key>(name=式)`) / `@const.*` / `@msg.*` (非推奨) / `@var.*` 等の pure 参照は inline 可
 - 詳細: [process-flow-prefix-system.md](process-flow-prefix-system.md) §2
 
 ## 2. 設計判断: convention over configuration
@@ -188,6 +188,7 @@ dogfood サンプル (#523〜#537) では shorthand (`+ 14 days` / `- 24h`) を�
 | 記法 | 解決先 | 例 |
 |---|---|---|
 | `@conv.<category>.<key>` | `Conventions` catalog (`conventions.v3.schema.json`)。built-in (msg/regex/limit/scope/currency/tax/auth/role/permission/db/numbering/tx/externalOutcomeDefaults) と `extensionCategories.<categoryName>` を **同一名前空間** で解決する (#1221)。`@conv.extensionCategories.<cat>.<key>` 形式は禁止 — 拡張カテゴリも `@conv.<categoryName>.<key>` で参照 | `@conv.regex.email` / `@conv.limit.lowStockThreshold` / `@conv.role.manager` / 拡張: `@conv.wordProgress.masteryThreshold` |
+| `@conv.msg.<key>(name=式, …)[ラベル]` | 規約の msg の文に引数を渡す (#1605)。メッセージの正式な置き場所は規約の msg。名前つきの引数 `name=式` は、この参照の中だけで書ける (代入ではない)。点検が引数の名前を `params` と突き合わせる | `@conv.msg.stockShortage(productName=@item.name, available=@stock)` |
 | `@secret.<key>` | `ProcessFlow.context.catalogs.secrets[<key>]` | `@secret.cicApiToken` |
 | `@env.<KEY>` | `ProcessFlow.context.catalogs.envVars[<KEY>]` (UPPER_SNAKE) | `@env.STRIPE_API_BASE` |
 | `@fn.<name>(...)` | `ProcessFlow.context.catalogs.functions[<name>]` | `@fn.calculateRequiredQuantity(@a, @b, @c)` |

@@ -128,7 +128,7 @@
               "field": "yearMonth",
               "type": "required",
               "severity": "error",
-              "message": "@msg.FieldRequired",
+              "message": "@conv.msg.required",
               "exceptionTypeRef": "generic-definitions/exception-type/ValidationException"
             },
             {
@@ -136,7 +136,7 @@
               "type": "regex",
               "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
               "severity": "error",
-              "message": "@msg.InvalidYearMonthFormat",
+              "message": "@conv.msg.invalidYearMonthFormat",
               "exceptionTypeRef": "generic-definitions/exception-type/ValidationException"
             }
           ],

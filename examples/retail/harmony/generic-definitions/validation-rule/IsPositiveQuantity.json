@@ -5,7 +5,7 @@
   "purpose": "数量フィールドが 1 以上の正の整数であることを検証する業務ルール (画面項目・処理フロー両方から参照)",
   "responsibilities": [
     "input が integer かつ >= 1 であることを確認する",
-    "違反時は @msg.quantity-must-be-positive を error severity で返す",
+    "違反時は @conv.msg.quantityMustBePositive を error severity で返す",
     "副作用なし (boolean / ValidationResult を返すのみ)"
   ],
   "targets": ["shared"],

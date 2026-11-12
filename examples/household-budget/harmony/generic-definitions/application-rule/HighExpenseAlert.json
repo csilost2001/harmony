@@ -17,8 +17,7 @@
   ],
   "relations": [
     { "kind": "appliesTo", "ref": "screens/transactionForm" },
-    { "kind": "appliesTo", "ref": "screens/transactionEdit" },
-    { "kind": "uses",      "ref": "generic-definitions/message/DeleteConfirm", "description": "ダイアログ UI は同じ Variant" }
+    { "kind": "appliesTo", "ref": "screens/transactionEdit" }
   ],
   "mappingHints": {
     "thresholdAmount": 100000,

@@ -69,6 +69,19 @@
       "template": "商品コード {productCode} の商品が見つかりません。",
       "params": ["productCode"],
       "description": "商品検索で該当なし時のメッセージ (S-1)。"
+    },
+    "creditLimitExceeded": {
+      "template": "ご注文金額が与信限度を超えています",
+      "description": "与信限度超過エラーメッセージ"
+    },
+    "quantityMustBePositive": {
+      "template": "数量は 1 以上の整数で入力してください",
+      "description": "数量バリデーション違反メッセージ (validation-rule IsPositiveQuantity から参照)"
+    },
+    "orderCancelWindowExpired": {
+      "template": "ご注文後 {cancelWindowHours} 時間を過ぎたためキャンセルできません",
+      "params": ["cancelWindowHours"],
+      "description": "キャンセル猶予経過エラーメッセージ"
     }
   },
   "limit": {

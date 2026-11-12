@@ -115,13 +115,12 @@ examples だから最初から多様なデータを入れている。`seed/` デ
 
 詳細は `seed/README.md` 参照。NestJS の起動時 seed として読み込む想定 (`INSERT OR IGNORE` で idempotent)。
 
-## Generic Definition Catalog (14 kind, 38 entries)
+## Generic Definition Catalog (13 kind, 28 entries)
 
-`harmony/generic-definitions/<kind>/<Name>.json` 配下に v3 schema の有効 kind のうち 14 kind を dogfood している。conventions catalog がフラット辞書を提供するのに対し、こちらは「kind ごとの構造化された再利用ピース」として 1 ファイル 1 エントリで管理。
+`harmony/generic-definitions/<kind>/<Name>.json` 配下に v3 schema の有効 kind のうち 13 kind を dogfood している。conventions catalog がフラット辞書を提供するのに対し、こちらは「kind ごとの構造化された再利用ピース」として 1 ファイル 1 エントリで管理。
 
 | kind | 件数 | 例 |
 |---|---:|---|
-| `message` | 10 | TransactionCreated / DeleteConfirm / AmountRequired / InvalidYearMonthFormat 等 (i18n source、`@msg.<Name>` 参照元) |
 | `validation-rule` | 4 | AmountPositiveRange / AmountRequired / MemoMaxLength / YearMonthFormat (`@validation.<Name>`) |
 | `domain-type` | 3 | Money (通貨単位付き) / YearMonth / AccountType (`@<scope>.<Name>` で参照) |
 | `exception-type` | 3 | TransactionNotFoundException / ValidationException / ForeignKeyViolationException — `errorCatalog.exceptionTypeRef` で参照 |
@@ -144,7 +143,7 @@ examples だから最初から多様なデータを入れている。`seed/` デ
 
 ### dogfood で見つけた validator gap
 
-- `@msg.<Name>` 形式の参照は `identifierScope` validator が `@msg` を bare variable と誤解する。canonical 設計では `@msg.<Name>` が generic-definitions/message/ の参照だが、現在の validator はこれを認識しない。**回避策**: 本サンプルでは `ValidationRule.message` に `@conv.msg.<key>` (旧 conventions 規約参照) を使用、参照表現の dogfood は exception-type/domain-event/context.catalogs で実施。
+- メッセージの文は、規約の msg (`conventions/catalog.json` の `msg`、`@conv.msg.<key>` で参照) に置く (#1605)。以前は汎用定義の `message` (`@msg.<Name>`) にも 10 件あったが、文を機械で読む形が無く、点検・分析も無かったので、規約の msg に移した。引数は `@conv.msg.<key>(name=@x)[ラベル]` で渡す
 
 ## ディレクトリ構成
 
