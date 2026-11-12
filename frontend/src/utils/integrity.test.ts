@@ -98,13 +98,14 @@ describe("checkIntegrity (設計どうしの参照)", () => {
     expect(msgs(i).join("\n")).toContain("レスポンス「r999」");
   });
 
-  it("アクションをまたぐ同じ工程 id は、警告でなく情報", () => {
+  it("アクションをまたぐ同じ工程 id は警告 (工程を id で指す操作が、どれに当たるか決められないため。#1603)", () => {
     const i = base();
     (i.flows[0] as unknown as { actions: unknown[] }).actions.push({ id: "a2", steps: [{ id: "s-1", kind: "compute", expression: "1" }] });
     const out = checkIntegrity(i);
     expect(out).toHaveLength(1);
-    expect(out[0].severity).toBe("info");
+    expect(out[0].severity).toBe("warning");
     expect(out[0].message).toContain("アクションをまたいで");
+    expect(out[0].message).toContain("renumber_step_ids");
   });
 
   it("入れ子 (検証の OK/NG・承認の後・失敗系の副作用) の中の工程も見る", () => {

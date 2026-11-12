@@ -6,6 +6,10 @@ import {
   setMaturity,
   addStepNote,
   addCatalogEntry,
+  updateAction,
+  removeAction,
+  updateFlowMeta,
+  renumberDuplicateStepIds,
   normalizeCatalogName,
   removeCatalogEntry,
   insertStepAt,
@@ -249,5 +253,98 @@ describe("insertStepAt", () => {
   it("未知 actionId で throw", () => {
     const ag = makeGroup();
     expect(() => insertStepAt(ag, "nope", { id: "x", type: "other", description: "" })).toThrow();
+  });
+});
+
+// ── #1603: 工程の id がアクションをまたいで重複するとき・アクションと meta の部分更新 ──
+function makeDupGroup(): ProcessFlowDoc {
+  return {
+    id: "ag-dup",
+    meta: { id: "ag-dup", name: "重複", flowType: "common" },
+    actions: [
+      { id: "act-a", name: "A", steps: [{ id: "step-01", kind: "compute", description: "a1" }, { id: "step-02", kind: "other", description: "a2" }] },
+      { id: "act-b", name: "B", steps: [
+        { id: "step-01", kind: "dbAccess", description: "b1" },
+        { id: "step-03", kind: "externalSystem", description: "b3", compensatesFor: "step-01" },
+        { id: "step-04", kind: "branch", description: "b4", branches: [{ id: "br-1", condition: { kind: "affectedRowsZero", stepId: "step-01" }, steps: [] }] },
+      ] },
+    ],
+  } as unknown as ProcessFlowDoc;
+}
+
+describe("工程の id の重複と actionId (#1603)", () => {
+  it("重複している id を actionId なしで指すとエラーで、何も変えない", () => {
+    const ag = makeDupGroup();
+    expect(() => updateStep(ag, "step-01", { description: "x" })).toThrow(/複数のアクション \(act-a, act-b\)/);
+    expect(() => removeStep(ag, "step-01")).toThrow(/actionId で指定/);
+    expect(ag.actions[0].steps[0].description).toBe("a1");
+    expect(ag.actions[1].steps[0].description).toBe("b1");
+  });
+  it("actionId を付けると、そのアクションの工程に当たる", () => {
+    const ag = makeDupGroup();
+    updateStep(ag, "step-01", { description: "b1-new" }, "act-b");
+    expect(ag.actions[0].steps[0].description).toBe("a1");
+    expect(ag.actions[1].steps[0].description).toBe("b1-new");
+    moveStep(ag, "step-01", 1, "act-b");
+    expect(ag.actions[1].steps.map((x) => x.id)).toEqual(["step-03", "step-01", "step-04"]);
+    removeStep(ag, "step-01", "act-a");
+    expect(ag.actions[0].steps.map((x) => x.id)).toEqual(["step-02"]);
+  });
+  it("重複していない id は actionId なしで今までどおり。無いアクションはエラー", () => {
+    const ag = makeDupGroup();
+    updateStep(ag, "step-02", { description: "a2-new" });
+    expect(ag.actions[0].steps[1].description).toBe("a2-new");
+    expect(() => updateStep(ag, "step-02", {}, "act-none")).toThrow(/action act-none が見つかりません/);
+    expect(() => updateStep(ag, "step-02", {}, "act-b")).toThrow(/step step-02 が見つかりません/);
+  });
+  it("振り直し: 2 つ目以降に新しい id を付け、そのアクションの中の参照も付け替える", () => {
+    const ag = makeDupGroup();
+    let n = 10;
+    const renamed = renumberDuplicateStepIds(ag, () => `step-${n++}`);
+    expect(renamed).toEqual([{ actionId: "act-b", from: "step-01", to: "step-10", refs: 2 }]);
+    expect(ag.actions[0].steps[0].id).toBe("step-01");
+    const b = ag.actions[1].steps as Array<Record<string, any>>;
+    expect(b[0].id).toBe("step-10");
+    expect(b[1].compensatesFor).toBe("step-10");
+    expect(b[2].branches[0].condition.stepId).toBe("step-10");
+    expect(renumberDuplicateStepIds(ag, () => `step-${n++}`)).toEqual([]);
+  });
+  it("同じアクションの中の重複は、id だけ振り直し、参照は付け替えない", () => {
+    const ag = { id: "x", actions: [{ id: "act-a", steps: [
+      { id: "s1", kind: "other", description: "" },
+      { id: "s1", kind: "other", description: "" },
+      { id: "s2", kind: "other", description: "", compensatesFor: "s1" },
+    ] }] } as unknown as ProcessFlowDoc;
+    const renamed = renumberDuplicateStepIds(ag, () => "s9");
+    expect(renamed).toEqual([{ actionId: "act-a", from: "s1", to: "s9", refs: 0 }]);
+    expect(ag.actions[0].steps.map((x) => x.id)).toEqual(["s1", "s9", "s2"]);
+    expect((ag.actions[0].steps[2] as Record<string, unknown>).compensatesFor).toBe("s1");
+  });
+});
+
+describe("updateAction / removeAction / updateFlowMeta (#1603)", () => {
+  it("アクションの項目を合わせ、null は消す。id と steps は変えられない", () => {
+    const ag = makeDupGroup();
+    updateAction(ag, "act-a", { description: "説明", name: null, httpRoute: { method: "POST", path: "/a" } });
+    const act = ag.actions[0] as Record<string, unknown>;
+    expect(act.description).toBe("説明");
+    expect(act).not.toHaveProperty("name");
+    expect(act.httpRoute).toEqual({ method: "POST", path: "/a" });
+    expect(() => updateAction(ag, "act-a", { id: "z" })).toThrow(/id は変えられません/);
+    expect(() => updateAction(ag, "act-a", { steps: [] })).toThrow(/steps は変えられません/);
+    expect(() => updateAction(ag, "act-none", {})).toThrow(/見つかりません/);
+  });
+  it("アクションを消す", () => {
+    const ag = makeDupGroup();
+    removeAction(ag, "act-a");
+    expect(ag.actions.map((x) => x.id)).toEqual(["act-b"]);
+    expect(() => removeAction(ag, "act-a")).toThrow(/見つかりません/);
+  });
+  it("meta を合わせる。id は変えられない", () => {
+    const ag = makeDupGroup();
+    updateFlowMeta(ag, { description: "本体の説明", flowType: null });
+    const meta = (ag as Record<string, any>).meta;
+    expect(meta).toEqual({ id: "ag-dup", name: "重複", description: "本体の説明" });
+    expect(() => updateFlowMeta(ag, { id: "other" })).toThrow(/id は変えられません/);
   });
 });

@@ -34,6 +34,11 @@ function warnNoOp(type: string, reason: string, p: Record<string, unknown>): voi
   console.warn(`[applyProcessFlowMutation] ${type}: ${reason}`, p);
 }
 
+/** 工程を指す mutation の対象のアクション。actionId があればそのアクションだけ (#1603: 工程の id がアクションをまたいで重複するとき) */
+function targetActions(g: ProcessFlow, p: Record<string, unknown>): ProcessFlow["actions"] {
+  return typeof p.actionId === "string" ? g.actions.filter((a) => a.id === p.actionId) : g.actions;
+}
+
 export function applyProcessFlowMutation(
   g: ProcessFlow,
   type: string,
@@ -74,7 +79,7 @@ export function applyProcessFlowMutation(
       break;
     }
     case "designer__update_step": {
-      for (const act of g.actions) {
+      for (const act of targetActions(g, p)) {
         const step = act.steps.find((s: { id: string }) => s.id === p.stepId);
         if (step) { Object.assign(step, p.patch); return; }
       }
@@ -82,7 +87,7 @@ export function applyProcessFlowMutation(
       break;
     }
     case "designer__remove_step": {
-      for (const act of g.actions) {
+      for (const act of targetActions(g, p)) {
         const idx = act.steps.findIndex((s: { id: string }) => s.id === p.stepId);
         if (idx >= 0) { removeStep(act, p.stepId as string); return; }
       }
@@ -92,7 +97,7 @@ export function applyProcessFlowMutation(
     case "designer__nest_step": {
       // 入れ子 (subSteps) を動かす。キーボードの Tab / Shift+Tab と同じ (utils/stepTree.ts)
       const stepId = String(p.stepId ?? "");
-      const act = g.actions.find((a) => a.steps.some((s) => findStepDeep([s], stepId)));
+      const act = targetActions(g, p).find((a) => a.steps.some((s) => findStepDeep([s], stepId)));
       if (!act) {
         warnNoOp(type, `stepId not found: ${stepId}`, p);
         return;
@@ -104,7 +109,7 @@ export function applyProcessFlowMutation(
 
     case "designer__move_step": {
       const newIndex = p.newIndex as number;
-      for (const act of g.actions) {
+      for (const act of targetActions(g, p)) {
         const fromIdx = act.steps.findIndex((s: { id: string }) => s.id === p.stepId);
         if (fromIdx >= 0) { moveStep(act, fromIdx, newIndex); return; }
       }

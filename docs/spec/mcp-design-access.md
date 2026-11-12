@@ -35,6 +35,25 @@ category: ops
 - 更新日時は `meta.updatedAt` に入る (トップレベルの `updatedAt` はスキーマにない項目。`add_step` などの保存も同じ処理で、これまで書いていたトップレベルの値は取り除く)
 - `apply` は true / false だけ
 - 監査ログでは処理フローの変更として数える。予行は残さない
+- `update` / `remove` / `move` / `nest` は `actionId` を任意で受ける (下の「工程の id がアクションをまたいで重複するとき」)
+
+## アクション・処理フロー本体の部分更新 (#1603)
+
+処理フロー全体を `update_process_flow` で送り直さずに、アクションと本体 (meta) を直す。どれも `edit_steps` と同じく、既定は予行 (`apply: true` で保存)・保存済みのファイルだけが対象 (画面で開いている処理フローは断る)・この編集で増えたスキーマ違反を `newSchemaIssues` で返す。名前・アクションの数は harmony.json の一覧にも写す。
+
+| tool | 内容 |
+|---|---|
+| `designer__update_action` | アクション 1 つに `patch` を合わせる (一番上の項目ごとに置き換え、値が `null` の項目は消す)。`id` と `steps` は変えられない (工程は工程の tool で) |
+| `designer__remove_action` | アクション 1 つを中の工程ごと消す。消す前に `find_references` で参照を確かめる |
+| `designer__update_flow_meta` | 本体 (meta) に `patch` を合わせる。`id` は変えられない (改名は `rename_entity`) |
+
+## 工程の id がアクションをまたいで重複するとき (#1603)
+
+工程の id はアクションごとに採番された古い処理フローで、`step-01` などが重複していることがある。以前は工程を id で指す tool が黙って最初のアクションの工程に当たり、別の工程を書き換える事故が起きた。
+
+- `update_step` / `remove_step` / `move_step` / `nest_step` と `edit_steps` の `update` / `remove` / `move` / `nest` は、`actionId` を任意で受ける。**重複している id を `actionId` なしで指すと断る** (重複していなければ、今までどおり `actionId` なしで指せる)。`get_step` / `list_steps` も `actionId` を受ける
+- 点検 (`check_design`) は、アクションをまたぐ重複を warning にする
+- `designer__renumber_step_ids` で振り直せる。最初に出てきた工程は元の id のまま、2 つ目以降に `step-NN` を付ける。別のアクションで重複していた工程は、そのアクションの中の参照 (`compensatesFor`・分岐の条件の `stepId`) も付け替える。同じアクションの中の重複は、参照がどちらを指すか分からないので付け替えない。既定は予行
 
 ## 取り込み (既定は予行)
 

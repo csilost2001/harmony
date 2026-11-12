@@ -5,6 +5,7 @@
 // 範囲が不一致になっていた。本配列 1 箇所の更新で型 / Set / MCP enum が同期する。
 import { DRAFT_RESOURCE_TYPES } from "./editSessionStore.js";
 import { workspaceTools } from "./toolsWorkspace.js";
+import { flowEditTools } from "./toolsFlowEdit.js";
 
 export const tools = [
   // ── フロー図操作ツール ──
@@ -409,7 +410,7 @@ export const tools = [
         processFlowId: { type: "string" },
         edits: {
           type: "array",
-          description: "編集の並び。op = add { actionId, kind, description?, detail?, id?, position?, parentStepId? } / update { stepId, patch } / remove { stepId } / move { stepId, newIndex } / nest { stepId, direction: indent|outdent }。add の id を指定すると、後ろの編集がその工程を指せる",
+          description: "編集の並び。op = add { actionId, kind, description?, detail?, id?, position?, parentStepId? } / update { stepId, patch } / remove { stepId } / move { stepId, newIndex } / nest { stepId, direction: indent|outdent }。update・remove・move・nest は actionId を任意で受ける (工程の id が複数のアクションで重複しているときは必須)。add の id を指定すると、後ろの編集がその工程を指せる",
           items: { type: "object", properties: { op: { type: "string", enum: ["add", "update", "remove", "move", "nest"] } }, required: ["op"] },
         },
         apply: { type: "boolean", description: "true で保存 (既定は予行)" },
@@ -1319,7 +1320,7 @@ export const tools = [
       type: "object" as const,
       properties: {
         processFlowId: { type: "string" },
-        stepId: { type: "string", description: "更新対象の step id (全アクションのネストも走査)" },
+        stepId: { type: "string", description: "更新対象の step id (全アクションのネストも走査)" }, actionId: { type: "string", description: "工程のアクション。工程の id が複数のアクションで重複しているときは必須 (無いと断る)" },
         patch: { type: "object", description: "マージするオブジェクト。空オブジェクトは no-op。" },
       },
       required: ["processFlowId", "stepId", "patch"],
@@ -1332,7 +1333,7 @@ export const tools = [
       type: "object" as const,
       properties: {
         processFlowId: { type: "string" },
-        stepId: { type: "string" },
+        stepId: { type: "string" }, actionId: { type: "string", description: "工程のアクション。工程の id が複数のアクションで重複しているときは必須 (無いと断る)" },
       },
       required: ["processFlowId", "stepId"],
     },
@@ -1345,7 +1346,7 @@ export const tools = [
       type: "object" as const,
       properties: {
         processFlowId: { type: "string", description: "対象の処理フローの EntityId (kebab-case)" },
-        stepId: { type: "string", description: "動かすステップの LocalId (入れ子の中のステップも指定できる)" },
+        stepId: { type: "string", description: "動かすステップの LocalId (入れ子の中のステップも指定できる)" }, actionId: { type: "string", description: "工程のアクション。工程の id が複数のアクションで重複しているときは必須 (無いと断る)" },
         direction: { type: "string", enum: ["indent", "outdent"], description: "indent = 直前のステップの配下へ / outdent = 親の次の位置へ" },
       },
       required: ["processFlowId", "stepId", "direction"],
@@ -1358,7 +1359,7 @@ export const tools = [
       type: "object" as const,
       properties: {
         processFlowId: { type: "string" },
-        stepId: { type: "string" },
+        stepId: { type: "string" }, actionId: { type: "string", description: "工程のアクション。工程の id が複数のアクションで重複しているときは必須 (無いと断る)" },
         newIndex: { type: "number" },
       },
       required: ["processFlowId", "stepId", "newIndex"],
@@ -1804,6 +1805,7 @@ export const tools = [
 
   // ── ワークスペース管理 (#671) ─────────────────────────────────────
   ...workspaceTools,
+  ...flowEditTools,
   // draft__ / lock__ tools 削除済 (Phase 6 #903)
   // 旧 draft__read / draft__update / draft__commit / draft__discard / draft__has / draft__list /
   // lock__acquire / lock__release / lock__forceRelease / lock__get / lock__list は Phase 6 (#903) で削除。

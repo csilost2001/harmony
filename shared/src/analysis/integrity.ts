@@ -123,9 +123,10 @@ export function checkIntegrity(input: DesignDocInput): DocIssue[] {
         across.set(id, (across.get(id) ?? 0) + 1);
       }
     }
-    // アクションをまたぐ重複は、動作は壊れないが、工程を id で指す操作 (update_step など) は、最初に見つかった方に当たる
+    // アクションをまたぐ重複: 工程を id で指す操作 (update_step など) が、どのアクションの工程か決められない。
+    // 以前は info で、黙って最初のアクションに当たり、別の工程を書き換える事故が起きた (#1603)。いまは actionId なしでは断るので、振り直しを促す
     const shared = [...across].filter(([, n]) => n > 1).map(([id]) => id);
-    if (shared.length) out.push({ severity: "info", section: sec, message: `アクションをまたいで、同じ工程の id が使われています (${shared.slice(0, 5).map((x) => `「${x}」`).join("")}${shared.length > 5 ? ` ほか ${shared.length - 5} 件` : ""})。工程を id で指す操作 (update_step など) は、最初に見つかったアクションの工程に当たります`, ref });
+    if (shared.length) warn(sec, `アクションをまたいで、同じ工程の id が使われています (${shared.slice(0, 5).map((x) => `「${x}」`).join("")}${shared.length > 5 ? ` ほか ${shared.length - 5} 件` : ""})。工程を id で指す操作 (update_step など) は、actionId を付けないと断ります。designer__renumber_step_ids で振り直してください`, ref);
   }
 
   // ── 画面項目 → テーブルの列・処理フロー ──
