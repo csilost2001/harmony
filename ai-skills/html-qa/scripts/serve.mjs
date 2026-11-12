@@ -89,20 +89,20 @@ const DENIED = `<!doctype html><html lang="ja"><meta charset="utf-8"><meta name=
 <body style="font-family:system-ui,sans-serif;max-width:560px;margin:40px auto;padding:0 16px;line-height:1.7">
 <h1 style="font-size:18px">鍵が必要です</h1><p>AI がチャットに示した URL (<code>?key=…</code> つき) から開いてください。一度開けば、このブラウザでは鍵なしで開けます。</p></body></html>`;
 
-// JSON の本文を読む。上限を超えたら 413 を返し、それ以降の本文は捨てる (読み切らずに切ると、送り手が 413 を受け取れないため)
+// JSON の本文を読む。上限を超えたら、それ以降の本文は捨てて、読み切ってから 413 を返す
+// (読み切る前に返して接続を閉じると、送り手は書き込みの途中で切られ (EPIPE)、413 を受け取れない)。捨てる量にも上限を設け、超えたら切る
 const readJson = (req, res, max, then) => {
   if (!String(req.headers["content-type"] || "").startsWith("application/json")) return send(res, 415, { error: "JSON で送ってください" });
   const declared = Number(req.headers["content-length"]);
-  let size = 0; const chunks = []; let over = false;
-  if (Number.isFinite(declared) && declared > max) over = true;
-  if (over) send(res, 413, { error: `大きすぎます (${Math.floor(max / 1048576) || 1}MB まで)` }, undefined, { Connection: "close" });
+  let size = 0; const chunks = []; let over = Number.isFinite(declared) && declared > max;
   req.on("data", (c) => {
     size += c.length;
-    if (size > max && !over) { over = true; chunks.length = 0; send(res, 413, { error: `大きすぎます (${Math.floor(max / 1048576) || 1}MB まで)` }, undefined, { Connection: "close" }); }
+    if (size > max && !over) { over = true; chunks.length = 0; }
     if (over) { if (size > max + 64 * 1048576) req.destroy(); } else chunks.push(c);
   });
   req.on("end", () => {
-    if (over || res.writableEnded) return;
+    if (res.writableEnded) return;
+    if (over) return send(res, 413, { error: `大きすぎます (${Math.floor(max / 1048576) || 1}MB まで)` }, undefined, { Connection: "close" });
     let body;
     try { body = JSON.parse(Buffer.concat(chunks).toString("utf8")); } catch { return send(res, 400, { error: "JSON が読めません" }); }
     try { then(body); } catch (err) {
