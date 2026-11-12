@@ -67,6 +67,56 @@
     },
     "deleteConfirm": {
       "template": "{name} を削除しますか? この操作は取り消せません。"
+    },
+    "amountOutOfRange": {
+      "template": "金額は {min} 〜 {max} の範囲で入力してください",
+      "params": ["min", "max"],
+      "locales": {"en-US": "Amount must be between {min} and {max}"},
+      "description": "金額が許容範囲外 (1 円未満 or 1 億円超) のエラー。"
+    },
+    "amountRequired": {
+      "template": "金額を入力してください",
+      "locales": {"en-US": "Please enter an amount"},
+      "description": "金額未入力時のフィールドエラーメッセージ。"
+    },
+    "invalidYearMonthFormat": {
+      "template": "対象月は YYYY-MM 形式で指定してください (例: 2026-05)",
+      "locales": {"en-US": "Year-month must be in YYYY-MM format (e.g. 2026-05)"},
+      "description": "月次レポートの対象月が YYYY-MM 形式に合致しない場合のエラー。"
+    },
+    "memoMaxLength": {
+      "template": "メモは {length} 文字以内で入力してください",
+      "params": ["length"],
+      "locales": {"en-US": "Memo must be at most {length} characters"},
+      "description": "取引メモが上限文字数 (200) を超えた場合のエラー。"
+    },
+    "notFound": {
+      "template": "{resourceType}が見つかりませんでした",
+      "params": ["resourceType"],
+      "locales": {"en-US": "{resourceType} not found"},
+      "description": "対象リソース未発見時の汎用エラー。"
+    },
+    "transactionCreated": {
+      "template": "{occurredOn} の取引 {amount} を登録しました",
+      "params": ["amount", "occurredOn"],
+      "locales": {"en-US": "Transaction {amount} on {occurredOn} has been recorded"},
+      "description": "取引登録成功時にトーストで表示する完了メッセージ (i18n source、@conv.msg.transactionCreated 参照元)。"
+    },
+    "transactionDeleted": {
+      "template": "取引を削除しました (5秒以内なら取り消し可)",
+      "locales": {"en-US": "Transaction deleted (undo within 5s)"},
+      "description": "取引削除成功時の完了トースト。"
+    },
+    "validationFailed": {
+      "template": "入力エラーがあります。下の項目を確認してください。",
+      "locales": {"en-US": "Validation failed. Please check the fields below."},
+      "description": "入力 validation 失敗時の汎用エラーメッセージ。各フィールド固有エラーは別 message + validation-rule で表示。"
+    },
+    "deficitWarning": {
+      "template": "今月の収支が赤字です (収支: {balance})",
+      "params": ["balance"],
+      "locales": {"en-US": "This month is in deficit (balance: {balance})"},
+      "description": "当月の収支が赤字に転落したときのダッシュボードの警告バナー (application-rule DeficitWarning)。"
     }
   },
   "db": {

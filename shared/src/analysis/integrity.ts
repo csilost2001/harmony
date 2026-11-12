@@ -226,6 +226,54 @@ export function checkIntegrity(input: DesignDocInput): DocIssue[] {
         warn(`処理フロー ${f.meta.name ?? f.meta.id}`, `規約の${label}「@conv.${cat}.${k}」が、規約に定義されていません`, { kind: "processFlow", id: f.meta.id });
       }
     }
+    // メッセージに渡す引数 (`@conv.msg.<キー>(name=@x)[ラベル]`、#1605) の名前を、文の引数 (params。無ければ文の {name}) と突き合わせる
+    for (const use of msgArgUses(text)) {
+      const def = input.messages?.[use.key] as { template?: unknown; params?: unknown } | undefined;
+      if (!def) continue;
+      const params = Array.isArray(def.params) ? def.params.filter((x): x is string => typeof x === "string")
+        : [...String(def.template ?? "").matchAll(/\{([A-Za-z_][\w]*)\}/g)].map((m) => m[1]);
+      const at = `処理フロー ${f.meta.name ?? f.meta.id}`;
+      const ref = { kind: "processFlow" as const, id: f.meta.id };
+      if (use.positional) {
+        if (use.positional !== params.length) warn(at, `「@conv.msg.${use.key}(…)」の引数が ${use.positional} 個ですが、メッセージの引数は ${params.length} 個です (${params.join(", ") || "なし"})`, ref);
+        continue;
+      }
+      for (const n of use.names) if (!params.includes(n)) warn(at, `「@conv.msg.${use.key}(…)」の引数「${n}」は、メッセージの引数にありません (${params.join(", ") || "なし"})`, ref);
+      for (const n of params) if (!use.names.includes(n)) warn(at, `「@conv.msg.${use.key}(…)」に、メッセージの引数「${n}」が渡されていません`, ref);
+    }
+  }
+  return out;
+}
+
+/**
+ * 文字列の中の、引数つきのメッセージの参照 `@conv.msg.<キー>(…)` (#1605)。引数が名前つき (`name=式`) なら names、
+ * 名前の無い引数なら positional にその数を入れる。括弧の中の括弧・文字列は飛ばして、上の階層の , で分ける
+ */
+export function msgArgUses(text: string): Array<{ key: string; names: string[]; positional: number }> {
+  const out: Array<{ key: string; names: string[]; positional: number }> = [];
+  for (const m of text.matchAll(/@conv\.msg\.([A-Za-z0-9_.\-]*[A-Za-z0-9_])\(/g)) {
+    const start = (m.index ?? 0) + m[0].length;
+    let depth = 0, quote = "", end = -1;
+    const parts: string[] = [];
+    let cur = "";
+    for (let i = start; i < text.length; i++) {
+      const c = text[i];
+      if (quote) { cur += c; if (c === quote && text[i - 1] !== "\\") quote = ""; continue; }
+      if (c === "'" || c === '"') { quote = c; cur += c; continue; }
+      if (c === "(" || c === "[" || c === "{") depth++;
+      if (c === ")" || c === "]" || c === "}") {
+        if (depth === 0 && c === ")") { end = i; break; }
+        depth--;
+      }
+      if (c === "," && depth === 0) { parts.push(cur); cur = ""; continue; }
+      cur += c;
+    }
+    if (end < 0) continue;
+    if (cur.trim()) parts.push(cur);
+    const args = parts.map((x) => x.trim()).filter(Boolean);
+    const named = args.map((x) => /^([A-Za-z_]\w*)\s*=(?!=)/.exec(x)?.[1]);
+    if (named.every(Boolean)) out.push({ key: m[1], names: named as string[], positional: 0 });
+    else out.push({ key: m[1], names: [], positional: args.length });
   }
   return out;
 }

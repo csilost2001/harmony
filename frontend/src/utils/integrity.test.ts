@@ -3,7 +3,7 @@
  * shared には試験の実行がないので、ここに置く。
  */
 import { describe, expect, it } from "vitest";
-import { REF_KINDS_BY_PROPERTY, checkIntegrity, dropBrokenFlowParts, forEachStep, issueHint, type DesignDocInput } from "@harmony/shared";
+import { REF_KINDS_BY_PROPERTY, checkIntegrity, dropBrokenFlowParts, forEachStep, issueHint, msgArgUses, type DesignDocInput } from "@harmony/shared";
 
 const base = (): DesignDocInput => ({
   project: { name: "t" },
@@ -286,5 +286,41 @@ describe("issueHint: 主な指摘に、直し方が付く (実際の文言で)",
   it("関係のない指摘には付けない", () => {
     expect(issueHint({ message: "同じ SQL が複数か所にあります" })).toBeNull();
     expect(issueHint({ message: "どの画面でも使われていません" })).toBeNull();
+  });
+});
+
+describe("メッセージに渡す引数 @conv.msg.<キー>(…)[ラベル] (#1605)", () => {
+  const withMsg = (expression: string) => {
+    const i = base();
+    (i as unknown as { messages: Record<string, unknown> }).messages = {
+      ok: {},
+      stock: { template: "{productName} の在庫が足りません (残り {available} 個)", params: ["productName", "available"] },
+      bare: { template: "{field} は必須です" },
+    };
+    (i.flows[0] as unknown as { actions: Array<{ steps: Array<Record<string, unknown>> }> }).actions[0].steps.push({ id: "s-9", kind: "compute", expression });
+    return checkIntegrity(i).map((x) => x.message);
+  };
+
+  it("名前と数が合っていれば 0 件。ラベル・式・文字列の中の , は分けない", () => {
+    expect(withMsg("@conv.msg.stock(productName=@p.name, available=Math.min(@a, 3))[在庫不足]")).toEqual([]);
+    expect(withMsg("@conv.msg.bare(field='金額, 円')")).toEqual([]);
+    expect(withMsg("@conv.msg.stock")).toEqual([]);
+  });
+
+  it("無い引数・渡していない引数を指摘する。params が無ければ文の {name} を使う", () => {
+    const out = withMsg("@conv.msg.stock(productName=@p, qty=@q) + @conv.msg.bare(name=@n)").join("\n");
+    expect(out).toContain("引数「qty」は、メッセージの引数にありません");
+    expect(out).toContain("メッセージの引数「available」が渡されていません");
+    expect(out).toContain("「@conv.msg.bare(…)」の引数「name」は、メッセージの引数にありません (field)");
+  });
+
+  it("名前の無い引数は、数を比べる", () => {
+    expect(withMsg("@conv.msg.stock(@p, @a)")).toEqual([]);
+    expect(withMsg("@conv.msg.stock(@p)").join("\n")).toContain("引数が 1 個ですが、メッセージの引数は 2 個です");
+  });
+
+  it("msgArgUses: 括弧の中の括弧・引用符を飛ばして分ける", () => {
+    expect(msgArgUses("x @conv.msg.a.b(n=f(1, 2), m='a)b') y")).toEqual([{ key: "a.b", names: ["n", "m"], positional: 0 }]);
+    expect(msgArgUses("@conv.msg.k(@x == 1)")).toEqual([{ key: "k", names: [], positional: 1 }]);
   });
 });

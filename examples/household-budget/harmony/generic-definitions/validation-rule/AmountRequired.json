@@ -6,7 +6,7 @@
   "responsibilities": [
     "取引入力 / 編集画面の amount field と createTransaction / updateTransaction flow の双方で適用",
     "client-side で先に評価して即フィードバック、server-side で再評価 (defense in depth)",
-    "失敗時 @msg.AmountRequired で表示"
+    "失敗時 @conv.msg.amountRequired で表示"
   ],
   "targets": ["shared"],
   "fields": [
@@ -17,8 +17,5 @@
     "amount is not undefined",
     "amount !== 0",
     "amount !== ''"
-  ],
-  "relations": [
-    { "kind": "uses", "ref": "generic-definitions/message/AmountRequired" }
   ]
 }

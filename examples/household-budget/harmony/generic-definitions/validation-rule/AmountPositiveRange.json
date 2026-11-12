@@ -6,7 +6,7 @@
   "responsibilities": [
     "createTransaction / updateTransaction の ValidationStep から呼出",
     "TableColumn ck-tx-amount-positive (DB CHECK 制約) と論理的に整合",
-    "失敗時は @msg.AmountOutOfRange (min / max placeholder 付き) で表示",
+    "失敗時は @conv.msg.amountOutOfRange (min / max placeholder 付き) で表示",
     "上限値は @const.TransactionLimits.maxAmount を参照 (マジックナンバー排除)"
   ],
   "targets": ["shared"],
@@ -18,7 +18,6 @@
     "amount <= @const.TransactionLimits.maxAmount"
   ],
   "relations": [
-    { "kind": "uses", "ref": "generic-definitions/constants/TransactionLimits", "description": "上限値を constants から取得" },
-    { "kind": "uses", "ref": "generic-definitions/message/AmountOutOfRange", "description": "失敗メッセージ" }
+    { "kind": "uses", "ref": "generic-definitions/constants/TransactionLimits", "description": "上限値を constants から取得" }
   ]
 }

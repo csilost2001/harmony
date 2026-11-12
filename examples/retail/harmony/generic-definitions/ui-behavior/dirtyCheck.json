@@ -28,7 +28,6 @@
       "description": "遷移 trigger 時に呼ばれ、dirty 時はダイアログ確認を経て shouldProceed を返す。"
     }
   ],
-  "relations": [],
   "constraints": [
     "form submit 時は dirty flag を強制 false に reset する (submit 経路は確認不要)",
     "ダイアログ表示中は遷移を block する (非同期処理を維持)"

@@ -212,7 +212,7 @@ category: schema
 | `runtime-policy` | retry / timeout / circuit breaker / cache (横断適用ポリシー) | ProcessFlow step / external system |
 | `component-definition` | service / mapper / repository / validator / formatter / facade / adapter / helper 等の責務 | ProcessFlow.componentCall |
 | `constants` | ドメイン定数集 | `@const.<key>` |
-| `message` | メッセージカタログ (i18n source) | `@msg.<key>` |
+| `message` | メッセージカタログ (i18n source)。**非推奨 (#1605)**: メッセージの文は規約の msg (`@conv.msg.<key>`) に置く ([process-flow-prefix-system.md §4.1](process-flow-prefix-system.md)) | `@msg.<key>` |
 | `domain-event` | ドメインイベント定義 | `@event.<topic>` |
 | `log-event` | ログイベント定義 (構造化ログ) | `@logEvent.<key>` |
 | `log-config` | ログ設定 (log level / sink / format) | `@logConfig.<key>` |
