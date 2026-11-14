@@ -15,11 +15,11 @@
     ],
     "UserPromptSubmit": [
       {
-        "_comment": "html-qa: ブラウザの「AI に送る」で届いた未読の回答を、利用者の発言に添えて AI に渡す (待ち受け wait.mjs が動いていなかったときの届け漏れ防止)。回答が無ければ何もしない。",
+        "_comment": "html-qa: ブラウザの「AI に送る」で届いた未読の回答を、ハブから取って利用者の発言に添えて AI に渡す (待ち受け wait が動いていなかったときの届け漏れ防止)。回答が無ければ何もしない。ハブは csilost2001/html-qa (#1608)",
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PROJECT_DIR}/ai-skills/html-qa/scripts/hook-inject.mjs",
+            "command": "node ${CLAUDE_PROJECT_DIR}/ai-skills/html-qa/html-qa.mjs hook",
             "timeout": 10
           }
         ]
