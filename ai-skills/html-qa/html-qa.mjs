@@ -20,7 +20,7 @@ import path from "node:path";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 
-export const VERSION = "0.2.0";
+export const VERSION = "0.3.1";
 export const API_VERSION = 2;
 const CLIENT_HEADER = `${VERSION}/${API_VERSION}`;
 const DEFAULT_ROOT = ".tmp/html-qa";
@@ -80,7 +80,7 @@ async function call(url, method, p, { body, token, headers = {}, timeoutMs = 15_
       redirect: "error", // トークンを、リダイレクト先 (別のオリジン) へ持ち出さない
     });
   } catch (e) {
-    throw new Stop(6, `ハブ (${url}) に届きません (${e?.cause?.code || e?.name || "error"})。ハブのコンテナが動いているか確かめてください (docker compose ps)`);
+    throw new Stop(6, `ハブに届きません (${e?.cause?.code || e?.name || "error"})。ハブのコンテナが動いているか確かめてください (docker compose ps)\n  ハブ: ${url}`);
   }
   let json = null;
   if (res.status !== 204) { try { json = await res.json(); } catch { /* 本文なし */ } }
@@ -104,8 +104,50 @@ async function api(cfg, method, p, opts = {}) {
   const info = await hubInfo(cfg.url);
   if (info.apiVersion !== API_VERSION) throw new Stop(7, `ハブ (apiVersion ${info.apiVersion}) とクライアント (apiVersion ${API_VERSION}) の版が合いません。node ${scriptRel()} update で更新してください`);
   if (cfg.hubId && info.hubId !== cfg.hubId) throw new Stop(4, `接続先 (${cfg.url}) は、前に接続したハブと別のハブです。トークンは送りません。pair で接続し直してください`);
-  if (info.version !== VERSION && !api.noted) { api.noted = true; warn(`△ クライアントの版 (${VERSION}) がハブ (${info.version}) と違います。update で更新できます`); }
+  noticeUpdate(info);
+  outsideNotice();
   return call(cfg.url, method, p, { ...opts, token: cfg.token });
+}
+
+// ---- クライアントの更新の案内 (#13) ----
+// ハブが配るクライアント・手順書と、手元のものを sha256 で比べる。違えば、AI 宛てに「利用者の許可を得てから update する」よう案内する。
+// 自分では書き換えない (プロジェクトの git に、利用者の知らない差分を作らない)
+function updateAvailable(info) {
+  const hub = info?.client;
+  if (!hub || typeof hub !== "object" || !hub.files) return info?.version && info.version !== VERSION ? { from: VERSION, to: info.version, files: [] } : null;
+  const mine = { "html-qa.mjs": fs.readFileSync(SELF()), "SKILL.md": localSkill() };
+  const files = Object.keys(mine).filter((n) => typeof hub.files[n] === "string" && mine[n] && sha256(mine[n]) !== hub.files[n]);
+  return files.length ? { from: VERSION, to: hub.version || info.version, files, key: Object.values(hub.files).join(",") } : null;
+}
+const updateMessage = (u) => [
+  `[html-qa] クライアントの更新があります (手元 v${u.from} → ハブ v${u.to}${u.files.length ? `。違うもの: ${u.files.join(" / ")}` : ""})。`,
+  "  AI へ: 利用者に「html-qa のクライアントと手順書を、ハブの版に更新してよいか」を確かめてください。許可が出たら次を実行します (許可が無ければ実行しない。いまの作業はこのまま続けてよい):",
+  `    node ${scriptRel()} update`,
+  "  更新したら、取り替わったファイルを git に入れるよう利用者に伝えてください。",
+].join("\n");
+let noticeSink = warn; // hook では、AI の文脈に入れるために集める
+
+// プロジェクトの外 (ほかのリポジトリ) のクライアントを動かしていて、プロジェクトにスキルが無いか (#15)
+const projectDir = () => path.resolve(process.env.CLAUDE_PROJECT_DIR || process.cwd());
+const inside = (file, dir) => { const r = path.relative(dir, file); return r !== "" && !r.startsWith("..") && !path.isAbsolute(r); };
+function outsideNotice() {
+  if (outsideNotice.done) return;
+  outsideNotice.done = true;
+  try {
+    const proj = projectDir();
+    if (inside(SELF(), proj) || fs.existsSync(path.join(proj, DEFAULT_SKILL_DIR, "html-qa.mjs"))) return;
+    warn([
+      `[html-qa] このプロジェクト (${proj}) に html-qa のスキルがありません。ほかの場所のクライアント (${SELF()}) を動かしています。`,
+      "  AI へ: ほかのリポジトリの html-qa を使い続けないでください。利用者に「このプロジェクトに html-qa を導入してよいか」を確かめ、許可が出たら、プロジェクトのフォルダで次を実行します:",
+      `    node ${scriptRel()} init`,
+      "  (スキルと hook が置かれます。接続済みなら、承認はもう要りません)",
+    ].join("\n"));
+  } catch { /* 案内は出せなくてもよい */ }
+}
+function noticeUpdate(info) {
+  if (noticeUpdate.done) return;
+  noticeUpdate.done = true;
+  try { const u = updateAvailable(info); if (u) noticeSink(updateMessage(u), u); } catch { /* 案内は出せなくてもよい */ }
 }
 
 // ---- ハブを探す (8 章。mDNS は段階 4) ----
@@ -115,13 +157,13 @@ async function findHub(root, given) {
   if (explicit) {
     const url = normUrl(explicit);
     const info = await probe(url);
-    if (!info) throw new Stop(6, `ハブ (${url}) に届きません。ハブのコンテナが動いているか、URL が合っているか確かめてください`);
+    if (!info) throw new Stop(6, `ハブに届きません。ハブのコンテナが動いているか、URL が合っているか確かめてください\n  ハブ: ${url}`);
     return { url, info };
   }
   for (const url of SAME_PC) { const info = await probe(url); if (info) return { url, info }; }
   for (const name of LAN_NAMES) for (const url of [`https://${name}`, `http://${name}:18190`]) {
     const info = await probe(url);
-    if (info) throw new Stop(5, `LAN の中にハブを見つけました: ${url} (ハブの名前 ${info.hubName})。このハブでよければ、--hub-url ${url} を付けてもう一度実行してください (利用者に確かめてから)`);
+    if (info) throw new Stop(5, `LAN の中にハブを見つけました (ハブの名前 ${info.hubName})。このハブでよければ、下の URL を --hub-url に付けてもう一度実行してください (利用者に確かめてから)\n  ハブ: ${url}`);
   }
   throw new Stop(6, "ハブが見つかりません。ハブのコンテナを起動するか (docker compose up -d)、--hub-url でハブの URL を指定してください");
 }
@@ -140,13 +182,25 @@ async function cmdPair(root, opts) {
   if (info.apiVersion !== API_VERSION) throw new Stop(7, `ハブ (apiVersion ${info.apiVersion}) とクライアント (apiVersion ${API_VERSION}) の版が合いません`);
   const allowInsecureLan = opts["allow-insecure-lan"] === true;
   if (!tokenAllowed(url, allowInsecureLan)) throw new Stop(2, `LAN の http:// のハブ (${url}) には接続しません (トークンが平文で流れるため)。ハブを HTTPS にしてください`);
+  if (!opts.fromInit) outsideNotice();
   const r = await call(url, "POST", "/api/pair/request", { body: { project, clientVersion: VERSION, host: os.hostname() } });
   if (r.status !== 200) throw new Stop(r.status === 429 ? 3 : 2, `接続を依頼できませんでした: ${r.json?.error || r.status}`);
   const { requestId, pollSecret, code } = r.json;
-  out(`ハブ「${info.hubName}」(${url}) に、プロジェクト「${project}」の接続を依頼しました。`);
-  out(`ハブの画面 (${(r.json.urls || [])[0] || url + "/"}) で、コード ${code} が同じことを確かめて「承認」を押してください (10 分で時間切れ)。`);
+  out(`ハブ「${info.hubName}」に、プロジェクト「${project}」の接続を依頼しました。`);
+  out(`ハブの画面で、コードが同じことを確かめて「承認」を押してください (10 分で時間切れ)。コード: ${code}`);
+  const urls = (r.json.urls || []).length ? r.json.urls : [`${url}/`];
+  urls.forEach((u, i) => out(`  ${i === 0 ? "開く" : "LAN"}: ${u}`));
   const deadline = Date.now() + Math.min(Number(opts["timeout-min"] ?? 10), 10) * 60_000;
   const every = Number(process.env.HTML_QA_PAIR_POLL_MS) || 2000;
+  // 止められたら、依頼を取り下げる (ハブの画面に、待ち手のいない依頼を残さない)
+  const cancel = async () => { try { await call(url, "POST", "/api/pair/cancel", { body: { requestId }, headers: { "X-Pair-Secret": pollSecret }, timeoutMs: 3000 }); } catch { /* 届かなくてもよい (ハブは 30 秒で「待っていない」とみなす) */ } };
+  const onInt = async () => { await cancel(); process.exit(130); };
+  const onTerm = async () => { await cancel(); process.exit(143); };
+  process.once("SIGINT", onInt);
+  process.once("SIGTERM", onTerm);
+  try { return await waitApproval(); } finally { process.off("SIGINT", onInt); process.off("SIGTERM", onTerm); }
+
+  async function waitApproval() {
   while (Date.now() < deadline) {
     await new Promise((res) => setTimeout(res, every));
     let s;
@@ -159,7 +213,9 @@ async function cmdPair(root, opts) {
       return 0;
     }
   }
+  await cancel();
   throw new Stop(3, "承認を待ちましたが、時間切れになりました。もう一度 pair を実行してください");
+  }
 }
 
 // ---- 議題フォルダ ----
@@ -278,7 +334,10 @@ async function pullAnswers(root, cfg, topic = null, opts = {}) {
     const md = path.join(dir, `v${a.version}.answer.md`);
     const mark = path.join(dir, `v${a.version}.answer.hub`);
     const delivered = fs.existsSync(mark) && fs.readFileSync(mark, "utf8").trim() === String(a.mtimeMs) && fs.existsSync(md);
-    if (!delivered) {
+    const sameLocal = !delivered && fs.existsSync(md) && fs.existsSync(md.replace(/\.md$/, ".seen"))
+      && fs.readFileSync(md, "utf8").replace(/^<!--.*?-->\n/, "").trim() === a.text.trim();
+    if (sameLocal) fs.writeFileSync(mark, String(a.mtimeMs)); // 本文が同じで、ローカルでも受け取り済みなら、書き直さない (hook が渡し直さない)
+    else if (!delivered) {
       const jsonFile = path.join(dir, `v${a.version}.answer.json`);
       if (a.json && typeof a.json === "object") fs.writeFileSync(jsonFile, `${JSON.stringify(a.json, null, 2)}\n`);
       else fs.rmSync(jsonFile, { force: true });
@@ -361,16 +420,26 @@ async function cmdHook() {
   try {
     const root = path.resolve(process.env.CLAUDE_PROJECT_DIR || process.cwd(), DEFAULT_ROOT);
     const cfg = readConfig(root);
+    let notice = null;
+    noticeSink = (text, u) => { notice = { text, key: u.key || u.to }; };
     let pulled = [];
     if (cfg) { try { pulled = await pullAnswers(root, cfg, null, { timeoutMs: 2500 }); } catch { /* ハブに届かなくても発言は止めない */ } }
     const dirs = fs.existsSync(root) ? fs.readdirSync(root, { withFileTypes: true }).filter((e) => e.isDirectory() && NAME_RE.test(e.name)).map((e) => path.join(root, e.name)) : [];
     // wait が待っている議題はそちらに任せる (二重に渡さない)
     const list = unreadAnswers(dirs.filter((d) => !isWaitingLocal(d))).slice(-5);
+    const parts = [];
     if (list.length) {
-      const context = `${formatAnswers(list)}\n\n(この回答は、利用者が html-qa の画面の「AI に送る」で送ったもので、まだ AI が読んでいなかった分。hook が利用者の今の発言に添えた)`;
+      parts.push(`${formatAnswers(list)}\n\n(この回答は、利用者が html-qa の画面の「AI に送る」で送ったもので、まだ AI が読んでいなかった分。hook が利用者の今の発言に添えた)`);
       list.forEach(markSeen);
-      await new Promise((r) => process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext: context } }), r));
     }
+    // 更新の案内は、ハブの同じ版について 1 回だけ (毎回の発言には出さない)
+    if (notice) {
+      const mark = path.join(root, ".update-notice");
+      let last = null;
+      try { last = fs.readFileSync(mark, "utf8").trim(); } catch { /* まだ無い */ }
+      if (last !== notice.key) { parts.push(notice.text); try { fs.mkdirSync(root, { recursive: true }); fs.writeFileSync(mark, notice.key); } catch { /* 印は書けなくてもよい */ } }
+    }
+    if (parts.length) await new Promise((r) => process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext: parts.join("\n\n") } }), r));
     // ローカルで読み済みの回答の印をハブにも付ける。まだ読んでいない分 (wait 中の議題・6 件目以降) には付けない
     if (cfg) await seenHub(cfg, pulled.filter((p) => isSeenLocal(path.join(root, p.topic), p.version)));
   } catch { /* hook の失敗で利用者の発言を止めない */ }
@@ -387,7 +456,8 @@ async function cmdStatus(root) {
   out(`プロジェクト: ${cfg.project}`);
   const r = await api(cfg, "GET", "/api/topics");
   if (r.status !== 200) throw new Stop(6, `議題の一覧を読めませんでした: ${r.json?.error || r.status}`);
-  if (r.json.urls?.[0]) out(`一覧: ${r.json.urls[0]}`);
+  if (r.json.urls?.[0]) out(`  一覧: ${r.json.urls[0]}`);
+  if (!(r.json.topics || []).length) out("  議題はまだありません (publish すると、一覧に出ます)");
   for (const t of r.json.topics || []) {
     const last = t.versions[t.versions.length - 1];
     out(`  ${t.topic}: v${last?.version ?? "-"} ${last?.answered ? (last.seen ? "回答あり (受け取り済み)" : "回答あり (未受け取り)") : "回答待ち"}${t.waiting ? " · AI が待ち受け中" : ""}`);
@@ -410,7 +480,7 @@ async function fetchFromHub(url) {
   for (const f of m.json.files) {
     if (!["html-qa.mjs", "SKILL.md"].includes(f.path)) continue;
     let res;
-    try { res = await fetch(`${url}/client/${f.path}`, { signal: AbortSignal.timeout(15_000), redirect: "error" }); } catch (e) { throw new Stop(6, `ハブ (${url}) に届きません (${e?.cause?.code || e?.name})`); }
+    try { res = await fetch(`${url}/client/${f.path}`, { signal: AbortSignal.timeout(15_000), redirect: "error" }); } catch (e) { throw new Stop(6, `ハブに届きません (${e?.cause?.code || e?.name})\n  ハブ: ${url}`); }
     const buf = Buffer.from(await res.arrayBuffer());
     if (!res.ok || sha256(buf) !== f.sha256) throw new Stop(6, `${f.path} の中身が、ハブの一覧の sha256 と合いません (取り替えません)`);
     files[f.path] = buf;
@@ -445,17 +515,45 @@ async function cmdInit(root, opts) {
   out(`✓ ${rel(path.join(skillDir, "SKILL.md"))} と ${rel(path.join(skillDir, "html-qa.mjs"))} を置きました (プロジェクトの git に入れてください)`);
   const cfg = readConfig(root);
   if (cfg && cfg.url === url && cfg.hubId === info.hubId && (!opts.project || opts.project === cfg.project)) {
-    out(`このプロジェクトは、ハブ (${url}) にプロジェクト「${cfg.project}」として接続済みです`);
+    out(`このプロジェクトは、プロジェクト「${cfg.project}」として、ハブに接続済みです`);
+    out(`  ハブ: ${url}`);
   } else {
-    const code = await cmdPair(root, { ...opts, "hub-url": url });
+    const code = await cmdPair(root, { ...opts, "hub-url": url, fromInit: true });
     if (code !== 0) return code;
   }
   const cmd = `node "$CLAUDE_PROJECT_DIR"/${path.relative(process.cwd(), skillDir).split(path.sep).join("/")}/html-qa.mjs hook`;
-  out("");
-  out("Claude Code の hook を登録してください (セッションを開き直したときの回答の届け漏れを防ぐ)。.claude/settings.json の hooks に:");
-  out(JSON.stringify({ UserPromptSubmit: [{ hooks: [{ type: "command", command: cmd }] }] }));
-  out(`.tmp/ を git に入れないこと (.gitignore)。議題は .tmp/html-qa/<topic>/ に置き、node ${rel(path.join(skillDir, "html-qa.mjs"))} publish で送ります`);
+  out(addHook(process.cwd(), cmd));
+  out(addGitignore(process.cwd()));
+  out(`導入が終わりました。議題は .tmp/html-qa/<topic>/ に置き、node ${rel(path.join(skillDir, "html-qa.mjs"))} publish で送ります。置いたファイル (${rel(skillDir)}/・.claude/settings.json・.gitignore) を、プロジェクトの git に入れてください`);
   return 0;
+}
+
+// Claude Code の hook (UserPromptSubmit) を .claude/settings.json に足す。html-qa の hook があれば足さない。ほかの設定は残す。
+// JSON が読めないときは書き換えず、足す内容を案内する
+export function addHook(proj, cmd) {
+  const file = path.join(proj, ".claude", "settings.json");
+  const entry = { hooks: [{ type: "command", command: cmd }] };
+  let cfg = {};
+  if (fs.existsSync(file)) {
+    try { cfg = JSON.parse(fs.readFileSync(file, "utf8")); } catch { cfg = null; }
+    if (!cfg || typeof cfg !== "object" || Array.isArray(cfg)) return `△ ${rel(file)} が JSON として読めないので、書き換えませんでした。hooks に次を足してください:\n${JSON.stringify({ UserPromptSubmit: [entry] })}`;
+  }
+  const hooks = cfg.hooks && typeof cfg.hooks === "object" && !Array.isArray(cfg.hooks) ? cfg.hooks : (cfg.hooks = {});
+  const list = Array.isArray(hooks.UserPromptSubmit) ? hooks.UserPromptSubmit : (hooks.UserPromptSubmit = []);
+  if (JSON.stringify(list).includes("html-qa.mjs hook")) return `✓ hook は ${rel(file)} に登録済みです`;
+  list.push(entry);
+  writeFileAtomic(file, `${JSON.stringify(cfg, null, 2)}\n`);
+  return `✓ 回答を発言に添える hook を ${rel(file)} に登録しました (セッションを開き直すと効きます)`;
+}
+
+// .gitignore に .tmp/ を足す (トークン入りの .tmp/html-qa/.hub.json を git に入れない)
+export function addGitignore(proj) {
+  const file = path.join(proj, ".gitignore");
+  let text = "";
+  try { text = fs.readFileSync(file, "utf8"); } catch { /* まだ無い */ }
+  if (text.split(/\r?\n/).some((l) => /^\/?\.tmp(\/(\*\*?)?)?$/.test(l.trim()))) return "✓ .gitignore に .tmp/ はあります";
+  fs.writeFileSync(file, `${text}${text && !text.endsWith("\n") ? "\n" : ""}.tmp/\n`);
+  return "✓ .gitignore に .tmp/ を足しました (トークンを git に入れないため)";
 }
 
 async function cmdUpdate(root, opts) {
@@ -473,7 +571,7 @@ async function cmdUpdate(root, opts) {
     writeFileAtomic(file, buf, name.endsWith(".mjs") ? 0o755 : undefined);
     changed.push(name);
   }
-  out(changed.length ? `✓ ハブの v${version} に取り替えました: ${changed.map((n) => rel(path.join(dir, n))).join(" / ")}` : `✓ ハブの v${version} と同じです (取り替えるものはありません)`);
+  out(changed.length ? `✓ ハブの v${version} に取り替えました: ${changed.map((n) => rel(path.join(dir, n))).join(" / ")}\n  取り替わったファイルを、プロジェクトの git に入れてください (利用者に伝える)` : `✓ ハブの v${version} と同じです (取り替えるものはありません)`);
   return 0;
 }
 
